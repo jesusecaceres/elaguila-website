@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FiMapPin, FiPhone } from "react-icons/fi";
+import { FiMapPin, FiMessageSquare, FiPhone } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import type { ServiciosListingTemplate } from "@/app/(site)/clasificados/servicios/lib/serviciosTemplateRouting";
@@ -12,11 +12,13 @@ import {
 } from "@/app/lib/leonixCommunityTrust/leonixEndorsementClient";
 import { serviciosOpenGoogleMapsDirections } from "../lib/serviciosDirectCta";
 import { resolveServiciosProfileDirectWhatsAppHref } from "../lib/serviciosWhatsAppHref";
+import { buildQuoteSmsHref } from "../lib/serviciosContactActions";
 import {
   LX,
   LX_CTA_MAP,
   LX_CTA_PRIMARY,
   LX_CTA_PRIMARY_LG,
+  LX_CTA_SECONDARY,
   LX_CTA_WHATSAPP,
   LX_HERO_BG,
   LX_HERO_BG_STYLE,
@@ -208,9 +210,19 @@ export function ServiciosProfessionalHero({
       : undefined;
   const isLeonixVerified = profile.hero.badges.some((b) => b.kind === "verified");
   const showDirections = hasPhysicalAddress(profile);
-  const tel = profile.contact.phoneTelHref?.trim();
+  // Servicios Final Contact Truth + Email No-Mailto Closeout (2026-09-17, Gate 1/7) — one Call
+  // destination: office phone when present, principal phone as fallback. The primary button's
+  // LABEL stays the category-specific primaryLabel below (Contactar/Cotizar/etc.) per the owner's
+  // instruction to preserve that aggregate Contact/Cotización behavior — only the destination changes.
+  const officeTel = profile.contact.phoneOfficeTelHref?.trim();
+  const officeDisplay = profile.contact.phoneOfficeDisplay?.trim();
+  const tel = officeTel && officeDisplay ? officeTel : profile.contact.phoneTelHref?.trim();
   const waHref = resolveServiciosProfileDirectWhatsAppHref(profile.contact);
+  // Gate 2/7 — the dedicated "número para mensajes/cotizaciones"; never WhatsApp, never the office
+  // number merely because it exists. buildQuoteSmsHref preserves the existing quote/message copy.
+  const smsHref = buildQuoteSmsHref(profile.contact.quoteMessagePhone, lang);
   const primaryLabel = getPrimaryCtaLabel(template, lang);
+  const messageLabel = lang === "en" ? "Message" : "Mensaje";
   const analyticsBase = serviciosAnalyticsTrackMeta({
     listingSlug,
     sourceId: listingSourceId,
@@ -243,6 +255,12 @@ export function ServiciosProfessionalHero({
     if (!waHref) return;
     trackServiciosListingCta(listingSlug, "cta_whatsapp_click", analyticsBase);
     window.open(waHref, "_blank", "noopener,noreferrer");
+  };
+
+  const openMessage = () => {
+    if (!smsHref) return;
+    trackServiciosListingCta(listingSlug, "cta_quote_sms_click", analyticsBase);
+    window.location.href = smsHref;
   };
 
   const openDirections = () => {
@@ -369,6 +387,16 @@ export function ServiciosProfessionalHero({
               {primaryLabel}
             </button>
           ) : null}
+          {smsHref ? (
+            <button
+              type="button"
+              onClick={openMessage}
+              className={`${LX_CTA_SECONDARY} ${LX_CTA_PRIMARY_LG} w-full lg:min-w-[10rem] lg:flex-1`}
+            >
+              <FiMessageSquare className="h-4 w-4 shrink-0" aria-hidden />
+              {messageLabel}
+            </button>
+          ) : null}
           {waHref ? (
             <button
               type="button"
@@ -386,7 +414,7 @@ export function ServiciosProfessionalHero({
               {lang === "en" ? "Directions" : "Cómo llegar"}
             </button>
           ) : null}
-          {!tel && !waHref ? (
+          {!tel && !smsHref && !waHref ? (
             <button
               type="button"
               onClick={scrollToContact}

@@ -166,6 +166,9 @@ export function buildServiciosGetQuoteIntent(
     whatsappDigits: waOk ? waDigits : undefined,
     email: hasEmail ? email : undefined,
     contactShareExtras: serviciosContactShareExtras(profile, opts.listingSlug, opts.listingShareUrl),
+    // Owner no-mailto doctrine (2026-09-17) — the quote sheet's own "Enviar por correo" action must
+    // not expose the mailto launcher either, same as buildServiciosSendEmailIntentFromMailto below.
+    showOpenEmailApp: false,
   };
 }
 
@@ -199,5 +202,9 @@ export function buildServiciosSendEmailIntentFromMailto(
       publicUrl: serviciosBuildListingPublicUrl(listingSlug, listingShareUrl) || undefined,
     },
     gmailComposeHref: null,
+    // Owner no-mailto doctrine (2026-09-17): this still renders the same "Correo/Email" sheet
+    // (send_email kind) as ServiciosBusinessHubContactCard's own openEmail — must not expose
+    // the mailto launcher either, regardless of which internal path built the intent.
+    showOpenEmailApp: false,
   };
 }

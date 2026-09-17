@@ -1,20 +1,13 @@
 /**
- * Servicios False-Gates-Only Final Completion Pass — Gate 4 verifier (2026-09-17).
+ * Servicios Final Contact Truth + Email No-Mailto Closeout (2026-09-17) — Gate 4 verifier.
  *
- * Complete contact CTA fixture matrix for the results cards (trade + professional templates),
- * scenarios A–I from the owner task. Drives the REAL production functions —
- * `resolveServiciosProfile` (wire → resolved contact fields) and
- * `resolveServiciosProfileDirectWhatsAppHref` (WhatsApp gating) — against a wire fixture per
- * scenario, then evaluates the exact gating predicates each card component computes inline
- * (cited by file:line below) to predict which CTA buttons render, and cross-checks that prediction
- * against the live component source so the model can never silently drift from reality.
- *
- * IMPORTANT — SMS does not exist as a results-card CTA today (confirmed by source read: neither
- * ServiciosHorizontalResultCard.tsx nor ServiciosProfessionalResultCard.tsx references "sms" at
- * all; SMS/`quoteMessagePhone` is exclusively a detail-page "Quote" feature in
- * ServiciosActionPanel.tsx). Scenarios B/D/E/G, which vary SMS presence, are therefore fixtures that
- * PROVE SMS presence/absence has zero effect on which results-card buttons render — this is the
- * correct, honest behavior per "NO new features" (adding an SMS button would be new UI, not a fix).
+ * SUPERSEDES the previous version of this file (Servicios False-Gates-Only pass), which asserted
+ * "SMS presence has zero effect on results-card CTA rendering" — that was true only because the
+ * results card had no Message CTA at all at the time. The owner has since supplied the real
+ * contact-number data model and required a genuine Message CTA driven by
+ * `contact.quoteMessagePhone`. This file replaces those now-false assertions with the current
+ * contract: office-first Call, optional Message (SMS), optional WhatsApp (bumped to its own row
+ * only when Call+Message+WhatsApp all coexist), optional Directions, email-only fallback last.
  *
  * Run: node node_modules/tsx/dist/cli.mjs scripts/verify-servicios-gate4-contact-cta-fixture-matrix.ts
  */
@@ -22,7 +15,7 @@ import { strict as assert } from "node:assert";
 import { readFileSync } from "node:fs";
 import { resolveServiciosProfile } from "../app/(site)/servicios/lib/resolveServiciosProfile";
 import { resolveServiciosProfileDirectWhatsAppHref } from "../app/(site)/servicios/lib/serviciosWhatsAppHref";
-import { hasPhysicalAddress } from "../app/(site)/servicios/components/serviciosLeonixBrand";
+import { buildQuoteSmsHref } from "../app/(site)/servicios/lib/serviciosContactActions";
 import type { ServiciosBusinessProfile } from "../app/(site)/servicios/types/serviciosBusinessProfile";
 
 const failures: string[] = [];
@@ -40,24 +33,28 @@ const raw = (rel: string) => readFileSync(new URL(`../${rel}`, import.meta.url),
 const TRADE_CARD = "app/(site)/clasificados/servicios/components/ServiciosHorizontalResultCard.tsx";
 const PRO_CARD = "app/(site)/clasificados/servicios/ServiciosProfessionalResultCard.tsx";
 
-/* ── Bind the model to reality: the exact gating expressions must still be present in the components. ── */
 check("SOURCE BINDING: trade card gating expressions match the modeled predicates (no drift)", () => {
   const src = raw(TRADE_CARD);
   assert.ok(src.includes("officeTel && officeDisplay"));
   assert.ok(src.includes("tel && phoneDisplay"));
   assert.ok(src.includes("resolveServiciosProfileDirectWhatsAppHref(profile.contact)"));
-  assert.ok(src.includes("!primaryCall && !wa && (profile.contact.emailMailtoHref || profile.contact.websiteHref)"));
+  assert.ok(src.includes("const smsHref = buildQuoteSmsHref(profile.contact.quoteMessagePhone, displayLang);"));
+  assert.ok(src.includes("const forceWhatsAppBelow = Boolean(primaryCall) && Boolean(smsHref) && Boolean(wa);"));
+  assert.ok(src.includes("!primaryCall && !smsHref && !wa && (profile.contact.emailMailtoHref || profile.contact.websiteHref)"));
 });
 check("SOURCE BINDING: professional card gating expressions match the modeled predicates (no drift)", () => {
   const src = raw(PRO_CARD);
-  assert.ok(src.includes("const tel = profile.contact.phoneTelHref;"));
+  assert.ok(src.includes("const useOfficeCall = Boolean(officeTel && officeDisplay);"));
+  assert.ok(src.includes("const tel = useOfficeCall ? officeTel : profile.contact.phoneTelHref;"));
   assert.ok(src.includes("resolveServiciosProfileDirectWhatsAppHref(profile.contact)"));
-  assert.ok(src.includes("hasPhysicalAddress(profile)"));
+  assert.ok(src.includes("const smsHref = buildQuoteSmsHref(profile.contact.quoteMessagePhone, displayLang);"));
+  assert.ok(src.includes("!tel && !smsHref && !waHrefNormalized && profile.contact.emailMailtoHref"));
 });
-check("SOURCE BINDING: neither results card renders an SMS CTA (SMS is a detail-page-only Quote feature)", () => {
+check("SOURCE BINDING: both results cards now render a real Message/SMS CTA driven by quoteMessagePhone", () => {
   for (const rel of [TRADE_CARD, PRO_CARD]) {
     const src = raw(rel);
-    assert.ok(!/\bsms\b/i.test(src), `${rel}: unexpectedly references SMS — Gate 4 fixture assumptions are stale`);
+    assert.ok(/\bsmsHref\b/.test(src), `${rel}: must compute smsHref from quoteMessagePhone`);
+    assert.ok(!/\bwaHrefNormalized\)\s*;\s*\/\/\s*sms/i.test(src)); // sanity: no accidental WA-as-SMS aliasing
   }
 });
 
@@ -74,7 +71,7 @@ function wire(overrides: Partial<Wire["contact"]>): Wire {
   } as unknown as Wire;
 }
 
-type TradePrediction = { call: boolean; whatsapp: boolean; directions: boolean; emailOrWebsiteFallback: boolean };
+type TradePrediction = { call: boolean; message: boolean; whatsapp: boolean; whatsappRow: "row1" | "row2" | "none"; directions: boolean; emailOrWebsiteFallback: boolean };
 function predictTradeCard(w: Wire): TradePrediction {
   const profile = resolveServiciosProfile(w, "es");
   const officeTel = (profile.contact.phoneOfficeTelHref || "").trim();
@@ -83,88 +80,115 @@ function predictTradeCard(w: Wire): TradePrediction {
   const phoneDisplay = (profile.contact.phoneDisplay || "").trim();
   const primaryCall = (officeTel && officeDisplay) || (tel && phoneDisplay);
   const wa = resolveServiciosProfileDirectWhatsAppHref(profile.contact) ?? "";
+  const smsHref = buildQuoteSmsHref(profile.contact.quoteMessagePhone, "es");
+  const forceWhatsAppBelow = Boolean(primaryCall) && Boolean(smsHref) && Boolean(wa);
   const addressQuery = (profile.contact.physicalAddressDisplay || "").trim();
-  const mapsHref = ((profile.contact.mapsSearchHref || "").trim() || "").trim();
+  const mapsHref = (profile.contact.mapsSearchHref || "").trim();
   const showDirections = Boolean(mapsHref && (addressQuery || /^https?:\/\//i.test(mapsHref)));
-  const emailOrWebsiteFallback = Boolean(!primaryCall && !wa && (profile.contact.emailMailtoHref || profile.contact.websiteHref));
-  return { call: Boolean(primaryCall), whatsapp: Boolean(wa), directions: showDirections, emailOrWebsiteFallback };
+  const emailOrWebsiteFallback = Boolean(!primaryCall && !smsHref && !wa && (profile.contact.emailMailtoHref || profile.contact.websiteHref));
+  const whatsappRow: "row1" | "row2" | "none" = !wa ? "none" : forceWhatsAppBelow ? "row2" : "row1";
+  return { call: Boolean(primaryCall), message: Boolean(smsHref), whatsapp: Boolean(wa), whatsappRow, directions: showDirections, emailOrWebsiteFallback };
 }
 
-type ProPrediction = { call: boolean; whatsapp: boolean; directions: boolean };
+type ProPrediction = { call: boolean; message: boolean; whatsapp: boolean; whatsappRow: "row1" | "row2" | "none"; directions: boolean; emailOnly: boolean };
 function predictProCard(w: Wire): ProPrediction {
   const profile = resolveServiciosProfile(w, "es");
-  const tel = profile.contact.phoneTelHref;
+  const officeTel = profile.contact.phoneOfficeTelHref?.trim();
+  const officeDisplay = profile.contact.phoneOfficeDisplay?.trim();
+  const useOfficeCall = Boolean(officeTel && officeDisplay);
+  const tel = useOfficeCall ? officeTel : profile.contact.phoneTelHref;
   const waHrefNormalized = resolveServiciosProfileDirectWhatsAppHref(profile.contact) ?? "";
-  const showDirections = hasPhysicalAddress(profile);
-  return { call: Boolean(tel), whatsapp: Boolean(waHrefNormalized), directions: showDirections };
+  const smsHref = buildQuoteSmsHref(profile.contact.quoteMessagePhone, "es");
+  const forceWhatsAppBelow = Boolean(tel) && Boolean(smsHref) && Boolean(waHrefNormalized);
+  const showDirections = Boolean(profile.contact.physicalAddressDisplay?.trim() || profile.contact.mapsSearchHref?.trim());
+  const emailOnly = Boolean(!tel && !smsHref && !waHrefNormalized && profile.contact.emailMailtoHref);
+  const whatsappRow: "row1" | "row2" | "none" = !waHrefNormalized ? "none" : forceWhatsAppBelow ? "row2" : "row1";
+  return { call: Boolean(tel), message: Boolean(smsHref), whatsapp: Boolean(waHrefNormalized), whatsappRow, directions: showDirections, emailOnly };
 }
 
-/* ── The 9 scenarios. ── */
+/* ── The 9 scenarios (A-I), re-specified against the real 3-channel (Call/Message/WhatsApp) contract. ── */
 const REAL_PHONE = "5551234567";
+const REAL_OFFICE_PHONE = "5559876543";
 const REAL_WHATSAPP = "5551234567";
+const REAL_MESSAGE_NUMBER = "5551119999";
 const REAL_EMAIL = "owner@leonixmedia.com";
 
-check("A. call only — trade card shows Call, no WhatsApp, no email/website fallback", () => {
-  const p = predictTradeCard(wire({ phone: REAL_PHONE }));
-  assert.deepEqual(p, { call: true, whatsapp: false, directions: false, emailOrWebsiteFallback: false });
-});
-check("A. call only — professional card shows Call, no WhatsApp", () => {
-  const p = predictProCard(wire({ phone: REAL_PHONE }));
-  assert.deepEqual(p, { call: true, whatsapp: false, directions: false });
-});
-
-check("B. call + SMS — SMS field presence has ZERO effect on trade-card CTA rendering", () => {
-  const withoutSms = predictTradeCard(wire({ phone: REAL_PHONE }));
-  const withSms = predictTradeCard(wire({ phone: REAL_PHONE, quoteMessagePhone: REAL_PHONE }));
-  assert.deepEqual(withSms, withoutSms, "SMS/quoteMessagePhone must not change results-card CTA set");
+check("A. office + principal + message + WhatsApp — Call uses office, Message shown, WhatsApp bumped to its own row", () => {
+  const w = wire({ phone: REAL_PHONE, phoneOffice: REAL_OFFICE_PHONE, quoteMessagePhone: REAL_MESSAGE_NUMBER, socialLinks: { whatsappUrl: REAL_WHATSAPP } });
+  const trade = predictTradeCard(w);
+  assert.deepEqual(trade, { call: true, message: true, whatsapp: true, whatsappRow: "row2", directions: false, emailOrWebsiteFallback: false });
+  const pro = predictProCard(w);
+  assert.deepEqual(pro, { call: true, message: true, whatsapp: true, whatsappRow: "row2", directions: false, emailOnly: false });
 });
 
-check("C. call + WhatsApp — both cards show Call and WhatsApp together (no mutual suppression)", () => {
-  const trade = predictTradeCard(wire({ phone: REAL_PHONE, socialLinks: { whatsappUrl: REAL_WHATSAPP } }));
-  assert.deepEqual(trade, { call: true, whatsapp: true, directions: false, emailOrWebsiteFallback: false });
-  const pro = predictProCard(wire({ phone: REAL_PHONE, socialLinks: { whatsappUrl: REAL_WHATSAPP } }));
-  assert.deepEqual(pro, { call: true, whatsapp: true, directions: false });
+check("B. principal + message, no office, no WhatsApp — Call uses principal, Message shown, no WhatsApp", () => {
+  const w = wire({ phone: REAL_PHONE, quoteMessagePhone: REAL_MESSAGE_NUMBER });
+  assert.deepEqual(predictTradeCard(w), { call: true, message: true, whatsapp: false, whatsappRow: "none", directions: false, emailOrWebsiteFallback: false });
 });
 
-check("D. call + SMS + WhatsApp — identical to C; SMS remains inert on both cards", () => {
-  const c = predictTradeCard(wire({ phone: REAL_PHONE, socialLinks: { whatsappUrl: REAL_WHATSAPP } }));
-  const d = predictTradeCard(wire({ phone: REAL_PHONE, quoteMessagePhone: REAL_PHONE, socialLinks: { whatsappUrl: REAL_WHATSAPP } }));
-  assert.deepEqual(d, c);
-});
-
-check("E. SMS + WhatsApp, no office/main phone — no Call button, WhatsApp still renders", () => {
-  const p = predictTradeCard(wire({ quoteMessagePhone: REAL_PHONE, socialLinks: { whatsappUrl: REAL_WHATSAPP } }));
-  assert.deepEqual(p, { call: false, whatsapp: true, directions: false, emailOrWebsiteFallback: false });
-  const pro = predictProCard(wire({ quoteMessagePhone: REAL_PHONE, socialLinks: { whatsappUrl: REAL_WHATSAPP } }));
-  assert.deepEqual(pro, { call: false, whatsapp: true, directions: false });
-});
-
-check("F. no WhatsApp — Call renders alone, no dead WhatsApp slot", () => {
-  const p = predictTradeCard(wire({ phone: REAL_PHONE }));
-  assert.equal(p.whatsapp, false);
+check("C. office + principal, no message, no WhatsApp — office Call only", () => {
+  const w = wire({ phone: REAL_PHONE, phoneOffice: REAL_OFFICE_PHONE });
+  const p = predictTradeCard(w);
   assert.equal(p.call, true);
+  assert.equal(p.message, false);
+  assert.equal(p.whatsapp, false);
 });
 
-check("G. no SMS — identical rendering to the equivalent scenario with SMS present (already proven in B/D)", () => {
-  const withoutSms = predictProCard(wire({ phone: REAL_PHONE, socialLinks: { whatsappUrl: REAL_WHATSAPP } }));
-  const withSms = predictProCard(wire({ phone: REAL_PHONE, quoteMessagePhone: REAL_PHONE, socialLinks: { whatsappUrl: REAL_WHATSAPP } }));
-  assert.deepEqual(withoutSms, withSms);
+check("D. office + message + WhatsApp — same 3-destination shape as A", () => {
+  const w = wire({ phoneOffice: REAL_OFFICE_PHONE, quoteMessagePhone: REAL_MESSAGE_NUMBER, socialLinks: { whatsappUrl: REAL_WHATSAPP } });
+  const p = predictTradeCard(w);
+  assert.equal(p.call, true);
+  assert.equal(p.message, true);
+  assert.equal(p.whatsapp, true);
+  assert.equal(p.whatsappRow, "row2");
 });
 
-check("H. email-only fallback — no phone, no WhatsApp, real email: trade card shows the email fallback", () => {
+check("E. principal only — Call only", () => {
+  const p = predictTradeCard(wire({ phone: REAL_PHONE }));
+  assert.deepEqual(p, { call: true, message: false, whatsapp: false, whatsappRow: "none", directions: false, emailOrWebsiteFallback: false });
+});
+
+check("F. message only — Message only, valid product state (no call/whatsapp, no dead call slot)", () => {
+  const p = predictTradeCard(wire({ quoteMessagePhone: REAL_MESSAGE_NUMBER }));
+  assert.deepEqual(p, { call: false, message: true, whatsapp: false, whatsappRow: "none", directions: false, emailOrWebsiteFallback: false });
+});
+
+check("G. email only — rich email sheet fallback, no other channel", () => {
   const p = predictTradeCard(wire({ email: REAL_EMAIL }));
-  assert.deepEqual(p, { call: false, whatsapp: false, directions: false, emailOrWebsiteFallback: true });
+  assert.deepEqual(p, { call: false, message: false, whatsapp: false, whatsappRow: "none", directions: false, emailOrWebsiteFallback: true });
+  const pro = predictProCard(wire({ email: REAL_EMAIL }));
+  assert.equal(pro.emailOnly, true);
 });
-check("H. email-only fallback — professional card: no Call/WhatsApp/Directions render (email-sheet wiring covered by Gate 12)", () => {
-  const p = predictProCard(wire({ email: REAL_EMAIL }));
-  assert.deepEqual(p, { call: false, whatsapp: false, directions: false });
+
+check("Call + WhatsApp, no Message — two balanced CTAs (WhatsApp stays in the primary row)", () => {
+  const p = predictTradeCard(wire({ phone: REAL_PHONE, socialLinks: { whatsappUrl: REAL_WHATSAPP } }));
+  assert.equal(p.call, true);
+  assert.equal(p.message, false);
+  assert.equal(p.whatsapp, true);
+  assert.equal(p.whatsappRow, "row1", "WhatsApp must not be forced to its own row when Message is absent");
+});
+
+check("Message + WhatsApp, no Call — two balanced CTAs (WhatsApp stays in the primary row)", () => {
+  const p = predictTradeCard(wire({ quoteMessagePhone: REAL_MESSAGE_NUMBER, socialLinks: { whatsappUrl: REAL_WHATSAPP } }));
+  assert.equal(p.call, false);
+  assert.equal(p.message, true);
+  assert.equal(p.whatsapp, true);
+  assert.equal(p.whatsappRow, "row1", "WhatsApp must not be forced to its own row when Call is absent");
 });
 
 check("I. no available contact channel — zero contact CTAs render on either card (no dead buttons)", () => {
   const trade = predictTradeCard(wire({}));
-  assert.deepEqual(trade, { call: false, whatsapp: false, directions: false, emailOrWebsiteFallback: false });
+  assert.deepEqual(trade, { call: false, message: false, whatsapp: false, whatsappRow: "none", directions: false, emailOrWebsiteFallback: false });
   const pro = predictProCard(wire({}));
-  assert.deepEqual(pro, { call: false, whatsapp: false, directions: false });
+  assert.equal(pro.call, false);
+  assert.equal(pro.message, false);
+  assert.equal(pro.whatsapp, false);
+  assert.equal(pro.emailOnly, false);
+});
+
+check("Message is never driven by the office number or WhatsApp number merely because they exist", () => {
+  const p = predictTradeCard(wire({ phone: REAL_PHONE, phoneOffice: REAL_OFFICE_PHONE, socialLinks: { whatsappUrl: REAL_WHATSAPP } }));
+  assert.equal(p.message, false, "no quoteMessagePhone set — Message must not appear");
 });
 
 check("Directions is independently gated on a real resolved address/maps destination, never assumed", () => {
@@ -180,4 +204,4 @@ if (failures.length) {
   console.error(`\nverify-servicios-gate4-contact-cta-fixture-matrix: ${failures.length} failure(s):\n- ${failures.join("\n- ")}`);
   process.exit(1);
 }
-console.log("\nverify-servicios-gate4-contact-cta-fixture-matrix: PASS (scenarios A-I)");
+console.log("\nverify-servicios-gate4-contact-cta-fixture-matrix: PASS");

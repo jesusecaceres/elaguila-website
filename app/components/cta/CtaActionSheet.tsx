@@ -69,7 +69,8 @@ const COPY = {
     recipientOptional: "Sin destinatario fijo: se abrirá tu app de correo con este borrador.",
     openGmail: "Abrir en Gmail",
     emailCopyFirstHint: "Copia el correo o el mensaje y pégalo en la app que prefieras.",
-    openEmailAppHint: "Puede abrir Outlook u otra app de correo predeterminada.",
+    openEmailAppHint:
+      "Puede abrir Outlook u otra app de correo predeterminada. Si no se abre nada, usa \"Copiar mensaje completo\" o \"Compartir con otras apps\" arriba — son las opciones más confiables.",
     prefilledMessage: "Mensaje",
     sendWhatsApp: "Enviar por WhatsApp",
     sendSms: "Enviar por SMS",
@@ -137,7 +138,8 @@ const COPY = {
     recipientOptional: "No fixed recipient — your mail app opens with this draft.",
     openGmail: "Open in Gmail",
     emailCopyFirstHint: "Copy the email or message and paste it into the app you prefer.",
-    openEmailAppHint: "This may open Outlook or another default email app.",
+    openEmailAppHint:
+      "This may open Outlook or another default email app. If nothing opens, use \"Copy full message\" or \"Share with other apps\" above — those are the most reliable options.",
     prefilledMessage: "Message",
     sendWhatsApp: "Send via WhatsApp",
     sendSms: "Send via SMS",
@@ -649,6 +651,9 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
     const canCompose = Boolean(em || sub || bod);
     const hasAddr = Boolean(em);
     const pub = trim(intent.contactShareExtras?.publicUrl);
+    // Owner doctrine (2026-09-17): Autos/Servicios explicitly pass showOpenEmailApp: false —
+    // every other category that doesn't set it keeps the mailto launcher unchanged.
+    const showOpenEmailApp = intent.showOpenEmailApp ?? true;
     const draftShareText = [
       hasAddr ? (lang === "en" ? `To: ${em}` : `Para: ${em}`) : "",
       sub ? `${lang === "en" ? "Subject" : "Asunto"}: ${sub}` : "",
@@ -746,7 +751,7 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
           },
           !canCompose,
         )}
-        {gmailHref ? (
+        {showOpenEmailApp && gmailHref ? (
           <a
             href={gmailHref}
             target="_blank"
@@ -759,20 +764,22 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
             {t.openGmail}
           </a>
         ) : null}
-        {canCompose ? (
+        {showOpenEmailApp && canCompose ? (
           <p className="text-xs leading-snug text-[#7A7268]">{t.openEmailAppHint}</p>
         ) : null}
-        {btnRow(
-          t.openEmailApp,
-          "open_email",
-          BTN_SECONDARY,
-          (emit) => {
-            if (!canCompose) return;
-            emit();
-            openMailto(em, sub, bod);
-          },
-          !canCompose,
-        )}
+        {showOpenEmailApp
+          ? btnRow(
+              t.openEmailApp,
+              "open_email",
+              BTN_SECONDARY,
+              (emit) => {
+                if (!canCompose) return;
+                emit();
+                openMailto(em, sub, bod);
+              },
+              !canCompose,
+            )
+          : null}
       </div>
     );
   } else if (intent.kind === "send_message") {
@@ -931,10 +938,15 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
           emit();
           openSms(phone || waDigits, qm);
         }, !hasMsg || !hasPhone)}
-        {btnRow(t.sendEmail, "quote_email", BTN_SECONDARY, (emit) => {
-          emit();
-          openMailto(email, lang === "en" ? "Quote request" : "Solicitud de cotización", qm);
-        }, !hasMsg || !hasEmail)}
+        {/* Owner no-mailto doctrine (2026-09-17): same showOpenEmailApp opt-out as the send_email
+            branch above — Servicios' buildServiciosGetQuoteIntent sets this false, so a business
+            with only an email (no phone/WhatsApp) never gets a bare-mailto quote action. */}
+        {intent.showOpenEmailApp ?? true
+          ? btnRow(t.sendEmail, "quote_email", BTN_SECONDARY, (emit) => {
+              emit();
+              openMailto(email, lang === "en" ? "Quote request" : "Solicitud de cotización", qm);
+            }, !hasMsg || !hasEmail)
+          : null}
       </div>
     );
   } else if (
