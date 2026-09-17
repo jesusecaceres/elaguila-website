@@ -105,6 +105,13 @@ export type BrListingDbRow = {
   status?: string | null;
   is_published?: boolean | null;
   /**
+   * Gate BIENES-PRIVADO-1 — the two fields `isBrFsboRowWithinTerm` needs to tell an FSBO row (with a
+   * real 45-day term) from a Negocio subscription row (which has no term). Selected by the public
+   * readers so the shared expiry rule is not silently a no-op. Never rendered on the card.
+   */
+  category?: string | null;
+  expires_at?: string | null;
+  /**
    * Deferred: Optional monetization/placement fields for future highlighted/featured badges.
    * These fields do not currently exist in the listings table.
    * When added via migration, they can be safely selected and mapped.
@@ -207,6 +214,8 @@ export function mapBrListingRowToNegocioCard(row: BrListingDbRow, lang: "es" | "
     facetPool: m?.pool ?? null,
     facetPets: m?.petsAllowed ?? null,
     facetFurnished: m?.furnished ?? null,
+    comercialTipoCode: m?.comercialTipoCode ?? null,
+    terrenoTipoCode: m?.terrenoTipoCode ?? null,
     searchBlob: searchBlob || undefined,
     adPlanLabel: monetization.adPlanLabelEs,
     adPlanKey: monetization.adPlanKey,

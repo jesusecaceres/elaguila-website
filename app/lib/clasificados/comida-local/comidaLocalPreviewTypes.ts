@@ -1,4 +1,23 @@
 import type { ComidaLocalValidationIssue } from "./comidaLocalTypes";
+import type { ComidaLocalTemporaryLocationState } from "./comidaLocalTemporaryLocation";
+
+/**
+ * Gate COMIDA-LOCAL-1 — the rendered truth about "Encuéntrame Hoy / Find Me Today".
+ * `locationNote` and the "Where I am today" contact action are already gated by the mapper;
+ * this block exists so the shell can render the freshness signal (and, for the owner, why a
+ * location they can still see is not public) without re-deriving any policy.
+ */
+export type ComidaLocalTemporaryLocationVm = {
+  state: ComidaLocalTemporaryLocationState;
+  /** ISO instant of the last real owner update, or "" when unproven. */
+  updatedAtIso: string;
+  /** "Actualizado hace 2 h" / "Updated 2h ago" — non-empty only when publicly visible. */
+  freshnessLabel: string;
+  /** Owner-preview only: why this location is not being shown publicly. */
+  ownerWarning: string;
+  /** True only when the temporary location is under 24h old and therefore public. */
+  publiclyVisible: boolean;
+};
 
 export type ComidaLocalPreviewContactActionId =
   | "call"
@@ -74,7 +93,13 @@ export type ComidaLocalPreviewVm = {
   locationLine: string;
   queVendes: string;
   availabilityNote: string;
+  /**
+   * Gate COMIDA-LOCAL-1 — today's location, ALREADY gated by 24h freshness. On a public read
+   * this is "" whenever `temporaryLocation.publiclyVisible` is false, so a renderer cannot
+   * accidentally show an expired location by reaching past the flag.
+   */
   locationNote: string;
+  temporaryLocation: ComidaLocalTemporaryLocationVm;
   serviceChips: ComidaLocalPreviewChip[];
   paymentChips: ComidaLocalPreviewChip[];
   priceLevelLabel: string;

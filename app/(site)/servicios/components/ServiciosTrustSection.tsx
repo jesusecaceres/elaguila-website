@@ -2,6 +2,7 @@ import { FaCheck, FaClock, FaHeart, FaShieldAlt, FaStar } from "react-icons/fa";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import type { ServiciosListingTemplate } from "@/app/(site)/clasificados/servicios/lib/serviciosTemplateRouting";
 import { LX_SECTION_CARD, LX_SECTION_HEADING, getTrustSectionHeading, getTrustSectionKicker } from "./serviciosLeonixBrand";
+import { LeonixHorizontalRail } from "@/app/components/leonix/LeonixHorizontalRail";
 
 function TrustIcon({ icon }: { icon: string }) {
   const c = "h-5 w-5 text-[#7A1E2C]";
@@ -51,7 +52,13 @@ export function ServiciosTrustSection({
       <h2 className={`mt-1 ${embedded ? "text-base font-bold tracking-tight text-[#1E1814] md:text-lg" : LX_SECTION_HEADING}`}>
         {heading}
       </h2>
-      <div className="mt-4 flex snap-x snap-mandatory gap-2.5 overflow-x-auto pb-1 md:mt-5 md:grid md:grid-cols-2 md:gap-3 md:overflow-visible md:pb-0 md:snap-none lg:grid-cols-3">
+      {/* SVC-QA-13 / ⚠️43 — arrows + fade only when the mobile rail genuinely overflows. */}
+      <LeonixHorizontalRail
+        lang={lang}
+        className="mt-4 md:mt-5"
+        fadeColor="#FFFCF7"
+        trackClassName="flex snap-x snap-mandatory gap-2.5 overflow-x-auto pb-1 md:grid md:grid-cols-2 md:gap-3 md:overflow-visible md:pb-0 md:snap-none lg:grid-cols-3"
+      >
         {items.map((t) => (
           <div
             key={t.id}
@@ -63,7 +70,7 @@ export function ServiciosTrustSection({
             <p className="min-w-0 flex-1 text-sm font-semibold leading-snug text-[#1E1814]">{t.label}</p>
           </div>
         ))}
-      </div>
+      </LeonixHorizontalRail>
     </>
   );
 

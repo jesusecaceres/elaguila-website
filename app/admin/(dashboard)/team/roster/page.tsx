@@ -22,9 +22,11 @@ import {
 import { AdminEmptyState } from "../../../_components/AdminEmptyState";
 import { getCurrentAdminAccessContext, requireAdminTeamAccess } from "@/app/admin/_lib/adminAccessControl";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
+import { resolveActingRosterIdentity } from "@/app/admin/_lib/adminRosterAudit";
 import {
   createTeamInviteIntentAction,
   createTeamMemberRecordAction,
+  resolveTeamInviteIntentAction,
   toggleTeamMemberActiveAction,
   updateTeamMemberPermissionsAction,
 } from "../../../adminTeamActions";
@@ -33,9 +35,7 @@ import { StaffTeamNav } from "../../../_components/StaffTeamNav";
 export const dynamic = "force-dynamic";
 
 const PERM_SHORT: Record<AdminPermissionKey, string> = {
-  can_view_users: "Users (view)",
   can_edit_users: "Users (edit)",
-  can_reset_passwords: "Reset passwords",
   can_manage_ads: "Ads",
   can_manage_reports: "Reports",
   can_manage_categories: "Categories",
@@ -44,8 +44,6 @@ const PERM_SHORT: Record<AdminPermissionKey, string> = {
   can_manage_prayer_wall: "Prayer wall",
   can_view_payments: "Payments (view)",
   can_manage_team: "Team",
-  can_view_activity_logs: "Activity",
-  can_use_replica_mode: "Replica mode",
   can_manage_recursos: "Recursos",
 };
 
@@ -66,6 +64,7 @@ type MemberRow = {
   is_active: boolean;
   permissions: unknown;
   created_at: string;
+  updated_at: string;
 };
 
 async function fetchTeamInvites(): Promise<{ rows: InviteRow[]; unavailable: boolean }> {
@@ -88,7 +87,7 @@ async function fetchTeamMembers(): Promise<{ rows: MemberRow[]; unavailable: boo
     const supabase = getAdminSupabase();
     const { data, error } = await supabase
       .from("admin_team_members")
-      .select("id, email, display_name, role, is_active, permissions, created_at")
+      .select("id, email, display_name, role, is_active, permissions, created_at, updated_at")
       .order("created_at", { ascending: false })
       .limit(80);
     if (error) return { rows: [], unavailable: true };
@@ -99,6 +98,87 @@ async function fetchTeamMembers(): Promise<{ rows: MemberRow[]; unavailable: boo
 }
 
 const KNOWN_PERM = new Set<string>(ALL_ADMIN_PERMISSION_KEYS);
+
+/**
+ * Deactivating your OWN roster row needs an explicit second confirmation
+ * (toggleTeamMemberActiveAction blocks a plain click and redirects with a warning otherwise) —
+ * every other row keeps the single-click toggle unchanged.
+ */
+function DeactivateControl({ member, isSelf }: { member: MemberRow; isSelf: boolean }) {
+  if (!(isSelf && member.is_active)) {
+    return (
+      <form action={toggleTeamMemberActiveAction} className="inline">
+        <input type="hidden" name="id" value={member.id} />
+        <input type="hidden" name="next_active" value={member.is_active ? "0" : "1"} />
+        <button
+          type="submit"
+          className="min-h-[40px] rounded-xl border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-semibold text-[#5C5346] hover:bg-[#FFFCF7] sm:min-h-0"
+          title={member.is_active ? "Deactivate row in admin_team_members (does not delete Auth user)" : "Reactivate row in operational roster"}
+          aria-label={member.is_active ? "Deactivate member in roster" : "Activate member in roster"}
+        >
+          {member.is_active ? "Deactivate" : "Activate"}
+        </button>
+      </form>
+    );
+  }
+  return (
+    <details className="inline-block text-left">
+      <summary className="inline-flex min-h-[40px] cursor-pointer list-none items-center rounded-xl border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900">
+        Deactivate my own access…
+      </summary>
+      <div className="mt-2 max-w-xs rounded-lg border border-amber-200 bg-amber-50/80 p-3">
+        <p className="text-[11px] text-amber-900">This is your own roster row. You will lose access to /admin/team immediately.</p>
+        <form action={toggleTeamMemberActiveAction} className="mt-2">
+          <input type="hidden" name="id" value={member.id} />
+          <input type="hidden" name="next_active" value="0" />
+          <input type="hidden" name="confirm_self_deactivate" value="1" />
+          <button type="submit" className="min-h-[36px] w-full rounded-lg bg-amber-700 px-3 py-1.5 text-xs font-bold text-white">
+            Yes, deactivate my own access
+          </button>
+        </form>
+      </div>
+    </details>
+  );
+}
+
+/**
+ * ADMIN-OS-01 GATE D: the schema already supports pending/accepted/revoked, but
+ * nothing ever wrote accepted/revoked before — every intent row sat as "pending"
+ * forever, even once the admin manually finished onboarding elsewhere via
+ * "Create staff login". This gives the lifecycle an honest, manual close-out step
+ * without inventing any new auth/email automation.
+ */
+function InviteResolveControls({ invite }: { invite: InviteRow }) {
+  if (invite.status !== "pending") {
+    return <span className="text-[#9A9084]">—</span>;
+  }
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      <form action={resolveTeamInviteIntentAction}>
+        <input type="hidden" name="id" value={invite.id} />
+        <input type="hidden" name="next_status" value="accepted" />
+        <button
+          type="submit"
+          className="min-h-[32px] rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-bold uppercase text-emerald-900"
+          title="Mark accepted — only after you've actually created their staff login"
+        >
+          Mark accepted
+        </button>
+      </form>
+      <form action={resolveTeamInviteIntentAction}>
+        <input type="hidden" name="id" value={invite.id} />
+        <input type="hidden" name="next_status" value="revoked" />
+        <button
+          type="submit"
+          className="min-h-[32px] rounded-lg border border-[#E8DFD0] bg-white px-2 py-1 text-[10px] font-bold uppercase text-[#5C5346]"
+          title="Revoke this invite intent"
+        >
+          Revoke
+        </button>
+      </form>
+    </div>
+  );
+}
 
 function parsePermissions(raw: unknown): AdminPermissionKey[] {
   if (!Array.isArray(raw)) return [];
@@ -120,23 +200,28 @@ export default async function AdminTeamPage(props: {
   const sp = props.searchParams ? await props.searchParams : {};
   const { rows: invites, unavailable: invitesUnavailable } = await fetchTeamInvites();
   const { rows: members, unavailable: membersUnavailable } = await fetchTeamMembers();
+  const actingIdentity = await resolveActingRosterIdentity();
 
   return (
     <div>
-      <StaffTeamNav showRosterLink={false} />
+      {/* This page is itself owner_admin-only (requireAdminTeamAccess/canViewAdminTeam), the
+          same gate every other showRosterLink={true}-equivalent Team page uses — showing the
+          Executive Hub tab here too closes a real discoverability gap: an operator managing
+          staff login/roster had no visible path to the staff contact-profile system. */}
+      <StaffTeamNav showRosterLink />
       <div className="mb-3 flex flex-wrap gap-2">
         {membersUnavailable ? (
-          <span className={adminStubBadgeClass}>Roster: table unavailable</span>
+          <span className={adminStubBadgeClass}>Roster: temporarily unavailable</span>
         ) : (
           <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase text-emerald-900">
-            Roster: admin_team_members
+            Roster: connected
           </span>
         )}
         {invitesUnavailable ? (
-          <span className={adminStubBadgeClass}>Invites: table unavailable</span>
+          <span className={adminStubBadgeClass}>Invites: temporarily unavailable</span>
         ) : (
           <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase text-amber-900">
-            Invites: admin_team_invites
+            Invites: connected
           </span>
         )}
       </div>
@@ -147,12 +232,22 @@ export default async function AdminTeamPage(props: {
       ) : null}
       {sp.member_error === "1" ? (
         <div className={`${adminCardBase} mb-4 border-amber-200 bg-amber-50/90 p-3 text-sm text-amber-950`}>
-          Could not save member (check data or migration <code className="rounded bg-white/80 px-1">20260408183000_control_center_extensions.sql</code>).
+          Could not save member — check the values you entered, or check System Health for a Supabase issue.
         </div>
       ) : null}
       {sp.member_error === "duplicate" ? (
         <div className={`${adminCardBase} mb-4 border-amber-200 bg-amber-50/90 p-3 text-sm text-amber-950`}>
           That email is already in the roster.
+        </div>
+      ) : null}
+      {sp.member_error === "last_super_admin" ? (
+        <div className={`${adminCardBase} mb-4 border-amber-200 bg-amber-50/90 p-3 text-sm text-amber-950`}>
+          Cannot deactivate the last active super admin — activate another super admin first.
+        </div>
+      ) : null}
+      {sp.member_error === "confirm_self_deactivate" ? (
+        <div className={`${adminCardBase} mb-4 border-amber-200 bg-amber-50/90 p-3 text-sm text-amber-950`}>
+          That row is your own roster access. Use the &quot;Yes, deactivate my own access&quot; confirmation control below to proceed.
         </div>
       ) : null}
 
@@ -171,6 +266,26 @@ export default async function AdminTeamPage(props: {
         <Link href="/admin/team/users/new" className={`${adminCtaChip} mt-4 inline-flex`}>
           Create staff login →
         </Link>
+      </div>
+
+      {/* Staff Contact + Virtual Front Desk Continuity Gate (2026-09-14) — a nav tab to
+          Executive Hub already existed, but nothing on this page explained the distinction
+          between staff LOGIN access (this page) and the PUBLIC staff contact page (Executive
+          Hub) before an operator went looking for it. */}
+      <div className={`${adminCardBase} mb-6 border-[#C9B46A]/40 bg-[#FFFCF7] p-5`}>
+        <h2 className="text-base font-bold text-[#1E1810]">Staff Contact Page</h2>
+        <p className="mt-2 text-sm text-[#5C5346]">
+          Create or manage the public contact page used for QR codes, vCards, contact actions, title, photo, theme,
+          and publish status.
+        </p>
+        <Link href="/admin/team/executive-hub" className={`${adminCtaChip} mt-4 inline-flex`}>
+          Open Executive Hub →
+        </Link>
+        <p className="mt-3 text-xs text-[#7A7164]">
+          Staff login (above) controls Admin access. Executive Hub controls the public contact page at{" "}
+          <code className="rounded bg-white/80 px-1">/contact/{"{slug}"}</code>. They are separate systems — creating
+          one does not create the other.
+        </p>
       </div>
 
       <div className="mb-6 flex flex-wrap gap-2">
@@ -193,7 +308,9 @@ export default async function AdminTeamPage(props: {
       {!invitesUnavailable && invites.length > 0 ? (
         <div className={`${adminCardBase} mb-8 overflow-hidden`}>
           <div className="border-b border-[#E8DFD0]/80 bg-[#FFF8F0]/90 px-4 py-3 text-xs text-[#5C5346]">
-            Registered invites (intent). Complete signup in Supabase Auth or your IdP.
+            Registered invites (intent only — no email is sent). This status never changes on its own: create the
+            person&apos;s real access with &ldquo;Create staff login&rdquo; below, then come back and mark this row
+            Accepted or Revoked so it doesn&apos;t sit here indefinitely.
           </div>
           <div className={`overflow-x-auto ${adminDesktopTableOnly}`}>
             <table className="min-w-full border-collapse text-sm">
@@ -203,16 +320,20 @@ export default async function AdminTeamPage(props: {
                   <th className="p-3">Role</th>
                   <th className="p-3">Status</th>
                   <th className="p-3">Date</th>
+                  <th className="p-3">Close out</th>
                 </tr>
               </thead>
               <tbody>
-                {invites.map((inv, i) => (
+                {invites.map((inv) => (
                   <tr key={inv.id} className={`border-t border-[#E8DFD0]/80 ${adminTableZebraRow}`}>
                     <td className="p-3 font-mono text-xs">{inv.email}</td>
                     <td className="p-3 text-xs">{ROLE_LABELS[inv.role as AdminTeamRole] ?? inv.role}</td>
                     <td className="p-3 text-xs font-semibold">{inv.status}</td>
                     <td className="p-3 text-xs text-[#7A7164]">
                       {inv.created_at ? new Date(inv.created_at).toLocaleString("en-US") : "—"}
+                    </td>
+                    <td className="p-3 text-xs">
+                      <InviteResolveControls invite={inv} />
                     </td>
                   </tr>
                 ))}
@@ -232,6 +353,9 @@ export default async function AdminTeamPage(props: {
                     {inv.created_at ? new Date(inv.created_at).toLocaleString("en-US") : "—"}
                   </span>
                 </div>
+                <div className="mt-2">
+                  <InviteResolveControls invite={inv} />
+                </div>
               </article>
             ))}
           </div>
@@ -240,8 +364,8 @@ export default async function AdminTeamPage(props: {
 
       {membersUnavailable ? (
         <div className={adminWarningCallout}>
-          <strong>admin_team_members</strong> unavailable — apply migration{" "}
-          <code className="rounded bg-white/80 px-1 text-[11px]">20260408183000_control_center_extensions.sql</code>.
+          <strong>Team roster is temporarily unavailable.</strong> Check System Health, or contact an owner_admin if this
+          continues.
         </div>
       ) : members.length === 0 ? (
         <AdminEmptyState
@@ -253,7 +377,7 @@ export default async function AdminTeamPage(props: {
           <div className="border-b border-[#E8DFD0]/80 bg-[#FAF7F2]/90 px-4 py-2 text-xs font-semibold text-[#5C5346]">
             Roster (Supabase)
           </div>
-          <div className={adminDesktopTableOnly}>
+          <div className={`overflow-x-auto ${adminDesktopTableOnly}`}>
           <table className="min-w-full border-collapse text-sm">
             <thead className="bg-[#FBF7EF]/90 text-left text-xs font-bold uppercase tracking-wide text-[#7A7164]">
               <tr>
@@ -261,12 +385,14 @@ export default async function AdminTeamPage(props: {
                 <th className="p-4">Role</th>
                 <th className="p-4">Status</th>
                 <th className="p-4">Permissions</th>
+                <th className="p-4">Updated</th>
                 <th className="p-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {members.map((m, i) => {
+              {members.map((m) => {
                 const perms = parsePermissions(m.permissions);
+                const isSelf = actingIdentity?.rosterId === m.id;
                 return (
                   <tr key={m.id} className={`border-t border-[#E8DFD0]/80 ${adminTableZebraRow}`}>
                     <td className="p-4">
@@ -345,23 +471,11 @@ export default async function AdminTeamPage(props: {
                         </form>
                       </details>
                     </td>
+                    <td className="p-4 text-xs text-[#7A7164]">
+                      {m.updated_at ? new Date(m.updated_at).toLocaleString("en-US") : "—"}
+                    </td>
                     <td className="p-4 text-right">
-                      <form action={toggleTeamMemberActiveAction} className="inline">
-                        <input type="hidden" name="id" value={m.id} />
-                        <input type="hidden" name="next_active" value={m.is_active ? "0" : "1"} />
-                        <button
-                          type="submit"
-                          className="min-h-[40px] rounded-xl border border-[#E8DFD0] bg-white px-3 py-1.5 text-xs font-semibold text-[#5C5346] hover:bg-[#FFFCF7] sm:min-h-0"
-                          title={
-                            m.is_active
-                              ? "Deactivate row in admin_team_members (does not delete Auth user)"
-                              : "Reactivate row in operational roster"
-                          }
-                          aria-label={m.is_active ? "Deactivate member in roster" : "Activate member in roster"}
-                        >
-                          {m.is_active ? "Deactivate" : "Activate"}
-                        </button>
-                      </form>
+                      <DeactivateControl member={m} isSelf={isSelf} />
                     </td>
                   </tr>
                 );
@@ -372,6 +486,7 @@ export default async function AdminTeamPage(props: {
           <div className={`${adminMobileCardList} p-3`} data-testid="team-roster-mobile-list">
             {members.map((m) => {
               const perms = parsePermissions(m.permissions);
+              const isSelf = actingIdentity?.rosterId === m.id;
               return (
                 <article key={m.id} className={`${adminCardBase} break-words p-4`}>
                   <div className="flex flex-wrap items-start justify-between gap-2">
@@ -400,16 +515,10 @@ export default async function AdminTeamPage(props: {
                       </span>
                     ))}
                   </div>
-                  <form action={toggleTeamMemberActiveAction} className="mt-3">
-                    <input type="hidden" name="id" value={m.id} />
-                    <input type="hidden" name="next_active" value={m.is_active ? "0" : "1"} />
-                    <button
-                      type="submit"
-                      className="min-h-[44px] w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold text-[#5C5346] sm:min-h-0 sm:w-auto"
-                    >
-                      {m.is_active ? "Deactivate" : "Activate"}
-                    </button>
-                  </form>
+                  <p className="mt-2 text-[11px] text-[#7A7164]">Updated {m.updated_at ? new Date(m.updated_at).toLocaleString("en-US") : "—"}</p>
+                  <div className="mt-3">
+                    <DeactivateControl member={m} isSelf={isSelf} />
+                  </div>
                   <details className="mt-2">
                     <summary className="min-h-[44px] cursor-pointer py-2 text-xs font-semibold text-[#8B4513]">
                       Edit permissions
@@ -514,7 +623,7 @@ export default async function AdminTeamPage(props: {
         </p>
         {invitesUnavailable ? (
           <p className="mt-3 text-sm font-semibold text-amber-900">
-            Table unavailable: apply migration <code className="rounded bg-white/80 px-1">20260410120000_admin_audit_log_and_team_invites.sql</code>.
+            Temporarily unavailable — check System Health, or contact an owner_admin if this continues.
           </p>
         ) : (
           <form action={createTeamInviteIntentAction} className="mt-4 grid gap-3 sm:grid-cols-2">

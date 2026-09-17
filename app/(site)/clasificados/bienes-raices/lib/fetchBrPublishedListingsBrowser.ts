@@ -1,5 +1,6 @@
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { isListingRowActiveAndPublishedForBrowse } from "@/app/(site)/clasificados/lib/listingPublicBrowseEligibility";
+import { isBrFsboRowWithinTerm } from "@/app/lib/listingLifecycle/bienesFsboLifecycle";
 import { listingsQueryWithSelectShrink } from "@/app/(site)/clasificados/lib/listingsSelectShrink";
 import {
   collectBrChildParentIds,
@@ -11,7 +12,7 @@ import { mapBrListingRowToNegocioCard, type BrListingDbRow } from "../resultados
 
 /** Baseline columns — safe if optional timestamp columns are missing in an older DB. */
 const BR_LISTINGS_SELECT_BASE =
-  "id, title, description, city, price, is_free, images, detail_pairs, listing_json, profile_json, contact_json, seller_type, business_name, owner_id, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role, created_at, status, is_published";
+  "id, title, description, city, price, is_free, images, detail_pairs, listing_json, profile_json, contact_json, category, seller_type, business_name, owner_id, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role, created_at, expires_at, status, is_published";
 
 /** Rich timestamps for `reciente` / republish fairness (`mapBrListingRowToNegocioCard`). */
 const BR_LISTINGS_SELECT_RICH = `${BR_LISTINGS_SELECT_BASE}, updated_at, published_at, republish_sort_at, republished_at`;
@@ -77,7 +78,13 @@ export async function fetchBrPublishedListingsForBrowse(opts: {
       return { listings: [], error: error.message };
     }
     const rows = (data ?? []) as BrListingDbRow[];
-    const publicRows = rows.filter((r) => isListingRowActiveAndPublishedForBrowse(r));
+    // Gate BIENES-PRIVADO-1 — the shared FSBO term rule, applied on top of the shared row rule and
+    // never re-expressed here. A private-seller listing whose paid 45 days have elapsed leaves
+    // browse; a Negocio subscription row (no term) and any row without a real `expires_at` pass
+    // through untouched. Same predicate as public detail, Saved Search and the sitemap.
+    const publicRows = rows.filter(
+      (r) => isListingRowActiveAndPublishedForBrowse(r) && isBrFsboRowWithinTerm(r),
+    );
 
     // Gate G.2.3.4 — an inventory child additionally requires an active, published, same-owner
     // canonical main parent to remain publicly visible. One batched parent fetch for every

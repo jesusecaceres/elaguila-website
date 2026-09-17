@@ -154,6 +154,17 @@ function mergeById(rows: Record<string, unknown>[], cap: number): Record<string,
  * Server-side filters: category, status, UUID owner, text search on title/city/id/owner_id.
  * Partial `ownerFrag` and `detail_pairs` BR filters are applied by the caller after fetch.
  */
+/**
+ * CMD-004 — synthetic `status` value (not a real `listings.status` column value).
+ * Reproduces the exact same union `computeAdminAttentionReviewTruth()` (Command
+ * Center) uses for its Classifieds review count: pending/flagged status OR a
+ * pending report against the listing, deduplicated. Exists so the Command
+ * Center's "Needs review" CTA and its destination always represent the same
+ * record universe — see docs/admin-os/ADMIN_OS_OWNER_BROWSER_QA_LEDGER.md
+ * OWNER-QA-003 for the owner-QA failure this closes.
+ */
+export const LISTINGS_NEEDS_REVIEW_STATUS_TOKEN = "needs_review";
+
 export async function fetchListingsForAdminWorkspaceFiltered(
   supabase: SupabaseClient,
   filters: ListingsAdminWorkspaceFilters,
@@ -166,6 +177,26 @@ export async function fetchListingsForAdminWorkspaceFiltered(
   const qInput = (filters.q ?? "").trim();
   const qLower = qInput.toLowerCase();
   const safeQ = escapeIlike(qLower);
+  const isNeedsReview = status.toLowerCase() === LISTINGS_NEEDS_REVIEW_STATUS_TOKEN;
+
+  // Same bounded pending-report lookup as computeAdminAttentionReviewTruth
+  // (adminDashboardData.ts) — kept in sync deliberately rather than sharing a
+  // helper across the two files' otherwise-different query shapes.
+  let needsReviewReportedIds: string[] = [];
+  if (isNeedsReview && filters.scope !== "live") {
+    const { data: reportRows } = await supabase
+      .from("listing_reports")
+      .select("listing_id")
+      .eq("status", "pending")
+      .limit(500);
+    needsReviewReportedIds = [
+      ...new Set(
+        ((reportRows ?? []) as { listing_id: string | null }[])
+          .map((r) => r.listing_id)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+  }
 
   /**
    * Category / status values in `listings` are not guaranteed to match registry casing (e.g. `Rentas` vs `rentas`).
@@ -176,6 +207,11 @@ export async function fetchListingsForAdminWorkspaceFiltered(
     let q = qb;
     if (filters.scope === "live") {
       q = applyListingsLiveScopeSql(q, "live");
+    } else if (isNeedsReview) {
+      // Listing ids are our own DB-generated UUIDs, never user input — safe to
+      // interpolate directly into the PostgREST `or()` filter string.
+      const reportedClause = needsReviewReportedIds.length ? `,id.in.(${needsReviewReportedIds.join(",")})` : "";
+      q = q.or(`status.eq.pending,status.eq.flagged${reportedClause}`);
     } else if (status) {
       q = q.ilike("status", escapeIlike(status));
     }

@@ -1,3 +1,23 @@
+/**
+ * STATUS: RETAINED, CURRENTLY UNUSED (zero consumers). Do not treat as live behaviour.
+ *
+ * This is the subscriber-facing email from the retired "Launch 25" campaign. Newsletter promo-code
+ * minting was deliberately retired by commit 313338ce ("feat(revenue-os): add verified
+ * introductory discount"); `/api/newsletter/subscribe` now always reports
+ * `promoCodeCreated: false`, so nothing calls this builder.
+ *
+ * CLASSIFICATION: MIXED. The discount percentage, code, expiry and CTA are all parameterized and
+ * reusable, but the subject and body hardcode "Leonix Launch 25" branding. It is therefore kept —
+ * not deleted — as the working layout for a FUTURE admin-issued promo-code campaign email, which
+ * the generic promo-code system (still fully live) would legitimately need. Reusing it means
+ * replacing the Launch-25 wording; the structure needs no change.
+ *
+ * MUST NOT be used for the verified 15% introductory discount. That benefit is identity-bound and
+ * mints NO code — there is nothing to email, and sending a code would reintroduce exactly the
+ * shareable-credential problem the identity-based design removed. See
+ * docs/launch-lifecycle/SERVICIOS_GOLDEN_REFERENCE_TRUTH.md §B.
+ */
+
 import { escapeHtml } from "./escapeHtml";
 import { normalizeLang } from "@/app/lib/language";
 

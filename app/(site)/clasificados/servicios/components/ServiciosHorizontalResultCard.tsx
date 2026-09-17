@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FiGlobe, FiMapPin, FiPhone, FiMail } from "react-icons/fi";
+import { FiGlobe, FiMapPin, FiMessageSquare, FiPhone, FiMail } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
 import type { ServiciosPublicListingRow } from "../lib/serviciosPublicListingsServer";
 import { serviciosEngagementListingKey } from "../lib/serviciosPublicListingSort";
@@ -10,14 +10,18 @@ import { getServiciosProfileLabels } from "@/app/servicios/copy/serviciosProfile
 import { getServiciosPublicMonetizationBadges } from "../lib/serviciosDestacados";
 import type { ServiciosProfileResolved } from "@/app/(site)/servicios/types/serviciosBusinessProfile";
 import {
+  buildServiciosSendEmailIntentFromMailto,
   serviciosAnalyticsTrackMeta,
   trackServiciosListingCta,
   trackServiciosResultCardClick,
 } from "@/app/(site)/servicios/lib/serviciosCtaIntents";
+import { CtaActionSheet } from "@/app/components/cta";
+import type { CtaSheetIntent } from "@/app/components/cta/types";
 import {
   buildServiciosGoogleMapsDirectionsUrl,
   serviciosOpenGoogleMapsDirections,
   serviciosOpenMailtoHref,
+  serviciosOpenSmsHref,
   serviciosOpenTelHref,
   serviciosOpenWebsiteUrl,
   serviciosOpenWhatsAppHref,
@@ -28,17 +32,20 @@ import {
   resolveServiciosListingTemplate,
 } from "../lib/serviciosTemplateRouting";
 import { resolveServiciosProfileDirectWhatsAppHref } from "@/app/(site)/servicios/lib/serviciosWhatsAppHref";
+import { buildQuoteSmsHref } from "@/app/(site)/servicios/lib/serviciosContactActions";
 import { ServiciosProfessionalResultCard } from "../ServiciosProfessionalResultCard";
 import { ServiciosAdaptiveLogoPlate } from "@/app/servicios/components/ServiciosAdaptiveLogoPlate";
 import { ServiciosLikeCountBadge } from "@/app/servicios/components/ServiciosLikeCountBadge";
 import { ServiciosResultCardEngagementStrip } from "@/app/servicios/components/ServiciosResultCardEngagementStrip";
 import { ServiciosServiceChipsRow } from "@/app/servicios/components/ServiciosServiceChipsRow";
+import { useServiciosResultCardTranslation } from "@/app/servicios/components/useServiciosResultCardTranslation";
+import { canonicalBusinessTypeLabel } from "@/app/(site)/servicios/lib/serviciosCanonicalPresetLabels";
+import { isOwnerAuthoredService, relabelServiciosCanonicalPresets } from "@/app/(site)/servicios/lib/serviciosTranslateAd";
 import {
   LX,
   LX_COMPACT_CARD_TITLE,
   LX_CTA_CARD_MAP,
-  LX_CTA_CARD_OUTLINE,
-  LX_CTA_CARD_PRIMARY,
+  LX_CTA_CARD_PRIMARY_FLEX,
   LX_CTA_CARD_SECONDARY,
   LX_CTA_CARD_WHATSAPP,
   LX_IVORY_CARD,
@@ -70,6 +77,22 @@ function cleanOtherLabel(raw: string): string {
 
 function mapsDirectionsHref(query: string): string {
   return buildServiciosGoogleMapsDirectionsUrl(query);
+}
+
+/** Clean + de-dupe service chip labels from a (possibly relabeled) profile — shared by the
+ * original-locale pass and the display-locale rebuild so both use byte-identical cleaning rules. */
+function collectCleanServiceChips(services: ServiciosProfileResolved["services"] | undefined): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const s of services ?? []) {
+    const c = cleanProfessionalChipLabel(cleanOtherLabel(s.title));
+    if (!c || isWeakProfessionalChipLabel(c)) continue;
+    const key = c.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(c);
+  }
+  return out;
 }
 
 function StarRow({ rating, lang }: { rating: number; lang: "es" | "en" }) {
@@ -122,8 +145,6 @@ export function ServiciosHorizontalResultCard({
   discoveryRefineLabel,
   listingShareUrl,
 }: ServiciosHorizontalResultCardProps) {
-  const L = getServiciosProfileLabels(lang);
-
   const profile = useMemo(
     (): ServiciosProfileResolved | null => mapServiciosTradePresentationProfile({ previewProfile, row, lang }),
     [previewProfile, row, lang],
@@ -170,9 +191,9 @@ export function ServiciosHorizontalResultCard({
         serviciosOpenWhatsAppHref(href);
         return;
       }
-      if (key === "email") {
-        trackServiciosListingCta(slugKey, "cta_email_click", ctaTrackMeta);
-        serviciosOpenMailtoHref(href);
+      if (key === "sms") {
+        trackServiciosListingCta(slugKey, "cta_quote_sms_click", ctaTrackMeta);
+        serviciosOpenSmsHref(href);
         return;
       }
       if (key === "call" || key === "callOffice") {
@@ -182,20 +203,108 @@ export function ServiciosHorizontalResultCard({
     },
     [ctaAnalyticsListingKey, ctaTrackMeta, listingSlug, profile],
   );
+  // Gate 12 — the same rich email action sheet the full profile's "Correo" CTA uses. Declared above
+  // the component's `if (!profile) return null;` early return, alongside the component's other
+  // pre-return hooks, so it obeys the Rules of Hooks (this file has a pre-existing, unrelated block
+  // of hooks declared AFTER that early return — do not add new hooks there).
+  const [emailSheetIntent, setEmailSheetIntent] = useState<CtaSheetIntent | null>(null);
 
   const onCardNavigate = useCallback(() => {
     if (row) trackServiciosResultCardClick(row);
   }, [row]);
+
+  // Category/chip derivation moved above the early returns below (rules-of-hooks: the translation
+  // hook it feeds must run unconditionally on every render) — safe against a null `profile` via
+  // optional chaining; the professional-template early return renders a different component
+  // entirely, so a wasted computation here is harmless.
+  const rawCategoryLine = (profile?.hero.categoryLine || "").trim();
+  const categoryChip = cleanOtherLabel(rawCategoryLine);
+  // Card-visible-only translation scope (Gate 6): a custom "otro" category line is owner prose;
+  // a catalog preset category line is a re-labelled, already-localized chip, never translated.
+  const customCategoryLine =
+    rawCategoryLine && canonicalBusinessTypeLabel(rawCategoryLine, "es") == null ? categoryChip : undefined;
+
+  const { chips: serviceChipList, ownerAuthoredChips } = useMemo(() => {
+    const out: string[] = [];
+    const owner: string[] = [];
+    const seen = new Set<string>();
+    for (const s of profile?.services ?? []) {
+      const c = cleanProfessionalChipLabel(cleanOtherLabel(s.title));
+      if (!c || isWeakProfessionalChipLabel(c)) continue;
+      const key = c.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(c);
+      if (isOwnerAuthoredService(s)) owner.push(c);
+    }
+    return { chips: out, ownerAuthoredChips: owner };
+  }, [profile]);
+
+  // Servicios Card Translate Coherence (2026-09-17): Translate must stay offered even when every
+  // visible chip is a canonical preset (no owner-authored text at all) — canonical labels always
+  // have a real ES/EN catalog pair, so there is still a genuine language to switch.
+  const hasCanonicalDisplayContent = Boolean(
+    (categoryChip && !customCategoryLine) || serviceChipList.length > ownerAuthoredChips.length,
+  );
+
+  const { translateControl, displayLang, displayCategoryLine, chipOverrides } = useServiciosResultCardTranslation({
+    categoryLine: customCategoryLine,
+    ownerAuthoredChips,
+    hasCanonicalDisplayContent,
+    lang,
+    listingKey: ctaAnalyticsListingKey,
+    enabled: true,
+  });
+
+  // Gate 12 — a separate callback (not folded into `openContactKey` above) because it needs
+  // `displayLang`, which — like `openContactKey` itself — must stay declared before the early
+  // `if (!profile) return null;` below to respect the Rules of Hooks, but is only available once
+  // `useServiciosResultCardTranslation` (just above) has run.
+  const openEmailContact = useCallback(
+    (href: string) => {
+      const slugKey = listingSlug || ctaAnalyticsListingKey;
+      trackServiciosListingCta(slugKey, "cta_email_click", ctaTrackMeta);
+      // The results-card email-only fallback used to jump straight to a bare mailto: with no
+      // subject/body, unlike the full profile's "Correo" CTA, which opens the same rich Leonix
+      // email action sheet the owner already relies on. buildServiciosSendEmailIntentFromMailto
+      // decodes email/subject/body straight from this href, so it degrades to the same bare mailto
+      // (via the sheet's own "Open email app" action, itself RFC-6068-repaired) when there's
+      // nothing else to show. Uses the raw `listingShareUrl` prop (not the async-resolved state,
+      // which is declared after this component's early return) for the sheet's optional public link.
+      const intent = buildServiciosSendEmailIntentFromMailto(href, displayLang, slugKey, listingShareUrl || undefined);
+      if (intent) setEmailSheetIntent(intent);
+      else serviciosOpenMailtoHref(href);
+    },
+    [ctaAnalyticsListingKey, ctaTrackMeta, listingSlug, displayLang, listingShareUrl],
+  );
+
+  // Servicios Absolute Final Golden Closeout (2026-09-17, Gate 1/2) — Translate means switching
+  // the ENTIRE ad-local experience, not just chip text. Every UI_CHROME string (CTA labels, trust
+  // copy, section labels, aria text) must follow `displayLang`, never the static site `lang` —
+  // otherwise chrome stays in the original language while only chips flip, the exact
+  // mixed-language defect owner runtime QA reported. `L` reuses the SAME established chrome
+  // dictionary (getServiciosProfileLabels) the rest of the app already relies on.
+  const L = getServiciosProfileLabels(displayLang);
+
+  // Re-derive canonical labels for the DISPLAY language (unchanged reference when not
+  // translated) — the same pure overlay already used to build `profile` for `lang`, now applied
+  // for `displayLang` so canonical chips/category flip together with owner-authored text instead
+  // of leaving a mixed-language card (the exact defect owner runtime QA reported).
+  const displayProfile = useMemo(
+    () => (profile && displayLang !== lang ? relabelServiciosCanonicalPresets(profile, displayLang) : profile),
+    [profile, displayLang, lang],
+  );
 
   if (!profile) return null;
 
   /** Trade canonical card — preview + results share one stacked layout (no legacy CTA rail). */
 
   if (row && !previewProfile) {
+    // ⚠️38A — routing reads the ORIGINAL stored category line, never the viewer-locale relabel.
     const template = resolveServiciosListingTemplate({
       businessTypeId: readServiciosProfileBusinessTypeId(row.profile_json),
       internalGroup: row.internal_group,
-      categoryLabel: profile.hero.categoryLine,
+      categoryLabel: row.profile_json.hero?.categoryLine,
     });
     if (isServiciosProfessionalTemplate(template)) {
       return <ServiciosProfessionalResultCard row={row} lang={lang} embedded density={density} />;
@@ -205,35 +314,28 @@ export function ServiciosHorizontalResultCard({
   const locationLine = serviciosTradePresentationLocationLine(profile, row);
   const logoUrl = (profile.hero.logoUrl || "").trim();
   const logoAlt = (profile.hero.logoAlt || "").trim() || profile.identity.businessName;
-  const categoryChip = cleanOtherLabel((profile.hero.categoryLine || "").trim());
   const addressQuery = (profile.contact?.physicalAddressDisplay || "").trim();
   const mapsHref = ((profile.contact?.mapsSearchHref || "").trim() || (addressQuery ? mapsDirectionsHref(addressQuery) : "")).trim();
 
-  const serviceChipList = (() => {
-    const out: string[] = [];
-    const seen = new Set<string>();
-    for (const s of profile.services) {
-      const c = cleanProfessionalChipLabel(cleanOtherLabel(s.title));
-      if (!c || isWeakProfessionalChipLabel(c)) continue;
-      const key = c.toLowerCase();
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.push(c);
-    }
-    return out;
-  })();
-  const displayServiceChips = serviceChipList;
+  const displayServiceChipListCanonical =
+    displayProfile === profile ? serviceChipList : collectCleanServiceChips(displayProfile?.services);
+  const displayCategoryChipCanonical =
+    displayLang === lang ? categoryChip : cleanOtherLabel((displayProfile?.hero.categoryLine || "").trim());
+  const displayServiceChips = displayServiceChipListCanonical.map((c) => chipOverrides.get(c) ?? c);
+  const displayCategoryChip = displayCategoryLine ?? displayCategoryChipCanonical;
 
   const vitrinaHref =
+    // The URL's own `?lang=` stays the SITE locale (not the card's ephemeral display language) —
+    // the detail page manages its own translate state independently on arrival.
     (publicDetailHref || "").trim() || `/clasificados/servicios/${encodeURIComponent(listingSlug)}?lang=${lang}`;
-  const vitrinaLabel = (publicDetailLabel || "").trim() || (lang === "en" ? "View profile" : "Ver perfil");
-  const servicesLabel = lang === "en" ? "Services" : "Servicios";
+  const vitrinaLabel = (publicDetailLabel || "").trim() || (displayLang === "en" ? "View profile" : "Ver perfil");
+  const servicesLabel = displayLang === "en" ? "Services" : "Servicios";
   const cardNavigateLabel =
-    lang === "en"
+    displayLang === "en"
       ? `View profile for ${profile.identity.businessName}`
       : `Ver perfil de ${profile.identity.businessName}`;
 
-  const monetizationBadges = row ? getServiciosPublicMonetizationBadges(row, lang).slice(0, 3) : [];
+  const monetizationBadges = row ? getServiciosPublicMonetizationBadges(row, displayLang).slice(0, 3) : [];
 
   const ratingValue =
     typeof profile.hero.rating === "number" && Number.isFinite(profile.hero.rating) ? profile.hero.rating : undefined;
@@ -243,6 +345,11 @@ export function ServiciosHorizontalResultCard({
   const likeBadgeCount =
     row && typeof row.public_like_net_count === "number" && row.public_like_net_count > 0
       ? Math.floor(row.public_like_net_count)
+      : 0;
+
+  const endorsementCount =
+    row && typeof row.public_endorsement_count === "number" && row.public_endorsement_count > 0
+      ? Math.floor(row.public_endorsement_count)
       : 0;
 
   const [resolvedShareUrl, setResolvedShareUrl] = useState((listingShareUrl ?? "").trim());
@@ -275,6 +382,12 @@ export function ServiciosHorizontalResultCard({
   const primaryCall = officeTel && officeDisplay ? { href: officeTel, label: L.callOffice, key: "callOffice" } : tel && phoneDisplay ? { href: tel, label: L.call, key: "call" } : null;
   const wa = resolveServiciosProfileDirectWhatsAppHref(profile.contact) ?? "";
   const showDirections = Boolean(mapsHref && (addressQuery || /^https?:\/\//i.test(mapsHref)));
+  // Gate 2/4 — the dedicated "número para mensajes/cotizaciones"; never WhatsApp, never the office
+  // number merely because it exists. buildQuoteSmsHref preserves the existing quote/message copy.
+  const smsHref = buildQuoteSmsHref(profile.contact.quoteMessagePhone, displayLang);
+  // Gate 4 — WhatsApp is bumped to its own row only when it would otherwise fight Call+Message for
+  // the primary two-up row; with any other combination the real channels stay balanced side by side.
+  const forceWhatsAppBelow = Boolean(primaryCall) && Boolean(smsHref) && Boolean(wa);
 
   return (
     <>
@@ -288,67 +401,75 @@ export function ServiciosHorizontalResultCard({
           onNavigate={onCardNavigate}
         />
 
-        <div className="pointer-events-none relative z-[2] flex gap-3 p-4 sm:gap-4 sm:p-5">
-          <ServiciosAdaptiveLogoPlate
-            src={logoUrl}
-            alt={logoAlt}
-            fallbackMonogram={profile.identity.businessName}
-            variant="card"
-            className=""
-          />
+        <div className="relative z-[2] flex items-start justify-between gap-2 p-4 sm:gap-3 sm:p-5" data-servicios-card-header="1">
+          <div className="pointer-events-none flex min-w-0 flex-1 gap-3 sm:gap-4">
+            <ServiciosAdaptiveLogoPlate
+              src={logoUrl}
+              alt={logoAlt}
+              fallbackMonogram={profile.identity.businessName}
+              variant="card"
+              className=""
+            />
 
-          <div className="min-w-0 flex-1 space-y-1">
-            <div className="flex flex-wrap items-center gap-1">
-              {monetizationBadges.map((b) => (
-                <span
-                  key={b.key}
-                  className={`rounded-md border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${
-                    b.key === "destacado" || b.key === "patrocinado"
-                      ? "border-[#C9A84A]/50 bg-[#F5F0E8] text-[#3B2117]"
-                      : b.key === "verificado_leonix"
-                        ? "border-emerald-400/60 bg-emerald-50 text-emerald-950"
-                        : "border-[#D4C4A8] bg-[#FFFCF7] text-[#5a4630]"
-                  }`}
-                >
-                  {b.label}
-                </span>
-              ))}
-              {!showEngagementControls ? (
-                <ServiciosLikeCountBadge count={likeBadgeCount} lang={lang} />
-              ) : null}
-            </div>
-
-            <h2 className={LX_COMPACT_CARD_TITLE}>
-              {profile.identity.businessName}
-            </h2>
-
-            {categoryChip ? (
-              <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#6F6254] sm:text-[11px]">{categoryChip}</p>
-            ) : null}
-
-            {locationLine ? (
-              <p className="flex items-start gap-1.5 text-[11px] text-[#4A4A4A] sm:text-xs">
-                <FiMapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#C9A84A]" aria-hidden />
-                <span className="line-clamp-2">{locationLine}</span>
-              </p>
-            ) : null}
-
-            {ratingValue != null && ratingValue > 0 ? (
-              <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                <StarRow rating={ratingValue} lang={lang} />
-                {reviewCount != null ? (
-                  <span className="text-[11px] font-semibold text-[#6F6254]">{L.reviewsSuffix(reviewCount)}</span>
+            <div className="min-w-0 flex-1 space-y-1">
+              <div className="flex flex-wrap items-center gap-1">
+                {monetizationBadges.map((b) => (
+                  <span
+                    key={b.key}
+                    className={`rounded-md border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${
+                      b.key === "destacado" || b.key === "patrocinado"
+                        ? "border-[#C9A84A]/50 bg-[#F5F0E8] text-[#3B2117]"
+                        : b.key === "verificado_leonix"
+                          ? "border-emerald-400/60 bg-emerald-50 text-emerald-950"
+                          : "border-[#D4C4A8] bg-[#FFFCF7] text-[#5a4630]"
+                    }`}
+                  >
+                    {b.label}
+                  </span>
+                ))}
+                {!showEngagementControls ? (
+                  <ServiciosLikeCountBadge count={likeBadgeCount} lang={displayLang} />
                 ) : null}
               </div>
-            ) : null}
+
+              <h2 className={LX_COMPACT_CARD_TITLE}>
+                {profile.identity.businessName}
+              </h2>
+
+              {displayCategoryChip ? (
+                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#6F6254] sm:text-[11px]">{displayCategoryChip}</p>
+              ) : null}
+
+              {locationLine ? (
+                <p className="flex items-start gap-1.5 text-[11px] text-[#4A4A4A] sm:text-xs">
+                  <FiMapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#C9A84A]" aria-hidden />
+                  <span className="line-clamp-2">{locationLine}</span>
+                </p>
+              ) : null}
+
+              {ratingValue != null && ratingValue > 0 ? (
+                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                  <StarRow rating={ratingValue} lang={displayLang} />
+                  {reviewCount != null ? (
+                    <span className="text-[11px] font-semibold text-[#6F6254]">{L.reviewsSuffix(reviewCount)}</span>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
           </div>
+
+          {translateControl ? (
+            <div className="pointer-events-auto shrink-0" data-servicios-card-translate-utility="1">
+              {translateControl}
+            </div>
+          ) : null}
         </div>
 
         {displayServiceChips.length > 0 ? (
           <div className="pointer-events-none relative z-[2] px-4 pb-3 sm:px-5">
             <ServiciosServiceChipsRow
               chips={displayServiceChips}
-              lang={lang}
+              lang={displayLang}
               profileHref={vitrinaHref}
               servicesLabel={servicesLabel}
             />
@@ -360,20 +481,29 @@ export function ServiciosHorizontalResultCard({
           data-servicios-card-cta-stack="1"
         >
           <div className="flex flex-col gap-2">
-            {primaryCall ? (
-              <button
-                type="button"
-                className={LX_CTA_CARD_PRIMARY}
-                style={{ backgroundColor: LX.burgundy, boxShadow: "0 4px 12px rgba(92, 22, 34, 0.2)" }}
-                onClick={() => openContactKey(primaryCall.key, primaryCall.href)}
-              >
-                <FiPhone className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                {primaryCall.label}
-              </button>
-            ) : null}
-
             <div className="flex flex-wrap gap-2">
-              {wa ? (
+              {primaryCall ? (
+                <button
+                  type="button"
+                  className={LX_CTA_CARD_PRIMARY_FLEX}
+                  style={{ backgroundColor: LX.burgundy, boxShadow: "0 4px 12px rgba(92, 22, 34, 0.2)" }}
+                  onClick={() => openContactKey(primaryCall.key, primaryCall.href)}
+                >
+                  <FiPhone className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  {primaryCall.label}
+                </button>
+              ) : null}
+              {smsHref ? (
+                <button
+                  type="button"
+                  className={LX_CTA_CARD_SECONDARY}
+                  onClick={() => openContactKey("sms", smsHref)}
+                >
+                  <FiMessageSquare className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  {L.message}
+                </button>
+              ) : null}
+              {wa && !forceWhatsAppBelow ? (
                 <button
                   type="button"
                   className={LX_CTA_CARD_WHATSAPP}
@@ -391,10 +521,10 @@ export function ServiciosHorizontalResultCard({
                   onClick={() => openContactKey("maps", mapsHref)}
                 >
                   <FiMapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                  {lang === "en" ? "Directions" : "Cómo llegar"}
+                  {displayLang === "en" ? "Directions" : "Cómo llegar"}
                 </button>
               ) : null}
-              {!primaryCall && !wa && (profile.contact.emailMailtoHref || profile.contact.websiteHref) ? (
+              {!primaryCall && !smsHref && !wa && (profile.contact.emailMailtoHref || profile.contact.websiteHref) ? (
                 <>
                   {profile.contact.websiteHref ? (
                     <button
@@ -410,7 +540,7 @@ export function ServiciosHorizontalResultCard({
                     <button
                       type="button"
                       className={LX_CTA_CARD_SECONDARY}
-                      onClick={() => openContactKey("email", profile.contact.emailMailtoHref!)}
+                      onClick={() => openEmailContact(profile.contact.emailMailtoHref!)}
                     >
                       <FiMail className="h-3.5 w-3.5 shrink-0" aria-hidden />
                       {L.email}
@@ -420,28 +550,57 @@ export function ServiciosHorizontalResultCard({
               ) : null}
             </div>
 
+            {/* Gate 4 — WhatsApp gets its own row only when Call AND Message both already filled the
+                primary row; it never displaces Message from the balanced Call+Message pairing. */}
+            {wa && forceWhatsAppBelow ? (
+              <button
+                type="button"
+                className={`${LX_CTA_CARD_WHATSAPP} w-full`}
+                style={{ backgroundColor: LX.whatsApp, boxShadow: LX.whatsAppShadow }}
+                onClick={() => openContactKey("whatsapp", wa)}
+              >
+                <FaWhatsapp className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                {L.whatsapp}
+              </button>
+            ) : null}
+
+            <div className="flex flex-wrap items-center justify-between gap-2" data-servicios-card-trust-strip="1">
+              <span className="inline-flex items-center gap-1 rounded-full border border-[#E8D7B8] bg-[#FFF9F2] px-2.5 py-1 text-[10px] font-bold text-[#7A1E2C] sm:text-[11px]">
+                🦁 {displayLang === "en" ? "Leonix Community" : "Comunidad Leonix"}
+                {" · "}
+                {endorsementCount > 0
+                  ? displayLang === "en"
+                    ? `${endorsementCount} recognition${endorsementCount === 1 ? "" : "s"}`
+                    : `${endorsementCount} reconocimiento${endorsementCount === 1 ? "" : "s"}`
+                  : displayLang === "en"
+                    ? "New"
+                    : "Nuevo"}
+              </span>
+
+              <ServiciosResultCardEngagementStrip
+                listingId={ctaAnalyticsListingKey}
+                ownerUserId={row?.owner_user_id ?? null}
+                listingTitle={profile.identity.businessName}
+                listingShareUrl={resolvedShareUrl || undefined}
+                listingSlug={listingSlug}
+                listingSourceId={row?.id ?? null}
+                lang={displayLang}
+                publicLikeCount={likeBadgeCount}
+                showEngagementControls={showEngagementControls}
+                persistListingEngagement={persistListingEngagement}
+              />
+            </div>
+
             <Link
               href={vitrinaHref}
               onClick={() => {
                 if (row) trackServiciosResultCardClick(row);
               }}
-              className={LX_CTA_CARD_OUTLINE}
+              className={LX_CTA_CARD_SECONDARY}
+              data-servicios-card-profile-nav="1"
             >
               {vitrinaLabel}
             </Link>
-
-            <ServiciosResultCardEngagementStrip
-              listingId={ctaAnalyticsListingKey}
-              ownerUserId={row?.owner_user_id ?? null}
-              listingTitle={profile.identity.businessName}
-              listingShareUrl={resolvedShareUrl || undefined}
-              listingSlug={listingSlug}
-              listingSourceId={row?.id ?? null}
-              lang={lang}
-              publicLikeCount={likeBadgeCount}
-              showEngagementControls={showEngagementControls}
-              persistListingEngagement={persistListingEngagement}
-            />
 
             {discoveryRefineHref?.trim() && discoveryRefineLabel?.trim() ? (
               <Link
@@ -454,6 +613,12 @@ export function ServiciosHorizontalResultCard({
           </div>
         </div>
       </article>
+      <CtaActionSheet
+        open={emailSheetIntent != null}
+        onClose={() => setEmailSheetIntent(null)}
+        intent={emailSheetIntent}
+        lang={displayLang}
+      />
     </>
   );
 }

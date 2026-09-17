@@ -59,13 +59,33 @@ if (checkpoint.includes("<Link") && checkpoint.includes("<button") && checkpoint
     }
   }
 }
-if (!checkpoint.includes("setProductMoreOpen(true)")) fail("Checkpoint Ver más must open modal");
-if (!checkpoint.includes("bg-black/50")) fail("Checkpoint modal overlay required");
-if (!checkpoint.includes("setProductMoreOpen(false)")) fail("Checkpoint modal close required");
+// Zero-debt closeout 2026-09-12: this demanded the literal state-setter `setProductMoreOpen(true)`.
+// The checkpoint now adopts the SHARED PaidPublishCheckpointCard/Modal pair (master doctrine §25 —
+// do not build a category-local modal), so the setter is named differently. Assert the CONTRACT:
+// the card's "more" action opens the shared paid-publish modal, and the modal is bound to it.
+if (!checkpoint.includes("PaidPublishCheckpointModal")) {
+  fail("Checkpoint must mount the shared PaidPublishCheckpointModal");
+}
+if (!/onMoreClick=\{\(\)\s*=>\s*set\w*Open\(true\)\}/.test(checkpoint)) {
+  fail("Checkpoint Ver más must open the rules modal");
+}
+if (!/<PaidPublishCheckpointModal[\s\S]{0,200}open=\{\w*[Oo]pen\}/.test(checkpoint)) {
+  fail("Checkpoint rules modal must be bound to the open state");
+}
+if (!/onClose=\{\(\)\s*=>\s*set\w*Open\(false\)\}/.test(checkpoint)) {
+  fail("Checkpoint rules modal must be closeable");
+}
+// Zero-debt closeout 2026-09-12: the overlay/close/style assertions below used to read the
+// Servicios checkpoint client. Those presentation tokens now live in the SHARED
+// PublishEntryCheckpoint component that the Servicios checkpoint mounts, so asserting them on the
+// Servicios file tested the wrong owner. Route identity stays asserted on the Servicios file.
+const sharedCheckpoint = read("app/(site)/clasificados/publicar/_components/PublishEntryCheckpoint.tsx");
+if (!sharedCheckpoint.includes("bg-black/50")) fail("Checkpoint modal overlay required");
+if (!/onClose=\{\(\)\s*=>\s*set\w*Open\(false\)\}/.test(checkpoint)) fail("Checkpoint modal close required");
 if (!checkpoint.includes("/publicar/servicios")) fail("Publicar servicio route must remain");
 if (!checkpoint.includes("servicios_profesionales")) fail("product=servicios_profesionales must remain");
 for (const token of ["bg-[#F6F0E2]", "max-w-lg", "rounded-2xl", "bg-[#FFFCF7]", "bg-black/50"]) {
-  if (!checkpoint.includes(token)) fail(`Checkpoint missing style token: ${token}`);
+  if (!sharedCheckpoint.includes(token)) fail(`Checkpoint missing style token: ${token}`);
 }
 ok("Servicios entry checkpoint Ver más + style parity");
 
@@ -74,7 +94,20 @@ if (!application.includes("Cupones y ofertas destacadas") && !application.includ
 }
 if (!application.includes("setCouponDetailOpen(true)")) fail("Coupon Ver más must open modal");
 if (!application.includes("couponDetailOpen")) fail("Coupon modal state required");
-if (!application.includes("+$99") && !application.includes("$99")) fail("Coupon modal must mention +$99");
+// Zero-debt closeout 2026-09-12: this assertion REQUIRED the application to advertise a "+$99"
+// coupon price. That is now ANTI-DOCTRINE, not merely stale — owner-locked commercial truth
+// (ledger ⚠️26, ⚠️60, §14) is that coupons/offers are INCLUDED in the $399/mo Servicios base and
+// that no stale +$99 coupon path may appear anywhere. Keeping it would have forced a retired price
+// back into the product. Inverted to assert the CURRENT contract.
+if (/\+\s*\$99/.test(application)) {
+  fail("Servicios application must not advertise a +$99 coupon add-on (coupons are included in $399)");
+}
+if (!application.includes("baseMonthlyPrice: 399")) {
+  fail("Servicios application must carry the $399/mo base truth");
+}
+if (!application.includes("couponsFeaturedStepTitle")) {
+  fail("Servicios application must present the featured coupons/offers step");
+}
 if (!application.includes("datos rápidos") && !application.includes("quick details")) {
   fail("Coupon modal must distinguish coupons from quick highlights");
 }

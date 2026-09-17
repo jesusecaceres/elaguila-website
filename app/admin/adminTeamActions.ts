@@ -6,6 +6,7 @@ import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { appendAdminAuditLog } from "@/app/admin/_lib/adminAuditLogServer";
 import { ALL_ADMIN_PERMISSION_KEYS, type AdminPermissionKey } from "@/app/admin/_lib/teamTypes";
 import { requireLeonixAdminPermission } from "@/app/admin/_lib/leonixAdminGate";
+import { isUnconfirmedSelfDeactivation, wouldDeactivateLastSuperAdmin, writeRosterAuditLog } from "@/app/admin/_lib/adminRosterAudit";
 
 const PERM_SET = new Set<string>(ALL_ADMIN_PERMISSION_KEYS);
 
@@ -73,6 +74,40 @@ export async function createTeamInviteIntentAction(formData: FormData) {
   redirect("/admin/team/roster?invite_saved=1");
 }
 
+/**
+ * ADMIN-OS-01 GATE D: closes out an invite-intent row (pending -> accepted/revoked).
+ * The schema already defines this lifecycle (status CHECK: pending/accepted/revoked,
+ * migration 20260410120000) but nothing in the repo ever wrote "accepted" or "revoked"
+ * before this — every invite intent stayed "pending" forever even after the admin
+ * manually finished onboarding through the real "Create staff login" flow, which
+ * never touches this table. This does NOT create/modify a Supabase Auth user or
+ * send email — it only records that the admin has (or hasn't) completed onboarding
+ * elsewhere, closing the truthful lifecycle rather than leaving a permanently-stale
+ * status. See docs/admin-os/ADMIN_OS_CABLE_MAP.md, PEOPLE domain, "Team / Staff Roster".
+ */
+export async function resolveTeamInviteIntentAction(formData: FormData) {
+  await assertTeamAdmin();
+  const id = str(formData, "id");
+  const nextStatus = str(formData, "next_status");
+  if (!id || (nextStatus !== "accepted" && nextStatus !== "revoked")) {
+    redirect("/admin/team/roster?invite_error=1");
+  }
+
+  const supabase = getAdminSupabase();
+  const { error } = await supabase.from("admin_team_invites").update({ status: nextStatus }).eq("id", id);
+  if (error) redirect("/admin/team/roster?invite_error=1");
+
+  await appendAdminAuditLog({
+    action: nextStatus === "accepted" ? "team_invite_marked_accepted" : "team_invite_revoked",
+    targetType: "admin_team_invites",
+    targetId: id,
+    meta: {},
+  });
+
+  revalidatePath("/admin/team/roster");
+  redirect("/admin/team/roster?invite_saved=1");
+}
+
 /** Inserts a roster row — does not create a Supabase Auth user. */
 export async function createTeamMemberRecordAction(formData: FormData) {
   await assertTeamAdmin();
@@ -114,6 +149,11 @@ export async function createTeamMemberRecordAction(formData: FormData) {
     meta: { role },
   });
 
+  const { data: created } = await supabase.from("admin_team_members").select("id").eq("email", email).maybeSingle();
+  if (created) {
+    await writeRosterAuditLog("staff_row_created", String((created as { id: string }).id), { role, path: "roster_only" });
+  }
+
   revalidatePath("/admin/team/roster");
   redirect("/admin/team/roster?member_saved=1");
 }
@@ -146,16 +186,34 @@ export async function updateTeamMemberPermissionsAction(formData: FormData) {
     targetId: id,
     meta: { permissions: next, source: "leonix_admin" },
   });
+  await writeRosterAuditLog("permissions_changed", id, { permissions: next });
 
   revalidatePath("/admin/team/roster");
   redirect("/admin/team/roster?member_saved=1");
 }
 
+/**
+ * Deactivating/activating a roster row. Two safety guards run before the write:
+ * - the last currently-active super_admin can never be deactivated (would lock every super_admin
+ *   out of staff management permanently);
+ * - deactivating your OWN roster row requires an explicit second confirmation
+ *   (confirm_self_deactivate=1), which the roster page only submits from its dedicated "yes, this
+ *   is me" control — a plain "Deactivate" click on your own row is blocked and redirected with a
+ *   warning instead of silently succeeding.
+ */
 export async function toggleTeamMemberActiveAction(formData: FormData) {
   await assertTeamAdmin();
   const id = str(formData, "id");
   const nextActive = str(formData, "next_active") === "1";
+  const confirmedSelf = str(formData, "confirm_self_deactivate") === "1";
   if (!id) redirect("/admin/team/roster?member_error=1");
+
+  if (await wouldDeactivateLastSuperAdmin(id, nextActive)) {
+    redirect("/admin/team/roster?member_error=last_super_admin");
+  }
+  if (await isUnconfirmedSelfDeactivation(id, nextActive, confirmedSelf)) {
+    redirect("/admin/team/roster?member_error=confirm_self_deactivate");
+  }
 
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
@@ -171,6 +229,7 @@ export async function toggleTeamMemberActiveAction(formData: FormData) {
     targetId: id,
     meta: {},
   });
+  await writeRosterAuditLog(nextActive ? "activated" : "deactivated", id, {});
 
   revalidatePath("/admin/team/roster");
   redirect("/admin/team/roster?member_saved=1");

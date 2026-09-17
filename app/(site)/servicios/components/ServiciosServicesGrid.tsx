@@ -3,13 +3,15 @@
 import { useCallback, useId, useMemo, useState } from "react";
 import type { ServiciosLang, ServiciosProfileResolved, ServiciosServiceCard } from "../types/serviciosBusinessProfile";
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
-import { resolveServiciosQuoteDestination } from "../lib/serviciosContactActions";
+import { resolveServiciosQuoteDestination, serviciosEffectiveQuoteMessage } from "../lib/serviciosContactActions";
+import { canonicalPresetChip } from "../lib/serviciosCanonicalPresetLabels";
 import { resolveServiciosServiceVisual } from "@/app/(site)/clasificados/servicios/lib/serviciosServiceVisualCatalog";
 import { SV } from "./serviciosDesignTokens";
 import { LX_SECTION_CARD, LX_SECTION_HEADING } from "./serviciosLeonixBrand";
 import { buildServiciosGetQuoteIntent, trackServiciosListingCta } from "../lib/serviciosCtaIntents";
 import { CtaActionSheet } from "@/app/components/cta/CtaActionSheet";
 import type { CtaSheetIntent } from "@/app/components/cta/types";
+import { LeonixHorizontalRail } from "@/app/components/leonix/LeonixHorizontalRail";
 
 /** When count ≥ this, show expand/collapse (initially show {@link SERVICES_SECTION_INITIAL_VISIBLE}). */
 const SERVICES_SECTION_COLLAPSE_THRESHOLD = 19;
@@ -101,13 +103,18 @@ export function ServiciosOfferedSection({
   }, [services, needsCollapse, expanded, initialVisible]);
 
   const handleServiceQuoteClick = useCallback(
-    (serviceName: string) => {
+    (service: ServiciosServiceCard) => {
       if (!quoteDestination) return;
-      const base =
-        lang === "en"
-          ? "Hi, I saw your profile on Leonix and would like to request a quote."
-          : "Hola, vi tu perfil en Leonix y quiero pedir una cotización.";
-      const message = `${base}${lang === "en" ? ` for ${serviceName}` : ` para ${serviceName}`}`;
+      // Owner QA 914 — the quote message is generated in the effective action language (the
+      // translated target while Translate Ad is active); when the business does not declare that
+      // language served, a compact bilingual line is used instead (never a machine translation of
+      // owner prose, never awkward metadata). Preset services carry their canonical id, so the
+      // secondary-language clause can name the SAME service correctly in the other language too.
+      const presetId = service.id?.startsWith("svc_") ? service.id.slice(4) : null;
+      const chip = presetId ? canonicalPresetChip("service", { id: presetId }) : null;
+      const secondaryLang: ServiciosLang = lang === "en" ? "es" : "en";
+      const secondaryName = chip ? (secondaryLang === "en" ? chip.en : chip.es) : undefined;
+      const message = serviciosEffectiveQuoteMessage(profileForQuote, lang, service.title, secondaryName);
       const intent = buildServiciosGetQuoteIntent(profileForQuote, lang, {
         listingSlug,
         listingShareUrl,
@@ -161,7 +168,8 @@ export function ServiciosOfferedSection({
         ) : null}
       </div>
 
-      <div className={`mt-4 ${listClass}`}>
+      {/* SVC-QA-13 — mobile rail shows arrows/fade only when it really overflows; from md it is a grid. */}
+      <LeonixHorizontalRail lang={lang} className="mt-4" fadeColor={SV.card} trackClassName={listClass}>
         {visible.map((s) => {
           const serviceType = getServiceType(s.title);
           const { emoji } = resolveServiciosServiceVisual({ id: s.id, label: s.title });
@@ -169,7 +177,7 @@ export function ServiciosOfferedSection({
             <button
               key={s.id}
               type="button"
-              onClick={() => interactive && handleServiceQuoteClick(s.title)}
+              onClick={() => interactive && handleServiceQuoteClick(s)}
               disabled={!interactive}
               className={`group flex min-h-[44px] min-w-[min(17.5rem,88vw)] shrink-0 snap-start touch-manipulation items-start gap-2 rounded-xl border px-3 py-2.5 text-left text-sm font-medium shadow-sm transition md:min-w-0 ${
                 interactive
@@ -194,7 +202,7 @@ export function ServiciosOfferedSection({
             </button>
           );
         })}
-      </div>
+      </LeonixHorizontalRail>
 
       {needsCollapse && !expanded ? (
         <button

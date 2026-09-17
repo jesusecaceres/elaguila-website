@@ -188,6 +188,15 @@ export function filterBrListings(
   if (state.pets === "true") rows = rows.filter(listingHasPets);
   if (state.furnished === "true") rows = rows.filter(listingHasFurnished);
 
+  // Item 150 — canonical commercial/land type-code filters, backed by real structured data
+  // (Leonix:br:comercial_tipo_code / Leonix:br:terreno_tipo_code), not free-text/fake controls.
+  if (state.comercialTipo.trim()) {
+    rows = rows.filter((l) => l.comercialTipoCode === state.comercialTipo.trim());
+  }
+  if (state.terrenoTipo.trim()) {
+    rows = rows.filter((l) => l.terrenoTipoCode === state.terrenoTipo.trim());
+  }
+
   const q = state.q.trim().toLowerCase();
   if (q) {
     rows = rows.filter((l) => {

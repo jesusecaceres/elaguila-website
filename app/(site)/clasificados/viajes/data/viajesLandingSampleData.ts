@@ -74,16 +74,14 @@ export interface ViajesCategoryPill {
 }
 
 export const VIAJES_HERO_IMAGE = {
-  src: "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=2400&q=80",
+  src: "/child-categories/viajes/hero.jpg",
   alt: "Resort tropical al atardecer con bungalows sobre el agua",
 };
 
 /** Soft scenic wash for mid/lower page — keeps hero as the primary focal image. */
 export const VIAJES_PAGE_AMBIENCE = {
-  midScenicSrc:
-    "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=2200&q=75",
-  lowerWashSrc:
-    "https://images.unsplash.com/photo-1439066615861-d1af74d74000?auto=format&fit=crop&w=2000&q=75",
+  midScenicSrc: "/child-categories/viajes/mid-scenic.jpg",
+  lowerWashSrc: "/child-categories/viajes/lower-wash.jpg",
 } as const;
 
 export const VIAJES_CATEGORY_PILLS: ViajesCategoryPill[] = [
@@ -106,7 +104,7 @@ export const VIAJES_CATEGORY_PILLS: ViajesCategoryPill[] = [
 export const VIAJES_TOP_OFFERS: ViajesTopOffer[] = [
   {
     id: "cancun",
-    imageSrc: "https://images.unsplash.com/photo-1552074284-5e88f742d1f5?auto=format&fit=crop&w=1200&q=80",
+    imageSrc: "/child-categories/viajes/cancun.jpg",
     imageAlt: "Playa de Cancún con agua turquesa",
     badge: "Recomendado",
     title: "Cancún",
@@ -125,7 +123,7 @@ export const VIAJES_TOP_OFFERS: ViajesTopOffer[] = [
   },
   {
     id: "riviera",
-    imageSrc: "https://images.unsplash.com/photo-1519046904884-53103b34b206?auto=format&fit=crop&w=1200&q=80",
+    imageSrc: "/child-categories/viajes/riviera.jpg",
     imageAlt: "Costa tropical con palmeras",
     badge: "Oferta especial",
     title: "Riviera Maya",
@@ -144,7 +142,7 @@ export const VIAJES_TOP_OFFERS: ViajesTopOffer[] = [
   },
   {
     id: "maui",
-    imageSrc: "https://images.unsplash.com/photo-1542259670-48a73e819d9c?auto=format&fit=crop&w=1200&q=80",
+    imageSrc: "/child-categories/viajes/maui.jpg",
     imageAlt: "Costa de Maui al atardecer",
     badge: "Socio de viaje",
     title: "Maui, Hawái",
@@ -163,7 +161,7 @@ export const VIAJES_TOP_OFFERS: ViajesTopOffer[] = [
   },
   {
     id: "puerto-vallarta",
-    imageSrc: "https://images.unsplash.com/photo-1590523277543-a94d2e4eb00b?auto=format&fit=crop&w=1200&q=80",
+    imageSrc: "/child-categories/viajes/puerto-vallarta.jpg",
     imageAlt: "Bahía de Puerto Vallarta",
     badge: "Recomendado",
     title: "Puerto Vallarta",
@@ -181,7 +179,7 @@ export const VIAJES_TOP_OFFERS: ViajesTopOffer[] = [
   },
   {
     id: "editorial-pack-light",
-    imageSrc: "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1200&q=80",
+    imageSrc: "/child-categories/viajes/editorial-pack-light.jpg",
     imageAlt: "Mochila y mapa",
     badge: "Recomendado",
     title: "Guía: cómo empacar para 5 días en carry-on",
@@ -200,7 +198,7 @@ export const VIAJES_TOP_OFFERS: ViajesTopOffer[] = [
 export const VIAJES_LOCAL_DEPARTURES: ViajesLocalDepartureCard[] = [
   {
     id: "sjo",
-    imageSrc: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1000&q=80",
+    imageSrc: "/child-categories/viajes/sjo.jpg",
     imageAlt: "Avión despegando al atardecer",
     title: "Desde San José",
     description: "Escapadas a México, Caribe y ciudades de conexión desde SJO.",
@@ -208,7 +206,7 @@ export const VIAJES_LOCAL_DEPARTURES: ViajesLocalDepartureCard[] = [
   },
   {
     id: "sfo",
-    imageSrc: "https://images.unsplash.com/photo-1526481280695-3c469172d1b8?auto=format&fit=crop&w=1000&q=80",
+    imageSrc: "/child-categories/viajes/sfo.jpg",
     imageAlt: "Horizonte de San Francisco",
     title: "Desde San Francisco",
     description: "Vuelos directos y paquetes con salida desde la Bahía.",
@@ -216,7 +214,7 @@ export const VIAJES_LOCAL_DEPARTURES: ViajesLocalDepartureCard[] = [
   },
   {
     id: "oak",
-    imageSrc: "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?auto=format&fit=crop&w=1000&q=80",
+    imageSrc: "/child-categories/viajes/oak.jpg",
     imageAlt: "Bahía al atardecer",
     title: "Desde Oakland",
     description: "Opciones cercanas al Este de la Bahía con buen valor.",
@@ -224,7 +222,7 @@ export const VIAJES_LOCAL_DEPARTURES: ViajesLocalDepartureCard[] = [
   },
   {
     id: "near",
-    imageSrc: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=1000&q=80",
+    imageSrc: "/child-categories/viajes/near.jpg",
     imageAlt: "Carretera costera escénica",
     title: "Escapadas cerca de ti",
     description: "Fin de semana, playa, montaña y viñedos sin ir tan lejos.",
@@ -235,7 +233,7 @@ export const VIAJES_LOCAL_DEPARTURES: ViajesLocalDepartureCard[] = [
 export const VIAJES_DESTINATION_COLLECTIONS: ViajesDestinationCollection[] = [
   {
     id: "cancun-col",
-    imageSrc: "https://images.unsplash.com/photo-1506929562872-bb421503ef21?auto=format&fit=crop&w=1200&q=80",
+    imageSrc: "/child-categories/viajes/cancun-col.jpg",
     imageAlt: "Cancún vista aérea",
     name: "Cancún",
     supportingLine: "Playas, arrecifes y vida nocturna con paquetes curados.",
@@ -243,7 +241,7 @@ export const VIAJES_DESTINATION_COLLECTIONS: ViajesDestinationCollection[] = [
   },
   {
     id: "cr",
-    imageSrc: "https://images.unsplash.com/photo-1592405204553-2e719cb02c48?auto=format&fit=crop&w=1200&q=80",
+    imageSrc: "/child-categories/viajes/cr.jpg",
     imageAlt: "Volcán y naturaleza en Costa Rica",
     name: "Costa Rica Adventure",
     supportingLine: "Bosque nuboso, canopy y playas del Pacífico.",
@@ -251,7 +249,7 @@ export const VIAJES_DESTINATION_COLLECTIONS: ViajesDestinationCollection[] = [
   },
   {
     id: "sc",
-    imageSrc: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
+    imageSrc: "/child-categories/viajes/sc.jpg",
     imageAlt: "Playa de Santa Cruz",
     name: "Santa Cruz",
     supportingLine: "Costa Norte de California: surf, senderos y gastronomía.",
@@ -259,7 +257,7 @@ export const VIAJES_DESTINATION_COLLECTIONS: ViajesDestinationCollection[] = [
   },
   {
     id: "yosemite",
-    imageSrc: "https://images.unsplash.com/photo-1562310503-efb2d7a6c5a3?auto=format&fit=crop&w=1200&q=80",
+    imageSrc: "/child-categories/viajes/yosemite.jpg",
     imageAlt: "Yosemite al amanecer",
     name: "Yosemite",
     supportingLine: "Naturaleza icónica con estancias y tours guiados.",
@@ -270,7 +268,7 @@ export const VIAJES_DESTINATION_COLLECTIONS: ViajesDestinationCollection[] = [
 export const VIAJES_AUDIENCE_BUCKETS: ViajesAudienceCard[] = [
   {
     id: "families",
-    imageSrc: "https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&w=1000&q=80",
+    imageSrc: "/child-categories/viajes/families.jpg",
     imageAlt: "Familia en la playa",
     label: "Para familias",
     subline: "Hoteles con actividades, traslados sencillos y ritmo relajado.",
@@ -278,7 +276,7 @@ export const VIAJES_AUDIENCE_BUCKETS: ViajesAudienceCard[] = [
   },
   {
     id: "couples",
-    imageSrc: "https://images.unsplash.com/photo-1522673607200-1645061cd190?auto=format&fit=crop&w=1000&q=80",
+    imageSrc: "/child-categories/viajes/couples.jpg",
     imageAlt: "Pareja en la playa al atardecer",
     label: "Para parejas",
     subline: "Boutique, cenas y experiencias íntimas frente al mar.",
@@ -286,7 +284,7 @@ export const VIAJES_AUDIENCE_BUCKETS: ViajesAudienceCard[] = [
   },
   {
     id: "groups",
-    imageSrc: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1000&q=80",
+    imageSrc: "/child-categories/viajes/groups.jpg",
     imageAlt: "Grupo de amigos celebrando",
     label: "Para grupos",
     subline: "Villas, cruceros y paquetes con tarifas por habitación múltiple.",
@@ -294,7 +292,7 @@ export const VIAJES_AUDIENCE_BUCKETS: ViajesAudienceCard[] = [
   },
   {
     id: "romantic",
-    imageSrc: "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1000&q=80",
+    imageSrc: "/child-categories/viajes/romantic.jpg",
     imageAlt: "Cena romántica al aire libre",
     label: "Escapadas románticas",
     subline: "Spa, vistas y detalles para una escapada inolvidable.",

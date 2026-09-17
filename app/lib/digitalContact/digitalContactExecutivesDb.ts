@@ -21,8 +21,20 @@ import type { DayHoursRow } from "@/app/(site)/clasificados/publicar/servicios/l
 
 const TABLE = "executives";
 
-const SELECT_COLUMNS =
+const SELECT_COLUMNS_BASE =
   "slug, full_name, preferred_name, title, company, legal_entity, phone_display, phone_digits, whatsapp_digits, email, website, address_line1, address_line2, city, state, postal_code, photo_path, logo_path, cover_path, bio, languages, business_hub_link, connection_hub_link, trust_chips, socials, theme, working_hours, notes, meta_description, status, created_at, updated_at, published_at";
+/**
+ * Includes `linked_roster_id` (20260911030000_executives_linked_roster_id.sql, not yet applied
+ * remotely). Every read below requests this first and falls back to `SELECT_COLUMNS_BASE` on an
+ * unknown-column error, so nothing here breaks — including the live public /contact/[slug] page —
+ * before the owner approves applying the migration. Same pattern already proven for
+ * admin_audit_log's actor columns (adminAuditLogServer.ts).
+ */
+const SELECT_COLUMNS = `${SELECT_COLUMNS_BASE}, linked_roster_id`;
+
+function isMissingLinkedRosterIdColumn(message: string | undefined): boolean {
+  return /linked_roster_id/i.test(message ?? "");
+}
 
 export type ExecutiveRow = {
   slug: string;
@@ -55,6 +67,7 @@ export type ExecutiveRow = {
   notes: string | null;
   meta_description: string | null;
   status: string;
+  linked_roster_id?: string | null;
   created_at: string;
   updated_at: string;
   published_at: string | null;
@@ -130,6 +143,7 @@ export function rowToExecutiveHubRecord(row: ExecutiveRow): ExecutiveHubRecord {
     notes: row.notes ?? "",
     metaDescription: row.meta_description ?? "",
     status: (row.status as ExecutiveHubStatus) ?? "draft",
+    linkedRosterId: row.linked_roster_id ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -206,6 +220,7 @@ function recordPatchToRow(
     row.status = patch.status;
     if (patch.status === "published") row.published_at = new Date().toISOString();
   }
+  if (patch.linkedRosterId !== undefined) row.linked_roster_id = patch.linkedRosterId;
   row.updated_at = new Date().toISOString();
   return row;
 }
@@ -217,10 +232,17 @@ export async function dbListExecutiveHubRecords(): Promise<{ rows: ExecutiveHubR
   if (!isSupabaseAdminConfigured()) return { rows: [], unavailable: true };
   try {
     const supabase = getAdminSupabase();
-    const { data, error } = await supabase
+    // Explicitly widened to ExecutiveRow (whose linked_roster_id is optional) so the
+    // pre-migration retry below — which selects fewer columns — can assign into the same
+    // variables without a structural type mismatch. Same pattern already proven for
+    // admin_audit_log's actor columns (adminAuditLogServer.ts).
+    let { data, error } = (await supabase
       .from(TABLE)
       .select(SELECT_COLUMNS)
-      .order("full_name", { ascending: true });
+      .order("full_name", { ascending: true })) as { data: ExecutiveRow[] | null; error: { message: string } | null };
+    if (error && isMissingLinkedRosterIdColumn(error.message)) {
+      ({ data, error } = await supabase.from(TABLE).select(SELECT_COLUMNS_BASE).order("full_name", { ascending: true }));
+    }
     if (error) return { rows: [], unavailable: true };
     return { rows: (data ?? []).map((r) => rowToExecutiveHubRecord(r as unknown as ExecutiveRow)), unavailable: false };
   } catch {
@@ -233,11 +255,31 @@ export async function dbGetExecutiveHubRecord(slug: string): Promise<ExecutiveHu
   if (!isSupabaseAdminConfigured()) return null;
   try {
     const supabase = getAdminSupabase();
-    const { data, error } = await supabase
-      .from(TABLE)
-      .select(SELECT_COLUMNS)
-      .eq("slug", slugifyExecutive(slug))
-      .maybeSingle();
+    const key = slugifyExecutive(slug);
+    let { data, error } = await supabase.from(TABLE).select(SELECT_COLUMNS).eq("slug", key).maybeSingle();
+    if (error && isMissingLinkedRosterIdColumn(error.message)) {
+      ({ data, error } = await supabase.from(TABLE).select(SELECT_COLUMNS_BASE).eq("slug", key).maybeSingle());
+    }
+    if (error || !data) return null;
+    return rowToExecutiveHubRecord(data as unknown as ExecutiveRow);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Master Operating Book V2 §0G — the ONE lookup the staff self-service action may use to find
+ * "my own" profile. Selects by `linked_roster_id`, a real FK the caller cannot forge (it is set
+ * only by an owner_admin, never by the staff member themselves). Returns `null` (not an error)
+ * both when the migration isn't applied yet and when no profile is linked — the caller cannot
+ * distinguish "not linked yet" from "feature not enabled," which is the correct honest behavior
+ * either way (staff sees the same "no profile linked" message; nothing is ever leaked or guessed).
+ */
+export async function dbGetExecutiveHubRecordByRosterId(rosterId: string): Promise<ExecutiveHubRecord | null> {
+  if (!isSupabaseAdminConfigured() || !rosterId) return null;
+  try {
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase.from(TABLE).select(SELECT_COLUMNS).eq("linked_roster_id", rosterId).maybeSingle();
     if (error || !data) return null;
     return rowToExecutiveHubRecord(data as unknown as ExecutiveRow);
   } catch {
@@ -258,14 +300,25 @@ export async function dbCreateExecutiveHubRecord(
   try {
     const supabase = getAdminSupabase();
     const now = new Date().toISOString();
-    const row = {
+    // Explicit Record<string, unknown> annotation — spreading recordPatchToRow()'s return type
+    // into a fresh object literal otherwise loses its index signature, so the pre-migration
+    // fallback's `linked_roster_id` destructure below would not type-check even though the key
+    // may or may not be present at runtime (recordPatchToRow only sets it when a link was given).
+    const row: Record<string, unknown> = {
       slug,
       ...recordPatchToRow(input),
       created_at: now,
       updated_at: now,
       published_at: input.status === "published" ? now : null,
     };
-    const { error } = await supabase.from(TABLE).insert(row);
+    let { error } = await supabase.from(TABLE).insert(row);
+    if (error && isMissingLinkedRosterIdColumn(error.message)) {
+      // Pre-migration: retry without the not-yet-existing column rather than failing the whole
+      // create. Loses only the staff-link assignment, which the owner can set again once the
+      // migration is applied — every other field still saves correctly.
+      const { linked_roster_id: _omit, ...rowWithoutLink } = row;
+      ({ error } = await supabase.from(TABLE).insert(rowWithoutLink));
+    }
     if (error) {
       if (error.code === "23505") return { ok: false, error: `An executive with slug "${slug}" already exists.` };
       return { ok: false, error: error.message };
@@ -287,7 +340,11 @@ export async function dbUpdateExecutiveHubRecord(
   try {
     const supabase = getAdminSupabase();
     const row = recordPatchToRow(patch);
-    const { data, error } = await supabase.from(TABLE).update(row).eq("slug", key).select("slug").maybeSingle();
+    let { data, error } = await supabase.from(TABLE).update(row).eq("slug", key).select("slug").maybeSingle();
+    if (error && isMissingLinkedRosterIdColumn(error.message)) {
+      const { linked_roster_id: _omit, ...rowWithoutLink } = row;
+      ({ data, error } = await supabase.from(TABLE).update(rowWithoutLink).eq("slug", key).select("slug").maybeSingle());
+    }
     if (error) return { ok: false, error: error.message };
     if (!data) return { ok: false, error: `Executive "${slug}" was not found.` };
     return { ok: true, slug: key };
@@ -305,12 +362,11 @@ export async function dbGetPublishedExecutiveProfile(slug: string): Promise<Digi
   if (!isSupabaseAdminConfigured()) return null;
   try {
     const supabase = getAdminSupabase();
-    const { data, error } = await supabase
-      .from(TABLE)
-      .select(SELECT_COLUMNS)
-      .eq("slug", slugifyExecutive(slug))
-      .eq("status", "published")
-      .maybeSingle();
+    const key = slugifyExecutive(slug);
+    let { data, error } = await supabase.from(TABLE).select(SELECT_COLUMNS).eq("slug", key).eq("status", "published").maybeSingle();
+    if (error && isMissingLinkedRosterIdColumn(error.message)) {
+      ({ data, error } = await supabase.from(TABLE).select(SELECT_COLUMNS_BASE).eq("slug", key).eq("status", "published").maybeSingle());
+    }
     if (error || !data) return null;
     return rowToDigitalContactProfile(data as unknown as ExecutiveRow);
   } catch {

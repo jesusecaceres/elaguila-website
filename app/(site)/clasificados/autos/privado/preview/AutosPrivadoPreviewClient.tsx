@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AutoPrivadoPreviewPage } from "../components/AutoPrivadoPreviewPage";
+import { AutosPrivadoVehiclePreviewPage } from "./privadoPreview/AutosPrivadoVehiclePreviewPage";
 import { AutosPrivadoPreviewEmptyState } from "../components/AutosPrivadoPreviewEmptyState";
 import { AutosDraftPreviewErrorBoundary } from "@/app/clasificados/autos/shared/components/AutosDraftPreviewErrorBoundary";
 import { loadAutosPrivadoDraftResolved, safeNormalizePrivadoListing } from "../lib/autosPrivadoDraftStorage";
@@ -241,7 +241,7 @@ function AutosPrivadoPreviewInner({
 
   return (
     <AutosDraftPreviewErrorBoundary logLabel="privado" fallback={<AutosPrivadoPreviewEmptyState />}>
-      <AutoPrivadoPreviewPage data={listing} editBackHref={editBackHref} />
+      <AutosPrivadoVehiclePreviewPage data={listing} editBackHref={editBackHref} />
 
       {showSellerCheckout ? (
         <div className="mx-auto mt-8 max-w-3xl px-4 pb-12 sm:px-6">

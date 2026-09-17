@@ -43,6 +43,7 @@ export function AutosClassifiedListingManageCard({
   dateText,
   busy,
   onArchive,
+  onReactivate,
   analytics,
   maxViews,
   thumbUrl,
@@ -73,6 +74,10 @@ export function AutosClassifiedListingManageCard({
   dateText: string;
   busy: boolean;
   onArchive: () => void;
+  /** Registry truth (ownerEntityCapabilityRegistry.ts "autos-privado"): lifecycle.reactivate is
+   * "supported" — an archived private vehicle listing must be restorable. Optional so any other
+   * caller stays backward compatible; only rendered when the row is actually archived/"removed". */
+  onReactivate?: () => void;
   analytics: AutosClassifiedManageAnalytics;
   maxViews: number;
   thumbUrl: string | null;
@@ -90,6 +95,7 @@ export function AutosClassifiedListingManageCard({
           view: "Ver público",
           manage: "Administrar anuncio",
           archive: "Archivar anuncio",
+          reactivate: "Reactivar anuncio",
           views: "Vistas",
           uniq: "Únicas",
           msg: "Contactos",
@@ -112,6 +118,7 @@ export function AutosClassifiedListingManageCard({
           view: "View public",
           manage: "Manage listing",
           archive: "Archive listing",
+          reactivate: "Reactivate listing",
           views: "Views",
           uniq: "Unique",
           msg: "Contacts",
@@ -129,6 +136,7 @@ export function AutosClassifiedListingManageCard({
         };
 
   const isSold = (row.status || "active").toLowerCase() === "sold";
+  const isRemoved = (row.status || "").toLowerCase() === "removed";
   const v = analytics.views;
   // Work Package I.8B — previously ANY non-"sold" status (paused, removed, expired, flagged,
   // pending, ...) rendered as green "Active", regardless of the real status. When the caller
@@ -216,14 +224,25 @@ export function AutosClassifiedListingManageCard({
             >
               {L.view}
             </Link>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={onArchive}
-              className="rounded-xl border border-stone-300 bg-stone-100 px-4 py-2 text-sm font-semibold text-stone-900 disabled:opacity-50"
-            >
-              {L.archive}
-            </button>
+            {isRemoved && onReactivate ? (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={onReactivate}
+                className="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800 hover:border-emerald-400 hover:bg-emerald-100 disabled:opacity-50"
+              >
+                {L.reactivate}
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={onArchive}
+                className="rounded-xl border border-red-300/70 bg-red-50 px-4 py-2 text-sm font-semibold text-red-800 hover:border-red-400 hover:bg-red-100 disabled:opacity-50"
+              >
+                {L.archive}
+              </button>
+            )}
           </div>
         </div>
       </div>

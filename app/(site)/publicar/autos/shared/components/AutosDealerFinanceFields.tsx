@@ -72,6 +72,18 @@ export function AutosDealerFinanceFields({
           />
         </div>
         <div>
+          <label className={LABEL}>{f.smsPhone}</label>
+          <input
+            className={`${INPUT} tabular-nums`}
+            inputMode="tel"
+            value={formatPhoneInputDisplay(listing.financeContactSms ?? "")}
+            onChange={(e) => {
+              const v = formatPhoneInputDisplay(e.target.value);
+              setListingPatch({ financeContactSms: v.trim() ? v : undefined });
+            }}
+          />
+        </div>
+        <div>
           <label className={LABEL}>{f.email}</label>
           <input
             className={INPUT}
@@ -112,7 +124,7 @@ export function AutosDealerFinanceFields({
         <div className="sm:col-span-2">
           <label className={LABEL}>{f.notes}</label>
           <textarea
-            className={`${INPUT} min-h-[80px]`}
+            className={`${INPUT} min-h-[140px] resize-y`}
             value={listing.financeNotes ?? ""}
             onChange={(e) => setListingPatch({ financeNotes: autosDraftTextValue(e.target.value) })}
           />

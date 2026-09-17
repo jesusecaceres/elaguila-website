@@ -33,7 +33,7 @@ export default async function AdminLeonixLeadsInboxPage(props: PageProps) {
         dataSource="public.leonix_leads with lifecycle columns for active, archived, deleted, follow-up, and CRM status."
         status={activeList.dataUnavailable || archivedList.dataUnavailable ? "needs live proof" : "real"}
         safeActions={["Reply via mailto", "Copy reply", "Archive", "Restore", "Export CSV"]}
-        nextGate="ADMIN-ACTION-QA-AND-LIVE-SCHEMA-PROOF-01"
+        nextGate="Confirm every button and count on this page against live Supabase data before relying on it for daily decisions."
         warningNote="This page does not send email server-side; it prepares safe operator follow-up."
       />
 

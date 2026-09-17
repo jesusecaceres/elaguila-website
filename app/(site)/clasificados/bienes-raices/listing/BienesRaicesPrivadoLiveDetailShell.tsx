@@ -8,6 +8,8 @@ import { trackListingSaveToggleAuthed } from "@/app/lib/analytics/client/listing
 import { isSelfEngagement } from "@/app/lib/analytics/selfEngagementGuard";
 import { copyToClipboard } from "@/app/components/cta";
 import { BienesRaicesPrivadoPreviewView } from "@/app/clasificados/bienes-raices/preview/privado/BienesRaicesPrivadoPreviewView";
+import { BrSimilarOtherClientPropertiesSection } from "@/app/clasificados/bienes-raices/components/BrSimilarOtherClientPropertiesSection";
+import { extractBrFacetsFromDetailPairs } from "@/app/clasificados/bienes-raices/resultados/lib/brFacetFromDetailPairs";
 import { mapBrListingRowToPrivadoPreviewVm } from "./mapBrListingRowToPrivadoPreviewVm";
 import type { BienesLiveListingLike } from "./BienesRaicesNegocioLiveDetailShell";
 
@@ -97,6 +99,11 @@ function PrivadoPublicChromeActions({
 
 export function BienesRaicesPrivadoLiveDetailShell({ listing, lang }: { listing: BienesLiveListingLike; lang: Lang }) {
   const vm = mapBrListingRowToPrivadoPreviewVm(listing, lang);
+  // Gate BIENES-PRIVADO-2 — every relationship below is read from THIS listing's own persisted
+  // facets. Nothing is inferred, and a missing facet simply narrows the rail rather than
+  // inventing a value: the reader treats a null operation as "no operation filter" and a null
+  // count as "no bedroom/bathroom score".
+  const facets = extractBrFacetsFromDetailPairs(listing.detailPairs);
 
   return (
     <div className="bg-[#F9F6F1] pt-24 sm:pt-28">
@@ -117,6 +124,29 @@ export function BienesRaicesPrivadoLiveDetailShell({ listing, lang }: { listing:
         ) : null}
       </div>
       <BienesRaicesPrivadoPreviewView vm={vm} lang={lang} />
+      {/*
+        Related properties for a private seller. Deliberately NOT the Negocio same-agent /
+        inventory-group rail: an FSBO row has no parent, no group and no portfolio, so that
+        reader would return nothing and its copy would imply an inventory relationship that
+        does not exist. This uses the shared other-seller similarity reader in `privado` lane,
+        which applies the same public-eligibility rule and the same shared FSBO fixed-term rule
+        as browse, detail, Saved Search and the sitemap — so an expired private listing can
+        never appear here either. It renders nothing at all when there is no real match; there
+        is no filler.
+      */}
+      <div className="mx-auto max-w-[1140px] px-4 pb-10 pt-2 sm:px-6 lg:px-7">
+        <BrSimilarOtherClientPropertiesSection
+          listingId={listing.id}
+          lane="privado"
+          city={listing.city}
+          price={listing.priceNumber ?? null}
+          propertyType={facets.categoriaPropiedad ?? null}
+          operation={facets.operation}
+          bedrooms={facets.machine?.bedroomsCount ?? null}
+          bathrooms={facets.machine?.bathroomsCount ?? null}
+          lang={lang}
+        />
+      </div>
     </div>
   );
 }

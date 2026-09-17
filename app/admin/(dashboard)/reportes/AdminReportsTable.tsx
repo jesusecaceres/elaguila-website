@@ -6,6 +6,7 @@ import { updateListingReportStatusAction, type ListingReportStatus } from "../..
 import { useState } from "react";
 import { adminTableWrap, adminTableZebraRow } from "../../_components/adminTheme";
 import { useAdminLang, useAdminT } from "@/app/admin/_components/AdminI18nProvider";
+import type { ListingModerationReviewSummary } from "@/app/admin/_lib/listingModerationReviewTypes";
 
 type ReportRow = {
   id: string;
@@ -16,13 +17,24 @@ type ReportRow = {
   status: string;
 };
 
+/** Gate 4 (RPT-002) — per-listing enrichment so a reviewer doesn't have to open a second tab. */
+export type ReportListingContext = {
+  title: string | null;
+  category: string | null;
+  listingStatus: string | null;
+  pendingReportCount: number;
+  aiReview: ListingModerationReviewSummary | null;
+};
+
 export default function AdminReportsTable({
   reports,
   highlightReportId,
+  listingContextByListingId,
 }: {
   reports: ReportRow[];
   /** When set (e.g. deep link from Ops), row gets a visible ring. */
   highlightReportId?: string | null;
+  listingContextByListingId?: Record<string, ReportListingContext>;
 }) {
   const router = useRouter();
   const t = useAdminT();
@@ -92,21 +104,53 @@ export default function AdminReportsTable({
                 }`}
               >
                 <td className="p-3 text-[#3D3428]">{formatDate(row.created_at)}</td>
-                <td className="p-3">
-                  <Link
-                    href={`/clasificados/anuncio/${row.listing_id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-mono text-xs font-semibold text-[#6B5B2E] underline"
-                    title={t("reportsTable.openPublicTitle")}
-                  >
-                    {row.listing_id.slice(0, 8)}…
-                  </Link>
+                <td className="min-w-[200px] p-3">
+                  {(() => {
+                    const ctx = listingContextByListingId?.[row.listing_id];
+                    return (
+                      <>
+                        {ctx?.title ? (
+                          <p className="text-xs font-semibold text-[#2C2416]" title={ctx.category ?? undefined}>
+                            {ctx.title}
+                          </p>
+                        ) : null}
+                        <Link
+                          href={`/clasificados/anuncio/${row.listing_id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-mono text-xs font-semibold text-[#6B5B2E] underline"
+                          title={t("reportsTable.openPublicTitle")}
+                        >
+                          {row.listing_id.slice(0, 8)}…
+                        </Link>
+                        {ctx ? (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {ctx.pendingReportCount > 1 ? (
+                              <span
+                                className="rounded-md border border-amber-300/70 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold uppercase text-amber-900"
+                                title="Total pending reports currently open on this listing, including this one."
+                              >
+                                {ctx.pendingReportCount} pending reports
+                              </span>
+                            ) : null}
+                            {ctx.aiReview && ctx.aiReview.decision !== "unavailable" ? (
+                              <span
+                                className="rounded-md border border-[#1E4A7A]/40 bg-[#EEF4FC] px-1.5 py-0.5 text-[10px] font-bold uppercase text-[#1E4A7A]"
+                                title={ctx.aiReview.reason_text ?? undefined}
+                              >
+                                AI: {ctx.aiReview.decision}
+                              </span>
+                            ) : null}
+                          </div>
+                        ) : null}
+                      </>
+                    );
+                  })()}
                 </td>
                 <td className="p-3">
                   {row.reporter_id ? (
                     <Link
-                      href={`/admin/usuarios/${row.reporter_id}`}
+                      href={`/admin/usuarios/${row.reporter_id}?report=${encodeURIComponent(row.id)}`}
                       className="font-mono text-xs font-semibold text-[#6B5B2E] underline"
                       title={t("reportsTable.openReporterTitle")}
                     >

@@ -62,6 +62,12 @@ export type ExecutiveHubRecord = {
   notes: string;
   metaDescription: string;
   status: ExecutiveHubStatus;
+  /**
+   * Master Operating Book V2 §0G — the staff roster member (admin_team_members.id) authorized to
+   * self-edit this profile's safe personal fields. NULL = owner-only management (the default).
+   * Set only by an owner_admin via the Identity section of the owner editor; never inferred.
+   */
+  linkedRosterId: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -102,4 +108,6 @@ export type ExecutiveHubFormInput = {
   workingHoursJson: string;
   notes: string;
   metaDescription: string;
+  /** Owner-only field — which roster member (if any) may self-edit this profile. */
+  linkedRosterId: string;
 };

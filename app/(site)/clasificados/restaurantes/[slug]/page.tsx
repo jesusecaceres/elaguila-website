@@ -10,10 +10,12 @@ import { RestauranteProfileViewAnalytics } from "@/app/clasificados/restaurantes
 import { fetchRestauranteLinkedOffersForPublicPage } from "@/app/lib/clasificados/restaurantes/restaurantesLinkedOffersQuery";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { RestaurantesShellChrome } from "@/app/clasificados/restaurantes/shell/RestaurantesShellChrome";
-import { RESTAURANTES_COUPON_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
-import { fetchAddonEntitlementsForListings } from "@/app/lib/listingPlans/addonEntitlementReader";
+import { restauranteCouponsCapabilityActive } from "@/app/clasificados/restaurantes/lib/restauranteCouponCapabilityServer";
+import { listRelatedRestaurantesListings } from "@/app/clasificados/restaurantes/lib/restaurantesRelatedListings";
+import { RestaurantesRelatedListingsSection } from "@/app/clasificados/restaurantes/components/RestaurantesRelatedListingsSection";
 import { restauranteJsonLd } from "../seo/restauranteJsonLd";
 import { breadcrumbJsonLd } from "@/app/lib/seo/breadcrumbJsonLd";
+import { LEONIX_SITE_ORIGIN } from "@/app/lib/leonixBrand";
 
 type Lang = "es" | "en";
 
@@ -66,36 +68,44 @@ export default async function RestaurantePublicDetailPage(props: PageProps) {
   const draft = listingJsonToDraft(row.listing_json);
   const shellData = mapRestauranteDraftToShellData(draft, { lang });
 
-  const [linkedOffers, couponEntitlements] = await Promise.all([
+  const [linkedOffers, couponsIncluded, related] = await Promise.all([
     isSupabaseAdminConfigured()
       ? fetchRestauranteLinkedOffersForPublicPage(getAdminSupabase(), row.id, lang)
       : Promise.resolve([]),
-    fetchAddonEntitlementsForListings({
-      category: "restaurantes",
-      packageKey: RESTAURANTES_COUPON_ADDON_PACKAGE_KEY,
-      listingIds: [row.id],
-    }),
+    restauranteCouponsCapabilityActive(row.id),
+    // Gate RESTAURANTES-2 — related published listings, from the same canonical published reader
+    // the results page uses. This route only ever renders a `status = "published"` row (the reader
+    // above 404s otherwise), so no extra visibility guard is needed here.
+    listRelatedRestaurantesListings(row),
   ]);
 
-  // Gate E.2.2 — public coupon module visibility is live entitlement truth only, never the
-  // legacy `listing_json.couponUpgradeEnabled` flag baked into `shellData` by the (unmodified,
-  // pure) mapper. On any lookup failure, `fetchAddonEntitlementsForListings` already fails
-  // closed to `not_purchased` (see addonEntitlementReader.ts), so this stays hidden rather than
-  // throwing or exposing the base listing to risk. Stored coupon content itself is never
-  // touched here — only what gets rendered.
-  const couponAddonActive = couponEntitlements.get(row.id)?.status === "active";
+  // Gate E.2.2 (preserved) — public coupon module visibility is live commercial truth only, never
+  // the legacy `listing_json.couponUpgradeEnabled` flag baked into `shellData` by the (unmodified,
+  // pure) mapper.
+  //
+  // Gate RESTAURANTES-1 — that truth is now the INCLUDED `coupons_offers` capability of the $399
+  // base package, resolved through the canonical plan resolver, instead of a live entitlement row
+  // for the RETIRED `restaurantes_offers_addon` key. Nothing grants that retired key from a base
+  // payment, so every new $399 restaurant had its coupons permanently hidden here. Historical $79
+  // add-on holders still resolve, via the policy's own legacy-add-on branch. Fails closed on any
+  // lookup problem, exactly as the previous reader did. Stored coupon content is never touched —
+  // only what gets rendered.
   const shellForPublic = {
     ...shellData,
     id: row.id,
-    coupons: couponAddonActive ? shellData.coupons : undefined,
-    couponFlyer: couponAddonActive ? shellData.couponFlyer : undefined,
-    couponMoreOffers: couponAddonActive ? shellData.couponMoreOffers : undefined,
+    coupons: couponsIncluded ? shellData.coupons : undefined,
+    couponFlyer: couponsIncluded ? shellData.couponFlyer : undefined,
+    couponMoreOffers: couponsIncluded ? shellData.couponMoreOffers : undefined,
   };
 
   const jsonLd = restauranteJsonLd({
     name: shellData.businessName,
     description: row.summary_short?.trim() || undefined,
-    url: `/clasificados/restaurantes/${encodeURIComponent(slug)}`,
+    // Gate RESTAURANTES-1 — absolute canonical. schema.org `url` is resolved by consumers without
+    // page context, so the previous relative path was an unusable entity URL. This is the same
+    // value `generateMetadata` above declares as `alternates.canonical`, built from the existing
+    // `LEONIX_SITE_ORIGIN` helper (same doctrine applied to Servicios in Gate SERVICIOS-1).
+    url: `${LEONIX_SITE_ORIGIN}/clasificados/restaurantes/${encodeURIComponent(slug)}`,
     imageUrl: shellData.heroImageUrl,
     telephone: shellData.contact?.phoneDisplay,
     addressText: [shellData.contact?.addressLine1, shellData.contact?.addressLine2].filter(Boolean).join(", ") || undefined,
@@ -148,6 +158,14 @@ export default async function RestaurantePublicDetailPage(props: PageProps) {
           </p>
         ) : null}
       </div>
+      {/* Gate RESTAURANTES-2 — Related Listings, derived from real published rows by shared
+          cuisine/type + city (see restaurantesRelatedListings.ts). Reuses the results card. */}
+      <RestaurantesRelatedListingsSection
+        rows={related.rows}
+        matchedByCuisine={related.matchedByCuisine}
+        lang={lang}
+        browseHref={`/clasificados/restaurantes/resultados?lang=${lang}`}
+      />
     </RestaurantesShellChrome>
   );
 }

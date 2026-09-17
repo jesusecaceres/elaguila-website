@@ -21,6 +21,37 @@ export function isRecoveryDestination(redirectPath: string | null | undefined): 
   return Boolean(redirectPath?.includes("recovery=1"));
 }
 
+/**
+ * Recovery destinations are intentionally a hardcoded allowlist, not an arbitrary safe-internal
+ * redirect — a recovery link proves control of an email address, nothing more, so the callback
+ * must never forward it to anywhere except one of these two known, non-privileged password-update
+ * screens. Customer and Admin share the same resetPasswordForEmail/callback/updateUser primitives
+ * below; only the destination differs.
+ */
+export type RecoveryContext = "customer" | "admin";
+
+const RECOVERY_DESTINATION_PATHS: Record<RecoveryContext, string> = {
+  customer: "/dashboard/seguridad",
+  admin: "/admin/login/reset",
+};
+
+export function resolveRecoveryContext(destination: string | null | undefined): RecoveryContext | null {
+  if (!destination) return null;
+  let pathname: string;
+  try {
+    pathname = new URL(destination, "https://example.com").pathname;
+  } catch {
+    return null;
+  }
+  if (pathname === RECOVERY_DESTINATION_PATHS.customer) return "customer";
+  if (pathname === RECOVERY_DESTINATION_PATHS.admin) return "admin";
+  return null;
+}
+
+export function isAllowedRecoveryDestination(destination: string | null | undefined): boolean {
+  return resolveRecoveryContext(destination) !== null;
+}
+
 export function isRecoveryAuthCallback(
   query: URLSearchParams,
   hash: URLSearchParams,
@@ -183,7 +214,7 @@ export function genericCallbackErrorMessage(
       ? "El servicio tardó demasiado. Intenta de nuevo."
       : "Service took too long. Please try again.";
   }
-  if (raw === "recovery_link_invalid_or_expired") {
+  if (raw === "recovery_link_invalid_or_expired" || raw === "recovery_destination_not_allowed") {
     return recoveryCallbackErrorMessage(lang);
   }
   return raw ?? (lang === "es" ? "No pudimos completar el inicio de sesión." : "We couldn't complete sign-in.");

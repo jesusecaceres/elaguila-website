@@ -246,6 +246,13 @@ const SERVICIOS_ADAPTER: CategoryRouteAdapter = {
   sourceTable: "servicios_public_listings",
   entryRoute: "/clasificados/servicios",
   applicationRoute: SERVICIOS_APPLICATION_BASE,
+  // Servicios Live Launch Perfection ⚠️1 (2026-09-13) — the paid product checkpoint is the single
+  // canonical door for a NEW listing. Without this field the publish gateway resolved
+  // `checkpointRoute ?? hubRoute ?? applicationRoute` straight to the application, so the
+  // Clasificados hub skipped the $399 checkpoint that the Negocios Locales lane reaches through
+  // app/(site)/clasificados/publicar/servicios/page.tsx's redirect. `applicationRoute` stays the
+  // direct form route: dashboard edit and the checkpoint's own CTA hand off there.
+  checkpointRoute: "/clasificados/publicar/servicios/checkpoint",
   resultsRoute: "/clasificados/servicios/resultados",
 
   publicRoute: (identity) => identity.publicUrl || null,

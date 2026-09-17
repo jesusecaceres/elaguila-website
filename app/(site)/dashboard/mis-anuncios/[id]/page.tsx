@@ -12,6 +12,15 @@ import {
 } from "../../lib/ownerListingsLifecycleClient";
 import { isBrNegocioListing, isBrInventoryMainListing, isBrInventoryProperty } from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
 import { callBrLifecycleMutation } from "../../lib/brDashboardLifecycleClient";
+import { callBrFsboStatusMutation, brFsboStatusErrorMessage } from "../../lib/brFsboStatusClient";
+import { startListingRenewalCheckout } from "@/app/lib/listingLifecycle/listingRenewalCheckout";
+import { resolveListingLifecycle } from "@/app/lib/listingLifecycle/resolveListingLifecycle";
+import {
+  BIENES_FSBO_LIFECYCLE_CATEGORY,
+  BIENES_FSBO_LIFECYCLE_PACKAGE_KEY,
+  BIENES_FSBO_LISTING_LIFECYCLE_CONFIG,
+} from "@/app/lib/listingLifecycle/bienesFsboLifecycle";
+import { isBrFsboRow } from "@/app/lib/listingLifecycle/bienesFsboLifecycle";
 import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { LeonixDashboardShell } from "../../components/LeonixDashboardShell";
@@ -45,12 +54,13 @@ import {
 } from "@/app/clasificados/en-venta/boosts/enVentaVisibilityRenewal";
 import { listingsRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCapability";
 import { misAnunciosDetailCopy, genericCategoryEyebrow, ownerToolsTitle } from "../../lib/dashboardI18n";
-import { OwnerEntityWorkspace } from "../../components/OwnerEntityWorkspace";
+import { OwnerEntityWorkspace, type OwnerEntitySpecializedGroup } from "../../components/OwnerEntityWorkspace";
 import type { ActionItem } from "../../components/DashboardListingActionBar";
 import type { OwnerEntityDetailItem } from "../../components/OwnerEntityDetailGrid";
 import type { OwnerEntityMetric } from "../../components/OwnerEntityPerformance";
 import type { OwnerEntityActivityItem } from "../../components/OwnerEntityActivity";
 import { getOwnerEntityCapabilities, type OwnerEntityCategoryKey } from "../../lib/ownerEntityCapabilityRegistry";
+import { ownerBusinessToolsSpecializedGroup } from "../../lib/ownerBusinessToolsSpecializedGroup";
 import {
   bienesInventoryEditHref,
   bienesListingEditHref,
@@ -479,6 +489,23 @@ function ListingWorkspacePageContent() {
   async function markStatus(status: "active" | "sold") {
     if (!row) return;
     setBusy(true);
+    // Gate BIENES-PRIVADO-1 — a Privado row's status is decided by the server, never by a
+    // direct client table write. "active" is a RELIST and is refused out of an unpaid row.
+    if (isBrFsboRow(row)) {
+      const result = await callBrFsboStatusMutation({
+        listingId: row.id,
+        action: status === "sold" ? "mark_sold" : "relist",
+      });
+      if (!result.ok) {
+        setResumeError(brFsboStatusErrorMessage(result.code, lang));
+        setBusy(false);
+        return;
+      }
+      const now = new Date().toISOString();
+      setRow((r) => (r ? { ...r, status: result.status, is_published: result.isPublished, updated_at: now } : r));
+      setBusy(false);
+      return;
+    }
     if (status === "sold" && isBrNegocioListing(row)) {
       const result = await callBrLifecycleMutation({ listingId: row.id, mutation: "discontinue" });
       if (!result.ok) {
@@ -499,10 +526,44 @@ function ListingWorkspacePageContent() {
     setBusy(false);
   }
 
+  async function startFsboRenewal() {
+    if (!row) return;
+    setBusy(true);
+    setResumeError(null);
+    const result = await startListingRenewalCheckout({
+      category: BIENES_FSBO_LIFECYCLE_CATEGORY,
+      packageKey: BIENES_FSBO_LIFECYCLE_PACKAGE_KEY,
+      listingId: row.id,
+      leonixAdId: row.leonix_ad_id,
+      lang,
+      returnPath: `/dashboard/mis-anuncios/${row.id}?lang=${lang}`,
+    });
+    if (!result.ok) {
+      setResumeError(result.userMessage);
+      setBusy(false);
+      return;
+    }
+    window.location.href = result.checkoutUrl;
+  }
+
   async function archiveListing() {
     if (!row) return;
     if (!confirm(lang === "es" ? "¿Archivar este anuncio? Dejará de mostrarse al público." : "Archive this listing? It will stop showing publicly.")) return;
     setBusy(true);
+    // Gate BIENES-PRIVADO-1 — soft archive for Privado also goes through the server authority.
+    // Same `removed` / unpublished patch as before; the row and its media are never deleted.
+    if (isBrFsboRow(row)) {
+      const result = await callBrFsboStatusMutation({ listingId: row.id, action: "archive" });
+      if (!result.ok) {
+        setResumeError(brFsboStatusErrorMessage(result.code, lang));
+        setBusy(false);
+        return;
+      }
+      const now = new Date().toISOString();
+      setRow((r) => (r ? { ...r, status: result.status, is_published: result.isPublished, updated_at: now } : r));
+      setBusy(false);
+      return;
+    }
     if (isBrNegocioListing(row)) {
       const result = await callBrLifecycleMutation({ listingId: row.id, mutation: "archive" });
       if (!result.ok) {
@@ -610,6 +671,33 @@ function ListingWorkspacePageContent() {
                   ? "mascotas-y-perdidos"
                   : null;
   const capabilities = genericCapabilityKey ? getOwnerEntityCapabilities(genericCapabilityKey) : null;
+  /**
+   * Gate BIENES-PRIVADO-2 — the Owner Command Center contract (Bible §9) makes THIS the one
+   * canonical workspace for a listing, with Lifecycle as a required section. Gate
+   * BIENES-PRIVADO-1 wired the FSBO renewal onto the Mis Anuncios list card but not here, so an
+   * owner who opened their own listing's workspace saw the expiration date with no way to act on
+   * it and had to navigate back to the list. This uses the SAME shared lifecycle reader and the
+   * SAME shared renewal checkout the list card uses — no second renewal path, and no payment
+   * authority on this client: the server re-verifies ownership, lane and eligibility before a
+   * Stripe session exists.
+   */
+  const fsboRow = row ? isBrFsboRow(row) : false;
+  const fsboLifecycle =
+    row && fsboRow
+      ? resolveListingLifecycle(
+          {
+            category: BIENES_FSBO_LIFECYCLE_CATEGORY,
+            packageKey: BIENES_FSBO_LIFECYCLE_PACKAGE_KEY,
+            status: row.status,
+            isPublished: row.is_published,
+            publishedAt: row.published_at,
+            expiresAt: listingExpireIso,
+          },
+          BIENES_FSBO_LISTING_LIFECYCLE_CONFIG,
+        )
+      : null;
+  const canRenew =
+    capabilities?.lifecycle.renew === "supported" && fsboLifecycle?.isRenewalEligible === true;
   const canPause = capabilities ? capabilities.lifecycle.pause === "supported" || capabilities.lifecycle.pause === "specialized" : true;
   const canReactivate = capabilities ? capabilities.lifecycle.reactivate === "supported" || capabilities.lifecycle.reactivate === "specialized" : true;
   const canArchive = capabilities ? capabilities.lifecycle.archive === "supported" || capabilities.lifecycle.archive === "specialized" : true;
@@ -684,7 +772,36 @@ function ListingWorkspacePageContent() {
 
   const rawLifecycleActions: Array<ActionItem | null> = row
     ? [
-        canMarkSold ? { label: t.markSold, onClick: () => void markStatus("sold"), disabled: busy, tone: "danger" } : null,
+        // Gate BIENES-PRIVADO-2 — renewal leads the group when the term is genuinely near or past
+        // its end, because that is the only action that restores public visibility. It renders
+        // ONLY when the shared lifecycle reader says the row is really renewal-eligible; an
+        // active mid-term listing sees nothing here, so no owner is nudged into an early charge.
+        canRenew
+          ? { label: lang === "es" ? "Renovar anuncio" : "Renew listing", onClick: () => void startFsboRenewal(), disabled: busy, tone: "premium" }
+          : null,
+        canMarkSold
+          ? {
+              label: t.markSold,
+              onClick: () => {
+                // UX Completion Gate — "Mark sold" is the same Red/terminal semantic as
+                // "Archive" (Master Bible SS10) and already confirms elsewhere (the BR-family
+                // card in mis-anuncios/page.tsx); this generic entity-workspace path had no
+                // confirmation at all, unlike this same file's own archiveListing() a few lines
+                // above. Matching the existing confirm copy style for consistency.
+                if (
+                  !confirm(
+                    lang === "es"
+                      ? "¿Marcar este anuncio como vendido? Dejará de aparecer en resultados públicos."
+                      : "Mark this listing as sold? It will leave public results.",
+                  )
+                )
+                  return;
+                void markStatus("sold");
+              },
+              disabled: busy,
+              tone: "danger",
+            }
+          : null,
         canReactivate && (String(row.status ?? "").toLowerCase() === "paused" || String(row.status ?? "").toLowerCase() === "unpublished")
           ? { label: busy ? (lang === "es" ? "Restaurando…" : "Restoring…") : t.resumeAd, onClick: () => void resumeListing(), disabled: busy, tone: "positive" }
           : null,
@@ -798,7 +915,10 @@ function ListingWorkspacePageContent() {
             }}
             quickActions={quickActions}
             lifecycleActions={lifecycleActions}
-            specialized={{ title: isBrNegocio ? ownerToolsTitle(lang) : t.visibilityTitle, actions: specializedActions }}
+            specialized={[
+              { title: isBrNegocio ? ownerToolsTitle(lang) : t.visibilityTitle, actions: specializedActions },
+              capabilities ? ownerBusinessToolsSpecializedGroup(capabilities.specialized.businessTools, lang) : null,
+            ].filter((group): group is OwnerEntitySpecializedGroup => group !== null)}
             activity={{ title: t.activityTitle, items: activityItems, emptyLabel: t.activityEmpty }}
             mobileSheetLabels={{ trigger: t.moreOptions, title: t.moreOptions, close: t.moreOptionsClose }}
             footerHint={

@@ -239,10 +239,10 @@ function EmpleosEmployerManagePageContent() {
   const supportsApplications = row.lane !== "feria" && isLiveCapability(capabilities.specialized.applications);
 
   const detailItems = [
-    row.company_name ? { label: t.company, value: row.company_name } : null,
+    row.company_name ? { label: t.company, value: row.company_name, wide: true } : null,
     row.published_at ? { label: t.published, value: new Date(row.published_at).toLocaleString(lang === "es" ? "es-US" : "en-US") } : null,
     row.updated_at ? { label: t.updated, value: new Date(row.updated_at).toLocaleString(lang === "es" ? "es-US" : "en-US") } : null,
-  ].filter((x): x is { label: string; value: string } => x !== null);
+  ].filter((x): x is { label: string; value: string; wide?: boolean } => x !== null);
 
   const performanceMetrics = [
     typeof row.view_count === "number" ? { key: "views", label: t.views, value: row.view_count } : null,
@@ -271,7 +271,24 @@ function EmpleosEmployerManagePageContent() {
     lifecycleActions.push({ label: resumeListingLabel(lang), onClick: () => void patchStatus("published"), disabled: busy, tone: "positive" });
   }
   if (isLiveCapability(capabilities.lifecycle.archive) && row.lifecycle_status !== "archived") {
-    lifecycleActions.push({ label: archiveListingLabel(lang), onClick: () => void patchStatus("archived"), disabled: busy, tone: "danger" });
+    // UX Completion Gate — this Red/terminal action (Master Bible SS10) had no confirmation,
+    // unlike the generic entity workspace's and BR's equivalent archive actions.
+    lifecycleActions.push({
+      label: archiveListingLabel(lang),
+      onClick: () => {
+        if (
+          !confirm(
+            lang === "es"
+              ? "¿Archivar esta vacante? Dejará de mostrarse al público."
+              : "Archive this job listing? It will stop showing publicly.",
+          )
+        )
+          return;
+        void patchStatus("archived");
+      },
+      disabled: busy,
+      tone: "danger",
+    });
   }
 
   const activityItems: OwnerEntityActivityItem[] = supportsApplications
@@ -336,13 +353,17 @@ function EmpleosEmployerManagePageContent() {
                 title: ownerApplicationsModuleTitle(lang),
                 items: activityItems,
                 emptyLabel: appsLoaded ? t.noApps : t.loading,
+                // Real scroll target for the "Aplicaciones" specialized-tools CTA above — was
+                // previously an empty marker placed AFTER this whole card (so the anchor scrolled
+                // past the actual applications list instead of to it); now the applications
+                // section itself carries the id the CTA jumps to.
+                id: "empleos-applications",
               }
             : undefined
         }
         mobileSheetLabels={{ trigger: t.moreOptions, title: t.moreOptions, close: t.moreOptionsClose }}
         footerHint={row.lane === "feria" ? t.feriaNote : null}
       />
-      {supportsApplications ? <div id="empleos-applications" className="sr-only" /> : null}
       <Link href={`/dashboard/empleos?${q}`} className="mt-6 inline-flex text-sm font-semibold underline">
         ← {t.back}
       </Link>

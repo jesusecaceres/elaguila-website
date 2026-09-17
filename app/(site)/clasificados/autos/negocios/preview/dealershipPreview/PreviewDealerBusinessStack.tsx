@@ -1,6 +1,9 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
+import { buildSendEmailIntent, CtaActionSheet } from "@/app/components/cta";
+import { buildAutosContactEmailBody } from "@/app/lib/clasificados/autos/autosContactEmailBody";
+import type { CtaSheetIntent } from "@/app/components/cta/types";
 import {
   FiCalendar,
   FiGrid,
@@ -20,7 +23,9 @@ import {
   filterDealerHoursForDisplay,
   formatDealerHoursTimeRange,
   formatTodaysDealerHoursLine,
+  localizeDealerHoursDayLabel,
 } from "../../lib/dealerHoursDisplay";
+import { buildAutosDealerHoursStatus } from "../../lib/autosDealerHoursStatus";
 import { formatCityStateLabel, formatUsd, polishMonthlyEstimateDisplay } from "../../components/autoDealerFormatters";
 import { MediaImage } from "../../components/MediaImage";
 import { useAutosNegociosPreviewCopy } from "../../lib/AutosNegociosPreviewLocaleContext";
@@ -28,6 +33,7 @@ import { AutosDirectContactLink } from "@/app/clasificados/autos/shared/componen
 import { DealerFinanceContact } from "../../components/DealerFinanceContact";
 import { hasDealerFinanceContact } from "@/app/lib/clasificados/autos/autosDealerFinanceContact";
 import { mapAutosDealerToBusinessHubContact } from "../../lib/mapAutosDealerToBusinessHubContact";
+import { localizeAutosDealerLanguageLabel } from "@/app/lib/clasificados/autos/autosDealerLanguages";
 import {
   AutosBusinessHubSocialBrandIcon,
   autosBusinessHubSocialBrandStyle,
@@ -51,11 +57,13 @@ import {
 } from "../../../lib/autosCtaTracking";
 import { hasListingVideo } from "../../lib/autoDealerVideo";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
+import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import {
   autosAnalyticsContextFromProps,
   autosGlobalLikeRecorderFromContext,
+  autosGlobalShareRecorderFromContext,
 } from "@/app/lib/clasificados/autos/analytics/autosGlobalAnalytics";
-import { AUTOS_PREVIEW_SECTION_IDS } from "./previewPremiumTokens";
+import { AUTOS_GALLERY_SELECT_TAB_EVENT, AUTOS_PREVIEW_SECTION_IDS } from "./previewPremiumTokens";
 import {
   autosPreviewBurgundyPrimaryBtnClass,
   autosPreviewBusinessHubHeaderClass,
@@ -77,6 +85,16 @@ const SECTION_HEAD = "text-[11px] font-extrabold uppercase tracking-[0.16em] tex
 
 const QUICK_ACTION_CLASS =
   "inline-flex min-h-[44px] w-full items-center gap-3 rounded-[10px] border border-[#D6C7AD]/70 bg-[#FFFCF7] px-3 text-left text-sm font-semibold text-[#1F241C] transition hover:border-[#C9A84A] hover:bg-[#FBF7EF]";
+
+function emailFromMailtoHref(href: string): string {
+  const h = href.trim();
+  if (!h.toLowerCase().startsWith("mailto:")) return "";
+  try {
+    return decodeURIComponent(h.slice(7).split(/[?#]/)[0] ?? "");
+  } catch {
+    return h.slice(7).split(/[?#]/)[0] ?? "";
+  }
+}
 
 function nonEmpty(s: string | undefined | null): boolean {
   return typeof s === "string" && s.trim().length > 0;
@@ -147,7 +165,12 @@ export function PreviewDealerBusinessStack({
   const hours = filterDealerHoursForDisplay(data.dealerHours);
   const showBuyerInventory = Boolean(buyerInventoryHref?.trim());
   const logoAlt = data.dealerName?.trim() ? data.dealerName.trim() : d.logoAltFallback;
-  const todaysHoursLine = formatTodaysDealerHoursLine(data.dealerHours, lang);
+  const liveHoursStatus = buildAutosDealerHoursStatus(
+    data.dealerHours,
+    { state: data.dealerAddressState, country: data.dealerAddressCountry },
+    lang,
+  );
+  const todaysHoursLine = liveHoursStatus?.text ?? formatTodaysDealerHoursLine(data.dealerHours, lang);
   const BTN_PRIMARY = showPremiumHubHeader ? autosPreviewBurgundyPrimaryBtnClass : BTN_PRIMARY_LEGACY;
   const BTN_SECONDARY = showPremiumHubHeader ? autosPreviewSecondaryBtnClass : BTN_SECONDARY_LEGACY;
   const BTN_WHATSAPP = showPremiumHubHeader ? autosPreviewWhatsappBtnClass : BTN_PRIMARY;
@@ -175,13 +198,29 @@ export function PreviewDealerBusinessStack({
     }
     trackAutosContactFromHref(href, contactMeta);
   };
+  const [emailSheetIntent, setEmailSheetIntent] = useState<CtaSheetIntent | null>(null);
+  const openEmail = () => {
+    if (!c.emailMailto) return;
+    trackHref(c.emailMailto);
+    const email = emailFromMailtoHref(c.emailMailto);
+    setEmailSheetIntent(
+      buildSendEmailIntent({
+        email,
+        subject: data.dealerName?.trim() ? `Leonix · ${data.dealerName.trim()}` : "Leonix",
+        body: buildAutosContactEmailBody({ lang, vehicleTitle: data.vehicleTitle, intent: "dealer" }),
+        showOpenEmailApp: false,
+      }),
+    );
+  };
   const showWhatsapp = Boolean(c.whatsappHref);
+  // Owner-locked final mapping: "Llamar" = personal/mobile; "Solicitar disponibilidad" = office.
   const showCall = Boolean(c.callTelHref);
+  const showAvailability = Boolean(c.availabilityTelHref);
   const showSms = Boolean(c.smsHref);
   const showSchedule = Boolean(c.bookingHref);
   const showWebsite = Boolean(c.websiteHref);
   const showEmail = Boolean(c.emailMailto);
-  const showContactGrid = showWhatsapp || showCall || showSms || showSchedule || showWebsite || showEmail;
+  const showContactGrid = showWhatsapp || showCall || showAvailability || showSms || showSchedule || showWebsite || showEmail;
   const showSocial = hub.social.length > 0;
   const showReviews = hub.reviews.length > 0;
   const showMoreLinks = hub.moreLinks.length > 0;
@@ -194,8 +233,9 @@ export function PreviewDealerBusinessStack({
   const analyticsCtx = useMemo(() => autosAnalyticsContextFromProps(publicAnalytics), [publicAnalytics]);
   const priceOk = data.price !== undefined && Number.isFinite(data.price);
   const monthly = polishMonthlyEstimateDisplay(data.monthlyEstimate ?? undefined);
-  const primaryAvailabilityHref = c.whatsappHref || c.smsHref || c.emailMailto || c.bookingHref || null;
-  const chatHref = c.whatsappHref || c.smsHref || null;
+  // Owner-locked final mapping: "Solicitar disponibilidad" is the office/dealership number first,
+  // falling back to another real availability channel (never email — Correo has its own button).
+  const primaryAvailabilityHref = c.availabilityTelHref || c.whatsappHref || c.smsHref || c.bookingHref || null;
   const phoneDisplay =
     data.dealerPhoneOffice?.trim() || data.dealerPhoneMobile?.trim() || data.dealerSmsPhone?.trim() || "";
   const addressDisplay = hub.location?.addressDisplay?.trim() || "";
@@ -210,19 +250,16 @@ export function PreviewDealerBusinessStack({
 
   const requestAvailabilityLabel =
     lang === "es" ? "Solicitar disponibilidad" : "Request availability";
-  const chatLabel = lang === "es" ? "Chatear" : "Chat";
   const dealerDescriptor = lang === "es" ? "Concesionario en Leonix" : "Dealership on Leonix";
   const questionsTitle = lang === "es" ? "¿Preguntas sobre este auto?" : "Questions about this vehicle?";
   const questionsBody =
     lang === "es"
       ? "Nuestro equipo está listo para ayudarte."
       : "Our team is ready to help you.";
-  const sendMessageLabel = lang === "es" ? "Enviar mensaje" : "Send message";
   const viewVideoLabel = lang === "es" ? "Ver video completo" : "Watch full video";
   const printLabel = lang === "es" ? "Imprimir" : "Print";
   const shareLabel = lang === "es" ? "Compartir" : "Share";
   const reportLabel = lang === "es" ? "Reportar anuncio" : "Report listing";
-  const profileLabel = lang === "es" ? "Ver perfil del negocio" : "View business profile";
 
   let sectionBorder = false;
   const nextSection = () => {
@@ -233,6 +270,15 @@ export function PreviewDealerBusinessStack({
 
   const secondaryCtas: Array<{ key: string; node: ReactNode }> = [];
 
+  if (showAvailability && c.availabilityTelHref) {
+    const node = (
+      <AutosDirectContactLink href={c.availabilityTelHref} className={BTN_SECONDARY} {...sheetProps}>
+        <FiPhone className="h-5 w-5 shrink-0 text-[#C9A84A]" aria-hidden />
+        {sb.availabilityCta}
+      </AutosDirectContactLink>
+    );
+    secondaryCtas.push({ key: "availability", node });
+  }
   if (showCall && c.callTelHref) {
     const node = (
       <AutosDirectContactLink href={c.callTelHref} className={BTN_SECONDARY} {...sheetProps}>
@@ -285,10 +331,10 @@ export function PreviewDealerBusinessStack({
     secondaryCtas.push({
       key: "email",
       node: (
-        <AutosDirectContactLink href={c.emailMailto} className={BTN_SECONDARY} {...sheetProps}>
+        <button type="button" onClick={openEmail} className={BTN_SECONDARY}>
           <FiMail className="h-5 w-5 shrink-0 text-[#C9A84A]" aria-hidden />
           {sb.emailSeller}
-        </AutosDirectContactLink>
+        </button>
       ),
     });
   }
@@ -313,6 +359,7 @@ export function PreviewDealerBusinessStack({
   const premiumHub = showPremiumHubHeader;
 
   return (
+    <>
     <div
       className={`min-w-0 overflow-x-hidden ${
         premiumHub
@@ -322,13 +369,13 @@ export function PreviewDealerBusinessStack({
     >
       {premiumHub ? (
         <div className={autosPreviewBusinessHubHeaderClass}>
-          {lang === "es" ? "Business Hub" : "Business Hub"}
+          {lang === "es" ? "Centro de contacto" : "Business Hub"}
         </div>
       ) : null}
       <div className={premiumHub ? "px-4 py-5 sm:px-5 sm:py-6" : ""}>
         {premiumHub && (priceOk || nonEmpty(monthly)) ? (
           <div className="mb-4 rounded-[12px] border border-[#D6C7AD]/65 bg-[#FFFCF7] px-3.5 py-3">
-            {priceOk ? <p className={`${autosPreviewHeroPriceClass} text-[1.75rem] sm:text-[2rem]`}>{formatUsd(data.price)}</p> : null}
+            {priceOk ? <p className={`${autosPreviewHeroPriceClass} text-[1.75rem] sm:text-[2rem]`}>{formatUsd(data.price, lang)}</p> : null}
             {nonEmpty(monthly) ? (
               <p className={`text-sm font-semibold text-[#5C5346] ${priceOk ? "mt-1" : ""}`}>
                 {lang === "es" ? `o ${monthly}` : `or ${monthly}`}
@@ -349,6 +396,8 @@ export function PreviewDealerBusinessStack({
                 >
                   {primaryAvailabilityHref === c.whatsappHref ? (
                     <SiWhatsapp className="h-5 w-5 shrink-0 text-white" aria-hidden />
+                  ) : primaryAvailabilityHref === c.availabilityTelHref ? (
+                    <FiPhone className="h-5 w-5 shrink-0" aria-hidden />
                   ) : (
                     <FiMessageSquare className="h-5 w-5 shrink-0" aria-hidden />
                   )}
@@ -356,24 +405,49 @@ export function PreviewDealerBusinessStack({
                 </AutosDirectContactLink>
               ) : null}
 
-              <div className={`grid gap-3 ${showCall && chatHref ? "grid-cols-2" : "grid-cols-1"}`}>
-                {showCall && c.callTelHref ? (
-                  <AutosDirectContactLink href={c.callTelHref} className={BTN_SECONDARY} {...sheetProps}>
-                    <FiPhone className="h-5 w-5 shrink-0 text-[#C9A84A]" aria-hidden />
-                    {sb.call}
-                  </AutosDirectContactLink>
-                ) : null}
-                {chatHref ? (
-                  <AutosDirectContactLink href={chatHref} className={BTN_SECONDARY} {...sheetProps}>
-                    {chatHref === c.whatsappHref ? (
-                      <SiWhatsapp className="h-5 w-5 shrink-0 text-[#128C7E]" aria-hidden />
-                    ) : (
-                      <FiMessageSquare className="h-5 w-5 shrink-0 text-[#C9A84A]" aria-hidden />
-                    )}
-                    {chatLabel}
-                  </AutosDirectContactLink>
-                ) : null}
-              </div>
+              {(() => {
+                // Gate 08: a 2-column grid with exactly 3 real channels leaves the 3rd stranded
+                // alone in the left column with an empty gap beside it. Give that odd-one-out an
+                // intentional full-width row instead of accidental whitespace.
+                const channels = (
+                  [
+                    showCall && c.callTelHref
+                      ? { key: "call", node: (
+                          <AutosDirectContactLink href={c.callTelHref} className={BTN_SECONDARY} {...sheetProps}>
+                            <FiPhone className="h-5 w-5 shrink-0 text-[#C9A84A]" aria-hidden />
+                            {sb.call}
+                          </AutosDirectContactLink>
+                        ) }
+                      : null,
+                    showWhatsapp && c.whatsappHref
+                      ? { key: "whatsapp", node: (
+                          <AutosDirectContactLink href={c.whatsappHref} className={BTN_SECONDARY} {...sheetProps}>
+                            <SiWhatsapp className="h-5 w-5 shrink-0 text-[#128C7E]" aria-hidden />
+                            {sb.whatsappCta}
+                          </AutosDirectContactLink>
+                        ) }
+                      : null,
+                    showSms && c.smsHref
+                      ? { key: "sms", node: (
+                          <AutosDirectContactLink href={c.smsHref} className={BTN_SECONDARY} {...sheetProps}>
+                            <FiMessageSquare className="h-5 w-5 shrink-0 text-[#C9A84A]" aria-hidden />
+                            {sb.textMessageCta}
+                          </AutosDirectContactLink>
+                        ) }
+                      : null,
+                  ] as Array<{ key: string; node: ReactNode } | null>
+                ).filter((item): item is { key: string; node: ReactNode } => item != null);
+                if (channels.length === 0) return null;
+                return (
+                  <div className={`grid gap-3 ${channels.length >= 2 ? "grid-cols-2" : "grid-cols-1"}`}>
+                    {channels.map((item, idx) => (
+                      <div key={item.key} className={channels.length === 3 && idx === 2 ? "col-span-2" : ""}>
+                        {item.node}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
 
               {(addressDisplay || phoneDisplay) && (
                 <div className="space-y-1.5 text-sm text-[#5C5346]">
@@ -417,10 +491,10 @@ export function PreviewDealerBusinessStack({
                 </a>
               ) : null}
               {showEmail && c.emailMailto && primaryAvailabilityHref !== c.emailMailto ? (
-                <AutosDirectContactLink href={c.emailMailto} className={BTN_SECONDARY} {...sheetProps}>
+                <button type="button" onClick={openEmail} className={BTN_SECONDARY}>
                   <FiMail className="h-5 w-5 shrink-0 text-[#C9A84A]" aria-hidden />
                   {sb.emailSeller}
-                </AutosDirectContactLink>
+                </button>
               ) : null}
             </div>
           </SectionBlock>
@@ -428,7 +502,16 @@ export function PreviewDealerBusinessStack({
 
         {premiumHub && showVideoUtility ? (
           <SectionBlock showTopBorder premium>
-            <a href={`#${AUTOS_PREVIEW_SECTION_IDS.gallery}`} className={QUICK_ACTION_CLASS}>
+            <a
+              href={`#${AUTOS_PREVIEW_SECTION_IDS.gallery}`}
+              className={QUICK_ACTION_CLASS}
+              onClick={() => {
+                // Gallery tab state lives in the sibling PreviewAutoGallery
+                // component; broadcast intent so it switches to Video instead
+                // of only scrolling the page to the section.
+                window.dispatchEvent(new CustomEvent(AUTOS_GALLERY_SELECT_TAB_EVENT, { detail: "video" }));
+              }}
+            >
               <FiPlay className="h-4 w-4 shrink-0 text-[#7A1E2C]" aria-hidden />
               <span className="flex-1">{viewVideoLabel}</span>
               <FiGrid className="h-4 w-4 shrink-0 text-[#8A6B1F]" aria-hidden />
@@ -487,7 +570,7 @@ export function PreviewDealerBusinessStack({
             ) : null}
 
             {premiumHub && (showBuyerInventory || showWebsite) ? (
-              <div className="mt-4">
+              <div className="mt-4 flex flex-col gap-3">
                 {showBuyerInventory && buyerInventoryHref ? (
                   <a
                     href={buyerInventoryHref}
@@ -496,9 +579,10 @@ export function PreviewDealerBusinessStack({
                       if (contactMeta) trackAutosDealerInventoryOpenCta(contactMeta);
                     }}
                   >
-                    {profileLabel}
+                    {sb.viewDealerInventory}
                   </a>
-                ) : showWebsite && c.websiteHref ? (
+                ) : null}
+                {showWebsite && c.websiteHref ? (
                   <a
                     href={c.websiteHref}
                     target="_blank"
@@ -506,7 +590,7 @@ export function PreviewDealerBusinessStack({
                     className={BTN_SECONDARY}
                     onClick={() => trackHref(c.websiteHref!)}
                   >
-                    {profileLabel}
+                    {sb.viewWebsite}
                   </a>
                 ) : null}
               </div>
@@ -579,7 +663,26 @@ export function PreviewDealerBusinessStack({
                   </span>
                 </div>
               ) : null}
-              {publicPlaybackOnly ? (
+              {publicPlaybackOnly && analyticsCtx && publicAnalytics?.listingSourceId ? (
+                <LeonixShareButton
+                  listingId={publicAnalytics.listingSourceId}
+                  listingUrl={publicUrl?.trim() || ""}
+                  listingTitle={data.vehicleTitle?.trim() || data.dealerName?.trim() || "Leonix Autos"}
+                  variant="default"
+                  lang={lang}
+                  category="autos"
+                  persistEngagement
+                  directNativeShare
+                  recordShareEvent={autosGlobalShareRecorderFromContext(analyticsCtx, "detail_share")}
+                  className={QUICK_ACTION_CLASS}
+                />
+              ) : publicPlaybackOnly || Boolean(publicUrl?.trim()) ? (
+                // Gate H: a canonical-active listing is genuinely already published — publicUrl is
+                // only ever set (by the Preview client) once a real public URL exists — so Share
+                // here uses the real `onShare` handler (navigator.share / clipboard fallback)
+                // against that URL. It intentionally skips the analytics-tracked LeonixShareButton
+                // branch above (no fake self-share event recorded while the owner previews their
+                // own listing) — this is a real, working action, not decorative.
                 <button type="button" className={QUICK_ACTION_CLASS} onClick={() => void onShare()}>
                   <FiShare2 className="h-4 w-4 shrink-0 text-[#7A1E2C]" aria-hidden />
                   {shareLabel}
@@ -594,6 +697,42 @@ export function PreviewDealerBusinessStack({
                 <FiPrinter className="h-4 w-4 shrink-0 text-[#7A1E2C]" aria-hidden />
                 {printLabel}
               </button>
+              {/* Owner lock (2026-09-17, Gate 01B): an explicit, ADDITIONAL Share action directly
+                  under Print — the owner wants sharing obvious in multiple places, not only the
+                  ambiguous "available after publish" line above. Same three-way identity as that
+                  row (full public analytics / canonical-active real URL / truly unavailable), but
+                  the unavailable state here is always a real disabled button, never bare text. */}
+              <div data-autos-share-under-print="1">
+                {publicPlaybackOnly && analyticsCtx && publicAnalytics?.listingSourceId ? (
+                  <LeonixShareButton
+                    listingId={publicAnalytics.listingSourceId}
+                    listingUrl={publicUrl?.trim() || ""}
+                    listingTitle={data.vehicleTitle?.trim() || data.dealerName?.trim() || "Leonix Autos"}
+                    variant="default"
+                    lang={lang}
+                    category="autos"
+                    persistEngagement
+                    directNativeShare
+                    recordShareEvent={autosGlobalShareRecorderFromContext(analyticsCtx, "detail_share")}
+                    className={QUICK_ACTION_CLASS}
+                  />
+                ) : publicPlaybackOnly || Boolean(publicUrl?.trim()) ? (
+                  <button type="button" className={QUICK_ACTION_CLASS} onClick={() => void onShare()}>
+                    <FiShare2 className="h-4 w-4 shrink-0 text-[#7A1E2C]" aria-hidden />
+                    {shareLabel}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled
+                    aria-disabled="true"
+                    className={`${QUICK_ACTION_CLASS} cursor-not-allowed opacity-60`}
+                  >
+                    <FiShare2 className="h-4 w-4 shrink-0" aria-hidden />
+                    {lang === "es" ? "Compartir (disponible al publicar)" : "Share (available after publish)"}
+                  </button>
+                )}
+              </div>
               {publicPlaybackOnly ? (
                 <a href="#autos-listing-report" className={QUICK_ACTION_CLASS}>
                   <FiMessageSquare className="h-4 w-4 shrink-0 text-[#7A1E2C]" aria-hidden />
@@ -611,19 +750,19 @@ export function PreviewDealerBusinessStack({
           </SectionBlock>
         ) : null}
 
-        {premiumHub && (showWhatsapp || showSms || showEmail) ? (
+        {/* WhatsApp/SMS already have their own correctly-labeled buttons in the contact grid
+            above — this box exists only as an email-specific fallback prompt when neither
+            real-time channel is available, using the same Correo action sheet as every other
+            email entry point in this component (never a bare mailto href). */}
+        {premiumHub && !showWhatsapp && !showSms && showEmail ? (
           <SectionBlock showTopBorder premium>
             <p className="text-base font-bold text-[#1F241C]">{questionsTitle}</p>
             <p className="mt-1 text-sm text-[#5C5346]">{questionsBody}</p>
             <div className="mt-3">
-              <AutosDirectContactLink
-                href={(c.whatsappHref || c.smsHref || c.emailMailto)!}
-                className={BTN_SECONDARY}
-                {...sheetProps}
-              >
-                <FiMessageSquare className="h-5 w-5 shrink-0 text-[#C9A84A]" aria-hidden />
-                {sendMessageLabel}
-              </AutosDirectContactLink>
+              <button type="button" onClick={openEmail} className={BTN_SECONDARY}>
+                <FiMail className="h-5 w-5 shrink-0 text-[#C9A84A]" aria-hidden />
+                {sb.emailSeller}
+              </button>
             </div>
           </SectionBlock>
         ) : null}
@@ -686,7 +825,7 @@ export function PreviewDealerBusinessStack({
             <ul className="mt-3 flex flex-wrap gap-2">
               {hub.languages!.map((label) => (
                 <li key={label} className={autosPreviewRectLanguageBadgeClass}>
-                  {label}
+                  {localizeAutosDealerLanguageLabel(label, lang)}
                 </li>
               ))}
             </ul>
@@ -745,13 +884,29 @@ export function PreviewDealerBusinessStack({
                   key={row.rowId ?? `hour-${idx}`}
                   className="flex items-baseline justify-between gap-4 border-b border-[#D6C7AD]/40 pb-2 text-sm last:border-b-0 last:pb-0"
                 >
-                  <span className="min-w-0 font-semibold text-[#1F241C]">{row.day.trim()}</span>
+                  <span className="min-w-0 font-semibold text-[#1F241C]">{localizeDealerHoursDayLabel(row.day, lang)}</span>
                   <span className="shrink-0 text-right font-medium tabular-nums text-[#5C5346]">
-                    {formatDealerHoursTimeRange(row)}
+                    {formatDealerHoursTimeRange(row, lang)}
                   </span>
                 </li>
               ))}
             </ul>
+            {(data.dealerSpecialHoursRows ?? []).length > 0 ? (
+              <>
+                <p className={`${sectionLabelClass} mt-5`}>{d.specialHoursHeading}</p>
+                <ul className="mt-3 space-y-2">
+                  {(data.dealerSpecialHoursRows ?? []).map((row, idx) => (
+                    <li
+                      key={idx}
+                      className="flex items-baseline justify-between gap-4 border-b border-[#D6C7AD]/40 pb-2 text-sm last:border-b-0 last:pb-0"
+                    >
+                      <span className="min-w-0 font-semibold text-[#1F241C]">{row.label}</span>
+                      <span className="shrink-0 text-right font-medium text-[#5C5346]">{row.note}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
           </SectionBlock>
         ) : null}
 
@@ -789,5 +944,12 @@ export function PreviewDealerBusinessStack({
         ) : null}
       </div>
     </div>
+    <CtaActionSheet
+      open={emailSheetIntent != null}
+      onClose={() => setEmailSheetIntent(null)}
+      intent={emailSheetIntent}
+      lang={lang}
+    />
+    </>
   );
 }

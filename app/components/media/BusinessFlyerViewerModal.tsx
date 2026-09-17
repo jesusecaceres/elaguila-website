@@ -24,6 +24,7 @@ export function BusinessFlyerViewerModal({
   closeLabel = "Cerrar",
   unavailableLabel = "Vista integrada no disponible para este tipo de archivo.",
   downloadLabel = "Descargar / abrir en otra pestaña",
+  kind,
 }: {
   open: boolean;
   onClose: () => void;
@@ -32,6 +33,13 @@ export function BusinessFlyerViewerModal({
   closeLabel?: string;
   unavailableLabel?: string;
   downloadLabel?: string;
+  /**
+   * Servicios Owner QA (⚠️22 / SVC-QA-09) — optional content hint. Leonix Blob uploads are stored
+   * WITHOUT a file extension, so an uploaded coupon/flyer image failed the extension test below and
+   * fell through to the "unavailable" panel. A caller that knows the asset kind says so; when
+   * omitted, detection is exactly as before.
+   */
+  kind?: "image" | "pdf";
 }) {
   useEffect(() => {
     if (!open) return;
@@ -44,8 +52,11 @@ export function BusinessFlyerViewerModal({
 
   if (!open || !href) return null;
 
-  const isPdf = /^data:application\/pdf/i.test(href) || /\.pdf(\?|#|$)/i.test(href);
-  const isImage = /^data:image/i.test(href) || /\.(png|jpe?g|webp|gif|avif)(\?|#|$)/i.test(href);
+  const isPdf =
+    kind === "pdf" || (kind !== "image" && (/^data:application\/pdf/i.test(href) || /\.pdf(\?|#|$)/i.test(href)));
+  const isImage =
+    kind === "image" ||
+    (kind !== "pdf" && (/^data:image/i.test(href) || /\.(png|jpe?g|webp|gif|avif)(\?|#|$)/i.test(href)));
 
   return (
     <div

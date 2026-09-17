@@ -47,6 +47,13 @@ export type HoursEditorSpecialHoursListProps = {
   labelPlaceholder?: string;
   notePlaceholder?: string;
   removeAriaLabel?: (entry: HoursEditorSpecialHoursEntry) => string;
+  /**
+   * Optional truthful per-entry state (Servicios Owner QA SVC-QA-02 / ⚠️11). When provided, each
+   * entry shows `accepted` once BOTH its day/label and its hours note are filled — the only entries a
+   * caller publishes — and `incomplete` while one of them is still empty, so an owner is never left
+   * guessing whether a half-filled row will appear. Callers that omit it render exactly as before.
+   */
+  entryStatusLabels?: { accepted: string; incomplete: string };
 };
 
 export type HoursEditorProps = {
@@ -124,8 +131,8 @@ export function HoursEditor({
           ) : null}
           <div className="space-y-2">
             {specialHoursList.entries.map((entry) => (
+              <div key={entry.id} className="space-y-1">
               <div
-                key={entry.id}
                 className="grid gap-2 sm:grid-cols-[1fr_2fr_auto] sm:items-center"
               >
                 <input
@@ -148,6 +155,19 @@ export function HoursEditor({
                 >
                   ×
                 </button>
+              </div>
+              {specialHoursList.entryStatusLabels ? (
+                entry.label.trim() && entry.note.trim() ? (
+                  <p role="status" aria-live="polite" className="text-xs font-semibold text-emerald-700" data-special-hours-status="accepted">
+                    <span aria-hidden="true">✓ </span>
+                    {specialHoursList.entryStatusLabels.accepted}
+                  </p>
+                ) : entry.label.trim() || entry.note.trim() ? (
+                  <p className="text-xs text-[#8a6a2a]" data-special-hours-status="incomplete">
+                    {specialHoursList.entryStatusLabels.incomplete}
+                  </p>
+                ) : null
+              ) : null}
               </div>
             ))}
           </div>

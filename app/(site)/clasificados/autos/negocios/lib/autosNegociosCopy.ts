@@ -55,6 +55,10 @@ export type AutosNegociosCopy = {
       closed: string;
       remove: string;
       newDayPlaceholder: string;
+      specialHoursLabel: string;
+      specialHoursLabelPlaceholder: string;
+      specialHoursNote: string;
+      specialHoursNotePlaceholder: string;
       socialLabels: {
         instagram: string;
         facebook: string;
@@ -119,6 +123,7 @@ export type AutosNegociosCopy = {
       title: string;
       phone: string;
       whatsapp: string;
+      smsPhone: string;
       email: string;
       preApprovalUrl: string;
       imageUrl: string;
@@ -142,6 +147,8 @@ export type AutosNegociosCopy = {
     photosHeading: string;
     dropzone: string;
     addPhotos: string;
+    /** Mobile camera-capture action, same upload path as addPhotos. */
+    takePhoto: string;
     pickerHint: string;
     /** Explains multi-select in picker; some mobile OSes only return one file per action. */
     pickerMultiNote: string;
@@ -228,7 +235,10 @@ export type AutosNegociosCopy = {
     sidebar: {
       priceAdvertised: string;
       whatsappCta: string;
+      /** Owner-locked final mapping: "Llamar" is the dealer's personal/mobile line. */
       call: string;
+      /** Owner-locked final mapping: office/dealership availability — distinct from "Llamar". */
+      availabilityCta: string;
       /** Site contact form (used by Autos Privado preview). */
       messageSite: string;
       /** mailto: to seller email (Privado). */
@@ -254,6 +264,7 @@ export type AutosNegociosCopy = {
       intro: string;
       whatsapp: string;
       call: string;
+      text: string;
       email: string;
       preApproval: string;
       notesLabel: string;
@@ -271,6 +282,7 @@ export type AutosNegociosCopy = {
     dealer: {
       logoAltFallback: string;
       hoursHeading: string;
+      specialHoursHeading: string;
     };
   };
   taxonomy: {
@@ -340,6 +352,7 @@ const ES: AutosNegociosCopy = {
       phoneOffice: "Teléfono de oficina",
       phoneMobile: "Teléfono personal / móvil (opcional)",
       whatsapp: "WhatsApp",
+      email: "Correo",
       website: "Sitio web",
       bookingUrl: "URL para agendar cita",
       address: "Dirección",
@@ -380,7 +393,7 @@ const ES: AutosNegociosCopy = {
       whatsapp: "Incluye código de país (p. ej. +1). La vista previa abrirá WhatsApp con el número normalizado.",
       bookingUrl:
         "Enlace a tu herramienta de citas, Calendly o página para agendar prueba de manejo. Si está vacío, no se muestra el botón de cita en la vista previa.",
-      phoneMobile: "Opcional. No aparece como segundo botón de llamada en la vista previa; queda guardado para uso interno o futuro.",
+      phoneMobile: "Opcional. Es el número del botón \"Llamar\". La oficina tiene su propio botón distinto: \"Solicitar disponibilidad\".",
       zip: "5 dígitos (EE. UU.). Opcional; mejora búsqueda y geofencing.",
       dealerAddressMaps:
         "Agrega la dirección del negocio para que los compradores puedan abrirla en mapas.",
@@ -426,6 +439,10 @@ const ES: AutosNegociosCopy = {
       closed: "Cerrado",
       remove: "Quitar",
       newDayPlaceholder: "Día",
+      specialHoursLabel: "Ocasión / fecha",
+      specialHoursLabelPlaceholder: "Ej. Nochebuena",
+      specialHoursNote: "Horario o nota",
+      specialHoursNotePlaceholder: "Ej. 9:00 AM – 2:00 PM, o Cerrado",
       socialLabels: {
         instagram: "Instagram",
         facebook: "Facebook",
@@ -507,6 +524,7 @@ const ES: AutosNegociosCopy = {
       title: "Cargo / rol",
       phone: "Teléfono",
       whatsapp: "WhatsApp",
+      smsPhone: "Número para mensajes de texto",
       email: "Correo",
       preApprovalUrl: "Enlace para pre-aprobación",
       imageUrl: "Imagen o logo de financiamiento",
@@ -538,6 +556,7 @@ const ES: AutosNegociosCopy = {
     activeCover: "Portada activa",
     dropzone: "Arrastra imágenes aquí o usa el botón",
     addPhotos: "Añadir fotos",
+    takePhoto: "Tomar foto",
     pickerHint: "Se abrirá el selector de archivos del sistema.",
     pickerMultiNote:
       "En escritorio puedes elegir varias fotos a la vez. En algunos teléfonos el selector solo permite una por vez: vuelve a pulsar «Añadir fotos» para más.",
@@ -620,6 +639,7 @@ const ES: AutosNegociosCopy = {
       priceAdvertised: "Precio anunciado",
       whatsappCta: "WhatsApp",
       call: "Llamar",
+      availabilityCta: "Solicitar disponibilidad",
       messageSite: "Mensaje",
       emailSeller: "Correo",
       scheduleAppointment: "Agendar cita / prueba de manejo",
@@ -670,6 +690,7 @@ const ES: AutosNegociosCopy = {
       intro: "Ayuda a tus compradores a iniciar una pre-aprobación antes de visitar el dealer.",
       whatsapp: "WhatsApp financiamiento",
       call: "Llamar",
+      text: "Enviar texto",
       email: "Correo",
       preApproval: "Iniciar pre-aprobación",
       notesLabel: "Notas",
@@ -694,6 +715,7 @@ const ES: AutosNegociosCopy = {
     dealer: {
       logoAltFallback: "Concesionario",
       hoursHeading: "Horario",
+      specialHoursHeading: "Horarios especiales / Días festivos",
     },
   },
   taxonomy: {
@@ -797,6 +819,7 @@ const EN: AutosNegociosCopy = {
       phoneOffice: "Office phone",
       phoneMobile: "Personal / mobile phone (optional)",
       whatsapp: "WhatsApp",
+      email: "Email",
       website: "Website",
       bookingUrl: "Booking appointment URL",
       address: "Address",
@@ -837,7 +860,7 @@ const EN: AutosNegociosCopy = {
       whatsapp: "Include country code (e.g. +1). Preview opens WhatsApp with a normalized wa.me link.",
       bookingUrl:
         "Link to your scheduling tool, Calendly, or test-drive booking page. If empty, the appointment button is hidden in preview.",
-      phoneMobile: "Optional. Not shown as a second call button on preview; stored for internal or future use.",
+      phoneMobile: "Optional. This is the number for the \"Call\" button. The office has its own separate button: \"Request availability\".",
       zip: "5-digit US ZIP. Optional; improves search and future geofencing.",
       dealerAddressMaps: "Add the business address so buyers can open it in maps.",
       dealerAddressSearch: "City, state, and ZIP help improve search and filters.",
@@ -882,6 +905,10 @@ const EN: AutosNegociosCopy = {
       closed: "Closed",
       remove: "Remove",
       newDayPlaceholder: "Day",
+      specialHoursLabel: "Occasion / date",
+      specialHoursLabelPlaceholder: "e.g. Christmas Eve",
+      specialHoursNote: "Hours or note",
+      specialHoursNotePlaceholder: "e.g. 9:00 AM – 2:00 PM, or Closed",
       socialLabels: {
         instagram: "Instagram",
         facebook: "Facebook",
@@ -958,6 +985,7 @@ const EN: AutosNegociosCopy = {
       title: "Title / role",
       phone: "Phone",
       whatsapp: "WhatsApp",
+      smsPhone: "Text message number",
       email: "Email",
       preApprovalUrl: "Pre-approval link",
       imageUrl: "Finance image or logo",
@@ -988,6 +1016,7 @@ const EN: AutosNegociosCopy = {
     activeCover: "Active cover",
     dropzone: "Drag images here or use the button",
     addPhotos: "Add photos",
+    takePhoto: "Take photo",
     pickerHint: "Your system file picker will open.",
     pickerMultiNote:
       "On desktop you can pick several photos at once. Some phones only allow one file per pick—tap “Add photos” again to add more.",
@@ -1069,6 +1098,7 @@ const EN: AutosNegociosCopy = {
       priceAdvertised: "Advertised price",
       whatsappCta: "WhatsApp",
       call: "Call",
+      availabilityCta: "Request availability",
       messageSite: "Message",
       emailSeller: "Email",
       scheduleAppointment: "Schedule test drive",
@@ -1119,6 +1149,7 @@ const EN: AutosNegociosCopy = {
       intro: "Help buyers start pre-approval before visiting the dealership.",
       whatsapp: "Financing WhatsApp",
       call: "Call",
+      text: "Text",
       email: "Email",
       preApproval: "Start pre-approval",
       notesLabel: "Notes",
@@ -1143,6 +1174,7 @@ const EN: AutosNegociosCopy = {
     dealer: {
       logoAltFallback: "Dealership",
       hoursHeading: "Hours",
+      specialHoursHeading: "Special hours / Holidays",
     },
   },
   taxonomy: {
@@ -1196,4 +1228,58 @@ const EN: AutosNegociosCopy = {
 
 export function getAutosNegociosCopy(lang: AutosNegociosLang): AutosNegociosCopy {
   return lang === "en" ? EN : ES;
+}
+
+/**
+ * Deterministic-select fields whose stored value is the localized preset label ITSELF (there is
+ * no separate code column — the `<select>` option's value is the display text, in whatever
+ * language the seller's form happened to be in at entry time). ES/EN option arrays are
+ * positionally aligned (same index = same real-world value) so a stored value can be relocalized
+ * by finding its index in either language's array and reading the equivalent slot in the target
+ * language. A value matching neither array (the seller's own free-typed "Otro"/"Other" text) is
+ * returned unchanged — never guessed, never sent to a translation provider.
+ */
+export type AutosDealerTaxonomySelectField =
+  | "transmission"
+  | "drivetrain"
+  | "fuel"
+  | "bodyStyle"
+  | "exterior"
+  | "interior"
+  | "titleStatus";
+
+export function localizeAutosDealerTaxonomySelectValue(
+  field: AutosDealerTaxonomySelectField,
+  value: string | undefined,
+  targetLang: AutosNegociosLang,
+): string | undefined {
+  const v = value?.trim();
+  if (!v) return v;
+  const esList = ES.taxonomy[field];
+  const enList = EN.taxonomy[field];
+  const idx = esList.indexOf(v);
+  const foundIdx = idx >= 0 ? idx : enList.indexOf(v);
+  if (foundIdx <= 0) return v;
+  const table = targetLang === "en" ? enList : esList;
+  return table[foundIdx] ?? v;
+}
+
+/**
+ * Same positional-remap technique for the fixed feature/equipment CATALOG (`taxonomy.features`).
+ * Must never be applied to seller-typed custom equipment text — callers are responsible for
+ * keeping those two arrays separate (see `customEquipment` on `AutoDealerListing`).
+ */
+export function localizeAutosDealerFeatureCatalogValue(
+  value: string,
+  targetLang: AutosNegociosLang,
+): string {
+  const v = value.trim();
+  if (!v) return v;
+  const esList = ES.taxonomy.features;
+  const enList = EN.taxonomy.features;
+  const idx = esList.indexOf(v);
+  const foundIdx = idx >= 0 ? idx : enList.indexOf(v);
+  if (foundIdx < 0) return value;
+  const table = targetLang === "en" ? enList : esList;
+  return table[foundIdx] ?? value;
 }

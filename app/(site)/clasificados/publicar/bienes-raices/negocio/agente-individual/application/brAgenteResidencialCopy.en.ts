@@ -188,7 +188,7 @@ export const BR_COPY_EN = {
     principalPersonal: "Personal",
     principalOficina: "Office",
     correoAgente: "Email",
-    sitioWebAgente: "Website",
+    sitioWebAgente: "Agent website",
     sitioWebAgenteHint:
       "Your agent site (“View website” uses the contact & button destinations step first, then this, then office/brand).",
     mostrarMarca: "Show office or brand on the card",
@@ -327,6 +327,8 @@ export const BR_COPY_EN = {
     diasAdicionales: "Additional days or hours (optional)",
     diasAdicionalesHelper: "Example: Saturday and Sunday 11:00 AM–3:00 PM; Monday by appointment.",
     notasOh: "Notes (optional)",
+    soloConCita: "By appointment only",
+    enlaceReservar: "Booking link (optional)",
     openHouseHelper:
       "The first date is the starting date. If the open house continues on more days, add the ending date and list any different days or hours below.",
     agregarOpenHouse: "Add another open-house event",
@@ -376,7 +378,7 @@ export const BR_COPY_EN = {
     masInformacion: "More information",
     detallesPropiedad: "Property details",
     caracteristicas: "Highlighted features",
-    descripcion: "Description",
+    descripcion: "Property description",
     notasAdicionales: "Additional notes",
     masInfo: "More information",
     openHouse: "Open house",

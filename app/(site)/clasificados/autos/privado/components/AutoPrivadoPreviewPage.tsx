@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import {
   hasDescriptionSection,
@@ -42,12 +43,16 @@ export function AutoPrivadoPreviewPage({
   publicPlaybackOnly = false,
   publicAnalytics,
   publicUrl,
+  translateControl,
 }: {
   data: AutoDealerListing;
   editBackHref?: string;
   publicPlaybackOnly?: boolean;
   publicAnalytics?: AutosPublicListingAnalyticsProps;
   publicUrl?: string;
+  /** Owner lock (2026-09-17): rendered directly above the title, matching the Dealer hero — see
+   * AutosNegociosDealershipPreviewPage's identical `translateControl` contract. */
+  translateControl?: ReactNode;
 }) {
   const { lang, t } = useAutosPrivadoPreviewCopy();
   const pt = t.preview.title;
@@ -134,6 +139,12 @@ export function AutoPrivadoPreviewPage({
             </p>
           </div>
 
+          {translateControl ? (
+            <div className="mb-6 flex justify-center" data-autos-translate-ad-slot="1">
+              {translateControl}
+            </div>
+          ) : null}
+
           {/* Title and location row */}
           {showTitle ? (
             <div className="mb-8">
@@ -155,7 +166,7 @@ export function AutoPrivadoPreviewPage({
             {priceOk ? (
               <div>
                 <p className="text-pretty text-4xl font-extrabold leading-none tracking-tight text-[#7A1E2C] sm:text-5xl md:text-6xl">
-                  {formatUsd(display.price)}
+                  {formatUsd(display.price, lang)}
                 </p>
               </div>
             ) : null}
@@ -164,7 +175,7 @@ export function AutoPrivadoPreviewPage({
                 {showMileage ? (
                   <div>
                     <span className="text-[color:var(--lx-muted)]">{pt.mileage}:</span>{" "}
-                    <span className="font-semibold">{formatMiles(display.mileage)}</span>
+                    <span className="font-semibold">{formatMiles(display.mileage, lang)}</span>
                   </div>
                 ) : null}
                 {showVin ? (

@@ -83,6 +83,8 @@ export type ServiciosPublicListingRow = {
   public_like_net_count?: number;
   /** Row counts in `saved_listings` (same `listing_id` alias rollup as likes). */
   public_save_count?: number;
+  /** Row counts in `leonix_endorsement_votes`, keyed strictly by this row's own `id` (never an alias). */
+  public_endorsement_count?: number;
   /** Merged from active `listing_package_entitlements` on server reads (C5B). */
   package_entitlement_tier?: string | null;
   entitlement_starts_at?: string | null;
@@ -150,6 +152,36 @@ export async function fetchServiciosUserSavedCountsByKeys(listingKeys: string[])
   return out;
 }
 
+/** Row counts in `leonix_endorsement_votes` per canonical `servicios_public_listings.id` — unlike
+ * likes/saves, endorsement target_id is strictly the row UUID (the toggle RPC enforces this via a
+ * real FK into servicios_public_listings), never a leonix_ad_id/slug alias. */
+export async function fetchServiciosEndorsementCountsByListingIds(ids: string[]): Promise<Map<string, number>> {
+  const keys = [...new Set(ids.map((k) => k.trim()).filter(Boolean))];
+  const out = new Map<string, number>();
+  for (const k of keys) out.set(k, 0);
+  if (keys.length === 0 || !isSupabaseAdminConfigured()) return out;
+  try {
+    const supabase = getAdminSupabase();
+    const chunkSize = 120;
+    for (let i = 0; i < keys.length; i += chunkSize) {
+      const chunk = keys.slice(i, i + chunkSize);
+      const { data, error } = await supabase
+        .from("leonix_endorsement_votes")
+        .select("target_id")
+        .eq("target_type", "servicios_profile")
+        .in("target_id", chunk);
+      if (error) continue;
+      for (const row of data ?? []) {
+        const tid = String((row as { target_id?: string }).target_id ?? "").trim();
+        if (tid && out.has(tid)) out.set(tid, (out.get(tid) ?? 0) + 1);
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return out;
+}
+
 export async function listServiciosPublicListingsFromDb(limit = 48): Promise<ServiciosPublicListingRow[]> {
   if (!isSupabaseAdminConfigured()) return [];
   try {
@@ -185,6 +217,44 @@ export async function getServiciosPublicListingBySlugFromDb(
       .from("servicios_public_listings")
       .select(SERVICIOS_PUBLIC_LISTING_SELECT)
       .eq("slug", slug)
+      .maybeSingle();
+    if (error || !data) return null;
+    const row = mapDbRowToServiciosPublicListingRow(data as ServiciosPublicListingRow);
+    const listingStatus = row.listing_status;
+    if (visibility === "published_only") {
+      if (listingStatus !== SERVICIOS_LISTING_STATUS_PUBLISHED) return null;
+    } else if (visibility === "slug_page") {
+      if (!(SLUG_PAGE_STATUSES as readonly string[]).includes(listingStatus)) return null;
+    }
+    return row;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Gate SERVICIOS-1 — canonical-id read for the publish/republish boundary.
+ *
+ * The row's own UUID is the durable persistence identity: unlike the slug it never changes when
+ * the owner renames the business, so an edit-save can always find and UPDATE the real published
+ * row instead of allocating a fresh slug and INSERTing a duplicate. Visibility defaults to "all"
+ * because the caller (publish route) must be able to see `pending_payment` / `paused_unpublished`
+ * rows it owns, not only public ones.
+ */
+export async function getServiciosPublicListingByIdFromDb(
+  id: string,
+  opts?: { visibility?: ServiciosListingSlugDbVisibility },
+): Promise<ServiciosPublicListingRow | null> {
+  if (!isSupabaseAdminConfigured()) return null;
+  const trimmed = (id ?? "").trim();
+  if (!trimmed) return null;
+  const visibility = opts?.visibility ?? "all";
+  try {
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase
+      .from("servicios_public_listings")
+      .select(SERVICIOS_PUBLIC_LISTING_SELECT)
+      .eq("id", trimmed)
       .maybeSingle();
     if (error || !data) return null;
     const row = mapDbRowToServiciosPublicListingRow(data as ServiciosPublicListingRow);
@@ -240,21 +310,25 @@ export async function listServiciosPublicListingsRaw(limit = 48): Promise<Servic
   for (const r of slice) {
     for (const k of serviciosLikeCountAliasKeys(r)) likeQueryKeys.add(k);
   }
-  const [agg, likeMap, saveMap] = await Promise.all([
+  const endorsementIds = slice.map((r) => (r.id ?? "").trim()).filter(Boolean);
+  const [agg, likeMap, saveMap, endorsementMap] = await Promise.all([
     getServiciosReviewAggregatesForSlugs(slice.map((r) => r.slug)),
     fetchServiciosNetLikeCountsByEngagementKeys([...likeQueryKeys]),
     fetchServiciosUserSavedCountsByKeys([...likeQueryKeys]),
+    fetchServiciosEndorsementCountsByListingIds(endorsementIds),
   ]);
   return slice.map((r) => {
     const a = agg.get(r.slug);
     const likes = serviciosNetLikeCountForPublicRow(r, likeMap);
     const saves = serviciosSavedCountForPublicRow(r, saveMap);
+    const endorsements = endorsementMap.get((r.id ?? "").trim()) ?? 0;
     const base: ServiciosPublicListingRow =
       a != null
         ? { ...r, review_rating_avg: a.avg, review_rating_count: a.count }
         : { ...r, review_rating_avg: null, review_rating_count: null };
     let out = likes > 0 ? { ...base, public_like_net_count: likes } : base;
     out = saves > 0 ? { ...out, public_save_count: saves } : out;
+    out = endorsements > 0 ? { ...out, public_endorsement_count: endorsements } : out;
     return out;
   });
 }

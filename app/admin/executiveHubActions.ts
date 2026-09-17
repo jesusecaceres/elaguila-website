@@ -132,6 +132,11 @@ function readCommonFields(formData: FormData) {
     notes: str(formData, "notes"),
     metaDescription: str(formData, "metaDescription"),
     status: parseStatus(str(formData, "status")),
+    // Master Operating Book V2 §0G — owner-only field: which roster member (if any) may
+    // self-edit this profile. Read here because this whole file's actions are already gated by
+    // assertExecutiveHubAdmin() — the staff self-service action lives in a separate file and
+    // never reads or accepts this field from its own caller.
+    linkedRosterId: str(formData, "linkedRosterId") || null,
   };
 }
 

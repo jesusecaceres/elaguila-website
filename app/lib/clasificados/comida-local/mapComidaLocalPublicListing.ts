@@ -236,7 +236,13 @@ export function mapComidaLocalRowToDetailVm(
   lang: "es" | "en" = "es",
 ): ComidaLocalPublicListingDetailVm {
   const draft = publicRowToComidaLocalDraft(row);
-  const vm = mapComidaLocalDraftToPreviewVm(draft, lang);
+  // Gate COMIDA-LOCAL-1 — the published vitrina is a PUBLIC read: "Encuéntrame Hoy" is
+  // evaluated against the 24h freshness window here, at read time, and an expired or unproven
+  // temporary location is dropped before it can reach the shell. `viewer` is defaulted to
+  // "public" by the mapper; it is passed explicitly so this decision is visible at the call
+  // site that matters most. The detail route is `force-dynamic`, so no cached page can serve a
+  // location that has since expired.
+  const vm = mapComidaLocalDraftToPreviewVm(draft, lang, { viewer: "public" });
   const leonix =
     typeof row.leonix_ad_id === "string" && row.leonix_ad_id.trim() ? row.leonix_ad_id.trim() : null;
 

@@ -346,7 +346,7 @@ export const AUTOS_PUBLIC_BLUEPRINT_COPY = {
       privateCta: "View private seller cars",
       dealerTitle: "Looking for dealer cars?",
       dealerBody: "Browse inventory from dealerships and auto businesses.",
-      dealerCta: "Go to Dealer de Autos",
+      dealerCta: "Go to Auto Dealer",
       sellTitle: "Want to sell your car?",
       sellBody: "Post your vehicle as a private seller for 30 days.",
       sellCta: "Post your car",

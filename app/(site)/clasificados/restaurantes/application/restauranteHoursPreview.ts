@@ -4,8 +4,12 @@ import type {
   RestauranteSpecialHoursEntry,
   RestauranteWeeklyHours,
 } from "./restauranteListingApplicationModel";
+import { minutesInTimeZone, weekdayKeyFromDateInTimeZone } from "../lib/restauranteOpenNowFromHours";
 
 const DAY_KEYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const;
+
+/** Matches the default already proven correct in `restauranteOpenNowFromHours.ts` (NorCal catalog intent). */
+const DEFAULT_RESTAURANTE_TIME_ZONE = "America/Los_Angeles";
 
 /** Joins the real multi-entry special-hours list into one display line, e.g. "Navidad: Cerrado · Año Nuevo: 10am-2pm". */
 export function formatSpecialHoursEntriesLine(entries: RestauranteSpecialHoursEntry[] | undefined): string | undefined {
@@ -21,10 +25,6 @@ function parseHm(s: string | undefined): number | null {
   const [h, m] = s.split(":").map(Number);
   if (h < 0 || h > 23 || m < 0 || m > 59) return null;
   return h * 60 + m;
-}
-
-function minutesNow(d: Date): number {
-  return d.getHours() * 60 + d.getMinutes();
 }
 
 export function computeShellHoursPreview(
@@ -44,7 +44,13 @@ export function computeShellHoursPreview(
     };
   }
 
-  const key = DAY_KEYS[now.getDay()];
+  // Gate RESTAURANTES-1 (Globalization G14 semantics) — timezone-safe. This used to read
+  // `now.getDay()` / `getHours()` / `getMinutes()`, which is the SERVER process's local time
+  // (typically UTC in production), not the restaurant's actual local time — the public detail
+  // page's "Open now / Closed" badge could be wrong by several hours, and it disagreed with the
+  // discovery card, which already computed this correctly. Reuses that same timezone-pinned
+  // implementation (`restauranteOpenNowFromHours.ts`) so both surfaces now share one evaluator.
+  const key = weekdayKeyFromDateInTimeZone(now, DEFAULT_RESTAURANTE_TIME_ZONE) ?? DAY_KEYS[now.getUTCDay()];
   const today = hours[key] as RestauranteDaySchedule | undefined;
   if (!today || today.closed) {
     return {
@@ -62,7 +68,7 @@ export function computeShellHoursPreview(
       scheduleSummary: buildWeekSummary(hours, lang),
     };
   }
-  const n = minutesNow(now);
+  const n = minutesInTimeZone(now, DEFAULT_RESTAURANTE_TIME_ZONE);
   const open = openM;
   let close = closeM;
   if (close < open) close += 24 * 60;

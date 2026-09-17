@@ -2,7 +2,9 @@
 
 /**
  * Saved Search 03/06 — owner "Búsquedas guardadas / Saved searches" management surface.
- * Autos, Bienes Raíces, and Rentas as of Saved Search 06. Reuses the existing dashboard shell
+ * Autos, Bienes Raíces and Rentas as of Saved Search 06; Servicios as of Gate SERVICIOS-2;
+ * Restaurantes as of Gate RESTAURANTES-2.
+ * Reuses the existing dashboard shell
  * (`LeonixDashboardShell`) and the Saved Search 02 Bearer-token API (`app/api/saved-search/**`) —
  * never a direct Supabase table query, since that table's application-layer contract is the API,
  * not RLS-only browser access (see `savedSearchServerCrud.ts`'s header comment on why this table
@@ -29,6 +31,12 @@ import { describeBienesRaicesSavedSearchFacets } from "@/app/lib/saved-search/bi
 import { buildBienesRaicesSavedSearchResultsUrl } from "@/app/lib/saved-search/bienes-raices/bienesRaicesSavedSearchResultsUrl";
 import { describeRentasSavedSearchFacets } from "@/app/lib/saved-search/rentas/savedSearchRentasAdapter";
 import { buildRentasSavedSearchResultsUrl } from "@/app/lib/saved-search/rentas/rentasSavedSearchResultsUrl";
+import { describeServiciosSavedSearchFacets } from "@/app/lib/saved-search/servicios/savedSearchServiciosAdapter";
+import { buildServiciosSavedSearchResultsUrl } from "@/app/lib/saved-search/servicios/serviciosSavedSearchResultsUrl";
+import { describeRestaurantesSavedSearchFacets } from "@/app/lib/saved-search/restaurantes/savedSearchRestaurantesAdapter";
+import { buildRestaurantesSavedSearchResultsUrl } from "@/app/lib/saved-search/restaurantes/restaurantesSavedSearchResultsUrl";
+import { describeComidaLocalSavedSearchFacets } from "@/app/lib/saved-search/comida-local/savedSearchComidaLocalAdapter";
+import { buildComidaLocalSavedSearchResultsUrl } from "@/app/lib/saved-search/comida-local/comidaLocalSavedSearchResultsUrl";
 import type { SavedSearchNormalizedInput, SavedSearchRow } from "@/app/lib/saved-search/savedSearchTypes";
 
 type SavedSearchCategoryEntry = {
@@ -57,6 +65,26 @@ const CATEGORY_REGISTRY: Record<string, SavedSearchCategoryEntry> = {
     describeFacets: describeRentasSavedSearchFacets,
     buildResultsUrl: buildRentasSavedSearchResultsUrl,
   },
+  servicios: {
+    label: { es: "Servicios", en: "Services" },
+    browsePath: "/clasificados/servicios/results",
+    describeFacets: describeServiciosSavedSearchFacets,
+    buildResultsUrl: buildServiciosSavedSearchResultsUrl,
+  },
+  restaurantes: {
+    label: { es: "Restaurantes", en: "Restaurants" },
+    browsePath: "/clasificados/restaurantes/results",
+    describeFacets: describeRestaurantesSavedSearchFacets,
+    buildResultsUrl: buildRestaurantesSavedSearchResultsUrl,
+  },
+  // Gate COMIDA-LOCAL-2 — landing and results are the same route for this category, so the browse
+  // path is the hub itself (the same path already registered in LEONIX_SITEMAP_CATEGORY_HUBS).
+  "comida-local": {
+    label: { es: "Comida Local", en: "Local Food" },
+    browsePath: "/clasificados/comida-local",
+    describeFacets: describeComidaLocalSavedSearchFacets,
+    buildResultsUrl: buildComidaLocalSavedSearchResultsUrl,
+  },
 };
 
 type Lang = "es" | "en";
@@ -79,11 +107,13 @@ function BusquedasGuardadasPageContent() {
       lang === "es"
         ? {
             title: "Búsquedas guardadas",
-            subtitle: "Vuelve fácilmente a tus búsquedas guardadas de Autos, Bienes Raíces y Rentas.",
+            subtitle: "Vuelve fácilmente a tus búsquedas guardadas de Autos, Bienes Raíces, Rentas, Servicios y Restaurantes.",
             back: "Volver al resumen",
             browse: "Explorar Autos",
             browseBr: "Explorar Bienes Raíces",
             browseRentas: "Explorar Rentas",
+            browseServicios: "Explorar Servicios",
+            browseRestaurantes: "Explorar Restaurantes",
             loading: "Cargando…",
             empty: "No tienes búsquedas guardadas todavía.",
             emptyHint: "Guarda una búsqueda desde cualquier página de resultados para verla aquí.",
@@ -101,11 +131,13 @@ function BusquedasGuardadasPageContent() {
           }
         : {
             title: "Saved searches",
-            subtitle: "Quickly return to your saved Autos, Real Estate, and Rentals searches.",
+            subtitle: "Quickly return to your saved Autos, Real Estate, Rentals, Services, and Restaurants searches.",
             back: "Back to overview",
             browse: "Browse Autos",
             browseBr: "Browse Real Estate",
             browseRentas: "Browse Rentals",
+            browseServicios: "Browse Services",
+            browseRestaurantes: "Browse Restaurants",
             loading: "Loading…",
             empty: "You don't have any saved searches yet.",
             emptyHint: "Save a search from any results page to see it here.",
@@ -242,6 +274,12 @@ function BusquedasGuardadasPageContent() {
                 <Link href={`/clasificados/rentas/results?${q}`} className={LX_DASH.btnSecondary}>
                   {t.browseRentas}
                 </Link>
+                <Link href={`/clasificados/servicios/results?${q}`} className={LX_DASH.btnSecondary}>
+                  {t.browseServicios}
+                </Link>
+                <Link href={`/clasificados/restaurantes/results?${q}`} className={LX_DASH.btnSecondary}>
+                  {t.browseRestaurantes}
+                </Link>
                 <Link href={`/dashboard?${q}`} className={LX_DASH.btnSecondary}>
                   {t.back}
                 </Link>
@@ -297,7 +335,11 @@ function BusquedasGuardadasPageContent() {
                         type="button"
                         onClick={() => void handleToggleActive(row)}
                         disabled={busy}
-                        className="ml-auto rounded-lg border border-[#D6C7AD]/70 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#5C5346] transition hover:border-[#7A1E2C]/40 hover:text-[#7A1E2C] disabled:opacity-60"
+                        className={
+                          row.isActive
+                            ? "ml-auto rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[11px] font-semibold text-amber-950 transition disabled:opacity-60"
+                            : "ml-auto rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-950 transition disabled:opacity-60"
+                        }
                       >
                         {busy ? t.working : row.isActive ? t.pause : t.reactivate}
                       </button>
@@ -305,7 +347,7 @@ function BusquedasGuardadasPageContent() {
                         type="button"
                         onClick={() => void handleDelete(row)}
                         disabled={busy}
-                        className="rounded-lg border border-[#D6C7AD]/70 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#5C5346] transition hover:border-[#7A1E2C]/40 hover:text-[#7A1E2C] disabled:opacity-60"
+                        className="rounded-lg border border-red-300/70 bg-red-50 px-2.5 py-1.5 text-[11px] font-semibold text-red-800 transition hover:border-red-400 hover:bg-red-100 disabled:opacity-60"
                       >
                         {t.delete}
                       </button>

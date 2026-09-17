@@ -34,7 +34,9 @@ async function main() {
     assert.ok(src.includes('"ownership_mismatch"'), "Comida Local publish route must reject a verified-owner mismatch");
     assert.ok(src.includes('"auth_required"'), "Comida Local publish route must reject an unauthenticated update to an already-owned listing");
     const guardIdx = src.indexOf("existingOwnerUserId");
-    const updateIdx = src.indexOf("draftToComidaLocalPublicListingInsert(draft, existing.slug");
+    // Gate COMIDA-LOCAL-1 rebuilds the existing row from a server-stamped copy of the draft
+    // (`stampedDraft`), so match the existing-row rebuild by shape rather than by argument name.
+    const updateIdx = src.search(/draftToComidaLocalPublicListingInsert\(\w+, existing\.slug/);
     assert.ok(guardIdx > -1 && updateIdx > -1 && guardIdx < updateIdx, "the ownership guard must run before the existing-listing row is rebuilt/persisted");
   }
 

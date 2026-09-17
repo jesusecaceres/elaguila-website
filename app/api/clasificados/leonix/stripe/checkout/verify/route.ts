@@ -25,6 +25,36 @@ export async function GET(request: Request) {
   if (session.payment_status !== "paid") {
     return NextResponse.json({ ok: false, error: "not_paid" }, { status: 402 });
   }
+  // Gate RENTAS-NEGOCIO-1 — this LEGACY endpoint previously accepted ANY paid Stripe session
+  // and activated whatever `listing_id` its metadata named, through the generic branch of
+  // `tryActivateBrListingAfterPayment`. Its sibling webhook
+  // (`/api/clasificados/leonix/stripe/webhook`) has carried both guards below since Package C
+  // Build 1; this route never received them, which made it a reachable activation bypass for
+  // every other category on the shared `listings` table — Rentas included.
+  //
+  // Both guards are copied verbatim in intent from that webhook, so the two halves of the
+  // legacy lane now agree. There is exactly ONE proven runtime consumer of this route
+  // (`BrPagoExitoClient`, the Bienes Raíces success page), and it only ever presents genuine
+  // legacy Bienes Raíces sessions — so scoping to that consumer removes the bypass without
+  // removing anything live.
+  //
+  // Guard 1 — never re-process a canonical Revenue OS session. Those are fulfilled
+  // exclusively by /api/revenue-os/webhook, which is the single paid-activation authority for
+  // every current checkout. A canonical session IS `paid`, so without this a live Rentas
+  // checkout's own session id would have been accepted here.
+  const metadataKeys = Object.keys(session.metadata ?? {});
+  if (metadataKeys.some((k) => k.startsWith("leonix_"))) {
+    return NextResponse.json(
+      { ok: false, error: "canonical_revenue_os_session" },
+      { status: 409 },
+    );
+  }
+
+  // Guard 2 — legacy Bienes Raíces sessions only. Anything else fails CLOSED.
+  if (session.metadata?.category !== "bienes-raices") {
+    return NextResponse.json({ ok: false, error: "unsupported_category" }, { status: 409 });
+  }
+
   const listingId = session.metadata?.listing_id ?? session.client_reference_id;
   if (!listingId) {
     return NextResponse.json({ ok: false, error: "missing_listing" }, { status: 400 });

@@ -5,9 +5,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   establishSessionFromAuthCallback,
   genericCallbackErrorMessage,
+  isAllowedRecoveryDestination,
   isRecoveryAuthCallback,
   isRecoveryDestination,
   readAuthCallbackParams,
+  resolveRecoveryContext,
   stripAuthTokensFromUrl,
 } from "@/app/lib/auth/authCallbackSession";
 import {
@@ -51,6 +53,11 @@ function AuthCallbackContent() {
 
   const redirectLang = useMemo(() => detectLangFromRedirect(redirectTo), [redirectTo]);
 
+  const recoveryContext = useMemo(
+    () => resolveRecoveryContext(safeInternalRedirect(redirectParam) || redirectTo),
+    [redirectParam, redirectTo]
+  );
+
   const [status, setStatus] = useState<"working" | "error">("working");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -78,6 +85,14 @@ function AuthCallbackContent() {
     const recoveryFlow = isRecoveryAuthCallback(query, hash, destination);
 
     function redirectToLoginWithError(message: string, errorCode: string) {
+      if (recoveryFlow && recoveryContext === "admin") {
+        router.replace(`/admin/login?error=recovery`);
+        if (!cancelled) {
+          setStatus("error");
+          setErrorMsg(message);
+        }
+        return;
+      }
       const q = new URLSearchParams();
       if (redirectFromUrl || redirectParam) {
         q.set("redirect", redirectFromUrl || redirectParam || destination);
@@ -128,6 +143,9 @@ function AuthCallbackContent() {
 
     async function run() {
       try {
+        if (recoveryFlow && !isAllowedRecoveryDestination(destination)) {
+          throw new Error("recovery_destination_not_allowed");
+        }
         await withAuthTimeout(
           (async () => {
             await establishSessionFromAuthCallback(supabase, destination);
@@ -183,6 +201,10 @@ function AuthCallbackContent() {
 
             <button
               onClick={() => {
+                if (recoveryContext === "admin") {
+                  router.replace("/admin/login?error=recovery");
+                  return;
+                }
                 const q = new URLSearchParams();
                 q.set("redirect", redirectTo);
                 router.replace(`/login?${q.toString()}`);

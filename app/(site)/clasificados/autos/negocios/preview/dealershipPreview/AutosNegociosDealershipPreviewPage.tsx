@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import type { ReactNode } from "react";
 import type { AutoDealerListing, VehicleBadge } from "../../types/autoDealerListing";
 import type { AutosNegociosCopy } from "../../lib/autosNegociosCopy";
 import {
@@ -22,6 +23,7 @@ import { PreviewAutoGallery } from "./PreviewAutoGallery";
 import { PreviewDealerBusinessStack } from "./PreviewDealerBusinessStack";
 import { PreviewRelatedDealerCars } from "./PreviewRelatedDealerCars";
 import { AutosNegociosPreviewEngagementStrip } from "../../components/AutosNegociosPreviewEngagementStrip";
+import { AutosNegociosEndOfContentShare } from "../../components/AutosNegociosEndOfContentShare";
 import { PreviewVehicleDescription } from "./PreviewVehicleDescription";
 import { PreviewVehicleHighlights } from "./PreviewVehicleHighlights";
 import { PreviewVehicleSpecsGrid } from "./PreviewVehicleSpecsGrid";
@@ -77,10 +79,12 @@ export function AutosNegociosDealershipPreviewPage({
   publicPlaybackOnly = false,
   publicAnalytics,
   publicUrl,
+  canonicalListingId,
   relatedPreviewOnly = false,
   embeddedInShell = false,
   draftPreviewMode = false,
   heroSpecItems: heroSpecItemsProp,
+  translateControl,
 }: {
   data: AutoDealerListing;
   /** Subtle return link to the listing editor (e.g. Publicar flow). */
@@ -89,6 +93,12 @@ export function AutosNegociosDealershipPreviewPage({
   publicPlaybackOnly?: boolean;
   publicAnalytics?: AutosPublicListingAnalyticsProps;
   publicUrl?: string;
+  /** Gate H: a real DB row id, set ONLY when this is a genuinely already-published
+   * (canonical-active) listing being viewed through a non-publicPlaybackOnly route (owner
+   * Preview/dashboard-edit). Lets the bottom Share render with a real listing identity WITHOUT
+   * flipping on the full `publicAnalytics`-gated engagement/Like/Save/analytics-recording surface
+   * — no fake self-engagement is ever recorded for an owner previewing their own listing. */
+  canonicalListingId?: string | null;
   /** Draft child preview: related cards are non-navigable placeholders. */
   relatedPreviewOnly?: boolean;
   /** Parent already rendered preview chrome — skip duplicate header/logo. */
@@ -96,6 +106,12 @@ export function AutosNegociosDealershipPreviewPage({
   /** Pre-publish capture preview — stronger buyer-facing hierarchy. */
   draftPreviewMode?: boolean;
   heroSpecItems?: Array<{ key: string; label: string; value: string }>;
+  /** Owner lock (2026-09-17): rendered inside the hero, directly above the title — never as a
+   * page-top element floating above unrelated content (a results-card preview, distant chrome).
+   * Every caller (parent draft/canonical Preview, child Preview, published detail) passes its own
+   * `AutosListingTranslationLayer` render-prop control here so placement stays identical across
+   * every Dealer surface without each caller re-implementing its own position. */
+  translateControl?: ReactNode;
 }) {
   const { t, lang } = useAutosNegociosPreviewCopy();
   const pt = t.preview.title;
@@ -134,11 +150,13 @@ export function AutosNegociosDealershipPreviewPage({
   let r = 1;
   const unifiedCanvasRow = showUnifiedCanvas ? r++ : undefined;
   const analyticsRow = showAnalyticsStrip ? r++ : undefined;
+  // Owner-locked public narrative order: Description -> Specifications -> Equipment/Highlights.
+  const descRow = showDesc ? r++ : undefined;
   const specsRow = showSpecs ? r++ : undefined;
   const highlightsRow = showHighlights ? r++ : undefined;
-  const descRow = showDesc ? r++ : undefined;
   const relatedRow = (data.relatedDealerListings ?? []).length > 0 ? r++ : undefined;
   const trustRow = r++;
+  const shareRow = r++;
   const leftRowCount = r - 1;
 
   const badges = data.badges ?? [];
@@ -162,11 +180,12 @@ export function AutosNegociosDealershipPreviewPage({
   const orderUnifiedCanvas = showUnifiedCanvas ? ord++ : undefined;
   const orderAnalytics = showAnalyticsStrip ? ord++ : undefined;
   const orderAside = ord++;
+  const orderDesc = showDesc ? ord++ : undefined;
   const orderSpecs = showSpecs ? ord++ : undefined;
   const orderHi = showHighlights ? ord++ : undefined;
-  const orderDesc = showDesc ? ord++ : undefined;
   const orderRelated = (data.relatedDealerListings ?? []).length > 0 ? ord++ : undefined;
   const orderTrust = ord++;
+  const orderShare = ord++;
 
   const mainContent = (
     <main
@@ -191,8 +210,14 @@ export function AutosNegociosDealershipPreviewPage({
               </p>
             ) : null}
 
+            {translateControl ? (
+              <div className={draftPreviewMode ? "mt-3" : ""} data-autos-translate-ad-slot="1">
+                {translateControl}
+              </div>
+            ) : null}
+
             {showTitle && (h1 || showPriceCol || showHeaderMeta || chipLabels.length > 0) ? (
-              <div className={`${draftPreviewMode ? "mt-2" : ""}`} data-autos-unified-canvas-header="1">
+              <div className={`${draftPreviewMode || translateControl ? "mt-2" : ""}`} data-autos-unified-canvas-header="1">
                 {h1 ? <h1 className={`${autosPreviewHeroTitleClass} text-balance`}>{h1}</h1> : null}
 
                 {chipLabels.length > 0 ? (
@@ -207,7 +232,7 @@ export function AutosNegociosDealershipPreviewPage({
 
                 {showPriceCol ? (
                   <div className="mt-4">
-                    {priceOk ? <p className={autosPreviewHeroPriceClass}>{formatUsd(data.price)}</p> : null}
+                    {priceOk ? <p className={autosPreviewHeroPriceClass}>{formatUsd(data.price, lang)}</p> : null}
                     {nonEmpty(monthlyLine) ? (
                       <p
                         className={`flex items-center gap-1.5 text-sm font-semibold text-[#5C5346] ${priceOk ? "mt-1.5" : ""}`}
@@ -235,9 +260,7 @@ export function AutosNegociosDealershipPreviewPage({
                     {showMileage ? (
                       <li className="inline-flex items-center gap-1.5">
                         <BiTachometer className="h-4 w-4 shrink-0 text-[#C9A84A]" aria-hidden />
-                        <span>
-                          {formatMiles(data.mileage)} {lang === "es" ? "millas" : "miles"}
-                        </span>
+                        <span>{formatMiles(data.mileage, lang)}</span>
                       </li>
                     ) : null}
                     {showStock ? (
@@ -273,6 +296,7 @@ export function AutosNegociosDealershipPreviewPage({
                   lang={lang}
                   alignStart
                   listingSourceId={publicPlaybackOnly ? publicAnalytics?.listingSourceId : undefined}
+                  shareListingId={publicPlaybackOnly ? publicAnalytics?.listingSourceId : (canonicalListingId?.trim() || undefined)}
                   leonixAdId={publicAnalytics?.leonixAdId}
                   listingTitle={h1}
                   listingUrl={publicUrl}
@@ -370,6 +394,17 @@ export function AutosNegociosDealershipPreviewPage({
 
         <div className="lg:col-start-1" style={{ gridRowStart: trustRow, order: orderTrust }}>
           <PreviewBuyerTrustStrip lang={lang} />
+        </div>
+
+        <div className="lg:col-start-1" style={{ gridRowStart: shareRow, order: orderShare }}>
+          <AutosNegociosEndOfContentShare
+            lang={lang}
+            listingSourceId={publicPlaybackOnly ? publicAnalytics?.listingSourceId : (canonicalListingId?.trim() || undefined)}
+            leonixAdId={publicAnalytics?.leonixAdId}
+            listingTitle={h1}
+            listingUrl={publicUrl}
+            publicAnalytics={publicPlaybackOnly ? publicAnalytics : undefined}
+          />
         </div>
       </div>
     </main>

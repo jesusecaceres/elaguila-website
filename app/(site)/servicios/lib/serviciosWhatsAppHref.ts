@@ -1,19 +1,19 @@
 import { trimText } from "./serviciosProfileSanitize";
 import type { ServiciosProfileResolved } from "../types/serviciosBusinessProfile";
+import { normalizeInternationalWhatsAppDigits, whatsAppDigitsOnly } from "@/app/lib/whatsapp/internationalWhatsApp";
 
 /** Strip spaces, parentheses, dashes, dots; keep digits only. */
 export function stripServiciosWhatsAppDigits(raw: string): string {
-  return raw.replace(/\D/g, "");
+  return whatsAppDigitsOnly(raw);
 }
 
 /**
- * Normalize advertiser WhatsApp digits for wa.me (min 8; US 10-digit → prefix 1).
+ * Normalize advertiser WhatsApp digits for wa.me (min 8, max 15; US 10-digit → prefix 1).
+ * Servicios' own logic was the origin of the shared `internationalWhatsApp.ts` module — this now
+ * delegates to it directly instead of keeping a parallel copy, picking up its 15-digit E.164 cap.
  */
 export function normalizeServiciosWhatsAppDigits(raw: string): string | null {
-  let d = stripServiciosWhatsAppDigits(raw);
-  if (d.length < 8) return null;
-  if (d.length === 10) d = `1${d}`;
-  return d;
+  return normalizeInternationalWhatsAppDigits(raw);
 }
 
 function tryParseWhatsAppUrl(raw: string): URL | null {

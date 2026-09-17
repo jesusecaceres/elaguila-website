@@ -91,6 +91,15 @@ export type ServiciosApplicationContactDraft = {
   physicalRegion?: string;
   physicalCountry?: string;
   physicalPostalCode?: string;
+  /** Gate G23 — set only by the shared BusinessAddressVerifiedInput picker. Absent on any listing
+   * from before this field existed. */
+  physicalVerificationStatus?: "unverified" | "manual" | "user_confirmed" | "provider_suggested" | "verified";
+  physicalProvider?: string | null;
+  physicalProviderPlaceId?: string | null;
+  /** Owner's explicit choice to reveal the exact physical address publicly. Absent on any
+   * listing before this field existed — treated as `true` at read time, see
+   * `serviciosBusinessProfile.ts`'s `showExactAddress` and `resolveServiciosProfile.ts`. */
+  showExactAddress?: boolean;
 };
 
 export type ServiciosApplicationAboutDraft = {

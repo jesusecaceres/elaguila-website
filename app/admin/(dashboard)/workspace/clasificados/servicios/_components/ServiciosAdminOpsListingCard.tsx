@@ -10,6 +10,10 @@ import {
   updateServiciosPublicListingStatusAction,
 } from "../actions";
 import type { ServiciosPublicAdminRow } from "../_lib/serviciosAdminOpsTypes";
+import type {
+  ServiciosCommercialOpsRow,
+  ServiciosOpsField,
+} from "@/app/admin/_lib/serviciosCommercialOps";
 import { ServiciosAdminMonetizationPanel } from "./ServiciosAdminMonetizationPanel";
 
 function formatWhen(iso: string | null | undefined, fallback?: string): string {
@@ -27,6 +31,50 @@ function statusBadgeClass(status: string | null): string {
   return "border-[#E8DFD0] bg-[#FAF7F2] text-[#5C5346]";
 }
 
+const OPS_TRUTH_BADGE: Record<string, string> = {
+  REAL: "border-emerald-200 bg-emerald-50 text-emerald-950",
+  PARTIAL: "border-amber-300 bg-amber-50 text-amber-950",
+  NEEDS_PROOF: "border-[#E8DFD0] bg-[#FFFCF7] text-[#7A5C2E]",
+  UNAVAILABLE: "border-slate-200 bg-slate-50 text-slate-700",
+};
+
+/**
+ * Renders ONE commercial field with its truth state.
+ *
+ * A value is printed only when the projection says REAL. Every other state prints the state
+ * itself plus the projection's own operator-safe note — never a number, never a dash that could
+ * read as "none", and never a raw database error.
+ */
+function ServiciosOpsTruthRow({
+  label,
+  field,
+}: {
+  label: string;
+  field?: ServiciosOpsField<string> | ServiciosOpsField<"active" | "expired" | "revoked" | "not_purchased"> | ServiciosOpsField<"linked" | "not_linked">;
+}) {
+  const truth = field?.truth ?? "NEEDS_PROOF";
+  const showValue = truth === "REAL" && field?.value != null;
+  return (
+    <div className="min-w-0">
+      <dt className="text-[10px] uppercase tracking-wide text-[#8A8172]">{label}</dt>
+      <dd className="mt-0.5 flex flex-wrap items-center gap-1.5">
+        {showValue ? (
+          <span className="font-mono text-[11px] text-[#3D3428]">{String(field?.value)}</span>
+        ) : null}
+        <span
+          className={`rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase ${OPS_TRUTH_BADGE[truth] ?? OPS_TRUTH_BADGE.NEEDS_PROOF}`}
+          title={field?.note ?? undefined}
+        >
+          {truth}
+        </span>
+      </dd>
+      {!showValue && field?.note ? (
+        <p className="mt-0.5 text-[10px] leading-snug text-[#8A8172]">{field.note}</p>
+      ) : null}
+    </div>
+  );
+}
+
 export function ServiciosAdminOpsListingCard({
   row,
   likes,
@@ -34,9 +82,16 @@ export function ServiciosAdminOpsListingCard({
   canonicalViews = 0,
   canonicalCtaClicks = 0,
   canonicalLeads = 0,
+  commercial,
   highlighted,
 }: {
   row: ServiciosPublicAdminRow;
+  /**
+   * Gate SERVICIOS-3 (D-4) — read-only commercial truth. `undefined` means the projection was
+   * not run for this render, which is itself an honest state and renders as NEEDS_PROOF rather
+   * than as an absence of payment.
+   */
+  commercial?: ServiciosCommercialOpsRow;
   likes: number;
   saves: number;
   canonicalViews?: number;
@@ -62,6 +117,27 @@ export function ServiciosAdminOpsListingCard({
             <span className={`rounded-lg border px-2 py-0.5 text-[10px] font-bold uppercase ${statusBadgeClass(row.listing_status)}`}>
               {row.listing_status ?? "—"}
             </span>
+          </div>
+
+          {/*
+            Gate SERVICIOS-3 (D-4) — commercial truth, read-only.
+
+            Payment is NEVER inferred from `listing_status`: the badge above states the listing
+            status, and everything in this block comes from `listing_package_entitlements` and
+            `leonix_subscription_records` instead. An unreadable or absent value renders its own
+            truth state (Admin OS Book §6) rather than collapsing to zero or to "unpaid".
+          */}
+          <div className="mb-3 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] p-3">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[#7A5C2E]">
+              Commercial truth (read-only)
+            </p>
+            <dl className="mt-2 grid grid-cols-1 gap-1.5 text-xs text-[#5C5346] sm:grid-cols-2">
+              <ServiciosOpsTruthRow label="Entitlement" field={commercial?.entitlement} />
+              <ServiciosOpsTruthRow label="Entitlement ends" field={commercial?.entitlementEndsAt} />
+              <ServiciosOpsTruthRow label="Subscription" field={commercial?.subscription} />
+              <ServiciosOpsTruthRow label="Period end" field={commercial?.subscriptionPeriodEnd} />
+              <ServiciosOpsTruthRow label="Stripe payment" field={commercial?.payment} />
+            </dl>
           </div>
 
           <dl className="grid grid-cols-1 gap-2 text-xs text-[#5C5346] sm:grid-cols-2">

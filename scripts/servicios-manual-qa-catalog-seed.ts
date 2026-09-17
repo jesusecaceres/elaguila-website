@@ -160,6 +160,25 @@ function buildApplicationState(preset: BusinessTypePreset): ClasificadosServicio
     physicalRegion: "Nuevo León",
     physicalCountry: "Mexico",
     physicalPostalCode: "64000",
+    /**
+     * Gate G23 address-provenance fields, added to this fixture by PREVIEW-BUILD-BLOCKER-2.
+     *
+     * These values describe how the address above was obtained, and this seed types it by hand —
+     * it never calls `BusinessAddressVerifiedInput` and never touches `/api/business-address/suggest`.
+     * So the truthful provenance is exactly what that picker records for hand-typed text
+     * (`BusinessAddressVerifiedInput.tsx:93`): `"manual"`, with no provider and no place id.
+     *
+     * Deliberately NOT `"unverified"`: that is the empty-state value for "no address entered yet"
+     * (`defaultClasificadosServiciosState.ts:71`), and this fixture HAS an address. And deliberately
+     * never `"user_confirmed"`/`"verified"` — claiming provider confirmation for a string this
+     * script invented would make the QA catalog lie about address verification, which is the one
+     * thing the whole G23 contract exists to prevent.
+     */
+    physicalVerificationStatus: "manual",
+    physicalProvider: null,
+    physicalProviderPlaceId: null,
+    /** The contract's documented default — an address that was always public stays public. */
+    showExactAddress: true,
     serviceAreaNotes: "San Pedro Garza García\nSanta Catarina\nCentro de Monterrey\nCumbres",
     phone: "+52 81 4000 2100",
     phoneOffice: "+52 81 4000 2101",

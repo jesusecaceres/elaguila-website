@@ -11,6 +11,15 @@ import {
 } from "@/app/lib/clasificados/comida-local/comidaLocalPublishTypes";
 import { parseComidaLocalPublishRequest } from "@/app/lib/clasificados/comida-local/comidaLocalPublishValidation";
 import { buildComidaLocalSlugBase } from "@/app/lib/clasificados/comida-local/comidaLocalSlug";
+import {
+  COMIDA_LOCAL_STATUS_TRANSITION_NOT_ALLOWED_ERROR,
+  resolveComidaLocalOwnerEditTargetStatus,
+} from "@/app/lib/clasificados/comida-local/comidaLocalOwnerEditStatusAuthority";
+import {
+  normalizeComidaLocalLocationUpdatedAt,
+  readComidaLocalTemporaryLocationPayload,
+  resolveComidaLocalTemporaryLocationStamp,
+} from "@/app/lib/clasificados/comida-local/comidaLocalTemporaryLocation";
 
 export const runtime = "nodejs";
 
@@ -120,7 +129,9 @@ export async function POST(req: NextRequest) {
   }
 
   const ownerUserId = await comidaLocalOwnerIdFromBearer(req);
-  const { draft, draftListingId, packageTier, lang, activationMode } = parsed.value;
+  const { draft, draftListingId, packageTier, lang, activationMode, droppedUnpersistableMedia } =
+    parsed.value;
+
   const isPendingPayment = activationMode === "pending_payment";
   if (isPendingPayment && !ownerUserId) {
     return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
@@ -128,9 +139,12 @@ export async function POST(req: NextRequest) {
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
 
+  // `listing_json` is selected because it holds the STORED temporary-location payload and its
+  // stamp — the only trustworthy "previous" state for the Find Me Today freshness decision
+  // below. The request body is never used for that comparison.
   const { data: existing, error: exErr } = await supabase
     .from("comida_local_public_listings")
-    .select("id, slug, leonix_ad_id, status, package_tier, payment_status, owner_user_id")
+    .select("id, slug, leonix_ad_id, status, package_tier, payment_status, owner_user_id, listing_json")
     .eq("draft_listing_id", draftListingId)
     .maybeSingle();
 
@@ -163,16 +177,50 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Gate D19 — never let a pending-payment checkout-prep save regress an already-published,
-      // already-paid listing back to pending_payment; that path only applies to a listing that
-      // hasn't gone through checkout successfully yet.
-      const existingStatus = (existing.status as string) ?? "published";
-      const useNewPending = isPendingPayment && existingStatus !== "published";
-      const row = draftToComidaLocalPublicListingInsert(draft, existing.slug, {
+      // Gate D19 kept the pending-payment checkout-prep save from regressing an already-paid,
+      // already-published listing. Gate COMIDA-LOCAL-1 replaces that single comparison with the
+      // full authority: an ordinary owner edit of an EXISTING row may only ever target the
+      // row's OWN current status. The previous expression fell back to `"published"` when the
+      // stored status was NULL/legacy/unrecognized, which promoted such a row to published with
+      // no payment and no fulfillment event. `resolveComidaLocalOwnerEditTargetStatus` fails
+      // closed instead; `activationMode` is deliberately not consulted by it.
+      const statusDecision = resolveComidaLocalOwnerEditTargetStatus(existing.status as string | null);
+      if (!statusDecision.ok) {
+        return NextResponse.json({ ok: false, error: statusDecision.error }, { status: 409 });
+      }
+      const targetStatus = statusDecision.targetStatus;
+      // Still a pending-payment checkout prep only while the row genuinely has not been paid
+      // for; a paused/suspended row keeps its own status rather than being pushed back into
+      // pending_payment (which would hide a listing the owner already paid for).
+      const useNewPending = isPendingPayment && targetStatus === "pending_payment";
+
+      // Gate COMIDA-LOCAL-1 — Find Me Today stamp, decided SERVER-SIDE against the STORED row.
+      // A material change to `locationNote`/`locationUrl` refreshes it; any other edit preserves
+      // it verbatim; clearing the temporary location clears it. The client's own
+      // `locationUpdatedAt` is never trusted as the new value, so freshness cannot be forged.
+      const previousJson =
+        existing.listing_json && typeof existing.listing_json === "object"
+          ? (existing.listing_json as Record<string, unknown>)
+          : null;
+      const stampedDraft = {
+        ...draft,
+        locationUpdatedAt: resolveComidaLocalTemporaryLocationStamp({
+          previousPayload: previousJson
+            ? readComidaLocalTemporaryLocationPayload(previousJson)
+            : null,
+          previousStamp: previousJson
+            ? normalizeComidaLocalLocationUpdatedAt(previousJson.locationUpdatedAt)
+            : "",
+          nextPayload: readComidaLocalTemporaryLocationPayload(draft),
+          nowIso: now,
+        }),
+      };
+
+      const row = draftToComidaLocalPublicListingInsert(stampedDraft, existing.slug, {
         ownerUserId: ownerUserId ?? (existing.owner_user_id as string | null) ?? null,
         draftListingId,
         packageTier,
-        status: useNewPending ? "pending_payment" : ((existing.status as "published") ?? "published"),
+        status: targetStatus,
         paymentStatus: useNewPending
           ? "pending"
           : (typeof existing.payment_status === "string" && existing.payment_status) ||
@@ -188,13 +236,28 @@ export async function POST(req: NextRequest) {
             : await allocateNextComidaLocalLeonixAdId(supabase),
       };
 
-      const { error: updErr } = await supabase
+      // Gate COMIDA-LOCAL-1 — compare-and-set on the status we just decided to preserve, and on
+      // the canonical `draft_listing_id` that keeps this a SAME-ROW update. If another process
+      // (staff moderation, the Revenue OS webhook landing mid-edit, the pause/resume route)
+      // changed the status between the read above and this write, the update matches zero rows
+      // instead of silently overwriting what that process just set.
+      const { data: updatedRows, error: updErr } = await supabase
         .from("comida_local_public_listings")
         .update(updatePayload)
-        .eq("draft_listing_id", draftListingId);
+        .eq("draft_listing_id", draftListingId)
+        .eq("status", targetStatus)
+        .select("id");
 
       if (updErr) {
         return NextResponse.json({ ok: false, error: "update_failed", detail: updErr.message }, { status: 500 });
+      }
+      // A silent no-op must be reported, never claimed as success (the I.13A rule the lifecycle
+      // route already follows).
+      if (!updatedRows?.length) {
+        return NextResponse.json(
+          { ok: false, error: COMIDA_LOCAL_STATUS_TRANSITION_NOT_ALLOWED_ERROR },
+          { status: 409 },
+        );
       }
 
       const leonixId = String(updatePayload.leonix_ad_id ?? existing.leonix_ad_id ?? "");
@@ -215,6 +278,7 @@ export async function POST(req: NextRequest) {
         draft_listing_id: draftListingId,
         owner_user_id: row.owner_user_id,
         lang,
+        ...(droppedUnpersistableMedia.length ? { droppedUnpersistableMedia } : {}),
       });
     }
 
@@ -227,7 +291,19 @@ export async function POST(req: NextRequest) {
     }
 
     const slugOut = await allocateUniqueSlug(supabase, slugBase);
-    const insertRow = draftToComidaLocalPublicListingInsert(draft, slugOut, {
+    // Gate COMIDA-LOCAL-1 — a brand-new row has no stored previous payload, so a non-empty
+    // temporary location is stamped now (this save IS its first real owner update). An empty
+    // one stays unstamped: there is nothing to expire.
+    const insertDraft = {
+      ...draft,
+      locationUpdatedAt: resolveComidaLocalTemporaryLocationStamp({
+        previousPayload: null,
+        previousStamp: "",
+        nextPayload: readComidaLocalTemporaryLocationPayload(draft),
+        nowIso: now,
+      }),
+    };
+    const insertRow = draftToComidaLocalPublicListingInsert(insertDraft, slugOut, {
       ownerUserId,
       draftListingId,
       packageTier,
@@ -299,6 +375,7 @@ export async function POST(req: NextRequest) {
       draft_listing_id: draftListingId,
       owner_user_id: ownerUserId,
       lang,
+      ...(droppedUnpersistableMedia.length ? { droppedUnpersistableMedia } : {}),
     });
   } catch (e) {
     return NextResponse.json(

@@ -1,17 +1,24 @@
 "use client";
 
-import { FiMapPin, FiPhone } from "react-icons/fi";
+import { useEffect, useState } from "react";
+import { FiMapPin, FiMessageSquare, FiPhone } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import type { ServiciosListingTemplate } from "@/app/(site)/clasificados/servicios/lib/serviciosTemplateRouting";
 import { serviciosAnalyticsTrackMeta, trackServiciosListingCta } from "../lib/serviciosCtaIntents";
+import {
+  fetchLeonixEndorsementSummary,
+  type LeonixEndorsementSummaryEntry,
+} from "@/app/lib/leonixCommunityTrust/leonixEndorsementClient";
 import { serviciosOpenGoogleMapsDirections } from "../lib/serviciosDirectCta";
 import { resolveServiciosProfileDirectWhatsAppHref } from "../lib/serviciosWhatsAppHref";
+import { buildQuoteSmsHref } from "../lib/serviciosContactActions";
 import {
   LX,
   LX_CTA_MAP,
   LX_CTA_PRIMARY,
   LX_CTA_PRIMARY_LG,
+  LX_CTA_SECONDARY,
   LX_CTA_WHATSAPP,
   LX_HERO_BG,
   LX_HERO_BG_STYLE,
@@ -43,6 +50,127 @@ function StarRow({ rating, lang }: { rating: number; lang: ServiciosLang }) {
       })}
       <span className="ml-0.5 text-xs font-bold text-[#FFFCF7]">{rating.toFixed(1)}</span>
     </div>
+  );
+}
+
+/** DOM id of the lower, full Comunidad en Leonix section (ServiciosBusinessHubContactCard) — the
+ * SAME canonical Community Trust interaction surface; never a second voting engine. */
+const SERVICIOS_COMMUNITY_TRUST_SECTION_ID = "servicios-community-trust-section";
+
+/**
+ * Servicios Golden Trust UX (2026-09-16) — the Leonix Community Trust signal in the header is now
+ * a genuine BRANDED MODULE (bordered, backed, "🦁 Comunidad Leonix" / "🦁 Leonix Community" on its
+ * own line above the state) instead of a bare stat line — per owner design decision, the prior
+ * copy read as generic UI text, not a Leonix-owned reputation product. Reuses the exact same
+ * `fetchLeonixEndorsementSummary` source the full Community section (lower on the page, unchanged)
+ * already uses — real counts only, never a fabricated rating. `null` while loading/unavailable
+ * renders nothing (never a misleading placeholder); `listingSourceId` absent means the listing has
+ * no durable identity yet (preview/unpublished), its own truthful state, distinct from "zero real
+ * endorsements." A "Reconocer este negocio" action gives a SECOND, high-in-the-page chance to
+ * engage, scrolling to the existing lower voting section — never a second endorsement engine, no
+ * duplicate RPC/toggle logic here.
+ */
+function ServiciosHeroTrustSummary({
+  listingSourceId,
+  lang,
+}: {
+  listingSourceId?: string;
+  lang: ServiciosLang;
+}) {
+  const [summary, setSummary] = useState<LeonixEndorsementSummaryEntry[] | null>(null);
+  const targetId = (listingSourceId ?? "").trim();
+  const brandLabel = lang === "en" ? "Leonix Community" : "Comunidad Leonix";
+  const recognizeLabel = lang === "en" ? "Recognize this business" : "Reconocer este negocio";
+
+  useEffect(() => {
+    let cancelled = false;
+    setSummary(null);
+    if (!targetId) return;
+    void (async () => {
+      const result = await fetchLeonixEndorsementSummary("servicios", targetId);
+      if (!cancelled && result.ok) setSummary(result.summary);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [targetId]);
+
+  const scrollToCommunitySection = () => {
+    document
+      .getElementById(SERVICIOS_COMMUNITY_TRUST_SECTION_ID)
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const recognizeAction = (
+    <button
+      type="button"
+      onClick={scrollToCommunitySection}
+      className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-bold text-[#D9BE7A] underline underline-offset-2 transition hover:text-[#EBD9A6] sm:text-[11px]"
+    >
+      {recognizeLabel}
+      <span aria-hidden>→</span>
+    </button>
+  );
+
+  const moduleShell = (children: React.ReactNode) => (
+    <div className="mt-3 inline-flex w-full flex-col items-center rounded-lg border border-[#C9A84A]/35 bg-white/[0.06] px-3.5 py-2.5 text-center sm:w-auto sm:items-start sm:text-left">
+      {children}
+    </div>
+  );
+
+  if (!targetId) {
+    return moduleShell(
+      <>
+        <p className="text-xs font-bold text-[#FFFCF7] sm:text-sm">🦁 {brandLabel}</p>
+        <p className="mt-0.5 text-[11px] text-[#FFFCF7]/70 sm:text-xs">
+          {lang === "en"
+            ? "Recognitions turn on once this listing is published."
+            : "Los reconocimientos se activan cuando se publique este anuncio."}
+        </p>
+      </>,
+    );
+  }
+
+  if (!summary) return null;
+
+  const total = summary.reduce((sum, e) => sum + e.count, 0);
+  if (total === 0) {
+    return moduleShell(
+      <>
+        <p className="text-xs font-bold text-[#FFFCF7] sm:text-sm">🦁 {brandLabel}</p>
+        <p className="mt-0.5 text-[11px] font-semibold text-[#FFFCF7]/85 sm:text-xs">
+          {lang === "en" ? "New on Leonix" : "Nuevo en Leonix"}
+        </p>
+        {recognizeAction}
+      </>,
+    );
+  }
+
+  const topTraits = [...summary]
+    .filter((e) => e.count > 0)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 3);
+
+  return moduleShell(
+    <>
+      <p className="text-xs font-bold text-[#FFFCF7] sm:text-sm">🦁 {brandLabel}</p>
+      <p className="mt-0.5 text-[11px] font-semibold text-[#FFFCF7]/90 sm:text-xs">
+        {lang === "en"
+          ? `${total} recognition${total === 1 ? "" : "s"}`
+          : `${total} reconocimiento${total === 1 ? "" : "s"}`}
+      </p>
+      {topTraits.length > 0 ? (
+        <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-[#FFFCF7]/80 sm:text-[11px]">
+          {topTraits.map((t, i) => (
+            <span key={t.key}>
+              {i > 0 ? <span className="mr-2 text-[#FFFCF7]/40">·</span> : null}
+              {(lang === "en" ? t.en : t.es) || t.key} {t.count}
+            </span>
+          ))}
+        </p>
+      ) : null}
+      {recognizeAction}
+    </>,
   );
 }
 
@@ -82,9 +210,19 @@ export function ServiciosProfessionalHero({
       : undefined;
   const isLeonixVerified = profile.hero.badges.some((b) => b.kind === "verified");
   const showDirections = hasPhysicalAddress(profile);
-  const tel = profile.contact.phoneTelHref?.trim();
+  // Servicios Final Contact Truth + Email No-Mailto Closeout (2026-09-17, Gate 1/7) — one Call
+  // destination: office phone when present, principal phone as fallback. The primary button's
+  // LABEL stays the category-specific primaryLabel below (Contactar/Cotizar/etc.) per the owner's
+  // instruction to preserve that aggregate Contact/Cotización behavior — only the destination changes.
+  const officeTel = profile.contact.phoneOfficeTelHref?.trim();
+  const officeDisplay = profile.contact.phoneOfficeDisplay?.trim();
+  const tel = officeTel && officeDisplay ? officeTel : profile.contact.phoneTelHref?.trim();
   const waHref = resolveServiciosProfileDirectWhatsAppHref(profile.contact);
+  // Gate 2/7 — the dedicated "número para mensajes/cotizaciones"; never WhatsApp, never the office
+  // number merely because it exists. buildQuoteSmsHref preserves the existing quote/message copy.
+  const smsHref = buildQuoteSmsHref(profile.contact.quoteMessagePhone, lang);
   const primaryLabel = getPrimaryCtaLabel(template, lang);
+  const messageLabel = lang === "en" ? "Message" : "Mensaje";
   const analyticsBase = serviciosAnalyticsTrackMeta({
     listingSlug,
     sourceId: listingSourceId,
@@ -117,6 +255,12 @@ export function ServiciosProfessionalHero({
     if (!waHref) return;
     trackServiciosListingCta(listingSlug, "cta_whatsapp_click", analyticsBase);
     window.open(waHref, "_blank", "noopener,noreferrer");
+  };
+
+  const openMessage = () => {
+    if (!smsHref) return;
+    trackServiciosListingCta(listingSlug, "cta_quote_sms_click", analyticsBase);
+    window.location.href = smsHref;
   };
 
   const openDirections = () => {
@@ -218,6 +362,7 @@ export function ServiciosProfessionalHero({
               ) : null}
             </div>
 
+            <ServiciosHeroTrustSummary listingSourceId={listingSourceId} lang={lang} />
           </div>
         </div>
 
@@ -242,6 +387,16 @@ export function ServiciosProfessionalHero({
               {primaryLabel}
             </button>
           ) : null}
+          {smsHref ? (
+            <button
+              type="button"
+              onClick={openMessage}
+              className={`${LX_CTA_SECONDARY} ${LX_CTA_PRIMARY_LG} w-full lg:min-w-[10rem] lg:flex-1`}
+            >
+              <FiMessageSquare className="h-4 w-4 shrink-0" aria-hidden />
+              {messageLabel}
+            </button>
+          ) : null}
           {waHref ? (
             <button
               type="button"
@@ -259,7 +414,7 @@ export function ServiciosProfessionalHero({
               {lang === "en" ? "Directions" : "Cómo llegar"}
             </button>
           ) : null}
-          {!tel && !waHref ? (
+          {!tel && !smsHref && !waHref ? (
             <button
               type="button"
               onClick={scrollToContact}

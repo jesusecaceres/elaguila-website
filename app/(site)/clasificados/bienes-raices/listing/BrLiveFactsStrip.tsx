@@ -10,6 +10,16 @@ import {
 } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import { isBrBienesRaicesSaleListing } from "@/app/clasificados/lib/leonixBrGate12d";
 import { brLuxuryCardClass } from "@/app/clasificados/bienes-raices/shared/brResultsTheme";
+import { LeonixListingFactsGrid, type LeonixFactRow } from "@/app/clasificados/lib/LeonixListingFactsGrid";
+
+/** Item 15 — shared theme values matching this surface's existing gold/cream palette, so
+ * adopting LeonixListingFactsGrid here doesn't change the visual language BR already uses. */
+const BR_LIVE_FACTS_GRID_THEME = {
+  borderColor: "rgba(232,223,208,0.9)",
+  cardBackground: "rgba(255,252,247,0.95)",
+  labelColor: "#8A6F3A",
+  valueColor: "#2A2620",
+};
 
 function branchLaneLabel(branch: LeonixClasificadosBranch, lang: "es" | "en"): string {
   const es: Record<LeonixClasificadosBranch, string> = {
@@ -92,56 +102,50 @@ export function BrLiveFactsStrip({ detailPairs, lang }: { detailPairs: unknown; 
 
   if (!lx.operation && !lx.branch && !hasMachine) return null;
 
-  const chips: string[] = [];
-  const statusLbl = listingStatusLabel(readLeonixDetailPairValue(detailPairs, LEONIX_DP_BR_LISTING_STATUS), lang);
-  if (statusLbl) chips.push(statusLbl);
-  const op = opLabel(lx.operation, lang);
-  if (op) chips.push(op);
-  const rk = kindLabel(m.resultsPropertyKind, lang);
-  if (rk) chips.push(rk);
+  // Item 15 — category adapter: BR's own facts, in BR's own order, converted into the shared
+  // LeonixFactRow shape instead of a bespoke chip list. LeonixListingFactsGrid itself drops any
+  // row whose value is empty, so this stays sparse by construction.
+  const rows: LeonixFactRow[] = [];
+  const push = (label: string, value: string) => {
+    const v = value.trim();
+    if (v) rows.push({ label, value: v });
+  };
+  push(lang === "es" ? "Estado" : "Status", listingStatusLabel(readLeonixDetailPairValue(detailPairs, LEONIX_DP_BR_LISTING_STATUS), lang));
+  push(lang === "es" ? "Operación" : "Operation", opLabel(lx.operation, lang));
+  push(lang === "es" ? "Tipo" : "Type", kindLabel(m.resultsPropertyKind, lang));
   if (m.bedroomsCount != null && m.bedroomsCount >= 0) {
-    chips.push(lang === "es" ? `${m.bedroomsCount} rec.` : `${m.bedroomsCount} bd`);
+    push(lang === "es" ? "Recámaras" : "Bedrooms", String(m.bedroomsCount));
   }
   if (m.bathroomsCount != null && m.bathroomsCount > 0) {
-    chips.push(lang === "es" ? `${m.bathroomsCount} baños` : `${m.bathroomsCount} bath`);
+    push(lang === "es" ? "Baños" : "Bathrooms", String(m.bathroomsCount));
   }
   if (m.parkingSpots != null && m.parkingSpots > 0) {
-    chips.push(lang === "es" ? `${m.parkingSpots} estac.` : `${m.parkingSpots} parking`);
+    push(lang === "es" ? "Estacionamiento" : "Parking", String(m.parkingSpots));
   }
-  if (m.postalCode) chips.push(`ZIP ${m.postalCode}`);
-  if (m.pool === true) chips.push(lang === "es" ? "Alberca" : "Pool");
-  if (m.pool === false) chips.push(lang === "es" ? "Sin alberca" : "No pool");
-  if (!hideGenericPets && m.petsAllowed === true) chips.push(lang === "es" ? "Mascotas permitidas" : "Pets allowed");
-  if (!hideGenericPets && m.petsAllowed === false) chips.push(lang === "es" ? "Sin mascotas" : "No pets");
-  if (m.furnished === true) chips.push(lang === "es" ? "Amueblado" : "Furnished");
-  if (m.furnished === false) chips.push(lang === "es" ? "Sin amueblar" : "Unfurnished");
+  push("ZIP", m.postalCode ?? "");
+  if (m.pool != null) push(lang === "es" ? "Alberca" : "Pool", m.pool ? (lang === "es" ? "Sí" : "Yes") : lang === "es" ? "No" : "No");
+  if (!hideGenericPets && m.petsAllowed != null) {
+    push(lang === "es" ? "Mascotas" : "Pets", m.petsAllowed ? (lang === "es" ? "Permitidas" : "Allowed") : lang === "es" ? "No permitidas" : "Not allowed");
+  }
+  if (m.furnished != null) {
+    push(lang === "es" ? "Amueblado" : "Furnished", m.furnished ? (lang === "es" ? "Sí" : "Yes") : lang === "es" ? "No" : "No");
+  }
+  push(lang === "es" ? "Perfil" : "Lane", lx.branch ? branchLaneLabel(lx.branch, lang) : "");
 
-  if (chips.length === 0 && !lx.branch) return null;
+  if (rows.length === 0) return null;
 
   return (
     <section
       className={`mb-6 ${brLuxuryCardClass} p-5 ring-1 ring-[#C9B46A]/10`}
       aria-label={lang === "es" ? "Resumen del inmueble" : "Property summary"}
     >
-      <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#8A6F3A]/90">
-        {lang === "es" ? "Datos publicados" : "Published facts"}
-      </div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {chips.map((c) => (
-          <span
-            key={c}
-            className="inline-flex rounded-full border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 px-3 py-1.5 text-xs font-semibold text-[#2A2620] shadow-sm"
-          >
-            {c}
-          </span>
-        ))}
-      </div>
-      {lx.branch ? (
-        <p className="mt-3 border-t border-[#E8DFD0]/60 pt-3 text-xs font-semibold text-[#5C5346]">
-          <span className="text-[#8A6F3A]">{lang === "es" ? "Perfil: " : "Lane: "}</span>
-          {branchLaneLabel(lx.branch, lang)}
-        </p>
-      ) : null}
+      <LeonixListingFactsGrid
+        title={lang === "es" ? "Datos publicados" : "Published facts"}
+        rows={rows}
+        theme={BR_LIVE_FACTS_GRID_THEME}
+        columns={3}
+        className="border-0 p-0 shadow-none"
+      />
     </section>
   );
 }

@@ -38,12 +38,13 @@ type PanelState =
   | { kind: "not_available" }
   | { kind: "excluded"; reasonCode: string }
   | { kind: "needs_verification"; emailVerified: boolean; phoneVerified: boolean; smsConfigured: boolean }
-  | { kind: "eligible" }
+  | { kind: "eligible"; basis: "email" | "phone" | null }
   | { kind: "applied" };
 
 const COPY = {
   es: {
-    title: "Descuento de bienvenida verificado (15%)",
+    // ⚠️36 (2026-09-14): the discount applies to the FIRST payment only — say so everywhere it is named.
+    title: "15% de bienvenida — solo en tu primer pago",
     excluded: {
       already_redeemed: "Ya usaste tu descuento de bienvenida.",
       package_excluded: "Este paquete no califica para el descuento de bienvenida.",
@@ -51,23 +52,34 @@ const COPY = {
       discount_already_active: "No puedes combinar este descuento con un código promocional.",
       not_verified: "",
     },
-    needsVerification: "Verifica tu teléfono para desbloquear 15% de descuento en tu primer pago.",
+    // Either verified identity qualifies (server policy: emailVerified OR phoneVerified), so this
+    // must not imply that phone verification is required — a confirmed email alone unlocks it.
+    needsVerification:
+      "Desbloquea 15% de descuento en tu primer pago verificando tu cuenta: inicia sesión con un correo confirmado, o verifica tu teléfono aquí.",
     phoneLabel: "Número de teléfono",
     phonePlaceholder: "+1 555 555 5555",
     sendCode: "Enviar código",
     codeLabel: "Código de verificación",
     verify: "Verificar",
     smsUnavailable: "La verificación por SMS no está disponible en este momento. Verifica tu correo iniciando sesión con un correo confirmado.",
-    apply: "Aplicar 15% de descuento",
+    apply: "Aplicar 15% a mi primer pago",
     remove: "Quitar",
-    applied: "Descuento de bienvenida (15%) aplicado.",
-    renewalNote: "Las renovaciones se cobran al precio completo.",
+    applied: "15% de bienvenida aplicado — solo en tu primer pago.",
+    renewalNote: "Después de ese primer pago, cada renovación se cobra al precio completo.",
+    // ⚠️27 (2026-09-13): name the identity that qualifies — the Leonix ACCOUNT (sign-in email or
+    // verified phone). The newsletter email field on this page is unrelated to the discount.
+    basisEmail:
+      "Tu cuenta califica: el correo con el que iniciaste sesión en Leonix está verificado. El correo del boletín no afecta este descuento.",
+    basisPhone:
+      "Tu cuenta califica: el teléfono de tu cuenta Leonix está verificado. El correo del boletín no afecta este descuento.",
+    basisGeneric: "Tu cuenta Leonix califica según su verificación (correo o teléfono).",
+    serverCheck: "Leonix vuelve a confirmar tu elegibilidad al momento de pagar.",
     invalidPhone: "Ingresa un número de teléfono válido.",
     invalidCode: "Código incorrecto. Intenta de nuevo.",
     genericError: "Algo salió mal. Intenta de nuevo.",
   },
   en: {
-    title: "Verified welcome discount (15%)",
+    title: "15% welcome discount — first payment only",
     excluded: {
       already_redeemed: "You've already used your welcome discount.",
       package_excluded: "This package is not eligible for the welcome discount.",
@@ -75,17 +87,24 @@ const COPY = {
       discount_already_active: "You can't combine this discount with a promo code.",
       not_verified: "",
     },
-    needsVerification: "Verify your phone to unlock 15% off your first payment.",
+    needsVerification:
+      "Unlock 15% off your first payment by verifying your account: sign in with a confirmed email, or verify your phone here.",
     phoneLabel: "Phone number",
     phonePlaceholder: "+1 555 555 5555",
     sendCode: "Send code",
     codeLabel: "Verification code",
     verify: "Verify",
     smsUnavailable: "SMS verification is temporarily unavailable. You can qualify with a confirmed email instead — sign in with a verified email address.",
-    apply: "Apply 15% discount",
+    apply: "Apply 15% to my first payment",
     remove: "Remove",
-    applied: "Welcome discount (15%) applied.",
-    renewalNote: "Renewals are billed at the full price.",
+    applied: "15% welcome discount applied — first payment only.",
+    renewalNote: "After that first payment, every renewal is billed at the full price.",
+    basisEmail:
+      "Your account qualifies: the email you signed in to Leonix with is verified. The newsletter email does not affect this discount.",
+    basisPhone:
+      "Your account qualifies: the phone on your Leonix account is verified. The newsletter email does not affect this discount.",
+    basisGeneric: "Your Leonix account qualifies based on its verification (email or phone).",
+    serverCheck: "Leonix re-confirms your eligibility when you pay.",
     invalidPhone: "Enter a valid phone number.",
     invalidCode: "Incorrect code. Try again.",
     genericError: "Something went wrong. Try again.",
@@ -122,7 +141,8 @@ export function VerifiedIntroDiscountVerifyPanel({
         return;
       }
       if (result.eligible) {
-        setState({ kind: "eligible" });
+        // SVC-QA-24 — show WHY (the server-proven identity), never a bare client-side "Apply".
+        setState({ kind: "eligible", basis: result.emailVerified ? "email" : result.phoneVerified ? "phone" : null });
         return;
       }
       if (result.reasonCode === "not_verified") {
@@ -179,7 +199,7 @@ export function VerifiedIntroDiscountVerifyPanel({
       setError(t.invalidCode);
       return;
     }
-    setState({ kind: "eligible" });
+    setState({ kind: "eligible", basis: "phone" });
   };
 
   const handleApplyToggle = () => {
@@ -255,16 +275,29 @@ export function VerifiedIntroDiscountVerifyPanel({
       ) : null}
 
       {state.kind === "eligible" ? (
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={handleApplyToggle}
-            className="min-h-[44px] rounded-xl border px-4 text-sm font-semibold"
-            style={{ borderColor: "#D8C2A0", background: applied ? "#1A4D2E" : "#FFF", color: applied ? "#FFF" : "#1F1A17" }}
-          >
-            {applied ? t.remove : t.apply}
-          </button>
+        <div className="flex flex-col gap-1.5">
+          <p className="text-xs" style={{ color: "#1A4D2E" }} data-verified-intro-basis={state.basis ?? "leonix"}>
+            {state.basis === "email" ? t.basisEmail : state.basis === "phone" ? t.basisPhone : t.basisGeneric}{" "}
+            <span style={{ color: "#6B6560" }}>{t.serverCheck}</span>
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={handleApplyToggle}
+              className="min-h-[44px] rounded-xl border px-4 text-sm font-semibold"
+              style={{ borderColor: "#D8C2A0", background: applied ? "#1A4D2E" : "#FFF", color: applied ? "#FFF" : "#1F1A17" }}
+            >
+              {applied ? t.remove : t.apply}
+            </button>
+          </div>
+          {/* The benefit is introductory — first eligible payment only. Disclosed BEFORE the
+              customer applies it, not only afterwards, so "15% off" can never read as recurring. */}
+          {!applied ? (
+            <p className="text-xs" style={{ color: "#6B6560" }}>
+              {t.renewalNote}
+            </p>
+          ) : null}
         </div>
       ) : null}
 

@@ -1,31 +1,13 @@
 "use client";
 
-import Link from "next/link";
-import type { RentasGatewayTile } from "./rentasLandingGateway";
 import { RENTAS_INTENT_TILES } from "./rentasLandingGateway";
+import { RENTAS_CHILD_CATEGORY_IMAGE } from "./rentasChildCategoryImages";
 import {
   RENTAS_LANDING_TILES_ACCENT,
   RENTAS_LANDING_TILES_INTEGRATED,
 } from "@/app/clasificados/rentas/shared/rentasLeonixPublicUi";
 import { buildRentasResultsUrl } from "@/app/clasificados/rentas/shared/utils/rentasResultsRoutes";
-
-const ACCENT: Record<RentasGatewayTile["accent"], { card: string; icon: string; ring: string }> = {
-  burgundy: {
-    card: "from-[#7A1E2C]/14 via-white/95 to-white/88 border-[#7A1E2C]/30 hover:border-[#7A1E2C]/55 hover:shadow-[0_12px_32px_-14px_rgba(122,30,44,0.28)]",
-    icon: "bg-[#7A1E2C]/14 text-[#7A1E2C] ring-[#7A1E2C]/25",
-    ring: "group-hover:ring-[#7A1E2C]/35",
-  },
-  green: {
-    card: "from-[#556B3E]/14 via-white/95 to-white/88 border-[#556B3E]/30 hover:border-[#556B3E]/50 hover:shadow-[0_12px_32px_-14px_rgba(85,107,62,0.24)]",
-    icon: "bg-[#556B3E]/14 text-[#556B3E] ring-[#556B3E]/22",
-    ring: "group-hover:ring-[#556B3E]/32",
-  },
-  gold: {
-    card: "from-[#C9A84A]/16 via-white/95 to-white/88 border-[#C9A84A]/40 hover:border-[#C9A84A]/65 hover:shadow-[0_12px_32px_-14px_rgba(201,168,74,0.3)]",
-    icon: "bg-[#C9A84A]/16 text-[#B8954A] ring-[#C9A84A]/28",
-    ring: "group-hover:ring-[#C9A84A]/40",
-  },
-};
+import { ImageDiscoveryCard } from "@/app/(site)/clasificados/components/categoryStandardV2";
 
 type Props = {
   lang: "es" | "en";
@@ -57,26 +39,19 @@ export function RentasLandingIntentTiles({ lang, routeLang, headingEs, headingEn
           const href = buildRentasResultsUrl({ ...tile.params, lang: routeLang });
           const label = lang === "es" ? tile.labelEs : tile.labelEn;
           const hint = lang === "es" ? tile.hintEs : tile.hintEn;
-          const Icon = tile.Icon;
-          const accent = ACCENT[tile.accent];
           return (
-            <Link
-              key={tile.labelEn}
-              href={href}
-              className={`group flex min-h-[4.75rem] flex-col rounded-xl border bg-gradient-to-br p-3 shadow-[0_4px_18px_-12px_rgba(42,36,22,0.18)] transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:min-h-[5rem] ${accent.card}`}
-            >
-              <span
-                className={`inline-flex h-8 w-8 items-center justify-center rounded-lg ring-1 transition sm:h-9 sm:w-9 ${accent.icon} ${accent.ring}`}
-              >
-                <Icon className="h-4 w-4 shrink-0" aria-hidden />
-              </span>
-              <span className="mt-2.5 font-serif text-sm font-bold leading-tight text-[#2A4536] group-hover:text-[#7A1E2C]">
-                {label}
-              </span>
-              {hint ? (
-                <span className="mt-0.5 line-clamp-2 text-[10px] leading-snug text-[#5C5346]/85 sm:text-[11px]">{hint}</span>
-              ) : null}
-            </Link>
+            <ImageDiscoveryCard
+              key={tile.id}
+              item={{
+                id: tile.id,
+                label,
+                hint,
+                href,
+                imageSrc: RENTAS_CHILD_CATEGORY_IMAGE[tile.id as keyof typeof RENTAS_CHILD_CATEGORY_IMAGE],
+                imageAlt: label,
+                icon: tile.Icon,
+              }}
+            />
           );
         })}
       </div>

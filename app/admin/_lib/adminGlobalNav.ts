@@ -53,7 +53,19 @@ export function isAdminGlobalNavItemActive(pathname: string, item: AdminGlobalNa
  * assert positionally (leads/inbox before tienda, settings before tienda).
  */
 export const ADMIN_GLOBAL_NAV: AdminGlobalNavItem[] = [
+  /**
+   * LEO-POLISH.1 — LEO is the owner's primary conversational operating interface and must be
+   * the first destination in the COMMAND group, above Dashboard/Command Center. Page still
+   * enforces owner_admin via leoAccess (LEO-9B); this is nav convenience/ordering only.
+   */
+  { href: "/admin/leo", labelKey: "nav.leo", icon: "◈", group: "command" },
   { href: "/admin", labelKey: "nav.dashboard", icon: "◆", badgeFrom: "tienda", group: "command" },
+  {
+    href: "/admin/businesses",
+    labelKey: "nav.businesses",
+    icon: "🏢",
+    group: "people",
+  },
   {
     href: "/admin/leads/inbox",
     labelKey: "nav.launchLeads",
@@ -88,6 +100,12 @@ export const ADMIN_GLOBAL_NAV: AdminGlobalNavItem[] = [
   { href: "/admin/team/roster", labelKey: "nav.team", icon: "👥", activePathPrefixes: ["/admin/team"], group: "people" },
   { href: "/admin/usuarios", labelKey: "nav.users", icon: "◎", group: "people" },
   { href: "/admin/support", labelKey: "nav.support", icon: "💬", group: "people" },
+  // Staff Contact + Virtual Front Desk Continuity Gate (2026-09-14) — the doorbell enrollment
+  // page (and the sibling presence page it links to) existed and worked but had zero links
+  // anywhere in Admin outside their own exact URLs. Doorbell is the primary nav entry point
+  // because that's where a staff member actually turns on visitor-call notifications;
+  // Presence (AVAILABLE/BUSY/AWAY) is reached from there, not duplicated as its own nav item.
+  { href: "/admin/digital-contact/doorbell", labelKey: "nav.virtualFrontDesk", icon: "🔔", activePathPrefixes: ["/admin/digital-contact"], group: "people" },
   { href: "/admin/workspace", labelKey: "nav.siteSections", icon: "🧩", group: "website-control" },
   // Package E Build E3, Gate 1 — the real site-settings writer (previously reachable only via
   // the sidebar footer for non-sales-rep-limited roles, or the /admin/settings stub's blocker
@@ -95,7 +113,10 @@ export const ADMIN_GLOBAL_NAV: AdminGlobalNavItem[] = [
   { href: "/admin/site-settings", labelKey: "nav.siteSettings", icon: "🛠", group: "website-control" },
   { href: "/admin/clasificados/viajes", labelKey: "nav.viajes", icon: "✈", group: "marketplace-ops" },
   { href: "/admin/activity-log", labelKey: "nav.activityLog", icon: "📋", group: "system" },
-  { href: "/admin/settings", labelKey: "nav.settings", icon: "⚙", group: "system" },
+  { href: "/admin/system-health", labelKey: "nav.systemHealth", icon: "🩺", group: "system" },
+  /** Master Operating Book V2 §0C — the Admin Guide / Operations Manual, distinct from Company
+   * Search (nav.customerOps). Placed in SYSTEM per this project's own architecture preference. */
+  { href: "/admin/guide", labelKey: "nav.adminGuide", icon: "📖", group: "system" },
   { href: "/admin/workspace/language-audit", labelKey: "nav.languageAudit", icon: "🌐", group: "system" },
   /** Tienda command hub — kept, but deprioritized for launch quote/product follow-up. */
   { href: "/admin/tienda", labelKey: "nav.tienda", icon: "🛒", group: "marketplace-ops" },

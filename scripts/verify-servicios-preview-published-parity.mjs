@@ -45,7 +45,13 @@ assert(proShell.includes("hubEngagementVariant"), "pro shell: hub engagement var
 assert(!proShell.includes("<LeonixSaveButton"), "pro shell: Save removed from hero");
 
 assert(hubRow.includes('hubEngagementVariant === "save_only"'), "hub row: save_only hides hub engagement");
-assert(!hubRow.includes("LeonixSaveButton"), "hub row: Save removed");
+// Superseded by the owner-locked Servicios Golden grammar (Golden truth lock 75a66ce8 wired Save as
+// the canonical saved_listings control; Owner QA SVC-QA-18/19/20): the hub row owns Save, ordered
+// Like → Save → Share, while the hero keeps Like/Share only (asserted above).
+assert(
+  hubRow.includes("<LeonixSaveButton") && hubRow.includes('data-servicios-action-order="like,save,share"'),
+  "hub row: Save present in the Golden Like → Save → Share order",
+);
 assert(contactCard.includes("hubEngagementVariant"), "contact card: forwards hub variant");
 
 assert(clasPreview.includes("ServiciosProfileView"), "trade preview: ServiciosProfileView");

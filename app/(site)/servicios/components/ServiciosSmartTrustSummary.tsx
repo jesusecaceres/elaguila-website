@@ -6,11 +6,18 @@ import { buildServiciosSmartTrustSummary } from "../lib/serviciosSmartTrustSumma
 export function ServiciosSmartTrustSummary({
   profile,
   lang,
+  contentLang,
 }: {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
+  /**
+   * ⚠️37 — the generated "Resumen rápido" is business prose: it is REGENERATED in the locale of
+   * the displayed business content (translated custom text + destination-locale catalog labels +
+   * a sentence template in that language) so it never comes out mixed. The card chrome follows `lang`.
+   */
+  contentLang?: ServiciosLang;
 }) {
-  const model = buildServiciosSmartTrustSummary(profile, lang);
+  const model = buildServiciosSmartTrustSummary(profile, contentLang ?? lang);
   if (!model) return null;
 
   const copy = getServiciosSmartTrustSummaryCopy(lang);
@@ -36,10 +43,9 @@ export function ServiciosSmartTrustSummary({
           </p>
           <p className="mt-3 text-sm leading-relaxed text-[#3D2C12]/95">{model.paragraph}</p>
           {model.chips.length > 0 ? (
-            <ul
-              className="mt-3 flex flex-nowrap gap-2 overflow-x-auto pb-1 [scrollbar-width:thin] md:flex-wrap md:overflow-visible"
-              aria-label={copy.subtitle}
-            >
+            // SVC-QA-14 — "Resumen rápido" is a short chip list: it wraps at every width, so it never
+            // looks draggable when there is nothing more to scroll to.
+            <ul className="mt-3 flex flex-wrap gap-2" aria-label={copy.subtitle}>
               {model.chips.map((c) => (
                 <li
                   key={c}

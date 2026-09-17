@@ -4,6 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AutosNegociosDealershipPreviewPage } from "./dealershipPreview/AutosNegociosDealershipPreviewPage";
+import { AutosListingTranslationLayer } from "@/app/clasificados/autos/vehiculo/[id]/AutosListingTranslationLayer";
+import { autosLiveVehiclePath } from "../../filters/autosBrowseFilterContract";
+import { normalizeAutosNegociosLang } from "../lib/autosNegociosLang";
 import { AutoDealerPreviewChrome } from "../components/AutoDealerPreviewChrome";
 import { AutosNegociosPreviewEmptyState } from "../components/AutosNegociosPreviewEmptyState";
 import { loadAutosNegociosCanonicalActiveDraft } from "@/app/lib/clasificados/autos/autosNegociosCanonicalDraftLoad";
@@ -67,6 +70,7 @@ type CanonicalDealerListingApiResponse = {
   id?: string;
   lane?: string;
   status?: string;
+  lang?: "es" | "en";
   listing?: AutoDealerListing;
   inventory_role?: string | null;
 };
@@ -82,7 +86,7 @@ type CanonicalDealerListingApiResponse = {
 async function fetchCanonicalDealerPreview(
   listingId: string,
 ): Promise<
-  | { ok: true; listing: AutoDealerListing; status: string }
+  | { ok: true; listing: AutoDealerListing; status: string; listingLang: "es" | "en" | null }
   | { ok: false; reason: CanonicalPreviewErrorReason }
 > {
   let token: string | null = null;
@@ -116,7 +120,8 @@ async function fetchCanonicalDealerPreview(
   }
 
   const listing = safeNormalizeAutosDraftListing({ ...json.listing, autosLane: "negocios" }, "negocios");
-  return { ok: true, listing, status: json.status ?? "" };
+  const listingLang = json.lang === "en" || json.lang === "es" ? json.lang : null;
+  return { ok: true, listing, status: json.status ?? "", listingLang };
 }
 
 function autosNegociosCanonicalErrorCopy(reason: CanonicalPreviewErrorReason, lang: "es" | "en"): { title: string; body: string } {
@@ -222,6 +227,11 @@ type PreviewResolveResult = {
    * to checkout so it PATCHes the same row instead of the local-draft cached-id-or-create path. */
   canonicalListingId: string | null;
   canonicalError: CanonicalPreviewErrorReason | null;
+  /** The real persisted `autos_classifieds_listings.lang` (seller's authored language) — set only
+   * when `listing` was hydrated from a real DB row. Null for a purely local, never-saved draft,
+   * which has no authored-language row to read yet (the current session's own site locale IS its
+   * honest authored language in that case — see the isDraftCapture render branch). */
+  listingLang: "es" | "en" | null;
 };
 
 /**
@@ -244,6 +254,7 @@ async function resolvePreviewStateForRoute(urlListingId: string | null): Promise
         additionalInventoryVehicles: [],
         canonicalListingId: null,
         canonicalError: null,
+        listingLang: null,
       };
     }
 
@@ -256,6 +267,7 @@ async function resolvePreviewStateForRoute(urlListingId: string | null): Promise
           additionalInventoryVehicles: [],
           canonicalListingId: urlListingId,
           canonicalError: fetched.reason,
+          listingLang: null,
         };
       }
       return {
@@ -267,6 +279,7 @@ async function resolvePreviewStateForRoute(urlListingId: string | null): Promise
         additionalInventoryVehicles: [],
         canonicalListingId: urlListingId,
         canonicalError: null,
+        listingLang: fetched.listingLang,
       };
     }
 
@@ -279,6 +292,7 @@ async function resolvePreviewStateForRoute(urlListingId: string | null): Promise
         additionalInventoryVehicles: [],
         canonicalListingId: null,
         canonicalError: null,
+        listingLang: null,
       };
     }
 
@@ -288,6 +302,7 @@ async function resolvePreviewStateForRoute(urlListingId: string | null): Promise
       additionalInventoryVehicles: d.additionalInventoryVehicles ?? [],
       canonicalListingId: null,
       canonicalError: null,
+      listingLang: null,
     };
   } catch {
     return {
@@ -296,6 +311,7 @@ async function resolvePreviewStateForRoute(urlListingId: string | null): Promise
       additionalInventoryVehicles: [],
       canonicalListingId: null,
       canonicalError: null,
+      listingLang: null,
     };
   }
 }
@@ -307,6 +323,7 @@ function AutosNegociosPreviewInner({
   additionalInventoryVehicles,
   canonicalListingId,
   canonicalError,
+  resolvedListingLang,
 }: {
   ready: boolean;
   mode: AutosNegociosPreviewMode;
@@ -314,10 +331,25 @@ function AutosNegociosPreviewInner({
   additionalInventoryVehicles: AutosAdditionalInventoryVehicleDraft[];
   canonicalListingId: string | null;
   canonicalError: CanonicalPreviewErrorReason | null;
+  /** Real persisted authored language for a canonical (DB-backed) listing; null for a purely
+   * local, never-saved draft — see PreviewResolveResult.listingLang. */
+  resolvedListingLang: "es" | "en" | null;
 }) {
   const { lang } = useAutosNegociosPreviewCopy();
   const searchParams = useSearchParams();
   const genericEditBackHref = buildAutosNegociosEditorResumeHref(EDIT_BASE, lang);
+  // Translation cache-key fallback for a local, un-persisted draft (no real listingId yet). A
+  // shared literal like "draft" would let one browser tab's cached translation of a DIFFERENT
+  // draft's content bleed into this session (the client cache has no content hash — see
+  // buildTranslateCacheKey). A per-mount random id keeps every draft-preview session isolated;
+  // it naturally expires with the tab/mount, same lifetime as the sessionStorage cache itself.
+  const draftTranslationSessionKey = useMemo(
+    () =>
+      typeof window !== "undefined" && window.crypto?.randomUUID
+        ? window.crypto.randomUUID()
+        : `draft-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    [],
+  );
   /** Preserves the same listingId/leonixAdId/mode/returnPanel identity context so "back to
    * edit" resumes editing the SAME listing rather than the generic new-application resume. */
   const canonicalEditBackHref = useMemo(() => {
@@ -334,6 +366,15 @@ function AutosNegociosPreviewInner({
     return `${EDIT_BASE}?${p.toString()}`;
   }, [canonicalListingId, searchParams, lang]);
   const editBackHref = canonicalEditBackHref ?? genericEditBackHref;
+  /** Gate H: a canonical-active listing is a real, already-published DB row (`status === "active"`
+   * — see resolvePreviewStateForRoute's `fetched.status === "active" ? "canonical-active" : "draft"`
+   * branch) with a real public URL, so Share here must target that URL truthfully — never the
+   * Preview/dashboard-edit URL the owner is actually viewing. A pending/draft canonical listing
+   * (mode "draft") has no such URL yet and must not fabricate one. */
+  const canonicalPublicUrl = useMemo(() => {
+    if (mode !== "canonical-active" || !canonicalListingId || typeof window === "undefined") return undefined;
+    return `${window.location.origin}${autosLiveVehiclePath(canonicalListingId)}?lang=${lang}`;
+  }, [mode, canonicalListingId, lang]);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const viewModel = useMemo(
@@ -529,7 +570,24 @@ function AutosNegociosPreviewInner({
   if (mode === "canonical-active") {
     return (
       <AutosDraftPreviewErrorBoundary logLabel="negocios" fallback={<AutosNegociosPreviewEmptyState />}>
-        <AutosNegociosDealershipPreviewPage data={listing} editBackHref={editBackHref} />
+        <AutosListingTranslationLayer
+          listing={listing}
+          siteLocale={lang}
+          listingLang={resolvedListingLang}
+          listingKey={canonicalListingId ?? draftTranslationSessionKey}
+        >
+          {(displayListing, translateControl, adDisplayLang) => (
+            <AutosNegociosPreviewLocaleProvider lang={normalizeAutosNegociosLang(adDisplayLang)} manageDocumentTitle={false}>
+              <AutosNegociosDealershipPreviewPage
+                data={displayListing}
+                editBackHref={editBackHref}
+                publicUrl={canonicalPublicUrl}
+                canonicalListingId={canonicalPublicUrl ? canonicalListingId : undefined}
+                translateControl={translateControl}
+              />
+            </AutosNegociosPreviewLocaleProvider>
+          )}
+        </AutosListingTranslationLayer>
       </AutosDraftPreviewErrorBoundary>
     );
   }
@@ -560,23 +618,38 @@ function AutosNegociosPreviewInner({
                 : "Dealers, inventory, and contact in one clear experience."}
             </p>
           </div>
-          <div className={`mx-auto ${autosPreviewPageMaxWidthClass} px-4 md:px-6 lg:px-8`}>
-            <AutosNegociosResultsCardPreview lang={lang} listing={listing} additionalCount={additionalCount} />
-          </div>
-          <AutosNegociosDealershipPreviewPage
-            data={listing}
-            embeddedInShell
-            draftPreviewMode
-            relatedPreviewOnly
-            heroSpecItems={viewModel.heroSpecItems}
-          />
-          <AutosNegociosPreviewInventorySection
-            lang={lang}
-            parentListing={listing}
-            additionalVehicles={additionalInventoryVehicles}
-            viewModelCards={viewModel.additionalInventory}
-          />
-          <AutosNegociosPreviewPromiseStrip lang={lang} />
+          <AutosListingTranslationLayer
+            listing={listing}
+            siteLocale={lang}
+            listingLang={resolvedListingLang ?? lang}
+            listingKey={canonicalListingId ?? draftTranslationSessionKey}
+          >
+            {(displayListing, translateControl, adDisplayLangRaw) => {
+              const adDisplayLang = normalizeAutosNegociosLang(adDisplayLangRaw);
+              return (
+                <AutosNegociosPreviewLocaleProvider lang={adDisplayLang} manageDocumentTitle={false}>
+                  <div className={`mx-auto ${autosPreviewPageMaxWidthClass} px-4 md:px-6 lg:px-8`}>
+                    <AutosNegociosResultsCardPreview lang={adDisplayLang} listing={displayListing} additionalCount={additionalCount} />
+                  </div>
+                  <AutosNegociosDealershipPreviewPage
+                    data={displayListing}
+                    embeddedInShell
+                    draftPreviewMode
+                    relatedPreviewOnly
+                    heroSpecItems={viewModel.heroSpecItems}
+                    translateControl={translateControl}
+                  />
+                  <AutosNegociosPreviewInventorySection
+                    lang={adDisplayLang}
+                    parentListing={displayListing}
+                    additionalVehicles={additionalInventoryVehicles}
+                    viewModelCards={viewModel.additionalInventory}
+                  />
+                  <AutosNegociosPreviewPromiseStrip lang={adDisplayLang} />
+                </AutosNegociosPreviewLocaleProvider>
+              );
+            }}
+          </AutosListingTranslationLayer>
           <div className={`mx-auto ${autosPreviewPageMaxWidthClass} px-4 pb-10 pt-2 md:px-6 lg:px-8`}>
             <PublishCheckoutCheckpoint
               config={checkpointConfig}
@@ -612,6 +685,7 @@ export function AutosNegociosPreviewClient() {
   const [additionalInventoryVehicles, setAdditionalInventoryVehicles] = useState<AutosAdditionalInventoryVehicleDraft[]>([]);
   const [resolvedCanonicalListingId, setResolvedCanonicalListingId] = useState<string | null>(null);
   const [canonicalError, setCanonicalError] = useState<CanonicalPreviewErrorReason | null>(null);
+  const [resolvedListingLang, setResolvedListingLang] = useState<"es" | "en" | null>(null);
   const [recoverHint, setRecoverHint] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -623,12 +697,14 @@ export function AutosNegociosPreviewClient() {
       setAdditionalInventoryVehicles(next.additionalInventoryVehicles);
       setResolvedCanonicalListingId(next.canonicalListingId);
       setCanonicalError(next.canonicalError);
+      setResolvedListingLang(next.listingLang);
     } catch {
       setMode("empty");
       setListing(safeNormalizeAutosDraftListing(undefined, "negocios"));
       setAdditionalInventoryVehicles([]);
       setResolvedCanonicalListingId(null);
       setCanonicalError(null);
+      setResolvedListingLang(null);
       if (process.env.NODE_ENV === "development") {
         setRecoverHint("Preview fell back to empty state after an unexpected error");
       }
@@ -683,6 +759,7 @@ export function AutosNegociosPreviewClient() {
         additionalInventoryVehicles={additionalInventoryVehicles}
         canonicalListingId={resolvedCanonicalListingId}
         canonicalError={canonicalError}
+        resolvedListingLang={resolvedListingLang}
       />
     </AutosNegociosPreviewLocaleProvider>
   );

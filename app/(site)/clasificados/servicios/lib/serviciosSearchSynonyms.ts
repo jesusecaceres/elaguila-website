@@ -1,4 +1,5 @@
 import { BUSINESS_TYPE_PRESETS } from "@/app/clasificados/publicar/servicios/lib/businessTypePresets";
+import { normalizeBilingualSearchText } from "@/app/lib/clasificados/discovery/bilingualSearchText";
 
 const SUPPORTED_PRESET_IDS = new Set(BUSINESS_TYPE_PRESETS.map((p) => p.id));
 
@@ -45,16 +46,48 @@ const SYNONYM_GROUPS: Array<{ presetIds: string[]; terms: string[] }> = [
   },
 ];
 
-function stripDiacritics(value: string): string {
-  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-}
-
+/** \u26a0\ufe0f38A \u2014 one shared normalizer (byte-identical semantics: NFD \u2192 strip marks \u2192 trim \u2192 lowercase). */
 export function normalizeServiciosSearchText(value: string | undefined): string {
-  return stripDiacritics(value ?? "").trim().toLowerCase();
+  return normalizeBilingualSearchText(value);
 }
 
 function groupIsSupported(presetIds: string[]): boolean {
   return presetIds.some((id) => SUPPORTED_PRESET_IDS.has(id));
+}
+
+/** Approved bilingual aliases attached to a canonical business-type preset id (\u26a0\ufe0f38A adapter input). */
+export function serviciosSearchAliasesForPreset(presetId: string): string[] {
+  const out: string[] = [];
+  for (const group of SYNONYM_GROUPS) {
+    if (!group.presetIds.includes(presetId)) continue;
+    for (const term of group.terms) {
+      const n = normalizeServiciosSearchText(term);
+      if (n && !out.includes(n)) out.push(n);
+    }
+  }
+  return out;
+}
+
+/**
+ * Canonical business-type preset ids a normalized query resolves to EXACTLY \u2014 the query contains an
+ * approved alias ("plumbers" \u2283 "plumber"). Shorter partial typing ("plumb") widens terms only.
+ */
+export function serviciosPresetIdsTouchedByQuery(normalizedQuery: string): string[] {
+  const q = normalizeServiciosSearchText(normalizedQuery);
+  if (!q) return [];
+  const out: string[] = [];
+  for (const group of SYNONYM_GROUPS) {
+    if (!groupIsSupported(group.presetIds)) continue;
+    const hit = group.terms.some((term) => {
+      const n = normalizeServiciosSearchText(term);
+      return n.length > 0 && q.includes(n);
+    });
+    if (!hit) continue;
+    for (const id of group.presetIds) {
+      if (SUPPORTED_PRESET_IDS.has(id) && !out.includes(id)) out.push(id);
+    }
+  }
+  return out;
 }
 
 export function expandServiciosSearchTerms(raw: string | undefined): string[] {

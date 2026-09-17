@@ -43,6 +43,8 @@ import {
   isServiciosWhatsAppProfileSocialUrl,
   isServiciosWhatsAppSocialDuplicateOfContact,
 } from "./serviciosWhatsAppHref";
+import { resolveBusinessAddressPublicView } from "@/app/lib/businessAddress/businessAddressPrivacy";
+import { resolveServiciosBusinessTimeZone } from "./serviciosBusinessTimeZone";
 
 /**
  * Turn canonical wire data into a presentation-safe model (filtered lists, safe URLs, fallbacks).
@@ -71,16 +73,44 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
   const websiteHref = safeExternalWebsiteHref(contactIn.websiteUrl);
   const websiteLabel = trimText(contactIn.websiteLabel);
 
-  const physicalAddressDisplay = formatPhysicalAddressDisplay({
-    physicalStreet: contactIn.physicalStreet,
-    physicalSuite: contactIn.physicalSuite,
-    physicalCity: contactIn.physicalCity,
+  // Gate SERVICIOS-1 (RED #9) — the reveal/hide DECISION is delegated to the shared address-privacy
+  // contract (app/lib/businessAddress/businessAddressPrivacy.ts); Servicios' own formatters below
+  // still build the actual display string and maps query, since they already include suite + zip +
+  // country that the shared contract's generic `exactAddressLine` builder does not. No fidelity
+  // loss — just one shared gate instead of a category-local one. `showExactAddress` absent on the
+  // wire (any listing published before this field existed) defaults to `true`, so no existing
+  // listing's already-public address is silently hidden by this addition.
+  // Gate SERVICIOS-3 (D-1) — resolved HERE, beside the address-privacy gate, because this is
+  // the one place that still holds the raw persisted location. The resolved contact below
+  // exposes only the answer, so the public badge and the results filter cannot diverge.
+  const businessTimeZone = resolveServiciosBusinessTimeZone({
     physicalRegion: contactIn.physicalRegion,
     physicalCountry: contactIn.physicalCountry,
     physicalPostalCode: contactIn.physicalPostalCode,
+    physicalCity: contactIn.physicalCity,
   });
-  const mapsSearchHref = physicalAddressDisplay
-    ? buildGoogleMapsSearchHrefFromPhysical({
+
+  const addressPublicView = resolveBusinessAddressPublicView({
+    address: contactIn.physicalStreet?.trim()
+      ? {
+          street: contactIn.physicalStreet ?? "",
+          unit: contactIn.physicalSuite,
+          city: contactIn.physicalCity ?? "",
+          region: contactIn.physicalRegion ?? "",
+          country: contactIn.physicalCountry ?? "",
+          postalCode: contactIn.physicalPostalCode ?? "",
+          verificationStatus: contactIn.physicalVerificationStatus ?? "manual",
+          provider: contactIn.physicalProvider ?? null,
+          providerPlaceId: contactIn.physicalProviderPlaceId ?? null,
+          manualEntry: contactIn.physicalVerificationStatus !== "user_confirmed",
+        }
+      : null,
+    showExactAddress: contactIn.showExactAddress ?? true,
+    cityOrServiceArea: "",
+  });
+
+  const physicalAddressDisplay = addressPublicView.showExactAddress
+    ? formatPhysicalAddressDisplay({
         physicalStreet: contactIn.physicalStreet,
         physicalSuite: contactIn.physicalSuite,
         physicalCity: contactIn.physicalCity,
@@ -89,6 +119,17 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
         physicalPostalCode: contactIn.physicalPostalCode,
       })
     : undefined;
+  const mapsSearchHref =
+    addressPublicView.directionsAllowed && physicalAddressDisplay
+      ? buildGoogleMapsSearchHrefFromPhysical({
+          physicalStreet: contactIn.physicalStreet,
+          physicalSuite: contactIn.physicalSuite,
+          physicalCity: contactIn.physicalCity,
+          physicalRegion: contactIn.physicalRegion,
+          physicalCountry: contactIn.physicalCountry,
+          physicalPostalCode: contactIn.physicalPostalCode,
+        })
+      : undefined;
 
   const rawSocial = contactIn.socialLinks;
   let socialLinks: ServiciosProfileResolved["contact"]["socialLinks"];
@@ -223,6 +264,7 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
       country: trimText(heroIn.country) || undefined,
     },
     contact: {
+      businessTimeZone: businessTimeZone ?? undefined,
       phoneDisplay: phoneDisplay ?? undefined,
       phoneTelHref: phoneTelHref ?? undefined,
       phoneOfficeDisplay: phoneOfficeDisplay ?? undefined,

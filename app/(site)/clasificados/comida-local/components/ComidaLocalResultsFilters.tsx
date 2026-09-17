@@ -8,7 +8,13 @@ import {
   COMIDA_LOCAL_PRICE_LEVEL_OPTIONS,
   COMIDA_LOCAL_SERVICE_OPTIONS,
 } from "@/app/lib/clasificados/comida-local/comidaLocalConstants";
-import type { ComidaLocalFilterOptions } from "@/app/lib/clasificados/comida-local/comidaLocalPublicTypes";
+import type {
+  ComidaLocalFilterOptions,
+  ComidaLocalResultsFilters as ComidaLocalResultsFilterState,
+} from "@/app/lib/clasificados/comida-local/comidaLocalPublicTypes";
+import { buildComidaLocalResultsHref } from "@/app/lib/clasificados/comida-local/comidaLocalResultsUrl";
+import { comidaLocalFiltersToSavedSearch } from "@/app/lib/saved-search/comida-local/savedSearchComidaLocalAdapter";
+import { SavedSearchButton } from "@/app/(site)/clasificados/components/savedSearch/SavedSearchButton";
 import { CL_BTN_PRIMARY, CL_INPUT, CL_PANEL_SOFT, CL_SECTION_TITLE } from "./comidaLocalCustomerStyles";
 
 type Props = {
@@ -27,7 +33,9 @@ export function ComidaLocalResultsFilters({ options, initial }: Props) {
   const searchParams = useSearchParams();
   const [pending, startTransition] = useTransition();
 
-  const current = useMemo(
+  const routeLang = normalizeLang(searchParams?.get("lang")) === "en" ? "en" : "es";
+
+  const current: ComidaLocalResultsFilterState = useMemo(
     () => ({
       q: searchParams?.get("q") ?? initial.q,
       city: searchParams?.get("city") ?? initial.city,
@@ -39,26 +47,27 @@ export function ComidaLocalResultsFilters({ options, initial }: Props) {
   );
 
   const pushFilters = useCallback(
-    (next: Partial<typeof current>) => {
-      const routeLang = normalizeLang(searchParams?.get("lang"));
-      const params = new URLSearchParams();
-      params.set("lang", routeLang);
-      const merged = { ...current, ...next };
-      if (merged.q) params.set("q", merged.q);
-      if (merged.city) params.set("city", merged.city);
-      if (merged.foodType) params.set("foodType", merged.foodType);
-      if (merged.service) params.set("service", merged.service);
-      if (merged.priceLevel) params.set("priceLevel", merged.priceLevel);
+    (next: Partial<ComidaLocalResultsFilterState>) => {
+      // Gate COMIDA-LOCAL-2 — the query string is now built by the shared
+      // `buildComidaLocalResultsHref`, the same function the Saved Search results-URL builder and
+      // the owner dashboard use, so a reconstructed saved-search URL cannot drift from the one this
+      // form produces. Behavior is unchanged: empty values are still omitted.
       startTransition(() => {
-        router.push(`/clasificados/comida-local?${params.toString()}`);
+        router.push(buildComidaLocalResultsHref({ ...current, ...next }, routeLang));
       });
     },
-    [current, router, searchParams]
+    [current, router, routeLang]
   );
 
   const clearAll = () => {
-    const routeLang = normalizeLang(searchParams?.get("lang"));
-    startTransition(() => router.push(`/clasificados/comida-local?lang=${routeLang}`));
+    startTransition(() =>
+      router.push(
+        buildComidaLocalResultsHref(
+          { q: "", city: "", foodType: "", service: "", priceLevel: "" },
+          routeLang,
+        ),
+      ),
+    );
   };
 
   const hasActive = Boolean(
@@ -172,6 +181,15 @@ export function ComidaLocalResultsFilters({ options, initial }: Props) {
             Limpiar
           </button>
         ) : null}
+        {/* Gate COMIDA-LOCAL-2 — the shared Saved Search CTA, fed the live filter state this
+            component is actually browsing with (`current`), translated by the category adapter.
+            No category-local Saved Search logic lives here. */}
+        <div className="ml-auto">
+          <SavedSearchButton
+            normalized={comidaLocalFiltersToSavedSearch(current)}
+            lang={routeLang}
+          />
+        </div>
       </div>
     </form>
   );

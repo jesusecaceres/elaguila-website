@@ -29,15 +29,19 @@ export function OwnerEntityActivity({
   items,
   emptyLabel,
   lang,
+  id,
 }: {
   title: string;
   items: OwnerEntityActivityItem[];
   emptyLabel?: string;
   lang: "es" | "en";
+  /** Optional real scroll-jump target (e.g. a specialized-tools CTA that jumps to this exact
+   * section instead of an unrelated point on the page). Omit when nothing links here. */
+  id?: string;
 }) {
   if (items.length === 0 && !emptyLabel) return null;
   return (
-    <section aria-label={title}>
+    <section aria-label={title} id={id}>
       <h3 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8A6B1F]">{title}</h3>
       {items.length === 0 ? (
         <p className="mt-2 text-xs text-[#9A9084]">{emptyLabel}</p>

@@ -1,0 +1,136 @@
+"use client";
+
+import { useRef, useState } from "react";
+import Link from "next/link";
+import { DictationButton } from "../FieldAgentComponents";
+import { humanizeStaffWriteError } from "@/app/admin/_lib/staffWriteErrorMessages";
+
+/**
+ * Program 7, Gate 7G — Voice note capture using client-side dictation only.
+ * No raw audio is ever sent to or stored on the server — only the transcribed text.
+ * Persistence is an explicit Save into the existing Living Book staff_note evidence path
+ * (business_evidence), never a new notes table and never auto-save on each speech fragment.
+ */
+export function FieldAgentDictationSection({ businessId }: { businessId: string }) {
+  const [transcript, setTranscript] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+  const inflightRef = useRef(false);
+
+  const canSubmit = Boolean(businessId.trim()) && Boolean(transcript.trim()) && !saving;
+  // Gate 3 — the note lives in Living Book evidence (business_evidence), which the Business
+  // Dashboard renders under #business-book. #outreach is the real, existing follow-up creation
+  // surface (FollowUpPanel) — this is a deep link into it, not a second follow-up path.
+  const dashboardBookHref = `/admin/businesses/${businessId}#business-book`;
+  const dashboardOutreachHref = `/admin/businesses/${businessId}#outreach`;
+  const dashboardRootHref = `/admin/businesses/${businessId}`;
+
+  async function saveNote() {
+    if (!canSubmit || inflightRef.current) return;
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setError("Sin conexión. No se puede guardar la nota. / Offline. Cannot save the note.");
+      setSaved(false);
+      return;
+    }
+    inflightRef.current = true;
+    setSaving(true);
+    setError(null);
+    setSaved(false);
+    const bodyText = transcript.trim();
+    try {
+      const res = await fetch(`/api/admin/businesses/${encodeURIComponent(businessId)}/book/evidence`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          evidenceType: "staff_note",
+          sourceTitle: "Nota por voz / Voice note",
+          capturedText: bodyText,
+          consentState: "not_required",
+          reliability: "medium",
+          visibility: "staff_only",
+        }),
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok || !body?.ok) {
+        setError(humanizeStaffWriteError(body?.error as string | undefined, "No se pudo guardar la nota. / Could not save the note."));
+        return;
+      }
+      setTranscript("");
+      setSaved(true);
+    } catch {
+      setError("No se pudo guardar la nota. / Could not save the note.");
+    } finally {
+      inflightRef.current = false;
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      <DictationButton
+        onTranscript={(text) => {
+          setSaved(false);
+          setTranscript((prev) => (prev ? `${prev} ${text}` : text));
+        }}
+      />
+      <textarea
+        value={transcript}
+        onChange={(e) => {
+          setSaved(false);
+          setTranscript(e.target.value);
+        }}
+        placeholder="El texto dictado aparecerá aquí… / Dictated text will appear here…"
+        className="w-full rounded-lg border border-[#E8DFD0] bg-white p-2 text-xs text-[#1E1810]"
+        rows={4}
+      />
+      <button
+        type="button"
+        onClick={() => void saveNote()}
+        disabled={!canSubmit}
+        className="min-h-[44px] w-full rounded-lg bg-[#7A1E2C] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
+      >
+        {saving ? "Guardando… / Saving…" : "Guardar nota / Save note"}
+      </button>
+      {saved ? (
+        <div className="rounded-xl border border-[#2A4536]/30 bg-[#F3F7F4] p-3" role="status">
+          <p className="text-xs font-semibold text-[#1F3A2D]">Nota guardada. / Note saved.</p>
+          <p className="mt-1 text-xs text-[#1E1810]">
+            Guardada en: evidencia del Living Business Book / Saved to: Living Business Book evidence
+          </p>
+          <p className="mt-0.5 text-xs text-[#1E1810]">Tipo: Nota del personal / Type: Staff note</p>
+          <p className="mt-2 text-[11px] text-[#7A7164]">
+            Esta nota es evidencia del personal y no se convierte automáticamente en un hecho verificado. / This note is
+            staff evidence and does not automatically become a verified business fact.
+          </p>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <Link
+              href={dashboardBookHref}
+              className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-white px-3 py-2 text-xs font-semibold text-[#1E1810]"
+            >
+              Ver nota / View Note
+            </Link>
+            <Link
+              href={dashboardOutreachHref}
+              className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-white px-3 py-2 text-xs font-semibold text-[#1E1810]"
+            >
+              Crear seguimiento / Create Follow-up
+            </Link>
+            <Link
+              href={dashboardRootHref}
+              className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#7A1E2C] px-3 py-2 text-xs font-semibold text-white"
+            >
+              Abrir Business Dashboard / Open Business Dashboard
+            </Link>
+          </div>
+        </div>
+      ) : null}
+      {error ? (
+        <p role="alert" className="text-xs text-red-700">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}

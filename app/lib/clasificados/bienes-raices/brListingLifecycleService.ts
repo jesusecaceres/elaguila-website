@@ -24,7 +24,11 @@ import {
   getBrListingById,
   type BrListingRowForPayment,
 } from "./brListingPaymentService";
-import { activateBrNegocioListingAtomic } from "@/app/lib/listingPlans/capacityActivationRpc";
+import {
+  activateBrNegocioListingAtomic,
+  type CapacityActivationBlockedReason,
+} from "@/app/lib/listingPlans/capacityActivationRpc";
+import { BR_CAPACITY_RPC_UNAVAILABLE } from "@/app/lib/clasificados/bienes-raices/brCapacityOwnerFeedback";
 import {
   BR_LIFECYCLE_AUTH_REQUIRED_ERROR,
   BR_LIFECYCLE_CHILD_CASCADE_FAILED_ERROR,
@@ -80,7 +84,21 @@ export type { BrLifecycleErrorCode, BrLifecycleMutationKey } from "./brListingLi
 
 export type BrLifecycleMutationResult =
   | { ok: true; id: string; status: string; isPublished: boolean; childrenPausedCount?: number }
-  | { ok: false; error: BrLifecycleErrorCode };
+  | {
+      ok: false;
+      error: BrLifecycleErrorCode;
+      /**
+       * Gate BIENES-NEGOCIO-1 — ADDITIVE, optional. The two error codes above collapse every
+       * distinct `br_negocio_activate_listing` outcome into "limit" or "not allowed" and threw
+       * away the server's own numbers, which is why a capacity block reached the owner as a
+       * generic unexplained failure. These carry the RPC's real reason and counts through so the
+       * caller can render owner-safe language (`brCapacityOwnerFeedback`). Never a second capacity
+       * authority: these are reported values, never used to decide anything.
+       */
+      capacityReason?: CapacityActivationBlockedReason | typeof BR_CAPACITY_RPC_UNAVAILABLE | null;
+      activeCount?: number | null;
+      effectiveLimit?: number | null;
+    };
 
 /** Local, non-exported — used only for the parent-active check below. The five mutation
  * eligibility predicates themselves live in `brListingLifecycleEligibility.ts` and are
@@ -325,12 +343,21 @@ async function applyBrResume(row: BrListingRowForPayment): Promise<BrLifecycleMu
   const ownerId = String(row.owner_id ?? "").trim();
   const rpcResult = await activateBrNegocioListingAtomic({ listingId: row.id, ownerId, fromStatus: "paused" });
   if (!rpcResult.ok) {
-    return { ok: false, error: BR_LIFECYCLE_TRANSITION_NOT_ALLOWED_ERROR };
+    // The atomic capacity authority is unreachable (e.g. its migration is not applied yet).
+    // FAIL CLOSED - never fall back to any other capacity decision - but report WHY.
+    return {
+      ok: false,
+      error: BR_LIFECYCLE_TRANSITION_NOT_ALLOWED_ERROR,
+      capacityReason: BR_CAPACITY_RPC_UNAVAILABLE,
+    };
   }
   if (!rpcResult.activated && !rpcResult.idempotent) {
     return {
       ok: false,
       error: rpcResult.blockedReason === "capacity_reached" ? BR_ACTIVE_PROPERTY_LIMIT_ERROR : BR_LIFECYCLE_TRANSITION_NOT_ALLOWED_ERROR,
+      capacityReason: rpcResult.blockedReason,
+      activeCount: rpcResult.activeCount,
+      effectiveLimit: rpcResult.effectiveLimit,
     };
   }
 
@@ -371,12 +398,21 @@ async function applyBrActivatePending(row: BrListingRowForPayment): Promise<BrLi
   const ownerId = String(row.owner_id ?? "").trim();
   const rpcResult = await activateBrNegocioListingAtomic({ listingId: row.id, ownerId, fromStatus: "pending" });
   if (!rpcResult.ok) {
-    return { ok: false, error: BR_LIFECYCLE_TRANSITION_NOT_ALLOWED_ERROR };
+    // The atomic capacity authority is unreachable (e.g. its migration is not applied yet).
+    // FAIL CLOSED - never fall back to any other capacity decision - but report WHY.
+    return {
+      ok: false,
+      error: BR_LIFECYCLE_TRANSITION_NOT_ALLOWED_ERROR,
+      capacityReason: BR_CAPACITY_RPC_UNAVAILABLE,
+    };
   }
   if (!rpcResult.activated && !rpcResult.idempotent) {
     return {
       ok: false,
       error: rpcResult.blockedReason === "capacity_reached" ? BR_ACTIVE_PROPERTY_LIMIT_ERROR : BR_LIFECYCLE_TRANSITION_NOT_ALLOWED_ERROR,
+      capacityReason: rpcResult.blockedReason,
+      activeCount: rpcResult.activeCount,
+      effectiveLimit: rpcResult.effectiveLimit,
     };
   }
 

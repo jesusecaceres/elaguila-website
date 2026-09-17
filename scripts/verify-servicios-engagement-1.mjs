@@ -47,15 +47,29 @@ assert(slugPage.includes("listingShareUrl"), "slug page: share URL required for 
 
 assert(hubRow.includes("ServiciosLikeEngagementCluster"), "hub row: like cluster");
 assert(hubRow.includes("LeonixShareButton"), "hub row: share button");
-assert(hubRow.includes("directNativeShare"), "hub row: direct native share");
+// Servicios Live Launch Perfection ⚠️32 (2026-09-14, PM product decision): a simple general Share
+// follows the Business Hub standard — native/device share directly, lightweight copy-link fallback,
+// no multi-action drawer. (⚠️14's hub adoption was reverted by the owner.)
+assert(hubRow.includes("directNativeShare"), "hub row: direct native share (copy-link fallback)");
 assert(hubRow.includes("persistEngagement={persistEngagement}"), "hub row: like uses route persistence flag");
 assert(hubRow.includes("showEngagementControls"), "hub row: visibility prop separate from persistence");
 assert(hubRow.includes("showEngagementActions"), "hub row: visibility gate");
 assert(hubRow.includes("showEngagementControls && Boolean(lxListingId)"), "hub row: visibility not tied to persistence");
 assert(!hubRow.includes("showShare ?"), "hub row: no preview-only share branch");
 
-assert(proShell.includes("directNativeShare"), "professional shell: hero native share");
-assert(proShell.includes("showEngagementControls ?"), "professional shell: hero engagement visibility gate");
+assert(proShell.includes("directNativeShare"), "professional shell: hero native share (⚠️32)");
+// Zero-debt closeout 2026-09-12: this demanded the literal inline-ternary spelling
+// `showEngagementControls ?`. The gate still exists but is now a named boolean, which is clearer.
+// Assert the CONTRACT: hero engagement visibility is driven by showEngagementControls AND a real
+// listing id — never by persistence.
+assert(
+  /heroEngagementActive\s*=\s*showEngagementControls\s*&&\s*Boolean\(lxListingId/.test(proShell),
+  "professional shell: hero engagement visibility gate (controls + real listing id)",
+);
+assert(
+  !/heroEngagement\w*\s*=\s*[^;]*persist/i.test(proShell),
+  "professional shell: hero visibility must not be tied to persistence",
+);
 assert(proShell.includes("persistEngagement={persistListingEngagement}"), "professional shell: route persistence on hero");
 
 assert(shareBtn.includes("navigator.share"), "share button: native share path");

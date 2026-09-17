@@ -7,7 +7,15 @@ import type { ComidaLocalDraft } from "@/app/lib/clasificados/comida-local/comid
 import { postComidaLocalPublishApi } from "@/app/lib/clasificados/comida-local/comidaLocalPublishClient";
 
 export type ComidaLocalPendingPublishResult =
-  | { ok: true; listingId: string; leonixAdId: string | null; draftListingId: string }
+  | {
+      ok: true;
+      listingId: string;
+      leonixAdId: string | null;
+      draftListingId: string;
+      /** Gate COMIDA-LOCAL-1 — media URLs the save could not persist; the owner is told before
+       * they pay, never silently. */
+      droppedUnpersistableMedia?: string[];
+    }
   | { ok: false; userMessage: string };
 
 export async function saveComidaLocalPendingBeforeCheckout(input: {
@@ -38,6 +46,9 @@ export async function saveComidaLocalPendingBeforeCheckout(input: {
         listingId: data.id.trim(),
         leonixAdId: typeof data.leonix_ad_id === "string" && data.leonix_ad_id.trim() ? data.leonix_ad_id.trim() : null,
         draftListingId: data.draft_listing_id?.trim() || draftListingId,
+        ...(Array.isArray(data.droppedUnpersistableMedia) && data.droppedUnpersistableMedia.length
+          ? { droppedUnpersistableMedia: data.droppedUnpersistableMedia }
+          : {}),
       };
     }
 

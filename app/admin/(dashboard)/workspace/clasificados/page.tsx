@@ -12,6 +12,7 @@ import {
   fetchListingsForAdminWorkspaceFiltered,
   fetchListingCategoriesDistinct,
   isUuidString,
+  LISTINGS_NEEDS_REVIEW_STATUS_TOKEN,
 } from "@/app/admin/_lib/listingsAdminSelect";
 import {
   appendPreservedSearchParams,
@@ -172,9 +173,20 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
         dataSource="public.listings plus category source tables, listing_reports, and listing_moderation_reviews after live schema is applied."
         status="needs live proof"
         safeActions={["View public", "Edit listing where supported", "Suspend", "Archive", "Republish", "Run AI review after schema proof"]}
-        nextGate="ADMIN-ACTION-QA-AND-LIVE-SCHEMA-PROOF-01"
+        nextGate="Confirm every button and count on this page against live Supabase data before relying on it for daily decisions."
         warningNote="AI review proof and promote/verify columns depend on the live schema drift migration being applied in production."
       />
+
+      {statusFilter === LISTINGS_NEEDS_REVIEW_STATUS_TOKEN ? (
+        <div className={`${adminCardBase} mb-4 max-w-3xl space-y-1 border-[#C9782F]/40 bg-[#FFF9EF] p-4 text-sm text-[#5C5346]`}>
+          <p className="text-xs font-bold uppercase tracking-wide text-[#8B4A12]">Needs review — from Command Center</p>
+          <p>
+            Showing every listing that is <strong>pending</strong> or <strong>flagged</strong>, plus any listing with a{" "}
+            <strong>pending report</strong> regardless of its status — the same combined count shown as &quot;Classifieds&quot; on the
+            Command Center&apos;s Needs review breakdown.
+          </p>
+        </div>
+      ) : null}
 
       <div className={`${adminCardBase} mb-4 max-w-3xl space-y-2 p-4 text-sm text-[#5C5346]`}>
         <p className="text-xs font-bold uppercase text-[#7A7164]">{m("scopeNav.aria")}</p>
@@ -226,10 +238,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
           className={`${adminCardBase} mb-4 max-w-3xl border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950`}
           role="status"
         >
-          <strong className="font-bold">{m("clasificados.detailPairsMissingTitle")}</strong> {m("clasificados.detailPairsMissingBody")}{" "}
-          <code className="rounded bg-white/80 px-1 text-[11px]">20250316200000_listings_detail_pairs.sql</code> or{" "}
-          <code className="rounded bg-white/80 px-1 text-[11px]">20260407140000_ensure_listings_detail_pairs.sql</code> (idempotent)
-          and reload.
+          <strong className="font-bold">{m("clasificados.detailPairsMissingTitle")}</strong> {m("clasificados.detailPairsMissingBody")}
         </div>
       ) : null}
 
@@ -238,9 +247,8 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
           className={`${adminCardBase} mb-4 max-w-3xl border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950`}
           role="status"
         >
-          <strong className="font-bold">Republish columns missing</strong> Apply{" "}
-          <code className="rounded bg-white/80 px-1 text-[11px]">20260509120000_classifieds_republish_capability.sql</code> in Supabase and
-          reload.
+          <strong className="font-bold">Setup required for republish tracking.</strong> Republish/move-to-top timestamps are
+          not available yet — contact an owner_admin if this continues.
         </div>
       ) : null}
 
@@ -317,6 +325,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
                     className="w-full min-w-0 rounded-2xl border border-[#E8DFD0] bg-white px-3 py-3 text-base sm:w-auto sm:min-w-[9rem] sm:py-2 sm:text-sm"
                   >
                     <option value="">{m("common.allStatuses")}</option>
+                    <option value={LISTINGS_NEEDS_REVIEW_STATUS_TOKEN}>needs review (pending + flagged + reported)</option>
                     <option value="active">active</option>
                     <option value="pending">pending</option>
                     <option value="flagged">flagged</option>
@@ -384,7 +393,10 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
             </div>
 
             {error ? (
-              <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error.message}</div>
+              <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+                Could not load listings right now. This is a database connection issue, not a data problem — try
+                refreshing the page. If it keeps happening, check System Health.
+              </div>
             ) : (
               <Suspense fallback={<div className="min-h-[200px]" aria-busy="true" />}>
                 <AdminListingsTable

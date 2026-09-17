@@ -38,6 +38,8 @@ export type {
   LeonixCategoryPartnerSectionProps,
   DiscoveryGridItem,
   LeonixCategoryDiscoveryGridProps,
+  ImageDiscoveryGridItem,
+  LeonixCategoryImageDiscoveryGridProps,
   ShortcutChipItem,
   LeonixCategoryShortcutSectionProps,
   LeonixCategoryVisibilityStripProps,
@@ -159,6 +161,7 @@ export { LeonixCategorySearchCanvas } from "./LeonixCategorySearchCanvas";
 export { LeonixCategoryCta } from "./LeonixCategoryCta";
 export { LeonixCategoryPartnerSection } from "./LeonixCategoryPartnerSection";
 export { LeonixCategoryDiscoveryGrid } from "./LeonixCategoryDiscoveryGrid";
+export { LeonixCategoryImageDiscoveryGrid, ImageDiscoveryCard } from "./LeonixCategoryImageDiscoveryGrid";
 export { LeonixCategoryShortcutSection } from "./LeonixCategoryShortcutSection";
 export { LeonixCategoryVisibilityStrip } from "./LeonixCategoryVisibilityStrip";
 export { LeonixCategoryResultsShell } from "./LeonixCategoryResultsShell";

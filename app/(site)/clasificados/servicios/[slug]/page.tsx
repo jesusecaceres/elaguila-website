@@ -26,9 +26,12 @@ import {
   resolveServiciosListingTemplate,
 } from "../lib/serviciosTemplateRouting";
 import { ServiciosJustPublishedSuccessBanner } from "@/app/(site)/clasificados/publicar/servicios/components/ServiciosJustPublishedSuccessBanner";
-import { SERVICIOS_OFFERS_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
-import { fetchAddonEntitlementsForListings } from "@/app/lib/listingPlans/addonEntitlementReader";
+import { resolveBusinessToolsAccess } from "@/app/lib/listingPlans/categoryCommercialPlan";
+import { applyServiciosPublicOffersVisibility } from "../lib/serviciosPublicOffersVisibility";
 import { serviciosJsonLd } from "@/app/servicios/seo/serviciosJsonLd";
+import { listRelatedServiciosListings } from "../lib/serviciosRelatedListings";
+import { ServiciosRelatedListingsSection } from "../components/ServiciosRelatedListingsSection";
+import { LEONIX_SITE_ORIGIN } from "@/app/lib/leonixBrand";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +43,7 @@ type PageProps = {
     persistence?: string;
     listingStatus?: string;
     videoSkipped?: string;
+    mediaDropped?: string;
   }>;
 };
 
@@ -61,6 +65,15 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
     lang === "en"
       ? "Some videos were too large and were not published. The listing was published with compatible media."
       : "Algunos videos eran demasiado grandes y no se publicaron. El anuncio se publicó con los medios compatibles.";
+  // Gate SERVICIOS-1 — the shared media contract dropped media it could not persist. The publish
+  // succeeded, so the owner must be told explicitly rather than assume every photo saved.
+  const mediaDroppedCount = Number.parseInt(typeof sp.mediaDropped === "string" ? sp.mediaDropped : "", 10);
+  const mediaDropped = Number.isFinite(mediaDroppedCount) && mediaDroppedCount > 0 ? mediaDroppedCount : 0;
+  const mediaDroppedNotice = mediaDropped
+    ? lang === "en"
+      ? `${mediaDropped} media file(s) could not be saved and are not on your listing. Open Edit service, add them again, and republish.`
+      : `${mediaDropped} archivo(s) multimedia no se pudieron guardar y no están en tu anuncio. Abre Editar servicio, agrégalos de nuevo y vuelve a publicar.`
+    : null;
   if (row.listing_status === "pending_review") {
     const justPublished = sp.justPublished === "1";
     return (
@@ -76,6 +89,7 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
               : "Leonix está revisando esta vitrina antes de mostrarla en la búsqueda pública. Puedes ver el estado en tu panel."}
         </p>
         {videoSkipped ? <p className="text-sm text-amber-900">{videoSkippedNotice}</p> : null}
+        {mediaDroppedNotice ? <p className="text-sm text-amber-900">{mediaDroppedNotice}</p> : null}
         <Link href={`/dashboard/servicios?${q}`} className="text-sm font-bold text-[#3B66AD] underline">
           {lang === "en" ? "Open dashboard" : "Abrir panel"}
         </Link>
@@ -101,6 +115,11 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
   const paused = row.listing_status === "paused_unpublished";
   const isPublishedLive = row.listing_status === SERVICIOS_LISTING_STATUS_PUBLISHED && !paused;
   const dbApproved = isPublishedLive ? await listApprovedServiciosReviewsForSlug(slug) : [];
+  // Gate SERVICIOS-2 — related published listings, from the same canonical public reader the
+  // results page uses. Only computed for a live public profile.
+  const related = isPublishedLive
+    ? await listRelatedServiciosListings(row)
+    : { rows: [], matchedByTrade: false };
   const wireMerged = mergeServiciosProfileWithApprovedDbReviews({ ...row.profile_json }, dbApproved);
   wireMerged.identity = { ...wireMerged.identity, leonixVerified: row.leonix_verified === true };
   const profile = resolveServiciosProfile(wireMerged, lang);
@@ -122,28 +141,36 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
         leonixAdId={leonixAdIdFooter}
         persistence={persistence || undefined}
         videoSkippedNotice={videoSkipped ? videoSkippedNotice : null}
+        mediaDroppedNotice={mediaDroppedNotice}
         discoveryResultsHref={`/clasificados/servicios/resultados?lang=${lang}`}
       />
     ) : null;
   const canonicalServiciosListingId = row.id?.trim() || "";
-  const [listingShareUrl, serviciosOffersAddonEntitlements] = await Promise.all([
+  const [listingShareUrl, serviciosOffersAccess] = await Promise.all([
     buildServiciosClasificadosListingShareUrl(slug, lang),
-    fetchAddonEntitlementsForListings({
-      category: "servicios",
-      packageKey: SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
-      listingIds: [canonicalServiciosListingId],
-    }),
+    canonicalServiciosListingId
+      ? resolveBusinessToolsAccess({
+          category: "servicios",
+          listingSource: "servicios_public_listings",
+          listingId: canonicalServiciosListingId,
+          capability: "coupons_offers",
+        }).catch(() => null)
+      : Promise.resolve(null),
   ]);
-  // Gate E.3.2 — public paid-offer visibility is live entitlement truth only, never content
-  // presence baked into `profile` by the (unmodified, pure) resolver. On any lookup failure,
-  // `fetchAddonEntitlementsForListings` already fails closed to `not_purchased` (see
-  // addonEntitlementReader.ts), so offers stay hidden rather than throwing or exposing the base
-  // profile to risk. Stored offer content itself is never touched here — only what renders.
-  const serviciosOffersAddonActive =
-    serviciosOffersAddonEntitlements.get(canonicalServiciosListingId)?.status === "active";
-  const publicProfile = serviciosOffersAddonActive
-    ? profile
-    : { ...profile, coupons: [], couponFlyer: undefined, couponMoreOffers: undefined };
+  // Gate E.3.2 — public offer visibility is live entitlement truth only, never content presence
+  // baked into `profile` by the (unmodified, pure) resolver. Stored offer content itself is never
+  // touched here — only what renders. Fails closed: on any lookup failure offers stay hidden.
+  //
+  // Gate SERVICIOS-P7-BLOCKER-REPAIR-01 (B4) — the truth used to be an active entitlement for the
+  // RETIRED `servicios_offers_addon` key, which nothing grants any more, so a $399 customer's
+  // INCLUDED offers never rendered publicly even once saved. The truth is now the included
+  // `coupons_offers` capability — the same authority the publish route enforces when saving them —
+  // with historical add-on holders still qualifying through the plan policy's legacy branch.
+  //
+  // Gate SERVICIOS-EDIT-ROUNDTRIP-OFFERS-DISCOVERY-1 (F2) — the visibility rule itself now lives in
+  // serviciosPublicOffersVisibility.ts, shared with the "Tiene ofertas" filter so the two agree.
+  const serviciosOffersVisible = serviciosOffersAccess?.allowed === true;
+  const publicProfile = applyServiciosPublicOffersVisibility(profile, serviciosOffersVisible);
   const engagementKey = serviciosEngagementListingKey(row);
   const persistListingEngagement =
     isPublishedLive && Boolean(engagementKey.trim()) && Boolean((listingShareUrl ?? "").trim());
@@ -189,11 +216,21 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
     ? serviciosJsonLd({
         name: profile.identity.businessName,
         description: profile.about?.text?.slice(0, 300) || undefined,
-        url: `/clasificados/servicios/${encodeURIComponent(slug)}`,
+        // Gate SERVICIOS-2 — absolute canonical detail URL (was a relative path, unusable as a
+        // schema.org entity `url`). Same value this route declares as `alternates.canonical`.
+        url: `${LEONIX_SITE_ORIGIN}/clasificados/servicios/${encodeURIComponent(slug)}`,
         imageUrl: profile.hero.coverImageUrl,
         telephone: profile.contact.phoneDisplay,
+        // Already privacy-gated by `resolveServiciosProfile` (Gate SERVICIOS-1): a listing whose
+        // owner turned off `showExactAddress` emits no address here either.
         addressText: profile.contact.physicalAddressDisplay,
         websiteUrl: profile.contact.websiteHref,
+        // Real published keyword truth — trade line, city, and the provider's own service titles.
+        categoryLabel: profile.hero.categoryLine,
+        // City is always public-safe: the address privacy contract governs the exact street line,
+        // never the city (`publicCityOrServiceArea` is safe in every branch).
+        areaServed: row.city || wireMerged.contact?.physicalCity || profile.hero.locationSummary,
+        serviceNames: profile.services.map((s) => s.title),
       })
     : null;
 
@@ -219,6 +256,17 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
       ) : (
         <ServiciosProfileView {...profileShellProps} showTopBar={false} />
       )}
+      {/* Gate SERVICIOS-2 — Related Listings, derived from real published rows by shared trade
+          family + location (see serviciosRelatedListings.ts). Only on a live public profile: a
+          paused/pending vitrina must not advertise competitors, and its own page is noindex. */}
+      {isPublishedLive ? (
+        <ServiciosRelatedListingsSection
+          rows={related.rows}
+          matchedByTrade={related.matchedByTrade}
+          lang={lang}
+          browseHref={`/clasificados/servicios/resultados?lang=${lang}`}
+        />
+      ) : null}
     </>
   );
 }

@@ -48,7 +48,7 @@ export default async function RecursosSolicitudesPage() {
       <AdminPagePurposeCard
         title="Cola de solicitudes — real"
         purpose="Registro admin-only de lo que una organización reportó, y su conversión en cambios revisables. V1 es exclusivamente de entrada por el equipo de Leonix — no existe ni existirá en este build un formulario público de envío ni un portal de socios."
-        dataSource="Supabase `public.partner_update_requests` (supabase/migrations/20260820120000_recursos_intake_os_schema.sql). Tabla privada — service_role únicamente. La información de contacto se trata como interna, nunca pública."
+        dataSource="Supabase `public.partner_update_requests`. Tabla privada — service_role únicamente. La información de contacto se trata como interna, nunca pública."
         status="real"
         safeActions={["Registrar una nueva solicitud", "Revisar y convertir solicitudes en cambios propuestos", "Marcar en revisión, resolver o rechazar"]}
         nextGate="Ninguno planeado — V1 permanece admin-only. Un formulario público de sugerencias sería una fase futura separada, no parte de este build."

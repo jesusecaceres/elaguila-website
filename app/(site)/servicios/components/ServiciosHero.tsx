@@ -36,7 +36,12 @@ export function ServiciosHero({
   const { identity, hero } = profile;
   const about = profile.about;
   const metadataLine = buildHeroMetadataLine(profile);
-  const hoursPill = buildServiciosHeroHoursPill(profile.contact.hours, lang);
+  // Gate SERVICIOS-3 (D-1) — the badge and the results `open_now` filter now read the SAME
+  // clock, in the business's own timezone, through the same function. They can no longer
+  // disagree about the same listing at the same moment.
+  const hoursPill = buildServiciosHeroHoursPill(profile.contact.hours, lang, {
+    timeZone: profile.contact.businessTimeZone ?? null,
+  });
   const likeCueN =
     typeof publicLikeCount === "number" && Number.isFinite(publicLikeCount) ? Math.max(0, Math.floor(publicLikeCount)) : 0;
 

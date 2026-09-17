@@ -2,6 +2,7 @@
 
 import type { RestauranteListingDraft } from "./restauranteDraftTypes";
 import { normalizeActionableUrl } from "../lib/urlNormalization";
+import { buildInternationalWhatsAppWaMeHrefWithText } from "@/app/lib/whatsapp/internationalWhatsApp";
 
 export function nonEmpty(s: string | undefined | null): boolean {
   return typeof s === "string" && s.trim().length > 0;
@@ -66,12 +67,15 @@ export function buildCateringInquiryPrefill(businessName: string | undefined): s
   return "Hola, vi su negocio en Leonix Media. Me interesa una cotización para catering o evento.";
 }
 
+/**
+ * Gate RESTAURANTES-1 (Globalization Build D semantics) — reuses the shared international-safe
+ * WhatsApp builder instead of a naive digit-strip, which produced a malformed `wa.me` link for any
+ * non-US number and no country-code prefix at all for a bare 10-digit one — unlike this file's own
+ * `telHref`/`smsHref` siblings. The shared module also enforces the 15-digit E.164 ceiling.
+ */
 export function waHref(raw: string, businessName?: string, messageOverride?: string): string {
-  const digits = raw.replace(/\D/g, "");
-  if (!digits) return "";
-  const base = `https://wa.me/${digits}`;
-  const text = encodeURIComponent(messageOverride ?? buildRestaurantWhatsAppPrefill(businessName));
-  return `${base}?text=${text}`;
+  const message = messageOverride ?? buildRestaurantWhatsAppPrefill(businessName);
+  return buildInternationalWhatsAppWaMeHrefWithText(raw, message) ?? "";
 }
 
 export function smsHref(phone: string, body?: string): string {
@@ -97,10 +101,14 @@ export function mapsSearchHref(query: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query.trim())}`;
 }
 
-/** Whether the public shell may show street address lines (home-based privacy respected). */
+/** Whether the public shell may show street address lines (owner privacy choice respected). */
 export function shouldShowRestaurantStreetAddress(d: RestauranteListingDraft): boolean {
   if (!nonEmpty(d.addressLine1)) return false;
-  if (d.homeBasedBusiness && d.showExactAddress === false) return false;
+  // Gate RESTAURANTES-1 — an explicit owner opt-out now always wins. This previously required
+  // `homeBasedBusiness` to ALSO be true, so a storefront restaurant that turned the privacy toggle
+  // off still had its exact street address published, and the toggle silently did nothing. Absent
+  // (`undefined`) still means "show", so no existing listing's already-public address changes.
+  if (d.showExactAddress === false) return false;
   if (d.locationPrivacyMode === "city_only" || d.locationPrivacyMode === "hidden_address_text_only") return false;
   return true;
 }

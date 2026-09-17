@@ -30,11 +30,11 @@ export function buildSearchQuery(category: string, subcategory: string, lang: La
       nhl: { es: "NHL hockey noticias", en: "NHL hockey news" },
       futbol: {
         es: "fútbol soccer noticias latinoamérica",
-        en: 'soccer MLS Liga MX FIFA CONCACAF Latino -NFL -"college football" -gridiron',
+        en: "soccer MLS Liga MX FIFA CONCACAF Latino -NFL -gridiron",
       },
       soccer: {
         es: "fútbol soccer noticias latinoamérica",
-        en: 'soccer MLS Liga MX FIFA CONCACAF Latino -NFL -"college football" -gridiron',
+        en: "soccer MLS Liga MX FIFA CONCACAF Latino -NFL -gridiron",
       },
       boxeo: { es: "boxeo noticias", en: "boxing news" },
       boxing: { es: "boxeo noticias", en: "boxing news" },
@@ -147,20 +147,20 @@ export function buildSearchQuery(category: string, subcategory: string, lang: La
   if (category === "local") {
     const local: Record<string, { es: string; en: string }> = {
       "san jose": {
-        es: "San José Santa Clara noticias comunidad latina",
-        en: "San Jose Santa Clara County Latino community news",
+        es: "San José California Santa Clara noticias comunidad latina",
+        en: "San Jose California Santa Clara County Latino community news",
       },
       "san josé": {
-        es: "San José Santa Clara noticias comunidad latina",
-        en: "San Jose Santa Clara County Latino community news",
+        es: "San José California Santa Clara noticias comunidad latina",
+        en: "San Jose California Santa Clara County Latino community news",
       },
       "santa clara": {
-        es: "Santa Clara County San José noticias comunidad latina",
-        en: "Santa Clara County San Jose local news",
+        es: "Santa Clara County California San José noticias comunidad latina",
+        en: "Santa Clara County California San Jose local news",
       },
       "santa clara county": {
-        es: "Santa Clara County San José noticias comunidad latina",
-        en: "Santa Clara County San Jose local news",
+        es: "Santa Clara County California San José noticias comunidad latina",
+        en: "Santa Clara County California San Jose local news",
       },
       "silicon valley": {
         es: "Silicon Valley San José Sunnyvale Cupertino noticias",
@@ -316,13 +316,16 @@ export function buildSearchQuery(category: string, subcategory: string, lang: La
 
   if (category === "ultimas") {
     const latest: Record<string, { es: string; en: string }> = {
-      "ultima hora": {
-        es: "última hora noticias breaking latino",
-        en: "breaking news latest Latino",
+      // Owner-QA Gate 7 (2026-09-03): renamed from "última hora"/"breaking" -- see the matching
+      // SUBCATEGORIES comment in noticiasEditorialModel.ts. The query text itself no longer
+      // claims urgency ("breaking") it can't back up.
+      recientes: {
+        es: "noticias recientes latino",
+        en: "recent news Latino community",
       },
-      breaking: {
-        es: "última hora noticias breaking latino",
-        en: "breaking news latest Latino",
+      recent: {
+        es: "noticias recientes latino",
+        en: "recent news Latino community",
       },
       "estados unidos": {
         es: "Estados Unidos noticias comunidad latina",
@@ -361,15 +364,20 @@ export function buildSearchQuery(category: string, subcategory: string, lang: La
     const trends: Record<string, { es: string; en: string }> = {
       viral: {
         es: "viral tendencias redes sociales latino",
-        en: "viral trending social media Latino",
+        // N3 (2026-09-03): the plain "viral trending social media Latino" query surfaced
+        // tabloid/inflammatory clickbait that merely mentioned "Spanish" or "Latino" in passing
+        // (confirmed live) -- the ES equivalent doesn't have this problem. Naming the platforms
+        // these community trends actually originate on keeps the query anchored to genuine
+        // Latino/Hispanic viral culture instead of generic English-language viral news.
+        en: "viral trending TikTok Instagram Latino Hispanic community",
       },
       "redes sociales": {
         es: "redes sociales tendencias viral latino",
-        en: "social media trending viral Latino",
+        en: "social media trending TikTok Instagram Latino Hispanic community",
       },
       "social media": {
         es: "redes sociales tendencias viral latino",
-        en: "social media trending viral Latino",
+        en: "social media trending TikTok Instagram Latino Hispanic community",
       },
       celebridades: {
         es: "celebridades entretenimiento tendencias latino",
@@ -401,6 +409,42 @@ export function buildSearchQuery(category: string, subcategory: string, lang: La
   return lang === "es"
     ? `${subcategory} noticias ${latino}`
     : `${subcategory} news ${latino}`;
+}
+
+/**
+ * Categories whose English base feed is a broad, topic-general publisher feed (ESPN's all-sports
+ * feed, general tech-blog feeds, CNBC's general business feed, BBC's general world feed) that
+ * dilutes a narrower subcategory's results with unrelated content from the same broad category,
+ * rather than a real duplicate story. Evidence gathered during the N3 audit (2026-09-03):
+ *  - deportes: NBA/MLB/NHL/Boxing/Soccer diluted with unrelated sports (golf, tennis, NFL) --
+ *    the same mechanism first proven for Soccer (see filterSoccerResultQuality below).
+ *  - negocios: "Entrepreneurs" diluted with unrelated general business news (an NFL
+ *    stadium-expansion story appeared under Business -> Entrepreneurs).
+ *  - tecnologia: general-tech-blog content crowding out subcategory-specific coverage (e.g. AI).
+ *  - internacional: a general world-news feed isn't scoped to any one subcategory's region.
+ * "local" is excluded: its own base feeds are themselves geography-scoped Google queries (San
+ * Jose / Bay Area), not a generic unscoped publisher feed, so they supplement rather than
+ * dilute. "ultimas"/"tendencias" are excluded: their base feed is already just a single Google
+ * query, not a real static publisher feed, so there is nothing to dilute. Scoped to English
+ * only: the Spanish base feeds left after the N3 dead-feed cleanup are either a single Google
+ * query (tecnologia/negocios/cultura/deportes -- nothing to dilute) or BBC Mundo, a legitimate
+ * Spanish-language global feed (internacional) not proven to dilute the same way.
+ */
+const CATEGORIES_WITH_DILUTING_BASE_FEEDS = new Set(["deportes", "tecnologia", "negocios", "internacional"]);
+
+/**
+ * (category, subcategory) pairs proven, by direct evidence, to actually benefit from keeping
+ * the generic base feed -- e.g. ESPN's naturally NFL-heavy general feed reinforces the NFL
+ * subcategory instead of diluting it. NCAA is included: its own label is intentionally broad
+ * college sports, not one sport, so a general sports feed does not misrepresent it.
+ */
+const EN_SUBCATEGORIES_KEEPING_BASE_FEEDS = new Set(["deportes:nfl", "deportes:ncaa"]);
+
+export function shouldUseSpecializedFeeds(category: string, subcategory: string, lang: Lang): boolean {
+  if (lang !== "en") return false;
+  if (!CATEGORIES_WITH_DILUTING_BASE_FEEDS.has(category)) return false;
+  const sub = normalizeSubcategory(subcategory);
+  return !EN_SUBCATEGORIES_KEEPING_BASE_FEEDS.has(`${category}:${sub}`);
 }
 
 /**
@@ -449,4 +493,256 @@ export function filterSoccerResultQuality<T extends { title?: string; desc?: str
   const isSoccerSubcategory = category === "deportes" && (sub === "futbol" || sub === "soccer");
   if (!isSoccerSubcategory) return items;
   return items.filter((item) => !isAmericanFootballNoise(item.title, item.desc));
+}
+
+/**
+ * Mirrors the "Headline - Publisher" split heuristic used for display (see
+ * app/(site)/noticias/noticiasEditorialModel.ts splitDisplayTitle) so two RSS results that are
+ * the same underlying wire story -- differing only in which publisher's syndicated copy a
+ * query happened to surface -- key to the same normalized headline instead of showing twice.
+ * Deliberately conservative: only strips a trailing " - Publisher" when it looks like one
+ * (short, present), never a legitimate hyphenated headline.
+ */
+export function normalizedHeadlineKey(rawTitle: string): string {
+  const raw = rawTitle.trim();
+  const idx = raw.lastIndexOf(" - ");
+  if (idx <= 0) return raw.toLowerCase();
+  const publisher = raw.slice(idx + 3).trim();
+  const headline = raw.slice(0, idx).trim();
+  if (!headline || !publisher || publisher.length > 80) return raw.toLowerCase();
+  return headline.toLowerCase();
+}
+
+/**
+ * Deduplicates RSS results across all queried feeds for a subcategory. A subcategory's primary
+ * and secondary Google News queries (see getFeedUrls in route.ts) frequently surface the same
+ * real-world article, but Google News gives each query-result pair its own tracking-URL blob --
+ * so link-based dedup alone misses it. Three independent keys catch it without needing the link
+ * and title to agree on which was seen first:
+ *   1. exact link
+ *   2. exact title (case-insensitive)
+ *   3. normalized headline (title with any "- Publisher" suffix stripped)
+ */
+export function dedupeRssArticles<T extends { link?: string; title?: string }>(items: T[]): T[] {
+  const seenLinks = new Set<string>();
+  const seenTitles = new Set<string>();
+  const seenHeadlines = new Set<string>();
+  const deduped: T[] = [];
+
+  for (const item of items) {
+    const link = (item.link || "").trim();
+    const title = (item.title || "").trim().toLowerCase();
+    const headlineKey = item.title ? normalizedHeadlineKey(item.title) : "";
+
+    if (link && seenLinks.has(link)) continue;
+    if (title && seenTitles.has(title)) continue;
+    if (headlineKey && seenHeadlines.has(headlineKey)) continue;
+
+    if (link) seenLinks.add(link);
+    if (title) seenTitles.add(title);
+    if (headlineKey) seenHeadlines.add(headlineKey);
+
+    deduped.push(item);
+  }
+
+  return deduped;
+}
+
+/**
+ * True only when every single feed fetch for this request threw (upstream unreachable, 429,
+ * timeout, malformed XML, etc) -- never when feeds fetched successfully but simply had nothing
+ * matching a narrow query. This distinction (see route.ts GET) lets the API return a distinct
+ * "temporarily unavailable" signal instead of silently reporting a genuinely-empty result as if
+ * upstream were healthy. Deliberately conservative: an empty `results` array (no feeds configured
+ * at all) is not treated as a failure -- there is nothing to have failed.
+ */
+export function didAllFeedsFail(results: { ok: boolean }[]): boolean {
+  return results.length > 0 && results.every((r) => !r.ok);
+}
+
+/**
+ * Owner-QA Gate 6 (2026-09-03) image-recovery audit: direct inspection of live feed items showed
+ * Google News RSS carries zero image fields on every item (no enclosure, no media:content, no
+ * <img> in content) -- a structural limit of that source, not an extraction bug. Publisher feeds
+ * (The Verge, Engadget, NBC Bay Area, Local News Matters) do carry genuine images in varying
+ * fields, so this extraction checks all of them. Kept here (not route.ts) because it has no
+ * dependency on next/server or the rss-parser class, matching this module's existing "pure logic,
+ * unit-testable" role.
+ */
+
+/** An <img src="..."> attribute pulled from raw feed HTML carries HTML entities (WordPress
+ * feeds commonly emit "&#038;" or "&amp;" for a literal "&" in a query string) -- decode the
+ * handful that actually appear in URLs before treating it as one, otherwise a query param like
+ * "&ssl=1" survives as the literal string "&amp;ssl=1" and the request depends on the CDN
+ * silently ignoring an unrecognized "amp;ssl" param instead of genuinely being correct. */
+export function decodeHtmlEntities(value: string): string {
+  return value
+    .replace(/&amp;/g, "&")
+    .replace(/&#0?38;/g, "&")
+    .replace(/&#x26;/gi, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#0?39;/g, "'");
+}
+
+/** Accept only absolute http(s) image URLs; never throw on malformed input. */
+export function normalizeImageUrl(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const trimmed = decodeHtmlEntities(raw.trim());
+  if (!trimmed) return null;
+
+  let url = trimmed;
+  if (url.startsWith("//")) url = `https:${url}`;
+  if (!/^https?:\/\//i.test(url)) return null;
+
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+    return parsed.href;
+  } catch {
+    return null;
+  }
+}
+
+function isHardRejectedImageUrl(url: string): boolean {
+  const lower = url.toLowerCase();
+  if (lower.includes("pixel")) return true;
+  if (lower.includes("tracking")) return true;
+  if (lower.includes("spacer")) return true;
+  if (lower.includes("blank")) return true;
+  if (lower.includes("favicon")) return true;
+  if (lower.endsWith(".gif")) return true;
+  return false;
+}
+
+function isLogoImageUrl(url: string): boolean {
+  return url.toLowerCase().includes("logo");
+}
+
+/** Pick the first usable candidate; defer logo URLs unless nothing else is available. */
+export function selectBestImageUrl(candidates: string[]): string | null {
+  let logoFallback: string | null = null;
+
+  for (const raw of candidates) {
+    const url = normalizeImageUrl(raw);
+    if (!url) continue;
+    if (isHardRejectedImageUrl(url)) continue;
+    if (isLogoImageUrl(url)) {
+      if (!logoFallback) logoFallback = url;
+      continue;
+    }
+    return url;
+  }
+
+  return logoFallback;
+}
+
+function extractMediaUrl(value: unknown): string | null {
+  if (value == null) return null;
+
+  if (typeof value === "string") {
+    return normalizeImageUrl(value);
+  }
+
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      const url = extractMediaUrl(entry);
+      if (url) return url;
+    }
+    return null;
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const medium = String(
+      (record.medium as string | undefined) ??
+        ((record.$ as Record<string, unknown> | undefined)?.medium as string | undefined) ??
+        ""
+    ).toLowerCase();
+    if (medium && medium !== "image") return null;
+
+    const direct =
+      normalizeImageUrl(record.url) ??
+      normalizeImageUrl(record.href) ??
+      normalizeImageUrl((record.$ as Record<string, unknown> | undefined)?.url) ??
+      normalizeImageUrl((record.$ as Record<string, unknown> | undefined)?.href);
+    if (direct) return direct;
+  }
+
+  return null;
+}
+
+export function extractImagesFromHtml(html?: string): string[] {
+  if (!html || typeof html !== "string") return [];
+
+  const urls: string[] = [];
+  const imgTagRe = /<img\b[^>]*>/gi;
+  let tagMatch: RegExpExecArray | null;
+
+  while ((tagMatch = imgTagRe.exec(html)) !== null) {
+    const tag = tagMatch[0];
+    const srcMatch =
+      tag.match(/\bsrc=["']([^"']+)["']/i) ?? tag.match(/\bsrc=([^\s>]+)/i);
+    if (srcMatch?.[1]) urls.push(srcMatch[1]);
+
+    const srcsetMatch = tag.match(/\bsrcset=["']([^"']+)["']/i);
+    if (srcsetMatch?.[1]) {
+      const first = srcsetMatch[1].split(",")[0]?.trim().split(/\s+/)[0];
+      if (first) urls.push(first);
+    }
+  }
+
+  return urls;
+}
+
+function itemHtmlContent(item: Record<string, unknown>, encoded?: string): string[] {
+  const blocks: string[] = [];
+  if (encoded) blocks.push(encoded);
+  if (typeof item.description === "string") blocks.push(item.description);
+  if (typeof item.summary === "string") blocks.push(item.summary);
+  if (typeof item.contentSnippet === "string") blocks.push(item.contentSnippet);
+  return blocks;
+}
+
+/** Best-effort image URL from RSS item fields (priority order per Gate 3). */
+export function extractArticleImage(
+  item: { enclosure?: { url?: string; type?: string }; contentSnippet?: string },
+  encodedContent?: string
+): string | null {
+  const record = item as unknown as Record<string, unknown>;
+  const candidates: string[] = [];
+
+  const push = (url: string | null | undefined) => {
+    if (url) candidates.push(url);
+  };
+
+  // 1. media:content
+  push(extractMediaUrl(record["media:content"]));
+  push(extractMediaUrl(record.mediaContent));
+
+  // 2. media:thumbnail
+  push(extractMediaUrl(record["media:thumbnail"]));
+  push(extractMediaUrl(record.mediaThumbnail));
+
+  // 3. enclosure (image/*)
+  if (item.enclosure?.url) {
+    const type = (item.enclosure.type || "").toLowerCase();
+    if (!type || type.startsWith("image/")) {
+      push(item.enclosure.url);
+    }
+  }
+
+  // 4. image / itunes:image
+  push(extractMediaUrl(record.image));
+  if (record.image && typeof record.image === "object") {
+    const imageObj = record.image as Record<string, unknown>;
+    push(normalizeImageUrl(imageObj.url));
+  }
+  push(extractMediaUrl(record["itunes:image"]));
+
+  // 5. <img> inside content / description HTML
+  for (const html of itemHtmlContent(record, encodedContent)) {
+    candidates.push(...extractImagesFromHtml(html));
+  }
+
+  return selectBestImageUrl(candidates);
 }

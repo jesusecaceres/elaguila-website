@@ -8,6 +8,10 @@ import {
   enVentaPhoneInputDigits,
   formatEnVentaPhoneInput,
 } from "@/app/(site)/clasificados/en-venta/shared/utils/enVentaPhoneDisplay";
+import {
+  buildInternationalWhatsAppWaMeHrefWithText,
+  normalizeInternationalWhatsAppDigits,
+} from "@/app/lib/whatsapp/internationalWhatsApp";
 
 export function formatComidaLocalPhoneInput(raw: string): string {
   return formatEnVentaPhoneInput(raw);
@@ -42,19 +46,42 @@ export function buildComidaLocalSmsHref(phone: string, body?: string): string {
 const COMIDA_LOCAL_WA_PREFILL_ES =
   "Hola, vi tu puesto de comida en Leonix Media. Me gustaría recibir más información, por favor.";
 
+/**
+ * Gate COMIDA-LOCAL-1 — adopts the shared international WhatsApp contract.
+ *
+ * The previous implementation was a bare digit-strip with NO country-code handling and no
+ * length bounds: a US number typed the way the form itself formats it — (408) 555-1234 — became
+ * `https://wa.me/4085551234`, missing the "1" country code, i.e. a WhatsApp link that does not
+ * resolve to the seller. Three stray digits became `https://wa.me/123`. Both were rendered to
+ * the public as a working WhatsApp CTA.
+ *
+ * `internationalWhatsApp` (ported in Gate SERVICIOS-1) is the platform's proven rule: a bare
+ * 10-digit number is assumed US and gets its "1"; anything else is trusted to carry its own
+ * country code and is accepted from 8 to 15 digits (E.164 max). It returns null when the input
+ * cannot resolve to a real number — this wrapper keeps the existing `string` contract by
+ * returning "", which every call site already treats as "no WhatsApp action".
+ *
+ * The prefilled Spanish message is unchanged.
+ */
 export function buildComidaLocalWhatsAppHref(
   raw: string,
   businessName?: string
 ): string {
-  const digits = raw.replace(/\D/g, "");
-  if (!digits) return "";
   const name = (businessName ?? "").trim();
-  const text = encodeURIComponent(
-    name
-      ? `Hola, vi ${name} en Leonix Media. Me gustaría recibir más información, por favor.`
-      : COMIDA_LOCAL_WA_PREFILL_ES
-  );
-  return `https://wa.me/${digits}?text=${text}`;
+  const text = name
+    ? `Hola, vi ${name} en Leonix Media. Me gustaría recibir más información, por favor.`
+    : COMIDA_LOCAL_WA_PREFILL_ES;
+  return buildInternationalWhatsAppWaMeHrefWithText(raw, text) ?? "";
+}
+
+/**
+ * Gate COMIDA-LOCAL-1 — whether a WhatsApp value can actually produce a working link. Uses the
+ * shared normalizer so validation and rendering agree exactly: previously validation counted
+ * digits through `normalizeComidaLocalPhoneDigits`, which TRUNCATES to 10 digits, so it was
+ * measuring a different number than the one the href was built from.
+ */
+export function hasUsableComidaLocalWhatsApp(raw: string): boolean {
+  return normalizeInternationalWhatsAppDigits(raw) !== null;
 }
 
 function stripWww(host: string): string {

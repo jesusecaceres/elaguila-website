@@ -6,13 +6,15 @@ import {
   LEONIX_TIENDA_CONTACT_PATH,
 } from "@/app/(site)/tienda/data/leonixContact";
 import { normalizeLang } from "@/app/lib/language";
-import { getPublicLocaleCopy } from "@/app/lib/leonix/publicFormCopy";
 import { parseInquiryType } from "@/app/lib/leonix/inquiryTypes";
 import {
   getContactPolishCopy,
   resolveContactHeroIntent,
   resolveInquiryHighlightIndex,
 } from "@/app/lib/leonix/contactPagePolishCopy";
+import { getSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
+import type { ContactoPayload } from "@/app/lib/siteSectionContent/payloadTypes";
+import { mergeContactoCopy } from "@/app/lib/siteSectionContent/contactoMerge";
 import { ContactIntakeHero } from "./ContactIntakeHero";
 
 function withLang(href: string, lang: string, extra?: Record<string, string>): string {
@@ -61,8 +63,19 @@ export default async function ContactoPage(props: {
     inquiryType: sp.inquiryType ?? sp.interest,
     sourceCta: sp.sourceCta ?? sp.source,
   });
-  const polish = getContactPolishCopy(lang, intent);
-  const pageCopy = getPublicLocaleCopy(lang).contactPage;
+  const basePolish = getContactPolishCopy(lang, intent);
+  // ADMIN-OS-01: wire the "contacto" site_section_content payload into the live
+  // page — the admin editor at /admin/workspace/contacto/content previously
+  // persisted this content with no live consumer (silent split wiring).
+  const { payload: contactoPayload } = await getSiteSectionPayload("contacto");
+  const contact = mergeContactoCopy(lang === "en" ? "en" : "es", contactoPayload as ContactoPayload);
+  // Only override the hero headline/subtitle for the default (non-intent-specific)
+  // variant, so CTA-driven personalized hero copy (advertising, media kit, etc.)
+  // is preserved untouched.
+  const polish =
+    intent === "default"
+      ? { ...basePolish, hero: { ...basePolish.hero, title: contact.h1, subtitle: contact.subhead ?? basePolish.hero.subtitle } }
+      : basePolish;
   const prefillRaw = typeof sp.prefillMessage === "string" ? sp.prefillMessage : "";
   const prefillMessage = prefillRaw ? prefillRaw.slice(0, 12000) : undefined;
   const parsedInquiryType = parseInquiryType(sp.inquiryType ?? sp.interest, "general");
@@ -96,17 +109,23 @@ export default async function ContactoPage(props: {
       <div className="relative mx-auto max-w-6xl px-4 pt-24 pb-20 sm:px-6">
         <ContactoLanguageBar />
 
-        <ContactIntakeHero lang={lang} copy={polish} highlightInquiryIndex={highlightInquiryIndex} />
+        {contact.noticeTop ? (
+          <div className="mb-6 rounded-xl border border-[#C9A84A]/50 bg-[#FBF3D9] px-4 py-3 text-sm font-medium text-[#5C4E1E]">
+            {contact.noticeTop}
+          </div>
+        ) : null}
 
-        {/* Promo help */}
+        <ContactIntakeHero lang={lang} copy={polish} highlightInquiryIndex={highlightInquiryIndex} contact={contact} />
+
+        {/* Promo help / Tienda card — copy sourced from admin's "contacto" section (Tienda card block) */}
         <div className="mt-12 rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] p-6 shadow-[0_8px_24px_-16px_rgba(31,36,28,0.12)]">
-          <h2 className="text-xl font-bold text-[#2A4536]">{pageCopy.promoHelpTitle}</h2>
-          <p className="mt-2 text-sm leading-relaxed text-[#3D3428]">{pageCopy.promoHelpBody}</p>
+          <h2 className="text-xl font-bold text-[#2A4536]">{contact.tiendaTitle}</h2>
+          <p className="mt-2 text-sm leading-relaxed text-[#3D3428]">{contact.tiendaBody}</p>
           <Link
             href={promoHref}
             className="mt-4 inline-flex min-h-[44px] items-center rounded-full bg-[#7A1E2C] px-5 py-2.5 text-sm font-bold text-[#FFFDF7] hover:bg-[#5e1721]"
           >
-            {pageCopy.promoHelpCta}
+            {contact.tiendaCta}
           </Link>
         </div>
 

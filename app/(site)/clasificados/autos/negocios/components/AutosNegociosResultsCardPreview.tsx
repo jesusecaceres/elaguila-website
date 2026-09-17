@@ -3,6 +3,7 @@
 import type { AutosNegociosLang } from "../lib/autosNegociosLang";
 import type { AutoDealerListing } from "../types/autoDealerListing";
 import { buildVehicleTitle } from "@/app/(site)/publicar/autos/negocios/lib/autoDealerTitle";
+import { localizeAutosDealerTaxonomySelectValue } from "../lib/autosNegociosCopy";
 import { countApplicationInventoryVehicles } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 import { STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
 import {
@@ -30,11 +31,11 @@ function coverUrl(listing: AutoDealerListing): string | null {
   return listing.heroImages?.[0]?.trim() || null;
 }
 
-function specLine(listing: AutoDealerListing): string | null {
+function specLine(listing: AutoDealerListing, lang: AutosNegociosLang): string | null {
   const parts: string[] = [];
-  if (listing.transmission) parts.push(listing.transmission);
-  if (listing.drivetrain) parts.push(listing.drivetrain);
-  if (listing.fuelType) parts.push(listing.fuelType);
+  if (listing.transmission) parts.push(localizeAutosDealerTaxonomySelectValue("transmission", listing.transmission, lang) ?? listing.transmission);
+  if (listing.drivetrain) parts.push(localizeAutosDealerTaxonomySelectValue("drivetrain", listing.drivetrain, lang) ?? listing.drivetrain);
+  if (listing.fuelType) parts.push(localizeAutosDealerTaxonomySelectValue("fuel", listing.fuelType, lang) ?? listing.fuelType);
   if (!parts.length) return null;
   return parts.join(" · ");
 }
@@ -51,17 +52,17 @@ export function AutosNegociosResultsCardPreview({
   inventoryVehicleLimit?: number;
 }) {
   const title =
+    listing.vehicleTitle?.trim() ||
     buildVehicleTitle(listing.year, listing.make, listing.model, listing.trim) ||
-    listing.vehicleTitle ||
     (lang === "es" ? "Tu vehículo" : "Your vehicle");
   const location = [listing.city, listing.state].filter(Boolean).join(", ");
   const used = countApplicationInventoryVehicles(additionalCount);
   const img = coverUrl(listing);
-  const specs = specLine(listing);
+  const specs = specLine(listing, lang);
   const priceUsd = formatUsdIntegerInputDisplay(listing.price);
   const price = priceUsd ? `$${priceUsd}` : null;
   const mileageRaw = formatMileageInputDisplay(listing.mileage);
-  const mileage = mileageRaw ? `${mileageRaw} mi` : null;
+  const mileage = mileageRaw ? `${mileageRaw} ${lang === "es" ? "millas" : "mi"}` : null;
   const dealerName = listing.dealerName?.trim();
 
   return (

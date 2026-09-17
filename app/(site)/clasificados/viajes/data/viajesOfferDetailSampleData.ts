@@ -66,7 +66,7 @@ export type ViajesOfferDetailModel = {
 export const VIAJES_OFFER_DETAILS: Record<string, ViajesOfferDetailModel> = {
   "cancun-resort-mar": {
     slug: "cancun-resort-mar",
-    heroImageSrc: "https://images.unsplash.com/photo-1552074284-5e88f742d1f5?auto=format&fit=crop&w=2000&q=80",
+    heroImageSrc: "/child-categories/viajes/cancun.jpg",
     heroImageAlt: "Playa de Cancún",
     title: "Cancún · resort frente al mar",
     destination: "Cancún, Quintana Roo, México",
@@ -106,7 +106,7 @@ export const VIAJES_OFFER_DETAILS: Record<string, ViajesOfferDetailModel> = {
   },
   "roma-venecia-express": {
     slug: "roma-venecia-express",
-    heroImageSrc: "https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?auto=format&fit=crop&w=2000&q=80",
+    heroImageSrc: "/child-categories/viajes/editorial-canals.jpg",
     heroImageAlt: "Canales de Venecia",
     title: "Europa express: Roma + Venecia",
     destination: "Italia (Roma y Venecia)",
@@ -141,7 +141,7 @@ export const VIAJES_OFFER_DETAILS: Record<string, ViajesOfferDetailModel> = {
   },
   "maui-boutique": {
     slug: "maui-boutique",
-    heroImageSrc: "https://images.unsplash.com/photo-1542259670-48a73e819d9c?auto=format&fit=crop&w=2000&q=80",
+    heroImageSrc: "/child-categories/viajes/maui.jpg",
     heroImageAlt: "Costa de Maui",
     title: "Maui · boutique junto a la playa",
     destination: "Maui, Hawái",
@@ -173,7 +173,7 @@ export const VIAJES_OFFER_DETAILS: Record<string, ViajesOfferDetailModel> = {
   },
   "cr-familia-arenal-manuel": {
     slug: "cr-familia-arenal-manuel",
-    heroImageSrc: "https://images.unsplash.com/photo-1592405204553-2e719cb02c48?auto=format&fit=crop&w=2000&q=80",
+    heroImageSrc: "/child-categories/viajes/cr.jpg",
     heroImageAlt: "Naturaleza en Costa Rica",
     title: "Arenal + Manuel Antonio en familia",
     destination: "Costa Rica",
@@ -202,7 +202,7 @@ export const VIAJES_OFFER_DETAILS: Record<string, ViajesOfferDetailModel> = {
   },
   "riviera-todo-incluido": {
     slug: "riviera-todo-incluido",
-    heroImageSrc: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2000&q=80",
+    heroImageSrc: "/child-categories/viajes/riviera.jpg",
     heroImageAlt: "Resort con piscina",
     title: "Riviera Maya · todo incluido 5★",
     destination: "Playa del Carmen, México",
@@ -225,7 +225,7 @@ export const VIAJES_OFFER_DETAILS: Record<string, ViajesOfferDetailModel> = {
   },
   "cancun-renta-auto": {
     slug: "cancun-renta-auto",
-    heroImageSrc: "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=2000&q=80",
+    heroImageSrc: "/child-categories/viajes/cancun-col.jpg",
     heroImageAlt: "Auto en carretera tropical",
     title: "Renta de auto en Cancún (CUN)",
     destination: "Cancún, Quintana Roo, México",
@@ -261,7 +261,7 @@ export const VIAJES_OFFER_DETAILS: Record<string, ViajesOfferDetailModel> = {
   },
   "tahoe-fin-semana": {
     slug: "tahoe-fin-semana",
-    heroImageSrc: "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=2000&q=80",
+    heroImageSrc: "/child-categories/viajes/lake-mountains.jpg",
     heroImageAlt: "Lago Tahoe",
     title: "Lago Tahoe · fin de semana",
     destination: "California / Nevada",
@@ -285,7 +285,7 @@ export const VIAJES_OFFER_DETAILS: Record<string, ViajesOfferDetailModel> = {
   },
   "los-cabos-snorkel": {
     slug: "los-cabos-snorkel",
-    heroImageSrc: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?auto=format&fit=crop&w=2000&q=80",
+    heroImageSrc: "/child-categories/viajes/cabos.jpg",
     heroImageAlt: "Arrecife y embarcación en Los Cabos",
     title: "Los Cabos · snorkel y arco en lancha",
     destination: "Cabo San Lucas, Baja California Sur, México",
@@ -319,7 +319,7 @@ export const VIAJES_OFFER_DETAILS: Record<string, ViajesOfferDetailModel> = {
   },
   "napa-valley-escape": {
     slug: "napa-valley-escape",
-    heroImageSrc: "https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?auto=format&fit=crop&w=2000&q=80",
+    heroImageSrc: "/child-categories/viajes/near.jpg",
     heroImageAlt: "Viñedos al atardecer en Napa",
     title: "Napa Valley · hotel boutique y viñedos",
     destination: "Napa & Sonoma, California",

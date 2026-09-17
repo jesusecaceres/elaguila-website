@@ -21,6 +21,9 @@ import {
   SERVICIOS_BASE_MONTHLY_PACKAGE_KEY,
   SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
 } from "./revenueServiciosFulfillment";
+import { triggerServiciosSavedSearchMatchBestEffort } from "@/app/lib/saved-search/servicios/serviciosSavedSearchMatchOrchestrator";
+import { triggerRestaurantesSavedSearchMatchBestEffort } from "@/app/lib/saved-search/restaurantes/restaurantesSavedSearchMatchOrchestrator";
+import { triggerComidaLocalSavedSearchMatchBestEffort } from "@/app/lib/saved-search/comida-local/comidaLocalSavedSearchMatchOrchestrator";
 import {
   activatePaidComidaLocalListingFromRevenueOs,
   COMIDA_LOCAL_BASE_MONTHLY_PACKAGE_KEY,
@@ -63,6 +66,7 @@ import {
   type LeonixPaymentRecordRow,
 } from "./revenuePaymentRecords";
 import { getRevenuePackageDefinition, type RevenuePackageDefinition } from "./revenuePricingMatrix";
+import { isAcceptedCheckoutSessionAmount, resolveAcceptedCheckoutAmounts } from "./promoContractTermBilling";
 import {
   markPromoRedemptionExpiredOrCancelled,
   markPromoRedemptionRedeemedWithBusinessAttribution,
@@ -350,6 +354,16 @@ async function tryActivateRestauranteListingAfterEntitlement(input: {
     },
   });
 
+  // Gate RESTAURANTES-2 — Saved Search match is a durable, best-effort side effect of the listing
+  // genuinely becoming publicly active, fired strictly AFTER the real activation has committed and
+  // only on the actual pending -> published transition (a re-delivered webhook resolves to
+  // `already_published` and returns earlier, never reaching here).
+  // `triggerRestaurantesSavedSearchMatchBestEffort` never throws, so it can never fail this
+  // function's own success — same failure-boundary contract as the Autos/BR/Rentas/Servicios sites.
+  if (activation.outcome === "activated" && activation.listingId) {
+    await triggerRestaurantesSavedSearchMatchBestEffort(activation.listingId, "restaurantes_publish_activation");
+  }
+
   return { ok: true };
 }
 
@@ -428,6 +442,17 @@ async function tryActivateComidaLocalListingAfterEntitlement(input: {
       outcome: activation.outcome,
     },
   });
+
+  // Gate COMIDA-LOCAL-2 — Saved Search match is a durable, best-effort side effect of the listing
+  // genuinely becoming publicly active, fired strictly AFTER the real activation has committed and
+  // only on the actual pending -> published transition (a re-delivered webhook resolves to
+  // `already_published` and returns earlier, never reaching here).
+  // `triggerComidaLocalSavedSearchMatchBestEffort` never throws, so it can never fail this
+  // function's own success — same failure-boundary contract as the Autos/BR/Rentas/Servicios/
+  // Restaurantes sites.
+  if (activation.outcome === "activated" && activation.listingId) {
+    await triggerComidaLocalSavedSearchMatchBestEffort(activation.listingId, "comida_local_publish_activation");
+  }
 
   return { ok: true };
 }
@@ -599,6 +624,17 @@ async function tryActivateServiciosListingAfterEntitlement(input: {
       outcome: activation.outcome,
     },
   });
+
+  // Gate SERVICIOS-2 — Saved Search match is a durable, best-effort side effect of the listing
+  // genuinely becoming publicly active, fired strictly AFTER the real activation has committed and
+  // only on the actual pending -> published transition (a re-delivered webhook resolves to
+  // `already_published` and returns earlier, never reaching here).
+  // `triggerServiciosSavedSearchMatchBestEffort` never throws, so it can never fail this
+  // function's own success — the same failure-boundary contract as the Autos/Bienes Raíces/Rentas
+  // activation call sites.
+  if (activation.outcome === "activated" && activation.listingId) {
+    await triggerServiciosSavedSearchMatchBestEffort(activation.listingId, "servicios_publish_activation");
+  }
 
   return { ok: true };
 }
@@ -909,13 +945,32 @@ async function tryActivateAutosPrivadoListingAfterEntitlement(input: {
     listingId: input.paymentRecord.listing_id,
     packageKey: input.packageDef.packageKey,
     stripePaymentIntentId: input.stripePaymentIntentId ?? null,
+    paymentMetadata: input.paymentRecord.metadata,
+    paymentRecordId: input.paymentRecord.id,
   });
 
   if (
     activation.outcome === "skipped_wrong_package" ||
     activation.outcome === "already_published" ||
-    activation.outcome === "wrong_lane"
+    activation.outcome === "wrong_lane" ||
+    activation.outcome === "renewed"
   ) {
+    if (activation.outcome === "renewed") {
+      await writeRevenueAuditLog({
+        action: "autos_privado_listing_activated_after_payment",
+        targetType: "autos_classifieds_listings",
+        targetId: activation.listingId ?? null,
+        meta: {
+          listing_id: activation.listingId,
+          package_key: input.packageDef.packageKey,
+          payment_record_id: input.paymentRecord.id,
+          leonix_ad_id: input.paymentRecord.leonix_ad_id,
+          stripe_checkout_session_id: input.stripeCheckoutSessionId,
+          stripe_event_id: input.stripeEventId,
+          outcome: "renewed",
+        },
+      });
+    }
     return { ok: true };
   }
 
@@ -1028,7 +1083,26 @@ async function tryActivateBienesFsboListingAfterEntitlement(input: {
     listingId: input.paymentRecord.listing_id,
     packageKey: input.packageDef.packageKey,
     stripePaymentIntentId: input.stripePaymentIntentId ?? null,
+    paymentMetadata: input.paymentRecord.metadata,
+    paymentRecordId: input.paymentRecord.id,
   });
+
+  if (activation.outcome === "renewed") {
+    await writeRevenueAuditLog({
+      action: "bienes_fsbo_listing_renewed_after_payment",
+      targetType: "listings",
+      targetId: activation.listingId ?? null,
+      meta: {
+        listing_id: activation.listingId,
+        package_key: input.packageDef.packageKey,
+        payment_record_id: input.paymentRecord.id,
+        leonix_ad_id: input.paymentRecord.leonix_ad_id,
+        stripe_event_id: input.stripeEventId,
+        outcome: "renewed",
+      },
+    });
+    return { ok: true };
+  }
 
   if (
     activation.outcome === "skipped_wrong_package" ||
@@ -1258,8 +1332,26 @@ export async function fulfillCheckoutSessionCompleted(input: {
     };
   }
 
-  const expectedAmount = paymentRecord.amount_total_cents ?? paymentRecord.amount_cents ?? packageDef.priceCents;
-  if (session.amount_total != null && expectedAmount > 0 && session.amount_total !== expectedAmount) {
+  // Package C Build 2 (C4) — verified-intro-15% on a monthly subscription is applied as a
+  // server-attached Stripe coupon with duration:"once" (revenueStripe.ts), deliberately NOT as a
+  // reduced line item, so the subscription's own price stays full and every renewal bills full
+  // price. That means the Checkout Session's amount_total is the DISCOUNTED FIRST INVOICE while
+  // the payment record correctly stores the full recurring plan price — the two legitimately
+  // differ, and comparing them blindly rejected fulfillment AFTER the customer had already been
+  // charged (money taken, nothing published).
+  //
+  // ⚠️35 (2026-09-14) — a finite-term contract promo (Stripe duration:"repeating" coupon, line item
+  // still at full price) produces the same legitimately discounted first invoice, recognised by the
+  // record's promo_code_id + finite contract_term this server persisted.
+  //
+  // Exactly ONE additional value is accepted, derived from the discount this server itself
+  // computed and persisted on the record — never a tolerance window, never a percentage
+  // recomputed here (promoContractTermBilling.ts). Any other amount is still a hard mismatch.
+  const acceptedAmounts = resolveAcceptedCheckoutAmounts(paymentRecord, packageDef.priceCents);
+  const expectedAmount = acceptedAmounts.expectedAmountCents;
+  const amountAccepted = isAcceptedCheckoutSessionAmount(acceptedAmounts, session.amount_total);
+
+  if (session.amount_total != null && expectedAmount > 0 && !amountAccepted) {
     await writeRevenueAuditLog({
       action: "revenue_webhook_validation_failed",
       targetType: "leonix_payment_records",
@@ -1267,6 +1359,8 @@ export async function fulfillCheckoutSessionCompleted(input: {
       meta: {
         code: "amount_mismatch",
         expected_amount_cents: expectedAmount,
+        server_discounted_first_invoice_cents: acceptedAmounts.discountedFirstInvoiceCents,
+        discount_source: acceptedAmounts.discountSource,
         stripe_amount_total: session.amount_total,
         stripe_event_id: eventId,
       },

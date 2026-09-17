@@ -202,6 +202,22 @@ export function buildProposedFinalMediaSet(input: {
   return { images, heroIndex, logoUrl, externalVideoUrls, droppedUnpersistable: dropped };
 }
 
+/**
+ * Wave 3 G09/G10 fix — `droppedUnpersistable` was returned by every one of this engine's real
+ * call sites but never read by any of them, so an unpersistable URL surviving into a draft was
+ * dropped from the saved gallery with zero warning anywhere: the owner believed N photos saved,
+ * only N-1 did. Callers should call this right after `buildProposedFinalMediaSet` so the drop is
+ * at least visible in server logs. A category may ALSO surface it to the owner — Servicios does,
+ * via `droppedUnpersistableMedia` on its publish response (Gate SERVICIOS-1).
+ */
+export function warnDroppedUnpersistableMedia(context: string, set: ProposedFinalMediaSet): void {
+  if (set.droppedUnpersistable.length === 0) return;
+  console.warn(
+    `[listingMediaContract] ${context}: dropped ${set.droppedUnpersistable.length} unpersistable media URL(s) — the owner's saved gallery has fewer items than they selected`,
+    set.droppedUnpersistable,
+  );
+}
+
 export type ProposedMediaIssueCode =
   | "too_few_images"
   | "too_many_images"

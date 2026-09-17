@@ -30,6 +30,7 @@ import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import { LX_DASH } from "../lib/dashboardLeonixTheme";
 import { fetchDashboardProfile } from "../lib/dashboardProfile";
+import { dashboardSafeMutationErrorCopy } from "../lib/dashboardSafeErrorCopy";
 
 export const dynamic = "force-dynamic";
 
@@ -299,8 +300,8 @@ function DashboardSecurityPageContent() {
       if (recoveryMode) {
         router.replace(`/dashboard/seguridad?${q}`);
       }
-    } catch (e: unknown) {
-      setMsg((e as { message?: string })?.message ?? "Unknown error");
+    } catch {
+      setMsg(dashboardSafeMutationErrorCopy(lang));
     } finally {
       setSaving(false);
     }

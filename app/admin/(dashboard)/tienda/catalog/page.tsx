@@ -109,7 +109,7 @@ export default async function AdminTiendaCatalogListPage({
         dataSource="tienda_catalog_items, tienda_catalog_images, and tienda_catalog_pricing_rules."
         status={stats.error || list.error ? "needs live proof" : "real"}
         safeActions={["Create item", "Edit catalog item", "View public product", "Filter catalog"]}
-        nextGate="ADMIN-ACTION-QA-AND-LIVE-SCHEMA-PROOF-01"
+        nextGate="Confirm every button and count on this page against live Supabase data before relying on it for daily decisions."
         warningNote="Catalog CRUD is real; fulfillment/customer notification action proof belongs to the next action QA gate."
       />
 
@@ -267,7 +267,7 @@ export default async function AdminTiendaCatalogListPage({
                         <Link href={`/admin/tienda/catalog/${row.id}`} className="text-xs font-bold text-[#6B5B2E] underline">
                           Edit
                         </Link>
-                        {row.is_live && !row.is_hidden ? (
+                        {row.is_live && !row.is_hidden && row.slug ? (
                           <Link
                             href={`/tienda/catalog/${row.slug}`}
                             className="text-xs font-bold text-[#6B5B2E] underline"
@@ -276,6 +276,10 @@ export default async function AdminTiendaCatalogListPage({
                           >
                             View public
                           </Link>
+                        ) : row.is_live && !row.is_hidden ? (
+                          <span className="text-xs text-[#B23A3A]" title="This item is live but has no slug, so it has no public URL yet.">
+                            No public URL (missing slug)
+                          </span>
                         ) : null}
                       </div>
                     </td>

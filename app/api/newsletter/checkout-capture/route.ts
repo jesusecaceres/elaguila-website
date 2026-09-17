@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { saveNewsletterSubscriber } from "@/app/lib/leonix/leadCaptureServer";
 import { isValidLeadEmail, normalizeLeadEmail } from "@/app/lib/leonix/leadCaptureValidation";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { getVerifiedBearerUser } from "@/app/api/_lib/verifiedBearerUser";
 
 /**
  * Best-effort newsletter/contact capture from PAID checkout opt-in checkboxes.
@@ -44,7 +45,7 @@ const SOURCE_TAGS: Record<string, string[]> = {
 
 const OPT_IN_TAG = "cta:checkout_newsletter_opt_in";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   // Best-effort: any failure returns HTTP 200 so checkout is never affected. The response BODY
   // still carries a truthful discriminated `status` — a payload/config/validation problem is
   // reported as FAILED (or SKIPPED for a genuinely benign non-attempt), never a fake SUCCESS.
@@ -74,7 +75,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ status: "FAILED", reason: "source_not_eligible" });
     }
 
-    const email = normalizeLeadEmail(String(o.email ?? ""));
+    // P0 residual closeout (2026-09-16) — authenticated checkout identity. When the caller sends
+    // a bearer token (an authenticated checkout, e.g. Servicios), the verified account email is
+    // the ONLY identity trusted for this capture — a client-supplied `email` is never used in
+    // that case, so a user can never type a different address at checkout to capture (or, in
+    // spirit, reuse) a different identity. Categories that don't yet send a token keep their
+    // existing client-email-trusting behavior unchanged (additive, not a breaking contract
+    // change for the other 7 checkout sources this route already serves).
+    const verifiedUser = await getVerifiedBearerUser(req);
+    const authenticatedEmail = verifiedUser?.email ? normalizeLeadEmail(verifiedUser.email) : null;
+    const bearerProvided = Boolean(req.headers.get("authorization"));
+
+    if (bearerProvided && !authenticatedEmail) {
+      // A token was sent but didn't resolve to a real account email — fail the capture only;
+      // never fall back to trusting whatever the client put in the body for an authenticated call.
+      return NextResponse.json({ status: "FAILED", reason: "canonical_email_unavailable" });
+    }
+
+    const email = authenticatedEmail ?? normalizeLeadEmail(String(o.email ?? ""));
     if (!isValidLeadEmail(email)) {
       return NextResponse.json({ status: "FAILED", reason: "missing_email" });
     }

@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { requireLeonixAdminPermission } from "@/app/admin/_lib/leonixAdminGate";
-import { getCurrentAdminAccessContext } from "@/app/admin/_lib/adminAccessControl";
+import {
+  requireRevenueProtectedWriteAccess,
+  revenueWriteDenialStatusCode,
+} from "@/app/admin/_lib/adminAccessControl";
 import {
   markManualPaymentRejected,
   markManualPaymentReversed,
@@ -23,10 +25,18 @@ export const runtime = "nodejs";
  * writer with grant_source 'manual_cleared_payment'. No fake Stripe records anywhere.
  */
 export async function POST(request: NextRequest) {
-  try {
-    await requireLeonixAdminPermission("can_view_payments");
-  } catch {
-    return NextResponse.json({ ok: false, code: "unauthorized" }, { status: 401 });
+  // Final Pre-QA Security Hardening Gate (2026-09-10) — this route performs protected,
+  // money-adjacent writes (record/verify_cleared grants a paid entitlement; reject/reverse
+  // mutate a payment's disposition). Authorization must fail CLOSED and must not depend on the
+  // optional ADMIN_ENFORCE_ROSTER_PERMISSIONS env flag — requireRevenueProtectedWriteAccess()
+  // re-verifies the full staff identity chain on every request and explicitly denies the shared
+  // bootstrap session. can_view_payments (a READ-only permission) is never consulted here.
+  const access = await requireRevenueProtectedWriteAccess();
+  if (!access.ok) {
+    return NextResponse.json(
+      { ok: false, code: "unauthorized", reason: access.reason },
+      { status: revenueWriteDenialStatusCode(access.reason) },
+    );
   }
 
   let body: Record<string, unknown>;
@@ -37,16 +47,13 @@ export async function POST(request: NextRequest) {
   }
 
   const action = String(body.action ?? "").trim();
-  // Package E Build E3, Gate 4 — CRITICAL AUDIT FIX. This route previously trusted a
-  // client-supplied `body.adminUserId` for audit attribution (any caller past the cookie gate
-  // could claim to be any admin, or default to the literal string "admin"). The existing admin
-  // access context already resolves a real, server-authenticated identity for the current
-  // request (same precedence already used by grantComplimentaryPackageEntitlementAction in
-  // package-entitlements/actions.ts: authUserId, else operatorEmail, else rosterMemberId, else
-  // the literal "admin" as the last-resort fallback only when no identity is resolvable at all).
-  // `adminUserId` is no longer read from the request body.
-  const access = await getCurrentAdminAccessContext();
-  const adminUserId = access.authUserId ?? access.operatorEmail ?? access.rosterMemberId ?? "admin";
+  // Package E Build E3, Gate 4 — CRITICAL AUDIT FIX (unchanged doctrine, now on a stronger
+  // guard). `adminUserId` is never read from the request body — it is always the real,
+  // server-verified Supabase Auth user id resolved by requireRevenueProtectedWriteAccess()
+  // above, never a client-suppliable value and never the literal "admin" fallback (that
+  // fallback path no longer exists — bootstrap and unresolved identities are denied above,
+  // before this line is ever reached).
+  const adminUserId = access.actorAuthUserId;
 
   if (action === "record") {
     const result = await recordManualPaymentPendingVerification({

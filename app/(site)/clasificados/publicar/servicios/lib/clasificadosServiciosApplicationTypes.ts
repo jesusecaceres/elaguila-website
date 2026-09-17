@@ -3,6 +3,9 @@
  * Step 3 will map this into `ServiciosApplicationDraft` / shell slots — not exposed in UI.
  */
 
+import { normalizeStrictExternalVideoUrl } from "@/app/lib/media/externalVideoUrlValidation";
+import { isProbablyValidWebUrl, normalizeHttpUrl } from "./socialAndUrlHelpers";
+
 export type ServiciosLang = "es" | "en";
 
 /** Internal grouping for filters/analytics — never shown in the form copy */
@@ -98,7 +101,20 @@ export function shortenServiciosVideoUrlDisplay(url: string, max = 56): string {
   return `${t.slice(0, max)}…`;
 }
 
-/** Normalize video list for storage/preview (up to 4; preserves legacy file rows). */
+/**
+ * Servicios Live Launch Perfection ⚠️4 (2026-09-13) — the ONE entry normaliser for external video
+ * links, shared by the single-add input and the bulk "paste several links" path so both accept
+ * exactly the same URLs: the shared strict validator (https-only, URL-parseable, never blob:/data:
+ * — Globalization Package B Gate B3) plus the generic web-URL sanity check the single-add path has
+ * always applied. Returns null when the link is rejected.
+ */
+export function normalizeServiciosExternalVideoUrlForEntry(raw: string): string | null {
+  const strict = normalizeStrictExternalVideoUrl(raw);
+  if (!strict || !isProbablyValidWebUrl(raw)) return null;
+  return normalizeHttpUrl(strict);
+}
+
+/** Normalize video list for storage/preview (up to SERVICIOS_MAX_VIDEO_URLS; preserves legacy file rows). */
 export function normalizeServiciosApplicationVideos(videos: VideoItem[]): VideoItem[] {
   let list = videos
     .filter((v) => v && typeof v.url === "string" && v.url.trim().length > 0)
@@ -182,6 +198,17 @@ export type ClasificadosServiciosApplicationState = {
   physicalRegion: string;
   physicalCountry: string;
   physicalPostalCode: string;
+  /** Gate G23 — set only by the shared BusinessAddressVerifiedInput picker (never invented/guessed).
+   * "manual" for hand-typed text (including when no provider is configured); "user_confirmed" only
+   * when the owner explicitly selected a real provider suggestion. Never "verified" from this UI —
+   * that status is reserved for a provider adapter's own confirmed result. */
+  physicalVerificationStatus: "unverified" | "manual" | "user_confirmed" | "provider_suggested" | "verified";
+  physicalProvider: string | null;
+  physicalProviderPlaceId: string | null;
+  /** Owner's explicit choice to reveal the exact physical address publicly. Defaults to `true`
+   * (existing/new applications alike) so this addition never silently hides an address that was
+   * always shown before this field existed — see `serviciosBusinessProfile.ts`'s `showExactAddress`. */
+  showExactAddress: boolean;
   serviceAreaNotes: string;
   phone: string;
   /** Optional second line — same digit rules as `phone` */

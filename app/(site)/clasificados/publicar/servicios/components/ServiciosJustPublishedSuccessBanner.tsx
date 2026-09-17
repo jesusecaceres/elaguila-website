@@ -15,6 +15,10 @@ type Props = {
   leonixAdId?: string | null;
   persistence?: string;
   videoSkippedNotice?: string | null;
+  /** Gate SERVICIOS-1 — some selected media could not be persisted and was dropped from the saved
+   * listing. Same notice channel as `videoSkippedNotice`: the publish succeeded, but with fewer
+   * media items than the owner chose, and they must be told rather than assume everything saved. */
+  mediaDroppedNotice?: string | null;
   discoveryResultsHref?: string | null;
 };
 
@@ -24,6 +28,7 @@ export function ServiciosJustPublishedSuccessBanner({
   leonixAdId,
   persistence,
   videoSkippedNotice,
+  mediaDroppedNotice,
   discoveryResultsHref,
 }: Props) {
   const t = getServiciosPublishSuccessCopy(lang, persistence);
@@ -60,6 +65,7 @@ export function ServiciosJustPublishedSuccessBanner({
         <li>{t.termsReminder}</li>
         <li>{t.flagWarning}</li>
         {videoSkippedNotice ? <li className="text-[#6B5420]">{videoSkippedNotice}</li> : null}
+        {mediaDroppedNotice ? <li className="text-[#6B5420]">{mediaDroppedNotice}</li> : null}
       </ul>
 
       <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">

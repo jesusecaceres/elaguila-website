@@ -1,0 +1,544 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import {
+  ALL_SALES_NOTE_OUTCOME_LABELS,
+  BUSINESS_SALES_STATUSES,
+  FOLLOW_UP_STATUSES,
+  SALES_CONTACT_METHODS,
+  SALES_NOTE_OUTCOMES,
+  SALES_NOTE_TYPES,
+  deriveFollowUpDisplayStatus,
+  labelFrom,
+  type BusinessSalesStatus,
+  type FollowUpStoredStatus,
+} from "@/app/admin/_lib/salesWorkspaceLogic";
+import { humanizeStaffWriteError } from "@/app/admin/_lib/staffWriteErrorMessages";
+import type { FollowUpRecord, SalesNoteRecord } from "@/app/admin/_lib/businessWorkspaceData";
+
+function followUpStatusClass(status: FollowUpStoredStatus): string {
+  switch (status) {
+    case "overdue":
+      return "bg-red-100 text-red-900";
+    case "due_today":
+      return "bg-amber-100 text-amber-900";
+    case "waiting_on_owner":
+      return "bg-purple-100 text-purple-900";
+    case "completed":
+      return "bg-emerald-100 text-emerald-900";
+    case "cancelled":
+      return "bg-neutral-100 text-neutral-500";
+    default:
+      return "bg-blue-100 text-blue-900";
+  }
+}
+
+export function StatusQuickActions({ businessId, currentStatus }: { businessId: string; currentStatus: BusinessSalesStatus }) {
+  const router = useRouter();
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function setStatus(status: BusinessSalesStatus) {
+    setSaving(true);
+    setError(null);
+    const res = await fetch(`/api/admin/businesses/${businessId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    setSaving(false);
+    if (!res.ok) {
+      setError("No se pudo actualizar el estado. / Could not update status.");
+      return;
+    }
+    router.refresh();
+  }
+
+  return (
+    <div>
+      <label htmlFor="sales-status-select" className="block text-xs font-semibold text-[#3D3428]">
+        Estado / Status
+      </label>
+      <select
+        id="sales-status-select"
+        value={currentStatus}
+        disabled={saving}
+        onChange={(e) => void setStatus(e.target.value as BusinessSalesStatus)}
+        className="mt-1 min-h-[40px] w-full rounded-lg border border-[#E8DFD0] bg-white px-2 py-1.5 text-sm"
+      >
+        {BUSINESS_SALES_STATUSES.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.en}
+          </option>
+        ))}
+      </select>
+      {error ? (
+        <p role="alert" className="mt-1 text-xs text-red-700">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+export function NotesPanel({
+  businessId,
+  notes,
+  canWrite = true,
+}: {
+  businessId: string;
+  notes: SalesNoteRecord[];
+  canWrite?: boolean;
+}) {
+  const router = useRouter();
+  const [noteType, setNoteType] = useState<string>("conversation");
+  const [body, setBody] = useState("");
+  const [contactMethod, setContactMethod] = useState("");
+  const [outcome, setOutcome] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit() {
+    if (!body.trim()) {
+      setError("Se requiere el texto de la nota. / Note body is required.");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    const res = await fetch(`/api/admin/businesses/${businessId}/notes`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ noteType, body, contactMethod: contactMethod || null, outcome: outcome || null }),
+    });
+    setSubmitting(false);
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      setError(humanizeStaffWriteError(body?.error, "No se pudo guardar la nota. / Could not save the note."));
+      return;
+    }
+    setBody("");
+    setContactMethod("");
+    setOutcome("");
+    router.refresh();
+  }
+
+  return (
+    <div className="space-y-4">
+      {canWrite ? (
+      <div className="rounded-2xl border border-dashed border-[#D6C7AD] bg-[#FAF7F2]/60 p-4">
+        <fieldset className="space-y-3">
+          <legend className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Agregar una nota / Add a note</legend>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div>
+              <label htmlFor="note-type" className="block text-xs font-semibold text-[#3D3428]">
+                Tipo / Type
+              </label>
+              <select id="note-type" value={noteType} onChange={(e) => setNoteType(e.target.value)} className="mt-1 min-h-[40px] w-full rounded-lg border border-[#E8DFD0] bg-white px-2 py-1.5 text-sm">
+                {SALES_NOTE_TYPES.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.en}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="note-contact-method" className="block text-xs font-semibold text-[#3D3428]">
+                Método de contacto (opcional) / Contact method (optional)
+              </label>
+              <select id="note-contact-method" value={contactMethod} onChange={(e) => setContactMethod(e.target.value)} className="mt-1 min-h-[40px] w-full rounded-lg border border-[#E8DFD0] bg-white px-2 py-1.5 text-sm">
+                <option value="">—</option>
+                {SALES_CONTACT_METHODS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.en}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="note-outcome" className="block text-xs font-semibold text-[#3D3428]">
+                Resultado (opcional) / Outcome (optional)
+              </label>
+              <select id="note-outcome" value={outcome} onChange={(e) => setOutcome(e.target.value)} className="mt-1 min-h-[40px] w-full rounded-lg border border-[#E8DFD0] bg-white px-2 py-1.5 text-sm">
+                <option value="">—</option>
+                {SALES_NOTE_OUTCOMES.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.en}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label htmlFor="note-body" className="block text-xs font-semibold text-[#3D3428]">
+              Nota / Note
+            </label>
+            <textarea
+              id="note-body"
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              rows={3}
+              className="mt-1 w-full rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 text-sm"
+              placeholder="Qué se dijo, se observó o necesita seguimiento… / What was said, observed, or needs follow-up…"
+            />
+          </div>
+          {error ? (
+            <p role="alert" className="text-xs text-red-700">
+              {error}
+            </p>
+          ) : null}
+          <button type="button" onClick={() => void submit()} disabled={submitting} className="min-h-[44px] rounded-lg bg-[#7A1E2C] px-4 py-2 text-xs font-bold text-white disabled:opacity-50">
+            {submitting ? "Guardando… / Saving…" : "Guardar nota / Save note"}
+          </button>
+        </fieldset>
+      </div>
+      ) : (
+        <p className="text-xs text-[#7A7164]">
+          El acceso de arranque del dueño no puede escribir notas de ventas atribuidas al personal. Use Field Agent para guardar evidencia del personal en el Living Book. / Owner bootstrap cannot write roster-attributed sales notes. Use Field Agent to save Living Book staff evidence.
+        </p>
+      )}
+
+      <ul className="space-y-2">
+        {notes.map((note) => (
+          <li key={note.id} className="rounded-xl border border-[#E8DFD0] bg-white p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[#7A7164]">
+              <span className="font-bold text-[#3D3428]">{labelFrom(SALES_NOTE_TYPES, note.noteType, "en")}</span>
+              <span>
+                {note.authorEmail} · {new Date(note.createdAt).toLocaleString("en-US")}
+              </span>
+            </div>
+            <p className="mt-1 break-words text-sm text-[#1E1810]">{note.body}</p>
+            {note.contactMethod || note.outcome ? (
+              <p className="mt-1 text-[11px] text-[#7A7164]">
+                {note.contactMethod ? labelFrom(SALES_CONTACT_METHODS, note.contactMethod, "en") : ""}
+                {note.contactMethod && note.outcome ? " · " : ""}
+                {note.outcome ? labelFrom(ALL_SALES_NOTE_OUTCOME_LABELS, note.outcome, "en") : ""}
+              </p>
+            ) : null}
+          </li>
+        ))}
+        {notes.length === 0 ? <li className="text-sm text-[#7A7164]">Aún no hay notas de contacto. / No outreach notes yet.</li> : null}
+      </ul>
+    </div>
+  );
+}
+
+export function FollowUpPanel({
+  businessId,
+  current,
+  canWrite = true,
+}: {
+  businessId: string;
+  current: FollowUpRecord | null;
+  canWrite?: boolean;
+}) {
+  const router = useRouter();
+  const [scheduledDate, setScheduledDate] = useState("");
+  const [purpose, setPurpose] = useState("");
+  const [contactMethod, setContactMethod] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const displayStatus = current ? deriveFollowUpDisplayStatus(current.status, current.scheduledDate, todayIso) : null;
+
+  async function schedule() {
+    if (!scheduledDate || !purpose.trim()) {
+      setError("Se requieren la fecha y el propósito. / Date and purpose are required.");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    const res = await fetch(`/api/admin/businesses/${businessId}/follow-up`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ scheduledDate, purpose, contactMethod: contactMethod || null }),
+    });
+    setSubmitting(false);
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      setError(humanizeStaffWriteError(body?.error, "No se pudo programar el seguimiento. / Could not schedule the follow-up."));
+      return;
+    }
+    setScheduledDate("");
+    setPurpose("");
+    setContactMethod("");
+    router.refresh();
+  }
+
+  async function quickAction(action: "complete" | "cancel" | "waiting_on_owner") {
+    setSubmitting(true);
+    setError(null);
+    const res = await fetch(`/api/admin/businesses/${businessId}/follow-up`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action }),
+    });
+    setSubmitting(false);
+    if (!res.ok) {
+      setError("No se pudo actualizar el seguimiento. / Could not update the follow-up.");
+      return;
+    }
+    router.refresh();
+  }
+
+  return (
+    <div className="space-y-3">
+      {current && displayStatus ? (
+        <div className="rounded-xl border border-[#E8DFD0] bg-white p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${followUpStatusClass(displayStatus)}`}>{labelFrom(FOLLOW_UP_STATUSES, displayStatus, "en")}</span>
+            <span className="text-xs text-[#7A7164]">
+              {current.scheduledDate}
+              {current.scheduledTime ? ` · ${current.scheduledTime.slice(0, 5)}` : ""}
+            </span>
+          </div>
+          <p className="mt-2 break-words text-sm text-[#1E1810]">{current.purpose}</p>
+          {current.contactMethod ? <p className="mt-1 text-xs text-[#7A7164]">Via {labelFrom(SALES_CONTACT_METHODS, current.contactMethod, "en")}</p> : null}
+          <p className="mt-1 text-[11px] text-[#7A7164]">
+            Programado por / Scheduled by {current.createdByEmail}
+            {current.createdByRole ? ` · ${current.createdByRole}` : ""}
+          </p>
+          {canWrite ? (
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <button type="button" onClick={() => void quickAction("complete")} disabled={submitting} className="min-h-[44px] rounded-lg bg-[#1F3A2D] px-3 py-2 text-xs font-bold text-white disabled:opacity-50">
+              Marcar contactado / completo / Mark contacted / complete
+            </button>
+            <button type="button" onClick={() => void quickAction("waiting_on_owner")} disabled={submitting} className="min-h-[44px] rounded-lg border border-[#E8DFD0] px-3 py-2 text-xs font-semibold text-[#3D3428] disabled:opacity-50">
+              Esperando al dueño / Waiting on owner
+            </button>
+            <button type="button" onClick={() => void quickAction("cancel")} disabled={submitting} className="min-h-[44px] rounded-lg border border-[#E8DFD0] px-3 py-2 text-xs font-semibold text-[#3D3428] disabled:opacity-50">
+              No es adecuado por ahora / Not a fit right now
+            </button>
+          </div>
+          ) : null}
+        </div>
+      ) : (
+        <p className="text-sm text-[#7A7164]">No hay seguimiento programado. / No follow-up scheduled.</p>
+      )}
+
+      {canWrite ? (
+      <div className="rounded-2xl border border-dashed border-[#D6C7AD] bg-[#FAF7F2]/60 p-4">
+        <fieldset className="space-y-3">
+          <legend className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">{current ? "Reemplazar seguimiento / Replace follow-up" : "Programar seguimiento / Schedule follow-up"}</legend>
+          <p className="text-[11px] text-[#7A7164]">
+            {current
+              ? "Un negocio tiene un seguimiento actual. Guardar una nueva fecha reemplaza el actual. Esto no es una línea de tiempo histórica. / A business has one current follow-up. Saving a new date replaces the current one. This is not a history timeline."
+              : "¿Cuándo debemos dar seguimiento, por qué y cuál es la próxima acción esperada? / When should we follow up, why, and what is the expected next action?"}
+          </p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div>
+              <label htmlFor="follow-up-date" className="block text-xs font-semibold text-[#3D3428]">
+                Fecha / Date
+              </label>
+              <input id="follow-up-date" type="date" value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} className="mt-1 min-h-[44px] w-full rounded-lg border border-[#E8DFD0] bg-white px-2 py-1.5 text-sm" />
+            </div>
+            <div>
+              <label htmlFor="follow-up-method" className="block text-xs font-semibold text-[#3D3428]">
+                Método de contacto / Contact method
+              </label>
+              <select id="follow-up-method" value={contactMethod} onChange={(e) => setContactMethod(e.target.value)} className="mt-1 min-h-[44px] w-full rounded-lg border border-[#E8DFD0] bg-white px-2 py-1.5 text-sm">
+                <option value="">—</option>
+                {SALES_CONTACT_METHODS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.en}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label htmlFor="follow-up-purpose" className="block text-xs font-semibold text-[#3D3428]">
+              Propósito / Purpose
+            </label>
+            <input id="follow-up-purpose" value={purpose} onChange={(e) => setPurpose(e.target.value)} className="mt-1 min-h-[44px] w-full rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 text-sm" placeholder="p. ej. confirmar número de WhatsApp / e.g. confirm WhatsApp number" />
+          </div>
+          {error ? (
+            <p role="alert" className="text-xs text-red-700">
+              {error}
+            </p>
+          ) : null}
+          <button type="button" onClick={() => void schedule()} disabled={submitting} className="min-h-[44px] rounded-lg bg-[#7A1E2C] px-4 py-2 text-xs font-bold text-white disabled:opacity-50">
+            {submitting ? "Guardando… / Saving…" : current ? "Reemplazar seguimiento / Replace follow-up" : "Programar seguimiento / Schedule follow-up"}
+          </button>
+        </fieldset>
+      </div>
+      ) : (
+        <p className="text-xs text-[#7A7164]">
+          El acceso de arranque del dueño no puede crear seguimientos atribuidos al personal. El personal con un rol real usa este formulario. / Owner bootstrap cannot create roster-attributed follow-ups. Staff with a real roster use this form.
+        </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * ADMIN-OS-01 GATE 2/3 — explicit, admin-only linking to `business_external_links`. The record
+ * type + id are chosen deliberately by staff; the server re-verifies the record is real before
+ * writing anything (see /api/admin/businesses/[businessId]/external-links). Never auto-matches
+ * on business_name, never mutates the linked lead/payment/support-ticket row.
+ */
+type ExternalRecordType = "lead" | "payment" | "support_ticket";
+
+const EXTERNAL_RECORD_TYPE_OPTIONS: Array<{ value: ExternalRecordType; label: string }> = [
+  { value: "lead", label: "Lead (leonix_leads)" },
+  { value: "payment", label: "Payment record (leonix_payment_records)" },
+  { value: "support_ticket", label: "Support ticket" },
+];
+
+export type ExternalLinkSummaryEntry = {
+  link: {
+    id: string;
+    recordType: string;
+    recordId: string;
+    status: string;
+    linkedAt: string;
+  };
+  summary: {
+    title: string;
+    status: string | null;
+    amountLabel: string | null;
+    contextLabel: string | null;
+    adminHref: string;
+  } | null;
+};
+
+export function LinkExternalRecordPanel({
+  businessId,
+  links,
+  canWrite = true,
+}: {
+  businessId: string;
+  links: ExternalLinkSummaryEntry[];
+  canWrite?: boolean;
+}) {
+  const router = useRouter();
+  const [recordType, setRecordType] = useState<ExternalRecordType>("lead");
+  const [recordId, setRecordId] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit() {
+    if (!recordId.trim()) {
+      setError("Enter the record's id.");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    const res = await fetch(`/api/admin/businesses/${businessId}/external-links`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ recordType, recordId: recordId.trim() }),
+    });
+    setSubmitting(false);
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      const err = String(body?.error ?? "");
+      setError(
+        err === "record_not_found"
+          ? "No record with that id was found in that table — double-check the id."
+          : err === "duplicate"
+            ? "This record is already linked (to this business or another one)."
+            : err === "table_missing"
+              ? "Linking isn't turned on in this environment yet — the underlying feature hasn't been enabled here."
+              : "Could not create the link.",
+      );
+      return;
+    }
+    setRecordId("");
+    router.refresh();
+  }
+
+  return (
+    <div className="space-y-4">
+      {canWrite ? (
+        <div className="rounded-2xl border border-dashed border-[#D6C7AD] bg-[#FAF7F2]/60 p-4">
+          <fieldset className="space-y-3">
+            <legend className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Link an existing record</legend>
+            <p className="text-[11px] text-[#7A7164]">
+              You must know the record&apos;s real id — this never searches or guesses by business name, and it
+              never changes the original lead, payment, or ticket. It only records that the two belong together.
+            </p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div>
+                <label htmlFor="ext-link-type" className="block text-xs font-semibold text-[#3D3428]">
+                  Record type
+                </label>
+                <select
+                  id="ext-link-type"
+                  value={recordType}
+                  onChange={(e) => setRecordType(e.target.value as ExternalRecordType)}
+                  className="mt-1 min-h-[40px] w-full rounded-lg border border-[#E8DFD0] bg-white px-2 py-1.5 text-sm"
+                >
+                  {EXTERNAL_RECORD_TYPE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="sm:col-span-2">
+                <label htmlFor="ext-link-id" className="block text-xs font-semibold text-[#3D3428]">
+                  Record id
+                </label>
+                <input
+                  id="ext-link-id"
+                  value={recordId}
+                  onChange={(e) => setRecordId(e.target.value)}
+                  className="mt-1 min-h-[40px] w-full rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 text-sm font-mono"
+                  placeholder="uuid"
+                />
+              </div>
+            </div>
+            {error ? (
+              <p role="alert" className="text-xs text-red-700">
+                {error}
+              </p>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => void submit()}
+              disabled={submitting}
+              className="min-h-[44px] rounded-lg bg-[#7A1E2C] px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
+            >
+              {submitting ? "Linking…" : "Link record"}
+            </button>
+          </fieldset>
+        </div>
+      ) : (
+        <p className="text-xs text-[#7A7164]">Owner bootstrap cannot create roster-attributed links.</p>
+      )}
+
+      <ul className="space-y-2">
+        {links.map(({ link, summary }) => (
+          <li key={link.id} className="rounded-xl border border-[#E8DFD0] bg-white p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[#7A7164]">
+              <span className="rounded-full bg-[#EDE6D6] px-2 py-0.5 font-bold text-[#3D3428]">{link.recordType}</span>
+              <span>Linked {new Date(link.linkedAt).toLocaleDateString("en-US")}</span>
+            </div>
+            {summary ? (
+              <>
+                <p className="mt-1 break-words text-sm font-semibold text-[#1E1810]">{summary.title}</p>
+                <p className="mt-0.5 text-xs text-[#5C5346]">
+                  {summary.status ? `Status: ${summary.status}` : null}
+                  {summary.status && summary.amountLabel ? " · " : null}
+                  {summary.amountLabel}
+                  {(summary.status || summary.amountLabel) && summary.contextLabel ? " · " : null}
+                  {summary.contextLabel}
+                </p>
+                <a href={summary.adminHref} className="mt-1 inline-block text-xs font-bold text-[#7A1E2C] underline">
+                  Open in Admin →
+                </a>
+              </>
+            ) : (
+              <p className="mt-1 text-xs font-semibold text-amber-800">
+                Record {link.recordId} no longer exists in its source table (deleted after linking).
+              </p>
+            )}
+          </li>
+        ))}
+        {links.length === 0 ? <li className="text-sm text-[#7A7164]">No connected payments, leads, or support tickets yet.</li> : null}
+      </ul>
+    </div>
+  );
+}

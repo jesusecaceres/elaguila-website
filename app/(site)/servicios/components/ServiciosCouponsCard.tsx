@@ -5,6 +5,8 @@ import { FaTicketAlt } from "react-icons/fa";
 import type { ServiciosProfileResolved } from "../types/serviciosBusinessProfile";
 import type { ServiciosLang } from "../types/serviciosBusinessProfile";
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
+import { BusinessFlyerViewerModal } from "@/app/components/media/BusinessFlyerViewerModal";
+import { LeonixHorizontalRail } from "@/app/components/leonix/LeonixHorizontalRail";
 
 type CouponRow = ServiciosProfileResolved["coupons"][number];
 
@@ -141,21 +143,20 @@ export function ServiciosCouponsCard({
 
   return (
     <>
-      {lightboxSrc && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
-          role="dialog"
-          aria-modal
-          onClick={closeLightbox}
-        >
-          <img
-            src={lightboxSrc}
-            alt=""
-            className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
+      {/* Servicios Owner QA (⚠️22 / SVC-QA-09) — this was a bespoke overlay with NO close control
+          and no Escape (backdrop-click only). It now uses the shared Restaurantes-quality viewer:
+          always-visible header close, Escape, viewport-safe sizing. `kind="image"` because coupon
+          and flyer uploads are extension-less Leonix Blob URLs. */}
+      <BusinessFlyerViewerModal
+        open={Boolean(lightboxSrc)}
+        onClose={closeLightbox}
+        href={lightboxSrc ?? ""}
+        kind="image"
+        title={lang === "en" ? "Coupons and promotions" : "Cupones y promociones"}
+        closeLabel={lang === "en" ? "Close ✕" : "Cerrar ✕"}
+        unavailableLabel={lang === "en" ? "Preview not available for this file." : "Vista integrada no disponible para este archivo."}
+        downloadLabel={lang === "en" ? "Open in a new tab" : "Abrir en otra pestaña"}
+      />
       <section
         className={`scroll-mt-24 ${featuredRow ? "rounded-2xl border border-[#D8C2A0] bg-[#FFFAF3] p-4 shadow-[0_4px_20px_-8px_rgba(212,165,116,0.14)] sm:p-5" : ""}`}
         aria-labelledby="cupones-destacados-heading"
@@ -173,13 +174,18 @@ export function ServiciosCouponsCard({
         </div>
         {validCoupons.length > 0 ? (
           <>
-            <div className="-mx-1 mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] md:hidden">
+            <LeonixHorizontalRail
+              lang={lang}
+              className="mt-4 md:hidden"
+              fadeColor="#FFFAF3"
+              trackClassName="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin]"
+            >
               {validCoupons.map((c, i) => (
                 <div key={`coupon-${i}`} className="flex w-[min(82vw,280px)] shrink-0 snap-center flex-col">
                   <CouponInnerCard coupon={c} lang={lang} onImageOpen={openLightbox} featuredRow={featuredRow} />
                 </div>
               ))}
-            </div>
+            </LeonixHorizontalRail>
             <div className={`hidden gap-3 md:grid ${featuredRow ? "mt-4 grid-cols-2 lg:grid-cols-4" : "md:grid-cols-2 lg:grid-cols-4"}`}>
               {validCoupons.map((c, i) => (
                 <CouponInnerCard

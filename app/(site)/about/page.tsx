@@ -2,6 +2,9 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { getAboutPageCopy, type AboutPageLang } from "@/app/lib/leonix/aboutPageCopy";
 import { LEONIX_MEDIA_SITE_NAME } from "@/app/lib/leonixBrand";
+import { getSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
+import type { NosotrosPayload } from "@/app/lib/siteSectionContent/payloadTypes";
+import { mergeNosotrosCopy } from "@/app/lib/siteSectionContent/nosotrosMerge";
 
 function withLang(href: string, lang: AboutPageLang): string {
   const [path, query = ""] = href.split("?");
@@ -53,7 +56,16 @@ export default async function AboutPage(props: { searchParams?: Promise<{ lang?:
   const sp = (await props.searchParams) ?? {};
   const lang: AboutPageLang = sp.lang === "en" ? "en" : "es";
   const swap: AboutPageLang = lang === "en" ? "es" : "en";
-  const c = getAboutPageCopy(lang);
+  const baseCopy = getAboutPageCopy(lang);
+
+  // ADMIN-OS-01: wire the "nosotros" site_section_content payload into the live
+  // page — the admin editor at /admin/workspace/nosotros/content previously
+  // persisted this content with no live consumer (silent split wiring).
+  const { payload: nosotrosPayload } = await getSiteSectionPayload("nosotros");
+  const nosotrosMerged = mergeNosotrosCopy(nosotrosPayload as NosotrosPayload);
+  const nosotros = nosotrosMerged[lang];
+  const c = { ...baseCopy, heroTitle: nosotros.heroTitle, heroSubtitle: nosotros.lead || baseCopy.heroSubtitle };
+  const hasStoryBlock = Boolean(nosotros.mission || nosotros.vision || nosotros.values || nosotrosMerged.mediaImageSrc);
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#FAF6EE] pb-20 text-[#1F241C]">
@@ -103,6 +115,74 @@ export default async function AboutPage(props: { searchParams?: Promise<{ lang?:
             </CtaLink>
           </div>
         </section>
+
+        {/* Our story — admin-editable editorial block (site_section_content "nosotros":
+            mission/vision/values/image/CTAs). Only renders when the admin has actually
+            populated one of these fields, so a never-edited section is invisible. */}
+        {hasStoryBlock ? (
+          <section className="mt-14 rounded-2xl border border-[#C9A84A]/40 bg-[#FFFDF7] p-6 sm:p-8">
+            <div className="grid gap-8 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:items-center">
+              <div className="space-y-6">
+                {nosotros.mission ? (
+                  <div>
+                    <h2 className="font-serif text-xl font-bold text-[#2A4536]">
+                      {lang === "en" ? "Mission" : "Misión"}
+                    </h2>
+                    <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-[#3D3428] sm:text-base">
+                      {nosotros.mission}
+                    </p>
+                  </div>
+                ) : null}
+                {nosotros.vision ? (
+                  <div>
+                    <h2 className="font-serif text-xl font-bold text-[#2A4536]">
+                      {lang === "en" ? "Vision" : "Visión"}
+                    </h2>
+                    <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-[#3D3428] sm:text-base">
+                      {nosotros.vision}
+                    </p>
+                  </div>
+                ) : null}
+                {nosotros.values ? (
+                  <div>
+                    <h2 className="font-serif text-xl font-bold text-[#2A4536]">
+                      {lang === "en" ? "Values" : "Valores"}
+                    </h2>
+                    <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-[#3D3428] sm:text-base">
+                      {nosotros.values}
+                    </p>
+                  </div>
+                ) : null}
+                {nosotros.ctaPrimary || nosotros.ctaSecondary ? (
+                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                    {nosotros.ctaPrimary ? (
+                      <CtaLink href={nosotrosMerged.ctaPrimaryHref ?? "/contacto"} lang={lang} variant="primary">
+                        {nosotros.ctaPrimary}
+                      </CtaLink>
+                    ) : null}
+                    {nosotros.ctaSecondary ? (
+                      <CtaLink href={nosotrosMerged.ctaSecondaryHref ?? "/tienda"} lang={lang} variant="secondary">
+                        {nosotros.ctaSecondary}
+                      </CtaLink>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+              {nosotrosMerged.mediaImageSrc ? (
+                <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl border border-[#D6C7AD]">
+                  {/* Plain <img>, not next/image: this is an admin-entered arbitrary HTTPS
+                      URL, not one of the allow-listed remotePatterns hosts — next/image
+                      would throw a raw runtime error for any other host. */}
+                  <img
+                    src={nosotrosMerged.mediaImageSrc}
+                    alt={nosotros.mediaAlt}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
 
         {/* What we are */}
         <section className="mt-14 rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] p-6 sm:p-8">

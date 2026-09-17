@@ -94,7 +94,11 @@ async function main() {
    * `checkpointRoute ?? hubRoute ?? applicationRoute`. Hub-based categories are unchanged.
    * ---------------------------------------------------------------------------------------- */
   {
-    assert.equal(resolvePublicarGatewayDestination("servicios", "es"), "/publicar/servicios?lang=es");
+    // Servicios Live Launch Perfection ⚠️1 (2026-09-13): Servicios now declares its paid checkpoint.
+    assert.equal(
+      resolvePublicarGatewayDestination("servicios", "es"),
+      "/clasificados/publicar/servicios/checkpoint?lang=es",
+    );
     assert.equal(resolvePublicarGatewayDestination("empleos", "es"), "/publicar/empleos?lang=es");
     assert.equal(resolvePublicarGatewayDestination("restaurantes", "es"), "/publicar/restaurantes?lang=es");
     // Package A Gate 2 — quick lanes now enter through their checkpoint card page; the quick

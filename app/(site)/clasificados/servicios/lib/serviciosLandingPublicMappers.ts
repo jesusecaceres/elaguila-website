@@ -1,4 +1,5 @@
 import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosProfile";
+import { relabelServiciosCanonicalPresets } from "@/app/(site)/servicios/lib/serviciosTranslateAd";
 import { getServiciosProfileLabels } from "@/app/servicios/copy/serviciosProfileCopy";
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
 import { formatServiciosInternalGroupForDiscovery } from "./serviciosInternalGroupDisplay";
@@ -15,7 +16,8 @@ const FALLBACK_COVER =
 function resolvedProfile(row: ServiciosPublicListingRow, lang: ServiciosLang) {
   const wire = { ...row.profile_json };
   wire.identity = { ...wire.identity, leonixVerified: row.leonix_verified === true };
-  return resolveServiciosProfile(wire, lang);
+  // ⚠️38A — landing discovery cards render canonical preset labels in the viewer's locale.
+  return relabelServiciosCanonicalPresets(resolveServiciosProfile(wire, lang), lang);
 }
 
 export function mapServiciosRowToLandingFeatured(

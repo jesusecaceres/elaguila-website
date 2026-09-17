@@ -52,7 +52,18 @@ assert(contactCard.includes("ServiciosHubReviewLinkButton"), "contact card: revi
 assert(!contactCard.includes("HubDivider"), "contact card: no long vertical divider stack");
 assert(!contactCard.includes("border-2 border-[#D4C4A8] shadow-md ring-1 ring-[#C9A84A]/20"), "contact card: no oversized map border wrapper");
 
-assert(shellTokens.includes("lg:grid-cols-4"), "shell tokens: grouped features compact grid");
+// Zero-debt closeout 2026-09-12: this demanded the literal breakpoint spelling `lg:grid-cols-4`.
+// The grouped-features grid now fills four columns at `xl` (the token asserted green by
+// verify-servicios-interaction-polish). Assert the CONTRACT — a responsive multi-column grid that
+// reaches four columns on wide screens — not one breakpoint's spelling.
+assert(
+  /grid-cols-1/.test(shellTokens) && /(sm|md):grid-cols-2/.test(shellTokens),
+  "shell tokens: grouped features start single-column and step up",
+);
+assert(
+  /(lg|xl):grid-cols-4/.test(shellTokens),
+  "shell tokens: grouped features reach a 4-column compact grid on wide screens",
+);
 assert(shellTokens.includes("xl:grid-cols-6"), "shell tokens: amenities xl grid");
 assert(shellTokens.includes("text-[10px]"), "shell tokens: compact chip text");
 

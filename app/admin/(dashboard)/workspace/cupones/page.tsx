@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
 import { AdminSectionOwnershipCallout } from "../../../_components/AdminSectionOwnershipCallout";
-import { adminBtnSecondary, adminCardBase, adminPartialBadgeClass } from "../../../_components/adminTheme";
+import { adminBtnSecondary, adminCardBase, adminStubBadgeClass } from "../../../_components/adminTheme";
 
 export const dynamic = "force-dynamic";
 
@@ -9,33 +9,27 @@ export default function AdminWorkspaceCuponesPage() {
   return (
     <div className="max-w-3xl space-y-6">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase text-emerald-900">
-          Persisted cards
-        </span>
-        <span className={adminPartialBadgeClass}>No quotas / scans yet</span>
+        <span className={adminStubBadgeClass}>Legacy CMS — not the real control surface</span>
       </div>
       <AdminPageHeader
         eyebrow="Workspace · Cupones"
         title="Cupones"
-        subtitle="A single payload (`cupones_page`) feeds `/cupones` and `/coupons` with bilingual copy and up to 8 cards. No redemption, QR, or per-user limits yet."
-        helperText="Images must exist under /public (e.g. /coupons/…)."
+        subtitle="`/cupones` and `/coupons` are rebuilt on the real Ofertas Locales search system (Cupones V1). The old `cupones_page` payload/editor below is no longer rendered anywhere — control the live pages from the Ofertas Locales queue instead."
+        helperText="Confirmed by direct code review: the old Cupones editor's page component is never loaded by the live site anymore, so nothing you save here can reach a customer."
       />
 
       <AdminSectionOwnershipCallout
         sectionTitle="Cupones"
         publicPath="/cupones · /coupons"
-        sourceOfTruth="Coupon marketing: `site_section_content.cupones_page`. No transactional table yet."
+        sourceOfTruth="Live: ofertas_locales / oferta_local_items (coupon-lane offers), reviewed at /admin/workspace/clasificados/ofertas-locales. `site_section_content.cupones_page` is retained but inert."
         siteSectionKey="cupones_page"
         adminEditors={[
-          { label: "Page & card editor", href: "/admin/workspace/cupones/content" },
-          { label: "Tienda — storefront", href: "/admin/workspace/tienda/storefront" },
-          { label: "Home — content", href: "/admin/workspace/home/content" },
-          { label: "Global settings", href: "/admin/site-settings" },
+          { label: "Real control surface — Ofertas Locales review queue", href: "/admin/workspace/clasificados/ofertas-locales" },
+          { label: "Legacy editor (honestly disabled)", href: "/admin/workspace/cupones/content" },
         ]}
         notYet={[
-          "`coupons` table with real expiry, quotas, codes, and audit if the business requires it.",
-          "Redemption flow or POS integration.",
-          "Minimal viable schema: unique code, max_redemptions, valid_from/until, revocation, and `coupon_redemptions` (optional user_id, timestamp).",
+          "A dedicated coupon-lane filter/badge inside the Ofertas Locales queue (today it's reachable, not visually distinguished from flyer offers).",
+          "`coupons` transactional table with real expiry, quotas, codes, and redemption tracking, if the business requires it.",
         ]}
       />
 
@@ -49,9 +43,17 @@ export default function AdminWorkspaceCuponesPage() {
             /coupons
           </Link>
         </p>
+        <p className="text-sm text-[#5C5346]">
+          <Link
+            href="/admin/workspace/clasificados/ofertas-locales"
+            className="font-bold text-[#6B5B2E] underline"
+          >
+            Open the real Ofertas Locales review queue →
+          </Link>
+        </p>
         <p className="text-xs text-[#7A7164]">
-          <Link href="/admin/workspace/cupones/content" className="font-bold text-[#6B5B2E] underline">
-            Go to editor →
+          <Link href="/admin/workspace/cupones/content" className="underline">
+            View the disabled legacy editor →
           </Link>
         </p>
       </div>

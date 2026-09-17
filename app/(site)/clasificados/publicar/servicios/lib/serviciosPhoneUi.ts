@@ -1,3 +1,8 @@
+import {
+  formatInternationalWhatsAppInputDisplay,
+  isValidInternationalWhatsAppNumber,
+} from "@/app/lib/whatsapp/internationalWhatsApp";
+
 /** Digits only — stored in application state; validation uses digit count. */
 export function digitsOnly(raw: string): string {
   return raw.replace(/\D/g, "");
@@ -33,16 +38,16 @@ export function isValidUsPhone(raw: string): boolean {
  * only — no US (XXX) XXX-XXXX grouping, and no truncation to 10 digits. WhatsApp numbers are
  * frequently non-US, so unlike the primary phone field this must not force US formatting or
  * silently drop a country code (see contract §3.5 — primary phone stays separately US-formatted).
- * Caps at 16 characters, generous headroom over the 15-digit E.164 max (+ up to 15 digits).
+ * Caps at the 15-digit E.164 max.
+ *
+ * Gate SERVICIOS-1 — delegates to the shared `internationalWhatsApp.ts` module (which was itself
+ * extracted from this function) so the E.164 ceiling has exactly one definition on the platform.
  */
 export function formatWhatsAppInputDisplay(raw: string): string {
-  const hasLeadingPlus = raw.trim().startsWith("+");
-  const digits = digitsOnly(raw).slice(0, 15);
-  return (hasLeadingPlus ? "+" : "") + digits;
+  return formatInternationalWhatsAppInputDisplay(raw);
 }
 
-/** True when empty or has at least 7 digits (loose international sanity check, no US-only 10-digit rule). */
+/** True when empty or 7-15 digits (loose international sanity check, no US-only 10-digit rule). */
 export function isValidWhatsAppNumber(raw: string): boolean {
-  const d = digitsOnly(raw);
-  return d.length === 0 || (d.length >= 7 && d.length <= 15);
+  return isValidInternationalWhatsAppNumber(raw);
 }

@@ -15,6 +15,7 @@ import {
 import { runAdminUnifiedSearch } from "../../_lib/adminOpsUnifiedSearch";
 import { adminMessages, getAdminLang } from "../../_lib/adminI18n";
 import { OpsGlobalLookupEmptyState } from "./_components/OpsGlobalLookupEmptyState";
+import { getCurrentAdminAccessContext, hasPaymentTrackerAccess, isOwnerAdminRole } from "../../_lib/adminAccessControl";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,19 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
   const qRaw = typeof sp.q === "string" ? sp.q : Array.isArray(sp.q) ? (sp.q[0] ?? "") : "";
   const q = qRaw.trim();
 
-  const bundle = q ? await runAdminUnifiedSearch(q) : null;
+  // Master Operating Book V2 §17 — passed through to the Executive Hub / staff-contact-profile
+  // search source so its result destination is never an owner-only route a restricted viewer
+  // would be redirected away from (see adminExtendedGlobalSearch.ts's AdminExtendedSearchViewer).
+  const access = await getCurrentAdminAccessContext();
+  const viewer = {
+    rosterId: access.rosterMemberId,
+    isOwnerAdmin: isOwnerAdminRole(access.normalizedRole),
+    // Launch Truth Doctrine (2026-09) — Company Search's Payments/entitlements source must not
+    // bypass the same permission the dedicated Payment Tracker page enforces.
+    canViewPayments: hasPaymentTrackerAccess(access),
+  };
+
+  const bundle = q ? await runAdminUnifiedSearch(q, viewer) : null;
   const lang = await getAdminLang();
   const m = adminMessages(lang);
 
@@ -124,6 +137,9 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
               </a>
               <a href="#ops-listings" className={adminCtaChipCompact}>
                 {m("opsPage.navListings")}
+              </a>
+              <a href="#ops-dedicated-categories" className={adminCtaChipCompact}>
+                Categories
               </a>
               <a href="#ops-orders" className={adminCtaChipCompact}>
                 {m("opsPage.navTienda")}
@@ -344,6 +360,155 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
                 </div>
               </div>
             )}
+          </section>
+
+          <section
+            id="ops-dedicated-categories"
+            className={`${adminCardBase} scroll-mt-24 p-5`}
+            data-testid="ops-results-dedicated-categories"
+          >
+            <h2 className="text-base font-bold text-[#1E1810]">Categories (Servicios, Autos, Restaurantes, Empleos, Viajes, Comida Local, Ofertas Locales)</h2>
+            <p className="mt-1 text-xs text-[#7A7164]">
+              These 7 categories live on their own dedicated tables, not the generic{" "}
+              <code className="rounded bg-white/70 px-1">listings</code> table above, so they need their own search
+              results.
+            </p>
+            {bundle.dedicatedCategories.errors.length > 0 ? (
+              <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50/90 p-3 text-xs text-amber-950">
+                {bundle.dedicatedCategories.errors.map((e) => (
+                  <p key={e}>{e}</p>
+                ))}
+              </div>
+            ) : null}
+            {bundle.dedicatedCategories.rows.length === 0 ? (
+              <p className="mt-3 text-sm text-[#5C5346]">No rows matched in these categories.</p>
+            ) : (
+              <div className={`mt-4 ${adminTableWrap}`}>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-[#E8DFD0] bg-[#FAF7F2]/90">
+                        <th className="p-2 font-semibold text-[#5C4E2E]">Id</th>
+                        <th className="p-2 font-semibold text-[#5C4E2E]">Title</th>
+                        <th className="p-2 font-semibold text-[#5C4E2E]">Category</th>
+                        <th className="p-2 font-semibold text-[#5C4E2E]">Status</th>
+                        <th className="p-2 font-semibold text-[#5C4E2E]">Owner</th>
+                        <th className="p-2 font-semibold text-[#5C4E2E]"> </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {bundle.dedicatedCategories.rows.map((row) => (
+                        <tr key={`${row.category}:${row.id}`} className="border-b border-[#E8DFD0]/60">
+                          <td className="max-w-[120px] p-2 font-mono text-[10px] text-[#3D3428]" title={row.id}>
+                            <span className="break-all">{row.id}</span>
+                          </td>
+                          <td className="max-w-[160px] truncate p-2 text-[#1E1810]" title={row.title ?? ""}>
+                            {row.title ?? "—"}
+                          </td>
+                          <td className="p-2 text-xs">{row.category}</td>
+                          <td className="p-2 text-xs">{row.status ?? "—"}</td>
+                          <td className="p-2 font-mono text-xs">
+                            {row.ownerId ? (
+                              <Link href={`/admin/usuarios/${row.ownerId}`} className="text-[#6B5B2E] underline">
+                                {row.ownerId.slice(0, 8)}…
+                              </Link>
+                            ) : (
+                              "—"
+                            )}
+                          </td>
+                          <td className="p-2">
+                            <Link href={row.adminHref} className="block text-xs font-bold text-[#6B5B2E] underline">
+                              {m("opsPage.adminQueue")}
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </section>
+
+          <section id="ops-businesses" className={`${adminCardBase} scroll-mt-24 p-5`} data-testid="ops-results-businesses">
+            <h2 className="text-base font-bold text-[#1E1810]">Businesses</h2>
+            <p className="mt-1 text-xs text-[#7A7164]">
+              Canonical Leonix businesses (Business 360) matching the name searched above.
+            </p>
+            {bundle.businesses.items.length === 0 ? (
+              <p className="mt-3 text-sm text-[#5C5346]">No businesses matched.</p>
+            ) : (
+              <ul className="mt-4 space-y-2 text-sm">
+                {bundle.businesses.items.map(({ business, salesStatus }) => (
+                  <li
+                    key={business.id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#E8DFD0]/70 bg-white/70 p-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-[#1E1810]">{business.displayName}</p>
+                      <p className="text-[10px] uppercase tracking-wide text-[#9A9084]">
+                        {business.broadBusinessType} · {salesStatus}
+                      </p>
+                    </div>
+                    <Link
+                      href={`/admin/businesses/${business.id}`}
+                      className="shrink-0 text-xs font-bold text-[#6B5B2E] underline"
+                    >
+                      Open Business 360 →
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section id="ops-extended" className={`${adminCardBase} scroll-mt-24 p-5`} data-testid="ops-results-extended">
+            <h2 className="text-base font-bold text-[#1E1810]">Staff, Contact Profiles, Leads, Payments, Recursos, Revista, Support</h2>
+            <p className="mt-1 text-xs text-[#7A7164]">
+              Grouped by type. Entities with no per-record deep link open the correct queue instead of a specific row.
+            </p>
+            {bundle.extended.errors.length > 0 ? (
+              <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50/90 p-3 text-xs text-amber-950">
+                {bundle.extended.errors.map((e) => (
+                  <p key={e}>{e}</p>
+                ))}
+              </div>
+            ) : null}
+            {bundle.extended.rows.length === 0 ? (
+              <p className="mt-3 text-sm text-[#5C5346]">No rows matched in these sources.</p>
+            ) : (
+              <ul className="mt-4 space-y-2 text-sm">
+                {bundle.extended.rows.map((row) => (
+                  <li
+                    key={`${row.entityType}:${row.id}`}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#E8DFD0]/70 bg-white/70 p-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#9A9084]">{row.entityLabel}</p>
+                      <p className="truncate font-semibold text-[#1E1810]">{row.title ?? "—"}</p>
+                      {row.status ? <p className="text-xs text-[#7A7164]">{row.status}</p> : null}
+                      {row.entityType === "executive_profile" && row.linkedRosterId ? (
+                        <p className="text-[10px] text-[#9A9084]">Linked to a staff login account</p>
+                      ) : null}
+                    </div>
+                    <Link href={row.adminHref} className="shrink-0 text-xs font-bold text-[#6B5B2E] underline">
+                      Open →
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {bundle.extended.unsupportedSources.length > 0 ? (
+              <p className="mt-4 text-[11px] text-[#9A9084]">
+                Not searchable yet:{" "}
+                {bundle.extended.unsupportedSources.map((s, i) => (
+                  <span key={s.source}>
+                    {i > 0 ? "; " : ""}
+                    <strong>{s.source}</strong> — {s.reason}
+                  </span>
+                ))}
+              </p>
+            ) : null}
           </section>
 
           <section id="ops-orders" className={`${adminCardBase} scroll-mt-24 p-5`} data-testid="ops-results-orders">

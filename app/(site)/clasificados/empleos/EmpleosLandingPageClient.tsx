@@ -20,7 +20,7 @@ import {
   LeonixCategoryHeroGateway,
   LeonixCategorySearchCanvas,
   LeonixCategoryPartnerSection,
-  LeonixCategoryDiscoveryGrid,
+  LeonixCategoryImageDiscoveryGrid,
   LeonixCategoryVisibilityStrip,
   type Lang as V2Lang,
 } from "@/app/(site)/clasificados/components/categoryStandardV2";
@@ -35,6 +35,7 @@ import {
 } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
 import { buildEmpleosResultadosUrl } from "./shared/utils/empleosListaUrl";
 import { EMPLEOS_PUBLISH_HUB_PATH } from "./empleosLandingRoutes";
+import { EMPLEOS_CHILD_CATEGORY_IMAGE } from "./empleosChildCategoryImages";
 
 const JOB_CATEGORY_TILES = [
   { slug: "salud", titleEs: "Salud", titleEn: "Health", hintEs: "Cuidado y bienestar", hintEn: "Care and wellness", icon: FiHeart },
@@ -95,13 +96,18 @@ export function EmpleosLandingPage() {
     />
   );
 
-  const discoveryItems = JOB_CATEGORY_TILES.map((cat) => ({
-    id: cat.slug,
-    label: lang === "es" ? cat.titleEs : cat.titleEn,
-    hint: lang === "es" ? cat.hintEs : cat.hintEn,
-    href: buildEmpleosResultadosUrl(lang, { category: cat.slug }),
-    icon: cat.icon,
-  }));
+  const discoveryItems = JOB_CATEGORY_TILES.map((cat) => {
+    const label = lang === "es" ? cat.titleEs : cat.titleEn;
+    return {
+      id: cat.slug,
+      label,
+      hint: lang === "es" ? cat.hintEs : cat.hintEn,
+      href: buildEmpleosResultadosUrl(lang, { category: cat.slug }),
+      imageSrc: EMPLEOS_CHILD_CATEGORY_IMAGE[cat.slug],
+      imageAlt: label,
+      icon: cat.icon,
+    };
+  });
 
   const valueBullets =
     lang === "es"
@@ -135,7 +141,7 @@ export function EmpleosLandingPage() {
         />
 
         <main className="space-y-6 overflow-x-hidden sm:space-y-8">
-          <LeonixCategoryDiscoveryGrid
+          <LeonixCategoryImageDiscoveryGrid
             lang={lang as V2Lang}
             surface="landing"
             heading={lang === "es" ? "Explora empleos por categoría" : "Explore jobs by category"}

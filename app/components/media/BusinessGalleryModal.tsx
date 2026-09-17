@@ -47,6 +47,7 @@ export function BusinessGalleryLightbox({
   onActiveIndexChange,
   ariaLabel,
   copy,
+  headerSlot,
 }: {
   open: boolean;
   onClose: () => void;
@@ -55,6 +56,8 @@ export function BusinessGalleryLightbox({
   onActiveIndexChange: (index: number) => void;
   ariaLabel: string;
   copy: BusinessGalleryModalCopy;
+  /** Optional caller control rendered in the viewer header (e.g. a Fotos / Videos / Todo switch). */
+  headerSlot?: ReactNode;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -86,6 +89,7 @@ export function BusinessGalleryLightbox({
           <p className="text-xs font-semibold text-white/80">
             {copy.counterLabel} · {activeIndex + 1} / {slides.length}
           </p>
+          {headerSlot ? <div className="min-w-0 flex-1 overflow-x-auto">{headerSlot}</div> : null}
           <button
             type="button"
             onClick={onClose}
@@ -94,7 +98,7 @@ export function BusinessGalleryLightbox({
             {copy.close}
           </button>
         </div>
-        <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center bg-black p-2 sm:p-4">
+        <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden bg-black p-2 sm:p-4">
           {current?.kind === "image" ? (
             <img
               src={current.url}
@@ -103,7 +107,13 @@ export function BusinessGalleryLightbox({
               draggable={false}
             />
           ) : current?.kind === "video" ? (
-            current.renderVideo()
+            // Servicios Live Launch Perfection ⚠️34 (2026-09-14) — a 16:9 embed sized by WIDTH alone
+            // (`aspect-video w-full`) grows taller than the stage on short viewports at 100 % zoom and,
+            // being centred, spilled under the header/tabs. The stage now clips (overflow-hidden above)
+            // and the embed's width is capped so its 16:9 height always fits below the header.
+            <div className="flex h-full min-h-0 w-full items-center justify-center">
+              <div className="w-full max-w-[calc((96vh-7rem)*16/9)]">{current.renderVideo()}</div>
+            </div>
           ) : null}
           {slides.length > 1 ? (
             <>

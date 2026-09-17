@@ -44,7 +44,7 @@ test.describe("Community quick preview ↔ published shell parity", () => {
     draft.socialLinks.facebook = "facebook.com/parity-clases";
     draft.socialLinks.instagram = "instagram.com/parity-clases";
     await page.addInitScript(
-      ([key, json]: [string, string]) => {
+      ([key, json]) => {
         sessionStorage.setItem(key, json);
       },
       [COMMUNITY_SESSION_KEYS.clases, JSON.stringify(draft)],
@@ -88,7 +88,7 @@ test.describe("Community quick preview ↔ published shell parity", () => {
     draft.images = [{ id: "parity-flyer", url: "/logo.png", alt: "flyer", isMain: true }];
     draft.socialLinks.facebook = "facebook.com/parity-comunidad";
     await page.addInitScript(
-      ([key, json]: [string, string]) => {
+      ([key, json]) => {
         sessionStorage.setItem(key, json);
       },
       [COMMUNITY_SESSION_KEYS.comunidad, JSON.stringify(draft)],
@@ -125,7 +125,7 @@ test.describe("Community quick preview ↔ published shell parity", () => {
     draft.images = [{ id: "parity-flyer", url: "/logo.png", alt: "flyer", isMain: true }];
     draft.socialLinks.facebook = "https://google.com/not-facebook";
     await page.addInitScript(
-      ([key, json]: [string, string]) => {
+      ([key, json]) => {
         sessionStorage.setItem(key, json);
       },
       [COMMUNITY_SESSION_KEYS.clases, JSON.stringify(draft)],

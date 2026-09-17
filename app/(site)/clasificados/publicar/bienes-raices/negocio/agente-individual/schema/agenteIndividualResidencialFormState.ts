@@ -59,6 +59,13 @@ export type AgenteResOpenHouseSlot = {
   /** Optional free-text additional days/hours. */
   diasHorariosAdicionales: string;
   notas: string;
+  /** Item 134 — this specific event is by-appointment-only rather than open walk-in. Optional
+   * (not required) so every existing object literal that builds a slot without it still
+   * type-checks — additive-only, no call site needed to change. */
+  soloConCita?: boolean;
+  /** Item 134 — per-event booking/scheduling link (distinct from the application-level
+   * `ctaEnlaceProgramarVisita`). */
+  enlaceReservar?: string;
 };
 
 /** Qué número usa el CTA «Llamar» cuando hay personal y oficina. */
@@ -138,6 +145,10 @@ export type AgenteIndividualResidencialFormState = {
 
   tipoPropiedadCodigo: TipoPropiedadCodigo;
   subtipoPropiedad: string;
+  /** Levels/stories — a genuinely separate field from `subtipoPropiedad` (property type != subtype
+   * != levels/stories). Existing "un_piso"/"dos_pisos" subtipo values remain valid/displayable
+   * without any migration; new drafts should use this field instead. */
+  nivelesPropiedad: string;
 
   comercialTipoCodigo: ComercialTipoCodigo;
   comercialSubtipoPropiedad: string;
@@ -204,6 +215,11 @@ export type AgenteIndividualResidencialFormState = {
   destacados: Record<AgenteResidencialDestacadoId, boolean>;
   destacadosComercial: Record<ComercialDestacadoId, boolean>;
   destacadosTerreno: Record<TerrenoDestacadoId, boolean>;
+  /** Item 87/91/92 — owner-added highlights beyond the canonical checklists above (same
+   * custom-chip pattern already used for BR Privado/Rentas highlights). */
+  destacadosCustom: string[];
+  destacadosComercialCustom: string[];
+  destacadosTerrenoCustom: string[];
 
   descripcionPrincipal: string;
   notasAdicionales: string;
@@ -389,6 +405,18 @@ function coerceUrlList(raw: unknown, max: number): string[] {
   return out;
 }
 
+/** Item 87/91/92 — safe coercion for the custom-highlight string-array fields. */
+function coerceStringArray(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const out: string[] = [];
+  for (const item of raw) {
+    const v = trim(item);
+    if (!v || out.includes(v)) continue;
+    out.push(v);
+  }
+  return out;
+}
+
 function mapEstadoLegacy(raw: string): AgenteResidencialEstadoAnuncio {
   switch (raw) {
     case "disponible":
@@ -468,6 +496,7 @@ function migrateFromNestedLegacy(p: Record<string, unknown>): Partial<AgenteIndi
     out.tipoPropiedadCodigo = normalizeResidencialTipoPropiedadCodigo(p.tipoPropiedadCodigo);
   }
   if (typeof p.subtipoPropiedad === "string") out.subtipoPropiedad = p.subtipoPropiedad;
+  if (typeof p.nivelesPropiedad === "string") out.nivelesPropiedad = p.nivelesPropiedad;
 
   if (typeof p.tipoPropiedad === "string" && trim(p.tipoPropiedad) && !out.tipoPropiedadCodigo) {
     out.tipoPropiedadCodigo = "casa";
@@ -609,6 +638,7 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
 
     tipoPropiedadCodigo: "casa",
     subtipoPropiedad: "",
+    nivelesPropiedad: "",
 
     comercialTipoCodigo: "oficina",
     comercialSubtipoPropiedad: "",
@@ -669,6 +699,9 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
     destacados,
     destacadosComercial,
     destacadosTerreno,
+    destacadosCustom: [],
+    destacadosComercialCustom: [],
+    destacadosTerrenoCustom: [],
 
     descripcionPrincipal: "",
     notasAdicionales: "",
@@ -830,6 +863,8 @@ function coerceOpenHouseSlot(o: unknown): AgenteResOpenHouseSlot {
       : typeof r.notes === "string"
         ? r.notes
         : "";
+  const soloConCita = typeof r.soloConCita === "boolean" ? r.soloConCita : false;
+  const enlaceReservar = typeof r.enlaceReservar === "string" ? r.enlaceReservar : "";
   return {
     fecha: startDate,
     fechaFin: endDate,
@@ -837,6 +872,8 @@ function coerceOpenHouseSlot(o: unknown): AgenteResOpenHouseSlot {
     fin,
     diasHorariosAdicionales: dias,
     notas,
+    soloConCita,
+    enlaceReservar,
   };
 }
 
@@ -1192,6 +1229,13 @@ export function mergePartialAgenteIndividualResidencial(
       ...(nested.destacadosTerreno ?? {}),
       ...(flat.destacadosTerreno ?? {}),
     },
+    destacadosCustom: coerceStringArray(flat.destacadosCustom ?? nested.destacadosCustom ?? base.destacadosCustom),
+    destacadosComercialCustom: coerceStringArray(
+      flat.destacadosComercialCustom ?? nested.destacadosComercialCustom ?? base.destacadosComercialCustom,
+    ),
+    destacadosTerrenoCustom: coerceStringArray(
+      flat.destacadosTerrenoCustom ?? nested.destacadosTerrenoCustom ?? base.destacadosTerrenoCustom,
+    ),
   };
 
   const withLegacyBroker = migrateLegacyAsesorFinancieroToBroker(merged);

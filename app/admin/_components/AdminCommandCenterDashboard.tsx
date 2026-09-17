@@ -3,6 +3,7 @@ import { AdminCommandCenterClient, type AdminCommandCenterSection } from "./Admi
 import { AdminDashboardCta, AdminDashboardCtaGrid } from "./AdminDashboardCta";
 import { AdminDashboardReviewCardActions } from "./AdminDashboardReviewCardActions";
 import { AdminMonetizationLinksCard } from "./AdminMonetizationLinksCard";
+import { AdminExecutiveReportsPanel } from "./AdminExecutiveReportsPanel";
 import { AdminPagePurposeCard } from "./AdminPagePurposeCard";
 import { AdminSectionCard } from "./AdminSectionCard";
 import {
@@ -21,9 +22,11 @@ import {
   type AdminDashboardPendingReviewQueueRow,
   type AdminDashboardSnapshot,
 } from "../_lib/adminDashboardData";
-import { classifyDashboardReviewRowFlagTruth } from "../_lib/adminReviewFlagTruth";
 import { ADMIN_DASHBOARD_ROUTES } from "../_lib/adminDashboardRoutes";
+import { adminCategoryWorkspaceQueueHref } from "../_lib/adminCategoryWorkspaceQueueHref";
 import type { adminMessages } from "../_lib/adminI18n";
+import type { LeoExecutiveReportingSnapshot } from "@/app/leo/_lib/leoExecutiveReportingTypes";
+import type { LeoSystemHealthSnapshot } from "@/app/leo/_lib/leoTypes";
 
 type Msg = ReturnType<typeof adminMessages>;
 
@@ -106,10 +109,18 @@ const STATUS_CLASS: Record<DashboardTruthStatus, string> = {
   "needs proof": "border-amber-300/70 bg-amber-50 text-amber-950",
 };
 
+/** Owner-facing operating language, not engineering-lifecycle jargon (Launch Truth Doctrine). */
+const STATUS_LABEL: Record<DashboardTruthStatus, string> = {
+  real: "Live",
+  partial: "Partial",
+  planned: "Planned",
+  "needs proof": "Temporarily unavailable",
+};
+
 function StatusBadge({ status }: { status: DashboardTruthStatus }) {
   return (
     <span className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${STATUS_CLASS[status]}`}>
-      {status}
+      {STATUS_LABEL[status]}
     </span>
   );
 }
@@ -120,19 +131,30 @@ function OperatorCard({
   body,
   status,
   metric,
+  breakdown,
   primary,
   secondary,
+  id,
 }: {
   eyebrow: string;
   title: string;
   body: string;
   status: DashboardTruthStatus;
   metric?: ReactNode;
+  /**
+   * Gate 2 (CMD-001/CMD-003) — an optional segmented breakdown of `metric` into its
+   * component sources, each linking straight to that source's own real queue. Every
+   * caller passing this must ensure the counts sum exactly to `metric` — this renders
+   * whatever it is given without re-deriving or re-summing anything itself.
+   */
+  breakdown?: { label: string; count: number; href: string }[];
   primary?: { href: string; label: string; variant: "primary" | "warning" | "view" | "active" | "neutral" | "premium" };
   secondary?: { href: string; label: string; variant?: "primary" | "warning" | "view" | "active" | "neutral" | "premium" };
+  /** Anchor target for cross-page CTAs (e.g. the priority strip) to scroll straight to this card. */
+  id?: string;
 }) {
   return (
-    <article className={`${adminCardBase} flex min-w-0 flex-col justify-between p-4`}>
+    <article id={id} className={`${adminCardBase} flex min-w-0 flex-col justify-between p-4 scroll-mt-24`}>
       <div className="min-w-0">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7A7164]">{eyebrow}</p>
@@ -141,6 +163,19 @@ function OperatorCard({
         <h3 className="mt-2 text-base font-bold leading-tight text-[#1E1810]">{title}</h3>
         {metric != null ? <p className="mt-2 text-2xl font-bold tabular-nums text-[#1E1810]">{metric}</p> : null}
         <p className="mt-2 text-sm leading-snug text-[#5C5346]">{body}</p>
+        {breakdown && breakdown.length > 0 ? (
+          <ul className="mt-2 divide-y divide-[#E8DFD0]/70 rounded-lg border border-[#E8DFD0]/80 bg-[#FFFCF7]/60">
+            {breakdown.map((row) => (
+              <li key={row.label} className="flex items-center justify-between gap-2 px-2.5 py-1.5 text-xs">
+                <span className="text-[#5C5346]">{row.label}</span>
+                <span className="flex items-center gap-2">
+                  <span className="font-bold tabular-nums text-[#1E1810]">{row.count}</span>
+                  <AdminDashboardCta href={row.href} label="Open" variant="view" className="!min-h-0 !w-auto !px-2 !py-1 !text-[10px]" />
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </div>
       {(primary || secondary) ? (
         <div className="mt-4 grid gap-2">
@@ -157,30 +192,6 @@ function OperatorCard({
           ) : null}
         </div>
       ) : null}
-    </article>
-  );
-}
-
-function PlannedCard({
-  title,
-  body,
-  gate,
-}: {
-  title: string;
-  body: string;
-  gate: string;
-}) {
-  return (
-    <article className={`${adminCardBase} min-w-0 border-dashed border-[#C9B46A]/60 bg-[#FFFCF7]/90 p-4`}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7A7164]">Planned OS tool</p>
-        <StatusBadge status="planned" />
-      </div>
-      <h3 className="mt-2 text-base font-bold text-[#1E1810]">{title}</h3>
-      <p className="mt-2 text-sm leading-snug text-[#5C5346]">{body}</p>
-      <p className="mt-3 rounded-lg border border-[#E8DFD0] bg-white/70 px-3 py-2 text-xs font-semibold text-[#5C4E2E]">
-        Next gate: {gate}
-      </p>
     </article>
   );
 }
@@ -220,11 +231,11 @@ function CompactReviewRow({
   locale: string;
 }) {
   const urgent = isAdminDashboardUrgentReviewRow(row);
-  const truth = classifyDashboardReviewRowFlagTruth({
-    source: row.source,
-    status: row.status,
-    reason: row.reason,
-  });
+  // ADMIN-OS-01 GATE C: read the row's own pre-computed truth (full report/AI
+  // context) instead of re-deriving from the flattened reason string, which
+  // silently mislabeled provenance (an AI- or report-sourced flag would
+  // re-classify as "Manual" once its reason text lost its original context).
+  const truth = row.flagTruth;
   const reviewSource = adminDashboardReviewSourceLabel(row);
 
   return (
@@ -245,6 +256,31 @@ function CompactReviewRow({
             >
               {truth.sourceLabel}
             </span>
+            {truth.needsTriage ? (
+              <span
+                className="mr-1.5 inline-block rounded-md border border-[#7A1E2C]/35 bg-[#FDF2F4] px-1.5 py-0.5 text-[10px] font-bold uppercase text-[#7A1E2C]"
+                title="Flagged for review but no reason was ever stored — needs manual triage."
+                data-testid="admin-flag-needs-triage-badge"
+              >
+                Needs triage
+              </span>
+            ) : truth.lifecycleState === "TRIAGE" ? (
+              <span
+                className="mr-1.5 inline-block rounded-md border border-[#6B5B2E]/35 bg-[#FFFCF7] px-1.5 py-0.5 text-[10px] font-bold uppercase text-[#6B5B2E]"
+                title="AI has produced a decision and reason. No human has acted on it yet."
+                data-testid="admin-flag-lifecycle-triage-badge"
+              >
+                AI triage
+              </span>
+            ) : truth.lifecycleState === "ACTION_REQUIRED" ? (
+              <span
+                className="mr-1.5 inline-block rounded-md border border-amber-700/35 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold uppercase text-amber-900"
+                title="A human-legible reason exists (report, manual flag, or status) and this listing is still live/pending — a person needs to act."
+                data-testid="admin-flag-lifecycle-action-required-badge"
+              >
+                Action required
+              </span>
+            ) : null}
             {m("dashboard.reasonLabel")} {truth.ownerFacingExplanation}
           </p>
           <p className="mt-0.5 text-[10px] text-[#9A9084]">{reviewSource}</p>
@@ -266,6 +302,8 @@ export function AdminCommandCenterDashboard({
   paySnap,
   catalogStats,
   showPaymentTracker,
+  executiveReports,
+  systemHealthSnapshot,
 }: {
   m: Msg;
   locale: string;
@@ -274,15 +312,30 @@ export function AdminCommandCenterDashboard({
   regSummary: { live: number; staged: number; comingSoon: number };
   entSnap: { dataUnavailable: boolean; activeCount: number };
   promoSnap: { dataUnavailable: boolean; activeCount: number };
-  paySnap: { unavailable: boolean; pendingCount: number };
+  paySnap: { unavailable: boolean; pendingCount: number; failedCanceledRefundedCount: number };
   catalogStats: { total: number; live: number; error: string | null };
   showPaymentTracker: boolean;
+  executiveReports: LeoExecutiveReportingSnapshot | null;
+  systemHealthSnapshot: LeoSystemHealthSnapshot | null;
 }) {
   const { expiringSoon, expired } = splitAdminDashboardExpiringQueue(snap.expiringQueueItems);
   const reviewPreview = snap.pendingReviewQueueItems.slice(0, REVIEW_PREVIEW_LIMIT);
   const expiringSoonPreview = expiringSoon.slice(0, EXPIRING_PREVIEW_LIMIT);
   const expiredPreview = expired.slice(0, EXPIRING_PREVIEW_LIMIT);
-  const pendingReviewCount = snap.pendingListingsReview + snap.pendingReviewQueueItems.length;
+  // ADMIN-OS-01: canonical deduplicated count — never sum raw pendingListingsReview
+  // with the (capped, preview-only) pendingReviewQueueItems.length. A listing that
+  // is both flagged AND has pending reports must count once, not twice.
+  const pendingReviewCount = snap.reviewAttentionTruth.uniqueListingsNeedingReview;
+  // Master Operating Book §15 — "system outage/degradation" is a real Priority Engine
+  // factor. Only escalate on an actual live-probe failure (DEGRADED/UNAVAILABLE); NOT_CONFIGURED
+  // components (e.g. Stripe/Twilio unset on a single-operator deployment) are expected and must
+  // not be treated as an incident — see adminSystemHealth.ts's own overallFromComponents().
+  const systemHealthDegraded =
+    systemHealthSnapshot != null &&
+    (systemHealthSnapshot.overall === "DEGRADED" || systemHealthSnapshot.overall === "UNAVAILABLE");
+  const degradedHealthComponents = systemHealthSnapshot?.components.filter(
+    (c) => c.state === "DEGRADED" || c.state === "UNAVAILABLE",
+  ) ?? [];
 
   const hero = (
     <header
@@ -297,17 +350,46 @@ export function AdminCommandCenterDashboard({
             Morning command page for Chuy to run leads, listings, revenue, people, website control, and system risk without fake counts.
           </p>
           <p className="mt-3 rounded-xl border border-[#C9B46A]/35 bg-white/70 px-3 py-2 text-xs font-semibold leading-snug text-[#5C4E2E]">
-            Current truth: live Supabase counts where backed, partial tools labeled, future OS tools marked planned until schema proof exists.
+            Every count on this page is live from Supabase, or clearly marked when a source is temporarily unavailable.
           </p>
         </div>
         <div className="grid min-w-0 grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:max-w-xs lg:justify-end">
           <span className={adminDashboardMetricChip}>Real data only</span>
           <span className={adminDashboardMetricChip}>Mobile-first cards</span>
-          <span className={adminDashboardMetricChip}>Partial labeled</span>
           <span className={adminDashboardMetricChip}>390px safe</span>
         </div>
       </div>
     </header>
+  );
+
+  /**
+   * LEO-POLISH.1 — foreground entry card so LEO (the owner's conversational executive
+   * interface) is unmistakably discoverable from Admin, right below the hero. This is a
+   * discovery link into the real /admin/leo experience, not a duplicate of it: no conversation
+   * UI, morning brief, workspace cards, Hands-Free, or LEO controls live here.
+   */
+  const leoExecutiveCta = (
+    <section
+      className={`${adminCardBase} mb-5 border-[#7A1E2C]/25 bg-gradient-to-r from-[#FDF2F4] to-[#FFFCF7] p-4 sm:p-5`}
+      data-testid="admin-leo-executive-cta"
+    >
+      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7A1E2C]">{m("nav.leo")}</p>
+          <h2 className="mt-1 text-lg font-bold text-[#1E1810]">Your executive operating intelligence</h2>
+          <p className="mt-1 text-sm text-[#5C5346]">
+            Ask LEO what needs your attention, who is waiting, and what changed — before you dig through queues.
+          </p>
+        </div>
+        <AdminDashboardCta
+          href={ADMIN_DASHBOARD_ROUTES.leo}
+          label="Talk to LEO"
+          variant="primary"
+          className="w-full sm:w-auto sm:shrink-0"
+          title="Open the LEO executive conversation"
+        />
+      </div>
+    </section>
   );
 
   const promoCodeGeneratorTopCta = (
@@ -345,9 +427,18 @@ export function AdminCommandCenterDashboard({
       <PriorityTile
         label="Review / pending ads"
         value={pendingReviewCount}
-        hint={snap.listingsQueryFallback ? m("dashboard.pendingAdsHintDb") : "Flagged or pending listings"}
-        href={ADMIN_DASHBOARD_ROUTES.classifiedsReviewQueue}
-        ctaLabel={m("dashboard.reviewAds")}
+        hint={
+          snap.listingsQueryFallback || snap.reviewAttentionTruth.fallback
+            ? m("dashboard.pendingAdsHintDb")
+            : "Unique listings needing review across Classifieds, Empleos, Viajes, Servicios, and Ofertas Locales — see breakdown below"
+        }
+        // QA FAIL 2026-09-14 (OWNER-QA-003): this metric is a cross-category dedup
+        // total, but the CTA used to hardlink to the Classifieds-only flagged queue
+        // (4 rows), silently misrepresenting the other 21 items. Route to the
+        // reconciled "Needs review" breakdown (Today's Attention) instead of
+        // claiming a single-category queue is the whole 25.
+        href={ADMIN_DASHBOARD_ROUTES.reviewQueue}
+        ctaLabel="Review by category"
         variant="warning"
       />
       <PriorityTile
@@ -394,6 +485,16 @@ export function AdminCommandCenterDashboard({
         </div>
       ) : null}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {systemHealthDegraded ? (
+          <OperatorCard
+            eyebrow="System"
+            title="System issue detected"
+            status="real"
+            metric={degradedHealthComponents.length}
+            body={`${degradedHealthComponents.map((c) => c.label).join(", ")} unreachable right now — this can affect data on every page, not just one section.`}
+            primary={{ href: ADMIN_DASHBOARD_ROUTES.systemHealth, label: "Open System Health", variant: "warning" }}
+          />
+        ) : null}
         <OperatorCard
           eyebrow="Leads"
           title="Needs response"
@@ -403,27 +504,109 @@ export function AdminCommandCenterDashboard({
           primary={{ href: ADMIN_DASHBOARD_ROUTES.launchLeads, label: "Open leads", variant: "primary" }}
         />
         <OperatorCard
+          id="review"
           eyebrow="Listings"
           title="Needs review"
-          status={snap.listingsQueryFallback ? "needs proof" : "real"}
+          status={snap.listingsQueryFallback || snap.reviewAttentionTruth.fallback ? "needs proof" : "real"}
           metric={pendingReviewCount}
-          body={snap.listingsQueryFallback ? m("dashboard.pendingAdsHintDb") : "Flagged or pending listings from persisted listing state and review rows."}
-          primary={{ href: ADMIN_DASHBOARD_ROUTES.classifiedsReviewQueue, label: "Review listings", variant: "warning" }}
+          body={
+            snap.listingsQueryFallback || snap.reviewAttentionTruth.fallback
+              ? m("dashboard.pendingAdsHintDb")
+              : "Unique listings needing review — flagged/pending status or a pending report, deduplicated so one listing never counts twice. Segments below add up to this total."
+          }
+          // Gate 2 (CMD-001/CMD-003) — every segment here links to that source's own real
+          // queue and the counts are the exact same fields summed to produce
+          // `uniqueListingsNeedingReview` (see computeAdminAttentionReviewTruth), so this
+          // list always reconciles exactly to the metric above — never a separate count.
+          breakdown={
+            snap.listingsQueryFallback || snap.reviewAttentionTruth.fallback
+              ? undefined
+              : [
+                  {
+                    label: "Classifieds (flagged/pending or reported)",
+                    count: snap.reviewAttentionTruth.genericAndReportedUniqueCount,
+                    href: ADMIN_DASHBOARD_ROUTES.classifiedsReviewQueue,
+                  },
+                  {
+                    label: "Empleos pending review",
+                    count: snap.reviewAttentionTruth.empleosPendingReviewCount,
+                    href: adminCategoryWorkspaceQueueHref("empleos"),
+                  },
+                  {
+                    label: "Viajes pending review",
+                    count: snap.reviewAttentionTruth.viajesPendingReviewCount,
+                    href: adminCategoryWorkspaceQueueHref("viajes"),
+                  },
+                  {
+                    label: "Servicios pending review",
+                    count: snap.reviewAttentionTruth.serviciosPendingReviewCount,
+                    href: adminCategoryWorkspaceQueueHref("servicios"),
+                  },
+                  {
+                    label: "Ofertas Locales pending review",
+                    count: snap.reviewAttentionTruth.ofertasLocalesPendingReviewCount,
+                    href: adminCategoryWorkspaceQueueHref("ofertas-locales"),
+                  },
+                ]
+          }
+          // QA FAIL 2026-09-14 (OWNER-QA-003): label used to say "Review listings" as
+          // if this opened the full 25-item cross-category total; it only ever opened
+          // the Classifieds-only flagged queue. Relabeled to match its real scope —
+          // the per-category breakdown above already gives truthful links for the rest.
+          primary={{ href: ADMIN_DASHBOARD_ROUTES.classifiedsReviewQueue, label: "Review Classifieds queue", variant: "warning" }}
         />
         <OperatorCard
           eyebrow="Trust"
-          title="Reports & complaints"
+          title="Report submissions"
           status="real"
           metric={snap.pendingReports}
-          body="Pending reports from listing_reports. Resolution actions still need the action truth gate."
+          body="Pending report submissions (evidence, not a separate attention count — a listing already counted in “Needs review” may have several of these)."
           primary={{ href: ADMIN_DASHBOARD_ROUTES.reports, label: "Open reports", variant: "warning" }}
+        />
+        {showPaymentTracker ? (
+          <OperatorCard
+            eyebrow="Money"
+            title="Payments at risk"
+            status={paySnap.unavailable ? "needs proof" : "real"}
+            metric={paySnap.unavailable ? "Unavailable" : paySnap.failedCanceledRefundedCount}
+            body={
+              paySnap.unavailable
+                ? "Payment Tracker data needs live Supabase proof before operators rely on it."
+                : "Failed, canceled, refunded, or disputed payments among the most recent 500 payment records — money that didn't come through as expected."
+            }
+            primary={{ href: "/admin/workspace/payment-tracker", label: "Open Payment Tracker", variant: "warning" }}
+          />
+        ) : null}
+        <OperatorCard
+          eyebrow="Money"
+          title="Autos blocked by payment"
+          status={snap.autosPaymentBlockedFallback ? "needs proof" : "real"}
+          metric={snap.autosPaymentBlockedFallback ? "Unavailable" : snap.autosPaymentBlockedCount}
+          body={
+            snap.autosPaymentBlockedFallback
+              ? "Autos listing data needs live Supabase proof before operators rely on it."
+              : "Autos listings stuck in pending_payment or payment_failed — not live until payment clears. Restaurantes has no equivalent status; Comida Local's payment step isn't live yet, so neither is included here."
+          }
+          primary={{ href: ADMIN_DASHBOARD_ROUTES.autosOps, label: "Open Autos ops", variant: "warning" }}
+        />
+        <OperatorCard
+          eyebrow="Support"
+          title="Unresolved support"
+          status={snap.openSupportTicketsFallback ? "needs proof" : "real"}
+          metric={snap.openSupportTicketsFallback ? "Unavailable" : snap.openSupportTicketsCount}
+          body={
+            snap.openSupportTicketsFallback
+              ? "Support ticket data needs live Supabase proof before operators rely on it."
+              : "Open or in-progress internal support tickets (support_tickets.status)."
+          }
+          primary={{ href: ADMIN_DASHBOARD_ROUTES.support, label: "Open support", variant: "neutral" }}
         />
         <OperatorCard
           eyebrow="Visibility"
           title="Expired listings"
           status="partial"
           metric={expired.length}
-          body="Best-effort expiration queue from existing listing fields. Full visibility checker is planned."
+          body="Best-effort expiration queue from existing listing fields."
           primary={{ href: "#expiration", label: "See expired", variant: "view" }}
         />
         <OperatorCard
@@ -434,13 +617,6 @@ export function AdminCommandCenterDashboard({
           body={`Listings detected within ${ADMIN_DASHBOARD_EXPIRING_SOON_DAYS} days when expiration fields are available.`}
           primary={{ href: "#expiration", label: "See expiring", variant: "view" }}
         />
-        <OperatorCard
-          eyebrow="System risk"
-          title="Bug Finder planned"
-          status="planned"
-          body="System alerts and high-priority email alerts need the admin_system_alerts schema gate. No fake health status is shown."
-          primary={{ href: ADMIN_DASHBOARD_ROUTES.activityLog, label: "View activity log", variant: "neutral" }}
-        />
       </div>
     </AdminSectionCard>
   );
@@ -448,7 +624,7 @@ export function AdminCommandCenterDashboard({
   const revenuePipelineSection = (
     <AdminSectionCard
       title="Revenue Pulse"
-      subtitle="CFO/operator view without fake dollars: leads, quote lanes, package tools, payments, Tienda, and planned revenue platforms."
+      subtitle="CFO/operator view without fake dollars: leads, quote lanes, package tools, payments, and Tienda."
     >
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <OperatorCard
@@ -488,7 +664,7 @@ export function AdminCommandCenterDashboard({
           title="Newsletter list"
           status={leads.unavailable ? "needs proof" : "real"}
           metric={displayCount(leads.newsletterActive, leads.unavailable)}
-          body="Newsletter subscribers are real; campaign tooling is still future work."
+          body="Newsletter subscribers are real."
           primary={{ href: ADMIN_DASHBOARD_ROUTES.newsletter, label: "Newsletter list", variant: "active" }}
         />
         <OperatorCard
@@ -496,7 +672,7 @@ export function AdminCommandCenterDashboard({
           title="Tienda catalog (live)"
           status={catalogStats.error ? "needs proof" : "real"}
           metric={catalogStats.error ? "Unavailable" : catalogStats.live}
-          body={catalogStats.error ? catalogStats.error : `${catalogStats.total} total catalog items from the current catalog data.`}
+          body={catalogStats.error ? "Catalog data is temporarily unavailable." : `${catalogStats.total} total catalog items from the current catalog data.`}
           primary={{ href: ADMIN_DASHBOARD_ROUTES.catalog, label: "Open catalog", variant: "active" }}
         />
       </div>
@@ -520,16 +696,14 @@ export function AdminCommandCenterDashboard({
           salesLabel={m("dashboard.salesTrackerLink")}
         />
       </div>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <PlannedCard
-          title="Viajes Affiliate Ops"
-          body="Revenue lane for partners, offers, leads, clicks, and health. Existing Viajes admin is partial until affiliate tables are proven."
-          gate="ADMIN-SUPABASE-BACKING-MATRIX-01"
-        />
-        <PlannedCard
+      <div className="mt-4 grid gap-3 sm:grid-cols-1">
+        <OperatorCard
+          eyebrow="Business Concierge"
           title="Business Concierge"
-          body="Future paid service queue for clients who want Leonix to publish, promote, or build for them. No live concierge table yet."
-          gate="Concierge schema gate"
+          status="real"
+          body="Understand businesses, follow up, meet prepared, review opportunities, and create from verified truth. Staff home: TODAY · CLIENT WORK · COMMERCIAL · CUSTOMER COMMUNICATION · MY LEONIX."
+          primary={{ href: "/admin/businesses", label: "Open Business Concierge", variant: "primary" }}
+          secondary={{ href: "/admin/businesses/create-for-client", label: "Create for Client", variant: "active" }}
         />
       </div>
     </AdminSectionCard>
@@ -548,17 +722,16 @@ export function AdminCommandCenterDashboard({
         />
         <OperatorCard
           eyebrow="Trust"
-          title="Reports / complaints"
+          title="Report submissions"
           status="real"
-          metric={snap.pendingReports}
-          body="Reads listing_reports. Resolve/dismiss actions still need the action truth map."
+          body="Same pending-report total already shown in Today's Attention — not a second count."
           primary={{ href: ADMIN_DASHBOARD_ROUTES.reports, label: "Open reports", variant: "warning" }}
         />
         <OperatorCard
           eyebrow="AI moderation"
           title="AI review queue"
           status="partial"
-          body="Single and bulk AI review routes exist, but live provider proof and policy controls still need verification."
+          body="AI-assisted single and bulk review tools are available; final moderation decisions are always made by staff."
           primary={{ href: ADMIN_DASHBOARD_ROUTES.classifiedsReviewQueue, label: "Open review queue", variant: "view" }}
         />
         <OperatorCard
@@ -592,15 +765,15 @@ export function AdminCommandCenterDashboard({
         <OperatorCard
           eyebrow="Viajes"
           title="Viajes ops"
-          status="partial"
-          body="Current routed workspace exists as travel; affiliate revenue tables are planned and not presented as live."
+          status="real"
+          body="Routed travel workspace for staged listing review."
           primary={{ href: ADMIN_DASHBOARD_ROUTES.viajesOps, label: "Open Viajes workspace", variant: "view" }}
         />
         <OperatorCard
           eyebrow="Lookup"
           title="Customer/listing search"
-          status="partial"
-          body="Global lookup exists, but final Support Center workflow needs the User Support View gate."
+          status="real"
+          body="Search businesses, users, listings, payments, staff, and more by name, email, phone, or ID."
           primary={{ href: ADMIN_DASHBOARD_ROUTES.customerOps, label: "Open lookup", variant: "view" }}
         />
       </div>
@@ -623,22 +796,22 @@ export function AdminCommandCenterDashboard({
         <OperatorCard
           eyebrow="Magazine"
           title="Magazine Manager"
-          status="partial"
-          body={snap.magazineFeaturedLabel ? `Featured issue: ${snap.magazineFeaturedLabel}` : "Magazine issue actions exist in the Revista workspace; canonical manager still needs cleanup."}
+          status="real"
+          body={snap.magazineFeaturedLabel ? `Featured issue: ${snap.magazineFeaturedLabel}` : "Manage magazine issues in the Revista workspace."}
           primary={{ href: "/admin/workspace/revista", label: "Open magazine", variant: "view" }}
         />
         <OperatorCard
           eyebrow="Settings"
           title="Global site settings"
-          status="partial"
-          body="Existing settings route is live, but Website Control boundaries still need nav architecture cleanup."
+          status="real"
+          body="Site-wide settings and configuration."
           primary={{ href: ADMIN_DASHBOARD_ROUTES.siteSettings, label: "Open settings", variant: "neutral" }}
         />
         <OperatorCard
           eyebrow="Quality"
           title="Language audit"
-          status="partial"
-          body="Existing audit route helps QA multilingual coverage; final System grouping is planned."
+          status="real"
+          body="QA tool for multilingual (Spanish/English) coverage across the site."
           primary={{ href: ADMIN_DASHBOARD_ROUTES.languageAudit, label: "Open language audit", variant: "neutral" }}
         />
         <OperatorCard
@@ -647,11 +820,6 @@ export function AdminCommandCenterDashboard({
           status="real"
           body="Safe inspect action only. Does not change public content."
           primary={{ href: ADMIN_DASHBOARD_ROUTES.viewSite, label: "View site", variant: "view" }}
-        />
-        <PlannedCard
-          title="Homepage / Banners / Announcements / Category visibility"
-          body="Planned controlled modules from the audit. No live route is linked until backing and route gates exist."
-          gate="Website Control gate"
         />
       </div>
       {snap.magazineFeaturedLabel ? (
@@ -678,34 +846,27 @@ export function AdminCommandCenterDashboard({
           eyebrow="Team"
           title="Team roster"
           status="real"
-          body="Staff roster exists with role scoping; final permissions architecture still needs proof."
+          body="Staff roster with role-based access scoping."
           primary={{ href: ADMIN_DASHBOARD_ROUTES.teamRoster, label: "Manage roster", variant: "active" }}
           secondary={{ href: ADMIN_DASHBOARD_ROUTES.createStaffUser, label: "Create staff login", variant: "primary" }}
         />
         <OperatorCard
           eyebrow="Support"
           title="Support tickets"
-          status="partial"
-          body="Internal support log exists. Full safe support view is planned and must avoid passwords, raw cards, and uncontrolled impersonation."
+          status={snap.openSupportTicketsFallback ? "needs proof" : "real"}
+          metric={snap.openSupportTicketsFallback ? "Unavailable" : snap.openSupportTicketsCount}
+          body={
+            snap.openSupportTicketsFallback
+              ? "Support ticket data needs live Supabase proof before operators rely on it."
+              : "Open or in-progress internal support tickets."
+          }
           primary={{ href: ADMIN_DASHBOARD_ROUTES.support, label: "Open support", variant: "neutral" }}
         />
         <OperatorCard
-          eyebrow="Support view"
-          title="Safe User Support View"
-          status="planned"
-          body="Needs reason, role permission, audit log, no passwords, no raw cards, and reset links only through an audited flow."
-        />
-        <OperatorCard
-          eyebrow="Passwords"
-          title="Password reset support"
-          status="planned"
-          body="Not shown as live. The audit requires an audited reset-link flow before operators can send resets from admin."
-        />
-        <OperatorCard
           eyebrow="Permissions"
-          title="Staff permissions truth"
-          status="partial"
-          body="Current roles exist, but final owner/admin/moderator/sales/content/support/viewer mapping needs the permissions gate."
+          title="Staff permissions"
+          status="real"
+          body="Role-based access controls what each staff member can see and do."
           primary={{ href: ADMIN_DASHBOARD_ROUTES.team, label: "Open staff workspace", variant: "view" }}
         />
       </div>
@@ -713,42 +874,21 @@ export function AdminCommandCenterDashboard({
   );
 
   const systemHealthSection = (
-    <AdminSectionCard title="System Health / Bug Finder" subtitle="Truthful system-risk teaser. No fake health status and no missing routes linked as live.">
+    <AdminSectionCard title="System Health" subtitle="Real, live dependency checks. No fake health status.">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <PlannedCard
-          title="Bug Finder"
-          body="Planned command center for publishing, upload, storage, visibility, payment, magazine, and API alerts."
-          gate="ADMIN-BUG-FINDER-DASHBOARD-01"
-        />
-        <PlannedCard
-          title="System Alerts"
-          body="Needs admin_system_alerts before live alert counts, acknowledge, resolve, dedupe, and safe debug context."
-          gate="ADMIN-SYSTEM-ALERTS-SCHEMA-01"
-        />
-        <PlannedCard
-          title="High-priority email alerts"
-          body="Planned alerts to chuy@leonixmedia.com with dedupe and no secrets. Not active until schema and Resend proof exist."
-          gate="ADMIN-SYSTEM-ALERTS-SCHEMA-01"
+        <OperatorCard
+          eyebrow="Dependencies"
+          title="System Health"
+          status="real"
+          body="Live checks: Supabase data access, marketplace data, the audit pipeline, team roster data, and whether Stripe/email/SMS/roster-permission enforcement are configured. Never a fake green."
+          primary={{ href: ADMIN_DASHBOARD_ROUTES.systemHealth, label: "Open System Health", variant: "warning" }}
         />
         <OperatorCard
           eyebrow="Audit trail"
           title="Activity log"
-          status="partial"
-          body="Existing audit log route is safe to inspect. Actor detail and coverage still need proof."
+          status="real"
+          body="Recent admin actions and system events."
           primary={{ href: ADMIN_DASHBOARD_ROUTES.activityLog, label: "Open activity log", variant: "neutral" }}
-        />
-        <OperatorCard
-          eyebrow="Settings"
-          title="Admin settings"
-          status="partial"
-          body="Existing settings route is available. System grouping and controls need the nav architecture gate."
-          primary={{ href: ADMIN_DASHBOARD_ROUTES.globalSettings, label: "Open settings", variant: "neutral" }}
-        />
-        <OperatorCard
-          eyebrow="Next proof"
-          title="Supabase backing matrix"
-          status="planned"
-          body="The next recommended gate proves every table, column, and action before new OS tools are built."
         />
       </div>
     </AdminSectionCard>
@@ -825,7 +965,7 @@ export function AdminCommandCenterDashboard({
         <div className="min-w-0">
           <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7A7164]">Quick Actions</p>
           <h2 className="mt-1 text-lg font-bold text-[#1E1810]">What should I open next?</h2>
-          <p className="mt-1 text-sm text-[#5C5346]">Only existing routes are linked here. Planned OS tools stay labeled in their cards.</p>
+          <p className="mt-1 text-sm text-[#5C5346]">Only working tools are linked here.</p>
         </div>
       </div>
       <div className="mt-4">
@@ -843,6 +983,11 @@ export function AdminCommandCenterDashboard({
 
   const sections: AdminCommandCenterSection[] = [
     { id: "today", label: "Today", content: todaysCommandSection },
+    {
+      id: "reports",
+      label: "Executive Reports",
+      content: <AdminExecutiveReportsPanel snapshot={executiveReports} />,
+    },
     { id: "revenue", label: "Revenue Pulse", content: revenuePipelineSection },
     { id: "marketplace", label: "Marketplace", content: marketplaceSection },
     { id: "website", label: "Website", content: websiteSection },
@@ -855,17 +1000,24 @@ export function AdminCommandCenterDashboard({
   return (
     <div className="min-w-0 max-w-7xl overflow-x-hidden" data-testid="admin-ceo-command-center">
       {hero}
-      {promoCodeGeneratorTopCta}
       <AdminPagePurposeCard
         title="Leonix Command Center"
-        purpose="Daily operator view for leads, listings, reports, revenue signals, people, website control, and planned system health without fake counts."
+        purpose="Daily operator view for leads, listings, reports, revenue signals, people, website control, and system health without fake counts."
         dataSource="Live Supabase-backed snapshots where available: listings, leads, reports, package entitlements, promo codes, payment records, Tienda catalog, and category registry."
-        status="partial"
+        status="real"
         safeActions={["Open real queues", "Inspect reports and leads", "Navigate to existing admin tools"]}
-        nextGate="ADMIN-ACTION-QA-AND-LIVE-SCHEMA-PROOF-01"
-        warningNote="Bug Finder, System Health, Concierge, and final Viajes affiliate ops remain planned until their schema/actions are proven."
       />
       {priorityStrip}
+      {/*
+       * Gate 13 (UX-003) — the LEO discovery card and Promo Code Generator CTA previously
+       * rendered directly under the hero, ahead of the actual operational metrics
+       * (`priorityStrip`) — on a Command Center whose entire purpose is those metrics, that put
+       * two discovery/marketing-style CTAs ahead of the "what needs attention today" content they
+       * exist to complement. Moved below the real operational summary; still above the deeper
+       * quick-actions/section content, so they stay easy to find without outranking the numbers.
+       */}
+      {leoExecutiveCta}
+      {promoCodeGeneratorTopCta}
       {quickActions}
       <AdminCommandCenterClient sections={sections} />
       <div className="mt-6 rounded-2xl border border-dashed border-[#C9B46A]/50 bg-[#FFF8F0]/80 p-4 text-xs text-[#7A7164] break-words">
@@ -873,9 +1025,7 @@ export function AdminCommandCenterDashboard({
           <strong className="text-[#5C5346]">{m("dashboard.dataHonestyLabel")}</strong> {m("dashboard.dataHonestyBody")}
         </p>
         <p className="mt-2">
-          Review reasons come from persisted fields (<code className="break-all">moderation_reason</code>,{" "}
-          <code className="break-all">review_notes</code>, or listing status). Flagged listings use{" "}
-          <code className="break-all">listings.status = flagged</code> — not AI-generated explanations.
+          Review reasons come from saved moderation notes and listing status — not AI-generated explanations.
         </p>
       </div>
     </div>

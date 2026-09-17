@@ -178,6 +178,32 @@ for (const section of [
 }
 ok("documentation present");
 
+// Gate SERVICIOS-P7-BLOCKER-REPAIR-01 (B4) — this verifier used to PASS while every new $399
+// customer's coupons were stripped server-side: it proved the mapping pipeline but never looked at
+// the publish route's entitlement gate, which checked the RETIRED servicios_offers_addon key.
+// These checks cover that gate. The strip/decision functions themselves are EXECUTED by
+// scripts/verify-servicios-included-offers.ts.
+{
+  const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+  const publishRoute = strip(read("app/api/clasificados/servicios/publish/route.ts"));
+  if (!publishRoute.includes('capability: "coupons_offers"')) {
+    fail("publish route must authorize offer persistence with the included coupons_offers capability");
+  }
+  if (!publishRoute.includes("resolveBusinessToolsAccess({")) {
+    fail("publish route must resolve offers authority via resolveBusinessToolsAccess (same as the dashboard)");
+  }
+  if (/SERVICIOS_OFFERS_ADDON_PACKAGE_KEY|fetchAddonEntitlementsForListings/.test(publishRoute)) {
+    fail("publish route must not gate offers on the retired servicios_offers_addon entitlement");
+  }
+  if (!/enforceServiciosOffersEntitlementServerTruth\(\s*wire,\s*serviciosOffersEntitled,/.test(publishRoute)) {
+    fail("publish route must strip offers using the capability-based decision");
+  }
+  if (!/decideServiciosOffersPersistence\(\{/.test(publishRoute) || !/serviciosSaveAwaitsBasePurchase\(\{/.test(publishRoute)) {
+    fail("publish route must let a first (pending-payment) save keep its included offers");
+  }
+  ok("server-side offers authorization uses the included coupons_offers capability");
+}
+
 const disallowed = [
   "app/api/revenue-os/checkout",
   "app/api/stripe",

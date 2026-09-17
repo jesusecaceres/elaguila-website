@@ -18,7 +18,8 @@ function assert(condition, message) {
 const hubRow = read("app/(site)/servicios/components/ServiciosBusinessHubEngagementRow.tsx");
 const contactCard = read("app/(site)/servicios/components/ServiciosBusinessHubContactCard.tsx");
 const videoTile = read("app/(site)/servicios/components/ServiciosGalleryVideoTile.tsx");
-const lightbox = read("app/(site)/servicios/components/ServiciosMediaLightbox.tsx");
+const gallery = read("app/(site)/servicios/components/ServiciosGalleryWithTabs.tsx");
+const visualProof = read("app/(site)/servicios/components/ServiciosVisualProofRow.tsx");
 const directCta = read("app/(site)/servicios/lib/serviciosDirectCta.ts");
 const horizontalCard = read("app/(site)/clasificados/servicios/components/ServiciosHorizontalResultCard.tsx");
 const proCard = read("app/(site)/clasificados/servicios/ServiciosProfessionalResultCard.tsx");
@@ -28,13 +29,63 @@ const shellTokens = read("app/(site)/servicios/lib/serviciosShellSectionTokens.t
 const resultStrip = read("app/(site)/servicios/components/ServiciosResultCardEngagementStrip.tsx");
 const pkg = read("package.json");
 
-assert(!hubRow.includes("LeonixSaveButton"), "hub row: Guardar removed");
-assert(!hubRow.includes("recordSaveEvent"), "hub row: save analytics removed");
+// Superseded by the owner-locked Servicios Golden grammar (75a66ce8; Owner QA SVC-QA-18/19/20):
+// Guardar is the canonical saved_listings control in the hub row, recorded through the global
+// Servicios save recorder — never a second engine.
+// Servicios Live Launch Perfection ⚠️32 (2026-09-14, PM product decision): general Share is native/
+// device share first with a lightweight copy-link fallback — no multi-action drawer.
+assert(resultStrip.includes("directNativeShare"), "results strip: native share preserved");
+assert(resultStrip.includes("LeonixShareButton"), "results strip: share preserved");
+assert(resultStrip.includes("<LeonixSaveButton"), "results strip: shared Save control");
+assert(resultStrip.includes("serviciosSavedListingExtras"), "results strip: canonical Servicios save extras");
+assert(resultStrip.includes("serviciosGlobalSaveRecorder"), "results strip: shared save recorder");
+
+assert(hubRow.includes("<LeonixSaveButton"), "hub row: Guardar is the canonical saved_listings control");
+assert(hubRow.includes("serviciosGlobalSaveRecorder("), "hub row: save analytics use the global Servicios recorder");
 assert(hubRow.includes('hubEngagementVariant === "save_only"') && hubRow.includes("return null"), "hub row: save_only hides section");
 assert(hubRow.includes("LeonixShareButton"), "hub row: Share preserved");
 assert(hubRow.includes("ServiciosLikeEngagementCluster"), "hub row: Like preserved");
 
-assert(!contactCard.includes("CtaActionSheet"), "contact card: modal sheet removed");
+// Golden CTA grammar, asserted BY ACTION PATH rather than by banning a component name.
+// Call and Directions must fire their direct Golden helper and must never route through the
+// generic CtaActionSheet. E-mail compose legitimately opens that sheet (buildSendEmailIntent),
+// so the mere presence of the symbol is not a defect — silently replacing Call or Directions
+// with it is. Superseded assertion: `!contactCard.includes("CtaActionSheet")`, which forbade
+// the component globally and went red on the legitimate e-mail compose intent.
+function contactHandlerBody(name) {
+  const start = contactCard.indexOf(`const ${name} = (`);
+  assert(start >= 0, `contact card: handler ${name} must exist`);
+  const end = contactCard.indexOf("\n  };", start);
+  assert(end > start, `contact card: handler ${name} must be a closed block`);
+  return contactCard.slice(start, end);
+}
+
+const openCallBody = contactHandlerBody("openCall");
+assert(openCallBody.includes("serviciosOpenTelHref("), "contact card: Call fires the direct tel helper");
+assert(!openCallBody.includes("setEmailSheetIntent"), "contact card: Call must not open the CTA sheet");
+assert(!openCallBody.includes("CtaActionSheet"), "contact card: Call must not mount a CTA sheet");
+
+const openDirectionsBody = contactHandlerBody("openDirections");
+assert(
+  openDirectionsBody.includes("serviciosOpenGoogleMapsDirections("),
+  "contact card: Directions fires the direct maps helper",
+);
+assert(!openDirectionsBody.includes("setEmailSheetIntent"), "contact card: Directions must not open the CTA sheet");
+assert(!openDirectionsBody.includes("CtaActionSheet"), "contact card: Directions must not mount a CTA sheet");
+
+const openEmailBody = contactHandlerBody("openEmail");
+assert(openEmailBody.includes("buildSendEmailIntent("), "contact card: e-mail compose intent preserved");
+assert(openEmailBody.includes("setEmailSheetIntent("), "contact card: e-mail opens the compose sheet");
+
+// The sheet may only ever be driven by the e-mail compose intent: one opener (openEmail) plus the
+// close handler. A second opener would mean some other action had been routed through the sheet.
+assert(
+  contactCard.includes("open={emailSheetIntent != null}") && contactCard.includes("intent={emailSheetIntent}"),
+  "contact card: the CTA sheet is bound to the e-mail compose intent only",
+);
+const sheetOpenerCount = contactCard.split("setEmailSheetIntent(").length - 1 - (contactCard.split("setEmailSheetIntent(null)").length - 1);
+assert(sheetOpenerCount === 1, "contact card: exactly one action (e-mail) may open the CTA sheet");
+
 assert(contactCard.includes("serviciosOpenTelHref"), "contact card: direct tel");
 assert(contactCard.includes("serviciosOpenMailtoHref"), "contact card: direct mailto");
 assert(contactCard.includes("serviciosOpenGoogleMapsDirections"), "contact card: direct directions");
@@ -45,7 +96,11 @@ assert(videoTile.includes('variant?: "thumbnail" | "embed"'), "video tile: thumb
 assert(videoTile.includes('rel="noopener noreferrer"'), "video tile: safe external link");
 assert(videoTile.includes("data-servicios-gallery-video-thumbnail"), "video tile: thumbnail marker");
 assert(!videoTile.includes("<iframe") || videoTile.includes("ServiciosGalleryVideoEmbed"), "video tile: iframe only in embed mode");
-assert(lightbox.includes('variant="embed"'), "lightbox: embed mode for modal playback");
+// Re-pointed by the zero-debt closeout (2026-09-12): this asserted embed playback on
+// `ServiciosMediaLightbox`, which now has ZERO runtime consumers — false-green. The live
+// in-Leonix playback surfaces are the gallery and the visual-proof row.
+assert(gallery.includes('variant="embed"'), "gallery: embed playback inside Leonix");
+assert(visualProof.includes('variant="embed"'), "visual proof row: embed playback inside Leonix");
 
 assert(directCta.includes("buildServiciosGoogleMapsDirectionsUrl"), "direct CTA: maps dir helper");
 assert(directCta.includes("/maps/dir/?api=1&destination="), "direct CTA: directions URL pattern");
@@ -65,8 +120,13 @@ assert(proCard.includes("serviciosOpenGoogleMapsDirections"), "pro results: dire
 assert(!listingCard.includes("LeonixSaveButton"), "listing card: Guardar removed");
 assert(!listingCard.includes("CtaActionSheet"), "listing card: modal removed");
 
+// Servicios Live Launch Perfection ⚠️32 (2026-09-14, PM product decision): general Share is native/
+// device share first with a lightweight copy-link fallback — no multi-action drawer.
 assert(resultStrip.includes("directNativeShare"), "results strip: native share preserved");
 assert(resultStrip.includes("LeonixShareButton"), "results strip: share preserved");
+assert(resultStrip.includes("<LeonixSaveButton"), "results strip: shared Save control");
+assert(resultStrip.includes("serviciosSavedListingExtras"), "results strip: canonical Servicios save extras");
+assert(resultStrip.includes("serviciosGlobalSaveRecorder"), "results strip: shared save recorder");
 
 assert(howSection.includes("SVC_FEATURES_COMPACT_GRID"), "how section: responsive grid token");
 assert(shellTokens.includes("min-w-0"), "shell tokens: min-width containment");
@@ -76,7 +136,7 @@ assert(shellTokens.includes("xl:grid-cols-4"), "shell tokens: desktop column fil
 
 assert(pkg.includes('"verify:servicios-interaction-polish"'), "package.json: verifier registered");
 
-console.log("OK: Servicios Guardar removed from hub and legacy listing card");
+console.log("OK: Servicios Guardar on hub + live result strip; omitted from legacy listing card");
 console.log("OK: Direct CTAs replace Call/Directions modals on detail + results");
 console.log("OK: Gallery video thumbnails open external source");
 console.log("verify-servicios-interaction-polish: PASS");

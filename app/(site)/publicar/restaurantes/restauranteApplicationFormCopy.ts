@@ -240,6 +240,9 @@ const COPY = {
       countryLabel: "País",
       countryHelper: "País donde opera el restaurante. Se usa para búsqueda y claridad para los clientes.",
       countryPlaceholder: "Ej. Estados Unidos, México, España…",
+      showExactAddressLabel: "Mostrar mi dirección exacta públicamente y permitir “Cómo llegar”",
+      showExactAddressHelper:
+        "Si está desactivado, tu dirección exacta se mantiene privada — tu ciudad sigue mostrándose para que los clientes te encuentren.",
     },
     sectionF: {
       title: "F · Platos destacados (máx. 4)",
@@ -587,6 +590,9 @@ const COPY = {
       countryLabel: "Country",
       countryHelper: "Country where the restaurant operates. Used for search and customer clarity.",
       countryPlaceholder: "e.g. United States, Mexico, Spain…",
+      showExactAddressLabel: "Show my exact street address publicly and allow “Get directions”",
+      showExactAddressHelper:
+        "When off, your street address stays private — your city still shows to help customers find you.",
     },
     sectionF: {
       title: "F · Featured dishes (max. 4)",

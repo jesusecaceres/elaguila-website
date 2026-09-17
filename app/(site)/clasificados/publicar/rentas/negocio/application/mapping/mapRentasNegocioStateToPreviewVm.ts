@@ -29,7 +29,8 @@ import { formatRentasTipoDeRentaDisplay } from "@/app/clasificados/rentas/shared
 import type { RentasNegocioFormState } from "../../schema/rentasNegocioFormState";
 import { buildRentasShowingPreviewCard } from "@/app/clasificados/rentas/lib/leonixRentasShowing";
 import { normalizeLeonixHttpsUrl } from "@/app/clasificados/lib/leonixContactSocialNormalize";
-import { rentasLeadSmsBody, RENTAS_LEAD_MESSAGE_ES } from "@/app/clasificados/rentas/shared/rentasLeadContactCopy";
+import { rentasLeadSmsBody } from "@/app/clasificados/rentas/shared/rentasLeadContactCopy";
+import { buildInternationalWhatsAppWaMeHrefWithText } from "@/app/lib/whatsapp/internationalWhatsApp";
 import { rentasNegocioToBienesRaicesNegocioState } from "./rentasNegocioToBienesRaicesNegocioState";
 import { buildLeonixContactChannelsV1PayloadFromFormSlice } from "@/app/clasificados/lib/leonixContactChannelsV1";
 
@@ -67,10 +68,25 @@ function telHrefFromPhoneDisplay(raw: string): string | null {
   return `tel:${d}`;
 }
 
-function waHrefFromPhoneDisplay(raw: string): string | null {
-  const d = digitsOnly15(raw);
-  if (d.length < 10) return null;
-  return `https://wa.me/${d}?text=${encodeURIComponent(RENTAS_LEAD_MESSAGE_ES)}`;
+/**
+ * Gate RENTAS-NEGOCIO-1 — two real, customer-visible defects repaired here by adopting the
+ * shared contract instead of a third local rule:
+ *
+ *   1. NO COUNTRY CODE. This built `wa.me/${d}` from bare digits, so a 10-digit US number — the
+ *      overwhelmingly common case for an owner who omits a country code — produced
+ *      `wa.me/5551234567`, which WhatsApp cannot route. The owner was shown a dead link in
+ *      Preview while the PUBLISHED page showed a working one, because the live public mapper
+ *      had its own (correct) copy of the rule. Preview and public now agree because they use
+ *      the same function.
+ *   2. SPANISH LEAD TEXT IN ENGLISH MODE. `RENTAS_LEAD_MESSAGE_ES` was hardcoded regardless of
+ *      `lang`, even though this file already imports `rentasLeadSmsBody(lang)` and uses it for
+ *      SMS two functions below. Now it uses the same existing ES/EN copy structure.
+ *
+ * `buildInternationalWhatsAppWaMeHrefWithText` also fixes the validity floor: the old
+ * `< 10 return null` silently rejected legitimate 8- and 9-digit international numbers.
+ */
+function waHrefFromPhoneDisplay(raw: string, lang: "es" | "en"): string | null {
+  return buildInternationalWhatsAppWaMeHrefWithText(raw, rentasLeadSmsBody(lang));
 }
 
 function smsHrefFromState(raw: string, lang: "es" | "en"): string | null {
@@ -150,7 +166,7 @@ export function mapRentasNegocioStateToPreviewVm(
   const smsHref = smsHrefFromState(s.negocioMensajesTexto, lang);
   const telHref = telHrefFromPhoneDisplay(primaryPhoneRaw);
   const waRaw = trim(s.negocioWhatsapp) || primaryPhoneRaw;
-  const waHref = waHrefFromPhoneDisplay(waRaw);
+  const waHref = waHrefFromPhoneDisplay(waRaw, lang);
 
   const ch = buildLeonixContactChannelsV1PayloadFromFormSlice(s.contactChannels, {
     fallbackWebsite: trim(s.negocioSitioWeb),

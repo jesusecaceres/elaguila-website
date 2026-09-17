@@ -2,27 +2,29 @@
 
 import Link from "next/link";
 import { VisibleEmailWithCopy } from "@/app/components/contact/LeonixEmailContactBlock";
-import { LEONIX_MAP_URL, LEONIX_PHONE_TEL, LEONIX_PHONE_DISPLAY } from "@/app/(site)/tienda/data/leonixContact";
-import { LEONIX_GLOBAL_EMAIL } from "@/app/data/leonixGlobalContact";
+import { LEONIX_PHONE_TEL } from "@/app/(site)/tienda/data/leonixContact";
 import type { SupportedLang } from "@/app/lib/language";
 import { replaceLangInHref } from "@/app/lib/language";
-import {
-  CONTACT_DISPLAY_ADDRESS_LINE1,
-  CONTACT_DISPLAY_ADDRESS_LINE2,
-  type ContactPolishCopy,
-} from "@/app/lib/leonix/contactPagePolishCopy";
+import type { ContactPolishCopy } from "@/app/lib/leonix/contactPagePolishCopy";
+import type { ContactoResolvedCopy } from "@/app/lib/siteSectionContent/contactoMerge";
 
 type Props = {
   lang: SupportedLang;
   copy: ContactPolishCopy;
   highlightInquiryIndex: number | null;
+  /**
+   * ADMIN-OS-01: canonical contact-details truth from site_section_content
+   * ("contacto"), via mergeContactoCopy() — replaces the previously-hardcoded
+   * email/phone/address/map, which silently ignored admin edits.
+   */
+  contact: ContactoResolvedCopy;
 };
 
 function withLang(path: string, lang: SupportedLang): string {
   return replaceLangInHref(path, lang);
 }
 
-export function ContactIntakeHero({ lang, copy, highlightInquiryIndex }: Props) {
+export function ContactIntakeHero({ lang, copy, highlightInquiryIndex, contact }: Props) {
   const { hero } = copy;
 
   return (
@@ -86,41 +88,55 @@ export function ContactIntakeHero({ lang, copy, highlightInquiryIndex }: Props) 
                 </dt>
                 <dd className="mt-1.5">
                   <VisibleEmailWithCopy
-                    email={LEONIX_GLOBAL_EMAIL}
+                    email={contact.email}
                     lang={lang}
                     className="text-sm font-medium text-[#FFFDF7]"
                   />
                 </dd>
               </div>
+              {contact.phoneLine ? (
+                <div>
+                  <dt className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-[#C9A84A]/80">
+                    {copy.phoneLabel}
+                  </dt>
+                  <dd className="mt-1.5">
+                    <a
+                      href={LEONIX_PHONE_TEL}
+                      className="inline-flex min-h-[44px] items-center text-base font-bold text-[#FFFDF7] underline decoration-[#C9A84A]/60 underline-offset-4 hover:text-[#FAF6EE]"
+                    >
+                      {contact.phoneLine}
+                    </a>
+                  </dd>
+                </div>
+              ) : null}
+              {contact.addressLine ? (
+                <div>
+                  <dt className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-[#C9A84A]/80">
+                    {copy.officeLabel}
+                  </dt>
+                  <dd className="mt-1.5">
+                    {contact.mapUrl ? (
+                      <a
+                        href={contact.mapUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block whitespace-pre-line text-sm leading-relaxed font-medium text-[#FAF6EE]/95 underline decoration-[#C9A84A]/40 underline-offset-4 hover:text-[#FFFDF7]"
+                      >
+                        {contact.addressLine}
+                      </a>
+                    ) : (
+                      <p className="whitespace-pre-line text-sm leading-relaxed font-medium text-[#FAF6EE]/95">
+                        {contact.addressLine}
+                      </p>
+                    )}
+                  </dd>
+                </div>
+              ) : null}
               <div>
                 <dt className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-[#C9A84A]/80">
-                  {copy.phoneLabel}
+                  {contact.hoursLabel}
                 </dt>
-                <dd className="mt-1.5">
-                  <a
-                    href={LEONIX_PHONE_TEL}
-                    className="inline-flex min-h-[44px] items-center text-base font-bold text-[#FFFDF7] underline decoration-[#C9A84A]/60 underline-offset-4 hover:text-[#FAF6EE]"
-                  >
-                    {LEONIX_PHONE_DISPLAY}
-                  </a>
-                </dd>
-              </div>
-              <div>
-                <dt className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-[#C9A84A]/80">
-                  {copy.officeLabel}
-                </dt>
-                <dd className="mt-1.5">
-                  <a
-                    href={LEONIX_MAP_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block text-sm leading-relaxed font-medium text-[#FAF6EE]/95 underline decoration-[#C9A84A]/40 underline-offset-4 hover:text-[#FFFDF7]"
-                  >
-                    {CONTACT_DISPLAY_ADDRESS_LINE1}
-                    <br />
-                    {CONTACT_DISPLAY_ADDRESS_LINE2}
-                  </a>
-                </dd>
+                <dd className="mt-1.5 text-sm leading-relaxed font-medium text-[#FAF6EE]/95">{contact.hours}</dd>
               </div>
             </dl>
           </aside>

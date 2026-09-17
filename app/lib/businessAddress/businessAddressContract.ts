@@ -14,10 +14,13 @@
  * between "the address we hold" (truth) and "what the public sees" (visibility) as a first-class
  * type-level distinction — see `businessAddressPrivacy.ts`.
  *
- * No real address-verification provider (Google Places, SmartyStreets, USPS, etc.) is wired into
- * this repo today — confirmed by searching package.json and env samples. `verificationStatus`
- * therefore only ever reaches "verified" through a real provider adapter (see
- * `businessAddressProvider.ts`); manual entry is always a fully valid, first-class path and is
+ * Provider truth (corrected 2026-09-13, Servicios Live Launch Perfection ⚠️30): a real
+ * provider-backed SUGGESTION flow IS wired — `providers/googleAddressProvider.ts` (Google
+ * Geocoding, `GOOGLE_MAPS_API_KEY`, server-side only) behind `POST /api/business-address/suggest`,
+ * consumed by `BusinessAddressVerifiedInput` (live in the Servicios application). It yields
+ * `provider_suggested` candidates the owner may accept (`user_confirmed`) or ignore in favour of
+ * manual entry. `verificationStatus` still only ever reaches "verified" through a provider
+ * adapter's own confirmed result; manual entry is always a fully valid, first-class path and is
  * never silently upgraded.
  */
 

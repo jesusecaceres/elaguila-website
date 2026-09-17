@@ -22,7 +22,7 @@ import {
   type BrPropertyInventoryRowLike,
 } from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
 import { callBrLifecycleMutation } from "../lib/brDashboardLifecycleClient";
-import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import { parseLeonixListingContract, leonixLiveAnuncioPath } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { LeonixRealEstateListingManageCard } from "../components/LeonixRealEstateListingManageCard";
@@ -118,7 +118,13 @@ import {
   dashboardRepublishPrimaryLabel,
 } from "../lib/dashboardRepublishUi";
 import { resolveListingLifecycle } from "@/app/lib/listingLifecycle/resolveListingLifecycle";
-import { RENTAS_LISTING_LIFECYCLE_CONFIG } from "@/app/lib/listingLifecycle/listingLifecycleConfig";
+import { RENTAS_LISTING_LIFECYCLE_CONFIG, BR_FSBO_LISTING_LIFECYCLE_CONFIG } from "@/app/lib/listingLifecycle/listingLifecycleConfig";
+import {
+  callBrFsboStatusMutation,
+  brFsboStatusErrorMessage,
+} from "@/app/(site)/dashboard/lib/brFsboStatusClient";
+import type { BrFsboOwnerStatusAction } from "@/app/lib/clasificados/bienes-raices/brFsboOwnerStatusAuthority";
+import { isBrFsboRow } from "@/app/lib/listingLifecycle/bienesFsboLifecycle";
 import { startListingRenewalCheckout } from "@/app/lib/listingLifecycle/listingRenewalCheckout";
 import { ComidaLocalDashboardListings } from "@/app/lib/clasificados/comida-local/ComidaLocalDashboardListings";
 import { fetchOwnerComidaLocalListings } from "@/app/lib/clasificados/comida-local/comidaLocalDashboardQueries";
@@ -481,17 +487,30 @@ function MyListingsPageContent() {
 
     for (const row of listings) {
       const cat = String(row.category ?? "").toLowerCase();
-      if (cat !== "rentas") continue;
+      // Gate 20 — Bienes Raíces Privado/FSBO shares this same attention pass (same
+      // resolveListingLifecycle truth the card render path already uses); Negocio rows are
+      // excluded (their own certified brLifecycleContract descriptors are unaffected).
+      const isBrFsbo = cat === "bienes-raices" && parseLeonixListingContract(row.detail_pairs).branch === "bienes_raices_privado";
+      if (cat !== "rentas" && !isBrFsbo) continue;
       const lifecycle = resolveListingLifecycle(
-        {
-          category: "rentas",
-          packageKey: "rentas_30d",
-          status: row.status,
-          isPublished: row.is_published,
-          publishedAt: row.published_at,
-          expiresAt: row.expires_at,
-        },
-        RENTAS_LISTING_LIFECYCLE_CONFIG,
+        isBrFsbo
+          ? {
+              category: "bienes-raices",
+              packageKey: "br_fsbo_45d",
+              status: row.status,
+              isPublished: row.is_published,
+              publishedAt: row.published_at,
+              expiresAt: row.expires_at,
+            }
+          : {
+              category: "rentas",
+              packageKey: "rentas_30d",
+              status: row.status,
+              isPublished: row.is_published,
+              publishedAt: row.published_at,
+              expiresAt: row.expires_at,
+            },
+        isBrFsbo ? BR_FSBO_LISTING_LIFECYCLE_CONFIG : RENTAS_LISTING_LIFECYCLE_CONFIG,
       );
       const statusDisplayKey =
         lifecycle.lifecycleState === "pending_payment"
@@ -504,13 +523,13 @@ function MyListingsPageContent() {
       out.push(
         ...resolveOwnerDashboardAttentionItems({
           id: row.id,
-          category: "rentas",
+          category: isBrFsbo ? "bienes-raices" : "rentas",
           statusDisplayKey,
           isPublished: row.is_published,
           // Edit route not evaluated in this narrow loop (left undefined, not "confirmed
           // missing") — the real edit href is computed per-row inside LeonixRealEstateListingManageCard's
           // own render path; this attention pass only claims what it has actually verified.
-          publicHref: rentasListingPublicPath(row.id),
+          publicHref: isBrFsbo ? leonixLiveAnuncioPath(row.id) : rentasListingPublicPath(row.id),
           renewal: { isRenewalEligible: lifecycle.isRenewalEligible, hasRealAction: true },
         }),
       );
@@ -866,6 +885,10 @@ function MyListingsPageContent() {
   }, [inventoryReady, categoryFilter, restaurantRawRows, serviciosRawRows, autosPaidRawRows, listings, accessToken]);
 
   async function markPauseListing(id: string) {
+    // Gate BIENES-PRIVADO-1 — Privado rows now go through their own server authority too, so
+    // the "client-direct behavior" note below applies to Rentas and En Venta only.
+    if (await applyBrFsboStatusAction(id, "pause")) return;
+
     // Gate G.2.3.1 — Bienes Raíces Negocio rows go through the new server-authorized mutation
     // route; every other listings-table category (Rentas, En Venta, Bienes Raíces Privado) keeps
     // its existing client-direct behavior exactly as-is, unchanged by this gate.
@@ -908,6 +931,10 @@ function MyListingsPageContent() {
   }
 
   async function markResumeListing(id: string) {
+    // Gate BIENES-PRIVADO-1 — Privado resume is server-validated: only a genuinely `paused`
+    // row resumes, and an unpaid row is refused with a payment-required message.
+    if (await applyBrFsboStatusAction(id, "resume")) return;
+
     // Gate G.2.3.1 — same BR/other-category split as markPauseListing. Resume additionally
     // rechecks the canonical main parent, entitlement, and capacity server-side for an inventory
     // child (Gate G.2.3A's confirmed most severe gap) — this client function never knows or
@@ -986,10 +1013,12 @@ function MyListingsPageContent() {
       const res = await fetch("/api/clasificados/servicios/manage", {
         method: "POST",
         headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, action }),
+        body: JSON.stringify({ slug, action, lang }),
       });
       if (!res.ok) {
-        setError(dashboardSafeMutationErrorCopy(lang));
+        // A refused Resume (402 — Servicios plan not active) carries an honest reason; show it.
+        const data = (await res.json().catch(() => null)) as { message?: string } | null;
+        setError(res.status === 402 && data?.message?.trim() ? data.message.trim() : dashboardSafeMutationErrorCopy(lang));
         return;
       }
       const fresh = await fetchOwnerServiciosListings(accessToken);
@@ -1028,7 +1057,38 @@ function MyListingsPageContent() {
     }
   }
 
+  /**
+   * Gate BIENES-PRIVADO-1 — one helper for every Privado status transition. It owns no rules:
+   * the server decides whether the transition is legal from the row's REAL current status, and
+   * this only reflects the result. Returns true when it handled the row.
+   */
+  async function applyBrFsboStatusAction(id: string, action: BrFsboOwnerStatusAction): Promise<boolean> {
+    const row = listings.find((x) => x.id === id);
+    if (!row || !isBrFsboRow(row)) return false;
+    setBusyId(id);
+    setError(null);
+    const result = await callBrFsboStatusMutation({ listingId: id, action });
+    if (!result.ok) {
+      setError(brFsboStatusErrorMessage(result.code, lang));
+      setBusyId(null);
+      return true;
+    }
+    const now = new Date().toISOString();
+    setListings((prev) =>
+      prev.map((x) =>
+        x.id === id ? { ...x, status: result.status, is_published: result.isPublished, updated_at: now } : x,
+      ),
+    );
+    setBusyId(null);
+    return true;
+  }
+
   async function markStatus(id: string, status: "active" | "sold") {
+    // Gate BIENES-PRIVADO-1 — a Privado row can no longer be published or sold by a direct
+    // client table write. "active" here means RELIST, and the server refuses it out of an
+    // unpaid `pending` row (payment authority belongs to the Revenue OS webhook alone).
+    if (await applyBrFsboStatusAction(id, status === "sold" ? "mark_sold" : "relist")) return;
+
     // Gate G.2.3.1 — only the BR "mark sold" case (maps to Discontinue) moves to the server
     // route; En Venta's "active" (relist) and "sold" calls through this same shared function
     // keep their existing client-direct behavior unchanged.
@@ -1188,6 +1248,26 @@ function MyListingsPageContent() {
     window.location.href = result.checkoutUrl;
   }
 
+  /** Gate 20 — same-row, no-recharge renewal for Bienes Raíces Privado/FSBO ($49.99/45 days). */
+  async function startBienesFsboRenewal(row: ListingRow) {
+    setRenewalCheckoutBusyId(row.id);
+    setError(null);
+    const result = await startListingRenewalCheckout({
+      category: "bienes-raices",
+      packageKey: "br_fsbo_45d",
+      listingId: row.id,
+      leonixAdId: row.leonix_ad_id,
+      lang,
+      returnPath: `${pathname}?lang=${lang}&cat=bienes-raices`,
+    });
+    if (!result.ok) {
+      setError(result.userMessage);
+      setRenewalCheckoutBusyId(null);
+      return;
+    }
+    window.location.href = result.checkoutUrl;
+  }
+
   async function renewEnVentaRepublish(row: ListingRow) {
     if ((row.category ?? "").toLowerCase() !== "en-venta") return;
     const plan = listingPlanFromDetailPairs(row.detail_pairs);
@@ -1254,6 +1334,11 @@ function MyListingsPageContent() {
   /** Soft archive (Admin-aligned): row stays in DB; Leonix Ad ID and history preserved. */
   async function softArchiveListing(id: string) {
     if (!confirm(lang === "es" ? "¿Archivar este anuncio? Dejará de mostrarse al público." : "Archive this listing? It will stop showing publicly.")) return;
+
+    // Gate BIENES-PRIVADO-1 — Privado archive is server-validated. It is still a SOFT archive:
+    // the same `status: removed` / `is_published: false` patch as before, so the row, its media,
+    // its analytics and its leonix_ad_id all survive. Nothing is deleted.
+    if (await applyBrFsboStatusAction(id, "archive")) return;
 
     // Gate G.2.3.1 — same BR/other-category split as the other lifecycle handlers. Active-child
     // disposition for a BR main parent (Gate G.2.3A Scenario C) is not yet implemented — this
@@ -1985,7 +2070,16 @@ function MyListingsPageContent() {
                         listingSlug: item.slug,
                         leonixAdId: item.leonixAdId,
                       }),
+                      // Gate SERVICIOS-P7-BLOCKER-REPAIR-01 (B4) — offers are INCLUDED in the $399 base
+                      // plan: the server-verified `coupons_offers` capability (same authority the
+                      // publish route enforces, and the same check Restaurantes uses above) is the
+                      // truth. The retired add-on badge stays as a historical fallback.
                       serviciosOffersActive:
+                        dashboardHasCapabilityForKey(
+                          entitlementBadges,
+                          [item.id, item.slug ?? "", item.leonixAdId ?? ""],
+                          "coupons_offers",
+                        ) ||
                         dashboardEntitlementBadgeForKey(entitlementBadges, [
                           item.id,
                           item.slug ?? "",
@@ -2084,6 +2178,7 @@ function MyListingsPageContent() {
                       dateText={dateText}
                       busy={busy}
                       onArchive={() => void softArchiveListing(x.id)}
+                      onReactivate={() => void markStatus(x.id, "active")}
                       thumbUrl={thumbUrl}
                       analytics={{
                         views: stats?.views ?? 0,
@@ -2123,6 +2218,24 @@ function MyListingsPageContent() {
                           RENTAS_LISTING_LIFECYCLE_CONFIG,
                         )
                       : null;
+                  // Gate 20 — Bienes Raíces Privado/FSBO fixed-term ($49.99/45 days). Negocio rows
+                  // (lx.branch === "bienes_raices_negocio") never get a lifecycle here — their own
+                  // certified global lifecycle descriptors (brLifecycleContract) are unaffected.
+                  const brFsboLifecycle =
+                    catKey === "bienes-raices" && lx.branch === "bienes_raices_privado"
+                      ? resolveListingLifecycle(
+                          {
+                            category: "bienes-raices",
+                            packageKey: "br_fsbo_45d",
+                            status: x.status,
+                            isPublished: x.is_published,
+                            publishedAt: x.published_at,
+                            expiresAt: x.expires_at,
+                          },
+                          BR_FSBO_LISTING_LIFECYCLE_CONFIG,
+                        )
+                      : null;
+                  const realEstateCardLifecycle = rentasLifecycle ?? brFsboLifecycle;
                   // Gate G.2.3.1 — BR-specific client eligibility, paired with the server-side
                   // fix in `applyBrRepublish`: Republish for a Bienes Raíces Negocio row must
                   // never appear enabled for pending/paused/flagged/sold/removed/unknown states,
@@ -2162,21 +2275,34 @@ function MyListingsPageContent() {
                       onPause={() => void markPauseListing(x.id)}
                       onResume={() => void markResumeListing(x.id)}
                       onArchive={() => void softArchiveListing(x.id)}
-                      onMarkSold={() => {
-                        const ok = window.confirm(
-                          lang === "es"
-                            ? "¿Marcar este anuncio como vendido? Dejará de aparecer en resultados públicos."
-                            : "Mark this listing as sold? It will leave public results.",
-                        );
-                        if (!ok) return;
-                        void markStatus(x.id, "sold");
-                      }}
+                      onMarkSold={
+                        // Registry truth (ownerEntityCapabilityRegistry.ts): both rentas-privado and
+                        // rentas-negocio declare lifecycle.markSold as "unsupported" — a rental is
+                        // never "sold". Only BR rows should offer this action.
+                        catKey === "rentas"
+                          ? undefined
+                          : () => {
+                              const ok = window.confirm(
+                                lang === "es"
+                                  ? "¿Marcar este anuncio como vendido? Dejará de aparecer en resultados públicos."
+                                  : "Mark this listing as sold? It will leave public results.",
+                              );
+                              if (!ok) return;
+                              void markStatus(x.id, "sold");
+                            }
+                      }
                       republishPrimaryLabel={repLabel}
                       onRepublish={repLabel ? () => void renewListingsTableRepublish(x) : undefined}
                       republishBusy={busy}
-                      lifecycle={rentasLifecycle}
+                      lifecycle={realEstateCardLifecycle}
                       renewalBusy={renewalCheckoutBusyId === x.id}
-                      onRenew={rentasLifecycle?.isRenewalEligible ? () => void startRentasRenewal(x) : undefined}
+                      onRenew={
+                        rentasLifecycle?.isRenewalEligible
+                          ? () => void startRentasRenewal(x)
+                          : brFsboLifecycle?.isRenewalEligible
+                          ? () => void startBienesFsboRenewal(x)
+                          : undefined
+                      }
                       parentLeonixAdIdByListingId={parentLeonixAdIdByListingId}
                       brNegocioInventoryRows={brNegocioInventoryRows as BrPropertyInventoryRowLike[]}
                       packageEntitlementBadge={dashboardEntitlementBadgeForKey(entitlementBadges, [
@@ -2245,7 +2371,18 @@ function MyListingsPageContent() {
                       priceText={priceText}
                       dateText={dateText}
                       busy={busy}
-                      onMarkSold={() => markStatus(x.id, "sold")}
+                      onMarkSold={() => {
+                        // UX Completion Gate — same confirm text this file already uses for the
+                        // BR-family card's onMarkSold above; this En Venta card had none, an
+                        // inconsistent safety gap for the identical Red/terminal action.
+                        const ok = window.confirm(
+                          lang === "es"
+                            ? "¿Marcar este anuncio como vendido? Dejará de aparecer en resultados públicos."
+                            : "Mark this listing as sold? It will leave public results.",
+                        );
+                        if (!ok) return;
+                        markStatus(x.id, "sold");
+                      }}
                       onMarkActive={() => markStatus(x.id, "active")}
                       onPause={() => void markPauseListing(x.id)}
                       onResume={() => void markResumeListing(x.id)}
@@ -2483,7 +2620,7 @@ function MyListingsPageContent() {
                           type="button"
                           disabled={busy}
                           onClick={() => softArchiveListing(x.id)}
-                          className="rounded-xl border border-stone-300 bg-stone-100 px-4 py-2 text-sm font-semibold text-stone-900 disabled:opacity-50"
+                          className="rounded-xl border border-red-300/70 bg-red-50 px-4 py-2 text-sm font-semibold text-red-800 hover:border-red-400 hover:bg-red-100 disabled:opacity-50"
                         >
                           {t.archiveAd}
                         </button>

@@ -8,10 +8,10 @@ export default function AdminViajesBusinessOffersPage() {
   return (
     <>
       <AdminPageHeader
-        eyebrow="Viajes · business lane"
+        eyebrow="Viajes · submissions"
         title="Business Offers"
         subtitle="Moderation queue for operator-submitted offers. Trust, identity, and media review precede publication — distinct from affiliate partner cards."
-        helperText="Business applications originate from /publicar/viajes/negocios. Affiliate inventory is managed only under Affiliate Cards."
+        helperText="Business applications originate from /publicar/viajes/negocios. This queue is not currently filtered by lane — any Viajes submission awaiting moderation (business or private) shows up here, since no separate private-lane moderation queue exists yet. Affiliate inventory is managed only under Affiliate Cards."
       />
       <AdminViajesBusinessSurfaceMap />
       <div className={`${adminCardBase} mb-6 space-y-2 p-5 text-sm text-[#5C5346]`}>

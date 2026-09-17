@@ -88,6 +88,14 @@ export type CtaSheetIntent =
       whatsappDigits?: string | null;
       email?: string | null;
       contactShareExtras?: CtaContactShareExtras | null;
+      /**
+       * Servicios Final Contact Truth + Email No-Mailto Closeout (2026-09-17, Gate 9) — same
+       * opt-out as send_email.showOpenEmailApp below, extended to the quote sheet's own "Enviar
+       * por correo"/"Send via email" action (reached from Servicios' services/gallery/highlights
+       * "Cotizar" CTAs when the resolved quote destination is email-only). Defaults to `true`;
+       * every other category leaves it unset and keeps its current behavior unchanged.
+       */
+      showOpenEmailApp?: boolean;
     }
   | {
       kind: "send_email";
@@ -98,6 +106,17 @@ export type CtaSheetIntent =
       contactShareExtras?: CtaContactShareExtras | null;
       /** When set, show “Open in Gmail” (Leonix share / contact parity). */
       gmailComposeHref?: string | null;
+      /**
+       * Owner doctrine (2026-09-17): the approved Autos/Servicios contact sheet no longer
+       * exposes an "Abrir app de correo"/"Open email app" mailto launcher — Copy email/Copy
+       * full message/Share are the reliable, cross-app path, since mailto's actual
+       * app-opening behavior depends on an OS-registered handler Leonix cannot guarantee.
+       * Defaults to `true` so every OTHER category (Restaurantes, Rentas, Bienes Raíces,
+       * Empleos, En Venta, Viajes, Comida Local, Recursos) keeps its current behavior
+       * unchanged unless it explicitly opts out — this never deletes the underlying
+       * `openMailto` infrastructure, only whether this one sheet exposes it.
+       */
+      showOpenEmailApp?: boolean;
     }
   | {
       kind: "website" | "booking" | "menu" | "order" | "social_link" | "other";

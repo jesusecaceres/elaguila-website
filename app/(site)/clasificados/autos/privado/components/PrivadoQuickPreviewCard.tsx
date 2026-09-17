@@ -6,6 +6,7 @@ import { formatCityStateZipLine, formatMiles, formatUsd } from "@/app/clasificad
 import { buildVehicleTitle, normalizeVehicleSegment } from "@/app/(site)/publicar/autos/negocios/lib/autoDealerTitle";
 import { withNormalizedVehicleIdentityForDisplay } from "@/app/lib/clasificados/autos/autosListingDisplayIdentity";
 import { useAutosPrivadoPreviewCopy } from "../lib/AutosPrivadoPreviewLocaleContext";
+import { localizeAutosDealerTaxonomySelectValue } from "@/app/clasificados/autos/negocios/lib/autosNegociosCopy";
 
 const CARD = "rounded-[24px] border border-[color:var(--lx-gold-border)] bg-[#FFFCF7] p-6 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.12)] sm:p-8";
 
@@ -71,7 +72,7 @@ export function PrivadoQuickPreviewCard({ data }: { data: AutoDealerListing }) {
           ) : null}
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
             {priceOk ? (
-              <span className="font-bold text-[#7A1E2C]">{formatUsd(display.price)}</span>
+              <span className="font-bold text-[#7A1E2C]">{formatUsd(display.price, lang)}</span>
             ) : null}
             {loc ? (
               <span className="text-[color:var(--lx-text-2)]">{loc}</span>
@@ -79,13 +80,13 @@ export function PrivadoQuickPreviewCard({ data }: { data: AutoDealerListing }) {
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[color:var(--lx-text-2)]">
             {showMileage ? (
-              <span>{formatMiles(display.mileage)}</span>
+              <span>{formatMiles(display.mileage, lang)}</span>
             ) : null}
             {display.transmission ? (
-              <span>{display.transmission}</span>
+              <span>{localizeAutosDealerTaxonomySelectValue("transmission", display.transmission, lang)}</span>
             ) : null}
             {display.fuelType ? (
-              <span>{display.fuelType}</span>
+              <span>{localizeAutosDealerTaxonomySelectValue("fuel", display.fuelType, lang)}</span>
             ) : null}
           </div>
         </div>

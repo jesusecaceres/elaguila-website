@@ -132,6 +132,8 @@ function main() {
   assert.ok(hubRow.includes("showEngagementControls"), "hub row: visibility prop separate from persistence");
   assert.ok(hubRow.includes("showEngagementActions"), "hub row: visibility gate");
   assert.ok(hubRow.includes("showEngagementControls && Boolean(lxListingId)"), "hub row: visibility not tied to persistence");
+  // Servicios Live Launch Perfection ⚠️32 (2026-09-14): general Share is native-first with a
+  // lightweight copy-link fallback (PM product decision; ⚠️14's hub adoption reverted).
   assert.ok(hubRow.includes("directNativeShare"), "hub row: native share");
   assert.ok(hubRow.includes("persistEngagement={persistEngagement}"), "hub row: persistence flag wired");
 
@@ -139,7 +141,7 @@ function main() {
     join(__dirname, "../app/(site)/servicios/components/ServiciosProfessionalProfileShell.tsx"),
     "utf8",
   );
-  assert.ok(proShell.includes("directNativeShare"), "professional shell: hero native share");
+  assert.ok(proShell.includes("directNativeShare"), "professional shell: hero native share (⚠️32)");
   assert.ok(proShell.includes("persistEngagement={persistListingEngagement}"), "professional shell: persistence wired");
 
   const shareBtn = readFileSync(join(__dirname, "../app/components/clasificados/analytics/LeonixShareButton.tsx"), "utf8");

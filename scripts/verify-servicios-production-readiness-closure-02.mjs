@@ -50,10 +50,28 @@ ok(
 );
 ok("pending save requires real DB identity", publishRoute.includes("pendingPayment") && publishRoute.includes("persistedListingId"));
 ok("public queries hide pending statuses", publicServer.includes(".ilike(\"listing_status\", SERVICIOS_LISTING_STATUS_PUBLISHED)") && publicServer.includes("listingStatus !== SERVICIOS_LISTING_STATUS_PUBLISHED"));
-ok("correct base package key remains", preview.includes("SERVICIOS_BASE_CHECKOUT") && checkout.includes('basePackageKey: "servicios_base_monthly"'));
-ok("correct add-on key remains", preview.includes("SERVICIOS_OFFERS_ADDON_PACKAGE_KEY") && checkout.includes("SERVICIOS_OFFERS_ADDON_PACKAGE_KEY"));
+// Gate SERVICIOS-P7-BLOCKER-REPAIR-01 (B4) — the next three checks are updated to current commercial
+// truth. They used to certify the retired model in which a $79/mo offers add-on was bundled into
+// checkout and bought separately from the dashboard. Coupons/offers are INCLUDED in
+// servicios_base_monthly (Package C Build 3, owner-locked); these checks were already failing
+// before this gate for exactly that reason.
+ok(
+  "correct base package key remains",
+  preview.includes("SERVICIOS_BASE_CHECKOUT") &&
+    read("app/lib/listingPlans/revenuePricingMatrix.ts").includes('packageKey: "servicios_base_monthly"'),
+);
+{
+  const start = checkout.indexOf("const CHECKOUT_ADDON_ALLOWLIST");
+  const allowlistBlock = start >= 0 ? checkout.slice(start, checkout.indexOf("\n};", start)) : "";
+  ok("retired offers add-on is not purchasable", Boolean(allowlistBlock) && !/\bservicios:\s*\{/.test(allowlistBlock));
+}
 ok("no client amount is trusted", !preview.includes("amountCents") && checkoutRoute.includes("validateRevenueCheckoutRequest"));
-ok("dashboard upgrade cannot include base", dashboardOffers.includes("SERVICIOS_OFFERS_ADDON_DASHBOARD_CHECKOUT") && !dashboardOffers.includes("SERVICIOS_BASE_CHECKOUT"));
+ok(
+  "dashboard offers module is capability-enable only, never a purchase",
+  dashboardOffers.includes("enableIncludedCommercialCapability") &&
+    !dashboardOffers.includes("SERVICIOS_BASE_CHECKOUT") &&
+    !dashboardOffers.includes("startRevenueCategoryCheckout"),
+);
 ok("promo requires server validation", preview.includes("validateRevenuePromoForCheckout") && checkoutRoute.includes("resolvePromoForCheckout"));
 ok("checkout requires durable database persistence", preview.includes("saveServiciosPendingBeforeCheckout") && savePending.includes("data.pendingPayment"));
 ok("webhook verifies Stripe signature", webhookRoute.includes("request.text()") && webhookRoute.includes("verifyStripeWebhookEvent"));
@@ -61,7 +79,11 @@ ok("webhook validates package amount listing", fulfillment.includes("amount_mism
 ok("webhook idempotency preserved", fulfillment.includes("isPaymentCleared") && fulfillment.includes("idempotent"));
 ok("webhook publishes Servicios base listing", fulfillment.includes("tryActivateServiciosListingAfterEntitlement") && serviciosFulfillment.includes("listing_status: \"published\""));
 ok("base plus offers grants real add-on entitlement", serviciosFulfillment.includes("grantServiciosOffersAddonEntitlementFromBasePayment") && serviciosFulfillment.includes("listing_package_entitlements"));
-ok("entitlement source is server-backed", myListings.includes("listing_package_entitlements") && myListings.includes("SERVICIOS_OFFERS_ADDON_PACKAGE_KEY"));
+// B4 — the server authority is the included `coupons_offers` capability, not the retired add-on key.
+ok(
+  "entitlement source is server-backed",
+  myListings.includes("resolveBusinessToolsAccess({") && myListings.includes('capability: "coupons_offers"'),
+);
 ok("profile flag alone cannot unlock offers", !myListings.includes("serviciosListingJsonOffersEnabled"));
 ok("professional and trades mapping remain", preview.includes("professional") && preview.includes("trades"));
 ok("media transport rejects blob/data/local placeholders", publishRoute.includes("data:image/") && publishRoute.includes("blob:") && publishRoute.includes("__LX_SV_IDB__") && publishClient.includes("resolveServiciosDraftMediaToRemoteUrls"));

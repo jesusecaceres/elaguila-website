@@ -95,6 +95,12 @@ export function rentasNegocioToBienesRaicesNegocioState(s: RentasNegocioFormStat
     direccion: buildRentasStreetLine(s),
     ciudad: s.ciudad,
     estado: trim(s.direccionEstado) || "CA",
+    // Gate RENTAS-NEGOCIO-1 — the country was NOT carried across this conversion, so the Bienes
+    // Raíces Negocio facet builder (which reads `state.pais`) always fell back to its own
+    // "United States" default and silently rewrote the country of any Rentas Negocio listing
+    // published with a different one. The Privado lane never had this loss because it does not go
+    // through this conversion. One field, at the exact point the value was being dropped.
+    pais: trim(s.direccionPais),
     codigoPostal: coerceRentasPostalDigits5(s.direccionCodigoPostal),
     colonia: s.zonaVecindario,
     mostrarDireccionExacta: s.mostrarDireccionExacta === true,
@@ -158,6 +164,12 @@ export function rentasNegocioToBienesRaicesNegocioState(s: RentasNegocioFormStat
             }
             return hp;
           })(),
+          // Owner-typed "Agregar otra característica" entries aren't canonical preset ids — they
+          // don't have a slot in highlightPresets, so route them through the BR Negocio custom
+          // free-text channel instead of silently dropping them.
+          customHighlightsText: s.residencial.highlightKeys
+            .filter((k) => !(k in emptyNegocioHighlightPresets()))
+            .join("\n"),
         }
       : {}),
   };

@@ -71,7 +71,11 @@ export function RentasShowingTourSection<T extends RentasShowingFormSlice>({
             onChange={(e) => setState((st) => ({ ...st, virtualTourUrl: e.target.value }))}
             placeholder="https://…"
           />
-          <p className={aiHintClass}>{s.invalidHttps}</p>
+          {/^https?:\/\/\S+/i.test(state.virtualTourUrl.trim()) ? (
+            <p className="mt-2 text-xs font-bold text-[#2F6B3C]">{s.tourLinkAdded}</p>
+          ) : (
+            <p className={aiHintClass}>{s.invalidHttps}</p>
+          )}
         </AiField>
       </div>
     </section>

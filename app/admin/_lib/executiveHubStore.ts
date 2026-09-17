@@ -10,11 +10,13 @@
  */
 import "server-only";
 
+import { getAdminSupabase } from "@/app/lib/supabase/server";
 import type { DigitalContactAddress, DigitalContactProfile, DigitalContactSocialLink } from "@/app/lib/digitalContact/digitalContactTypes";
 import type { ExecutiveThemeId } from "@/app/lib/digitalContact/digitalContactExecutiveTheme";
 import {
   dbListExecutiveHubRecords,
   dbGetExecutiveHubRecord,
+  dbGetExecutiveHubRecordByRosterId,
   dbCreateExecutiveHubRecord,
   dbUpdateExecutiveHubRecord,
   dbSetExecutiveHubStatus,
@@ -36,6 +38,38 @@ export async function listExecutiveHubRecords(): Promise<{ records: ExecutiveHub
 
 export async function getExecutiveHubRecord(slug: string): Promise<ExecutiveHubRecord | null> {
   return dbGetExecutiveHubRecord(slug);
+}
+
+/** Master Operating Book V2 §0G — resolves "my own" profile by the real linked_roster_id FK. */
+export async function getExecutiveHubRecordByRosterId(rosterId: string): Promise<ExecutiveHubRecord | null> {
+  return dbGetExecutiveHubRecordByRosterId(rosterId);
+}
+
+export type ActiveRosterMemberOption = { id: string; displayName: string; email: string };
+
+/**
+ * Owner-only helper for the "Link to staff account" selector in the Executive Hub editor —
+ * active roster members only (a deactivated staff member should not appear as a linkable target).
+ * Bounded, read-only, no permissions/roles/secrets exposed — just id/display name/email.
+ */
+export async function listActiveRosterMembersForExecutiveLink(): Promise<{ options: ActiveRosterMemberOption[]; unavailable: boolean }> {
+  try {
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase
+      .from("admin_team_members")
+      .select("id, email, display_name")
+      .eq("is_active", true)
+      .order("display_name", { ascending: true })
+      .limit(200);
+    if (error) return { options: [], unavailable: true };
+    const rows = (data ?? []) as { id: string; email: string; display_name: string | null }[];
+    return {
+      options: rows.map((r) => ({ id: r.id, displayName: r.display_name || r.email, email: r.email })),
+      unavailable: false,
+    };
+  } catch {
+    return { options: [], unavailable: true };
+  }
 }
 
 export async function createExecutiveHubRecord(input: {
@@ -65,6 +99,7 @@ export async function createExecutiveHubRecord(input: {
   notes?: string;
   metaDescription?: string;
   status?: ExecutiveHubStatus;
+  linkedRosterId?: string | null;
 }): Promise<SaveExecutiveHubResult> {
   const slug = slugifyExecutive(input.slug || input.fullName);
   const record: Omit<ExecutiveHubRecord, "createdAt" | "updatedAt"> = {
@@ -94,6 +129,7 @@ export async function createExecutiveHubRecord(input: {
     notes: input.notes ?? "",
     metaDescription: input.metaDescription ?? "",
     status: input.status ?? "draft",
+    linkedRosterId: input.linkedRosterId ?? null,
   };
   return dbCreateExecutiveHubRecord(record);
 }

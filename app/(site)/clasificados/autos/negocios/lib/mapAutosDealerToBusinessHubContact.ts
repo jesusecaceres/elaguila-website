@@ -3,6 +3,7 @@ import type { AutosNegociosLang } from "./autosNegociosLang";
 import { safeExternalHref } from "./dealerDraftSanitize";
 import {
   resolveDealerBookingHref,
+  resolveDealerMobilePhone,
   resolveDealerOfficePhone,
   resolveDealerSmsPhone,
 } from "./dealerContactResolve";
@@ -61,9 +62,14 @@ export function mapAutosDealerToBusinessHubContact(
   const waHref = whatsAppHrefFromDisplay(data.dealerWhatsapp ?? undefined);
   if (waHref) contact.whatsappHref = waHref;
 
+  // Owner-locked final mapping: "Solicitar disponibilidad" -> office, "Llamar" -> personal/mobile.
   const office = resolveDealerOfficePhone(data);
-  const telDigits = phoneDigitsForTel(office);
-  if (telDigits.length >= 10) contact.callTelHref = `tel:${telDigits}`;
+  const officeTelDigits = phoneDigitsForTel(office);
+  if (officeTelDigits.length >= 10) contact.availabilityTelHref = `tel:${officeTelDigits}`;
+
+  const mobile = resolveDealerMobilePhone(data);
+  const mobileTelDigits = phoneDigitsForTel(mobile);
+  if (mobileTelDigits.length >= 10) contact.callTelHref = `tel:${mobileTelDigits}`;
 
   const smsRaw = resolveDealerSmsPhone(data);
   const smsDigits = phoneDigitsForTel(smsRaw);
@@ -145,7 +151,7 @@ export function autosNegociosBusinessHubHasContactContent(
 ): boolean {
   const c = vm.contact;
   return (
-    Boolean(c.whatsappHref || c.callTelHref || c.smsHref || c.bookingHref || c.websiteHref || c.emailMailto) ||
+    Boolean(c.whatsappHref || c.callTelHref || c.availabilityTelHref || c.smsHref || c.bookingHref || c.websiteHref || c.emailMailto) ||
     vm.social.length > 0 ||
     vm.reviews.length > 0 ||
     vm.moreLinks.length > 0 ||

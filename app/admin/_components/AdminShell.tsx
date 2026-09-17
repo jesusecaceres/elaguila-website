@@ -5,6 +5,7 @@ import { AdminI18nProvider } from "./AdminI18nProvider";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminTopbar } from "./AdminTopbar";
 import { AdminQueryFlash } from "./AdminQueryFlash";
+import { AdminPageHelpLink } from "./AdminPageHelpLink";
 import { adminContentArea, adminPageBg } from "./adminTheme";
 
 export function AdminShell({
@@ -23,7 +24,7 @@ export function AdminShell({
 }) {
   return (
     <AdminI18nProvider lang={adminLang}>
-    <div className={adminPageBg}>
+    <div className={`${adminPageBg} pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]`}>
       <div
         className="pointer-events-none fixed inset-0 opacity-[0.04]"
         style={{
@@ -53,6 +54,10 @@ export function AdminShell({
           <div className={adminContentArea}>{children}</div>
         </div>
       </div>
+      {/* Master Operating Book V2 §0C — one shared "Help with this page" affordance wired into
+          the shell, not patched into every page. Looks up the current route in the single Admin
+          Guide registry; renders nothing when no entry covers it yet. */}
+      <AdminPageHelpLink />
     </div>
     </AdminI18nProvider>
   );

@@ -5,7 +5,8 @@
  *   1. FULL-CATALOG CHECKPOINT COVERAGE — every registered pipeline has a truthful checkpoint
  *      surface before its application: either the new `checkpointRoute` (the seven lanes P3
  *      Gate 6 recorded as having none), an existing checkpoint-rendering hub (`hubRoute` for
- *      Autos/Bienes/Rentas; application-level hubs for Restaurantes/Servicios/Empleos), or a
+ *      Autos/Bienes/Rentas; application-level hubs for Restaurantes/Empleos; Servicios gained its
+ *      own `checkpointRoute` on 2026-09-13), or a
  *      documented external-workstream boundary (Ofertas Locales).
  *   2. GATEWAY CHECKPOINT-FIRST — the publish gateway resolves
  *      `checkpointRoute ?? hubRoute ?? applicationRoute`, and the live legacy CTA builder
@@ -64,6 +65,10 @@ const REPO_ROOT = path.resolve(__dirname, "..");
     en_venta: "/publicar/en-venta",
     comida_local: "/publicar/comida-local/checkpoint",
     viajes: "/publicar/viajes/checkpoint",
+    // Servicios Live Launch Perfection ⚠️1 (2026-09-13) — the paid checkpoint is now declared on
+    // the adapter so the gateway (Clasificados hub) and the plain-entry redirect (Negocios
+    // Locales lane) converge on the same $399 door.
+    servicios: "/clasificados/publicar/servicios/checkpoint",
   };
   const HUB_CHECKPOINT_PIPELINES = new Set([
     // Hub pages that already render the shared checkpoint cards:
@@ -73,9 +78,9 @@ const REPO_ROOT = path.resolve(__dirname, "..");
     "bienes_raices_privado",
     "rentas_negocio",
     "rentas_privado",
-    // Application-level hubs that render checkpoint cards before the form:
+    // Application-level hubs that render checkpoint cards before the form (Servicios left this
+    // set on 2026-09-13 — it now declares its own checkpointRoute, see EXPECTED_CHECKPOINT_ROUTES):
     "restaurantes",
-    "servicios",
     "empleos",
   ]);
   const EXTERNAL_PIPELINES = new Set(["ofertas_locales"]);
@@ -128,7 +133,13 @@ const REPO_ROOT = path.resolve(__dirname, "..");
   assert.equal(resolvePublicarGatewayDestination("travel", "es"), "/publicar/viajes/checkpoint?lang=es");
   // Hub categories are untouched by the checkpointRoute preference.
   assert.equal(resolvePublicarGatewayDestination("autos", "es"), "/publicar/autos?lang=es");
-  assert.equal(resolvePublicarGatewayDestination("servicios", "es"), "/publicar/servicios?lang=es");
+  // Servicios Live Launch Perfection ⚠️1 (2026-09-13): the Clasificados hub used to skip the $399
+  // checkpoint (no checkpointRoute on the adapter) while the Negocios Locales lane reached it via
+  // the /clasificados/publicar/servicios redirect. One canonical door now.
+  assert.equal(
+    resolvePublicarGatewayDestination("servicios", "es"),
+    "/clasificados/publicar/servicios/checkpoint?lang=es",
+  );
 
   assert.equal(categoryPublishPath("busco"), "/publicar/busco");
   assert.equal(categoryPublishPath("clases"), "/publicar/clases");

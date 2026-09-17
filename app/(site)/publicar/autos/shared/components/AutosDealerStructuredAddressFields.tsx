@@ -1,6 +1,8 @@
 "use client";
 
 import CityAutocomplete from "@/app/components/CityAutocomplete";
+import { BusinessAddressVerifiedInput } from "@/app/components/forms/BusinessAddressVerifiedInput";
+import type { BusinessAddress } from "@/app/lib/businessAddress/businessAddressContract";
 import type { DealerStructuredAddressPatch } from "@/app/lib/clasificados/autos/autosDealerStructuredAddress";
 import {
   AUTOS_DEFAULT_COUNTRY,
@@ -22,8 +24,8 @@ const INPUT =
 const LABEL = "block text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--lx-muted)]";
 
 export type AutosDealerStructuredAddressLabels = {
-  streetNumber: string;
-  streetName: string;
+  /** Single combined "Dirección" entry — replaces the old separate street-number/street-name pair. */
+  street: string;
   unitOrSuite: string;
   city: string;
   state: string;
@@ -33,6 +35,11 @@ export type AutosDealerStructuredAddressLabels = {
   helperSearch: string;
   selectEmpty: string;
 };
+
+/** Autos lang is "es" | "en" already; BusinessAddressVerifiedInput takes the same union. */
+function toBusinessAddressLang(lang: AutosNegociosLang): "es" | "en" {
+  return lang === "en" ? "en" : "es";
+}
 
 export function AutosDealerStructuredAddressFields({
   labels,
@@ -45,28 +52,62 @@ export function AutosDealerStructuredAddressFields({
   onPatch: (patch: Partial<DealerStructuredAddressPatch>) => void;
   lang: AutosNegociosLang;
 }) {
+  // The provider contract combines number+name into one `street` line. Existing structured
+  // rows may still carry them split (legacy data); combine for display, and going forward this
+  // field writes the full line into `dealerStreetName` alone (`dealerStreetNumber` cleared) —
+  // `buildDealerDisplayAddress` already renders `name` alone correctly when `num` is empty.
+  const combinedStreet = [values.dealerStreetNumber, values.dealerStreetName]
+    .map((v) => (v ?? "").trim())
+    .filter(Boolean)
+    .join(" ");
+  const addressValue: BusinessAddress = {
+    street: combinedStreet,
+    unit: values.dealerUnitOrSuite || undefined,
+    city: values.dealerAddressCity ?? "",
+    region: values.dealerAddressState ?? "",
+    postalCode: values.dealerAddressZip ?? "",
+    country: values.dealerAddressCountry ?? AUTOS_DEFAULT_COUNTRY,
+    verificationStatus: values.dealerAddressVerificationStatus ?? "unverified",
+    provider: values.dealerAddressProvider ?? null,
+    providerPlaceId: values.dealerAddressProviderPlaceId ?? null,
+    manualEntry: values.dealerAddressVerificationStatus !== "user_confirmed",
+  };
+
   return (
     <div className="sm:col-span-2 space-y-4">
       <p className="text-xs leading-relaxed text-[color:var(--lx-muted)]">
         {labels.helperMaps} {labels.helperSearch}
       </p>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div>
-          <label className={LABEL}>{labels.streetNumber}</label>
-          <input
-            className={INPUT}
-            value={values.dealerStreetNumber ?? ""}
-            onChange={(e) => onPatch({ dealerStreetNumber: autosDraftTextValue(e.target.value) })}
-            autoComplete="off"
-          />
-        </div>
-        <div>
-          <label className={LABEL}>{labels.streetName}</label>
-          <input
-            className={INPUT}
-            value={values.dealerStreetName ?? ""}
-            onChange={(e) => onPatch({ dealerStreetName: autosDraftTextValue(e.target.value) })}
-            autoComplete="street-address"
+        <div className="sm:col-span-2">
+          <label className={LABEL}>{labels.street}</label>
+          <BusinessAddressVerifiedInput
+            lang={toBusinessAddressLang(lang)}
+            inputClassName={INPUT}
+            locationHint={[values.dealerAddressCity, values.dealerAddressState]
+              .map((v) => (v ?? "").trim())
+              .filter(Boolean)
+              .join(", ")}
+            value={addressValue}
+            onChange={(next) =>
+              onPatch({
+                dealerStreetName: next.street || undefined,
+                dealerStreetNumber: undefined,
+                dealerAddressVerificationStatus: next.verificationStatus,
+                dealerAddressProvider: next.provider ?? null,
+                dealerAddressProviderPlaceId: next.providerPlaceId ?? null,
+                // A picked suggestion carries its own city/region/postal — auto-fill those too,
+                // same as the proven Servicios pattern. Manual typing only ever touches street.
+                ...(next.verificationStatus === "user_confirmed"
+                  ? {
+                      dealerAddressCity: next.city || values.dealerAddressCity,
+                      dealerAddressState: next.region || values.dealerAddressState,
+                      dealerAddressZip: next.postalCode || values.dealerAddressZip,
+                      dealerAddressCountry: next.country || values.dealerAddressCountry,
+                    }
+                  : {}),
+              })
+            }
           />
         </div>
         <div className="sm:col-span-2">

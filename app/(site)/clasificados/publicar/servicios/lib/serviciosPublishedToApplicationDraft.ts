@@ -21,6 +21,8 @@ import { normalizeClasificadosServiciosApplicationState } from "./clasificadosSe
 import { createEmptyClasificadosPromoRow } from "./clasificadosServiciosPromo";
 import { createDefaultClasificadosServiciosState } from "./defaultClasificadosServiciosState";
 import { getBusinessTypePreset } from "./businessTypePresets";
+import { getBusinessHighlightPreset } from "./businessHighlightPresets";
+import { serviciosBusinessTypeUsesCustomCategoryLabel } from "./resolveServiciosPublicCategoryLabel";
 
 export type ServiciosPublishedListingHydrationSource = {
   id?: string | null;
@@ -304,17 +306,75 @@ function mapSelectedServiceIds(
   return ids;
 }
 
+/**
+ * Reverse of the draft mapper's `bh_preset_${id}` prefix
+ * (mapClasificadosServiciosApplicationToServiciosDraft.ts). Previously this folded `profile.trust`
+ * in as well — a namespace mismatch that pushed `trust_*` / `custom_reason` ids into the unrelated
+ * Business Highlights field — and it returned the raw persisted id (`bh_preset_x`), which no longer
+ * resolves against `getBusinessHighlightPreset`. Both are corrected here; custom highlights are
+ * restored separately as free text by `mapCustomBusinessHighlights` below.
+ */
 function mapSelectedBusinessHighlightIds(profile: ServiciosBusinessProfile | null | undefined): string[] {
-  const raw = [
-    ...(Array.isArray(profile?.businessHighlights) ? profile.businessHighlights : []),
-    ...(Array.isArray(profile?.trust) ? profile.trust : []),
-  ];
+  const raw = Array.isArray(profile?.businessHighlights) ? profile.businessHighlights : [];
   const ids: string[] = [];
   for (const item of raw) {
-    const id = clean(item?.id);
-    if (id) ids.push(id);
+    const match = /^bh_preset_(.+)$/.exec(clean(item?.id));
+    const id = match?.[1];
+    if (id && getBusinessHighlightPreset(id)) ids.push(id);
   }
   return ids;
+}
+
+/** Only the `bh_custom_*` entries are owner free text — a preset entry is restored as a preset id
+ * by `mapSelectedBusinessHighlightIds` above and must not be duplicated as a custom chip too. */
+function mapCustomBusinessHighlights(profile: ServiciosBusinessProfile | null | undefined): string[] {
+  const raw = Array.isArray(profile?.businessHighlights) ? profile.businessHighlights : [];
+  const out: string[] = [];
+  for (const item of raw) {
+    if (!/^bh_custom_/.test(clean(item?.id))) continue;
+    const label = clean(item?.label);
+    if (label) out.push(label);
+  }
+  return out;
+}
+
+/** Reverse of the draft mapper's `trust_${id}` prefix (mapClasificadosServiciosApplicationToServiciosDraft.ts) —
+ * restores preset "reasons to choose you" selections on edit. The literal `custom_reason` entry is handled
+ * separately by `mapCustomReason` below, never treated as a preset id. */
+function mapSelectedReasonIds(profile: ServiciosBusinessProfile | null | undefined, businessTypeId: string): string[] {
+  const preset = getBusinessTypePreset(businessTypeId);
+  if (!preset) return [];
+  const validIds = new Set(preset.reasonsToChoose.map((c) => c.id));
+  const raw = Array.isArray(profile?.trust) ? profile.trust : [];
+  const ids: string[] = [];
+  for (const item of raw) {
+    const match = /^trust_(.+)$/.exec(clean(item?.id));
+    const id = match?.[1];
+    if (id && validIds.has(id)) ids.push(id);
+  }
+  return ids;
+}
+
+/** Restores the single free-text "custom reason" entry (id `custom_reason`) on edit. */
+function mapCustomReason(profile: ServiciosBusinessProfile | null | undefined): { label: string; included: boolean } {
+  const raw = Array.isArray(profile?.trust) ? profile.trust : [];
+  const entry = raw.find((item) => clean(item?.id) === "custom_reason");
+  const label = clean(entry?.label);
+  return { label, included: Boolean(label) };
+}
+
+/** Quick Facts are persisted as `{kind, label}` with no stable preset-chip id to reverse-match against, so
+ * every persisted quick fact is restored as free text (`customQuickFacts`) rather than a preset selection —
+ * this always preserves the owner's exact prior wording with zero data loss, even though a fact that started
+ * as a preset chip re-opens as its equivalent custom-text entry instead of a re-checked preset chip. */
+function mapCustomQuickFacts(profile: ServiciosBusinessProfile | null | undefined): string[] {
+  const raw = Array.isArray(profile?.quickFacts) ? profile.quickFacts : [];
+  const out: string[] = [];
+  for (const item of raw) {
+    const label = clean(item?.label);
+    if (label) out.push(label);
+  }
+  return out;
 }
 
 function detectNewFieldsAvailable(profile: ServiciosBusinessProfile): string[] {
@@ -373,6 +433,12 @@ export function serviciosPublishedToApplicationDraft(
         ? { url: couponMoreOffersUrl, buttonLabel: couponMoreOffersLabel }
         : base.couponMoreOffers,
     businessTypeId,
+    // Gate SERVICIOS-EDIT-ROUNDTRIP-OFFERS-DISCOVERY-1 (F1) — for "Otro servicio" the owner's
+    // description is persisted ONLY as the public category line, so it is read back from there.
+    // Without this the edit form reopened empty and republish was refused until it was retyped.
+    customServiceDescription: serviciosBusinessTypeUsesCustomCategoryLabel(businessTypeId)
+      ? clean(hero.categoryLine)
+      : base.customServiceDescription,
     businessName,
     city,
     state: clean(profile?.opsMeta?.discovery?.state) || clean(hero.state) || base.state,
@@ -383,6 +449,12 @@ export function serviciosPublishedToApplicationDraft(
     physicalRegion: clean(contact.physicalRegion),
     physicalCountry: clean(contact.physicalCountry),
     physicalPostalCode: clean(contact.physicalPostalCode),
+    // Absent on any listing published before this field existed — default true so re-opening an
+    // existing listing for edit never silently flips an always-public address to hidden.
+    showExactAddress: typeof contact.showExactAddress === "boolean" ? contact.showExactAddress : true,
+    physicalVerificationStatus: contact.physicalVerificationStatus ?? "unverified",
+    physicalProvider: contact.physicalProvider ?? null,
+    physicalProviderPlaceId: contact.physicalProviderPlaceId ?? null,
     serviceAreaNotes,
     phone: clean(contact.phone),
     phoneOffice: clean(contact.phoneOffice),
@@ -407,9 +479,12 @@ export function serviciosPublishedToApplicationDraft(
       .map((item) => clean(item.title))
       .filter(Boolean),
     selectedBusinessHighlightIds: mapSelectedBusinessHighlightIds(profile),
-    customBusinessHighlights: (Array.isArray(profile?.businessHighlights) ? profile.businessHighlights : [])
-      .map((item) => clean(item.label))
-      .filter(Boolean),
+    customBusinessHighlights: mapCustomBusinessHighlights(profile),
+    selectedReasonIds: mapSelectedReasonIds(profile, businessTypeId),
+    customReasonLabel: mapCustomReason(profile).label,
+    customReasonIncluded: mapCustomReason(profile).included,
+    selectedQuickFactIds: [],
+    customQuickFacts: mapCustomQuickFacts(profile),
     leonixVerifiedInterest: profile?.opsMeta?.leonixVerifiedInterest === true,
     enableCall: Boolean(clean(contact.phone) || clean(contact.phoneOffice)),
     enableMessage: contact.messageEnabled === true,

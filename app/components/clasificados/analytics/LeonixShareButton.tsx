@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { FiShare2 } from "react-icons/fi";
 import { CtaActionSheet } from "@/app/components/cta/CtaActionSheet";
 import { getSafePublicAdUrl } from "@/app/components/cta/ctaDataHelpers";
+import { copyToClipboard, tryWebShare } from "@/app/components/cta/ctaLaunchers";
 import type { CtaActionCallback, CtaSheetIntent } from "@/app/components/cta/types";
 import { trackListingShare } from "@/app/lib/clasificadosAnalytics";
 
@@ -32,9 +33,12 @@ type Props = {
 };
 
 const LABELS = {
-  es: { share: "Compartir", shareDirect: "Compartir con apps" },
-  en: { share: "Share", shareDirect: "Share with apps" },
+  es: { share: "Compartir", shareDirect: "Compartir con apps", linkCopied: "Enlace copiado" },
+  en: { share: "Share", shareDirect: "Share with apps", linkCopied: "Link copied" },
 } as const;
+
+/** How long the lightweight "link copied" confirmation stays visible after the clipboard fallback. */
+const COPY_FEEDBACK_MS = 2200;
 
 /**
  * Opens the Leonix share hub (`CtaActionSheet` + `share_ad`) on first tap — no dropdown menu.
@@ -148,6 +152,10 @@ export function LeonixShareButton({
   );
 
   const [sheetIntent, setSheetIntent] = useState<CtaSheetIntent | null>(null);
+  // Servicios Live Launch Perfection ⚠️32 (2026-09-14) — the Business Hub standard for a simple
+  // general Share is native/device share first with a LIGHTWEIGHT copy-link fallback. The fallback
+  // used to copy silently; it now confirms briefly so the owner knows the link is on the clipboard.
+  const [copyFeedback, setCopyFeedback] = useState(false);
   const labels = LABELS[lang];
 
   const resolvedListingUrl = (listingUrl ?? "").trim();
@@ -171,25 +179,40 @@ export function LeonixShareButton({
     const urlToShare =
       publicUrl ||
       (allowTrack && typeof window !== "undefined" ? window.location.href.trim() : "");
-    if (!urlToShare) return;
 
-    const shareData: ShareData = {
-      title: safeTitle,
-      text: body || safeTitle,
-      url: urlToShare,
-    };
-    if (typeof navigator !== "undefined" && navigator.share) {
-      try {
-        await navigator.share(shareData);
-        void trackShare("web_share", { direct: true });
-      } catch {
-        /* user cancelled or unsupported — silent */
-      }
-    } else {
-      try {
-        await navigator.clipboard.writeText(urlToShare);
-        void trackShare("copy_link", { direct: true, nativeFallback: true });
-      } catch { /* silent */ }
+    // Servicios Owner QA (SVC-QA-07/08) — a non-persisting surface (Preview) has no public URL, and
+    // the current page URL is a private draft/preview route that must never be shared. It used to
+    // return here silently, so Compartir did nothing. It now opens the same native share sheet
+    // with the listing title/text only (no URL); analytics stay off because `allowTrack` is false.
+    // Servicios Live Launch Perfection ⚠️32A (2026-09-14) — the proven Leonix "Share link" sheet
+    // (En Venta, Autos dealer, Ofertas Locales) shares `{ title, url }` and nothing else: with a
+    // URL and no `text`, the OS sheet presents the canonical listing link itself (title + visible
+    // URL + native copy-link + apps). Padding `text` with the title again turned that into a
+    // generic text share on Windows. `text` is now sent only when a caller supplies real shareText.
+    const shareData: ShareData = urlToShare
+      ? body
+        ? { title: safeTitle, text: body, url: urlToShare }
+        : { title: safeTitle, url: urlToShare }
+      : { title: safeTitle, text: body || safeTitle };
+
+    // Servicios Absolute Final Golden Closeout (2026-09-17, Gate 14) — ONE global native-share
+    // helper for the whole app: `tryWebShare` (app/components/cta/ctaLaunchers.ts), the same
+    // wrapper the CtaActionSheet email sheet already uses. This used to call `navigator.share`
+    // directly, a second, duplicate implementation of the same capability.
+    const outcome = await tryWebShare({ title: shareData.title, text: shareData.text, url: shareData.url });
+    if (outcome === "shared") {
+      void trackShare("web_share", { direct: true });
+      return;
+    }
+    if (outcome === "aborted") return; // user cancelled — silent, unchanged from before
+
+    // No native share capability (or it failed for a non-cancel reason) — same clipboard fallback
+    // + confirmation as before, now via the shared `copyToClipboard` helper.
+    const ok = await copyToClipboard(urlToShare || body || safeTitle);
+    if (ok) {
+      void trackShare("copy_link", { direct: true, nativeFallback: true });
+      setCopyFeedback(true);
+      window.setTimeout(() => setCopyFeedback(false), COPY_FEEDBACK_MS);
     }
   }, [listingTitle, shareText, publicUrl, lang, trackShare, allowTrack]);
 
@@ -225,6 +248,14 @@ export function LeonixShareButton({
         <FiShare2 className={iconSizes[variant]} />
         <span>{labels.share}</span>
       </button>
+      {copyFeedback ? (
+        <span
+          role="status"
+          className="absolute left-1/2 top-full z-20 mt-1 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#1A1A1A] px-2.5 py-1 text-xs font-medium text-white shadow"
+        >
+          {labels.linkCopied}
+        </span>
+      ) : null}
 
       <CtaActionSheet
         open={sheetIntent != null}

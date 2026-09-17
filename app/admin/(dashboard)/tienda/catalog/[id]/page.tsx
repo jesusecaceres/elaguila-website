@@ -72,7 +72,8 @@ export default async function AdminTiendaCatalogEditPage(props: { params: Promis
   const imgs = item.images.slice().sort((a, b) => a.sort_order - b.sort_order || a.created_at.localeCompare(b.created_at));
   const rules = item.pricing_rules.slice().sort((a, b) => a.sort_order - b.sort_order);
 
-  const publicHref = item.is_live && !item.is_hidden ? `/tienda/catalog/${item.slug}` : null;
+  const publicHref = item.is_live && !item.is_hidden && item.slug ? `/tienda/catalog/${item.slug}` : null;
+  const isLiveWithoutSlug = item.is_live && !item.is_hidden && !item.slug;
 
   return (
     <div className="space-y-8 max-w-4xl">
@@ -86,6 +87,10 @@ export default async function AdminTiendaCatalogEditPage(props: { params: Promis
               <Link href={publicHref} className={adminBtnPrimary} target="_blank" rel="noopener noreferrer">
                 View public
               </Link>
+            ) : isLiveWithoutSlug ? (
+              <span className="text-xs text-[#B23A3A]" title="This item is live but has no slug, so it has no public URL yet.">
+                No public URL (missing slug)
+              </span>
             ) : null}
             <Link href="/admin/tienda/catalog" className={adminBtnSecondary}>
               ← List

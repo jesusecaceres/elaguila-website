@@ -56,6 +56,14 @@ export type DealerHoursEntry = {
   closed: boolean;
 };
 
+/** Named/date-specific exception to the regular weekly schedule (holiday hours, closures). Same shape as Servicios' proven `specialHoursRows`. */
+export type DealerSpecialHoursRow = {
+  /** Occasion/date label, e.g. "Nochebuena" or "Dec 24". */
+  label: string;
+  /** Resulting hours or closure note, e.g. "9:00 AM – 2:00 PM" or "Cerrado". */
+  note: string;
+};
+
 export type RelatedDealerListing = {
   id: string;
   imageUrl: string;
@@ -251,9 +259,21 @@ export type AutoDealerListing = {
   dealerAddressZip?: string;
   /** Dealership country — defaults to United States when empty. */
   dealerAddressCountry?: string;
+  /**
+   * Shared business-address provider status for the street line (`BusinessAddressVerifiedInput`
+   * contract) — "manual" (typed) or "user_confirmed" (picked from Google Maps suggestions).
+   * Never "verified"; that value is reserved for a provider adapter's own confirmed result.
+   */
+  dealerAddressVerificationStatus?: "unverified" | "manual" | "user_confirmed" | "provider_suggested" | "verified";
+  /** Provider name that produced/confirmed the street line, e.g. "google_places". Null for manual entry. */
+  dealerAddressProvider?: string | null;
+  /** Provider-specific place id for the confirmed street line, if any. Null for manual entry. */
+  dealerAddressProviderPlaceId?: string | null;
   /** Catalog engine value for filter facets; omit when seller enters custom motor text. */
   engineNormalized?: string;
   dealerHours?: DealerHoursEntry[];
+  /** Named/date-specific exceptions (holidays, events) — separate from the regular weekly schedule above. */
+  dealerSpecialHoursRows?: DealerSpecialHoursRow[];
   dealerWebsite?: string | null;
   /** Dedicated booking / test-drive / appointment URL — “Agendar cita” when valid https. */
   dealerBookingUrl?: string | null;
@@ -273,6 +293,8 @@ export type AutoDealerListing = {
   financeContactTitle?: string;
   financeContactPhone?: string;
   financeContactWhatsapp?: string;
+  /** Dedicated SMS/text-capable number — distinct from financeContactPhone/Whatsapp (Negocios only). */
+  financeContactSms?: string;
   financeContactEmail?: string;
   financeApplicationUrl?: string;
   /** Optional https image URL — advisor headshot or bank/finance logo (Negocios only). */

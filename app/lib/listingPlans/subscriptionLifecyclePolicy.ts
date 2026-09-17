@@ -163,6 +163,28 @@ const LANE_SUSPENSION: Record<string, LaneSuspensionSpec> = {
     visibleStatuses: ["active"],
     suspendedValue: "suspended",
   },
+  /**
+   * Gate COMIDA-LOCAL-1 — the $129/month Comida Local lane had no entry here at all, so the
+   * shared payment-suspension engine returned `lane_unsupported` and could never hide a lapsed
+   * listing however the sweep is eventually scheduled. Nothing is invented: `suspended` is one
+   * of the five values the table's own status CHECK already accepts (migration
+   * 20260604120000), it is the value the admin/moderation path uses, and `published` is the
+   * only publicly-visible status (`isComidaLocalPublishPubliclyVisible` requires exactly it).
+   * `paused` is deliberately NOT a visible status here — it is an owner-chosen state the
+   * payment engine must never overwrite.
+   *
+   * Requires `suspended_reason` on the table (migration
+   * 20260909120000_comida_local_listing_suspended_reason.sql, shipped with this gate) — the
+   * suspend/restore compare-and-set writes and reads it. Until that migration is applied,
+   * `applyPaymentSuspension` returns `{ok:false}` for this lane and the caller simply does not
+   * suspend, which is byte-for-byte today's behavior — no new failure mode.
+   */
+  "comida-local": {
+    table: "comida_local_public_listings",
+    statusColumn: "status",
+    visibleStatuses: ["published"],
+    suspendedValue: "suspended",
+  },
 };
 
 export function laneSuspensionSpecForCategory(category: string): LaneSuspensionSpec | null {

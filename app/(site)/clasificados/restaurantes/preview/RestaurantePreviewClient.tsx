@@ -83,6 +83,8 @@ export default function RestaurantePreviewClient() {
   // session.user.email only at the moment of checkout.
   const [newsletterEmail, setNewsletterEmail] = useState("");
   const [newsletterCaptureNote, setNewsletterCaptureNote] = useState<string | null>(null);
+  /** Gate RESTAURANTES-1 — non-blocking "some media could not be saved" warning (see onCheckout). */
+  const [mediaDroppedNote, setMediaDroppedNote] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -255,6 +257,19 @@ export default function RestaurantePreviewClient() {
           setCheckoutErr(pending.userMessage);
           setCheckoutBusy(false);
           return;
+        }
+
+        // Gate RESTAURANTES-1 — the save SUCCEEDED, but the shared media contract could not
+        // persist some selected media. Never block checkout for this (the payment is unaffected);
+        // the owner is simply told what did not save, on the same non-blocking note channel the
+        // newsletter capture failure already uses.
+        if (pending.droppedUnpersistableMedia?.length) {
+          const n = pending.droppedUnpersistableMedia.length;
+          setMediaDroppedNote(
+            lang === "es"
+              ? `${n} archivo(s) de imagen no se pudieron guardar y no están en tu anuncio. Abre «Volver a editar», agrégalos de nuevo y guarda.`
+              : `${n} image file(s) could not be saved and are not on your listing. Open "Back to edit", add them again, and save.`,
+          );
         }
 
         const checkout = await startRevenueCategoryCheckout({
@@ -447,6 +462,17 @@ export default function RestaurantePreviewClient() {
                 newsletterCaptureNote={newsletterCaptureNote}
                 editHref={editHref}
               />
+              {/* Gate RESTAURANTES-1 — non-blocking media-loss warning. Rendered beside the
+                  checkout checkpoint rather than inside it: the shared component's own note slot
+                  is newsletter-scoped, and this must never read as a payment failure. */}
+              {mediaDroppedNote ? (
+                <p
+                  role="status"
+                  className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs leading-relaxed text-amber-950"
+                >
+                  {mediaDroppedNote}
+                </p>
+              ) : null}
             </div>
           </div>
         )}

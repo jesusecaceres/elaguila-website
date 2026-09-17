@@ -20,6 +20,12 @@ import {
   normalizeComidaLocalSocialInput,
 } from "./comidaLocalFormatting";
 import { comidaLocalImageAltText } from "./comidaLocalImageNormalize";
+import {
+  comidaLocalTemporaryLocationOwnerWarning,
+  evaluateComidaLocalTemporaryLocationFreshness,
+  formatComidaLocalTemporaryLocationFreshness,
+  readComidaLocalTemporaryLocationPayload,
+} from "./comidaLocalTemporaryLocation";
 import { resolveComidaLocalPreviewImageSrc } from "./comidaLocalPreviewImage";
 import type {
   ComidaLocalPreviewChip,
@@ -154,7 +160,12 @@ function normalizeLocationHref(raw: string): string | null {
   return isValidComidaLocalExternalUrl(withScheme) ? withScheme : null;
 }
 
-function buildContactActions(draft: ComidaLocalDraft, lang: "es" | "en"): ComidaLocalPreviewContactAction[] {
+function buildContactActions(
+  draft: ComidaLocalDraft,
+  lang: "es" | "en",
+  /** Gate COMIDA-LOCAL-1 — false hides today's map/location link along with the note. */
+  showTemporaryLocation: boolean,
+): ComidaLocalPreviewContactAction[] {
   const en = lang === "en";
   const actions: ComidaLocalPreviewContactAction[] = [];
   const name = draft.businessName.trim();
@@ -181,12 +192,13 @@ function buildContactActions(draft: ComidaLocalDraft, lang: "es" | "en"): Comida
     });
   }
 
-  const waDigits = normalizeComidaLocalPhoneDigits(draft.whatsapp);
-  if (waDigits.length >= 8) {
-    const wa = buildComidaLocalWhatsAppHref(draft.whatsapp, name);
-    if (wa) {
-      actions.push({ id: "whatsapp", label: "WhatsApp", href: wa, variant: "whatsapp" });
-    }
+  // Gate COMIDA-LOCAL-1 — the eligibility gate used to count digits through
+  // `normalizeComidaLocalPhoneDigits`, which truncates to 10, so it measured a different number
+  // than the href was built from. The shared contract now decides both: an unusable value
+  // simply yields no href and therefore no action.
+  const wa = buildComidaLocalWhatsAppHref(draft.whatsapp, name);
+  if (wa) {
+    actions.push({ id: "whatsapp", label: "WhatsApp", href: wa, variant: "whatsapp" });
   }
 
   const ig = normalizeComidaLocalSocialInput(draft.instagramUrl, "instagram");
@@ -222,7 +234,10 @@ function buildContactActions(draft: ComidaLocalDraft, lang: "es" | "en"): Comida
     });
   }
 
-  const loc = normalizeLocationHref(draft.locationUrl);
+  // Gate COMIDA-LOCAL-1 — the "Where I am today" link is part of the temporary-location
+  // payload, so it expires with the note. A stale map pin is exactly as misleading as stale
+  // text under a heading that says "today".
+  const loc = showTemporaryLocation ? normalizeLocationHref(draft.locationUrl) : null;
   if (loc) {
     actions.push({
       id: "location",
@@ -245,6 +260,33 @@ function buildPaymentChips(draft: ComidaLocalDraft, lang: "es" | "en"): ComidaLo
   });
 }
 
+/**
+ * Gate COMIDA-LOCAL-1 — who is looking at this view model.
+ *
+ *  - "public"  (DEFAULT): the published vitrina. A temporary location that is expired,
+ *              unstamped or otherwise unproven is REMOVED — never rendered under a heading
+ *              that says "today". Defaulting to this means any future call site that forgets
+ *              to pass a mode fails closed rather than leaking a stale location.
+ *  - "owner":  the owner's own preview of their draft. Shows their current draft truth (the
+ *              PM decision explicitly allows this) plus an explicit warning when that truth
+ *              will NOT be public.
+ */
+export type ComidaLocalTemporaryLocationViewer = "public" | "owner";
+
+export type MapComidaLocalDraftToPreviewVmOptions = {
+  viewer?: ComidaLocalTemporaryLocationViewer;
+  /** Injectable clock — the read-time expiry evaluation, and how tests pin it. */
+  nowMs?: number;
+  /**
+   * Owner view only: true when this draft is bound to an already-published listing. An
+   * "unstamped" temporary location means two different things — on a brand-new draft it is
+   * simply not saved yet (publishing stamps it, nothing is wrong), while on a published listing
+   * it means a pre-Gate-COMIDA-LOCAL-1 row whose note really is not public. The warning is only
+   * shown in the second case so a first-time seller is never told something is broken.
+   */
+  ownerListingPublished?: boolean;
+};
+
 /** Map session/local draft → preview VM. No fake ids or engagement.
  * Gate F2 — `lang` defaults to "es" so every existing call site (preview client, which stays
  * Spanish-only) keeps its prior behavior unchanged; only the public detail read-path passes
@@ -252,12 +294,28 @@ function buildPaymentChips(draft: ComidaLocalDraft, lang: "es" | "en"): ComidaLo
 export function mapComidaLocalDraftToPreviewVm(
   draft: ComidaLocalDraft,
   lang: "es" | "en" = "es",
+  options: MapComidaLocalDraftToPreviewVmOptions = {},
 ): ComidaLocalPreviewVm {
   const previewIssues = validateComidaLocalDraftForPreview(draft, lang === "es");
   const businessName = draft.businessName.trim() || (lang === "en" ? "Your stand" : "Tu puesto");
   const queVendes = draft.queVendes.trim();
   const availabilityNote = draft.availabilityNote.trim();
-  const locationNote = draft.locationNote.trim();
+
+  // Gate COMIDA-LOCAL-1 — "Encuéntrame Hoy" freshness, evaluated at READ time. This is the
+  // whole expiry mechanism: no scheduler, no cron, no sweep. A public read simply refuses to
+  // render a temporary location whose last real owner update is more than 24h old.
+  // `availabilityNote` (standing availability) and `businessAddressLine` (the private permanent
+  // address) are separate fields and are deliberately NOT affected by this gate.
+  const viewer: ComidaLocalTemporaryLocationViewer = options.viewer ?? "public";
+  const temporaryLocationPayload = readComidaLocalTemporaryLocationPayload(draft);
+  const temporaryLocationFreshness = evaluateComidaLocalTemporaryLocationFreshness({
+    payload: temporaryLocationPayload,
+    stamp: draft.locationUpdatedAt,
+    nowMs: options.nowMs ?? Date.now(),
+  });
+  const temporaryLocationIsFresh = temporaryLocationFreshness.state === "fresh";
+  const showTemporaryLocation = viewer === "owner" ? true : temporaryLocationIsFresh;
+  const locationNote = showTemporaryLocation ? draft.locationNote.trim() : "";
   const serviceChips: ComidaLocalPreviewChip[] = draft.serviceOptions.flatMap(
     (v): ComidaLocalPreviewChip[] => {
       if (v === "other") {
@@ -284,7 +342,7 @@ export function mapComidaLocalDraftToPreviewVm(
       .map((v) => labelFromBilingualOptions(v, COMIDA_LOCAL_LANGUAGE_OPTIONS, lang)),
     ...draft.customLanguages,
   ];
-  const contactActions = buildContactActions(draft, lang);
+  const contactActions = buildContactActions(draft, lang, showTemporaryLocation);
   const businessTypeLabel = buildBusinessTypeLabel(draft, lang);
   const highlightChips = buildHighlightChips(draft, lang);
   const additionalWebsites = buildAdditionalWebsiteLinks(draft);
@@ -346,6 +404,21 @@ export function mapComidaLocalDraftToPreviewVm(
     queVendes,
     availabilityNote,
     locationNote,
+    temporaryLocation: {
+      state: temporaryLocationFreshness.state,
+      updatedAtIso: temporaryLocationFreshness.updatedAtIso,
+      // The freshness signal is only ever attached to a location that is actually being shown
+      // as today's — never to an expired one the owner can still see in their own preview.
+      freshnessLabel: temporaryLocationIsFresh
+        ? formatComidaLocalTemporaryLocationFreshness(temporaryLocationFreshness.ageMs, lang)
+        : "",
+      ownerWarning:
+        viewer === "owner" &&
+        (temporaryLocationFreshness.state !== "unstamped" || options.ownerListingPublished === true)
+          ? comidaLocalTemporaryLocationOwnerWarning(temporaryLocationFreshness.state, lang)
+          : "",
+      publiclyVisible: temporaryLocationIsFresh,
+    },
     serviceChips,
     paymentChips,
     priceLevelLabel,

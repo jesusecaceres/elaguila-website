@@ -13,6 +13,19 @@ export type AdminReviewFlagSourceKind =
   | "unknown_legacy"
   | "unknown";
 
+/**
+ * Master Operating Book §14 Moderation Operating Contract — a truthful lifecycle derived
+ * entirely from existing fields (needsReview/canExplain/sourceKind), with no new persisted
+ * state and no invented transitions:
+ *   - OPEN: needs review, no reason was ever stored (identical condition to `needsTriage`).
+ *   - TRIAGE: needs review, an AI decision exists with a reason — a human hasn't acted on it yet.
+ *   - ACTION_REQUIRED: needs review, a human-legible reason exists (report/manual/status) and
+ *     the listing is still live/pending — a person needs to act, not a machine.
+ *   - RESOLVED: no longer in review-needed status — the operational state has already moved on,
+ *     regardless of which of the above states it passed through.
+ */
+export type AdminModerationLifecycleState = "OPEN" | "TRIAGE" | "ACTION_REQUIRED" | "RESOLVED";
+
 export type AdminReviewFlagTruth = {
   sourceKind: AdminReviewFlagSourceKind;
   /** Badge label: AI | Report | Manual | Status | Legacy */
@@ -24,7 +37,24 @@ export type AdminReviewFlagTruth = {
   needsReview: boolean;
   canExplain: boolean;
   confidenceText: string | null;
+  /**
+   * ADMIN-OS-01 doctrine #6: a real, distinct operational condition — this item
+   * needs human review AND no reason was ever stored for why it was flagged.
+   * Never auto-classified as high risk merely because it is unexplained.
+   */
+  needsTriage: boolean;
+  lifecycleState: AdminModerationLifecycleState;
 };
+
+function deriveModerationLifecycleState(
+  needsReview: boolean,
+  canExplain: boolean,
+  sourceKind: AdminReviewFlagSourceKind,
+): AdminModerationLifecycleState {
+  if (!needsReview) return "RESOLVED";
+  if (!canExplain) return "OPEN";
+  return sourceKind === "ai_moderation" ? "TRIAGE" : "ACTION_REQUIRED";
+}
 
 export type AdminReviewFlagTruthInput = {
   sourceTable: "generic_listings" | "empleos_public_listings" | "viajes_staged_listings" | "other";
@@ -82,6 +112,18 @@ function formatStoredAiReviewExplanation(review: ListingModerationReviewSummary)
 }
 
 export function classifyAdminReviewFlagTruth(input: AdminReviewFlagTruthInput): AdminReviewFlagTruth {
+  const result = classifyAdminReviewFlagTruthInner(input);
+  const needsTriage = result.needsReview && !result.canExplain;
+  return {
+    ...result,
+    needsTriage,
+    lifecycleState: deriveModerationLifecycleState(result.needsReview, result.canExplain, result.sourceKind),
+  };
+}
+
+function classifyAdminReviewFlagTruthInner(
+  input: AdminReviewFlagTruthInput,
+): Omit<AdminReviewFlagTruth, "needsTriage" | "lifecycleState"> {
   const status = (input.status ?? "").trim() || "—";
   const needsReview = isReviewStatus(status);
 
@@ -223,7 +265,12 @@ export function classifyDashboardReviewRowFlagTruth(
     status: string;
     reason: string | null;
   },
-  report?: { pendingReportReason?: string | null; latestReportReason?: string | null },
+  report?: {
+    pendingReportReason?: string | null;
+    latestReportReason?: string | null;
+    /** Latest stored AI moderation row for this listing, when one exists (listing_moderation_reviews). */
+    aiReview?: ListingModerationReviewSummary | null;
+  },
 ): AdminReviewFlagTruth {
   const table =
     row.source === "empleos_public_listings"
@@ -239,6 +286,7 @@ export function classifyDashboardReviewRowFlagTruth(
     reviewNotes: row.reason,
     pendingReportReason: report?.pendingReportReason,
     latestReportReason: report?.latestReportReason,
+    storedAiReview: report?.aiReview ?? null,
   });
 }
 

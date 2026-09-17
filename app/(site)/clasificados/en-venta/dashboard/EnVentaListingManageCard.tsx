@@ -464,11 +464,16 @@ export function EnVentaListingManageCard({
                       </p>
                     ) : null}
                     {visibilityRenewal.canRenew ? (
+                      // Pre-release audit fix: this renewal action previously rendered full-width
+                      // with a bold gradient inside its own bordered box, making it visually louder
+                      // than the canonical primary "Administrar anuncio" doorway below (the actual
+                      // primary CTA per the locked grammar). Sized to match the card's other
+                      // secondary buttons instead of stretching to fill its container.
                       <button
                         type="button"
                         disabled={visibilityRenewal.busy}
                         onClick={visibilityRenewal.onRenew}
-                        className="mt-2 inline-flex w-full min-h-[40px] items-center justify-center rounded-xl bg-gradient-to-r from-[#E8D48A] to-[#C9A84A] px-3 py-2 text-xs font-bold text-[#1E1810] shadow-sm disabled:opacity-50"
+                        className="mt-2 inline-flex min-h-[40px] items-center justify-center rounded-xl border border-[#C9A84A]/55 bg-[#FFFDF7] px-3 py-2 text-xs font-bold text-[#5C4A16] shadow-sm hover:border-[#C9A84A] hover:bg-[#FBF7EF] disabled:opacity-50"
                       >
                         {republishButtonLabel ?? L.renew}
                       </button>
@@ -544,7 +549,7 @@ export function EnVentaListingManageCard({
                 type="button"
                 disabled={busy}
                 onClick={() => setSoldConfirmOpen(true)}
-                className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416] disabled:opacity-50"
+                className="rounded-xl border border-red-300/70 bg-red-50 px-4 py-2 text-sm font-semibold text-red-800 hover:border-red-400 hover:bg-red-100 disabled:opacity-50"
               >
                 {L.sold}
               </button>
@@ -651,7 +656,7 @@ export function EnVentaListingManageCard({
                 type="button"
                 disabled={busy}
                 onClick={confirmMarkSold}
-                className="rounded-xl bg-[#2A2620] px-4 py-2 text-sm font-semibold text-[#FAF7F2] disabled:opacity-50"
+                className="rounded-xl bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 disabled:opacity-50"
               >
                 {L.soldConfirmOk}
               </button>

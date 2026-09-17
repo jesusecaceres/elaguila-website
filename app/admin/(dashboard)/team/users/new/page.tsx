@@ -27,9 +27,7 @@ const STAFF_CREATE_ROLES: AdminTeamRole[] = [
 ];
 
 const PERM_LABELS: Record<AdminPermissionKey, string> = {
-  can_view_users: "View users",
   can_edit_users: "Edit users",
-  can_reset_passwords: "Reset passwords",
   can_manage_ads: "Manage ads",
   can_manage_reports: "Manage reports",
   can_manage_categories: "Manage categories",
@@ -38,8 +36,6 @@ const PERM_LABELS: Record<AdminPermissionKey, string> = {
   can_manage_prayer_wall: "Prayer wall",
   can_view_payments: "View payments",
   can_manage_team: "Manage team",
-  can_view_activity_logs: "Activity logs",
-  can_use_replica_mode: "Replica mode",
   can_manage_recursos: "Manage Recursos",
 };
 

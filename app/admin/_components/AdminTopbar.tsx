@@ -8,6 +8,7 @@ import newLogo from "../../../public/logo.png";
 import { adminBtnPrimary, adminInputClass } from "./adminTheme";
 import { AdminMobileNavDrawer } from "./AdminMobileNavDrawer";
 import { useAdminT } from "./AdminI18nProvider";
+import { ADMIN_DASHBOARD_ROUTES } from "../_lib/adminDashboardRoutes";
 
 export function AdminTopbar({
   showCreate = true,
@@ -91,6 +92,20 @@ export function AdminTopbar({
               className={`${adminInputClass} min-h-[44px] pl-10 text-base sm:text-sm`}
             />
           </div>
+          {/*
+           * Gate 14 (SRCH-001) — this box is sticky/always-visible on every Admin page, which
+           * reads as "the global search," but it only ever searches Clasificados listings
+           * (see the onSubmit above). The real cross-entity search (users, businesses, orders,
+           * reports, team, leads…) lives at a separate, less prominent /admin/ops route. Without
+           * this hint, an operator searching for a person or business here would land on an
+           * empty Clasificados filter with no indication a more powerful tool exists.
+           */}
+          <p className="mt-1 truncate text-[11px] text-[color:var(--lx-muted)]">
+            {t("shell.searchScopeHint")}{" "}
+            <Link href={ADMIN_DASHBOARD_ROUTES.customerOps} className="font-semibold underline">
+              {t("shell.searchScopeHintLink")}
+            </Link>
+          </p>
         </form>
 
         <div className="order-3 hidden items-center gap-2 lg:ml-auto lg:flex lg:flex-nowrap">

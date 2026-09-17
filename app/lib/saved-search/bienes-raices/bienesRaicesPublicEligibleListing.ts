@@ -7,6 +7,8 @@
  * (`fetchBrPublishedListingsForBrowse.ts`) is:
  *   1. `category === "bienes-raices"`
  *   2. `isListingRowActiveAndPublishedForBrowse` — `status === "active" && is_published !== false`
+ *   2b. `isBrFsboRowWithinTerm` (Gate BIENES-PRIVADO-1) — a private-seller (FSBO) row must still be
+ *      inside its paid fixed term; Negocio subscription rows are unaffected by this rule
  *   3. for a Negocio inventory child (`inventory_role === "inventory_property"`), its
  *      `br_inventory_parent_listing_id` must resolve to a parent that is itself `category ===
  *      "bienes-raices"`, `seller_type === "business"`, `inventory_role === "main"`, same
@@ -18,6 +20,7 @@
  * This module performs no I/O — the caller supplies the raw row and parent map.
  */
 import { isListingRowActiveAndPublishedForBrowse } from "@/app/clasificados/lib/listingPublicBrowseEligibility";
+import { isBrFsboRowWithinTerm } from "@/app/lib/listingLifecycle/bienesFsboLifecycle";
 import {
   isBrChildParentGateSatisfied,
   type BrPublicParentCandidate,
@@ -48,6 +51,11 @@ export function certifyBienesRaicesPublicEligibleListing(
 ): BienesRaicesPublicEligibleListing | null {
   if (String(row.category ?? "") !== SAVED_SEARCH_BIENES_RAICES_CATEGORY) return null;
   if (!isListingRowActiveAndPublishedForBrowse(row)) return null;
+  // Gate BIENES-PRIVADO-1 — the shared FSBO fixed-term rule, reused verbatim so a Saved Search
+  // alert can never deliver a private-seller listing whose paid 45-day term has already elapsed.
+  // Term freshness is evaluated at DELIVERY time from the row itself; it is deliberately NOT part
+  // of any saved-search filter fingerprint, because it is not a durable subscriber-chosen filter.
+  if (!isBrFsboRowWithinTerm(row)) return null;
 
   const gateOk = isBrChildParentGateSatisfied(
     {

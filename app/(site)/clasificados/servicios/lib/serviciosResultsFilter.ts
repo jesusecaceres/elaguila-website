@@ -14,16 +14,39 @@ import type { ServiciosPublicListingRow } from "./serviciosPublicListingsServer"
 import { serviciosPublicListingDiscoverySortMs, compareServiciosPublicResultsNewestFirst } from "./serviciosPublicListingSort";
 import { serviciosVerifiedRankingBias } from "./serviciosLeonixVerificationModel";
 import { inferServiciosSellerPresentation } from "./serviciosSellerKind";
-import { expandServiciosSearchTerms, normalizeServiciosSearchText } from "./serviciosSearchSynonyms";
-import { formatServiciosInternalGroupForDiscovery } from "./serviciosInternalGroupDisplay";
-import { LANGUAGE_OPTION_CHIPS } from "@/app/(site)/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
+import { normalizeServiciosSearchText } from "./serviciosSearchSynonyms";
+import {
+  normalizeServiciosBusinessTypeParam,
+  serviciosBusinessTypeConceptKey,
+  serviciosDiscoveryAdapter,
+  serviciosLanguagesServedFromProfile,
+  serviciosWirePromotionalTextFields,
+} from "./serviciosDiscoveryAdapter";
+import {
+  buildBilingualSearchDocument,
+  type BilingualSearchDocument,
+} from "@/app/lib/clasificados/discovery/bilingualSearchDocument";
+import { intentIsEmpty, matchesDiscoveryIntent } from "@/app/lib/clasificados/discovery/discoveryMatcher";
+import { matchesLanguagesServed } from "@/app/lib/clasificados/discovery/languagesServed";
 import {
   isLeonixLbUsCountry,
   leonixLbStateMatchesFilter,
   normalizeLeonixLbCountry,
-  normalizeLeonixLbStateCode,
   normalizeLeonixLbZip,
 } from "@/app/(site)/clasificados/shared/constants/leonixLocalBusinessLocationContract";
+import {
+  applyServiciosPublicOffersVisibility,
+  serviciosResolvedProfileHasVisibleOffers,
+} from "./serviciosPublicOffersVisibility";
+
+/**
+ * Read-time commercial truth the pure filter cannot fetch itself. `offersCapabilityByListingId` is the
+ * CURRENT `coupons_offers` decision per row id (`resolveServiciosOffersCapabilityByListingId`); a row
+ * missing from it counts as not allowed, so included offers never qualify without that truth.
+ */
+export type ServiciosResultsFilterOptions = {
+  offersCapabilityByListingId?: ReadonlyMap<string, boolean>;
+};
 
 export type ServiciosResultsFilterQuery = {
   city?: string;
@@ -31,6 +54,8 @@ export type ServiciosResultsFilterQuery = {
   zip?: string;
   country?: string;
   group?: string;
+  /** ⚠️38A — canonical business-type intent (`opsMeta.businessTypeId`, e.g. `plomeria`); language-neutral */
+  type?: string;
   whatsapp?: "1" | "0";
   promo?: "1" | "0";
   call?: "1" | "0";
@@ -85,7 +110,8 @@ export type ServiciosResultsFilterQuery = {
   hasPhotos?: "1";
   /** URL: has_videos=1 — resolved gallery videos with public playback URL (Mux HLS / https, post-sanitize) */
   hasVideos?: "1";
-  /** URL: has_offers=1 — resolved promotions/offers (same gate as public shell, not blank-only) */
+  /** URL: has_offers=1 — offers the public detail page would show: promotions, plus included
+   * coupons / flyer / more-offers while `coupons_offers` is current (serviciosPublicOffersVisibility) */
   hasOffers?: "1";
   /** URL: same_day=1 — quick fact kind `same_day` or amenity `service_same_day` */
   sameDay?: "1";
@@ -97,11 +123,6 @@ function normalize(s: string | undefined): string {
   return normalizeServiciosSearchText(s);
 }
 
-function includesAnyNormalized(haystack: string | undefined, terms: string[]): boolean {
-  const hay = normalize(haystack);
-  return terms.some((term) => hay.includes(term));
-}
-
 export function serviciosResultsHasActiveFilters(q: ServiciosResultsFilterQuery): boolean {
   return Boolean(
     normalize(q.city) ||
@@ -109,6 +130,7 @@ export function serviciosResultsHasActiveFilters(q: ServiciosResultsFilterQuery)
       normalize(q.zip) ||
       (q.country?.trim() && !isLeonixLbUsCountry(q.country)) ||
       normalize(q.group) ||
+      normalize(q.type) ||
       normalize(q.q) ||
       q.whatsapp === "1" ||
       q.promo === "1" ||
@@ -304,14 +326,32 @@ function wireWeekendOpen(p: ServiciosBusinessProfile): boolean {
   });
 }
 
-function rowLangChip(pj: ServiciosBusinessProfile, chip: string): boolean {
-  const ids = pj.opsMeta?.discovery?.languageChipIds;
-  if (ids && ids.length) return ids.includes(chip);
-  const badges = pj.hero?.badges ?? [];
-  if (chip === "lang_es") return badges.some((b) => b.kind === "spanish");
-  if (chip === "lang_en") return badges.some((b) => b.kind === "custom" && /inglés|english/i.test(b.label ?? ""));
-  if (chip === "lang_otro") return badges.some((b) => b.kind === "custom" && /otro|other/i.test(b.label ?? ""));
-  return false;
+/**
+ * ⚠️38A — languages-served facets go through the shared matcher over canonical chip ids
+ * (`serviciosLanguagesServedFromProfile`: discovery facet first, legacy badge fallback). This is
+ * "languages the business can serve customers in" — never the language the listing was authored in.
+ */
+function rowServesLanguages(pj: ServiciosBusinessProfile, wanted: readonly string[]): boolean {
+  return matchesLanguagesServed(serviciosLanguagesServedFromProfile(pj), wanted);
+}
+
+/* ==============================================================================================
+ * ⚠️38A — one language-neutral search document per row (canonical ids + BOTH catalog labels +
+ * approved aliases + literals + original owner text), built once per request per row.
+ * ============================================================================================ */
+const DISCOVERY_DOCUMENT_CACHE = new WeakMap<ServiciosPublicListingRow, BilingualSearchDocument>();
+
+export function serviciosDiscoveryDocumentForRow(row: ServiciosPublicListingRow): BilingualSearchDocument {
+  const cached = DISCOVERY_DOCUMENT_CACHE.get(row);
+  if (cached) return cached;
+  const doc = buildBilingualSearchDocument(serviciosDiscoveryAdapter, row);
+  DISCOVERY_DOCUMENT_CACHE.set(row, doc);
+  return doc;
+}
+
+/** `type=` facet: exact canonical business-type concept (id or recovered from the catalog label). */
+function rowMatchesBusinessType(row: ServiciosPublicListingRow, typeQ: string): boolean {
+  return serviciosDiscoveryDocumentForRow(row).conceptKeys.has(serviciosBusinessTypeConceptKey(typeQ));
 }
 
 function rowSvcMulti(pj: ServiciosBusinessProfile): boolean {
@@ -443,31 +483,9 @@ function resolvedHasPlayableGalleryVideos(profile: ServiciosProfileResolved): bo
   }
 }
 
-function resolvedHasOffers(profile: ServiciosProfileResolved): boolean {
-  try {
-    return Array.isArray(profile.promotions) && profile.promotions.length > 0;
-  } catch {
-    return false;
-  }
-}
-
 /** Collects free-text promo/offer fields from wire JSON (supports legacy keys like title/details). */
 function wirePromotionalTextFields(pj: ServiciosBusinessProfile): string[] {
-  const out: string[] = [];
-  const push = (s: unknown) => {
-    if (typeof s === "string" && s.trim()) out.push(s);
-  };
-  push(pj.promo?.headline);
-  push(pj.promo?.footnote);
-  for (const p of pj.promotions ?? []) {
-    const o = p as Record<string, unknown>;
-    push(o.headline);
-    push(o.footnote);
-    push(o.title);
-    push(o.details);
-    push(o.description);
-  }
-  return out;
+  return serviciosWirePromotionalTextFields(pj);
 }
 
 export function serviciosPublicRowToEntitlementListing(row: ServiciosPublicListingRow): Record<string, unknown> {
@@ -504,9 +522,12 @@ export function filterServiciosPublicListingRows(
   rows: ServiciosPublicListingRow[],
   lang: ServiciosLang,
   q: ServiciosResultsFilterQuery,
+  options: ServiciosResultsFilterOptions = {},
 ): ServiciosPublicListingRow[] {
+  const { offersCapabilityByListingId } = options;
   const cityQ = normalize(q.city);
   const groupQ = normalize(q.group);
+  const typeQ = normalizeServiciosBusinessTypeParam(q.type);
   const hasLocationFilters = Boolean(
     cityQ ||
       q.state?.trim() ||
@@ -546,6 +567,7 @@ export function filterServiciosPublicListingRows(
   if (
     !hasLocationFilters &&
     !groupQ &&
+    !typeQ &&
     !wantWa &&
     !wantPromo &&
     !wantCall &&
@@ -582,6 +604,7 @@ export function filterServiciosPublicListingRows(
   return rows.filter((row) => {
     const pj = row.profile_json;
     if (groupQ && normalize(row.internal_group ?? "") !== groupQ) return false;
+    if (typeQ && !rowMatchesBusinessType(row, typeQ)) return false;
     if (hasLocationFilters && !rowMatchesServiciosLocationFilters(row, q)) return false;
     if (wantVerified && row.leonix_verified !== true) return false;
     if (wantWeb && !wireHasPublicWebsite(pj)) return false;
@@ -594,9 +617,14 @@ export function filterServiciosPublicListingRows(
     if (wantSvcMulti && !rowSvcMulti(pj)) return false;
     if (wantOffer && !rowOffer(pj)) return false;
     if (wantLegal && !rowLegalComplete(pj)) return false;
-    if (wantLangEs && !rowLangChip(pj, "lang_es")) return false;
-    if (wantLangEn && !rowLangChip(pj, "lang_en")) return false;
-    if (wantLangOt && !rowLangChip(pj, "lang_otro")) return false;
+    if (wantLangEs || wantLangEn || wantLangOt) {
+      const wantedLangs = [
+        ...(wantLangEs ? ["lang_es"] : []),
+        ...(wantLangEn ? ["lang_en"] : []),
+        ...(wantLangOt ? ["lang_otro"] : []),
+      ];
+      if (!rowServesLanguages(pj, wantedLangs)) return false;
+    }
     if (wantVint && pj.opsMeta?.leonixVerifiedInterest !== true) return false;
     if (wantWknd && !wireWeekendOpen(pj)) return false;
 
@@ -609,103 +637,58 @@ export function filterServiciosPublicListingRows(
 
     if (wantWa || wantPromo || wantCall || wantOpenNow || wantHasPhotos || wantHasVideos || wantHasOffers) {
       const profile = resolvedProfile(row, lang);
-      if (wantOpenNow && !serviciosHoursSummaryIsOpenNow(profile.contact.hours, lang)) return false;
+      // Gate SERVICIOS-3 (D-1) — this filter runs inside a SERVER component, so before this
+      // gate it evaluated “open now” against the server clock (UTC on Vercel) and misjudged every
+      // Pacific business by roughly seven hours. The zone now comes from the listing's own
+      // persisted location, and a listing whose zone cannot be resolved is excluded rather than
+      // advertised on a guess.
+      if (
+        wantOpenNow &&
+        !serviciosHoursSummaryIsOpenNow(profile.contact.hours, lang, {
+          timeZone: profile.contact.businessTimeZone ?? null,
+        })
+      ) {
+        return false;
+      }
       if (wantWa && !profile.contact.socialLinks?.whatsapp) return false;
       if (wantPromo && !profile.promotions.some((p) => p.headline?.trim())) return false;
       if (wantCall && !(profile.contact.phoneDisplay && profile.contact.phoneTelHref)) return false;
       if (wantHasPhotos && !resolvedHasPublicPhotos(profile)) return false;
       if (wantHasVideos && !resolvedHasPlayableGalleryVideos(profile)) return false;
-      if (wantHasOffers && !resolvedHasOffers(profile)) return false;
+      // Gate SERVICIOS-EDIT-ROUNDTRIP-OFFERS-DISCOVERY-1 (F2) — "Tiene ofertas" used to count only
+      // old-style promotions, so a listing whose INCLUDED coupons/offers render on its detail page
+      // never matched. It now asks exactly what the detail page shows, under the current capability.
+      if (
+        wantHasOffers &&
+        !serviciosResolvedProfileHasVisibleOffers(
+          applyServiciosPublicOffersVisibility(profile, offersCapabilityByListingId?.get(row.id ?? "") === true),
+        )
+      ) {
+        return false;
+      }
     }
 
     return true;
   });
 }
 
+/**
+ * ⚠️38A — structured bilingual keyword filter. The query becomes canonical intent through the
+ * Servicios discovery adapter (exact preset concepts via approved aliases / catalog labels + normalized
+ * terms) and is matched against each row's language-neutral search document, which carries BOTH
+ * catalog labels of every preset the row uses. So "plumber" finds a Spanish-authored Plomería listing
+ * and "plomero" finds an English-authored Plumbing listing, with no translation call. Page / viewer /
+ * source language never changes inclusion (`_lang` kept for the call-site contract). Owner free text
+ * is searched in its original language only (⚠️38B deferred).
+ */
 export function filterServiciosRowsByKeyword(
   rows: ServiciosPublicListingRow[],
-  lang: ServiciosLang,
+  _lang: ServiciosLang,
   rawQ: string | undefined,
 ): ServiciosPublicListingRow[] {
-  const terms = expandServiciosSearchTerms(rawQ);
-  if (terms.length === 0) return rows;
-
-  return rows.filter((row) => {
-    const pj = row.profile_json;
-    const profile = resolvedProfile(row, lang);
-
-    // HIGH-PRIORITY FIELDS: Check first for early match
-    // Business/service name
-    if (includesAnyNormalized(row.business_name, terms)) return true;
-    
-    // Primary location fields
-    if (includesAnyNormalized(row.city, terms)) return true;
-    if (includesAnyNormalized(pj.contact?.physicalPostalCode ?? "", terms)) return true;
-    if (includesAnyNormalized(pj.contact?.physicalCity ?? "", terms)) return true;
-    if (includesAnyNormalized(pj.hero?.locationSummary ?? "", terms)) return true;
-    if (includesAnyNormalized(pj.hero?.state ?? "", terms)) return true;
-    if (includesAnyNormalized(pj.opsMeta?.discovery?.state ?? "", terms)) return true;
-    
-    // Primary category/group/type
-    const groupLabel = formatServiciosInternalGroupForDiscovery(row.internal_group, lang);
-    if (includesAnyNormalized(groupLabel ?? "", terms)) return true;
-    if (includesAnyNormalized(row.internal_group ?? "", terms)) return true;
-    if (includesAnyNormalized(profile.hero.categoryLine, terms)) return true;
-
-    // SECONDARY FIELDS: Only check if high-priority fields don't match
-    // Description and specialties
-    if (includesAnyNormalized(profile.about?.text, terms)) return true;
-    if (includesAnyNormalized(profile.about?.specialtiesLine, terms)) return true;
-
-    // Service areas/zones - use some() for early exit
-    if ((pj.serviceAreas?.items ?? []).some((item) => includesAnyNormalized(item.label, terms))) {
-      return true;
-    }
-
-    // Language labels - use some() for early exit
-    if (LANGUAGE_OPTION_CHIPS.some((chip) => 
-      rowLangChip(pj, chip.id) && includesAnyNormalized(lang === "en" ? chip.en : chip.es, terms)
-    )) {
-      return true;
-    }
-
-    // Services array - use some() for early exit
-    if ((profile.services ?? []).some((s) => 
-      includesAnyNormalized(s.title, terms) || includesAnyNormalized(s.secondaryLine, terms)
-    )) {
-      return true;
-    }
-
-    // Other secondary fields - use some() where possible
-    if ((pj.customAmenityOptions ?? []).some((c) => includesAnyNormalized(c, terms))) return true;
-    if ((pj.businessHighlights ?? []).some((h) => includesAnyNormalized(h.label, terms))) return true;
-    if ((profile.trust ?? []).some((t) => includesAnyNormalized(t.label, terms))) return true;
-    if ((profile.quickFacts ?? []).some((f) => includesAnyNormalized(f.label, terms))) return true;
-    if ((profile.highlights ?? []).some((h) => includesAnyNormalized(h.label, terms))) return true;
-    
-    // Reviews - check both quote and author with early exit
-    if ((profile.reviews ?? []).some((r) => 
-      includesAnyNormalized(r.quote, terms) || includesAnyNormalized(r.authorName, terms)
-    )) {
-      return true;
-    }
-
-    // Promotions - use some() for early exit
-    if ((profile.promotions ?? []).some((p) => 
-      includesAnyNormalized(p.headline, terms) || includesAnyNormalized(p.footnote ?? "", terms)
-    )) {
-      return true;
-    }
-
-    // Promotional text fields - use some() for early exit
-    if (wirePromotionalTextFields(pj).some((raw) => includesAnyNormalized(raw, terms))) return true;
-
-    // Country fields (lower priority)
-    if (includesAnyNormalized(pj.hero?.country ?? "", terms)) return true;
-    if (includesAnyNormalized(pj.opsMeta?.discovery?.country ?? "", terms)) return true;
-
-    return false;
-  });
+  const intent = serviciosDiscoveryAdapter.intentFromQuery(rawQ);
+  if (intentIsEmpty(intent)) return rows;
+  return rows.filter((row) => matchesDiscoveryIntent(serviciosDiscoveryDocumentForRow(row), intent));
 }
 
 export function filterServiciosRowsBySeller(
@@ -815,7 +798,12 @@ export function sortServiciosListingRows(
     for (const row of copy) {
       try {
         const p = resolvedProfile(row, lang);
-        openMap.set(row.slug, serviciosHoursSummaryIsOpenNow(p.contact.hours, lang));
+        openMap.set(
+          row.slug,
+          serviciosHoursSummaryIsOpenNow(p.contact.hours, lang, {
+            timeZone: p.contact.businessTimeZone ?? null,
+          }),
+        );
       } catch {
         openMap.set(row.slug, false);
       }

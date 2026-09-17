@@ -45,6 +45,7 @@ import {
 import {
   attachStripeSessionToPromoRedemption,
   createPendingPromoRedemption,
+  markPromoRedemptionExpiredOrCancelled,
   resolvePromoForCheckout,
 } from "@/app/lib/listingPlans/revenuePromoRedemptions";
 import {
@@ -56,7 +57,11 @@ import {
   resolveRevenueCategoryDefaultReturnPath,
   sanitizeRevenueOsReturnPath,
 } from "@/app/lib/listingPlans/revenueOsReturnPath";
-import { validateRentasRenewalCheckoutOwnership } from "@/app/lib/listingLifecycle/listingRenewalFulfillment";
+import {
+  validateRentasRenewalCheckoutOwnership,
+  validateAutosPrivadoRenewalCheckoutOwnership,
+  validateBienesFsboRenewalCheckoutOwnership,
+} from "@/app/lib/listingLifecycle/listingRenewalFulfillment";
 import { assertCommercialCapacityForWrite } from "@/app/lib/listingPlans/commercialWriteGuard";
 import {
   isRevenueBaseEntitlementGuardedPackage,
@@ -75,6 +80,7 @@ import {
   type ReserveVerifiedIntroDiscountInput,
 } from "@/app/lib/listingPlans/verifiedIntroDiscountRedemptions";
 import { ensureVerifiedIntroDiscountStripeCoupon } from "@/app/lib/listingPlans/verifiedIntroDiscountStripeCoupon";
+import { ensureContractTermStripeCoupon } from "@/app/lib/listingPlans/contractTermStripeCoupon";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -111,6 +117,10 @@ export async function POST(request: NextRequest) {
   const operationEarly = body.operation === "renew_listing" ? "renew_listing" : null;
   const isRentasRenewalEarly =
     operationEarly === "renew_listing" && categoryEarly === "rentas" && packageKeyEarly === "rentas_30d";
+  const isAutosPrivadoRenewalEarly =
+    operationEarly === "renew_listing" && categoryEarly === "autos" && packageKeyEarly === AUTOS_PRIVADO_30D_PACKAGE_KEY;
+  const isBienesFsboRenewalEarly =
+    operationEarly === "renew_listing" && categoryEarly === "bienes-raices" && packageKeyEarly === "br_fsbo_45d";
   const isRestauranteAddonOnlyEarly =
     categoryEarly === "restaurantes" && packageKeyEarly === RESTAURANTES_OFFERS_ADDON_PACKAGE_KEY;
   const isAutosDealerInventoryAddonEarly =
@@ -233,8 +243,38 @@ export async function POST(request: NextRequest) {
     serverVerifiedLeonixAdId = ownerGate.leonixAdId;
     serverVerifiedOwnerUserId = ownerGate.ownerUserId;
   }
+  if (isAutosPrivadoRenewalEarly) {
+    const ownerGate = await validateAutosPrivadoRenewalCheckoutOwnership({
+      listingId: String(body.listingId ?? "").trim(),
+      bearerUserId,
+    });
+    if (!ownerGate.ok) {
+      return NextResponse.json(
+        { ok: false, code: ownerGate.code, message: ownerGate.message },
+        { status: ownerGate.status },
+      );
+    }
+    serverVerifiedCurrentExpiresAt = ownerGate.currentExpiresAt;
+    serverVerifiedLeonixAdId = ownerGate.leonixAdId;
+    serverVerifiedOwnerUserId = ownerGate.ownerUserId;
+  }
+  if (isBienesFsboRenewalEarly) {
+    const ownerGate = await validateBienesFsboRenewalCheckoutOwnership({
+      listingId: String(body.listingId ?? "").trim(),
+      bearerUserId,
+    });
+    if (!ownerGate.ok) {
+      return NextResponse.json(
+        { ok: false, code: ownerGate.code, message: ownerGate.message },
+        { status: ownerGate.status },
+      );
+    }
+    serverVerifiedCurrentExpiresAt = ownerGate.currentExpiresAt;
+    serverVerifiedLeonixAdId = ownerGate.leonixAdId;
+    serverVerifiedOwnerUserId = ownerGate.ownerUserId;
+  }
 
-  const ownerUserId = isRestauranteAddonOnlyEarly || isAutosDealerInventoryAddonEarly || isBienesInventoryAddonOnlyEarly || isServiciosOffersAddonOnlyEarly || isRentasRenewalEarly || isOfertasLocalesCheckoutEarly
+  const ownerUserId = isRestauranteAddonOnlyEarly || isAutosDealerInventoryAddonEarly || isBienesInventoryAddonOnlyEarly || isServiciosOffersAddonOnlyEarly || isRentasRenewalEarly || isAutosPrivadoRenewalEarly || isBienesFsboRenewalEarly || isOfertasLocalesCheckoutEarly
     ? serverVerifiedOwnerUserId ?? bearerUserId
     : body.ownerUserId?.trim() || bearerUserId || null;
 
@@ -281,6 +321,9 @@ export async function POST(request: NextRequest) {
   let promoBaseAmountForRecord: number | undefined;
   // Package F Build F2, promo concurrency closure — threaded to the atomic reservation RPC below.
   let promoPerCustomerLimitForRecord: number | null | undefined;
+  // ⚠️35 — finite-term contract promo: Stripe repeating coupon + the term persisted on the record.
+  let contractTermStripeCouponId: string | null = null;
+  let contractTermForRecord: string | null = null;
   if (promoCodeRaw) {
     const prelim = validateRevenueCheckoutRequest(body, { validatedAddOns });
     if (!prelim.ok) {
@@ -318,7 +361,30 @@ export async function POST(request: NextRequest) {
 
     promoCodeId = promoResult.promoCodeId;
     discountCents = promoResult.discountCents;
-    finalAmountCents = promoResult.finalAmountCents;
+    if (promoResult.billing.mechanism === "stripe_repeating_coupon" && promoResult.billing.finiteTerm) {
+      // ⚠️35 — standard finite-term contract code (row contract_term × row percent, both server-
+      // owned): the subscription line item stays at the FULL recurring price and a Stripe
+      // duration:"repeating" coupon discounts exactly `termMonths` invoices, after which Stripe
+      // bills full price with no Leonix action. `finalAmountCents` is deliberately left unset so
+      // amountCents = the full subtotal; the per-cycle discount is still recorded on the ledger and
+      // the payment record (the webhook amount guard needs it). Coupon-first, fail-closed: an
+      // unavailable coupon stops checkout — never a silent permanent price reduction.
+      const couponResult = await ensureContractTermStripeCoupon(promoResult.billing.finiteTerm);
+      if (!couponResult.ok) {
+        return NextResponse.json(
+          {
+            ok: false,
+            code: "promo_discount_temporarily_unavailable",
+            message: "This promo code is temporarily unavailable. Retry, or continue without it.",
+          },
+          { status: 503 },
+        );
+      }
+      contractTermStripeCouponId = couponResult.couponId;
+      contractTermForRecord = promoResult.billing.finiteTerm.contractTerm;
+    } else {
+      finalAmountCents = promoResult.finalAmountCents;
+    }
     promoTypeForRecord = promoResult.promoType;
     promoFamilyForRecord = promoResult.promoFamily;
     promoWebsiteCheckoutOnly = promoResult.websiteCheckoutOnly;
@@ -415,6 +481,16 @@ export async function POST(request: NextRequest) {
     // ── Decision 8 — coupon-first sequencing. Resolved BEFORE any reservation or payment-
     // record write. A requested-but-unavailable discount stops checkout creation entirely: no
     // Stripe session, no reservation, no payment record — never a silent full-price fallback.
+    // BOTH mechanisms discount the customer's FIRST payment by the same 15%, so the amount is
+    // computed for both. Only `unit_amount_reduction` additionally reduces the Stripe line item;
+    // `stripe_once_coupon` must leave `finalAmountCents` untouched so the subscription's own
+    // price stays full and renewals bill full price (the duration:"once" coupon discounts only
+    // the first invoice). Computing this for the coupon mechanism too is what lets the
+    // redemption ledger and the payment record store the REAL first-charge discount instead of
+    // zero — and the webhook's amount guard needs that value to recognise the discounted Stripe
+    // total as legitimate rather than rejecting fulfillment after a successful charge.
+    verifiedIntroDiscountCents = Math.floor((prelim.subtotalCents * 15) / 100);
+
     if (verifiedIntroDiscountMechanism === "stripe_once_coupon") {
       const couponResult = await ensureVerifiedIntroDiscountStripeCoupon();
       if (!couponResult.ok) {
@@ -429,7 +505,6 @@ export async function POST(request: NextRequest) {
       }
       verifiedIntroDiscountStripeCouponId = couponResult.couponId;
     } else {
-      verifiedIntroDiscountCents = Math.floor((prelim.subtotalCents * 15) / 100);
       finalAmountCents = Math.max(0, prelim.subtotalCents - verifiedIntroDiscountCents);
     }
 
@@ -514,12 +589,24 @@ export async function POST(request: NextRequest) {
     body.operation === "renew_listing" &&
     packageDef.packageKey === "rentas_30d" &&
     packageDef.category === "rentas";
+  const isAutosPrivadoRenewal =
+    body.operation === "renew_listing" &&
+    packageDef.packageKey === AUTOS_PRIVADO_30D_PACKAGE_KEY &&
+    packageDef.category === "autos";
+  const isBienesFsboRenewal =
+    body.operation === "renew_listing" &&
+    packageDef.packageKey === "br_fsbo_45d" &&
+    packageDef.category === "bienes-raices";
   const returnFallback = isRestauranteAddonOnly
     ? buildDashboardMisAnunciosReturnPath(locale, "restaurantes")
     : isBienesInventoryAddonOnly
     ? buildDashboardMisAnunciosReturnPath(locale, "bienes-raices")
     : isRentasRenewal
     ? buildDashboardMisAnunciosReturnPath(locale, "rentas")
+    : isAutosPrivadoRenewal
+    ? buildDashboardMisAnunciosReturnPath(locale, "autos")
+    : isBienesFsboRenewal
+    ? buildDashboardMisAnunciosReturnPath(locale, "bienes-raices")
     : packageDef.category === "ofertas-locales"
     ? `/dashboard/ofertas-locales/${encodeURIComponent(listingRef)}?lang=${locale}`
     : resolveRevenueCategoryDefaultReturnPath(packageDef.category, locale);
@@ -568,7 +655,7 @@ export async function POST(request: NextRequest) {
     packageKey: packageDef.packageKey,
     addOns: addOns.map((a) => ({ key: a.key, quantity: a.quantity })),
     billingMode: packageDef.billingMode,
-    operation: isRentasRenewal ? "renew_listing" : null,
+    operation: isRentasRenewal || isAutosPrivadoRenewal || isBienesFsboRenewal ? "renew_listing" : null,
   });
   let attemptGeneration = 1;
   const existingAttempt = await findOpenCheckoutAttempt(checkoutAttemptKey);
@@ -644,6 +731,7 @@ export async function POST(request: NextRequest) {
     customerEmail: body.customerEmail,
     promoCodeId,
     discountCents: discountCents || verifiedIntroDiscountCents,
+    contractTerm: contractTermForRecord,
     promoCode: promoCodeRaw ?? null,
     discountType: promoTypeForRecord ?? (verifiedIntroDiscountEligible ? "verified_intro_15" : null),
     promoFamily: promoFamilyForRecord ?? null,
@@ -651,10 +739,13 @@ export async function POST(request: NextRequest) {
     promoBaseAmountCents: promoBaseAmountForRecord,
     addonOnly: isRestauranteAddonOnly || isBienesInventoryAddonOnly || isServiciosOffersAddonOnly,
     operation: body.operation === "renew_listing" ? "renew_listing" : null,
-    sourceTable: isRentasRenewal ? "listings" : body.sourceTable,
-    currentExpiresAt: isRentasRenewal || categoryEarly === "ofertas-locales" ? serverVerifiedCurrentExpiresAt ?? body.currentExpiresAt : body.currentExpiresAt,
+    sourceTable: isRentasRenewal || isBienesFsboRenewal ? "listings" : isAutosPrivadoRenewal ? "autos_classifieds_listings" : body.sourceTable,
+    currentExpiresAt:
+      isRentasRenewal || isAutosPrivadoRenewal || isBienesFsboRenewal || categoryEarly === "ofertas-locales"
+        ? serverVerifiedCurrentExpiresAt ?? body.currentExpiresAt
+        : body.currentExpiresAt,
     renewalAttemptId: categoryEarly === "ofertas-locales" ? body.renewalAttemptId : null,
-    returnContext: isRentasRenewal ? body.returnContext ?? "owner_dashboard" : body.returnContext,
+    returnContext: isRentasRenewal || isAutosPrivadoRenewal || isBienesFsboRenewal ? body.returnContext ?? "owner_dashboard" : body.returnContext,
     checkoutAttemptKey,
     attemptGeneration,
   });
@@ -785,9 +876,27 @@ export async function POST(request: NextRequest) {
     attemptGeneration,
     consentRecordId,
     verifiedIntroDiscountStripeCouponId,
+    contractTermStripeCouponId,
   });
 
   if (!stripeResult.ok) {
+    // P0 residual closeout (2026-09-16) — proven live: a reservation made just above (promo
+    // and/or verified-intro) survived a synchronous Stripe session-creation failure with nothing
+    // to release it, permanently consuming a per-customer slot before any real payment ever
+    // happened (no stripe_checkout_session_id was ever attached, so the webhook's own expiry path
+    // — the only other release mechanism — has nothing to key off of). Reuses the exact existing
+    // release functions; no new mechanism, no schema change, no weakened limit. Best-effort: a
+    // release failure here must never mask the real Stripe error being returned to the caller.
+    if (promoRedemptionId) {
+      await markPromoRedemptionExpiredOrCancelled({
+        redemptionId: promoRedemptionId,
+        stripeCheckoutSessionId: "",
+        webhookMeta: { reason: "checkout_session_create_failed", stripe_error_code: stripeResult.code },
+      });
+    }
+    if (verifiedIntroDiscountRedemptionId) {
+      await releaseVerifiedIntroDiscountReservation(checkoutAttemptKey);
+    }
     return NextResponse.json(
       { ok: false, code: stripeResult.code, message: stripeResult.message },
       { status: 502 },

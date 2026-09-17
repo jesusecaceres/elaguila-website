@@ -66,12 +66,16 @@ async function main() {
    * ---------------------------------------------------------------------------------------- */
   {
     const src = readSource(TARGET_FILE);
-    assert.ok(
-      src.includes(
-        "imageSources: orderedRentasGallerySourcesForPublish(state.media.photoDataUrls, state.media.primaryImageIndex),",
-      ),
-      "BR Privado builder must reorder photoDataUrls by primaryImageIndex before publish",
+    // Gate BIENES-PRIVADO-1 hoisted the (identical) reorder call into `brPrivadoOrderedGallery`
+    // so the same ordered list also feeds the shared media-drop warning; accept either form.
+    const inline = src.includes(
+      "imageSources: orderedRentasGallerySourcesForPublish(state.media.photoDataUrls, state.media.primaryImageIndex),",
     );
+    const hoisted =
+      /const brPrivadoOrderedGallery = orderedRentasGallerySourcesForPublish\(\s*state\.media\.photoDataUrls,\s*state\.media\.primaryImageIndex,?\s*\);/.test(
+        src,
+      ) && src.includes("imageSources: brPrivadoOrderedGallery,");
+    assert.ok(inline || hoisted, "BR Privado builder must reorder photoDataUrls by primaryImageIndex before publish");
     assert.ok(
       !src.includes("imageSources: [...state.media.photoDataUrls],"),
       "the old unordered BR Privado literal must be gone",
@@ -108,8 +112,10 @@ async function main() {
    * ---------------------------------------------------------------------------------------- */
   {
     const src = readSource(TARGET_FILE);
-    const photoDataUrlsCall = "orderedRentasGallerySourcesForPublish(state.media.photoDataUrls, state.media.primaryImageIndex)";
-    const occurrences = src.split(photoDataUrlsCall).length - 1;
+    // Whitespace-tolerant: Gate BIENES-PRIVADO-1 wrapped the (identical) BR Privado call over lines.
+    const photoDataUrlsCall =
+      /orderedRentasGallerySourcesForPublish\(\s*state\.media\.photoDataUrls,\s*state\.media\.primaryImageIndex,?\s*\)/g;
+    const occurrences = (src.match(photoDataUrlsCall) ?? []).length;
     // Rentas Privado + Rentas Negocio (both pre-existing, both use `photoDataUrls`) + BR Privado
     // (new, this gate). BR Negocio uses the differently-named `photoUrls` field, asserted above.
     assert.equal(occurrences, 3, "expected Rentas Privado + Rentas Negocio (pre-existing) + BR Privado (new) to share this call shape");

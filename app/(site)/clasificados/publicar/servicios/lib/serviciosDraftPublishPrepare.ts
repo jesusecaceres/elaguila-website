@@ -127,6 +127,19 @@ async function uploadBlobForDraft(
   return parsed.publicUrl;
 }
 
+/**
+ * Servicios Owner QA (SVC-QA-03 / SVC-QA-04) — upload one owner-selected license / insurance
+ * document (PDF or image) through the SAME draft-media route and slots publish-prepare already uses,
+ * returning the durable HTTPS URL. Resolving means the file is stored; the caller must only call it
+ * "uploaded" after this resolves. Throws on any failure (size, type, network, storage).
+ */
+export async function uploadServiciosCredentialDocument(
+  file: Blob,
+  slot: "licenseDoc" | "insuranceDoc",
+): Promise<string> {
+  return uploadBlobForDraft(file, { draftListingId: getServiciosPublishDraftListingId(), slot });
+}
+
 async function uploadUrlIfNeeded(
   url: string,
   ctx: { draftListingId: string; slot: string; index?: number },

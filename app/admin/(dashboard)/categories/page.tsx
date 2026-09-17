@@ -11,6 +11,7 @@ import {
   adminTableZebraRow,
 } from "../../_components/adminTheme";
 import { getClasificadosCategoryRegistryMerged, summarizeRegistryForDashboard } from "@/app/lib/clasificados/clasificadosCategoryRegistry";
+import { mergeAdminCategoriesHubEntries } from "../../_lib/adminCategoriesHubEntries";
 import { fetchListingStatsForCategorySlugs } from "../../_lib/adminCategoryListingStats";
 import { saveSiteCategoryConfigRowAction } from "../../siteCategoryConfigActions";
 import {
@@ -74,7 +75,13 @@ export default async function AdminCategoriesPage(props: CategoriesPageProps) {
   const sp = (props.searchParams ? await props.searchParams : {}) ?? {};
   const catSaved = sp.cat_saved === "1";
   const catError = sp.cat_error === "1";
-  const registry = await getClasificadosCategoryRegistryMerged();
+  // ADMIN-OS-01 GATE 3: this registry (categoryConfig.ts's key union) deliberately excludes
+  // Comida Local — it's a real, dedicated-table category, just not one of the 12 baked into
+  // categoryConfig. The Clasificados Command Center (`/admin/workspace/clasificados`) already
+  // patches this gap for its own registry via mergeAdminCategoriesHubEntries(); this page had
+  // its own separate call site and had never been given the same patch, so Comida Local was
+  // invisible here specifically. Reusing the existing merge function, not a new one.
+  const registry = mergeAdminCategoriesHubEntries(await getClasificadosCategoryRegistryMerged());
   const sum = summarizeRegistryForDashboard(registry);
   const statsRows = await fetchListingStatsForCategorySlugs(registry.map((c) => c.slug));
   const statsBySlug = Object.fromEntries(statsRows.map((s) => [s.slug, s]));
@@ -234,7 +241,20 @@ export default async function AdminCategoriesPage(props: CategoriesPageProps) {
                         )}
                       </td>
                       <td className="p-3 text-xs tabular-nums">
-                        {st?.queryError ? "—" : (st?.pendingOrFlagged ?? "—")}
+                        {st?.queryError ? (
+                          <span title={st.queryError} className="text-amber-800">
+                            —
+                          </span>
+                        ) : st?.pendingNotApplicable ? (
+                          <span
+                            title="No moderation-pending status exists for this category — not a real 0"
+                            className="text-[#9A9084]"
+                          >
+                            n/a
+                          </span>
+                        ) : (
+                          (st?.pendingOrFlagged ?? "—")
+                        )}
                       </td>
                       <td className="p-3 text-xs font-bold">
                         <Link

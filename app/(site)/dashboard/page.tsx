@@ -21,7 +21,8 @@ import {
 } from "@/app/lib/ownerEngagementListingKeys";
 import { dashboardActiveVsTotalFootnote } from "./lib/dashboardCountDefinitions";
 import { fetchDashboardNavCounts } from "./lib/dashboardNavCounts";
-import { fetchDerivedDashboardFeed, type DerivedFeedItem } from "./lib/derivedDashboardFeed";
+import { fetchDerivedDashboardFeed } from "./lib/derivedDashboardFeed";
+import { buildAccountAttentionItems, type OwnerAttentionItem } from "./lib/ownerAttentionModel";
 import { fetchDashboardAnalyticsSummary } from "./lib/fetchDashboardAnalyticsApi";
 import { fetchOwnerListingsForDashboard } from "./lib/ownerListingsQuery";
 
@@ -68,7 +69,7 @@ function DashboardPageContent() {
   const [draftCount, setDraftCount] = useState<number | null>(null);
   const [membershipTier, setMembershipTier] = useState<string | null>(null);
   const [accountType, setAccountType] = useState<string | null>(null);
-  const [derivedFeed, setDerivedFeed] = useState<DerivedFeedItem[]>([]);
+  const [attentionItems, setAttentionItems] = useState<OwnerAttentionItem[]>([]);
   const [attentionError, setAttentionError] = useState(false);
   const [previewError, setPreviewError] = useState(false);
   const [previewItems, setPreviewItems] = useState<OwnerManagedEntityPreviewItem[]>([]);
@@ -162,14 +163,15 @@ function DashboardPageContent() {
         });
 
         const attentionTask = fetchDerivedDashboardFeed(supabase, u.id, lang, token)
-          .then((feed) => {
+          .then((feed) => buildAccountAttentionItems(feed, lang, token))
+          .then((items) => {
             if (!mounted) return;
-            setDerivedFeed(feed);
+            setAttentionItems(items);
             setAttentionError(false);
           })
           .catch(() => {
             if (!mounted) return;
-            setDerivedFeed([]);
+            setAttentionItems([]);
             setAttentionError(true);
           })
           .finally(() => {
@@ -264,7 +266,7 @@ function DashboardPageContent() {
         </div>
       ) : (
         <OwnerAccountCommandCenter lang={lang} q={q} userName={name} homeCity={homeCity}>
-          <OwnerNeedsAttention lang={lang} loading={attentionLoading} error={attentionError} items={derivedFeed} />
+          <OwnerNeedsAttention lang={lang} loading={attentionLoading} error={attentionError} items={attentionItems} />
           <OwnerAccountPerformance
             lang={lang}
             loading={metricsLoading}

@@ -30,6 +30,13 @@ export type AdTranslationPayload = {
   highlights?: string;
   body?: string;
   shareText?: string;
+  /** A short descriptive/location note distinct from structured identity data (e.g. an address's
+   * trailing human note) — additive slot, optional for every category. */
+  locationNote?: string;
+  /** A free-typed finance/pricing teaser sentence (e.g. Autos' "monthly estimate" line) — buyer-
+   * facing prose that happens to embed real numbers/currency, which the provider must preserve
+   * verbatim while translating the surrounding words. Additive slot, optional for every category. */
+  financeTeaser?: string;
   category?: string;
   listingKey?: string;
   sourceLocale?: ContentLocale;
@@ -47,6 +54,8 @@ export type TranslatableAdFieldKey = keyof Pick<
   | "highlights"
   | "body"
   | "shareText"
+  | "locationNote"
+  | "financeTeaser"
 >;
 
 export type TranslatableAdFields = Partial<Record<TranslatableAdFieldKey, string>>;
@@ -58,11 +67,20 @@ export type TranslationProviderId = typeof GOOGLE_CLOUD_TRANSLATION_PROVIDER_ID 
 
 export type AdTranslationResult = {
   translated: TranslatableAdFields;
+  /** The locales as REQUESTED — unchanged for backward compatibility with every existing consumer. */
   sourceLocale: ContentLocale;
   targetLocale: Locale;
   provider: TranslationProviderId;
   translatedAt: string;
   fromCache?: boolean;
+  /**
+   * Servicios Live Launch Perfection ⚠️16 (2026-09-13) — additive metadata, present only when the
+   * request carried `sourceLocale: "unknown"`: the provider-detected content language and the
+   * target the text was actually translated into (the opposite active language when the content
+   * already matched the requested target). Known-source requests never set these.
+   */
+  detectedSourceLocale?: ContentLocale;
+  effectiveTargetLocale?: Locale;
 };
 
 export type MaskToken = { placeholder: string; value: string };

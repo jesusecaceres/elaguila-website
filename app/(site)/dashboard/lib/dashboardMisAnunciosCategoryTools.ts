@@ -455,11 +455,13 @@ export function buildInventoryListingActions(
     });
   }
 
-  // Package E Build E2, Gate 4 — the "+$99/mes" coupon-upgrade CTA that used to live here is
-  // retired: coupons are included in the $399/mo Restaurantes base package with no real paid
-  // add-on backend, so that CTA misrepresented a free capability as a paid upsell. Existing
-  // owners reach coupons entirely through the couponEdit action below (real base-package
-  // capability, server-verified, no checkout).
+  // The standalone Restaurantes coupon add-on ($79/mo — never $99, the price this dead block
+  // used to show) is retired (revenuePricingMatrix.ts: newSalesRetired=true, stripeEligible=
+  // false); coupons/offers are now included in the $399/mo base package. No caller in this
+  // codebase has ever passed `onCouponUpgrade`/`couponUpgradeBusy`, so this "upgrade" CTA for a
+  // no-longer-sellable product could never actually render — removed as dead, misleading
+  // commercial-truth debt (Owner Command Center final organization pass, Phase H) rather than
+  // left as an unreachable stale offer.
 
   if (
     category === "restaurantes" &&

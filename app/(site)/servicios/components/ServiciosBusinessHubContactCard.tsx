@@ -18,16 +18,15 @@ import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
 import { nonEmpty } from "../lib/serviciosProfilePrimitives";
 import {
   resolveServiciosQuoteDestination,
-  serviciosUniversalQuoteMessage,
   type ServiciosQuoteDestinationKind,
 } from "../lib/serviciosContactActions";
 import {
+  buildServiciosSendEmailIntentFromMailto,
   serviciosAnalyticsTrackMeta,
   trackServiciosListingCta,
 } from "../lib/serviciosCtaIntents";
 import {
   serviciosOpenGoogleMapsDirections,
-  serviciosOpenMailtoHref,
   serviciosOpenTelHref,
   serviciosOpenWhatsAppHref,
 } from "../lib/serviciosDirectCta";
@@ -46,7 +45,6 @@ import { ServiciosBusinessHubEngagementRow } from "./ServiciosBusinessHubEngagem
 import { ServiciosBusinessHubMapPanel } from "./ServiciosBusinessHubMapPanel";
 import { ServiciosActionPanelAreasMap } from "./ServiciosActionPanelAreasMap";
 import { ServiciosOfferCard } from "./ServiciosOfferCard";
-import { ContactEmailMenu } from "@/app/components/contact/ContactEmailMenu";
 import { SharedConnectionHubReviewButton } from "@/app/components/contact/connectionHub/renderers/SharedConnectionHubReviewButton";
 import { buildSendEmailIntent, CtaActionSheet } from "@/app/components/cta";
 import type { CtaSheetIntent } from "@/app/components/cta/types";
@@ -235,7 +233,9 @@ export function ServiciosBusinessHubContactCard({
   if (
     !serviciosBusinessHubHasVisibleContent(vm, {
       hasPrimaryQuote: Boolean(showPrimaryQuoteEarly),
-      hasHours: Boolean(hours?.weeklyRows?.length || (hours?.openNowLabel && hours?.todayHoursLine)),
+      hasHours: Boolean(
+        hours?.weeklyRows?.length || (hours?.openNowLabel && hours?.todayHoursLine) || hours?.specialHoursRows?.length,
+      ),
       isFeatured: Boolean(profile.contact.isFeatured),
     })
   ) {
@@ -243,7 +243,7 @@ export function ServiciosBusinessHubContactCard({
   }
 
   const quote = resolveServiciosQuoteDestination(profile, lang);
-  const quoteMsgText = serviciosUniversalQuoteMessage(lang);
+  // Owner QA 914 — effective action language + bilingual fallback (see serviciosContactActions.ts).
   const primaryCtaLabel = resolveProfessionalHubQuoteCtaLabel(
     profile.contact.primaryCtaLabel,
     listingTemplate,
@@ -251,10 +251,6 @@ export function ServiciosBusinessHubContactCard({
     L.requestQuote,
   );
   const primaryMailto = quote?.kind === "mailto" ? quote.href : null;
-  const primaryEmailAddr =
-    profile.contact.email?.trim() ||
-    (profile.contact.emailMailtoHref ? emailFromMailtoHref(profile.contact.emailMailtoHref) : "") ||
-    (primaryMailto ? emailFromMailtoHref(primaryMailto) : "");
   const featured = profile.contact.isFeatured;
   const featuredLabel = profile.contact.featuredLabel?.trim() || L.featured;
 
@@ -271,17 +267,29 @@ export function ServiciosBusinessHubContactCard({
     }
   };
 
-  const openPrimaryMailto = () => {
+  // Gate 5 residual closeout (2026-09-16) — the primary "Correo" quote CTA now opens the same
+  // shared CtaActionSheet the grid email chip (openEmail, above) and Restaurantes/Comida Local
+  // already use, instead of the bespoke ContactEmailMenu dropdown or a bare mailto navigation.
+  // buildServiciosSendEmailIntentFromMailto decodes email/subject/body straight from the quote's
+  // own mailto href, so it degrades gracefully even when primaryEmailAddr didn't resolve cleanly.
+  const openPrimaryMailtoSheet = () => {
     if (!primaryMailto) return;
     trackServiciosListingCta(listingSlug, analyticsForQuoteKind("mailto"), { ...analyticsBase, source: "business_hub" });
-    serviciosOpenMailtoHref(primaryMailto);
+    const intent = buildServiciosSendEmailIntentFromMailto(primaryMailto, lang, listingSlug, listingShareUrl);
+    if (intent) setEmailSheetIntent(intent);
   };
 
+  // Servicios Final Contact Truth + Email No-Mailto Closeout (2026-09-17, Gate 1/8) — one Call
+  // action: office phone when present, principal phone as fallback. Never two separate buttons.
+  const officeCallTel = profile.contact.phoneOfficeTelHref?.trim();
+  const officeCallDisplay = profile.contact.phoneOfficeDisplay?.trim();
+  const useOfficeCall = Boolean(officeCallTel && officeCallDisplay);
+  const callTel = useOfficeCall ? officeCallTel : profile.contact.phoneTelHref?.trim();
+
   const openCall = () => {
-    const href = profile.contact.phoneTelHref?.trim();
-    if (!href) return;
+    if (!callTel) return;
     trackServiciosListingCta(listingSlug, "cta_call_click", { ...analyticsBase, source: "business_hub" });
-    serviciosOpenTelHref(href);
+    serviciosOpenTelHref(callTel);
   };
 
   const openMessage = () => {
@@ -308,6 +316,7 @@ export function ServiciosBusinessHubContactCard({
         email,
         subject: profile.identity?.businessName ? `Leonix · ${profile.identity.businessName}` : "Leonix",
         body: "",
+        showOpenEmailApp: false,
       }),
     );
   };
@@ -328,10 +337,10 @@ export function ServiciosBusinessHubContactCard({
   };
 
   const contactActions: ContactAction[] = [];
-  if (profile.contact.phoneTelHref) {
+  if (callTel) {
     contactActions.push({
       id: "call",
-      label: lang === "en" ? "Call" : "Llamar",
+      label: useOfficeCall ? L.callOffice : L.call,
       onClick: openCall,
       icon: <FiPhone className="h-5 w-5 shrink-0 text-current" aria-hidden />,
     });
@@ -369,6 +378,7 @@ export function ServiciosBusinessHubContactCard({
     location: lang === "en" ? "Our location" : "Nuestra ubicación",
     hours: lang === "en" ? "Hours" : "Horarios",
     section: lang === "en" ? "Contact & location" : "Contacto y ubicación",
+    specialHours: lang === "en" ? "Special hours / Holidays" : "Horarios especiales / Días festivos",
   };
 
   const callAction = contactActions.find((a) => a.id === "call");
@@ -395,7 +405,7 @@ export function ServiciosBusinessHubContactCard({
   );
 
   const showHours = Boolean(
-    hours?.weeklyRows?.length || (hours?.openNowLabel && nonEmpty(hours.todayHoursLine)),
+    hours?.weeklyRows?.length || (hours?.openNowLabel && nonEmpty(hours.todayHoursLine)) || hours?.specialHoursRows?.length,
   );
 
   const showPrimaryQuote =
@@ -439,29 +449,12 @@ export function ServiciosBusinessHubContactCard({
               </div>
             ) : null}
 
-            {showPrimaryQuote && quote?.kind === "mailto" && primaryMailto && primaryEmailAddr ? (
-              <ContactEmailMenu
-                email={primaryEmailAddr}
-                mailtoHref={primaryMailto}
-                messagePlain={quoteMsgText}
-                lang={lang}
-                listingSlug={listingSlug}
-                listingSourceId={listingSourceId}
-                engagementListingId={engagementListingId}
-                ownerUserId={engagementOwnerUserId}
-                analyticsEventType={analyticsForQuoteKind("mailto")}
-                triggerClassName={`${SCH_CTA_PRIMARY} mb-3 justify-between`}
-                triggerStyle={{ backgroundColor: SCH_LX.burgundy, boxShadow: "0 8px 22px rgba(92, 22, 34, 0.28)" }}
-              >
-                <FiZap className="h-4 w-4 shrink-0" style={{ color: HUB_GOLD }} aria-hidden />
-                {primaryCtaLabel}
-              </ContactEmailMenu>
-            ) : showPrimaryQuote && quote?.kind === "mailto" && primaryMailto ? (
+            {showPrimaryQuote && quote?.kind === "mailto" && primaryMailto ? (
               <button
                 type="button"
                 className={`${SCH_CTA_PRIMARY} mb-3 w-full border-0`}
                 style={{ backgroundColor: SCH_LX.burgundy, boxShadow: "0 8px 22px rgba(92, 22, 34, 0.28)" }}
-                onClick={openPrimaryMailto}
+                onClick={openPrimaryMailtoSheet}
               >
                 <FiZap className="h-4 w-4 shrink-0" style={{ color: HUB_GOLD }} aria-hidden />
                 {primaryCtaLabel}
@@ -602,21 +595,49 @@ export function ServiciosBusinessHubContactCard({
                       ))}
                     </ul>
                   ) : null}
+                  {/* Gate 6 residual closeout (2026-09-16) — this shell is what the two Preview/
+                      published shells route rendering to whenever a weekly schedule exists
+                      (ServiciosHours itself is only mounted when there's no weekly schedule), so it
+                      is the one place that actually needs to render specialHoursRows for an owner
+                      who has both. Same {label, note} shape and copy key ServiciosHours already
+                      uses. */}
+                  {hours.specialHoursRows && hours.specialHoursRows.length > 0 ? (
+                    <div className="mt-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-[#8A7B68]">
+                        {labels.specialHours}
+                      </p>
+                      <ul className="mt-1.5 space-y-0.5">
+                        {hours.specialHoursRows.map((row, i) => (
+                          <li key={`${row.label}-${i}`} className="flex justify-between gap-2 text-[11px] sm:text-xs">
+                            <span className="min-w-0 shrink font-medium text-[#1E1814]">{row.label}</span>
+                            <span className="shrink-0 text-right tabular-nums text-[#6F6254]">{row.note}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
                 </section>
               ) : null}
             </div>
 
-            {(listingSourceId ?? "").trim() ? (
-              <div className="mt-4 border-t pt-4" style={{ borderColor: SCH_LX.divider }}>
-                <LeonixCommunityTrust
-                  category="servicios"
-                  targetId={listingSourceId as string}
-                  ownerUserId={engagementOwnerUserId}
-                  lang={lang}
-                  surface="servicios_hub"
-                />
-              </div>
-            ) : null}
+            {/* Community Trust (🦁, first-party, real persisted counts) — separate from the Google/Yelp
+                links below. A draft Preview has no durable target yet, so it shows the same chips in
+                preview mode (zero, disabled, "turns on when published") instead of nothing (⚠️59). */}
+            <div
+              id="servicios-community-trust-section"
+              className="mt-4 border-t pt-4"
+              style={{ borderColor: SCH_LX.divider }}
+              data-servicios-community-trust="1"
+            >
+              <LeonixCommunityTrust
+                category="servicios"
+                targetId={(listingSourceId ?? "").trim()}
+                ownerUserId={engagementOwnerUserId}
+                lang={lang}
+                surface="servicios_hub"
+                preview={!(listingSourceId ?? "").trim()}
+              />
+            </div>
 
             {showSecondary ? (
               <div className={SCH_SECONDARY_GRID}>

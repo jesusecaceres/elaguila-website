@@ -28,6 +28,7 @@ import { ServiciosVisualProofRow } from "./ServiciosVisualProofRow";
 import { ServiciosPublicDetailsCanvas } from "./ServiciosPublicDetailsCanvas";
 import { ServiciosGroupedHowSection } from "./ServiciosGroupedHowSection";
 import { ServiciosPagosBeneficiosSection } from "./ServiciosPagosBeneficiosSection";
+import { ServiciosEndOfContentShare } from "./ServiciosEndOfContentShare";
 import { SV } from "./serviciosDesignTokens";
 import { LX_LINK_ACCENT, LX_PRO_INNER_PAD, LX_PRO_MAIN_MAX } from "./serviciosLeonixBrand";
 import { ServiciosTrackedLink } from "./ServiciosTrackedLink";
@@ -91,7 +92,7 @@ export function ServiciosProfileView({
 }) {
   const stickyAsideTop = showTopBar ? "lg:top-[4.5rem]" : "lg:top-4";
   const listingKey = analyticsListingSlug?.trim() || profile.identity.slug;
-  const { displayProfile, translateControl } = useServiciosPublicTranslation({ profile, lang, listingKey });
+  const { displayProfile, translateControl, displayLang } = useServiciosPublicTranslation({ profile, lang, listingKey });
 
   const lxListingId = (engagementListingId ?? "").trim() || profile.identity.slug;
   const lxOwner = (engagementOwnerUserId ?? "").trim() || undefined;
@@ -115,10 +116,11 @@ export function ServiciosProfileView({
     if (!heroEngagementActive) return undefined;
     return (
       <div className="flex flex-wrap items-center gap-2" data-servicios-hero-engagement="1">
+        {/* Owner QA 914 — ad-local chrome (Like / Share) follows the effective content language. */}
         <ServiciosLikeEngagementCluster
           listingId={lxListingId}
           ownerUserId={lxOwner}
-          lang={lang}
+          lang={displayLang}
           publicLikeCount={likeCueN}
           persistEngagement={persistListingEngagement}
           variant="small"
@@ -131,7 +133,7 @@ export function ServiciosProfileView({
           ownerUserId={lxOwner}
           listingTitle={profile.identity.businessName}
           variant="small"
-          lang={lang}
+          lang={displayLang}
           category="servicios"
           persistEngagement={persistListingEngagement}
           recordShareEvent={
@@ -144,7 +146,7 @@ export function ServiciosProfileView({
   }, [
     globalListing,
     heroEngagementActive,
-    lang,
+    displayLang,
     likeCueN,
     listingShareUrl,
     lxListingId,
@@ -185,7 +187,7 @@ export function ServiciosProfileView({
           {hasHeroIdentityResolved(profile) ? (
             <ServiciosProfessionalHero
               profile={displayProfile}
-              lang={lang}
+              lang={displayLang}
               template="standard_service"
               contactScrollTargetId="servicios-trade-contact"
               listingSlug={analyticsListingSlug}
@@ -202,13 +204,17 @@ export function ServiciosProfileView({
                 {translateControl ? <div>{translateControl}</div> : null}
 
                 {hasAboutSectionResolved(profile) ? (
-                  <ServiciosAbout profile={displayProfile} lang={lang} premiumLeonixTone />
+                  <ServiciosAbout profile={displayProfile} lang={displayLang} premiumLeonixTone />
                 ) : null}
 
                 <div id="servicios-trade-contact">
+                  {/* Owner QA 914 — the FULL contact hub (headings, action labels, hours chrome,
+                      "Get directions") is ad-local and follows the effective content language;
+                      every contact literal (phones, email, URLs, address, service areas) is never
+                      touched — those come straight from displayProfile, untranslated by design. */}
                   <ServiciosBusinessHubContactCard
-                    profile={profile}
-                    lang={lang}
+                    profile={displayProfile}
+                    lang={displayLang}
                     listingTemplate="standard_service"
                     listingSlug={analyticsListingSlug}
                     listingSourceId={listingSourceId}
@@ -224,12 +230,12 @@ export function ServiciosProfileView({
                   />
                 </div>
 
-                <ServiciosVisualProofRow profile={displayProfile} lang={lang} />
+                <ServiciosVisualProofRow profile={displayProfile} lang={displayLang} />
 
                 {hasCouponBlock(displayProfile) ? (
                   <ServiciosCouponsCard
                     coupons={displayProfile.coupons}
-                    lang={lang}
+                    lang={displayLang}
                     couponFlyer={displayProfile.couponFlyer}
                     couponMoreOffers={displayProfile.couponMoreOffers}
                     featuredRow
@@ -239,7 +245,7 @@ export function ServiciosProfileView({
                 {hasGallerySectionResolved(displayProfile) ? (
                   <ServiciosGalleryWithTabs
                     profile={displayProfile}
-                    lang={lang}
+                    lang={displayLang}
                     listingSlug={analyticsListingSlug}
                     listingSourceId={listingSourceId}
                     listingShareUrl={listingShareUrl}
@@ -250,7 +256,7 @@ export function ServiciosProfileView({
                 {hasServicesSectionResolved(profile) ? (
                   <ServiciosOfferedSection
                     services={displayProfile.services}
-                    lang={lang}
+                    lang={displayLang}
                     profileForQuote={profile}
                     listingSlug={analyticsListingSlug}
                     listingSourceId={listingSourceId}
@@ -259,16 +265,32 @@ export function ServiciosProfileView({
                   />
                 ) : null}
 
-                <ServiciosPublicDetailsCanvas profile={profile} displayProfile={displayProfile} lang={lang} />
+                {/* Owner QA 914 — section headings/helper text/group titles now follow the effective
+                    content language too (`lang` below IS the effective language); `contentLang`
+                    stays explicit for the catalog item lookups these components already had. */}
+                <ServiciosPublicDetailsCanvas profile={profile} displayProfile={displayProfile} lang={displayLang} contentLang={displayLang} />
 
-                <ServiciosGroupedHowSection profile={profile} lang={lang} />
+                <ServiciosGroupedHowSection profile={profile} displayProfile={displayProfile} lang={displayLang} contentLang={displayLang} />
 
-                <ServiciosPagosBeneficiosSection profile={profile} displayProfile={displayProfile} lang={lang} />
+                <ServiciosPagosBeneficiosSection profile={profile} displayProfile={displayProfile} lang={displayLang} contentLang={displayLang} />
+
+                {heroEngagementActive ? (
+                  <ServiciosEndOfContentShare
+                    lang={displayLang}
+                    listingId={lxListingId}
+                    listingTitle={profile.identity.businessName}
+                    listingShareUrl={listingShareUrl}
+                    ownerUserId={lxOwner}
+                    listingSourceId={sourceId}
+                    listingSlug={analyticsListingSlug}
+                    persistEngagement={persistListingEngagement}
+                  />
+                ) : null}
 
                 <div className="lg:hidden">
                   <ServiciosPromocionesCard
                     profile={displayProfile}
-                    lang={lang}
+                    lang={displayLang}
                     premiumLeonixTone
                     listingSlug={analyticsListingSlug}
                     listingSourceId={listingSourceId}
@@ -278,13 +300,15 @@ export function ServiciosProfileView({
                 </div>
 
                 {analyticsListingSlug && showPublicLeadInquiryForm ? (
-                  <ServiciosLeadInquiryForm listingSlug={analyticsListingSlug} lang={lang} />
+                  <ServiciosLeadInquiryForm listingSlug={analyticsListingSlug} lang={displayLang} />
                 ) : null}
 
-                <ServiciosReviews profile={profile} lang={lang} />
+                {/* Reviews stay LITERAL_PRESERVE (customer quotes never translate); chrome (heading,
+                    labels) follows the content language like every other ad-local section. */}
+                <ServiciosReviews profile={profile} lang={displayLang} />
 
                 {!profile.contact.hours?.weeklyRows ? (
-                  <ServiciosHours profile={profile} lang={lang} />
+                  <ServiciosHours profile={profile} lang={displayLang} />
                 ) : null}
               </div>
 
@@ -293,7 +317,7 @@ export function ServiciosProfileView({
               >
                 <ServiciosPromocionesCard
                   profile={displayProfile}
-                  lang={lang}
+                  lang={displayLang}
                   premiumLeonixTone
                   listingSlug={analyticsListingSlug}
                   listingSourceId={listingSourceId}

@@ -7,6 +7,7 @@ import {
   normalizeComidaLocalImageFromStorage,
   normalizeComidaLocalImageListFromStorage,
 } from "./comidaLocalImageNormalize";
+import { normalizeComidaLocalLocationUpdatedAt } from "./comidaLocalTemporaryLocation";
 import type {
   ComidaLocalAdditionalWebsite,
   ComidaLocalBusinessType,
@@ -293,6 +294,12 @@ export function mergeComidaLocalDraftFromStorage(parsed: unknown): ComidaLocalDr
     tiktokUrl: safeString(parsed.tiktokUrl, 512),
     locationNote: safeString(parsed.locationNote, 300),
     locationUrl: safeString(parsed.locationUrl, 512),
+    // Gate COMIDA-LOCAL-1 — this merge is an ALLOWLIST rebuild that also runs as
+    // `sanitizeComidaLocalDraftForStorage` on every autosave, so a field missing from it is
+    // silently wiped. Carrying the Find Me Today stamp through here is what lets an edit
+    // session (and a published-row hydration) preserve a stamp the owner did not change.
+    // Anything unparseable normalizes to "" -> the public surface fails closed.
+    locationUpdatedAt: normalizeComidaLocalLocationUpdatedAt(parsed.locationUpdatedAt),
     mobileOrderLinkUrl: safeString(parsed.mobileOrderLinkUrl, 512),
     eventScheduleNote: safeString(parsed.eventScheduleNote, 160),
     cateringServiceRadiusNote: safeString(parsed.cateringServiceRadiusNote, 160),

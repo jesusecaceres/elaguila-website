@@ -833,6 +833,26 @@ export function resolveRouteLang(queryLang: string | null | undefined): Supporte
   return DEFAULT_LANG;
 }
 
+/**
+ * Same URL-lang resolution as `resolveRouteLang`, but never reads the client-only stored
+ * preference (cookie/localStorage). Use this for the render pass that must match SSR (initial
+ * render / `useState` initializer); resolve the storage-aware value separately inside a
+ * `useEffect` and apply it post-mount. Calling `resolveRouteLang` directly in a component's
+ * render body is unsafe whenever the URL has no `?lang=` — the server always sees no storage
+ * (returns the default) while a returning client's first render already sees the real
+ * `window`/`document`, so a visitor with a stored preference gets a different value on their very
+ * first client render than the server sent, producing a genuine hydration mismatch (React error
+ * #418). See `useRentasLandingLang.ts`'s identical fix (there called "F4") for the paired-effect
+ * pattern this is meant to support elsewhere.
+ */
+export function resolveRouteLangSsrSafe(queryLang: string | null | undefined): SupportedLang {
+  const raw = (queryLang ?? "").trim();
+  if (!raw) return DEFAULT_LANG;
+  const fromUrl = readUrlLang(raw);
+  if (fromUrl) return fromUrl;
+  return normalizeLang(raw);
+}
+
 export function isPublicLangPersistenceExcludedPath(pathname: string): boolean {
   return (
     pathname.startsWith("/admin") ||

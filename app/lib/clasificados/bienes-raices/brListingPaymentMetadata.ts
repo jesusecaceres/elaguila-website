@@ -6,6 +6,8 @@ export type BrListingPaymentMeta = {
   stripe_payment_intent_id?: string | null;
   lane?: "negocio" | "privado";
   paid_at?: string | null;
+  /** Gate 20 — set only on a successful fixed-term renewal, never on original activation. */
+  renewed_at?: string | null;
 };
 
 export function readBrListingPaymentMeta(listingJson: unknown): BrListingPaymentMeta {

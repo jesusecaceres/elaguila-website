@@ -26,6 +26,13 @@ import { useAdminLang, useAdminT } from "@/app/admin/_components/AdminI18nProvid
 import { ClassifiedAdminQueueRowActionsPanel } from "./_components/ClassifiedAdminQueueRowActionsPanel";
 import { ClassifiedAdminQueueBulkBar } from "./_components/ClassifiedAdminQueueBulkBar";
 import { AdminListingMonetizationSummary } from "./_components/AdminListingMonetizationSummary";
+import {
+  BIENES_FSBO_LIFECYCLE_CATEGORY,
+  BIENES_FSBO_LIFECYCLE_PACKAGE_KEY,
+  BIENES_FSBO_LISTING_LIFECYCLE_CONFIG,
+  isBrFsboRow,
+} from "@/app/lib/listingLifecycle/bienesFsboLifecycle";
+import { resolveListingLifecycle } from "@/app/lib/listingLifecycle/resolveListingLifecycle";
 import { AdminListingFlagTruthBlock } from "./_components/AdminListingFlagTruthBlock";
 import type { ListingFlagReportContext } from "@/app/admin/_lib/adminReviewFlagContext";
 import type { ListingModerationReviewSummary } from "@/app/admin/_lib/listingModerationReviewTypes";
@@ -53,6 +60,14 @@ type Row = {
   br_inventory_group_id?: string | null;
   br_inventory_parent_listing_id?: string | null;
   inventory_role?: string | null;
+  /**
+   * Gate BIENES-PRIVADO-2 — both columns were ALREADY selected by
+   * `fetchListingsForAdminWorkspaceFiltered` (see `listingsAdminSelect.ts`'s
+   * `LISTINGS_ADMIN_CORE`); this row type simply never declared them, so no Admin control could
+   * consume them. Declaring them is a read registration, not new data.
+   */
+  seller_type?: string | null;
+  expires_at?: string | null;
 };
 
 export type AdminListingsTableRow = Row;
@@ -120,6 +135,33 @@ function clasificadosLeonixAdminLine(row: Row, detailPairsAvailable: boolean): s
     if (invRole) bits.push(`inv:${invRole}`);
     if (row.br_inventory_group_id) bits.push("inv-group");
     if (row.br_inventory_parent_listing_id) bits.push("inv-parent");
+    // Gate BIENES-PRIVADO-2 — Admin OS Direction A (Book §10): a Bienes Raíces row could not be
+    // told apart by LANE here. `inv:` markers only appear on Negocio rows that actually carry
+    // inventory, so a Negocio parent with none looked identical to a private-seller row, and an
+    // operator had no way to know which commercial model a row belonged to. The lane comes from
+    // the same shared predicate the webhook, the term rule and the renewal gate all use.
+    const fsbo = isBrFsboRow(row);
+    bits.push(fsbo ? "lane:privado" : "lane:negocio");
+    if (fsbo) {
+      // FSBO term state, derived ONLY from this row's own persisted expires_at through the
+      // shared lifecycle reader. It says nothing about payment: `term:none` means the row
+      // carries no term (a legacy row published before the expires_at write existed), NOT that
+      // it is unpaid. Paid/entitlement truth stays with the monetization summary column, which
+      // reads the real entitlement source — payment state is never inferred from listing status.
+      const term = resolveListingLifecycle(
+        {
+          category: BIENES_FSBO_LIFECYCLE_CATEGORY,
+          packageKey: BIENES_FSBO_LIFECYCLE_PACKAGE_KEY,
+          status: row.status,
+          isPublished: row.is_published ?? null,
+          expiresAt: row.expires_at ?? null,
+        },
+        BIENES_FSBO_LISTING_LIFECYCLE_CONFIG,
+      );
+      bits.push(row.expires_at ? `term:${term.lifecycleState}` : "term:none");
+      if (term.daysRemaining != null) bits.push(`d:${term.daysRemaining}`);
+      if (term.isRenewalEligible) bits.push("renew:eligible");
+    }
     return bits.length ? `${base} · ${bits.join(" · ")}` : base;
   }
   return base;

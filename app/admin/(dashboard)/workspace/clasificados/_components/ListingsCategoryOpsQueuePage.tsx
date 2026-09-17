@@ -19,6 +19,12 @@ import AdminListingsTable, { type AdminListingsTableRow } from "../AdminListings
 import { ClasificadosQueueHeader } from "./ClasificadosQueueHeader";
 import { ClasificadosScopeNav } from "./ClasificadosScopeNav";
 import { ClasificadosLiveScopePanel } from "./ClasificadosLiveScopePanel";
+import { BienesNegocioOpsPanel } from "./BienesNegocioOpsPanel";
+import {
+  loadBienesCapacityAuthorityState,
+  loadBienesNegocioParentOps,
+  type AdminBienesNegocioParentOps,
+} from "@/app/admin/_lib/bienesNegocioCommercialOps";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +79,22 @@ export async function ListingsCategoryOpsQueuePage({ categorySlug, searchParams 
   const pageSubtitle =
     scope === "live" ? m("listingsCategoryOps.subLive") : m("listingsCategoryOps.subQueue");
 
+  // Gate BIENES-NEGOCIO-2 — Bienes Negocio is a $399 parent + child-inventory product, so the
+  // Admin ops queue must show capacity, entitlement and payment truth, not just rows. Built only
+  // for this category, only for MAIN parents on the current page, and only from canonical readers.
+  // Bounded to the parents actually listed — this never sweeps the table.
+  let bienesParentOps: AdminBienesNegocioParentOps[] = [];
+  if (configured && categorySlug === "bienes-raices") {
+    const parentRows = rows.filter((r) => (r as { inventory_role?: string | null }).inventory_role === "main").slice(0, 25);
+    if (parentRows.length > 0) {
+      const authority = await loadBienesCapacityAuthorityState();
+      bienesParentOps = [];
+      for (const parentRow of parentRows) {
+        bienesParentOps.push(await loadBienesNegocioParentOps(parentRow, authority));
+      }
+    }
+  }
+
   return (
     <div className="min-w-0 max-w-[1200px] space-y-6 overflow-x-hidden">
       <ClasificadosQueueHeader
@@ -84,6 +106,8 @@ export async function ListingsCategoryOpsQueuePage({ categorySlug, searchParams 
         scopeLabel={scope === "live" ? m("listingsCategoryOps.scopeLive") : m("listingsCategoryOps.scopeQueue")}
         rightSlot={<ClasificadosScopeNav lang={lang} queueHref={queueHref} liveHref={liveHref} active={scope === "live" ? "live" : "queue"} />}
       />
+
+      <BienesNegocioOpsPanel parents={bienesParentOps} />
 
       {scope === "live" ? (
         <ClasificadosLiveScopePanel

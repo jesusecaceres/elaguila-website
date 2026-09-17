@@ -48,7 +48,11 @@ import {
   normalizeZipForBrowse,
 } from "@/app/clasificados/rentas/shared/rentasLocationNormalize";
 import { buildRentasStreetLine, orderedRentasGallerySourcesForPublish } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
-import { buildProposedFinalMediaSet, validateProposedFinalMediaSet } from "@/app/lib/media/listingMediaContract";
+import {
+  buildProposedFinalMediaSet,
+  validateProposedFinalMediaSet,
+  warnDroppedUnpersistableMedia,
+} from "@/app/lib/media/listingMediaContract";
 
 /**
  * Globalization Package B (Gate B6) — shared media contract, additive gate. Deliberately does
@@ -70,7 +74,17 @@ function leonixRealEstateMediaCountError(
 
 /** Draft → core publish params (never conflates with `{ ok: true; listingId }` from persisted publish). */
 export type LeonixBrDraftPublishBuildResult =
-  | { ok: true; params: PublishLeonixRealEstateListingCoreParams }
+  | {
+      ok: true;
+      params: PublishLeonixRealEstateListingCoreParams;
+      /**
+       * Gate RENTAS-NEGOCIO-1 — media URLs the shared media contract could not persist (a
+       * `blob:`/object URL that did not survive to publish). Additive and optional: every
+       * pre-existing caller reads only `ok`/`params` and is unaffected. Present so a caller
+       * that CAN show the owner something does not have to re-derive it.
+       */
+      droppedUnpersistableMedia?: readonly string[];
+    }
   | { ok: false; error: string };
 
 function digitsOnly(raw: string): string {
@@ -222,6 +236,28 @@ export function buildPublishParamsFromBienesRaicesPrivadoDraft(
   const contact = privadoSellerContact(state.seller);
   const zipPriv = zipFromBrPrivadoDraft(state);
 
+  /**
+   * Gate BIENES-PRIVADO-1 — adopt the shared media-drop warning.
+   *
+   * The two sibling lanes in this same file (Rentas Privado above, BR Negocio below) already run
+   * their gallery through `buildProposedFinalMediaSet`, whose `droppedUnpersistable` list names
+   * every `blob:`/object-URL entry that cannot survive a page reload. FSBO passed its gallery
+   * straight through, so when a seller's photo silently failed to become a durable URL the
+   * listing simply published with fewer photos than they selected and nothing recorded it.
+   *
+   * This is observability, not a new gate: the ordered gallery handed to the core publish path
+   * is byte-for-byte the same list as before, so no publish that used to succeed can now fail.
+   * `warnDroppedUnpersistableMedia` no-ops when nothing was dropped.
+   */
+  const brPrivadoOrderedGallery = orderedRentasGallerySourcesForPublish(
+    state.media.photoDataUrls,
+    state.media.primaryImageIndex,
+  );
+  warnDroppedUnpersistableMedia(
+    "bienes-raices privado publish",
+    buildProposedFinalMediaSet({ existing: brPrivadoOrderedGallery }),
+  );
+
   return {
     ok: true,
     params: {
@@ -241,7 +277,7 @@ export function buildPublishParamsFromBienesRaicesPrivadoDraft(
       // pattern already used for Rentas Privado below), so the published detail page and
       // results card — which both assume "first image = cover" — actually show the cover the
       // seller picked in preview, instead of always reverting to raw upload order.
-      imageSources: orderedRentasGallerySourcesForPublish(state.media.photoDataUrls, state.media.primaryImageIndex),
+      imageSources: brPrivadoOrderedGallery,
       // Gate I.5.4A.1 — durable seller photo: a `data:` value is uploaded to hosted storage and
       // patched into `detailPairs` by the core publish function; an already-hosted URL was
       // already embedded above by `buildDetailPairsFromBienesRaicesPrivadoPreviewVm`.
@@ -283,11 +319,12 @@ export async function publishLeonixListingFromRentasPrivadoDraft(
 ): Promise<PublishLeonixRealEstateListingCoreResult> {
   const built = buildRentasPrivadoListingParams(state, lang, mux);
   if (!built.ok) return built;
-  return publishLeonixRealEstateListingCore({
+  const published = await publishLeonixRealEstateListingCore({
     ...built.params,
     activationMode: opts?.activationMode,
     rentasPaymentLane: "privado",
   });
+  return withRentasDroppedMediaWarning(published, built.droppedUnpersistableMedia, lang);
 }
 
 export function buildRentasPrivadoListingParams(
@@ -306,10 +343,18 @@ export function buildRentasPrivadoListingParams(
     };
   }
   // Gate B6 — additive max-count re-certification (MAX_PHOTOS = 8, rentasPrivadoFormState.ts:163).
-  const rentasPrivadoMedia = validateProposedFinalMediaSet(
-    buildProposedFinalMediaSet({ existing: orderedGallery }),
-    { minImages: 0, maxImages: 8, logoAllowed: false, maxExternalVideos: 0 },
-  );
+  // Gate RENTAS-NEGOCIO-1 — adopt the shared media-drop warning. `droppedUnpersistable` was
+  // already computed by this engine on every call and then discarded, so a photo that failed to
+  // become a durable URL simply vanished from the published listing with nothing recorded.
+  // Observability only: the gallery handed downstream is byte-for-byte the same list.
+  const rentasPrivadoProposedMedia = buildProposedFinalMediaSet({ existing: orderedGallery });
+  warnDroppedUnpersistableMedia("rentas privado publish", rentasPrivadoProposedMedia);
+  const rentasPrivadoMedia = validateProposedFinalMediaSet(rentasPrivadoProposedMedia, {
+    minImages: 0,
+    maxImages: 8,
+    logoAllowed: false,
+    maxExternalVideos: 0,
+  });
   if (!rentasPrivadoMedia.ok) {
     return { ok: false, error: leonixRealEstateMediaCountError(orderedGallery.length, 8, lang) };
   }
@@ -332,6 +377,7 @@ export function buildRentasPrivadoListingParams(
   const muxPid = mux?.muxPlaybackId?.trim() ?? "";
   return {
     ok: true,
+    droppedUnpersistableMedia: rentasPrivadoProposedMedia.droppedUnpersistable,
     params: {
     title: state.titulo,
     description: state.descripcion,
@@ -483,6 +529,28 @@ export async function publishLeonixListingFromAgenteResidencialDraft(
   return built;
 }
 
+/**
+ * Gate RENTAS-NEGOCIO-1 — turns a silent media drop into a concise owner-facing warning.
+ *
+ * Reuses `PublishLeonixRealEstateListingCoreResult.warnings`, the channel the core publish path
+ * already returns and the Rentas previews already receive — no new channel, no new engine, and
+ * no blocking behavior: publishing and payment proceed exactly as before. Says what was lost
+ * and what to do about it, never a raw URL.
+ */
+function withRentasDroppedMediaWarning(
+  result: PublishLeonixRealEstateListingCoreResult,
+  dropped: readonly string[] | undefined,
+  lang: "es" | "en",
+): PublishLeonixRealEstateListingCoreResult {
+  if (!result.ok || !dropped?.length) return result;
+  const n = dropped.length;
+  const message =
+    lang === "en"
+      ? `${n} photo(s) could not be saved and are not on your listing. Open "Back to edit", add them again, and save.`
+      : `${n} foto(s) no se pudieron guardar y no están en tu anuncio. Abre «Volver a editar», agrégalas de nuevo y guarda.`;
+  return { ...result, warnings: [...result.warnings, message] };
+}
+
 export async function publishLeonixListingFromRentasNegocioDraft(
   state: RentasNegocioFormState,
   lang: "es" | "en",
@@ -491,11 +559,12 @@ export async function publishLeonixListingFromRentasNegocioDraft(
 ): Promise<PublishLeonixRealEstateListingCoreResult> {
   const built = buildRentasNegocioListingParams(state, lang, mux);
   if (!built.ok) return built;
-  return publishLeonixRealEstateListingCore({
+  const published = await publishLeonixRealEstateListingCore({
     ...built.params,
     activationMode: opts?.activationMode,
     rentasPaymentLane: "negocio",
   });
+  return withRentasDroppedMediaWarning(published, built.droppedUnpersistableMedia, lang);
 }
 
 export function buildRentasNegocioListingParams(
@@ -514,10 +583,15 @@ export function buildRentasNegocioListingParams(
     };
   }
   // Gate B6 — additive max-count re-certification (mirrors rentas_privado's registry cap).
-  const rentasNegocioMedia = validateProposedFinalMediaSet(
-    buildProposedFinalMediaSet({ existing: orderedGallery }),
-    { minImages: 0, maxImages: 8, logoAllowed: false, maxExternalVideos: 0 },
-  );
+  // Gate RENTAS-NEGOCIO-1 — same shared media-drop warning as the Privado boundary above.
+  const rentasNegocioProposedMedia = buildProposedFinalMediaSet({ existing: orderedGallery });
+  warnDroppedUnpersistableMedia("rentas negocio publish", rentasNegocioProposedMedia);
+  const rentasNegocioMedia = validateProposedFinalMediaSet(rentasNegocioProposedMedia, {
+    minImages: 0,
+    maxImages: 8,
+    logoAllowed: false,
+    maxExternalVideos: 0,
+  });
   if (!rentasNegocioMedia.ok) {
     return { ok: false, error: leonixRealEstateMediaCountError(orderedGallery.length, 8, lang) };
   }
@@ -549,6 +623,7 @@ export function buildRentasNegocioListingParams(
   const muxPid = mux?.muxPlaybackId?.trim() ?? "";
   return {
     ok: true,
+    droppedUnpersistableMedia: rentasNegocioProposedMedia.droppedUnpersistable,
     params: {
     title: state.titulo,
     description: state.descripcion,

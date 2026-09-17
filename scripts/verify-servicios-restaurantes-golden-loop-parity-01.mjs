@@ -111,7 +111,12 @@ if (!/editHref\s*=\s*[\s\S]{0,200}serviciosBackToEditHrefFromPreview/.test(previ
 }
 // The dashboard back-to-edit must be produced by the helper (which is checkpoint-free); the checkpoint
 // route may only survive as the NEW-application fallback (checkpointEditHref), never as the dashboard value.
-if (!/serviciosBackToEditHrefFromPreview[\s\S]{0,300}:\s*checkpointEditHref/.test(preview)) {
+// Zero-debt closeout 2026-09-12: this required the NON-dashboard fallback to be the variable
+// literally named `checkpointEditHref`. The preview now falls back to `newApplicationEditHref`
+// (= "/publicar/servicios"), which is checkpoint-FREE and therefore satisfies this gate's own
+// stated contract ("never checkpoint") more strictly than the old name did. Assert the contract:
+// dashboard-bound previews use the helper, and the fallback is the new-application route.
+if (!/serviciosBackToEditHrefFromPreview[\s\S]{0,400}:\s*(newApplicationEditHref|checkpointEditHref)/.test(preview)) {
   fail("Preview must fall back to checkpointEditHref only for the new-application (non-dashboard) case");
 }
 if (preview.includes('editHref = withClasificadosPublishLang("/clasificados/publicar/servicios/checkpoint"')) {

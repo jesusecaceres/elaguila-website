@@ -47,4 +47,12 @@ export type ComidaLocalNormalizedPublishDraft = {
   packageTier: ComidaLocalPackageTierDb;
   lang: "es" | "en";
   activationMode?: "pending_payment";
+  /**
+   * Gate COMIDA-LOCAL-1 — URLs the shared media contract had to drop as unpersistable
+   * (blob:/data:/malformed) while building the final media set. The engine has always returned
+   * these; before this gate Comida Local computed and discarded them, so an owner whose gallery
+   * silently shrank was never told. Surfaced here so the route can warn server-side AND return
+   * them to the client, exactly as Servicios and Restaurantes do.
+   */
+  droppedUnpersistableMedia: string[];
 };

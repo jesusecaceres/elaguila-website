@@ -19,17 +19,19 @@ import {
   normalizeChildInventoryDraft,
   type BrNegocioAdditionalInventoryPropertyDraft,
 } from "../../../application/brNegocioAdditionalInventoryDraft";
-import {
-  createEmptyAgenteIndividualResidencialState,
-  type AgenteIndividualResidencialFormState,
-} from "../../schema/agenteIndividualResidencialFormState";
+import type { AgenteIndividualResidencialFormState } from "../../schema/agenteIndividualResidencialFormState";
+import { parseBienesAgenteResidencialPublishedState } from "./parseBienesAgenteResidencialPublishedState";
 
 const OWNER_LISTING_SELECT =
   // Package A closure — `updated_at` added so callers can anchor the local edit workspace to
   // the row version it was hydrated from (draftWorkspaceContract Rule 3). The select-shrink
   // wrapper drops it gracefully on older DBs (sourceUpdatedAt then resolves null → the
   // contract degrades to today's local-wins behavior).
-  "id, owner_id, title, description, city, price, images, detail_pairs, listing_json, contact_json, seller_type, business_name, business_meta, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role, leonix_ad_id, status, is_published, updated_at";
+  // Gate BIENES-NEGOCIO-1 — `contact_phone`, `contact_email` and `zip` added so the shared
+  // published-row parser's fallback chains resolve for older listings whose `business_meta` is
+  // thin. Without them the parser would legitimately read empty and the save would null the very
+  // columns this gate exists to protect. (Same addition the sealed `733408dd` made.)
+  "id, owner_id, title, description, city, price, zip, images, detail_pairs, listing_json, contact_json, contact_phone, contact_email, seller_type, business_name, business_meta, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role, leonix_ad_id, status, is_published, updated_at";
 
 export type BienesDashboardHydrationResult =
   | { ok: true; state: AgenteIndividualResidencialFormState; sourceUpdatedAt: string | null }
@@ -101,19 +103,68 @@ function mapChildListingRowToDraft(row: {
   });
 }
 
+/**
+ * Gate BIENES-NEGOCIO-1 (P0) — this mapper used to be a SECOND, much thinner reimplementation of
+ * "read a published row back into form state". It restored 9 things out of ~150 form fields and
+ * left every other field at its EMPTY-DRAFT default, which made an ordinary owner edit destructive:
+ * `buildEditablePatch` writes `business_name` and `business_meta` unconditionally, and with an
+ * empty identity block `negocioContactAndBusinessName` falls through to
+ * `businessName: titulo, phone: null, email: null` — so saving replaced the brokerage/office/team
+ * name with the property title and NULLED `contact_phone` and `contact_email` on the published row.
+ * Address, HOA/community/pet/rental/parking rules, highlights, agent licence and every phone were
+ * likewise emptied.
+ *
+ * It now delegates to `parseBienesAgenteResidencialPublishedState` — the SAME parser the public
+ * detail shell uses — and merges only the fields that are genuinely Bienes-inventory-specific
+ * (child properties + pack confirmation) on top. This is the sealed `733408dd` architecture applied
+ * to this branch's own runtime; see that module's header for the deltas that were deliberately not
+ * ported.
+ */
 export function bienesPublishedRowToAgenteApplicationDraft(input: {
   row: Record<string, unknown>;
   childRows?: readonly Record<string, unknown>[];
 }): AgenteIndividualResidencialFormState {
   const row = input.row;
-  const contract = parseLeonixListingContract(row.detail_pairs);
-  const base = createEmptyAgenteIndividualResidencialState();
-  const photos = durableHttpUrls(row.images);
   const priceNum = Number(row.price);
-  const categoria =
-    contract.categoriaPropiedad === "comercial" || contract.categoriaPropiedad === "terreno_lote"
-      ? contract.categoriaPropiedad
-      : "residencial";
+  const photos = durableHttpUrls(row.images);
+
+  // The shared parser speaks the public shell's row shape; adapt this DB row to it without
+  // reinterpreting anything. `price` is a number column here and a formatted label there — the
+  // parser's `numberString()` reads either.
+  const shared = parseBienesAgenteResidencialPublishedState({
+    listing: {
+      id: trim(row.id),
+      title: { es: trim(row.title), en: trim(row.title) },
+      priceLabel: {
+        es: Number.isFinite(priceNum) && priceNum > 0 ? String(Math.round(priceNum)) : "",
+        en: Number.isFinite(priceNum) && priceNum > 0 ? String(Math.round(priceNum)) : "",
+      },
+      city: trim(row.city),
+      blurb: { es: trim(row.description), en: trim(row.description) },
+      images: photos,
+      business_name: trim(row.business_name) || null,
+      business_meta: typeof row.business_meta === "string" ? row.business_meta : (row.business_meta as string | null) ?? null,
+      contact_phone: trim(row.contact_phone) || null,
+      contact_email: trim(row.contact_email) || null,
+      detailPairs: row.detail_pairs,
+      owner_id: trim(row.owner_id) || null,
+      leonix_ad_id: trim(row.leonix_ad_id) || null,
+      br_inventory_group_id: trim(row.br_inventory_group_id) || null,
+      br_inventory_parent_listing_id: trim(row.br_inventory_parent_listing_id) || null,
+      inventory_role: trim(row.inventory_role) || null,
+      zip: trim(row.zip) || null,
+    },
+    // The parent IS this row for a `main` listing; the parser's parentIdentity fallback chain
+    // then resolves business identity from the row's own columns when `business_meta` is thin.
+    parentIdentity: {
+      id: trim(row.id),
+      business_name: trim(row.business_name) || null,
+      business_meta: typeof row.business_meta === "string" ? row.business_meta : (row.business_meta as string | null) ?? null,
+      contact_phone: trim(row.contact_phone) || null,
+      contact_email: trim(row.contact_email) || null,
+    },
+    lang: "es",
+  });
 
   // Globalization Package B (Gate B4) — the hard-coded `.slice(0, 4)` hydration cap is GONE:
   // every owned child row hydrates into the editor. Visibility ≠ activation: how many
@@ -127,20 +178,10 @@ export function bienesPublishedRowToAgenteApplicationDraft(input: {
   const packEnabled = children.length > 0;
 
   return {
-    ...base,
-    categoriaPropiedad: categoria,
-    titulo: trim(row.title),
-    descripcionPrincipal: stripLeonixPublishedDescriptionBody(trim(row.description)),
-    precio: Number.isFinite(priceNum) && priceNum > 0 ? String(Math.round(priceNum)) : "",
-    ciudad: trim(row.city),
-    fotosDataUrls: photos,
-    fotoPortadaIndex: 0,
+    ...shared,
+    // Bienes-inventory-specific truth the shared parser has no concept of.
     inventoryPackAccepted: false,
     additionalInventoryProperties: children,
-    confirmListingAccurate: true,
-    confirmPhotosRepresentItem: photos.length > 0,
-    confirmCommunityRules: true,
-    confirmPaymentAfterPreview: true,
     confirmInventoryPackPricing: packEnabled,
   };
 }

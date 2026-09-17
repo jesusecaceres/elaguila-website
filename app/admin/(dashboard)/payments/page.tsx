@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
+import { ADMIN_DASHBOARD_ROUTES } from "../../_lib/adminDashboardRoutes";
 import {
   adminCardBase,
   adminBtnSecondary,
@@ -105,7 +106,20 @@ export default async function AdminPaymentsPage() {
         )}
         <span className={adminStubBadgeClass}>{m("paymentsPage.badgePsp")}</span>
       </div>
-      <AdminPageHeader title="Payments" subtitle={m("paymentsPage.subtitle")} helperText={m("paymentsPage.helperText")} />
+      <AdminPageHeader title="Payments (Tienda orders)" subtitle={m("paymentsPage.subtitle")} helperText={m("paymentsPage.helperText")} />
+
+      {/* GATE 4 — this legacy page is unlinked from global nav (see adminGlobalNav.ts's
+          "nav.payments" comment) precisely because its title collided with the real Revenue
+          payment tracker while showing Tienda-order fulfillment status instead of actual
+          leonix_payment_records data. Kept live as a compatibility route (old bookmarks/links),
+          but anyone who lands here directly should be pointed at the real tracker immediately. */}
+      <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950">
+        <strong>Looking for real payment/revenue records?</strong> This page only shows Tienda
+        order fulfillment status, not Stripe/leonix_payment_records data.{" "}
+        <Link href={ADMIN_DASHBOARD_ROUTES.paymentTracker} className="font-bold underline">
+          Open the Payment Tracker →
+        </Link>
+      </div>
 
       <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950">
         {m("paymentsPage.pciBanner")}

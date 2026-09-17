@@ -244,6 +244,22 @@ export type ServiciosContactBlock = {
   physicalRegion?: string;
   physicalCountry?: string;
   physicalPostalCode?: string;
+  /** Gate G23 — set only by the shared BusinessAddressVerifiedInput picker (app/components/forms/
+   * BusinessAddressVerifiedInput.tsx). Absent on any listing published before this field existed —
+   * never inferred/backfilled. "manual" for hand-typed text; "user_confirmed" only when the owner
+   * explicitly picked a real provider suggestion; never "verified" from this UI layer. */
+  physicalVerificationStatus?: "unverified" | "manual" | "user_confirmed" | "provider_suggested" | "verified";
+  physicalProvider?: string | null;
+  physicalProviderPlaceId?: string | null;
+  /**
+   * Owner's explicit choice to reveal the exact physical address publicly (and allow a
+   * "get directions" CTA to it). Absent on any listing published before this field existed —
+   * treated as `true` at read time (see `resolveServiciosProfile.ts`) so no existing listing's
+   * already-public address is silently hidden by this addition; going forward the owner can
+   * explicitly turn it off. Mirrors the shared privacy contract in
+   * `app/lib/businessAddress/businessAddressPrivacy.ts`.
+   */
+  showExactAddress?: boolean;
 };
 
 export type ServiciosAboutBlock = {
@@ -408,6 +424,14 @@ export type ServiciosProfileResolved = {
     /** Formatted for display; omitted when no physical address provided */
     physicalAddressDisplay?: string;
     /** https://www.google.com/maps/search/... built in resolver */
+    /**
+     * Gate SERVICIOS-3 (D-1) — the business's own IANA timezone, resolved ONCE in
+     * `resolveServiciosProfile` from the persisted location and carried here so the public badge
+     * and the results open-now filter read the SAME answer. `undefined` means it could not be
+     * determined; consumers must then decline to claim open/closed rather than fall back to the
+     * runtime host clock, which is UTC on the server and the viewer's zone in the browser.
+     */
+    businessTimeZone?: string;
     mapsSearchHref?: string;
   };
   quickFacts: ServiciosQuickFact[];

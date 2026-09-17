@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
-import AdminReportsTable from "./AdminReportsTable";
+import AdminReportsTable, { type ReportListingContext } from "./AdminReportsTable";
 import { AdminPageHeader } from "../../_components/AdminPageHeader";
 import { AdminPagePurposeCard } from "../../_components/AdminPagePurposeCard";
 import { adminCardBase, adminInputClass, adminBtnSecondary } from "../../_components/adminTheme";
 import { adminMessages, getAdminLang } from "../../_lib/adminI18n";
+import { fetchListingFlagContextMaps } from "../../_lib/adminReviewFlagContext";
 
 export const dynamic = "force-dynamic";
 
@@ -70,10 +71,66 @@ export default async function AdminReportesPage(props: PageProps) {
   const { data: reports, error } = await query;
 
   const list = (reports ?? []) as ReportRow[];
-  const pending = list.filter((r) => r.status === "pending").length;
-  const reviewed = list.filter((r) => r.status === "reviewed").length;
-  const dismissed = list.filter((r) => r.status === "dismissed").length;
+  // These stat cards must reflect the whole table, not the 200-row page fetched above for the
+  // table view — otherwise they silently undercount past the first 200 reports. When a search
+  // filter is active, the underlying `list` IS the intended scope (matches the "filtered" note
+  // already shown), so keep deriving from it there.
+  let pending: number;
+  let reviewed: number;
+  let dismissed: number;
+  if (qRaw) {
+    pending = list.filter((r) => r.status === "pending").length;
+    reviewed = list.filter((r) => r.status === "reviewed").length;
+    dismissed = list.filter((r) => r.status === "dismissed").length;
+  } else {
+    try {
+      const [p, rv, d] = await Promise.all([
+        supabase.from("listing_reports").select("id", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("listing_reports").select("id", { count: "exact", head: true }).eq("status", "reviewed"),
+        supabase.from("listing_reports").select("id", { count: "exact", head: true }).eq("status", "dismissed"),
+      ]);
+      if (p.error || rv.error || d.error) throw p.error ?? rv.error ?? d.error;
+      pending = typeof p.count === "number" ? p.count : 0;
+      reviewed = typeof rv.count === "number" ? rv.count : 0;
+      dismissed = typeof d.count === "number" ? d.count : 0;
+    } catch {
+      // Fall back to the capped page's counts rather than showing nothing — still better than
+      // an error, and no worse than this page's behavior before this fix.
+      pending = list.filter((r) => r.status === "pending").length;
+      reviewed = list.filter((r) => r.status === "reviewed").length;
+      dismissed = list.filter((r) => r.status === "dismissed").length;
+    }
+  }
   const highlightId = resolveHighlightReportId(qRaw, list);
+
+  // Gate 4 (RPT-002) — the page's own AdminPagePurposeCard already discloses this table shows
+  // only Date/Listing/Reporter/Reason/Status/Actions, with no listing preview, no prior-reports
+  // count, and no AI-moderation-result inline, forcing a second tab/page per row just to know
+  // what is being reported. Reuses the same `fetchListingFlagContextMaps` helper the classifieds
+  // queue already uses for the same enrichment — no new query pattern, one bounded lookup for
+  // the listing ids on this page's own (already-limited) result set.
+  const listingIds = [...new Set(list.map((r) => r.listing_id).filter(Boolean))];
+  let listingContextByListingId: Record<string, ReportListingContext> = {};
+  if (listingIds.length > 0) {
+    try {
+      const { data: listingRows } = await supabase
+        .from("listings")
+        .select("id,title,category,status")
+        .in("id", listingIds);
+      const { reportsByListingId, aiReviewByListingId } = await fetchListingFlagContextMaps(supabase, listingIds, []);
+      for (const row of (listingRows ?? []) as { id: string; title: string | null; category: string | null; status: string | null }[]) {
+        listingContextByListingId[row.id] = {
+          title: row.title,
+          category: row.category,
+          listingStatus: row.status,
+          pendingReportCount: reportsByListingId[row.id]?.pendingReportCount ?? 0,
+          aiReview: aiReviewByListingId[row.id] ?? null,
+        };
+      }
+    } catch {
+      listingContextByListingId = {};
+    }
+  }
 
   return (
     <>
@@ -89,7 +146,7 @@ export default async function AdminReportesPage(props: PageProps) {
         dataSource="public.listing_reports joined operationally with listing and owner context from admin tools."
         status="partial"
         safeActions={["Search reports", "Open related listing/user", "Review report rows"]}
-        nextGate="ADMIN-ACTION-QA-AND-LIVE-SCHEMA-PROOF-01"
+        nextGate="Confirm every button and count on this page against live Supabase data before relying on it for daily decisions."
         warningNote="Mark reviewed, clear flag, and resolution workflow need action QA before they are treated as complete."
       />
 
@@ -146,9 +203,12 @@ export default async function AdminReportesPage(props: PageProps) {
       </div>
 
       {error ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error.message}</div>
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          Could not load reports right now. This is a database connection issue, not a data problem — try refreshing
+          the page. If it keeps happening, check System Health.
+        </div>
       ) : (
-        <AdminReportsTable reports={list} highlightReportId={highlightId} />
+        <AdminReportsTable reports={list} highlightReportId={highlightId} listingContextByListingId={listingContextByListingId} />
       )}
 
       <div className="mt-8">

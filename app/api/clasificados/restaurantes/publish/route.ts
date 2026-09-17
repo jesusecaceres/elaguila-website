@@ -20,8 +20,7 @@ import { slugifyRestauranteBusinessName } from "@/app/clasificados/restaurantes/
 import { buildRestaurantePublish422MediaAudit } from "@/app/clasificados/restaurantes/application/restaurantePublishMediaAudit";
 import { allocateNextRestauranteLeonixAdId } from "@/app/clasificados/restaurantes/lib/restaurantesLeonixAdId";
 import { RESTAURANTE_PENDING_CHECKOUT_STATUS } from "@/app/lib/listingPlans/revenueRestaurantFulfillment";
-import { RESTAURANTES_COUPON_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
-import { fetchAddonEntitlementsForListings } from "@/app/lib/listingPlans/addonEntitlementReader";
+import { restauranteCouponsCapabilityActive } from "@/app/clasificados/restaurantes/lib/restauranteCouponCapabilityServer";
 import { resolveRestauranteOwnerEditTargetStatus } from "@/app/lib/clasificados/restaurantes/restauranteOwnerEditStatusAuthority";
 import { coerceRestauranteImageRefToString } from "@/app/clasificados/restaurantes/application/createEmptyRestauranteDraft";
 import {
@@ -30,7 +29,11 @@ import {
   trimRestauranteVideoUrl,
   RESTAURANTE_MAX_EXTERNAL_VIDEO_URLS,
 } from "@/app/lib/clasificados/restaurantes/restauranteVideoUrls";
-import { buildProposedFinalMediaSet, validateProposedFinalMediaSet } from "@/app/lib/media/listingMediaContract";
+import {
+  buildProposedFinalMediaSet,
+  validateProposedFinalMediaSet,
+  warnDroppedUnpersistableMedia,
+} from "@/app/lib/media/listingMediaContract";
 
 /** Gallery cap mirrors MAX_GALLERY in RestaurantePublishMediaStrip.tsx:29 (local, unexported). */
 const RESTAURANTE_GALLERY_MAX = 24;
@@ -282,6 +285,13 @@ export async function POST(req: Request) {
     existing: [...(restauranteHeroUrl ? [restauranteHeroUrl] : []), ...restauranteGalleryUrls],
     externalVideoUrls: collectRestauranteExternalVideoUrls(draft),
   });
+  // Gate RESTAURANTES-1 — this engine has always returned `droppedUnpersistable` so callers can
+  // warn, and this caller never read it: a `blob:`/`data:` image surviving into a draft was
+  // dropped from the saved listing and the owner was still told the save succeeded. Adopts the
+  // shared helper (same pattern applied to Servicios in Gate SERVICIOS-1) for the server log, and
+  // returns the list to the client so the owner-facing surfaces can say so.
+  warnDroppedUnpersistableMedia("restaurantes-publish", restauranteFinalMedia);
+  const restauranteDroppedMedia = [...restauranteFinalMedia.droppedUnpersistable];
   const restauranteMediaValidation = validateProposedFinalMediaSet(restauranteFinalMedia, {
     minImages: 0,
     maxImages: RESTAURANTE_GALLERY_MAX,
@@ -350,20 +360,20 @@ export async function POST(req: Request) {
       : null;
   const existingListingId = (existingByDraft as { id?: string } | null)?.id ?? null;
 
-  // A brand-new listing (no canonical row UUID yet) can never have an entitlement — never
-  // invent one; only an already-existing row can be looked up.
-  let serverVerifiedCouponEntitlement = false;
-  if (existingListingId) {
-    const entitlements = await fetchAddonEntitlementsForListings({
-      category: "restaurantes",
-      packageKey: RESTAURANTES_COUPON_ADDON_PACKAGE_KEY,
-      listingIds: [existingListingId],
-    });
-    serverVerifiedCouponEntitlement = entitlements.get(existingListingId)?.status === "active";
-  }
+  // A brand-new listing (no canonical row UUID yet) can never hold a capability — never invent
+  // one; only an already-existing row can be looked up. `restauranteCouponsCapabilityActive`
+  // fails closed on any lookup problem.
+  //
+  // Gate RESTAURANTES-1 — this used to require a live entitlement row for the RETIRED
+  // `restaurantes_offers_addon` key, which nothing grants from a base payment, so a paid $399
+  // restaurant had its own coupon content stripped here on every publish and republish. Coupons
+  // are INCLUDED in the base package (owner-locked), so the authority is now the included
+  // `coupons_offers` capability resolved from the real base entitlement. Historical $79 add-on
+  // holders still resolve through the plan policy's legacy-add-on branch.
+  const serverVerifiedCouponEntitlement = await restauranteCouponsCapabilityActive(existingListingId);
 
   if (!serverVerifiedCouponEntitlement && draft.couponUpgradeEnabled === true) {
-    console.warn("[restaurantes publish api] coupon activation attempted without server entitlement", {
+    console.warn("[restaurantes publish api] coupon content submitted without an active coupons_offers capability", {
       draftListingId: draft.draftListingId,
       existingListingId,
     });
@@ -564,6 +574,7 @@ export async function POST(req: Request) {
       draftListingId: draft.draftListingId,
       slug: slugOut,
       lang,
+      ...(restauranteDroppedMedia.length ? { droppedUnpersistableMedia: restauranteDroppedMedia } : {}),
     });
   }
 
@@ -574,5 +585,6 @@ export async function POST(req: Request) {
     publicUrl: publicPath,
     resultsUrl,
     dashboardUrl: "/dashboard/restaurantes?lang=" + lang,
+    ...(restauranteDroppedMedia.length ? { droppedUnpersistableMedia: restauranteDroppedMedia } : {}),
   });
 }

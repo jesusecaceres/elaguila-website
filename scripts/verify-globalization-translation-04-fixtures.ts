@@ -42,6 +42,25 @@ function comidaLocalFixtureVm(): ComidaLocalPreviewVm {
     logoImage: null,
     foodTypeChips: [],
     orderLink: null,
+    /**
+     * Gate COMIDA-LOCAL-1 added `temporaryLocation` ("Encuéntrame Hoy") to `ComidaLocalPreviewVm`.
+     * This translation-parity fixture predates it and was never updated.
+     *
+     * This fixture sets no temporary location at all, so the truthful state is `"absent"` — the
+     * union's own value for "the owner has not filled one in". Everything else follows from that
+     * and from the type's own documented invariants: no stamp, so `updatedAtIso` is `""`; nothing
+     * public, so `freshnessLabel` is `""` (the type states it is non-empty ONLY when publicly
+     * visible) and `publiclyVisible` is false; and no owner warning, because there is no expired
+     * location to explain away. Deliberately not `"fresh"` — claiming a live temporary location
+     * this fixture never set would make the translation catalog assert something untrue.
+     */
+    temporaryLocation: {
+      state: "absent",
+      updatedAtIso: "",
+      freshnessLabel: "",
+      ownerWarning: "",
+      publiclyVisible: false,
+    },
     eventScheduleNote: "",
     cateringServiceRadiusNote: "",
     cateringEventInfoNote: "",

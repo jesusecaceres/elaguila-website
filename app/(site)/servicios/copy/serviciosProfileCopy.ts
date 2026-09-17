@@ -52,10 +52,12 @@ export function getServiciosPromocionesSectionCopy(lang: ServiciosLang) {
   if (lang === "en") {
     return {
       sectionTitle: "Special offers",
+      sectionSubtitle: "Offers and benefits available when contacting this business.",
     };
   }
   return {
     sectionTitle: "Ofertas especiales",
+    sectionSubtitle: "Ofertas y beneficios disponibles al contactar este negocio.",
   };
 }
 
@@ -81,6 +83,8 @@ export function getServiciosProfileLabels(lang: ServiciosLang) {
       highlightsSubtitle: "Details that help customers understand how this business works.",
       highlightsSeeAll: "See all highlights",
       highlightsShowLess: "Show less",
+      galleryEyebrow: "Gallery",
+      leonixPromoBadge: "Leonix promotion",
       gallery: "Project gallery",
       galleryAndVideos: "Gallery & Videos",
       exploreGalleryAndVideos: "Explore photos & videos",
@@ -125,10 +129,12 @@ export function getServiciosProfileLabels(lang: ServiciosLang) {
     about: "Sobre nosotros",
     services: "Nuestros servicios",
     servicesSectionSubtitle: "Elige el servicio que necesitas y solicita información directamente.",
-    highlightsTitle: "Highlights del negocio",
+    highlightsTitle: "Lo más destacado del negocio",
     highlightsSubtitle: "Detalles que ayudan a conocer mejor cómo trabaja este negocio.",
     highlightsSeeAll: "Ver todos los destacados",
     highlightsShowLess: "Ver menos",
+    galleryEyebrow: "Galería",
+    leonixPromoBadge: "Promoción Leonix",
     gallery: "Galería de trabajos",
     galleryAndVideos: "Galería y Videos",
     exploreGalleryAndVideos: "Explorar fotos y videos",

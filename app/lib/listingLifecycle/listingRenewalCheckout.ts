@@ -1,12 +1,12 @@
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { REVENUE_CATEGORY_CHECKOUT_ROUTE } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
-import { RENTAS_LISTING_LIFECYCLE_CONFIG } from "./listingLifecycleConfig";
+import { getListingLifecycleConfig, RENTAS_LISTING_LIFECYCLE_CONFIG } from "./listingLifecycleConfig";
 
 export type ListingRenewalCheckoutOperation = "renew_listing";
 
 export async function startListingRenewalCheckout(input: {
-  category: "rentas";
-  packageKey: "rentas_30d";
+  category: "rentas" | "autos" | "bienes-raices";
+  packageKey: "rentas_30d" | "autos_privado_30d" | "br_fsbo_45d";
   listingId: string;
   leonixAdId?: string | null;
   lang: "es" | "en";
@@ -35,7 +35,7 @@ export async function startListingRenewalCheckout(input: {
       packageKey: input.packageKey,
       listingId: input.listingId,
       leonixAdId: input.leonixAdId ?? null,
-      sourceTable: RENTAS_LISTING_LIFECYCLE_CONFIG.sourceTable,
+      sourceTable: getListingLifecycleConfig(input.category, input.packageKey)?.sourceTable ?? RENTAS_LISTING_LIFECYCLE_CONFIG.sourceTable,
       returnContext: "owner_dashboard",
       returnPath: input.returnPath,
       locale: input.lang,

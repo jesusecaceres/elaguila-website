@@ -18,6 +18,7 @@ import {
 import { canCreateCustomers } from "@/app/admin/_lib/staffAdminAccess";
 import { requireLeonixAdminCookie } from "@/app/admin/_lib/leonixAdminGate";
 import { ALL_ADMIN_PERMISSION_KEYS } from "@/app/admin/_lib/teamTypes";
+import { writeRosterAuditLog } from "@/app/admin/_lib/adminRosterAudit";
 
 function str(f: FormData, k: string): string {
   const v = f.get(k);
@@ -71,6 +72,7 @@ export async function createStaffUserWithAuthAction(formData: FormData) {
     temporaryPassword,
     updateExistingPassword,
     creatorRosterRole: access.rosterRole,
+    creatorAuthUserId: access.authUserId,
   });
 
   if (!result.ok) {
@@ -94,6 +96,9 @@ export async function createStaffUserWithAuthAction(formData: FormData) {
       authUserId: result.userId,
     },
   });
+  if (result.rosterMemberId) {
+    await writeRosterAuditLog(result.rosterCreated ? "staff_row_created" : "role_changed", result.rosterMemberId, { role, path: "auth_provisioning" });
+  }
 
   revalidatePath("/admin/team/roster");
   revalidatePath("/admin/team/users/new");

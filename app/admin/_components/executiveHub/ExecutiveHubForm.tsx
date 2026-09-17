@@ -14,24 +14,34 @@ import { describeExecutiveOwnershipHooks } from "./businessHubAdapter";
 import { adminBtnPrimary, adminCardBase, adminCtaChipSecondary, adminInputClass } from "@/app/admin/_components/adminTheme";
 
 type Props = {
-  mode: "create" | "edit";
+  /**
+   * Master Operating Book V2 §0G — "self" is the staff self-service mode: the same editor,
+   * scoped to only the safe personal fields a staff member may change about their own profile.
+   * Owner-only sections/fields are not rendered at all in this mode (not just disabled) — the
+   * real authorization boundary lives server-side in the self-service action, which never reads
+   * these field names from FormData regardless of what a crafted request might include; hiding
+   * them here is a UX courtesy, not the security boundary.
+   */
+  mode: "create" | "edit" | "self";
   initial?: ExecutiveHubRecord | null;
   action: (formData: FormData) => void | Promise<void>;
+  /** Owner-only — active roster members selectable for the "Link to staff account" field. */
+  rosterOptions?: { id: string; displayName: string; email: string }[];
 };
 
 const FIELD_LABEL = "text-xs font-bold uppercase tracking-wide text-[#7A7164]";
 const FIELD_WRAP = "flex flex-col gap-1.5";
 
 const CARD_SECTIONS = [
-  { id: "identity", label: "Identity" },
-  { id: "company", label: "Company" },
-  { id: "contact", label: "Contact" },
-  { id: "social", label: "Social" },
-  { id: "business-hub", label: "Business Hub" },
-  { id: "availability", label: "Availability" },
-  { id: "theme", label: "Theme" },
-  { id: "publishing", label: "Publishing" },
-  { id: "images", label: "Images" },
+  { id: "identity", label: "Identity", ownerOnly: false },
+  { id: "company", label: "Company", ownerOnly: true },
+  { id: "contact", label: "Contact", ownerOnly: false },
+  { id: "social", label: "Social", ownerOnly: false },
+  { id: "business-hub", label: "Business Hub", ownerOnly: true },
+  { id: "availability", label: "Availability", ownerOnly: true },
+  { id: "theme", label: "Theme", ownerOnly: false },
+  { id: "publishing", label: "Publishing", ownerOnly: true },
+  { id: "images", label: "Images", ownerOnly: false },
 ] as const;
 
 function socialUrl(initial: ExecutiveHubRecord | null | undefined, id: string): string {
@@ -72,7 +82,8 @@ function ExecutiveHubFutureHooksDisclosure({ slug }: { slug: string }) {
   );
 }
 
-export function ExecutiveHubForm({ mode, initial, action }: Props) {
+export function ExecutiveHubForm({ mode, initial, action, rosterOptions }: Props) {
+  const isSelf = mode === "self";
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [phoneDisplay, setPhoneDisplay] = useState(initial?.phoneDisplay ?? "");
   const [phoneDigits, setPhoneDigits] = useState(initial?.phoneDigits ?? "");
@@ -94,22 +105,29 @@ export function ExecutiveHubForm({ mode, initial, action }: Props) {
 
   return (
     <form action={action} className="space-y-6">
+      {/* Master Operating Book V2 §0G — no slug hidden field in self mode. The self-service
+          server action resolves the caller's own profile from their authenticated identity and
+          never reads a client-supplied slug/id, so there is nothing to submit here at all. */}
       {mode === "edit" ? <input type="hidden" name="slug" value={initial?.slug ?? ""} /> : null}
       <input type="hidden" name="phoneDisplay" value={phoneDisplay} />
       <input type="hidden" name="phoneDigits" value={phoneDigits} />
       <input type="hidden" name="whatsappDigits" value={whatsappDigits} />
-      <input type="hidden" name="city" value={city} />
       <input type="hidden" name="theme" value={theme} />
-      <input type="hidden" name="status" value={status} />
-      <input type="hidden" name="workingHoursJson" value={JSON.stringify(workingHours)} />
       <input type="hidden" name="photoPath" value={photoPath} />
-      <input type="hidden" name="logoPath" value={logoPath} />
-      <input type="hidden" name="coverPath" value={coverPath} />
-      <input type="hidden" name="businessHubLink" value={businessHubLink} />
-      <input type="hidden" name="connectionHubLink" value={connectionHubLink} />
+      {!isSelf ? (
+        <>
+          <input type="hidden" name="city" value={city} />
+          <input type="hidden" name="status" value={status} />
+          <input type="hidden" name="workingHoursJson" value={JSON.stringify(workingHours)} />
+          <input type="hidden" name="logoPath" value={logoPath} />
+          <input type="hidden" name="coverPath" value={coverPath} />
+          <input type="hidden" name="businessHubLink" value={businessHubLink} />
+          <input type="hidden" name="connectionHubLink" value={connectionHubLink} />
+        </>
+      ) : null}
 
       <nav className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] sm:-mx-0 sm:px-0">
-        {CARD_SECTIONS.map((s) => (
+        {CARD_SECTIONS.filter((s) => !isSelf || !s.ownerOnly).map((s) => (
           <a
             key={s.id}
             href={`#exec-${s.id}`}
@@ -125,7 +143,13 @@ export function ExecutiveHubForm({ mode, initial, action }: Props) {
         <div className="grid gap-4 sm:grid-cols-2">
           <div className={FIELD_WRAP}>
             <label className={FIELD_LABEL} htmlFor="fullName">Full name</label>
-            <input id="fullName" name="fullName" required defaultValue={initial?.fullName ?? ""} className={adminInputClass} />
+            {isSelf ? (
+              <p className="rounded-lg border border-[#E8DFD0] bg-[#FAF7F2] px-4 py-2.5 text-sm text-[#5C5346]" title="Full name is set by an owner — contact an owner_admin to change it.">
+                {initial?.fullName}
+              </p>
+            ) : (
+              <input id="fullName" name="fullName" required defaultValue={initial?.fullName ?? ""} className={adminInputClass} />
+            )}
           </div>
           <div className={FIELD_WRAP}>
             <label className={FIELD_LABEL} htmlFor="preferredName">Preferred name</label>
@@ -157,20 +181,42 @@ export function ExecutiveHubForm({ mode, initial, action }: Props) {
             </div>
           )}
         </div>
-        <div className={FIELD_WRAP}>
-          <label className={FIELD_LABEL} htmlFor="languages">Languages (comma-separated)</label>
-          <input id="languages" name="languages" defaultValue={(initial?.languages ?? []).join(", ")} placeholder="English, Spanish" className={adminInputClass} />
-        </div>
+        {!isSelf ? (
+          <div className={FIELD_WRAP}>
+            <label className={FIELD_LABEL} htmlFor="languages">Languages (comma-separated)</label>
+            <input id="languages" name="languages" defaultValue={(initial?.languages ?? []).join(", ")} placeholder="English, Spanish" className={adminInputClass} />
+          </div>
+        ) : null}
         <div className={FIELD_WRAP}>
           <label className={FIELD_LABEL} htmlFor="bio">Biography</label>
           <textarea id="bio" name="bio" defaultValue={initial?.bio ?? ""} rows={4} className={adminInputClass} />
         </div>
-        <div className={FIELD_WRAP}>
-          <label className={FIELD_LABEL} htmlFor="trustChips">Trust chips (comma-separated, 2–4 max)</label>
-          <input id="trustChips" name="trustChips" defaultValue={(initial?.trustChips ?? []).join(", ")} className={adminInputClass} />
-        </div>
+        {!isSelf ? (
+          <div className={FIELD_WRAP}>
+            <label className={FIELD_LABEL} htmlFor="trustChips">Trust chips (comma-separated, 2–4 max)</label>
+            <input id="trustChips" name="trustChips" defaultValue={(initial?.trustChips ?? []).join(", ")} className={adminInputClass} />
+          </div>
+        ) : null}
+        {!isSelf && mode !== "create" ? (
+          <div className={FIELD_WRAP}>
+            <label className={FIELD_LABEL} htmlFor="linkedRosterId">Link to staff account (self-service)</label>
+            <select id="linkedRosterId" name="linkedRosterId" defaultValue={initial?.linkedRosterId ?? ""} className={adminInputClass}>
+              <option value="">Not linked — owner-managed only</option>
+              {(rosterOptions ?? []).map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.displayName} ({r.email})
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-[#7A7164]">
+              Linking lets that staff member edit their own name, title, bio, contact info, socials, theme, and photo from
+              their own &ldquo;My contact profile&rdquo; page — never publishing state, slug, or company/legal fields.
+            </p>
+          </div>
+        ) : null}
       </section>
 
+      {!isSelf ? (
       <section id="exec-company" className={`${adminCardBase} space-y-4 p-5`}>
         <h2 className="text-sm font-bold uppercase tracking-wide text-[#1E1810]">Company</h2>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -204,6 +250,7 @@ export function ExecutiveHubForm({ mode, initial, action }: Props) {
           </div>
         </div>
       </section>
+      ) : null}
 
       <section id="exec-contact" className={`${adminCardBase} space-y-4 p-5`}>
         <h2 className="text-sm font-bold uppercase tracking-wide text-[#1E1810]">Contact</h2>
@@ -212,10 +259,12 @@ export function ExecutiveHubForm({ mode, initial, action }: Props) {
             <label className={FIELD_LABEL} htmlFor="email">Email</label>
             <input id="email" name="email" type="email" defaultValue={initial?.email ?? ""} className={adminInputClass} />
           </div>
-          <div className={FIELD_WRAP}>
-            <label className={FIELD_LABEL} htmlFor="website">Website</label>
-            <input id="website" name="website" defaultValue={initial?.website ?? ""} className={adminInputClass} />
-          </div>
+          {!isSelf ? (
+            <div className={FIELD_WRAP}>
+              <label className={FIELD_LABEL} htmlFor="website">Website</label>
+              <input id="website" name="website" defaultValue={initial?.website ?? ""} className={adminInputClass} />
+            </div>
+          ) : null}
           <div className={FIELD_WRAP}>
             <span className={FIELD_LABEL}>Phone</span>
             <PhoneInput
@@ -269,6 +318,8 @@ export function ExecutiveHubForm({ mode, initial, action }: Props) {
         </div>
       </section>
 
+      {!isSelf ? (
+      <>
       <section id="exec-business-hub" className={`${adminCardBase} space-y-4 p-5`}>
         <h2 className="text-sm font-bold uppercase tracking-wide text-[#1E1810]">Business Hub</h2>
         <p className="text-xs text-[#7A7164]">
@@ -324,6 +375,8 @@ export function ExecutiveHubForm({ mode, initial, action }: Props) {
           helperText="Shown on the executive's public contact card once wired to publish (Foundation V1 — admin-only for now)."
         />
       </section>
+      </>
+      ) : null}
 
       <section id="exec-theme" className={`${adminCardBase} space-y-4 p-5`}>
         <h2 className="text-sm font-bold uppercase tracking-wide text-[#1E1810]">Theme</h2>
@@ -337,6 +390,7 @@ export function ExecutiveHubForm({ mode, initial, action }: Props) {
         </div>
       </section>
 
+      {!isSelf ? (
       <section id="exec-publishing" className={`${adminCardBase} space-y-4 p-5`}>
         <h2 className="text-sm font-bold uppercase tracking-wide text-[#1E1810]">Publishing</h2>
         <div className={FIELD_WRAP}>
@@ -359,6 +413,7 @@ export function ExecutiveHubForm({ mode, initial, action }: Props) {
           <textarea id="notes" name="notes" defaultValue={initial?.notes ?? ""} rows={3} className={adminInputClass} />
         </div>
       </section>
+      ) : null}
 
       <section id="exec-images" className={`${adminCardBase} space-y-4 p-5`}>
         <h2 className="text-sm font-bold uppercase tracking-wide text-[#1E1810]">Images</h2>
@@ -374,22 +429,26 @@ export function ExecutiveHubForm({ mode, initial, action }: Props) {
             onUploaded={setPhotoPath}
             onRemoved={() => setPhotoPath("")}
           />
-          <ExecutiveHubAssetUpload
-            slug={slug || initial?.slug || ""}
-            kind="logo"
-            label="Company logo"
-            currentUrl={logoPath || null}
-            onUploaded={setLogoPath}
-            onRemoved={() => setLogoPath("")}
-          />
-          <ExecutiveHubAssetUpload
-            slug={slug || initial?.slug || ""}
-            kind="cover"
-            label="Cover image (optional)"
-            currentUrl={coverPath || null}
-            onUploaded={setCoverPath}
-            onRemoved={() => setCoverPath("")}
-          />
+          {!isSelf ? (
+            <>
+              <ExecutiveHubAssetUpload
+                slug={slug || initial?.slug || ""}
+                kind="logo"
+                label="Company logo"
+                currentUrl={logoPath || null}
+                onUploaded={setLogoPath}
+                onRemoved={() => setLogoPath("")}
+              />
+              <ExecutiveHubAssetUpload
+                slug={slug || initial?.slug || ""}
+                kind="cover"
+                label="Cover image (optional)"
+                currentUrl={coverPath || null}
+                onUploaded={setCoverPath}
+                onRemoved={() => setCoverPath("")}
+              />
+            </>
+          ) : null}
         </div>
       </section>
 

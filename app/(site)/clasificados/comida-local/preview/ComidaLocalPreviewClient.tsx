@@ -82,8 +82,15 @@ export function ComidaLocalPreviewClient() {
 
   const vm = useMemo(() => {
     if (!draft) return null;
-    return mapComidaLocalDraftToPreviewVm(draft, es ? "es" : "en");
-  }, [draft, es]);
+    // Gate COMIDA-LOCAL-1 — this is the OWNER looking at their own draft, so "Encuéntrame Hoy"
+    // shows their current draft truth even when it is stale (the PM decision allows exactly
+    // this), together with an explicit warning that a stale location is not public. The
+    // published vitrina uses `viewer: "public"` and drops it instead.
+    return mapComidaLocalDraftToPreviewVm(draft, es ? "es" : "en", {
+      viewer: "owner",
+      ownerListingPublished: Boolean(editListingId),
+    });
+  }, [draft, es, editListingId]);
 
   const hasContent = draft ? comidaLocalDraftHasPreviewContent(draft) : false;
 
@@ -97,6 +104,9 @@ export function ComidaLocalPreviewClient() {
   // and Restaurantes.
   const [newsletterEmail, setNewsletterEmail] = useState("");
   const [newsletterCaptureNote, setNewsletterCaptureNote] = useState<string | null>(null);
+  /** Gate COMIDA-LOCAL-1 — non-blocking owner notice when the shared media contract could not
+   * persist some selected photos. Same channel/behavior as the newsletter capture note. */
+  const [mediaDroppedNote, setMediaDroppedNote] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -172,6 +182,19 @@ export function ComidaLocalPreviewClient() {
           setCheckoutError(pending.userMessage);
           setCheckoutBusy(false);
           return;
+        }
+
+        // Gate COMIDA-LOCAL-1 — the save SUCCEEDED, but the shared media contract could not
+        // persist some selected photos. Never block checkout for this (the payment is
+        // unaffected); the owner is simply told what did not save, on the same non-blocking
+        // note channel the newsletter capture failure already uses.
+        if (pending.droppedUnpersistableMedia?.length) {
+          const n = pending.droppedUnpersistableMedia.length;
+          setMediaDroppedNote(
+            es
+              ? `${n} foto(s) no se pudieron guardar y no están en tu anuncio. Abre «Volver a editar», agrégalas de nuevo y guarda.`
+              : `${n} photo(s) could not be saved and are not on your listing. Open "Back to edit", add them again, and save.`,
+          );
         }
 
         const checkout = await startRevenueCategoryCheckout({
@@ -294,6 +317,12 @@ export function ComidaLocalPreviewClient() {
           </div>
         ) : null}
         <ComidaLocalDetailShell vm={vm} lang={es ? "es" : "en"} />
+
+        {mediaDroppedNote ? (
+          <div className="mt-6 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-900">
+            {mediaDroppedNote}
+          </div>
+        ) : null}
 
         {previewMode === "new-publish" && checkoutConfig ? (
           <div className="mt-6">

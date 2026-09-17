@@ -1,4 +1,5 @@
 import type { DealerHoursEntry } from "../types/autoDealerListing";
+import { DEALER_WEEKDAY_OPTIONS_ES, DEALER_WEEKDAY_OPTIONS_EN } from "@/app/lib/clasificados/autos/autosDealerHoursTimeUi";
 
 /** Strict 24h HH:mm (single or double digit hour, two-digit minute). */
 const TIME24 = /^([01]?\d|2[0-3]):([0-5]\d)$/;
@@ -21,11 +22,26 @@ function to12hLabel(h: number, m: number): string {
   return `${h12}:${mm} ${ampm}`;
 }
 
+/**
+ * Owner lock (2026-09-17): "Día"/"Day" is the hours editor's generic add-row placeholder
+ * (`newDayPlaceholder` in autosNegociosCopy.ts) — never a real weekday or a dealer's own custom
+ * label. A row whose day is still exactly that placeholder means the dealer added the row and
+ * never actually set a day, so it's incomplete legacy data, not buyer-facing hours. A genuine
+ * dealer-typed custom label (e.g. "Fines de semana") never equals this literal token and always
+ * still renders — only this specific fossil value is dropped.
+ */
+const RAW_DAY_PLACEHOLDER_TOKENS = new Set(["dia", "day"]);
+
+function isPlaceholderDayLabel(day: string): boolean {
+  return RAW_DAY_PLACEHOLDER_TOKENS.has(normalizeDayToken(day));
+}
+
 export function filterDealerHoursForDisplay(hours: DealerHoursEntry[] | undefined): DealerHoursEntry[] {
   const list = hours ?? [];
   return list.filter((row) => {
     const day = row.day?.trim();
     if (!day) return false;
+    if (isPlaceholderDayLabel(day)) return false;
     if (row.closed) return true;
     const o = parseHHMM(row.open ?? "");
     const c = parseHHMM(row.close ?? "");
@@ -34,11 +50,11 @@ export function filterDealerHoursForDisplay(hours: DealerHoursEntry[] | undefine
 }
 
 /**
- * Premium display: `9:00 AM – 6:00 PM` or `Cerrado`.
+ * Premium display: `9:00 AM – 6:00 PM` or `Cerrado`/`Closed`.
  * Rows with malformed times are filtered out before this runs.
  */
-export function formatDealerHoursTimeRange(h: DealerHoursEntry): string {
-  if (h.closed) return "Cerrado";
+export function formatDealerHoursTimeRange(h: DealerHoursEntry, lang: "es" | "en" = "es"): string {
+  if (h.closed) return lang === "es" ? "Cerrado" : "Closed";
   const o = parseHHMM(h.open ?? "");
   const c = parseHHMM(h.close ?? "");
   if (!o || !c) return "—";
@@ -93,5 +109,24 @@ export function formatTodaysDealerHoursLine(
   const row = findTodaysDealerHoursEntry(hours);
   if (!row) return null;
   const label = lang === "es" ? "Hoy" : "Today";
-  return `${label}: ${row.day.trim()} · ${formatDealerHoursTimeRange(row)}`;
+  return `${label}: ${localizeDealerHoursDayLabel(row.day, lang)} · ${formatDealerHoursTimeRange(row, lang)}`;
+}
+
+/**
+ * The 7 standard weekday template rows are stored under their own self-name (e.g. "Lunes"),
+ * same "stored value IS the label" pattern as the vehicle taxonomy selects — deterministically
+ * relocalized here via the existing DAY_ALIASES lookup, reusing the exact same
+ * DEALER_WEEKDAY_OPTIONS_ES/EN arrays the hours editor's own <select> renders (so a relocalized
+ * label always matches one of the editor's real options). A dealer's own free-typed custom day
+ * label (the hours editor allows renaming any row) matches no known weekday and is returned
+ * exactly as typed — never guessed, never overwritten.
+ */
+export function localizeDealerHoursDayLabel(day: string | undefined, targetLang: "es" | "en"): string {
+  const trimmed = day?.trim() ?? "";
+  if (!trimmed) return trimmed;
+  const sundayFirstIdx = dayIndexFromLabel(trimmed);
+  if (sundayFirstIdx === null) return trimmed;
+  const mondayFirstIdx = (sundayFirstIdx + 6) % 7;
+  const table = targetLang === "es" ? DEALER_WEEKDAY_OPTIONS_ES : DEALER_WEEKDAY_OPTIONS_EN;
+  return table[mondayFirstIdx] ?? trimmed;
 }

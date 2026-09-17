@@ -27,6 +27,7 @@ import {
 import { formatMiles, formatMpgPair, formatStockDisplay, formatVinDisplay } from "./autoDealerFormatters";
 import { SpecIconRow } from "./SpecIconRow";
 import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
+import { localizeAutosDealerTaxonomySelectValue } from "../lib/autosNegociosCopy";
 import { normalizeVehicleSegment } from "@/app/(site)/publicar/autos/negocios/lib/autoDealerTitle";
 import { resolveEngineForDisplay } from "@/app/lib/clasificados/autos/autosVehicleEngineOptions";
 import { autosPreviewPremiumCardClass, autosPreviewSectionEyebrowClass, autosPreviewSectionTitleClass } from "@/app/lib/clasificados/autos/autosNegociosPremiumPreviewTokens";
@@ -61,7 +62,7 @@ export function VehicleSpecsGrid({
   const seats =
     data.seats !== undefined && Number.isFinite(data.seats) ? String(data.seats) : undefined;
   const mileageStr =
-    data.mileage !== undefined && Number.isFinite(data.mileage) ? formatMiles(data.mileage) : undefined;
+    data.mileage !== undefined && Number.isFinite(data.mileage) ? formatMiles(data.mileage, lang) : undefined;
 
   const yearStr =
     data.year !== undefined && Number.isFinite(data.year) ? String(Math.round(data.year)) : undefined;
@@ -78,18 +79,18 @@ export function VehicleSpecsGrid({
     { key: "make", label: rowsL.make, value: makeStr, icon: <BiCar className="h-5 w-5" /> },
     { key: "model", label: rowsL.model, value: modelStr, icon: <BiCar className="h-5 w-5" /> },
     { key: "trim", label: rowsL.trim, value: trimStr, icon: <BiCar className="h-5 w-5" /> },
-    { key: "body", label: rowsL.body, value: resolveBodyStyle(data), icon: <BiCar className="h-5 w-5" /> },
-    { key: "drive", label: rowsL.drive, value: resolveDrivetrain(data), icon: <TbRoad className="h-5 w-5" /> },
-    { key: "trans", label: rowsL.trans, value: resolveTransmission(data), icon: <BiTachometer className="h-5 w-5" /> },
+    { key: "body", label: rowsL.body, value: localizeAutosDealerTaxonomySelectValue("bodyStyle", resolveBodyStyle(data), lang), icon: <BiCar className="h-5 w-5" /> },
+    { key: "drive", label: rowsL.drive, value: localizeAutosDealerTaxonomySelectValue("drivetrain", resolveDrivetrain(data), lang), icon: <TbRoad className="h-5 w-5" /> },
+    { key: "trans", label: rowsL.trans, value: localizeAutosDealerTaxonomySelectValue("transmission", resolveTransmission(data), lang), icon: <BiTachometer className="h-5 w-5" /> },
     { key: "eng", label: rowsL.eng, value: engineStr, icon: <BiCylinder className="h-5 w-5" /> },
-    { key: "fuel", label: rowsL.fuel, value: resolveFuelType(data), icon: <BiGasPump className="h-5 w-5" /> },
+    { key: "fuel", label: rowsL.fuel, value: localizeAutosDealerTaxonomySelectValue("fuel", resolveFuelType(data), lang), icon: <BiGasPump className="h-5 w-5" /> },
     { key: "mpg", label: rowsL.mpg, value: mpg, icon: <FiLayers className="h-5 w-5" /> },
-    { key: "ex", label: rowsL.ex, value: resolveExteriorColor(data), icon: <BiPalette className="h-5 w-5" /> },
-    { key: "in", label: rowsL.in, value: resolveInteriorColor(data), icon: <BiColorFill className="h-5 w-5" /> },
+    { key: "ex", label: rowsL.ex, value: localizeAutosDealerTaxonomySelectValue("exterior", resolveExteriorColor(data), lang), icon: <BiPalette className="h-5 w-5" /> },
+    { key: "in", label: rowsL.in, value: localizeAutosDealerTaxonomySelectValue("interior", resolveInteriorColor(data), lang), icon: <BiColorFill className="h-5 w-5" /> },
     { key: "doors", label: rowsL.doors, value: doors, icon: <BiCar className="h-5 w-5" /> },
     { key: "seats", label: rowsL.seats, value: seats, icon: <TbArmchair className="h-5 w-5" /> },
     { key: "cond", label: rowsL.cond, value: conditionLabel(data.condition), icon: <BiKey className="h-5 w-5" /> },
-    { key: "title", label: rowsL.title, value: resolveTitleStatus(data), icon: <BiShieldQuarter className="h-5 w-5" /> },
+    { key: "title", label: rowsL.title, value: localizeAutosDealerTaxonomySelectValue("titleStatus", resolveTitleStatus(data), lang), icon: <BiShieldQuarter className="h-5 w-5" /> },
     {
       key: "vin",
       label: rowsL.vin,

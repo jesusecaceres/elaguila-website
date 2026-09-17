@@ -30,6 +30,8 @@ export type BienesGatewayLink = {
 };
 
 export type BienesGatewayTile = BienesGatewayLink & {
+  /** Stable key for image-map lookups (LeonixCategoryImageDiscoveryGrid). */
+  id: string;
   Icon: IconType;
   accent: "burgundy" | "green" | "gold";
   hintEs?: string;
@@ -45,6 +47,7 @@ export type BienesDrawerPropertyType = {
 /** Visual intent tiles — propertyType or safe keyword search only. */
 export const BIENES_INTENT_TILES: BienesGatewayTile[] = [
   {
+    id: "casas",
     labelEs: "Casas",
     labelEn: "Houses",
     hintEs: "Residencial",
@@ -55,6 +58,7 @@ export const BIENES_INTENT_TILES: BienesGatewayTile[] = [
     wired: true,
   },
   {
+    id: "departamentos",
     labelEs: "Departamentos",
     labelEn: "Apartments",
     hintEs: "Apartamentos y unidades",
@@ -65,6 +69,7 @@ export const BIENES_INTENT_TILES: BienesGatewayTile[] = [
     wired: true,
   },
   {
+    id: "venta",
     labelEs: "Venta",
     labelEn: "Sale",
     hintEs: "Propiedades en venta",
@@ -75,6 +80,7 @@ export const BIENES_INTENT_TILES: BienesGatewayTile[] = [
     wired: true,
   },
   {
+    id: "renta",
     labelEs: "Renta",
     labelEn: "Rent",
     hintEs: "Propiedades en renta",
@@ -85,6 +91,7 @@ export const BIENES_INTENT_TILES: BienesGatewayTile[] = [
     wired: true,
   },
   {
+    id: "comerciales",
     labelEs: "Comerciales",
     labelEn: "Commercial",
     hintEs: "Locales, oficinas y negocios",
@@ -95,6 +102,7 @@ export const BIENES_INTENT_TILES: BienesGatewayTile[] = [
     wired: true,
   },
   {
+    id: "terrenos",
     labelEs: "Terrenos",
     labelEn: "Land",
     hintEs: "Lotes y oportunidades",
@@ -105,6 +113,7 @@ export const BIENES_INTENT_TILES: BienesGatewayTile[] = [
     wired: true,
   },
   {
+    id: "proyecto-nuevo",
     labelEs: "Proyecto nuevo",
     labelEn: "New construction",
     hintEs: "Construcción y desarrollo",
@@ -115,6 +124,7 @@ export const BIENES_INTENT_TILES: BienesGatewayTile[] = [
     wired: true,
   },
   {
+    id: "multifamiliar",
     labelEs: "Multifamiliar",
     labelEn: "Multifamily",
     hintEs: "Inversión",

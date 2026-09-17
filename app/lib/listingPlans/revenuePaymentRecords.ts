@@ -37,6 +37,8 @@ export type CreatePendingPaymentRecordInput = {
   promoWebsiteCheckoutOnly?: boolean;
   /** Pre-discount subtotal used to compute the promo discount (server-owned). */
   promoBaseAmountCents?: number;
+  /** ⚠️35 — finite contract term the promo is billed under (server-derived from the promo row); null when none. */
+  contractTerm?: string | null;
   /** True when checkout is add-on-only (e.g. dashboard Restaurante coupon upgrade). */
   addonOnly?: boolean;
   sourceTable?: string | null;
@@ -139,6 +141,9 @@ export async function createPendingPaymentRecord(
       customer_email: input.customerEmail ?? null,
       promo_code_id: input.promoCodeId ?? null,
       promo_redemption_id: input.promoRedemptionId ?? null,
+      // ⚠️35 — the finite contract term the discount was billed under (existing column; null when the
+      // promo has none). The webhook's amount guard reads it to accept the term's discounted invoice.
+      contract_term: input.contractTerm ?? null,
       ...(input.checkoutAttemptKey
         ? {
             checkout_attempt_key: input.checkoutAttemptKey,
@@ -287,6 +292,14 @@ export type LeonixPaymentRecordRow = {
   placement_tier: string | null;
   amount_cents: number | null;
   amount_total_cents: number | null;
+  /**
+   * Both columns are already in PAYMENT_RECORD_SELECT and are written on insert; they were
+   * simply never surfaced on this row type. Declaring them is required by the webhook's amount
+   * guard, which must be able to recognise a verified-intro `duration:"once"` Stripe coupon's
+   * discounted first-invoice total as legitimate.
+   */
+  amount_subtotal_cents: number | null;
+  amount_discount_cents: number | null;
   currency: string | null;
   payment_status: string;
   source: string | null;
@@ -294,6 +307,8 @@ export type LeonixPaymentRecordRow = {
   promo_redemption_id: string | null;
   /** Package C Build 2 (C4). */
   verified_intro_discount_redemption_id: string | null;
+  /** ⚠️35 — finite contract term the promo was billed under (null when none). */
+  contract_term: string | null;
   package_entitlement_id: string | null;
   placement_entitlement_id: string | null;
   stripe_checkout_session_id: string | null;
@@ -306,7 +321,7 @@ export type LeonixPaymentRecordRow = {
 };
 
 const PAYMENT_RECORD_SELECT =
-  "id, category, package_key, listing_id, owner_user_id, leonix_ad_id, billing_mode, placement_tier, amount_cents, amount_total_cents, amount_subtotal_cents, amount_discount_cents, currency, payment_status, source, promo_code_id, promo_redemption_id, verified_intro_discount_redemption_id, package_entitlement_id, placement_entitlement_id, stripe_checkout_session_id, stripe_payment_intent_id, stripe_customer_id, stripe_subscription_id, paid_at, canceled_at, customer_email, business_name, metadata";
+  "id, category, package_key, listing_id, owner_user_id, leonix_ad_id, billing_mode, placement_tier, amount_cents, amount_total_cents, amount_subtotal_cents, amount_discount_cents, currency, payment_status, source, promo_code_id, promo_redemption_id, verified_intro_discount_redemption_id, contract_term, package_entitlement_id, placement_entitlement_id, stripe_checkout_session_id, stripe_payment_intent_id, stripe_customer_id, stripe_subscription_id, paid_at, canceled_at, customer_email, business_name, metadata";
 
 /** Extended payment row for promo redemption business attribution (Gate REVENUE-OS-PROMO-REDEMPTION-BUSINESS-ATTRIBUTION-01). */
 export type LeonixPaymentRecordAttributionRow = LeonixPaymentRecordRow & {

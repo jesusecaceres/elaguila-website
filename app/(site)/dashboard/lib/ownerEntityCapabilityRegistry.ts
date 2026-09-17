@@ -197,14 +197,42 @@ export const OWNER_ENTITY_CAPABILITIES: Record<OwnerEntityCategoryKey, OwnerEnti
     commercial: { plan: "supported", entitlement: "supported", placement: "unproven", verification: "unproven" },
   }),
   // Gate 3B — analytics corrected to "supported" (same repo-truth basis as en-venta above).
+  /**
+   * Gate BIENES-PRIVADO-2 — READ REGISTRATION ONLY. Three rows understated what this branch
+   * actually ships after Gate BIENES-PRIVADO-1 and this gate; nothing here creates a capability,
+   * it only stops the shared shell from hiding a real one.
+   *
+   *   renew            unsupported -> supported  A real same-row 45-day renewal now exists end
+   *                                              to end: server-gated checkout
+   *                                              (validateBienesFsboRenewalCheckoutOwnership),
+   *                                              webhook-authoritative expires_at extension,
+   *                                              and a wired owner action.
+   *   relatedListings  unsupported -> supported  The FSBO related-properties rail ships this
+   *                                              gate on the public detail page.
+   *   commercial.plan  unsupported -> supported  br_fsbo_45d is a real Revenue OS product
+   *                                              ($49.99 / 45 days) and the owner card renders a
+   *                                              real plan label derived from it.
+   *
+   * commercial.entitlement stays UNPROVEN on purpose. The entitlement route is generic and does
+   * receive FSBO items, but no source proof exists that an FSBO listing_package_entitlements row
+   * renders a badge end to end, and owner-browser QA is deferred. Per this file's own doctrine
+   * that is exactly `unproven` — claiming `supported` would be fabricating entitlement truth,
+   * which both the Admin OS and the Owner Command Center contracts forbid.
+   *
+   * businessTools, businessConcierge and inventory stay UNSUPPORTED and must remain so: a private
+   * seller has no business identity, no businesses.id, no parent/child inventory and no Business
+   * Tools entitlement. Nothing in this gate fabricates one.
+   */
   "bienes-raices-privado": merge({
     identity: { publicView: "supported", preview: "supported", results: "supported", edit: "supported", analytics: "supported" },
     engagement: { like: "supported", save: "supported", share: "supported", report: "unproven" },
     video: "supported",
     contactHub: "supported",
     translateAd: "supported",
-    lifecycle: { pause: "supported", reactivate: "supported", archive: "supported", markSold: "supported", republish: "unsupported", renew: "unsupported", close: "unsupported" },
+    relatedListings: "supported",
+    lifecycle: { pause: "supported", reactivate: "supported", archive: "supported", markSold: "supported", republish: "unsupported", renew: "supported", close: "unsupported" },
     specialized: { inventory: "unsupported", applications: "unsupported", leads: "unsupported", requests: "unsupported", offers: "unsupported", coupons: "unsupported", campaign: "unsupported", aiScan: "unsupported", businessTools: "unsupported", businessConcierge: "unsupported", activity: "supported" },
+    commercial: { plan: "supported", entitlement: "unproven", placement: "unsupported", verification: "unsupported" },
   }),
   "bienes-raices-negocio": merge({
     identity: { publicView: "supported", preview: "specialized", results: "supported", edit: "supported", analytics: "supported" },

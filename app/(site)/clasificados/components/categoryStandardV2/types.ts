@@ -133,6 +133,43 @@ export interface LeonixCategoryDiscoveryGridProps {
 }
 
 /**
+ * Image-led discovery grid item
+ *
+ * Same contract as DiscoveryGridItem, plus a photo. `icon` becomes the
+ * graceful fallback rendered if `imageSrc` fails to load (missing file,
+ * broken remote URL, etc.) — it is optional but strongly recommended so a
+ * missing asset never renders a blank box.
+ */
+export interface ImageDiscoveryGridItem {
+  id: string;
+  label: string;
+  hint?: string;
+  href: string;
+  /**
+   * Omit when no real photo asset is installed yet for this slug — the card
+   * renders its icon glyph directly rather than attempting a request that is
+   * known to fail. (Next.js's image optimizer can swallow the load-failure
+   * event for a 404'd source, so relying on onError alone for a *known*
+   * missing asset is not reliable — omit imageSrc instead of pointing at a
+   * path that doesn't exist.)
+   */
+  imageSrc?: string;
+  imageAlt: string;
+  icon?: React.ComponentType<{ className?: string }>;
+}
+
+/**
+ * Image-led discovery grid props
+ */
+export interface LeonixCategoryImageDiscoveryGridProps {
+  lang: Lang;
+  surface: Surface;
+  heading: string;
+  subtitle: string;
+  items: ImageDiscoveryGridItem[];
+}
+
+/**
  * Shortcut chip item
  */
 export interface ShortcutChipItem {

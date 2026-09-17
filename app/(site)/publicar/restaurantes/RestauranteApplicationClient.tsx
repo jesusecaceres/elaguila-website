@@ -373,8 +373,24 @@ export default function RestauranteApplicationClient() {
         setDashboardSaveBusy(false);
         return;
       }
-      const j = (await res.json().catch(() => ({}))) as { ok?: boolean };
+      const j = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        droppedUnpersistableMedia?: string[];
+      };
       if (res.ok && j.ok) {
+        // Gate RESTAURANTES-1 — the save SUCCEEDED, but the shared media contract could not
+        // persist some selected images. Tell the owner instead of navigating away silently as if
+        // everything had been kept; the listing itself is saved either way.
+        if (j.droppedUnpersistableMedia?.length) {
+          const n = j.droppedUnpersistableMedia.length;
+          setDashboardContextErr(
+            lang === "es"
+              ? `Se guardaron tus cambios, pero ${n} imagen(es) no se pudieron guardar y no están en tu anuncio. Agrégalas de nuevo y guarda.`
+              : `Your changes were saved, but ${n} image(s) could not be saved and are not on your listing. Add them again and save.`,
+          );
+          setDashboardSaveBusy(false);
+          return;
+        }
         router.push(dashboardReturnHref);
         return;
       }
@@ -1843,6 +1859,24 @@ export default function RestauranteApplicationClient() {
                 onChange={(e) => setDraftPatch({ country: e.target.value || undefined })}
                 placeholder={fc.sectionE.countryPlaceholder}
               />
+            </div>
+            {/* Gate RESTAURANTES-1 (Globalization G24 semantics) — `showExactAddress` has existed
+                on the draft type, publish payload and public render path for several gates, but had
+                NO control anywhere in this form: the privacy toggle was permanently unreachable and
+                every listing published its exact street address with no way to opt out. Default
+                stays `true`, so no existing listing's already-public address changes. */}
+            <div className="sm:col-span-2 flex items-start gap-3 rounded-lg border border-[color:var(--lx-nav-border)] bg-white/80 px-3 py-2.5">
+              <input
+                id="restaurante-show-exact-address"
+                type="checkbox"
+                className="mt-1 h-4 w-4 shrink-0"
+                checked={draft.showExactAddress ?? true}
+                onChange={(e) => setDraftPatch({ showExactAddress: e.target.checked })}
+              />
+              <label htmlFor="restaurante-show-exact-address" className="text-sm leading-snug">
+                <span className="font-semibold">{fc.sectionE.showExactAddressLabel}</span>
+                <span className="mt-1 block text-xs text-[color:var(--lx-muted)]">{fc.sectionE.showExactAddressHelper}</span>
+              </label>
             </div>
           </div>
         </section>

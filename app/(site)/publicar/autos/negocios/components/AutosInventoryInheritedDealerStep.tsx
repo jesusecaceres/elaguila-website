@@ -4,13 +4,14 @@ import type { AutosNegociosCopy } from "@/app/clasificados/autos/negocios/lib/au
 import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { normalizeDealerCustomLinks } from "@/app/lib/clasificados/autos/autosDealerCustomLinks";
-import { dealerLanguagesForOutput } from "@/app/lib/clasificados/autos/autosDealerLanguages";
+import { dealerLanguagesForOutput, localizeAutosDealerLanguageLabel } from "@/app/lib/clasificados/autos/autosDealerLanguages";
 import {
   autosInventoryChildEditInMainApplication,
   autosInventoryChildStep5EditHint,
   autosInventoryChildStep5Intro,
   autosInventoryChildStep5SectionTitle,
 } from "@/app/lib/clasificados/autos/autosNegociosInventoryBundleCopy";
+import { localizeDealerHoursDayLabel } from "@/app/clasificados/autos/negocios/lib/dealerHoursDisplay";
 
 const CARD =
   "rounded-[16px] border border-[#E8DFD0] bg-[#FFFCF7] p-4 shadow-sm sm:p-5";
@@ -30,10 +31,15 @@ function Field({ label, value }: { label: string; value?: string | null }) {
 function formatHoursRow(
   row: NonNullable<AutoDealerListing["dealerHours"]>[number],
   closedLabel: string,
+  lang: AutosNegociosLang,
 ): string | null {
-  if (row.closed) return `${row.day}: ${closedLabel}`;
-  if (row.open && row.close) return `${row.day}: ${row.open} – ${row.close}`;
-  if (row.day) return row.day;
+  // A row saved during an authoring session in the OTHER language stores that language's day
+  // name (e.g. "Monday") — this read-only inherited-hours summary must show it in the CURRENT
+  // session language, same fix as the live-facing hours display and the hours editor itself.
+  const day = localizeDealerHoursDayLabel(row.day, lang);
+  if (row.closed) return `${day}: ${closedLabel}`;
+  if (row.open && row.close) return `${day}: ${row.open} – ${row.close}`;
+  if (day) return day;
   return null;
 }
 
@@ -54,9 +60,11 @@ export function AutosInventoryInheritedDealerStep({
   const customLinks = normalizeDealerCustomLinks(parentListing.dealerCustomLinks).filter(
     (l) => l.label?.trim() || l.url?.trim(),
   );
-  const languages = dealerLanguagesForOutput(parentListing.dealerLanguages);
+  const languages = dealerLanguagesForOutput(parentListing.dealerLanguages).map((label) =>
+    localizeAutosDealerLanguageLabel(label, lang),
+  );
   const hours = (parentListing.dealerHours ?? [])
-    .map((row) => formatHoursRow(row, t.app.dealer.closed))
+    .map((row) => formatHoursRow(row, t.app.dealer.closed, lang))
     .filter(Boolean) as string[];
 
   const addressParts = [

@@ -1,0 +1,544 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { actorHasCapability, requireSalesWorkspaceAccess, toStaffWriteActor, type SalesWorkspaceDenialReason } from "../../_lib/businessWorkspaceAccess";
+import { conciergeActionLabel, normalizeConciergeAction, resolveConciergeActionDestination } from "../../_lib/conciergeIntent";
+import { listBusinessesForWorkspace } from "../../_lib/businessWorkspaceData";
+import { BUSINESS_SALES_STATUSES, labelFrom, type BusinessSalesStatus } from "../../_lib/salesWorkspaceLogic";
+import {
+  composeNeedsAttentionList,
+  composeStaffConciergeHome,
+  emptyStaffConciergeHome,
+  STAFF_ATTENTION_REASON_LABELS,
+  type StaffConciergeAttentionEntry,
+} from "../../_lib/staffConciergeHome";
+import { BROAD_BUSINESS_TYPES, BUSINESS_STAGES } from "@/app/lib/business/constants";
+import { countriesSortedByLabel, countryLabel } from "@/app/lib/business/countries";
+import { StaffCommandCenter } from "./StaffCommandCenter";
+import { composeStaffOperatingSystem } from "../../_lib/staffOperatingSystem";
+import { getCurrentAdminAccessContext, hasPaymentTrackerAccess } from "../../_lib/adminAccessControl";
+import { listAcceptedCurrentProposalsForHandoff, listProposalsAwaitingDecisionForStaffAttention } from "@/app/lib/business/proposals/repository";
+import { listActiveSignalsForStaffAttention } from "@/app/lib/business/advisor/repository";
+import { isAdvisorEnabled } from "@/app/lib/business/advisor/featureFlag";
+import { refreshAdvisorSignalsForWorkspaceScope } from "@/app/lib/business/advisor/refresh";
+import { advisorSignalDashboardAnchor } from "@/app/lib/business/advisor/logic";
+import type { AdvisorSignalType } from "@/app/lib/business/advisor/types";
+import { listUpcomingMeetingsForStaffAttention } from "@/app/lib/business/meetingStudio/repository";
+import { listCommitmentsAttentionForStaffAttention } from "@/app/lib/business/promiseKeeper/repository";
+import { listCreativeAwaitingReviewForStaffAttention } from "@/app/lib/business/creativeStudio/repository";
+import {
+  listBusinessesWithGrowthAssessmentByStatus,
+  listBusinessesWithGrowthCampaignsNeedingAttention,
+  listBusinessesWithPendingOfficialRequirements,
+} from "@/app/lib/business/growthEngine/repository";
+
+export const dynamic = "force-dynamic";
+
+type SearchParams = {
+  q?: string;
+  category?: string;
+  stage?: string;
+  country?: string;
+  status?: string;
+  hasPhone?: string;
+  hasEmail?: string;
+  hasWhatsapp?: string;
+  hasWebsite?: string;
+  hasAds?: string;
+  /** Assisted Publishing — carried Business Concierge intent (see conciergeIntent.ts). */
+  action?: string;
+};
+
+function statusBadgeClass(status: BusinessSalesStatus): string {
+  switch (status) {
+    case "new":
+      return "bg-[#EDE6D6] text-[#3D3428]";
+    case "needs_review":
+      return "bg-amber-100 text-amber-900";
+    case "ready_to_contact":
+      return "bg-blue-100 text-blue-900";
+    case "contacted":
+      return "bg-sky-100 text-sky-900";
+    case "follow_up_due":
+      return "bg-orange-100 text-orange-900";
+    case "waiting_on_owner":
+      return "bg-purple-100 text-purple-900";
+    case "not_a_fit_right_now":
+      return "bg-neutral-200 text-neutral-700";
+    case "active_client":
+      return "bg-emerald-100 text-emerald-900";
+    case "archived":
+      return "bg-neutral-100 text-neutral-500";
+    default:
+      return "bg-[#EDE6D6] text-[#3D3428]";
+  }
+}
+
+const IDENTITY_DENIAL_REASONS: readonly SalesWorkspaceDenialReason[] = ["no_admin_cookie", "bootstrap_session_not_allowed", "no_operator_identity", "auth_user_not_found"];
+
+export default async function AdminBusinessesListPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
+  const access = await requireSalesWorkspaceAccess();
+  if (!access.ok) {
+    redirect(IDENTITY_DENIAL_REASONS.includes(access.reason) ? "/admin/login" : "/admin/team?access_denied=1");
+  }
+  if (!actorHasCapability(access.actor, "view_business_list")) {
+    redirect("/admin/team?access_denied=1");
+  }
+
+  const sp = (await searchParams) ?? {};
+  // Assisted Publishing — the intent carried from a Quick Action survives filtering and row
+  // selection (see conciergeIntent.ts). Unknown/absent values resolve to null = plain browsing.
+  const action = normalizeConciergeAction(sp.action);
+
+  // Staff OS — role-aware wire map. Payment Tracker visibility is the ONE thing the strict
+  // actor cannot answer (it is owner_admin OR the can_view_payments roster permission, resolved
+  // by the legacy context the Command Center already uses) — read it for link visibility only;
+  // the destination page still enforces it. Failure here must never take the home down.
+  let paymentTrackerAccess = false;
+  try {
+    paymentTrackerAccess = hasPaymentTrackerAccess(await getCurrentAdminAccessContext());
+  } catch {
+    paymentTrackerAccess = false;
+  }
+  const staffOs = composeStaffOperatingSystem({
+    role: access.actor.role,
+    actorType: access.actor.actorType,
+    capabilities: access.actor.capabilities,
+    paymentTrackerAccess,
+  });
+  const toBool = (v: string | undefined) => (v === "true" ? true : v === "false" ? false : undefined);
+
+  const { items, total } = await listBusinessesForWorkspace({
+    keyword: sp.q,
+    broadBusinessType: sp.category,
+    businessStage: sp.stage,
+    country: sp.country,
+    status: sp.status as BusinessSalesStatus | undefined,
+    hasPhone: toBool(sp.hasPhone),
+    hasEmail: toBool(sp.hasEmail),
+    hasWhatsapp: toBool(sp.hasWhatsapp),
+    hasWebsite: toBool(sp.hasWebsite),
+    hasConnectedAds: toBool(sp.hasAds),
+    limit: 100,
+  });
+
+  const countryOptions = countriesSortedByLabel("en");
+  const activeFilterCount = [sp.category, sp.stage, sp.country, sp.status, sp.hasPhone, sp.hasEmail, sp.hasWhatsapp, sp.hasWebsite, sp.hasAds].filter(Boolean).length;
+  const hasListFilters = activeFilterCount > 0 || Boolean(sp.q);
+
+  let home = emptyStaffConciergeHome();
+  let summaryUnavailable = false;
+  let homeScopeBusinessIds: string[] = [];
+  try {
+    const homeSource = hasListFilters ? (await listBusinessesForWorkspace({ limit: 100 })).items : items;
+    home = composeStaffConciergeHome(homeSource);
+    homeScopeBusinessIds = homeSource.map((source) => source.business.id);
+  } catch {
+    home = emptyStaffConciergeHome();
+    summaryUnavailable = true;
+  }
+
+  let ownerHandoff: Awaited<ReturnType<typeof listAcceptedCurrentProposalsForHandoff>> = [];
+  let ownerHandoffUnavailable = false;
+  let proposalsAwaitingDecision: Awaited<ReturnType<typeof listProposalsAwaitingDecisionForStaffAttention>> = [];
+  let upcomingMeetings: Awaited<ReturnType<typeof listUpcomingMeetingsForStaffAttention>> = [];
+  let commitmentsAttention: Awaited<ReturnType<typeof listCommitmentsAttentionForStaffAttention>> = [];
+  let creativeAwaitingReview: Awaited<ReturnType<typeof listCreativeAwaitingReviewForStaffAttention>> = [];
+  let growthAssessmentsNeedingReview: Awaited<ReturnType<typeof listBusinessesWithGrowthAssessmentByStatus>> = [];
+  let growthAssessmentsNeedingCorrection: Awaited<ReturnType<typeof listBusinessesWithGrowthAssessmentByStatus>> = [];
+  let growthCampaignsNeedingAttention: Awaited<ReturnType<typeof listBusinessesWithGrowthCampaignsNeedingAttention>> = [];
+  let growthOfficialRequirementsPending: Awaited<ReturnType<typeof listBusinessesWithPendingOfficialRequirements>> = [];
+  const [
+    ownerHandoffResult,
+    proposalsResult,
+    meetingsResult,
+    commitmentsResult,
+    creativeResult,
+    growthReviewResult,
+    growthCorrectionResult,
+    growthCampaignResult,
+    growthOfficialRequirementResult,
+  ] = await Promise.allSettled([
+    listAcceptedCurrentProposalsForHandoff(),
+    listProposalsAwaitingDecisionForStaffAttention(),
+    listUpcomingMeetingsForStaffAttention(),
+    listCommitmentsAttentionForStaffAttention(),
+    listCreativeAwaitingReviewForStaffAttention(),
+    actorHasCapability(access.actor, "view_growth_engine") ? listBusinessesWithGrowthAssessmentByStatus("needs_review") : Promise.resolve([]),
+    actorHasCapability(access.actor, "view_growth_engine") ? listBusinessesWithGrowthAssessmentByStatus("needs_correction") : Promise.resolve([]),
+    actorHasCapability(access.actor, "view_growth_engine") ? listBusinessesWithGrowthCampaignsNeedingAttention() : Promise.resolve([]),
+    actorHasCapability(access.actor, "view_growth_engine") ? listBusinessesWithPendingOfficialRequirements() : Promise.resolve([]),
+  ]);
+  if (ownerHandoffResult.status === "fulfilled") ownerHandoff = ownerHandoffResult.value;
+  else ownerHandoffUnavailable = true;
+  if (proposalsResult.status === "fulfilled") proposalsAwaitingDecision = proposalsResult.value;
+  if (meetingsResult.status === "fulfilled") upcomingMeetings = meetingsResult.value;
+  if (commitmentsResult.status === "fulfilled") commitmentsAttention = commitmentsResult.value;
+  if (creativeResult.status === "fulfilled") creativeAwaitingReview = creativeResult.value;
+  if (growthReviewResult.status === "fulfilled") growthAssessmentsNeedingReview = growthReviewResult.value;
+  if (growthCorrectionResult.status === "fulfilled") growthAssessmentsNeedingCorrection = growthCorrectionResult.value;
+  if (growthCampaignResult.status === "fulfilled") growthCampaignsNeedingAttention = growthCampaignResult.value;
+  if (growthOfficialRequirementResult.status === "fulfilled") growthOfficialRequirementsPending = growthOfficialRequirementResult.value;
+
+  // Advisor: bounded, idempotent refresh (write) then a read. The refresh only ever runs for a
+  // real staff actor — owner_bootstrap has no roster identity to attribute the write to, so a
+  // bootstrap session falls back to the read-only path (existing signals only, none newly
+  // detected this load). See app/lib/business/advisor/refresh.ts.
+  let advisorEnabled = false;
+  let advisorSignals: Awaited<ReturnType<typeof listActiveSignalsForStaffAttention>> = [];
+  let advisorUnavailable = false;
+  try {
+    advisorEnabled = await isAdvisorEnabled();
+    if (advisorEnabled) {
+      const writeAccess = toStaffWriteActor(access.actor);
+      if (writeAccess.ok && homeScopeBusinessIds.length > 0) {
+        try {
+          await refreshAdvisorSignalsForWorkspaceScope(homeScopeBusinessIds, writeAccess.actor);
+        } catch {
+          // Refresh is best-effort — a scan failure must never block the page from loading
+          // existing signals below.
+        }
+      }
+      advisorSignals = await listActiveSignalsForStaffAttention();
+    }
+  } catch {
+    advisorSignals = [];
+    advisorUnavailable = true;
+  }
+
+  const followUpEntries: StaffConciergeAttentionEntry[] = home.attentionBusinesses.map((item) => ({
+    businessId: item.businessId,
+    displayName: item.displayName,
+    reasonLabel: STAFF_ATTENTION_REASON_LABELS[item.reason],
+    detailText: item.followUpDate,
+    href: `/admin/businesses/${item.businessId}#outreach`,
+  }));
+  const commitmentEntries: StaffConciergeAttentionEntry[] = commitmentsAttention.map((row) => ({
+    businessId: row.businessId,
+    displayName: row.displayName,
+    reasonLabel: row.reason === "blocked" ? "Blocked commitment" : "Overdue commitment",
+    detailText: row.titleEn || null,
+    href: `/admin/businesses/${row.businessId}#promises`,
+  }));
+  const proposalEntries: StaffConciergeAttentionEntry[] = proposalsAwaitingDecision.map((row) => ({
+    businessId: row.businessId,
+    displayName: row.displayName,
+    reasonLabel: "Proposal awaiting client decision",
+    detailText: `v${row.version}${row.reviewDate ? ` · review ${row.reviewDate}` : ""}`,
+    href: `/admin/businesses/${row.businessId}#proposals`,
+  }));
+  const creativeEntries: StaffConciergeAttentionEntry[] = creativeAwaitingReview.map((row) => ({
+    businessId: row.businessId,
+    displayName: row.displayName,
+    reasonLabel: "Creative awaiting review",
+    detailText: row.status === "owner_review" ? "Waiting on client" : "Waiting on staff review",
+    href: `/admin/businesses/${row.businessId}#creative`,
+  }));
+  const meetingSoonCutoff = Date.now() + 48 * 60 * 60 * 1000;
+  const meetingEntries: StaffConciergeAttentionEntry[] = upcomingMeetings
+    .filter((row) => new Date(row.scheduledAt).getTime() <= meetingSoonCutoff)
+    .map((row) => ({
+      businessId: row.businessId,
+      displayName: row.displayName,
+      reasonLabel: "Upcoming meeting",
+      detailText: new Date(row.scheduledAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }),
+      href: `/admin/businesses/${row.businessId}#meetings`,
+    }));
+  const ADVISOR_ONLY_ATTENTION_TYPES = new Set<AdvisorSignalType>(["UNRESOLVED_CONTRADICTION", "STALE_CRITICAL_TRUTH", "OUTCOME_REVIEW_DUE"]);
+  const advisorOnlyEntries: StaffConciergeAttentionEntry[] = advisorSignals
+    .filter((row) => ADVISOR_ONLY_ATTENTION_TYPES.has(row.signalType))
+    .map((row) => ({
+      businessId: row.businessId,
+      displayName: row.displayName,
+      reasonLabel: row.titleEn,
+      detailText: null,
+      href: `/admin/businesses/${row.businessId}${advisorSignalDashboardAnchor(row.signalType)}`,
+    }));
+  const missingInfoEntries: StaffConciergeAttentionEntry[] = home.missingInformation.map((item) => ({
+    businessId: item.businessId,
+    displayName: item.displayName,
+    reasonLabel: item.missingLabel,
+    detailText: `${item.completenessMet}/${item.completenessTotal} complete`,
+    href: `/admin/businesses/${item.businessId}#overview`,
+  }));
+  const growthAssessmentEntries: StaffConciergeAttentionEntry[] = growthAssessmentsNeedingReview.map((row) => ({
+    businessId: row.businessId,
+    displayName: row.displayName,
+    reasonLabel: "Growth assessment needs review",
+    detailText: new Date(row.createdAt).toLocaleDateString("en-US"),
+    href: `/admin/businesses/${row.businessId}#growth-plan`,
+  }));
+  // Gate D (MD Part 12) — three more Growth Engine attention sources, same bounded/capped/
+  // read-only pattern as growthAssessmentEntries above. Overdue Growth-sourced Promise Keeper
+  // commitments deliberately have NO entry here — a real commitment created through the Gate D
+  // commitment-request bridge already resurfaces via the EXISTING commitmentEntries above (Promise
+  // Keeper's own canonical overdue/blocked query); a second, Growth-scoped overdue-commitment query
+  // would itself be the prohibited "second attention engine".
+  const growthCorrectionEntries: StaffConciergeAttentionEntry[] = growthAssessmentsNeedingCorrection.map((row) => ({
+    businessId: row.businessId,
+    displayName: row.displayName,
+    reasonLabel: "Growth assessment needs correction",
+    detailText: new Date(row.createdAt).toLocaleDateString("en-US"),
+    href: `/admin/businesses/${row.businessId}#growth-plan`,
+  }));
+  const growthCampaignAttentionEntries: StaffConciergeAttentionEntry[] = growthCampaignsNeedingAttention.map((row) => ({
+    businessId: row.businessId,
+    displayName: row.displayName,
+    reasonLabel: row.status === "needs_client_input" ? "Growth campaign needs client input" : "Growth campaign ready for review",
+    detailText: new Date(row.updatedAt).toLocaleDateString("en-US"),
+    href: `/admin/businesses/${row.businessId}#growth-plan`,
+  }));
+  const growthOfficialRequirementEntries: StaffConciergeAttentionEntry[] = growthOfficialRequirementsPending.map((row) => ({
+    businessId: row.businessId,
+    displayName: row.displayName,
+    reasonLabel: "Official requirement needs verification",
+    detailText: row.requirementTopicEn,
+    href: `/admin/businesses/${row.businessId}#growth-plan`,
+  }));
+
+  const needsAttention = composeNeedsAttentionList([
+    followUpEntries,
+    commitmentEntries,
+    proposalEntries,
+    creativeEntries,
+    meetingEntries,
+    advisorOnlyEntries,
+    missingInfoEntries,
+    growthAssessmentEntries,
+    growthCorrectionEntries,
+    growthCampaignAttentionEntries,
+    growthOfficialRequirementEntries,
+  ]);
+
+  return (
+    <div className="max-w-6xl space-y-6">
+      <StaffCommandCenter
+        os={staffOs}
+        home={home}
+        summaryUnavailable={summaryUnavailable}
+        needsAttention={needsAttention}
+        ownerHandoff={ownerHandoff}
+        ownerHandoffUnavailable={ownerHandoffUnavailable}
+        advisorSignals={advisorSignals}
+        advisorUnavailable={advisorUnavailable}
+        advisorEnabled={advisorEnabled}
+        proposalsAwaitingDecision={proposalsAwaitingDecision}
+        upcomingMeetings={upcomingMeetings}
+        commitmentsAttention={commitmentsAttention}
+        creativeAwaitingReview={creativeAwaitingReview}
+      />
+
+      <section id="businesses-inventory" className="space-y-4 scroll-mt-4">
+        <div>
+          <h2 className="text-sm font-bold uppercase tracking-[0.14em] text-[#8A6B1F]">Businesses</h2>
+          <p className="mt-1 text-xs text-[#7A7164]">
+            Confirmed Business Identity records — find a business, see what&apos;s missing, and prepare for contact.
+          </p>
+        </div>
+
+        {action ? (
+          <div role="status" className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#C9A84A]/60 bg-[#FBF7EF] px-4 py-3">
+            <p className="text-sm text-[#1E1810]">
+              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8A6B1F]">Acción seleccionada / Selected action · </span>
+              <span className="font-semibold">{conciergeActionLabel(action)}</span>
+              <span className="text-xs text-[#7A7164]"> — elige un negocio abajo para continuar. / pick a business below to continue.</span>
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Link href={`/admin/businesses/canvass?intent=${action}`} className="text-xs font-semibold text-[#7A1E2C] underline">Negocio nuevo / New business</Link>
+              <Link href="/admin/businesses" className="text-xs font-semibold text-[#7A7164] underline">Cancelar / Cancel</Link>
+            </div>
+          </div>
+        ) : null}
+
+      {/* Filters — plain GET form so every view is a shareable/refreshable URL. */}
+      <form method="get" className="rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] p-4">
+        {action ? <input type="hidden" name="action" value={action} /> : null}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <label htmlFor="q" className="block text-xs font-semibold text-[#3D3428]">
+              Keyword
+            </label>
+            <input id="q" name="q" defaultValue={sp.q ?? ""} placeholder="Business name…" className="mt-1 min-h-[40px] w-full rounded-lg border border-[#E8DFD0] px-3 py-1.5 text-sm" />
+          </div>
+          <div>
+            <label htmlFor="category" className="block text-xs font-semibold text-[#3D3428]">
+              Category
+            </label>
+            <select id="category" name="category" defaultValue={sp.category ?? ""} className="mt-1 min-h-[40px] w-full rounded-lg border border-[#E8DFD0] bg-white px-2 py-1.5 text-sm">
+              <option value="">Any</option>
+              {BROAD_BUSINESS_TYPES.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.en}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="stage" className="block text-xs font-semibold text-[#3D3428]">
+              Stage
+            </label>
+            <select id="stage" name="stage" defaultValue={sp.stage ?? ""} className="mt-1 min-h-[40px] w-full rounded-lg border border-[#E8DFD0] bg-white px-2 py-1.5 text-sm">
+              <option value="">Any</option>
+              {BUSINESS_STAGES.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.en}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="country" className="block text-xs font-semibold text-[#3D3428]">
+              Country
+            </label>
+            <select id="country" name="country" defaultValue={sp.country ?? ""} className="mt-1 min-h-[40px] w-full rounded-lg border border-[#E8DFD0] bg-white px-2 py-1.5 text-sm">
+              <option value="">Any</option>
+              {countryOptions.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.en}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="status" className="block text-xs font-semibold text-[#3D3428]">
+              Status
+            </label>
+            <select id="status" name="status" defaultValue={sp.status ?? ""} className="mt-1 min-h-[40px] w-full rounded-lg border border-[#E8DFD0] bg-white px-2 py-1.5 text-sm">
+              <option value="">Any</option>
+              {BUSINESS_SALES_STATUSES.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.en}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col justify-end gap-1 text-xs font-semibold text-[#3D3428]">
+            <label className="flex min-h-[32px] items-center gap-1.5">
+              <input type="checkbox" name="hasPhone" value="true" defaultChecked={sp.hasPhone === "true"} className="h-4 w-4" /> Has phone
+            </label>
+            <label className="flex min-h-[32px] items-center gap-1.5">
+              <input type="checkbox" name="hasWhatsapp" value="true" defaultChecked={sp.hasWhatsapp === "true"} className="h-4 w-4" /> Has WhatsApp
+            </label>
+          </div>
+          <div className="flex flex-col justify-end gap-1 text-xs font-semibold text-[#3D3428]">
+            <label className="flex min-h-[32px] items-center gap-1.5">
+              <input type="checkbox" name="hasEmail" value="true" defaultChecked={sp.hasEmail === "true"} className="h-4 w-4" /> Has email
+            </label>
+            <label className="flex min-h-[32px] items-center gap-1.5">
+              <input type="checkbox" name="hasWebsite" value="true" defaultChecked={sp.hasWebsite === "true"} className="h-4 w-4" /> Has website
+            </label>
+          </div>
+          <div className="flex flex-col justify-end gap-2">
+            <label className="flex min-h-[32px] items-center gap-1.5 text-xs font-semibold text-[#3D3428]">
+              <input type="checkbox" name="hasAds" value="true" defaultChecked={sp.hasAds === "true"} className="h-4 w-4" /> Has connected ad
+            </label>
+            <div className="flex gap-2">
+              <button type="submit" className="min-h-[40px] flex-1 rounded-lg bg-[#7A1E2C] px-3 py-1.5 text-xs font-bold text-white">
+                Apply filters
+              </button>
+              {activeFilterCount > 0 || sp.q ? (
+                <Link
+                  href={action ? `/admin/businesses?action=${action}#businesses-inventory` : "/admin/businesses"}
+                  className="flex min-h-[40px] items-center justify-center rounded-lg border border-[#E8DFD0] px-3 py-1.5 text-xs font-semibold text-[#3D3428]"
+                >
+                  Clear all
+                </Link>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </form>
+
+      <p className="text-xs text-[#7A7164]">
+        {total} business{total === 1 ? "" : "es"} found.
+      </p>
+
+      {/* Mobile: cards. Desktop: table. No horizontal scroll on mobile. */}
+      <ul className="space-y-3 lg:hidden">
+        {items.map((item) => (
+          <li key={item.business.id}>
+            <Link
+              href={resolveConciergeActionDestination(action, item.business.id)}
+              className="block rounded-2xl border border-[#E8DFD0] bg-white p-4 shadow-sm"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="break-words text-sm font-bold text-[#1E1810]">{item.business.displayName}</p>
+                  {item.business.publicName ? <p className="break-words text-xs text-[#7A7164]">{item.business.publicName}</p> : null}
+                </div>
+                <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${statusBadgeClass(item.salesStatus)}`}>
+                  {labelFrom(BUSINESS_SALES_STATUSES, item.salesStatus, "en")}
+                </span>
+              </div>
+              <p className="mt-2 text-xs text-[#5C5346]">
+                {labelFrom(BROAD_BUSINESS_TYPES, item.business.broadBusinessType, "en")} · {labelFrom(BUSINESS_STAGES, item.business.businessStage, "en")}
+              </p>
+              <p className="mt-1 text-xs text-[#7A7164]">
+                {item.primaryCountry ? countryLabel(item.primaryCountry, "en") : "—"}
+                {item.primaryCity ? ` · ${item.primaryCity}` : ""}
+              </p>
+              <p className="mt-2 text-[11px] text-[#7A7164]">
+                {item.completenessMet}/{item.completenessTotal} complete · {item.connectedAdCount} ad{item.connectedAdCount === 1 ? "" : "s"}
+                {item.nextFollowUpDate ? ` · Follow-up ${item.nextFollowUpDate}` : ""}
+              </p>
+            </Link>
+          </li>
+        ))}
+        {items.length === 0 ? <li className="rounded-2xl border border-dashed border-[#E8DFD0] p-6 text-center text-sm text-[#7A7164]">No businesses match these filters.</li> : null}
+      </ul>
+
+      <div className="hidden overflow-x-auto rounded-2xl border border-[#E8DFD0] bg-white lg:block">
+        <table className="w-full min-w-[900px] border-collapse text-left text-sm">
+          <thead>
+            <tr className="border-b border-[#E8DFD0] bg-[#FAF7F2] text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">
+              <th className="px-4 py-3">Business</th>
+              <th className="px-4 py-3">Category / stage</th>
+              <th className="px-4 py-3">Location</th>
+              <th className="px-4 py-3">Ads</th>
+              <th className="px-4 py-3">Complete</th>
+              <th className="px-4 py-3">Follow-up</th>
+              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3">Updated</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item) => (
+              <tr key={item.business.id} className="border-b border-[#F3EBDD] last:border-b-0 hover:bg-[#FAF7F2]/60">
+                <td className="px-4 py-3">
+                  <Link href={resolveConciergeActionDestination(action, item.business.id)} className="font-semibold text-[#1E1810] hover:underline">
+                    {item.business.displayName}
+                  </Link>
+                </td>
+                <td className="px-4 py-3 text-xs text-[#5C5346]">
+                  {labelFrom(BROAD_BUSINESS_TYPES, item.business.broadBusinessType, "en")}
+                  <br />
+                  {labelFrom(BUSINESS_STAGES, item.business.businessStage, "en")}
+                </td>
+                <td className="px-4 py-3 text-xs text-[#5C5346]">
+                  {item.primaryCountry ? countryLabel(item.primaryCountry, "en") : "—"}
+                  {item.primaryCity ? `, ${item.primaryCity}` : ""}
+                </td>
+                <td className="px-4 py-3 text-xs text-[#5C5346]">{item.connectedAdCount}</td>
+                <td className="px-4 py-3 text-xs text-[#5C5346]">
+                  {item.completenessMet}/{item.completenessTotal}
+                </td>
+                <td className="px-4 py-3 text-xs text-[#5C5346]">{item.nextFollowUpDate ?? "—"}</td>
+                <td className="px-4 py-3">
+                  <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${statusBadgeClass(item.salesStatus)}`}>{labelFrom(BUSINESS_SALES_STATUSES, item.salesStatus, "en")}</span>
+                </td>
+                <td className="px-4 py-3 text-xs text-[#7A7164]">{new Date(item.business.updatedAt).toLocaleDateString("en-US")}</td>
+              </tr>
+            ))}
+            {items.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="px-4 py-8 text-center text-sm text-[#7A7164]">
+                  No businesses match these filters.
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      </div>
+      </section>
+    </div>
+  );
+}

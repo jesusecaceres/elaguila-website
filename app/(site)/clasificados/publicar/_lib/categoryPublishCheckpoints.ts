@@ -34,16 +34,58 @@ export type PublishCheckpointCardData = {
   disabled?: boolean;
 };
 
-function monthlyPrice(packageKey: string, category: string): string {
+/**
+ * Gate COMIDA-LOCAL-1 — the price is matrix-derived and always was; the CADENCE was not. This
+ * helper hardcoded "/mes" with no `lang` parameter at all, so the ENGLISH checkpoint of every
+ * monthly category (Comida Local, Restaurantes, Servicios, Autos dealer, BR agent, Viajes)
+ * rendered e.g. "$129/mes" at the decision point. This is the real, live, customer-facing
+ * instance of that defect — the cards these getters return ARE what the selector clients
+ * render.
+ *
+ * The price itself stays authoritative from `revenuePricingMatrix`: nothing here formats,
+ * rounds, or hardcodes an amount.
+ */
+function monthlyPrice(packageKey: string, category: string, lang: PublishCheckpointLang): string {
   const { priceCents } = getRevenuePackagePriceCents({ category, packageKey });
   if (priceCents == null) return "—";
-  return `${formatRevenuePriceLabel(priceCents)}/mes`;
+  return `${formatRevenuePriceLabel(priceCents)}${lang === "en" ? "/month" : "/mes"}`;
 }
 
-function oneTimePrice(packageKey: string, category: string, days: number): string {
-  const { priceCents } = getRevenuePackagePriceCents({ category, packageKey });
+/**
+ * Gate BIENES-PRIVADO-2 — the same class of defect `monthlyPrice` carried above, in the
+ * one-time lane: this helper had NO `lang` parameter at all and hardcoded the Spanish `días`,
+ * so the ENGLISH checkpoint of every fixed-term category rendered e.g. "$49.99 / 45 días" at
+ * the decision point. It is live customer-facing copy on five cards across four categories
+ * (Autos Privado, Rentas Privado, Rentas Negocio's matrix cross-check bullet, Bienes Privado
+ * and Empleos paid), and the same fix repairs all of them at once.
+ *
+ * Duration authority is IMPROVED, not merely preserved. Callers previously passed the day
+ * count as a literal argument that could silently drift from the product; the count is now read
+ * from the same `revenuePricingMatrix` definition that supplies the price, so a re-termed
+ * product changes in exactly one place. `fallbackDays` is a last-resort guard for a matrix
+ * entry with no `durationDays`, and every current caller's fallback equals the matrix value
+ * (autos_privado_30d 30, rentas_30d 30, br_fsbo_45d 45, empleos_job_post_paid 30) — verified,
+ * so this change is display-identical in Spanish and repairs the English.
+ *
+ * The amount itself stays authoritative from the matrix: nothing here formats, rounds, or
+ * hardcodes a price.
+ */
+function oneTimePrice(
+  packageKey: string,
+  category: string,
+  lang: PublishCheckpointLang,
+  fallbackDays?: number,
+): string {
+  const { priceCents, definition } = getRevenuePackagePriceCents({ category, packageKey });
   if (priceCents == null) return "—";
-  return `${formatRevenuePriceLabel(priceCents)} / ${days} días`;
+  const amount = formatRevenuePriceLabel(priceCents);
+  const days =
+    typeof definition?.durationDays === "number" && definition.durationDays > 0
+      ? definition.durationDays
+      : fallbackDays ?? null;
+  // A package with no real duration says only the price, rather than inventing a term.
+  if (days == null) return amount;
+  return `${amount} / ${days} ${lang === "en" ? "days" : "días"}`;
 }
 
 function isPromoEligible(packageKey: string): boolean {
@@ -59,7 +101,7 @@ export function getRestaurantesCheckpointCards(
   const couponAddon = es
     ? "Cupones y ofertas destacadas incluidos sin costo adicional."
     : "Featured coupons and offers included at no extra cost.";
-  const establishedPrice = monthlyPrice("restaurantes_base_monthly", "restaurantes");
+  const establishedPrice = monthlyPrice("restaurantes_base_monthly", "restaurantes", lang);
   // Comida Local is its own category with its own real price (comida_local_base_monthly) — this
   // card is a cross-link to that canonical product for a visitor browsing the Restaurantes
   // selector, never a separate Restaurantes-priced product. It must show the real current Comida
@@ -68,7 +110,7 @@ export function getRestaurantesCheckpointCards(
   // routed into /publicar/restaurantes?product=mobile_food_vendor, whose checkout always charged
   // the real Restaurantes $399/mo base price regardless of that display — a real price-mismatch
   // defect, not a legitimate Restaurantes product tier.
-  const comidaLocalPrice = monthlyPrice("comida_local_base_monthly", "comida-local");
+  const comidaLocalPrice = monthlyPrice("comida_local_base_monthly", "comida-local", lang);
 
   return [
     {
@@ -165,7 +207,7 @@ export function getServiciosCheckpointCard(
   applicationHref: string,
 ): PublishCheckpointCardData {
   const es = lang === "es";
-  const price = monthlyPrice("servicios_base_monthly", "servicios");
+  const price = monthlyPrice("servicios_base_monthly", "servicios", lang);
   return {
     id: "servicios_profesionales",
     variant: "paid",
@@ -217,8 +259,8 @@ export function getAutosCheckpointCards(
   negociosHref: string,
 ): PublishCheckpointCardData[] {
   const es = lang === "es";
-  const privadoPrice = oneTimePrice("autos_privado_30d", "autos", 30);
-  const dealerPrice = monthlyPrice("autos_dealer_monthly", "autos");
+  const privadoPrice = oneTimePrice("autos_privado_30d", "autos", lang, 30);
+  const dealerPrice = monthlyPrice("autos_dealer_monthly", "autos", lang);
   const upgradeDef = getRevenuePackageDefinition("autos_dealer_inventory_pack_monthly");
   const upgradePrice = upgradeDef ? formatRevenuePriceLabel(upgradeDef.priceCents) : "$129";
 
@@ -299,7 +341,7 @@ export function getRentasPrivadoCheckpointCard(
   privadoHref: string,
 ): PublishCheckpointCardData {
   const es = lang === "es";
-  const price = oneTimePrice("rentas_30d", "rentas", 30);
+  const price = oneTimePrice("rentas_30d", "rentas", lang, 30);
   return {
     id: "rentas_privado",
     variant: "paid",
@@ -341,7 +383,7 @@ export function getRentasNegocioCheckpointCard(
 ): PublishCheckpointCardData {
   const es = lang === "es";
   const pricePerListing = es ? "$24.99 / 30 días por anuncio" : "$24.99 / 30 days per listing";
-  const matrixPrice = oneTimePrice("rentas_30d", "rentas", 30);
+  const matrixPrice = oneTimePrice("rentas_30d", "rentas", lang, 30);
   return {
     id: "rentas_negocio",
     variant: "paid",
@@ -386,8 +428,8 @@ export function getBienesRaicesCheckpointCards(
   negocioHref: string,
 ): PublishCheckpointCardData[] {
   const es = lang === "es";
-  const agentPrice = monthlyPrice("br_agent_monthly", "bienes-raices");
-  const fsboPrice = oneTimePrice("br_fsbo_45d", "bienes-raices", 45);
+  const agentPrice = monthlyPrice("br_agent_monthly", "bienes-raices", lang);
+  const fsboPrice = oneTimePrice("br_fsbo_45d", "bienes-raices", lang, 45);
   const packPrice = formatRevenuePriceLabel(
     getRevenuePackageDefinition("br_inventory_pack_monthly")?.priceCents ?? 9900,
   );
@@ -458,7 +500,7 @@ export function getEmpleosPaidCheckpointCard(
   quickHref: string,
 ): PublishCheckpointCardData {
   const es = lang === "es";
-  const price = oneTimePrice(EMPLEOS_JOB_POST_PAID_PACKAGE_KEY, "empleos", 30);
+  const price = oneTimePrice(EMPLEOS_JOB_POST_PAID_PACKAGE_KEY, "empleos", lang, 30);
   return {
     id: "empleos_paid",
     variant: "paid",
@@ -741,7 +783,7 @@ export function getEnVentaCheckpointCard(lang: PublishCheckpointLang, proHref: s
 
 export function getComidaLocalCheckpointCard(lang: PublishCheckpointLang, applicationHref: string): PublishCheckpointCardData {
   const es = lang === "es";
-  const price = monthlyPrice("comida_local_base_monthly", "comida-local");
+  const price = monthlyPrice("comida_local_base_monthly", "comida-local", lang);
   return {
     id: "comida_local_pipeline",
     variant: "paid",
@@ -783,7 +825,7 @@ export function getViajesCheckpointCards(
   privadoHref: string,
 ): PublishCheckpointCardData[] {
   const es = lang === "es";
-  const businessPrice = monthlyPrice("viajes_business_monthly", "viajes");
+  const businessPrice = monthlyPrice("viajes_business_monthly", "viajes", lang);
   return [
     {
       id: "viajes_negocios",

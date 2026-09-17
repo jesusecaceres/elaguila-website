@@ -12,6 +12,11 @@ import type {
 } from "@/app/lib/translation/types";
 import type { TranslateAdRequest } from "@/app/lib/translation/provider";
 import {
+  buildDetectionSample,
+  planUnknownSourceTranslation,
+} from "@/app/lib/translation/unknownSourcePolicy";
+import {
+  detectAdLanguageWithConfiguredProvider,
   isTranslationProviderConfigured,
   isUnsupportedProviderEnv,
   translateAdWithConfiguredProvider,
@@ -30,6 +35,8 @@ const ALLOWED_FIELD_KEYS: ReadonlySet<TranslatableAdFieldKey> = new Set([
   "highlights",
   "body",
   "shareText",
+  "locationNote",
+  "financeTeaser",
 ]);
 
 
@@ -165,8 +172,39 @@ export async function POST(request: NextRequest) {
   // G4: server cache adapter in serverCache.ts — durable storage when translation_records exists.
 
   try {
-    const result = await translateAdWithConfiguredProvider(parsed);
-    return NextResponse.json(result);
+    // Known-source callers (Autos, Restaurantes, Rentas, …) keep their exact prior direction.
+    if (parsed.sourceLocale !== "unknown") {
+      const result = await translateAdWithConfiguredProvider(parsed);
+      return NextResponse.json(result);
+    }
+
+    // Servicios Live Launch Perfection ⚠️16 (2026-09-13) — unknown-source contract: detect the
+    // content language; content already in the requested target is translated into the opposite
+    // active language instead of echoed back. The provider + durable cache run under the EFFECTIVE
+    // direction; the response keeps the requested locales and adds the effective ones additively.
+    let detected: ContentLocale = "unknown";
+    try {
+      detected = await detectAdLanguageWithConfiguredProvider(buildDetectionSample(parsed.maskedFields));
+    } catch (e) {
+      if (e instanceof TranslationProviderNotConfiguredError || e instanceof TranslationProviderUnsupportedError) {
+        throw e;
+      }
+      // A transient detection failure degrades to the pre-policy behaviour (provider auto-detect).
+      detected = "unknown";
+    }
+    const plan = planUnknownSourceTranslation(parsed.targetLocale, detected);
+    const result = await translateAdWithConfiguredProvider({
+      ...parsed,
+      sourceLocale: plan.sourceLocale,
+      targetLocale: plan.targetLocale,
+    });
+    return NextResponse.json({
+      ...result,
+      sourceLocale: parsed.sourceLocale,
+      targetLocale: parsed.targetLocale,
+      detectedSourceLocale: plan.detectedSourceLocale,
+      effectiveTargetLocale: plan.targetLocale,
+    });
   } catch (e) {
     if (e instanceof TranslationProviderNotConfiguredError) {
       return NextResponse.json({ error: e.message }, { status: 503 });

@@ -1,4 +1,5 @@
 import { parseInquiryType, type InquiryType } from "@/app/lib/leonix/inquiryTypes";
+import { isPromotionalLeadRow } from "@/app/admin/_lib/adminNavOps";
 
 export const LEONIX_MEDIA_KIT_PDF_URL =
   "https://leonixmedia.com/media-kit/leonix-media-kit-es.pdf";
@@ -56,7 +57,14 @@ export function detectLeadReplyKind(row: LeadReplyInput): LeadReplyKind {
   const inquiry = parseInquiryType(row.inquiry_type) as InquiryType;
   if (inquiry === "mediaKit") return "mediaKit";
   if (inquiry === "advertising") return "advertising";
-  if (inquiry === "promotionalProducts" || row.source_cta === "promo_quote") return "promoPrint";
+  // GATE 1 (promo-lead duplicate-truth consolidation): was its own hand-duplicated
+  // exact-match check (inquiry === "promotionalProducts" || source_cta ===
+  // "promo_quote") — now the same canonical classifier the Launch Leads inbox's
+  // "Promocionales" view and the dashboard tile both use, so a lead that the inbox
+  // considers promotional always gets the promo reply template too.
+  if (isPromotionalLeadRow({ inquiry_type: row.inquiry_type, source_cta: row.source_cta, source_page: row.source_page, message: row.message })) {
+    return "promoPrint";
+  }
   const hay = `${row.message} ${row.source_page} ${row.source_cta}`.toLowerCase();
   if (inquiry === "launch" || /magazine|revista|magazin/.test(hay)) return "magazine";
   return "general";

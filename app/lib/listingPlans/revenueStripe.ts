@@ -47,6 +47,13 @@ export type CreateRevenueCheckoutSessionInput = {
    * null).
    */
   verifiedIntroDiscountStripeCouponId?: string | null;
+  /**
+   * ⚠️35 (2026-09-14) — finite-term contract promo Stripe coupon id (`duration:"repeating"`,
+   * `duration_in_months` = contract term), subscription mode only. Same rule as the intro coupon:
+   * the line item stays FULL price; Stripe applies the discount for the term and then drops it by
+   * itself. Mutually exclusive with the intro coupon (checkout rejects stacking with 409).
+   */
+  contractTermStripeCouponId?: string | null;
 };
 
 export type CreateRevenueCheckoutSessionResult =
@@ -65,6 +72,30 @@ function getStripeClient(): Stripe | null {
   const secret = getStripeSecretKey();
   if (!secret) return null;
   return new Stripe(secret, { typescript: true });
+}
+
+/**
+ * Forensic audit (post-Gate-20, System Health / Gate 18b) — the prior System Health check for
+ * Stripe fell through to config-presence-only whenever no recent webhook rows existed, which
+ * cannot distinguish "no traffic yet" from "the API key is dead/revoked." `balance.retrieve()` is
+ * Stripe's own documented safe, read-only, side-effect-free call (no money movement, no object
+ * created or modified) — exactly the kind of "safe non-transactional Stripe health/config test"
+ * this audit asked for. Timeout-guarded and best-effort: a slow or unreachable Stripe must never
+ * meaningfully delay System Health, so any failure here falls back to the existing config-presence
+ * signal rather than blocking or reporting a false negative.
+ */
+export async function checkStripeApiKeyLive(timeoutMs = 2500): Promise<{ ok: boolean; error?: string }> {
+  const stripe = getStripeClient();
+  if (!stripe) return { ok: false, error: "not_configured" };
+  try {
+    // Stripe's own SDK-native per-request timeout (RequestOptions.timeout, milliseconds) — no
+    // manual AbortController needed; the SDK aborts and rejects on its own past this deadline.
+    await stripe.balance.retrieve({}, { timeout: timeoutMs });
+    return { ok: true };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "unknown_error";
+    return { ok: false, error: message.slice(0, 200) };
+  }
 }
 
 /**
@@ -159,6 +190,13 @@ export async function createRevenueStripeCheckoutSession(
     ...(input.consentRecordId ? { leonix_consent_record_id: input.consentRecordId } : {}),
   };
 
+  // Package C Build 2 (C4) — verified-intro-15%, subscription mode only. A server-attached
+  // discounts array (never a customer-typed promotion_code) applying a duration:"once" coupon so
+  // the subscription's line-item price remains full and renewal is automatically full price.
+  // ⚠️35 — a finite-term contract promo rides the same server-attached discounts array with a
+  // duration:"repeating" coupon (never both coupons: the route rejects stacking first).
+  const serverAttachedCouponId = input.verifiedIntroDiscountStripeCouponId || input.contractTermStripeCouponId;
+
   const sessionParams = {
     mode: input.stripeMode,
     line_items: stripeLineItems,
@@ -166,14 +204,13 @@ export async function createRevenueStripeCheckoutSession(
     cancel_url: input.cancelUrl,
     metadata: metadataPayload,
     client_reference_id: input.clientReferenceId,
-    allow_promotion_codes: false,
-    // Package C Build 2 (C4) — verified-intro-15%, subscription mode only. A server-attached
-    // discounts array (never a customer-typed promotion_code — allow_promotion_codes stays
-    // false) applying a duration:"once" coupon so the subscription's line-item price remains
-    // full and renewal is automatically full price.
-    ...(input.verifiedIntroDiscountStripeCouponId
-      ? { discounts: [{ coupon: input.verifiedIntroDiscountStripeCouponId }] }
-      : {}),
+    // Proven root cause of a production 500 here: Stripe's Checkout Session API rejects
+    // `allow_promotion_codes` and `discounts` being specified together — even when
+    // allow_promotion_codes is `false` — with "You may only specify one of these parameters:
+    // allow_promotion_codes, discounts." allow_promotion_codes is therefore omitted entirely
+    // whenever a server-attached discount coupon is present; only one of the two keys ever
+    // reaches Stripe on the same request.
+    ...(serverAttachedCouponId ? { discounts: [{ coupon: serverAttachedCouponId }] } : { allow_promotion_codes: false }),
     ...(input.customerEmail?.trim()
       ? { customer_email: input.customerEmail.trim() }
       : {}),
@@ -188,9 +225,33 @@ export async function createRevenueStripeCheckoutSession(
     ? { idempotencyKey: `${attemptKey}:${Math.max(1, input.attemptGeneration ?? 1)}` }
     : undefined;
 
-  const session = requestOptions
-    ? await stripe.checkout.sessions.create(sessionParams, requestOptions)
-    : await stripe.checkout.sessions.create(sessionParams);
+  // Gate 5 error-boundary repair (2026-09-15) — this call was previously unguarded: any Stripe
+  // rejection (proven live: "allow_promotion_codes, discounts" mutual-exclusion error on a
+  // discounted subscription) threw all the way past this function and past the route handler,
+  // producing a raw, empty HTTP 500 instead of the structured failure every other Revenue OS
+  // Stripe call already returns. Logged diagnostics are the same safe, non-sensitive fields used
+  // by the coupon helpers — never the error message, never a key or secret.
+  let session: Stripe.Checkout.Session;
+  try {
+    session = requestOptions
+      ? await stripe.checkout.sessions.create(sessionParams, requestOptions)
+      : await stripe.checkout.sessions.create(sessionParams);
+  } catch (createErr) {
+    const err = createErr as { type?: string; code?: string; statusCode?: number; requestId?: string; param?: string } | null;
+    console.error("[createRevenueStripeCheckoutSession] stripe_error", {
+      stage: "checkout.sessions.create",
+      type: err?.type ?? null,
+      code: err?.code ?? null,
+      statusCode: err?.statusCode ?? null,
+      requestId: err?.requestId ?? null,
+      param: err?.param ?? null,
+    });
+    return {
+      ok: false,
+      code: "stripe_session_create_failed",
+      message: "Stripe could not create the checkout session. Please retry.",
+    };
+  }
 
   if (!session.url || !session.id) {
     return {

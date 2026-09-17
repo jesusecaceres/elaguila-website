@@ -19,8 +19,22 @@ import {
   logComidaLocalInventoryFailure,
 } from "./comidaLocalPublicInventoryErrors";
 import type { ComidaLocalServiceOption } from "./comidaLocalTypes";
+import {
+  COMIDA_LOCAL_PUBLIC_STATUS_PUBLISHED as PUBLISHED_STATUS,
+  filterComidaLocalPublicRows as applyComidaLocalPublicFilters,
+} from "./comidaLocalPublicFilter";
 
-export const COMIDA_LOCAL_PUBLIC_STATUS_PUBLISHED = "published" as const;
+/**
+ * Gate COMIDA-LOCAL-2 — the pure inclusion filter, its URL parser and the published-status
+ * constant now live in `comidaLocalPublicFilter.ts` so the Saved Search matcher can run the REAL
+ * filter without importing `server-only`. They are re-exported here so every existing import site
+ * (the results page, the detail route, this module's own reader) is unchanged.
+ */
+export {
+  COMIDA_LOCAL_PUBLIC_STATUS_PUBLISHED,
+  filterComidaLocalPublicRows,
+  parseComidaLocalResultsSearchParams,
+} from "./comidaLocalPublicFilter";
 
 export const COMIDA_LOCAL_PUBLIC_LISTING_SELECT =
   "id, slug, leonix_ad_id, status, package_tier, payment_status, published_at, business_name, food_type, food_type_custom, city_canonical, city_display, zone_note, que_vendes, phone, whatsapp, instagram_url, facebook_url, tiktok_url, location_note, location_url, availability_note, service_options, payment_methods, payment_other_note, price_level, languages, main_photo, logo_image, gallery_images, listing_json";
@@ -34,67 +48,6 @@ function normalizeRow(raw: Record<string, unknown>): ComidaLocalPublicListingRow
 function parseStringArray(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
   return raw.filter((v): v is string => typeof v === "string").map((s) => s.trim()).filter(Boolean);
-}
-
-function matchesQuery(row: ComidaLocalPublicListingRow, q: string): boolean {
-  const needle = q.trim().toLowerCase();
-  if (!needle) return true;
-  const hay = [
-    row.business_name,
-    row.que_vendes,
-    row.food_type,
-    row.food_type_custom ?? "",
-    row.city_display,
-    row.city_canonical ?? "",
-    row.zone_note ?? "",
-  ]
-    .join(" ")
-    .toLowerCase();
-  return hay.includes(needle);
-}
-
-function applyFilters(rows: ComidaLocalPublicListingRow[], filters: ComidaLocalResultsFilters): ComidaLocalPublicListingRow[] {
-  return rows.filter((row) => {
-    if (filters.q && !matchesQuery(row, filters.q)) return false;
-
-    if (filters.city) {
-      const cityNeedle = filters.city.trim().toLowerCase();
-      const cityHay = `${row.city_display} ${row.city_canonical ?? ""}`.toLowerCase();
-      if (!cityHay.includes(cityNeedle)) return false;
-    }
-
-    if (filters.foodType) {
-      const ft = filters.foodType.trim().toLowerCase();
-      if ((row.food_type ?? "").toLowerCase() !== ft) return false;
-    }
-
-    if (filters.service) {
-      const services = parseStringArray(row.service_options);
-      if (!services.includes(filters.service)) return false;
-    }
-
-    if (filters.priceLevel) {
-      if ((row.price_level ?? "").trim() !== filters.priceLevel.trim()) return false;
-    }
-
-    return true;
-  });
-}
-
-export function parseComidaLocalResultsSearchParams(
-  sp: Record<string, string | string[] | undefined> | undefined
-): ComidaLocalResultsFilters {
-  const one = (k: string) => {
-    const v = sp?.[k];
-    return typeof v === "string" ? v.trim() : Array.isArray(v) ? String(v[0] ?? "").trim() : "";
-  };
-  return {
-    q: one("q"),
-    city: one("city"),
-    foodType: one("foodType"),
-    service: one("service"),
-    priceLevel: one("priceLevel"),
-  };
 }
 
 type ComidaLocalPublicReadChannel = "anon_rls" | "admin";
@@ -123,7 +76,7 @@ async function fetchAllPublishedRows(): Promise<
     const { data, error } = await client.supabase
       .from("comida_local_public_listings")
       .select(COMIDA_LOCAL_PUBLIC_LISTING_SELECT)
-      .eq("status", COMIDA_LOCAL_PUBLIC_STATUS_PUBLISHED)
+      .eq("status", PUBLISHED_STATUS)
       .order("published_at", { ascending: false })
       .limit(FETCH_CAP);
 
@@ -172,7 +125,7 @@ export async function listPublishedComidaLocalListings(
     };
   }
 
-  const filtered = applyFilters(fetched.rows, filters);
+  const filtered = applyComidaLocalPublicFilters(fetched.rows, filters);
   return { rows: filtered, source: "published" };
 }
 
@@ -188,7 +141,7 @@ export async function getPublishedComidaLocalListingBySlug(
       .from("comida_local_public_listings")
       .select(COMIDA_LOCAL_PUBLIC_LISTING_SELECT)
       .eq("slug", s)
-      .eq("status", COMIDA_LOCAL_PUBLIC_STATUS_PUBLISHED)
+      .eq("status", PUBLISHED_STATUS)
       .maybeSingle();
     if (error || !data) return null;
     return normalizeRow(data as Record<string, unknown>);

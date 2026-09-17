@@ -172,9 +172,9 @@ function OfertasLocalesOwnerDashboardPageContent() {
             locationLine ? { label: t.location, value: locationLine } : null,
             datesLine ? { label: t.dates, value: datesLine } : null,
             { label: t.publicTerm, value: publicTerm },
-            nextAction ? { label: t.next, value: nextAction } : null,
-            item.rejectionNote ? { label: t.rejection, value: item.rejectionNote } : null,
-          ].filter((x): x is { label: string; value: string } => x !== null);
+            nextAction ? { label: t.next, value: nextAction, wide: true } : null,
+            item.rejectionNote ? { label: t.rejection, value: item.rejectionNote, wide: true } : null,
+          ].filter((x): x is { label: string; value: string; wide?: boolean } => x !== null);
 
           const quickActions: ActionItem[] = [];
           if (item.publicResultsHref && isLiveCapability(capabilities.identity.publicView)) {

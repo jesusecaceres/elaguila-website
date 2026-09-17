@@ -9,10 +9,12 @@ import { getBearerUserId } from "@/app/api/clasificados/_lib/bearerUser";
 import {
   applyBrLifecycleMutation,
   BR_LIFECYCLE_AUTH_REQUIRED_ERROR,
+  BR_LIFECYCLE_CAPACITY_LIMIT_ERROR,
   BR_LIFECYCLE_MUTATION_KEYS,
   type BrLifecycleErrorCode,
   type BrLifecycleMutationKey,
 } from "@/app/lib/clasificados/bienes-raices/brListingLifecycleService";
+import { brCapacityOwnerFeedback } from "@/app/lib/clasificados/bienes-raices/brCapacityOwnerFeedback";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -74,7 +76,34 @@ export async function POST(request: NextRequest) {
 
   const result = await applyBrLifecycleMutation({ listingId, bearerUserId, mutation: body.mutation });
   if (!result.ok) {
-    return NextResponse.json({ ok: false, code: result.error }, { status: statusForError(result.error) });
+    // Gate BIENES-NEGOCIO-1 — a capacity/lifecycle rejection must explain itself. The owner-safe
+    // copy is rendered from the SERVER's own reason and counts (`brCapacityOwnerFeedback` never
+    // counts rows or derives a limit, and only offers the inventory boost when the caller proves
+    // it is purchasable — which this route does not claim, so it never upsells here).
+    const capacity =
+      result.capacityReason || result.error === BR_LIFECYCLE_CAPACITY_LIMIT_ERROR
+        ? {
+            capacityReason: result.capacityReason ?? null,
+            activeCount: result.activeCount ?? null,
+            effectiveLimit: result.effectiveLimit ?? null,
+            owner: brCapacityOwnerFeedback({
+              reason: result.capacityReason ?? "capacity_reached",
+              lang: "es",
+              activeCount: result.activeCount ?? null,
+              effectiveLimit: result.effectiveLimit ?? null,
+            }),
+            ownerEn: brCapacityOwnerFeedback({
+              reason: result.capacityReason ?? "capacity_reached",
+              lang: "en",
+              activeCount: result.activeCount ?? null,
+              effectiveLimit: result.effectiveLimit ?? null,
+            }),
+          }
+        : null;
+    return NextResponse.json(
+      { ok: false, code: result.error, ...(capacity ? capacity : {}) },
+      { status: statusForError(result.error) },
+    );
   }
   return NextResponse.json({ ok: true, id: result.id, status: result.status, isPublished: result.isPublished });
 }
