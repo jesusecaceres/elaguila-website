@@ -22,11 +22,26 @@ function to12hLabel(h: number, m: number): string {
   return `${h12}:${mm} ${ampm}`;
 }
 
+/**
+ * Owner lock (2026-09-17): "Día"/"Day" is the hours editor's generic add-row placeholder
+ * (`newDayPlaceholder` in autosNegociosCopy.ts) — never a real weekday or a dealer's own custom
+ * label. A row whose day is still exactly that placeholder means the dealer added the row and
+ * never actually set a day, so it's incomplete legacy data, not buyer-facing hours. A genuine
+ * dealer-typed custom label (e.g. "Fines de semana") never equals this literal token and always
+ * still renders — only this specific fossil value is dropped.
+ */
+const RAW_DAY_PLACEHOLDER_TOKENS = new Set(["dia", "day"]);
+
+function isPlaceholderDayLabel(day: string): boolean {
+  return RAW_DAY_PLACEHOLDER_TOKENS.has(normalizeDayToken(day));
+}
+
 export function filterDealerHoursForDisplay(hours: DealerHoursEntry[] | undefined): DealerHoursEntry[] {
   const list = hours ?? [];
   return list.filter((row) => {
     const day = row.day?.trim();
     if (!day) return false;
+    if (isPlaceholderDayLabel(day)) return false;
     if (row.closed) return true;
     const o = parseHHMM(row.open ?? "");
     const c = parseHHMM(row.close ?? "");

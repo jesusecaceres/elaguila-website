@@ -578,15 +578,12 @@ function AutosNegociosPreviewInner({
         >
           {(displayListing, translateControl, adDisplayLang) => (
             <AutosNegociosPreviewLocaleProvider lang={normalizeAutosNegociosLang(adDisplayLang)} manageDocumentTitle={false}>
-              {/* translateControl renders as the first content in this branch (no chrome
-                  precedes it) — the global Navbar is `fixed`, so without this clearance the
-                  control sits underneath it, invisible and unclickable. */}
-              {translateControl ? <div className="pt-20">{translateControl}</div> : null}
               <AutosNegociosDealershipPreviewPage
                 data={displayListing}
                 editBackHref={editBackHref}
                 publicUrl={canonicalPublicUrl}
                 canonicalListingId={canonicalPublicUrl ? canonicalListingId : undefined}
+                translateControl={translateControl}
               />
             </AutosNegociosPreviewLocaleProvider>
           )}
@@ -634,13 +631,13 @@ function AutosNegociosPreviewInner({
                   <div className={`mx-auto ${autosPreviewPageMaxWidthClass} px-4 md:px-6 lg:px-8`}>
                     <AutosNegociosResultsCardPreview lang={adDisplayLang} listing={displayListing} additionalCount={additionalCount} />
                   </div>
-                  {translateControl}
                   <AutosNegociosDealershipPreviewPage
                     data={displayListing}
                     embeddedInShell
                     draftPreviewMode
                     relatedPreviewOnly
                     heroSpecItems={viewModel.heroSpecItems}
+                    translateControl={translateControl}
                   />
                   <AutosNegociosPreviewInventorySection
                     lang={adDisplayLang}

@@ -17,6 +17,7 @@ import {
 import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
 import { AutosDirectContactLink } from "@/app/clasificados/autos/shared/components/AutosDirectContactLink";
 import { buildSendEmailIntent, CtaActionSheet } from "@/app/components/cta";
+import { buildAutosContactEmailBody } from "@/app/lib/clasificados/autos/autosContactEmailBody";
 import type { CtaSheetIntent } from "@/app/components/cta/types";
 import {
   autosAnalyticsTrackMeta,
@@ -86,7 +87,12 @@ export function DealerFinanceContact({
       buildSendEmailIntent({
         email: emailFromMailtoHref(email),
         subject: name ? `Leonix · ${name}` : "Leonix",
-        body: "",
+        body: buildAutosContactEmailBody({
+          lang,
+          recipientName: name,
+          vehicleTitle: data.vehicleTitle,
+          intent: "finance",
+        }),
       }),
     );
   };

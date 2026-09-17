@@ -301,7 +301,16 @@ check("⚠️16 provider/types: detection is additive; result type gains only op
   const types = raw("app/lib/translation/types.ts");
   assert.ok(types.includes("detectedSourceLocale?: ContentLocale;") && types.includes("effectiveTargetLocale?: Locale;"));
   const control = raw("app/components/translation/TranslateAdControl.tsx");
-  assert.ok(control.includes("targetLocale: siteLocale,") && control.includes("cached.targetLocale === siteLocale"), "shared control unchanged — requested target still drives it");
+  // Autos Live Owner-QA (2026-09-17): known-source categories (Autos) now resolve their own
+  // requested target (flips to the opposite locale when the known source already equals
+  // siteLocale — see knownSourceTargetLocale) instead of blindly targeting siteLocale. Servicios
+  // is unaffected: it is always unknown-source, and `requestedTargetLocale` reduces to exactly
+  // `siteLocale` on that path, byte-identical to the pre-2026-09-17 behavior this check pins.
+  assert.ok(
+    control.includes("const requestedTargetLocale = isUnknownSource ? siteLocale : knownSourceTargetLocale;"),
+    "unknown-source (Servicios) requested target must still reduce to siteLocale",
+  );
+  assert.ok(control.includes("cached.targetLocale === requestedTargetLocale"), "cache replay check must use the same resolved target");
 });
 check("⚠️16 canvas + profile view: the translated overlay actually renders", () => {
   const canvas = raw("app/(site)/servicios/components/ServiciosPublicDetailsCanvas.tsx");

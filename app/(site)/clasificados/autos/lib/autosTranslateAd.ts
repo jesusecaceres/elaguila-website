@@ -1,7 +1,6 @@
 import {
   normalizeLocale,
   pickTranslatableAdFields,
-  shouldOfferTranslateAd,
 } from "@/app/lib/translation/helpers";
 import type { ContentLocale, Locale, TranslatableAdFields } from "@/app/lib/translation/types";
 import type { AutoDealerListing, DealerCustomLink, DealerSpecialHoursRow } from "../negocios/types/autoDealerListing";
@@ -135,15 +134,19 @@ export function hasAutosTranslatableProse(content: unknown): boolean {
   return Object.keys(pickTranslatableAdFields(content)).length > 0;
 }
 
+/**
+ * Owner lock (2026-09-17): source content language and translation offer are independent —
+ * a Spanish-authored ad on the Spanish site still offers "Translate to English" (matching
+ * Servicios' doctrine, which always offers once there's real prose). `listingLang` no longer
+ * gates visibility here; it still drives which direction `TranslateAdControl` actually
+ * translates into (see its `knownSourceTargetLocale` logic).
+ */
 export function shouldOfferAutosTranslateAd(
   siteLocale: Locale,
-  listingLang: ContentLocale,
+  _listingLang: ContentLocale,
   translatableContent: unknown,
 ): boolean {
   if (!hasAutosTranslatableProse(translatableContent)) return false;
-  if (listingLang === "es" || listingLang === "en") {
-    return shouldOfferTranslateAd({ siteLocale, originalLocale: listingLang });
-  }
   return siteLocale === "es" || siteLocale === "en";
 }
 

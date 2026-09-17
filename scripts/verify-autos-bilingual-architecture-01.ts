@@ -34,6 +34,10 @@ import { buildAutosGalleryMediaSets } from "../app/lib/clasificados/autos/autosG
 import { mapInheritedDealerPreviewListing } from "../app/lib/clasificados/autos/autosInventoryInheritedPreview";
 import type { AutosAdditionalInventoryVehicleDraft } from "../app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 import type { AutoDealerListing } from "../app/(site)/clasificados/autos/negocios/types/autoDealerListing";
+import { shouldOfferAutosTranslateAd } from "../app/(site)/clasificados/autos/lib/autosTranslateAd";
+import { filterDealerHoursForDisplay } from "../app/(site)/clasificados/autos/negocios/lib/dealerHoursDisplay";
+import { buildAutosContactEmailBody } from "../app/lib/clasificados/autos/autosContactEmailBody";
+import { oppositeActiveTranslateLocale } from "../app/lib/translation/unknownSourcePolicy";
 
 const failures: string[] = [];
 function check(name: string, fn: () => void) {
@@ -389,31 +393,31 @@ check("AutosListingTranslationLayer's render-prop exposes adDisplayLang as its 3
   assert.ok(/children:\s*\(\s*displayListing[^,]*,\s*translateControl[^,]*,\s*adDisplayLang:/.test(src));
   assert.ok(src.includes("return <>{children(displayListing, translateControl, adDisplayLang)}</>;"));
 });
-check("live vehicle client (negocios): outer chrome stays on siteLocale, a fresh provider nested at the render-prop carries adDisplayLang around translateControl + the full detail page", () => {
+check("live vehicle client (negocios): outer chrome stays on siteLocale, a fresh provider nested at the render-prop carries adDisplayLang around the full detail page, with translateControl threaded through as a prop (2026-09-17 placement fix: no longer a standalone page-top sibling)", () => {
   const src = raw("app/(site)/clasificados/autos/vehiculo/[id]/AutosLiveVehicleClient.tsx");
   assert.ok(
     /<AutosNegociosPreviewLocaleProvider lang=\{lang\} manageDocumentTitle=\{false\}>[\s\S]*?<AutosListingTranslationLayer/.test(src),
     "outer wrapper (site chrome: Leonix Ad ID label, back-to-results link) must stay keyed on siteLocale",
   );
   assert.ok(
-    /\(displayListing, translateControl, adDisplayLang\) => \(\s*<AutosNegociosPreviewLocaleProvider lang=\{normalizeAutosNegociosLang\(adDisplayLang\)\}[\s\S]*?\{translateControl\}[\s\S]*?<AutosNegociosDealershipPreviewPage/.test(
+    /\(displayListing, translateControl, adDisplayLang\) => \(\s*<AutosNegociosPreviewLocaleProvider lang=\{normalizeAutosNegociosLang\(adDisplayLang\)\}[\s\S]*?<AutosNegociosDealershipPreviewPage[\s\S]*?translateControl=\{translateControl\}[\s\S]*?\/>\s*<\/AutosNegociosPreviewLocaleProvider>/.test(
       src,
     ),
-    "nested provider must wrap both the translate control and the full dealership preview page",
+    "nested provider must wrap the full dealership preview page, and translateControl must be passed into it (still inside the adDisplayLang-scoped provider, not the outer siteLocale one)",
   );
 });
-check("live vehicle client (privado): the same nested-provider pattern applies with the Privado provider", () => {
+check("live vehicle client (privado): the same nested-provider pattern applies with the Privado provider, translateControl threaded through as a prop", () => {
   const src = raw("app/(site)/clasificados/autos/vehiculo/[id]/AutosLiveVehicleClient.tsx");
   assert.ok(
-    /\(displayListing, translateControl, adDisplayLang\) => \(\s*<AutosPrivadoPreviewLocaleProvider lang=\{normalizeAutosNegociosLang\(adDisplayLang\)\}[\s\S]*?\{translateControl\}[\s\S]*?<AutoPrivadoPreviewPage/.test(
+    /\(displayListing, translateControl, adDisplayLang\) => \(\s*<AutosPrivadoPreviewLocaleProvider lang=\{normalizeAutosNegociosLang\(adDisplayLang\)\}[\s\S]*?<AutoPrivadoPreviewPage[\s\S]*?translateControl=\{translateControl\}[\s\S]*?\/>\s*<\/AutosPrivadoPreviewLocaleProvider>/.test(
       src,
     ),
   );
 });
-check("parent Preview canonical-active branch nests a fresh provider on adDisplayLang around translateControl + the detail page", () => {
+check("parent Preview canonical-active branch nests a fresh provider on adDisplayLang around the detail page, with translateControl threaded through as a prop", () => {
   const src = raw("app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx");
   assert.ok(
-    /\(displayListing, translateControl, adDisplayLang\) => \(\s*<AutosNegociosPreviewLocaleProvider lang=\{normalizeAutosNegociosLang\(adDisplayLang\)\}[\s\S]*?\{translateControl\}[\s\S]*?<AutosNegociosDealershipPreviewPage\s+data=\{displayListing\}\s+editBackHref=\{editBackHref\}/.test(
+    /\(displayListing, translateControl, adDisplayLang\) => \(\s*<AutosNegociosPreviewLocaleProvider lang=\{normalizeAutosNegociosLang\(adDisplayLang\)\}[\s\S]*?<AutosNegociosDealershipPreviewPage\s+data=\{displayListing\}\s+editBackHref=\{editBackHref\}[\s\S]*?translateControl=\{translateControl\}[\s\S]*?\/>\s*<\/AutosNegociosPreviewLocaleProvider>/.test(
       src,
     ),
   );
@@ -428,11 +432,11 @@ check("parent Preview draft-capture branch moves the results card, related-inven
   assert.ok(/lang=\{adDisplayLang\}[\s\S]*parentListing=\{displayListing\}/.test(block) || block.includes("lang={adDisplayLang}\n            parentListing={displayListing}"));
   assert.ok(block.includes("<AutosNegociosPreviewPromiseStrip lang={adDisplayLang}"), "bottom nav must be inside the same block");
 });
-check("child inventory overlay nests its own adDisplayLang provider inside the outer session-lang chrome provider", () => {
+check("child inventory overlay nests its own adDisplayLang provider inside the outer session-lang chrome provider, with translateControl threaded through as a prop", () => {
   const src = raw("app/(site)/publicar/autos/negocios/components/AutosNegociosChildInventoryPreviewOverlay.tsx");
   assert.ok(/<AutosNegociosPreviewLocaleProvider lang=\{lang\}>[\s\S]*<AutosListingTranslationLayer/.test(src), "outer chrome provider stays on the plain session lang");
   assert.ok(
-    /\(displayListing, translateControl, adDisplayLangRaw\) => \{[\s\S]*?<AutosNegociosPreviewLocaleProvider lang=\{adDisplayLang\}[\s\S]*?\{translateControl\}[\s\S]*?<AutosNegociosDealershipPreviewPage/.test(
+    /\(displayListing, translateControl, adDisplayLangRaw\) => \{[\s\S]*?<AutosNegociosPreviewLocaleProvider lang=\{adDisplayLang\}[\s\S]*?<AutosNegociosDealershipPreviewPage[\s\S]*?translateControl=\{translateControl\}[\s\S]*?\/>\s*<\/AutosNegociosPreviewLocaleProvider>/.test(
       src,
     ),
   );
@@ -651,14 +655,16 @@ check("the lane cross-nav card's fallback lane label reuses the single canonical
  * unclickable). Fixed by wrapping just those 3 broken renders in a `pt-20` clearance div — the
  * two branches that already have real chrome above translateControl (draft-capture Preview,
  * child inventory overlay's own modal header) are untouched, since they were never broken. ---- */
-check("the 3 render-prop branches where translateControl is the first content each give it pt-20 clearance from the fixed global Navbar", () => {
-  const liveClient = raw("app/(site)/clasificados/autos/vehiculo/[id]/AutosLiveVehicleClient.tsx");
-  const previewClient = raw("app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx");
+check("2026-09-17 placement fix superseded the old page-top pt-20 nav-clearance hack: translateControl no longer renders as bare first-page content anywhere, because it now renders inside each hero card (already below the fixed global Navbar/chrome) — see the Gate 1 placement checks below for the replacement contract", () => {
   const navbar = raw("app/components/Navbar.tsx");
-  assert.ok(navbar.includes('className="fixed top-0 left-0 z-50 w-full overflow-visible"'), "sanity: the global Navbar really is fixed/out-of-flow, so first-content clearance is a real requirement");
-  const occurrences = (liveClient.match(/\{translateControl \? <div className="pt-20">\{translateControl\}<\/div> : null\}/g) ?? []).length;
-  assert.equal(occurrences, 2, "both live-vehicle branches (negocios + privado) must wrap translateControl with clearance");
-  assert.ok(previewClient.includes('{translateControl ? <div className="pt-20">{translateControl}</div> : null}'), "the Preview canonical-active branch must wrap translateControl with clearance");
+  assert.ok(navbar.includes('className="fixed top-0 left-0 z-50 w-full overflow-visible"'), "sanity: the global Navbar really is fixed/out-of-flow — still true, just no longer relevant to translateControl placement");
+  for (const file of [
+    "app/(site)/clasificados/autos/vehiculo/[id]/AutosLiveVehicleClient.tsx",
+    "app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx",
+    "app/(site)/publicar/autos/negocios/components/AutosNegociosChildInventoryPreviewOverlay.tsx",
+  ]) {
+    assert.ok(!raw(file).includes('<div className="pt-20">{translateControl}</div>'), `${file}: the old pt-20 hack must be fully gone`);
+  }
 });
 
 /* --- Gate 10: accessibility — ad-local aria-labels ride the same shared-context lang as visible text --- */
@@ -1277,6 +1283,135 @@ check("Gate D: ad-local accessibility copy (gallery aria-labels, finance/contact
   assert.ok(gallery.includes('ariaLabel={lang === "es" ? "Galería del vehículo" : "Vehicle gallery"}'));
   const navbar = raw("app/components/Navbar.tsx");
   assert.ok(!navbar.includes("adDisplayLang"), "global Navbar must never consume the ad-local adDisplayLang");
+});
+
+/* ================================================================================================
+ * LIVE OWNER-QA BLOCKER CLOSEOUT (2026-09-17) — Gates 1-9 from real authenticated owner QA.
+ * ============================================================================================ */
+
+/* --- Gate 1: Translate control offered independent of source==site match; direction flips ------ */
+check("Gate 1: Translate is offered even when the known ad language equals the site language (Spanish ad + Spanish site) — the Servicios doctrine, not a source!=site gate", () => {
+  const content = { description: "Un auto excelente en buen estado." };
+  assert.equal(shouldOfferAutosTranslateAd("es", "es", content), true, "same-language Spanish/Spanish must now offer translate");
+  assert.equal(shouldOfferAutosTranslateAd("en", "en", content), true, "same-language English/English must now offer translate");
+  assert.equal(shouldOfferAutosTranslateAd("en", "es", content), true, "cross-language case must still offer translate (unchanged)");
+});
+check("Gate 1: Translate is never offered with no real prose, regardless of locale match", () => {
+  assert.equal(shouldOfferAutosTranslateAd("es", "es", {}), false);
+});
+check("Gate 1: TranslateAdControl resolves a known-source, same-as-site translation target to the OPPOSITE active locale (never an es->es or en->en no-op request)", () => {
+  const src = raw("app/components/translation/TranslateAdControl.tsx");
+  assert.ok(src.includes("const knownSourceTargetLocale = useMemo((): Locale => {"), "must compute a real known-source target resolver");
+  assert.ok(
+    src.includes('return originalLocale === siteLocale ? oppositeActiveTranslateLocale(siteLocale) : siteLocale;'),
+    "same-as-site known source must flip to the opposite locale; a differing known source must still target siteLocale (unchanged)",
+  );
+  assert.ok(src.includes("targetLocale: requestedTargetLocale"), "the actual network request must use the resolved target, not a hardcoded siteLocale");
+  assert.ok(!src.includes("targetLocale: siteLocale,\n      });"), "the old hardcoded siteLocale-only request must be gone");
+});
+check("Gate 1: oppositeActiveTranslateLocale is a real ES<->EN flip (reused from the existing Servicios retargeting policy, not reinvented)", () => {
+  assert.equal(oppositeActiveTranslateLocale("es"), "en");
+  assert.equal(oppositeActiveTranslateLocale("en"), "es");
+});
+check("Gate 1 placement: the shared Dealer hero (AutosNegociosDealershipPreviewPage) renders translateControl directly above the title block, inside the ad's own hero card — never a page-top element", () => {
+  const src = raw("app/(site)/clasificados/autos/negocios/preview/dealershipPreview/AutosNegociosDealershipPreviewPage.tsx");
+  const heroIdx = src.indexOf('id={AUTOS_PREVIEW_SECTION_IDS.hero}');
+  const slotIdx = src.indexOf('data-autos-translate-ad-slot="1"');
+  const titleIdx = src.indexOf('data-autos-unified-canvas-header="1"');
+  assert.ok(heroIdx > -1 && slotIdx > -1 && titleIdx > -1, "all three anchors must exist");
+  assert.ok(heroIdx < slotIdx && slotIdx < titleIdx, "translate slot must sit between the hero section start and the title block");
+});
+check("Gate 1 placement: every Dealer Preview/published-detail caller passes translateControl into the shared hero instead of rendering it as a standalone page-top element", () => {
+  for (const file of [
+    "app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx",
+    "app/(site)/clasificados/autos/vehiculo/[id]/AutosLiveVehicleClient.tsx",
+    "app/(site)/publicar/autos/negocios/components/AutosNegociosChildInventoryPreviewOverlay.tsx",
+  ]) {
+    const src = raw(file);
+    assert.ok(src.includes("translateControl={translateControl}"), `${file}: must pass translateControl into AutosNegociosDealershipPreviewPage`);
+    assert.ok(!src.includes('<div className="pt-20">{translateControl}</div>'), `${file}: the old page-top nav-clearance hack must be gone`);
+  }
+});
+check("Gate 1 placement: the Privado live-detail (AutoPrivadoPreviewPage) accepts and renders translateControl above its title, matching the Dealer hero contract", () => {
+  const page = raw("app/(site)/clasificados/autos/privado/components/AutoPrivadoPreviewPage.tsx");
+  assert.ok(page.includes("translateControl?: ReactNode;"));
+  const slotIdx = page.indexOf('data-autos-translate-ad-slot="1"');
+  const titleIdx = page.indexOf("{/* Title and location row */}");
+  assert.ok(slotIdx > -1 && titleIdx > -1 && slotIdx < titleIdx, "translate slot must render before the title row");
+  const liveClient = raw("app/(site)/clasificados/autos/vehiculo/[id]/AutosLiveVehicleClient.tsx");
+  assert.ok(liveClient.includes("<AutoPrivadoPreviewPage") && /AutoPrivadoPreviewPage[\s\S]{0,300}translateControl=\{translateControl\}/.test(liveClient));
+});
+
+/* --- Gate 2: child Dealer Preview reuses the exact parent premium shell ------------------------- */
+check("Gate 2: the child inventory Preview overlay renders the SAME premium Business Hub shell as the parent draft Preview (embeddedInShell + draftPreviewMode), not the bare relatedPreviewOnly-only render that silently dropped the premium hub header/contact grid/price block", () => {
+  const overlay = raw("app/(site)/publicar/autos/negocios/components/AutosNegociosChildInventoryPreviewOverlay.tsx");
+  const callIdx = overlay.indexOf("<AutosNegociosDealershipPreviewPage");
+  const callSlice = overlay.slice(callIdx, overlay.indexOf("/>", callIdx));
+  assert.ok(callSlice.includes("embeddedInShell"), "must avoid a second nested AutoDealerPreviewChrome inside the overlay's own dialog chrome");
+  assert.ok(callSlice.includes("draftPreviewMode"), "must restore parity with the parent draft Preview's premium hub");
+  assert.ok(callSlice.includes("relatedPreviewOnly"), "related-card non-navigation behavior must be preserved");
+});
+
+/* --- Gate 3: bottom Share always exists, truthfully reflecting availability --------------------- */
+check("Gate 3: AutosNegociosEndOfContentShare never silently disappears — with no real listing id it renders a truthful, disabled 'available after publish' state instead of returning null", () => {
+  const src = raw("app/(site)/clasificados/autos/negocios/components/AutosNegociosEndOfContentShare.tsx");
+  assert.ok(!/if \(!sourceId\) return null;/.test(src), "the old hard null-return must be gone");
+  assert.ok(src.includes('data-autos-end-of-content-share-unavailable="1"'), "must render a distinguishable unavailable state");
+  assert.ok(src.includes("disabled") && src.includes('aria-disabled="true"'), "the unavailable state's button must be genuinely non-interactive, never a fake-looking active Share button");
+  assert.ok(!src.includes('href="mailto:') && !src.includes("window.location.origin"), "must never fabricate a public URL when none exists");
+});
+check("Gate 3: the shared Dealer hero always renders AutosNegociosEndOfContentShare unconditionally — availability is the component's own responsibility, not a per-caller gate", () => {
+  const src = raw("app/(site)/clasificados/autos/negocios/preview/dealershipPreview/AutosNegociosDealershipPreviewPage.tsx");
+  assert.ok(src.includes("<AutosNegociosEndOfContentShare"));
+  assert.ok(!/\{.*&&\s*<AutosNegociosEndOfContentShare/.test(src), "must not be wrapped in a boolean-gate that hides the whole section");
+});
+
+/* --- Gate 5: email default message body uses real listing identity, never a bare empty body ----- */
+check("Gate 5: buildAutosContactEmailBody matches the owner's exact finance example copy (ES/EN)", () => {
+  const es = buildAutosContactEmailBody({
+    lang: "es",
+    recipientName: "Elena Morales",
+    vehicleTitle: "2021 Lexus RX 350 F Sport",
+    intent: "finance",
+  });
+  assert.equal(es, "Hola Elena Morales,\nme interesa conocer las opciones de financiamiento para\n2021 Lexus RX 350 F Sport en Leonix.");
+  const en = buildAutosContactEmailBody({
+    lang: "en",
+    recipientName: "Elena Morales",
+    vehicleTitle: "2021 Lexus RX 350 F Sport",
+    intent: "finance",
+  });
+  assert.equal(en, "Hello Elena Morales,\nI'm interested in financing options for the\n2021 Lexus RX 350 F Sport listing on Leonix.");
+});
+check("Gate 5: buildAutosContactEmailBody never fabricates a recipient name or vehicle title it wasn't given", () => {
+  const body = buildAutosContactEmailBody({ lang: "es", intent: "dealer" });
+  assert.equal(body, "Hola,\nme interesa este anuncio publicado en Leonix.");
+});
+check("Gate 5: every Autos 'Correo' openEmail/openFinanceEmail call site builds a real default body instead of a hardcoded empty string", () => {
+  for (const file of [
+    "app/(site)/clasificados/autos/negocios/components/DealerFinanceContact.tsx",
+    "app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewDealerBusinessStack.tsx",
+    "app/(site)/clasificados/autos/negocios/components/DealerBusinessStack.tsx",
+  ]) {
+    const src = raw(file);
+    assert.ok(src.includes("buildAutosContactEmailBody("), `${file}: must call the shared default-body builder`);
+    assert.ok(!/body:\s*""\s*,/.test(src), `${file}: the old hardcoded empty body must be gone`);
+  }
+});
+
+/* --- Gate 9: "Día"/"Day" placeholder hours rows never reach buyer-facing display ----------------- */
+check("Gate 9: a row whose day is still the raw add-row placeholder ('Día'/'Day') is dropped from buyer-facing display — incomplete legacy data, not real hours", () => {
+  const rows = filterDealerHoursForDisplay([
+    { day: "Día", open: "09:00", close: "17:00", closed: false },
+    { day: "Day", open: "09:00", close: "17:00", closed: false },
+    { day: "Lunes", open: "09:00", close: "18:00", closed: false },
+  ]);
+  assert.equal(rows.length, 1, "only the real weekday row should survive");
+  assert.equal(rows[0]?.day, "Lunes");
+});
+check("Gate 9: a dealer's genuine free-typed custom day label (never the literal placeholder) still renders — the fix must not punish the legitimate custom-label feature", () => {
+  const rows = filterDealerHoursForDisplay([{ day: "Fines de semana", open: "10:00", close: "14:00", closed: false }]);
+  assert.equal(rows.length, 1, "a real custom label must survive the filter");
 });
 
 if (failures.length) {

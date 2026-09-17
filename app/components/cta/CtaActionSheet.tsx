@@ -69,7 +69,8 @@ const COPY = {
     recipientOptional: "Sin destinatario fijo: se abrirá tu app de correo con este borrador.",
     openGmail: "Abrir en Gmail",
     emailCopyFirstHint: "Copia el correo o el mensaje y pégalo en la app que prefieras.",
-    openEmailAppHint: "Puede abrir Outlook u otra app de correo predeterminada.",
+    openEmailAppHint:
+      "Puede abrir Outlook u otra app de correo predeterminada. Si no se abre nada, usa \"Copiar mensaje completo\" o \"Compartir con otras apps\" arriba — son las opciones más confiables.",
     prefilledMessage: "Mensaje",
     sendWhatsApp: "Enviar por WhatsApp",
     sendSms: "Enviar por SMS",
@@ -137,7 +138,8 @@ const COPY = {
     recipientOptional: "No fixed recipient — your mail app opens with this draft.",
     openGmail: "Open in Gmail",
     emailCopyFirstHint: "Copy the email or message and paste it into the app you prefer.",
-    openEmailAppHint: "This may open Outlook or another default email app.",
+    openEmailAppHint:
+      "This may open Outlook or another default email app. If nothing opens, use \"Copy full message\" or \"Share with other apps\" above — those are the most reliable options.",
     prefilledMessage: "Message",
     sendWhatsApp: "Send via WhatsApp",
     sendSms: "Send via SMS",
