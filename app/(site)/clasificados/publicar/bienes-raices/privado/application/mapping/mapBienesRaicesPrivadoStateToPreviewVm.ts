@@ -107,13 +107,6 @@ function row(label: string, value: string): BienesRaicesPreviewFact | null {
   return { label, value: v };
 }
 
-/** Hide optional half-baths when empty or explicitly zero (avoid noisy "0" in preview). */
-function rowOptionalCount(label: string, raw: string): BienesRaicesPreviewFact | null {
-  const t = trim(raw);
-  if (!t || t === "0") return null;
-  return row(label, prettifyPlainNumber(raw));
-}
-
 function operationSummaryFor(cat: BienesRaicesPrivadoFormState["categoriaPropiedad"]): string {
   if (cat === "residencial") return "Venta residencial";
   if (cat === "comercial") return "Venta comercial";
