@@ -81,6 +81,47 @@ function contextToForm(business: NonNullable<IdentityGetResponse["business"]>, c
   };
 }
 
+/**
+ * LIVE QA BLOCKER 01 (Gate 5) — actionable, per-field save messages. Identifies the affected
+ * area without leaking raw SQL/schema internals (the server's `error` string, e.g. a Postgres
+ * constraint name, is intentionally never shown to staff — logged server-side only).
+ */
+const FIELD_LABEL_ES_EN: Record<string, string> = {
+  business: "La información básica del negocio / Basic business info",
+  "business.displayName": "El nombre del negocio / Business name",
+  "business.broadBusinessType": "El tipo de negocio / Business type",
+  "contacts.phone": "El teléfono / Phone",
+  "contacts.whatsapp": "WhatsApp",
+  "contacts.email": "El correo / Email",
+  "contacts.website": "El sitio web / Website",
+  address: "La dirección / Address",
+  serviceAreaText: "El área de servicio / Service area",
+  "socials.instagram": "Instagram",
+  "socials.facebook": "Facebook",
+  "socials.tiktok": "TikTok",
+  "socials.youtube": "YouTube",
+  "socials.linkedin": "LinkedIn",
+  "socials.x": "X (Twitter)",
+  "socials.google_business": "Google Business Profile",
+  "socials.yelp": "Yelp",
+};
+
+function fieldLabel(field: string): string {
+  return FIELD_LABEL_ES_EN[field] ?? field;
+}
+
+function describeFieldErrors(fields: string[], kind: "invalid" | "not_saved"): string {
+  const labels = fields.map(fieldLabel);
+  if (kind === "invalid") {
+    return labels.length === 1
+      ? `${labels[0]} no es válido/a. / ${labels[0]} is not valid.`
+      : `Estos campos no son válidos: ${labels.join(", ")}. / These fields are not valid: ${labels.join(", ")}.`;
+  }
+  return labels.length === 1
+    ? `${labels[0]} no se pudo guardar. Los demás cambios sí se guardaron. / ${labels[0]} could not be saved. The other changes were saved.`
+    : `Estos campos no se pudieron guardar: ${labels.join(", ")}. Los demás cambios sí se guardaron. / These fields could not be saved: ${labels.join(", ")}. The other changes were saved.`;
+}
+
 function Field({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
   return (
     <label className="block">
@@ -161,10 +202,57 @@ export function BusinessInformationEditorClient({ businessId, businessName }: { 
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    const data = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+    const data = (await res.json().catch(() => null)) as {
+      ok?: boolean;
+      error?: string;
+      fieldErrors?: { field: string; error: string }[];
+      partial?: boolean;
+      savedSections?: string[];
+      failedSections?: { field: string; error: string }[];
+      business?: IdentityGetResponse["business"];
+      context?: BusinessApplicationContext;
+    } | null;
     setSaving(false);
+
+    // LIVE QA BLOCKER 01 (Gate 4/5) — field-level validation failure, zero writes attempted.
+    if (!res.ok && data?.error === "validation_failed" && data.fieldErrors?.length) {
+      setSaveError(describeFieldErrors(data.fieldErrors.map((e) => e.field), "invalid"));
+      return;
+    }
     if (!res.ok || !data?.ok) {
       setSaveError(humanizeStaffWriteError(data?.error, "No se pudo guardar. Intenta de nuevo. / Could not save. Try again."));
+      return;
+    }
+
+    // Truthful reconciliation: whatever actually persisted is reflected in the form immediately,
+    // whether this was a full success or a partial one — never a guess about what's really saved.
+    const freshContext = data.context;
+    if (freshContext) {
+      setForm((f) => ({
+        ...f,
+        phone: freshContext.phone ?? f.phone,
+        email: freshContext.email ?? f.email,
+        website: freshContext.website ?? f.website,
+        whatsapp: freshContext.whatsapp ?? f.whatsapp,
+        street: freshContext.address.street ?? f.street,
+        city: freshContext.address.city ?? f.city,
+        stateProvince: freshContext.address.stateProvince ?? f.stateProvince,
+        postalCode: freshContext.address.postalCode ?? f.postalCode,
+        country: freshContext.address.country ?? f.country,
+        serviceAreaText: freshContext.serviceAreaText ?? f.serviceAreaText,
+        instagram: freshContext.socials.instagram ?? f.instagram,
+        facebook: freshContext.socials.facebook ?? f.facebook,
+        tiktok: freshContext.socials.tiktok ?? f.tiktok,
+        youtube: freshContext.socials.youtube ?? f.youtube,
+        linkedin: freshContext.socials.linkedin ?? f.linkedin,
+        x: freshContext.socials.x ?? f.x,
+        googleBusiness: freshContext.googleBusinessUrl ?? f.googleBusiness,
+        yelp: freshContext.yelpUrl ?? f.yelp,
+      }));
+    }
+
+    if (data.partial && data.failedSections?.length) {
+      setSaveError(describeFieldErrors(data.failedSections.map((e) => e.field), "not_saved"));
       return;
     }
     setSaved(true);
