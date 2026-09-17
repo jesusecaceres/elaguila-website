@@ -5,6 +5,7 @@ import { FiCalendar, FiMail, FiMapPin, FiMessageSquare, FiPhone } from "react-ic
 import { TbWorldWww } from "react-icons/tb";
 import { SiWhatsapp } from "react-icons/si";
 import { buildSendEmailIntent, CtaActionSheet } from "@/app/components/cta";
+import { buildAutosContactEmailBody } from "@/app/lib/clasificados/autos/autosContactEmailBody";
 import type { CtaSheetIntent } from "@/app/components/cta/types";
 import type { AutoDealerListing } from "../types/autoDealerListing";
 import { hasDealerCard } from "../lib/autoDealerPresence";
@@ -169,7 +170,8 @@ export function DealerBusinessStack({
       buildSendEmailIntent({
         email,
         subject: data.dealerName?.trim() ? `Leonix · ${data.dealerName.trim()}` : "Leonix",
-        body: "",
+        body: buildAutosContactEmailBody({ lang, vehicleTitle: data.vehicleTitle, intent: "dealer" }),
+        showOpenEmailApp: false,
       }),
     );
   };

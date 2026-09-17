@@ -113,6 +113,9 @@ export type BuildSendEmailIntentInput = {
   body: string;
   contactShareExtras?: CtaContactShareExtras | null;
   gmailComposeHref?: string | null;
+  /** See CtaSheetIntent's send_email.showOpenEmailApp doc comment. Omit to keep the default
+   * (mailto launcher shown) — every existing caller that doesn't pass this is unaffected. */
+  showOpenEmailApp?: boolean;
 };
 
 export function buildSendEmailIntent(input: BuildSendEmailIntentInput): Extract<CtaSheetIntent, { kind: "send_email" }> | null {
@@ -127,6 +130,7 @@ export function buildSendEmailIntent(input: BuildSendEmailIntentInput): Extract<
     body: body || "",
     contactShareExtras: input.contactShareExtras ?? null,
     gmailComposeHref: trim(input.gmailComposeHref) || null,
+    showOpenEmailApp: input.showOpenEmailApp ?? true,
   };
 }
 

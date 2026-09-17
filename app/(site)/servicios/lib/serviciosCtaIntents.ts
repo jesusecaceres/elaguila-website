@@ -199,5 +199,9 @@ export function buildServiciosSendEmailIntentFromMailto(
       publicUrl: serviciosBuildListingPublicUrl(listingSlug, listingShareUrl) || undefined,
     },
     gmailComposeHref: null,
+    // Owner no-mailto doctrine (2026-09-17): this still renders the same "Correo/Email" sheet
+    // (send_email kind) as ServiciosBusinessHubContactCard's own openEmail — must not expose
+    // the mailto launcher either, regardless of which internal path built the intent.
+    showOpenEmailApp: false,
   };
 }

@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import { buildSendEmailIntent, CtaActionSheet } from "@/app/components/cta";
+import { buildAutosContactEmailBody } from "@/app/lib/clasificados/autos/autosContactEmailBody";
 import type { CtaSheetIntent } from "@/app/components/cta/types";
 import {
   FiCalendar,
@@ -206,7 +207,8 @@ export function PreviewDealerBusinessStack({
       buildSendEmailIntent({
         email,
         subject: data.dealerName?.trim() ? `Leonix · ${data.dealerName.trim()}` : "Leonix",
-        body: "",
+        body: buildAutosContactEmailBody({ lang, vehicleTitle: data.vehicleTitle, intent: "dealer" }),
+        showOpenEmailApp: false,
       }),
     );
   };

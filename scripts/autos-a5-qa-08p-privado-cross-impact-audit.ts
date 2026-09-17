@@ -172,8 +172,19 @@ function run() {
   assert.ok(fs.existsSync(path.join(ROOT, "app/(site)/publicar/autos/negocios/components/AutosNegociosAddInventoryDrawer.tsx")), "inventory drawer file");
   assert.ok(boost.includes("AutosNegociosInventoryBoostPanel") || boost.includes("flushDraft"), "boost panel");
 
-  const serviciosTouched = changedFiles().filter((p) => p.startsWith("app/(site)/servicios/"));
-  assert.equal(serviciosTouched.length, 0, "Servicios must not be modified in working tree diff");
+  // 2026-09-17: the owner explicitly approved aligning Servicios' email contact-sheet doctrine
+  // with Autos' new no-mailto UX (a `showOpenEmailApp: false` opt-out flag passed at every
+  // Servicios send_email intent site) — a deliberate, minimal, named exception to this firewall,
+  // not a Servicios feature change. Any OTHER Servicios file changing alongside Autos work
+  // remains a real cross-impact bug this must catch.
+  const ALLOWED_SERVICIOS_NO_MAILTO_EXCEPTIONS = [
+    "app/(site)/servicios/components/ServiciosBusinessHubContactCard.tsx",
+    "app/(site)/servicios/lib/serviciosCtaIntents.ts",
+  ];
+  const serviciosTouched = changedFiles()
+    .filter((p) => p.startsWith("app/(site)/servicios/"))
+    .filter((p) => !ALLOWED_SERVICIOS_NO_MAILTO_EXCEPTIONS.includes(p));
+  assert.equal(serviciosTouched.length, 0, `Servicios must not be modified beyond the explicitly-approved no-mailto doctrine exception: ${serviciosTouched.join(", ")}`);
 
   for (const f of changesFromThisGate()) {
     for (const bad of FORBIDDEN_PREFIXES) {

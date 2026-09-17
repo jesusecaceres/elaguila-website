@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import type { ReactNode } from "react";
 import type { AutoDealerListing, VehicleBadge } from "../../types/autoDealerListing";
 import type { AutosNegociosCopy } from "../../lib/autosNegociosCopy";
 import {
@@ -83,6 +84,7 @@ export function AutosNegociosDealershipPreviewPage({
   embeddedInShell = false,
   draftPreviewMode = false,
   heroSpecItems: heroSpecItemsProp,
+  translateControl,
 }: {
   data: AutoDealerListing;
   /** Subtle return link to the listing editor (e.g. Publicar flow). */
@@ -104,6 +106,12 @@ export function AutosNegociosDealershipPreviewPage({
   /** Pre-publish capture preview — stronger buyer-facing hierarchy. */
   draftPreviewMode?: boolean;
   heroSpecItems?: Array<{ key: string; label: string; value: string }>;
+  /** Owner lock (2026-09-17): rendered inside the hero, directly above the title — never as a
+   * page-top element floating above unrelated content (a results-card preview, distant chrome).
+   * Every caller (parent draft/canonical Preview, child Preview, published detail) passes its own
+   * `AutosListingTranslationLayer` render-prop control here so placement stays identical across
+   * every Dealer surface without each caller re-implementing its own position. */
+  translateControl?: ReactNode;
 }) {
   const { t, lang } = useAutosNegociosPreviewCopy();
   const pt = t.preview.title;
@@ -202,8 +210,14 @@ export function AutosNegociosDealershipPreviewPage({
               </p>
             ) : null}
 
+            {translateControl ? (
+              <div className={draftPreviewMode ? "mt-3" : ""} data-autos-translate-ad-slot="1">
+                {translateControl}
+              </div>
+            ) : null}
+
             {showTitle && (h1 || showPriceCol || showHeaderMeta || chipLabels.length > 0) ? (
-              <div className={`${draftPreviewMode ? "mt-2" : ""}`} data-autos-unified-canvas-header="1">
+              <div className={`${draftPreviewMode || translateControl ? "mt-2" : ""}`} data-autos-unified-canvas-header="1">
                 {h1 ? <h1 className={`${autosPreviewHeroTitleClass} text-balance`}>{h1}</h1> : null}
 
                 {chipLabels.length > 0 ? (

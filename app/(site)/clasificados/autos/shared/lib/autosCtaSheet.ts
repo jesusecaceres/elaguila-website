@@ -68,6 +68,7 @@ export function buildAutosIntentFromHref(
       subject: parsed.subject || "Consulta sobre vehículo — Leonix Autos",
       body: parsed.body,
       contactShareExtras: options?.contactShareExtras ?? null,
+      showOpenEmailApp: false,
     });
   }
   if (/wa\.me|api\.whatsapp\.com/i.test(h)) {

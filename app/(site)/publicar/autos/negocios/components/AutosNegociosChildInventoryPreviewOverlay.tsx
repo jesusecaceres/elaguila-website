@@ -109,10 +109,21 @@ export function AutosNegociosChildInventoryPreviewOverlay({
                     data-autos-preview-media-count={merged.mediaImages?.length ?? 0}
                     data-autos-preview-video-count={merged.videoUrls?.length ?? 0}
                   >
-                    {translateControl}
                     <AutosNegociosResultsCardPreview lang={adDisplayLang} listing={displayListing} additionalCount={allAdditional.length} />
                   </div>
-                  <AutosNegociosDealershipPreviewPage data={displayListing} relatedPreviewOnly />
+                  {/* Gate 2 owner lock (2026-09-17): the child is a full Dealer vehicle ad and must
+                      render the SAME premium Business Hub shell as the parent's own draft Preview —
+                      `embeddedInShell` avoids a second nested AutoDealerPreviewChrome inside this
+                      overlay's own dialog chrome, `draftPreviewMode` restores the premium hub header,
+                      in-hub price/monthly block, premium contact grid, and buyer-inventory/website
+                      CTA block that a bare `relatedPreviewOnly` render was silently dropping. */}
+                  <AutosNegociosDealershipPreviewPage
+                    data={displayListing}
+                    relatedPreviewOnly
+                    embeddedInShell
+                    draftPreviewMode
+                    translateControl={translateControl}
+                  />
                 </AutosNegociosPreviewLocaleProvider>
               );
             }}
