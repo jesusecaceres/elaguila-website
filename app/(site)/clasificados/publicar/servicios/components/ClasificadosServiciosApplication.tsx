@@ -81,6 +81,9 @@ import {
   migrateServiciosApplicationStepIndex,
   SERVICIOS_APPLICATION_STEP_COUNT,
 } from "../lib/serviciosApplicationStepLabels";
+import { useAssistedPublishingUi } from "@/app/components/auth/AssistedPublishingUiContext";
+import { readConciergeReturnContext } from "@/app/lib/business/applicationContext/conciergeReturnContext";
+import { AssistedServiciosStepHeader } from "./AssistedServiciosStepHeader";
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
 import type { PublishReadinessMissingItem } from "../lib/serviciosPublishReadiness";
 import { evaluateServiciosPreviewReadiness } from "../lib/serviciosPreviewReadiness";
@@ -241,6 +244,19 @@ export function ClasificadosServiciosApplication() {
     () => resolveClasificadosPublishLang(searchParams?.get("lang")),
     [searchParams],
   );
+
+  /**
+   * LEONIX ASSISTED SERVICIOS NAVIGATION CLEANUP — server-verified via PublishAuthGate/
+   * PublishAuthGateLayout, never trusted client-side. Business name is display-only, from the
+   * same unsigned sessionStorage record the Preview's assisted CTA bar and ConciergeReturnBanner
+   * already read — never used for authorization.
+   */
+  const assistedUi = useAssistedPublishingUi();
+  const [assistedBusinessName, setAssistedBusinessName] = useState("");
+  useEffect(() => {
+    if (!assistedUi) return;
+    setAssistedBusinessName(readConciergeReturnContext()?.businessName ?? "");
+  }, [assistedUi]);
   const editParam = searchParams?.get("edit") ?? "";
   const editListingSlug = searchParams?.get("listingSlug")?.trim() ?? "";
   const editListingId = searchParams?.get("listingId")?.trim() ?? "";
@@ -346,6 +362,178 @@ export function ClasificadosServiciosApplication() {
       applicationStepIndex: Math.max(0, Math.min(SERVICIOS_APPLICATION_STEP_COUNT - 1, n)),
     }));
   }, []);
+
+  /** LEONIX ASSISTED SERVICIOS NAVIGATION CLEANUP — extracted so the persistent assisted header's
+   * Back button drives the EXACT SAME transition as the existing footer Back button (never a
+   * second/duplicate step-back rule). */
+  const handleGoBack = useCallback(() => {
+    setState((s) => ({
+      ...s,
+      applicationStepIndex: Math.max(0, s.applicationStepIndex - 1),
+    }));
+  }, []);
+
+  /** Same doctrine as handleGoBack — the existing footer Next button now calls this too, so the
+   * assisted header's Next button can never diverge from the real per-step pending-field-commit
+   * logic (step 4's custom service/reason/quick-fact/highlight/payment/amenity/certification
+   * commits) that already existed here. */
+  const handleGoNext = useCallback(() => {
+    setState((s) => ({
+      ...s,
+      ...(s.applicationStepIndex === 4
+        ? (() => {
+            let w: ClasificadosServiciosApplicationState = { ...s };
+            const pendingService = w.customServiceLabel.trim();
+            if (pendingService) {
+              const r = evaluateAddCustomServiceOffered(w, lang, pendingService);
+              w = r.ok
+                ? enforceServiciosSelectionCaps({
+                    ...w,
+                    customServicesOffered: [...w.customServicesOffered, r.label],
+                    customServiceLabel: "",
+                  })
+                : enforceServiciosSelectionCaps({ ...w, customServiceLabel: "" });
+            }
+
+            const pendingReason = w.customReasonLabel.trim();
+            if (!w.customReasonIncluded && pendingReason) {
+              const total =
+                w.selectedReasonIds.length +
+                (w.customReasonIncluded && w.customReasonLabel.trim() ? 1 : 0);
+              if (total < MAX_REASONS_SELECTION) {
+                w = {
+                  ...w,
+                  customReasonIncluded: true,
+                  customReasonLabel: pendingReason.slice(0, CUSTOM_CHIP_MAX_LENGTH),
+                };
+              }
+            }
+
+            const pendingQuickFact = w.customQuickFactLabel.trim();
+            if (pendingQuickFact) {
+              const r = evaluateAddCustomQuickFact(w, lang, pendingQuickFact);
+              w = r.ok
+                ? enforceServiciosSelectionCaps({
+                    ...w,
+                    customQuickFacts: [...w.customQuickFacts, r.label],
+                    customQuickFactLabel: "",
+                  })
+                : enforceServiciosSelectionCaps({ ...w, customQuickFactLabel: "" });
+            }
+
+            const pendingHighlight = w.customBusinessHighlightLabel.trim();
+            if (pendingHighlight) {
+              const r = evaluateAddCustomBusinessHighlight(w, lang, pendingHighlight);
+              w = r.ok
+                ? enforceServiciosSelectionCaps({
+                    ...w,
+                    customBusinessHighlights: [...w.customBusinessHighlights, r.label],
+                    customBusinessHighlightLabel: "",
+                  })
+                : enforceServiciosSelectionCaps({ ...w, customBusinessHighlightLabel: "" });
+            }
+
+            return {
+              customServicesOffered: w.customServicesOffered,
+              customServiceLabel: w.customServiceLabel,
+              customServiceIncluded: w.customServiceIncluded,
+              customReasonIncluded: w.customReasonIncluded,
+              customReasonLabel: w.customReasonLabel,
+              customQuickFacts: w.customQuickFacts,
+              customQuickFactIncluded: w.customQuickFactIncluded,
+              customQuickFactLabel: w.customQuickFactLabel,
+              selectedBusinessHighlightIds: w.selectedBusinessHighlightIds,
+              customBusinessHighlights: w.customBusinessHighlights,
+              customBusinessHighlightLabel: w.customBusinessHighlightLabel,
+            };
+          })()
+        : {}),
+      ...(s.applicationStepIndex === 4
+        ? (() => {
+            let w: ClasificadosServiciosApplicationState = { ...s };
+            const pending = w.customPaymentMethodLabel.trim();
+            if (pending) {
+              const r = evaluateAddCustomPaymentMethod(w, pending);
+              w = r.ok
+                ? enforceServiciosSelectionCaps({
+                    ...w,
+                    customPaymentMethods: [...w.customPaymentMethods, r.label],
+                    customPaymentMethodLabel: "",
+                  })
+                : enforceServiciosSelectionCaps({ ...w, customPaymentMethodLabel: "" });
+            }
+            for (const groupId of SERVICIOS_AMENITY_CUSTOM_GROUP_IDS) {
+              const pendingGroupAmenity = (w.pendingCustomAmenityOptionByGroup?.[groupId] ?? "").trim();
+              if (!pendingGroupAmenity) continue;
+              const bucket = w.customAmenityOptionsByGroup?.[groupId] ?? [];
+              const r = evaluateAddCustomAmenityOptionForGroup(bucket, pendingGroupAmenity);
+              w = r.ok
+                ? enforceServiciosSelectionCaps({
+                    ...w,
+                    customAmenityOptionsByGroup: {
+                      ...w.customAmenityOptionsByGroup,
+                      [groupId]: [...bucket, r.label],
+                    },
+                    pendingCustomAmenityOptionByGroup: {
+                      ...w.pendingCustomAmenityOptionByGroup,
+                      [groupId]: "",
+                    },
+                  })
+                : enforceServiciosSelectionCaps({
+                    ...w,
+                    pendingCustomAmenityOptionByGroup: {
+                      ...w.pendingCustomAmenityOptionByGroup,
+                      [groupId]: "",
+                    },
+                  });
+            }
+            const pendingCert = w.pendingCertification.trim();
+            if (pendingCert) {
+              const r = evaluateAddCertificationLabel({
+                certifications: w.certifications,
+                raw: pendingCert,
+              });
+              w = r.ok
+                ? enforceServiciosSelectionCaps({
+                    ...w,
+                    certifications: [...w.certifications, r.label],
+                    pendingCertification: "",
+                  })
+                : enforceServiciosSelectionCaps({ ...w, pendingCertification: "" });
+            }
+            return {
+              paymentMethodIds: w.paymentMethodIds,
+              customPaymentMethods: w.customPaymentMethods,
+              customPaymentMethodLabel: w.customPaymentMethodLabel,
+              amenityOptionIds: w.amenityOptionIds,
+              customAmenityOptions: w.customAmenityOptions,
+              pendingCustomAmenityOption: w.pendingCustomAmenityOption,
+              customAmenityOptionsByGroup: w.customAmenityOptionsByGroup,
+              pendingCustomAmenityOptionByGroup: w.pendingCustomAmenityOptionByGroup,
+              certifications: w.certifications,
+              pendingCertification: w.pendingCertification,
+            };
+          })()
+        : {}),
+      applicationStepIndex: Math.min(SERVICIOS_APPLICATION_STEP_COUNT - 1, s.applicationStepIndex + 1),
+    }));
+  }, [lang]);
+
+  /**
+   * LEONIX ASSISTED SERVICIOS NAVIGATION CLEANUP — the assisted header's single "← Back": moves to
+   * the previous step (same as the footer's Back button) unless already at step 1, in which case
+   * it returns to the selected business in Business Concierge. An explicit route transition
+   * (router.push), never a browser-history fallback. Never clears the draft.
+   */
+  const handleAssistedHeaderBack = useCallback(() => {
+    if (step > 0) {
+      handleGoBack();
+      return;
+    }
+    if (assistedUi) {
+      router.push(`/admin/businesses/${encodeURIComponent(assistedUi.businessId)}#prospect-journey`);
+    }
+  }, [step, handleGoBack, assistedUi, router]);
 
   const logoInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
@@ -1132,6 +1320,18 @@ export function ClasificadosServiciosApplication() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#F6F0E2] text-[#3D2C12]">
+      {assistedUi ? (
+        <AssistedServiciosStepHeader
+          businessId={assistedUi.businessId}
+          businessName={assistedBusinessName}
+          step={step}
+          totalSteps={totalSteps}
+          canGoNext={canGoNext}
+          onBack={handleAssistedHeaderBack}
+          onNext={handleGoNext}
+          lang={lang}
+        />
+      ) : null}
       {isExistingDashboardListingMode && editHydration.status === "error" ? (
         <main className="mx-auto max-w-lg px-4 pb-16 pt-24 sm:pt-28">
           <h1 className="text-xl font-bold text-[#3D2C12]">
@@ -3952,12 +4152,7 @@ export function ClasificadosServiciosApplication() {
               <button
                 type="button"
                 disabled={!canGoBack}
-                onClick={() =>
-                  setState((s) => ({
-                    ...s,
-                    applicationStepIndex: Math.max(0, s.applicationStepIndex - 1),
-                  }))
-                }
+                onClick={handleGoBack}
                 className="inline-flex min-h-[48px] min-w-[7.5rem] touch-manipulation items-center justify-center rounded-xl border border-[#D8C79A]/80 bg-white px-4 py-2.5 text-sm font-semibold text-[#3D2C12] shadow-sm transition hover:bg-[#FFFCF7] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {lang === "es" ? "Anterior" : "Back"}
@@ -3965,147 +4160,7 @@ export function ClasificadosServiciosApplication() {
               <button
                 type="button"
                 disabled={!canGoNext}
-                onClick={() =>
-                  setState((s) => ({
-                    ...s,
-                    ...(s.applicationStepIndex === 4
-                      ? (() => {
-                          let w: ClasificadosServiciosApplicationState = { ...s };
-                          const pendingService = w.customServiceLabel.trim();
-                          if (pendingService) {
-                            const r = evaluateAddCustomServiceOffered(w, lang, pendingService);
-                            w = r.ok
-                              ? enforceServiciosSelectionCaps({
-                                  ...w,
-                                  customServicesOffered: [...w.customServicesOffered, r.label],
-                                  customServiceLabel: "",
-                                })
-                              : enforceServiciosSelectionCaps({ ...w, customServiceLabel: "" });
-                          }
-
-                          const pendingReason = w.customReasonLabel.trim();
-                          if (!w.customReasonIncluded && pendingReason) {
-                            const total =
-                              w.selectedReasonIds.length +
-                              (w.customReasonIncluded && w.customReasonLabel.trim() ? 1 : 0);
-                            if (total < MAX_REASONS_SELECTION) {
-                              w = {
-                                ...w,
-                                customReasonIncluded: true,
-                                customReasonLabel: pendingReason.slice(0, CUSTOM_CHIP_MAX_LENGTH),
-                              };
-                            }
-                          }
-
-                          const pendingQuickFact = w.customQuickFactLabel.trim();
-                          if (pendingQuickFact) {
-                            const r = evaluateAddCustomQuickFact(w, lang, pendingQuickFact);
-                            w = r.ok
-                              ? enforceServiciosSelectionCaps({
-                                  ...w,
-                                  customQuickFacts: [...w.customQuickFacts, r.label],
-                                  customQuickFactLabel: "",
-                                })
-                              : enforceServiciosSelectionCaps({ ...w, customQuickFactLabel: "" });
-                          }
-
-                          const pendingHighlight = w.customBusinessHighlightLabel.trim();
-                          if (pendingHighlight) {
-                            const r = evaluateAddCustomBusinessHighlight(w, lang, pendingHighlight);
-                            w = r.ok
-                              ? enforceServiciosSelectionCaps({
-                                  ...w,
-                                  customBusinessHighlights: [...w.customBusinessHighlights, r.label],
-                                  customBusinessHighlightLabel: "",
-                                })
-                              : enforceServiciosSelectionCaps({ ...w, customBusinessHighlightLabel: "" });
-                          }
-
-                          return {
-                            customServicesOffered: w.customServicesOffered,
-                            customServiceLabel: w.customServiceLabel,
-                            customServiceIncluded: w.customServiceIncluded,
-                            customReasonIncluded: w.customReasonIncluded,
-                            customReasonLabel: w.customReasonLabel,
-                            customQuickFacts: w.customQuickFacts,
-                            customQuickFactIncluded: w.customQuickFactIncluded,
-                            customQuickFactLabel: w.customQuickFactLabel,
-                            selectedBusinessHighlightIds: w.selectedBusinessHighlightIds,
-                            customBusinessHighlights: w.customBusinessHighlights,
-                            customBusinessHighlightLabel: w.customBusinessHighlightLabel,
-                          };
-                        })()
-                      : {}),
-                    ...(s.applicationStepIndex === 4
-                      ? (() => {
-                          let w: ClasificadosServiciosApplicationState = { ...s };
-                          const pending = w.customPaymentMethodLabel.trim();
-                          if (pending) {
-                            const r = evaluateAddCustomPaymentMethod(w, pending);
-                            w = r.ok
-                              ? enforceServiciosSelectionCaps({
-                                  ...w,
-                                  customPaymentMethods: [...w.customPaymentMethods, r.label],
-                                  customPaymentMethodLabel: "",
-                                })
-                              : enforceServiciosSelectionCaps({ ...w, customPaymentMethodLabel: "" });
-                          }
-                          for (const groupId of SERVICIOS_AMENITY_CUSTOM_GROUP_IDS) {
-                            const pendingGroupAmenity = (w.pendingCustomAmenityOptionByGroup?.[groupId] ?? "").trim();
-                            if (!pendingGroupAmenity) continue;
-                            const bucket = w.customAmenityOptionsByGroup?.[groupId] ?? [];
-                            const r = evaluateAddCustomAmenityOptionForGroup(bucket, pendingGroupAmenity);
-                            w = r.ok
-                              ? enforceServiciosSelectionCaps({
-                                  ...w,
-                                  customAmenityOptionsByGroup: {
-                                    ...w.customAmenityOptionsByGroup,
-                                    [groupId]: [...bucket, r.label],
-                                  },
-                                  pendingCustomAmenityOptionByGroup: {
-                                    ...w.pendingCustomAmenityOptionByGroup,
-                                    [groupId]: "",
-                                  },
-                                })
-                              : enforceServiciosSelectionCaps({
-                                  ...w,
-                                  pendingCustomAmenityOptionByGroup: {
-                                    ...w.pendingCustomAmenityOptionByGroup,
-                                    [groupId]: "",
-                                  },
-                                });
-                          }
-                          const pendingCert = w.pendingCertification.trim();
-                          if (pendingCert) {
-                            const r = evaluateAddCertificationLabel({
-                              certifications: w.certifications,
-                              raw: pendingCert,
-                            });
-                            w = r.ok
-                              ? enforceServiciosSelectionCaps({
-                                  ...w,
-                                  certifications: [...w.certifications, r.label],
-                                  pendingCertification: "",
-                                })
-                              : enforceServiciosSelectionCaps({ ...w, pendingCertification: "" });
-                          }
-                          return {
-                            paymentMethodIds: w.paymentMethodIds,
-                            customPaymentMethods: w.customPaymentMethods,
-                            customPaymentMethodLabel: w.customPaymentMethodLabel,
-                            amenityOptionIds: w.amenityOptionIds,
-                            customAmenityOptions: w.customAmenityOptions,
-                            pendingCustomAmenityOption: w.pendingCustomAmenityOption,
-                            customAmenityOptionsByGroup: w.customAmenityOptionsByGroup,
-                            pendingCustomAmenityOptionByGroup: w.pendingCustomAmenityOptionByGroup,
-                            certifications: w.certifications,
-                            pendingCertification: w.pendingCertification,
-                          };
-                        })()
-                      : {}),
-                    applicationStepIndex: Math.min(totalSteps - 1, s.applicationStepIndex + 1),
-                  }))
-                }
+                onClick={handleGoNext}
                 className="inline-flex min-h-[48px] min-w-[7.5rem] touch-manipulation items-center justify-center rounded-xl bg-[#3B66AD] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {lang === "es" ? "Siguiente" : "Next"}
