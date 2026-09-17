@@ -120,9 +120,48 @@ export async function findBusinessesByNormalizedNameCandidates(
 }
 
 /**
- * Business creation/update through the direct client is intentionally NOT implemented here —
+ * Business creation through the direct client is intentionally NOT implemented here —
  * businesses.INSERT has no client policy by design (server-only creation via the finalize RPC,
  * Phase 12). Archival is explicitly deferred to a later package per Phase 7's instruction
  * ("archive only if explicitly supported by the current package; otherwise defer") — no
  * archive function is implemented in BCO-2.
  */
+
+/**
+ * Business Information Editor (Gate 1) — the FIRST post-creation UPDATE path for `businesses`.
+ * Source-traced: no such path existed anywhere before this (creation-only via finalize RPCs).
+ * Admin/service-role client only, called from a staff-authorized route
+ * (requireStaffWorkspaceWriteAccess("edit_business_identity")) — RLS on `businesses` has no
+ * authenticated UPDATE policy by design (mutation is server-controlled, not RLS-controlled), so
+ * this must never be reachable from a user-scoped client. Only accepts the identity fields the
+ * Business Information editor exposes — never status/onboarding_status/creation_source/slug,
+ * which stay lifecycle-controlled elsewhere.
+ */
+export async function updateBusinessCoreFieldsAsStaff(
+  adminClient: SupabaseClient,
+  businessId: string,
+  patch: {
+    displayName?: string;
+    publicName?: string | null;
+    broadBusinessType?: string;
+    specificBusinessType?: string | null;
+    customSpecificType?: string | null;
+    businessPrimaryLanguage?: string | null;
+  },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const row: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (patch.displayName !== undefined) {
+    const trimmed = patch.displayName.trim();
+    if (!trimmed) return { ok: false, error: "invalid_display_name" };
+    row.display_name = trimmed;
+  }
+  if (patch.publicName !== undefined) row.public_name = patch.publicName?.trim() || null;
+  if (patch.broadBusinessType !== undefined) row.broad_business_type = patch.broadBusinessType;
+  if (patch.specificBusinessType !== undefined) row.specific_business_type = patch.specificBusinessType?.trim() || null;
+  if (patch.customSpecificType !== undefined) row.custom_specific_type = patch.customSpecificType?.trim() || null;
+  if (patch.businessPrimaryLanguage !== undefined) row.business_primary_language = patch.businessPrimaryLanguage?.trim() || null;
+
+  const { error } = await adminClient.from("businesses").update(row).eq("id", businessId);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}

@@ -29,7 +29,7 @@ import { getFullRun, getLatestCompletedRun, listRunsForBusiness } from "@/app/li
 import { HEALTH_DIMENSION_KEYS } from "@/app/lib/business/healthMap/constants";
 import { RecommendJourney, StewardshipOpportunityFlowNav } from "./RecommendJourney";
 import { listLedgerForBusiness, listOverridesForRecommendation, listRecommendationsForBusiness, listTestsForRecommendation } from "@/app/lib/business/stewardship/repository";
-import { BriefingReviewPanel, ConsentStatusPanel, RunResearchButton, SourceFilesPanel, SourceFindingsPanel, SourceLinksPanel } from "./FieldDiscoveryActions";
+import { BriefingReviewPanel, ConsentStatusPanel, PublicProspectResearchPanel, RunResearchButton, SourceFilesPanel, SourceFindingsPanel, SourceLinksPanel } from "./FieldDiscoveryActions";
 import { listConsentForBusiness, listSourceFilesForBusiness, listSourceLinksForBusiness } from "@/app/lib/business/fieldDiscovery/repository";
 import { getDefaultBusinessIntelligenceProvider } from "@/app/lib/business/aiResearch/providerRegistry";
 import { isGooglePlacesConfigured } from "@/app/lib/business/aiResearch/googlePlacesAdapter";
@@ -243,6 +243,7 @@ export default async function AdminBusinessDetailPage({
 
   const canViewFieldDiscovery = actorHasCapability(access.actor, "view_field_discovery");
   const canRunAiResearch = actorHasCapability(access.actor, "run_ai_research");
+  const canRunPublicResearch = actorHasCapability(access.actor, "run_public_research");
   const canReviewAiBriefing = actorHasCapability(access.actor, "review_ai_briefing");
   const canPromoteAiBriefing = actorHasCapability(access.actor, "promote_ai_briefing");
   const fieldDiscoveryData = canViewFieldDiscovery
@@ -694,17 +695,41 @@ export default async function AdminBusinessDetailPage({
           ) : null}
         </dl>
 
-        {/* P0 Sales Ad Creation Flow (Gate 2) — Create Ad is the FIRST, most prominent hero action:
-            staff must not have to scroll past the journey strip and 15 dashboard sections to
-            start a real ad for a business already selected. Reuses the exact same intent resolver
-            every other Quick Action uses — no new destination, just moved to the top. */}
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-          <Link
-            href={resolveConciergeActionDestination("create_listing", business.id)}
-            className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2 text-xs font-bold text-white shadow-[0_6px_16px_-6px_rgba(122,30,44,0.5)]"
-          >
-            🏷️ Crear anuncio / Create Ad
-          </Link>
+        {/* LEONIX BUSINESS INFORMATION EDITOR / DISCOVER FIX (Gate 6) — the primary preparation-
+            to-ad lane, prioritized and visually distinct from the secondary actions below:
+            Business Information -> Research -> Create Ad -> Prepared Ads. Reuses the exact same
+            intent resolver every other Quick Action already used for Create Ad — no new
+            destination, just reordered/regrouped. */}
+        <div className="mt-4">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Preparación → Anuncio / Preparation → Ad</p>
+          <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <Link
+              href={`/admin/businesses/${business.id}/information`}
+              className="inline-flex min-h-[44px] flex-col items-center justify-center rounded-lg border border-[#7A1E2C] bg-white px-4 py-2 text-xs font-bold text-[#7A1E2C]"
+            >
+              <span>📇 Información del negocio / Business Information</span>
+              <span className="text-[10px] font-normal text-[#7A7164]">Ver, corregir y actualizar. / View, correct, and update.</span>
+            </Link>
+            {fieldDiscoveryData ? (
+              <a href="#discover" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#7A1E2C] bg-white px-4 py-2 text-xs font-bold text-[#7A1E2C]">
+                🔎 Descubrir / Investigar / Research
+              </a>
+            ) : null}
+            <Link
+              href={resolveConciergeActionDestination("create_listing", business.id)}
+              className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2 text-xs font-bold text-white shadow-[0_6px_16px_-6px_rgba(122,30,44,0.5)]"
+            >
+              🏷️ Crear anuncio / Create Ad
+            </Link>
+            <a href="#prepared-ads" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#7A1E2C] bg-white px-4 py-2 text-xs font-bold text-[#7A1E2C]">
+              📋 Anuncios preparados / Prepared Ads
+            </a>
+          </div>
+        </div>
+
+        <div className="mt-3 border-t border-[#E8DFD0] pt-3">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[#9A9184]">Otras acciones / Other actions</p>
+          <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <a href="#outreach" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-4 py-2 text-xs font-semibold text-[#1E1810]">
             Agregar nota / Add note
           </a>
@@ -718,11 +743,6 @@ export default async function AdminBusinessDetailPage({
             <span>Agente de Campo / Field Agent</span>
             <span className="text-[10px] font-normal text-[#7A7164]">Captura rápida en el campo. / Quick capture in the field.</span>
           </Link>
-          {fieldDiscoveryData ? (
-            <a href="#discover" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-4 py-2 text-xs font-semibold text-[#1E1810]">
-              Descubrir / Discover
-            </a>
-          ) : null}
           {program5Data ? (
             <a href="#meetings" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-4 py-2 text-xs font-semibold text-[#1E1810]">
               Iniciar reunión / Start meeting
@@ -743,6 +763,7 @@ export default async function AdminBusinessDetailPage({
               Decisión del Cliente / Client Decision
             </a>
           ) : null}
+          </div>
         </div>
       </header>
 
@@ -1442,6 +1463,7 @@ export default async function AdminBusinessDetailPage({
             Reunir evidencia, contexto de fuentes públicas, información faltante, fotos/archivos y borradores de resumen apoyados por IA. Una inferencia de IA no es un hecho confirmado. / Gather evidence, public-source context, missing information, photos/files, and AI-supported briefing drafts. AI inference is not a confirmed fact.
           </p>
           <div className="mt-3 space-y-3">
+            <PublicProspectResearchPanel businessId={business.id} canRun={canRunPublicResearch} />
             <ConsentStatusPanel consent={fieldDiscoveryData.consent} />
             <SourceLinksPanel sourceLinks={fieldDiscoveryData.sourceLinks} />
             <SourceFilesPanel sourceFiles={fieldDiscoveryData.sourceFiles} />
