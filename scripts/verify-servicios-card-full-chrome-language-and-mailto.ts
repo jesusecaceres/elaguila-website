@@ -71,7 +71,11 @@ check("navigation URL (?lang=) intentionally stays the SITE locale, not the card
 check("both cards gate every contact CTA on a REAL resolved destination — no hardcoded assumption", () => {
   for (const rel of [TRADE_CARD, PRO_CARD]) {
     const src = raw(rel);
-    assert.ok(/\{(?:tel|wa|waHrefNormalized) \? \(/.test(src), `${rel}: call/WhatsApp CTA gated on a real truthy destination`);
+    // Servicios Final Contact Truth (2026-09-17): Call is gated via primaryCall/tel (office-first
+    // resolution); WhatsApp is gated via wa/waHrefNormalized combined with the forceWhatsAppBelow
+    // row-placement flag — still a real truthy destination check either way.
+    assert.ok(/\{primaryCall \? \(|\{tel \? \(/.test(src), `${rel}: Call CTA gated on a real truthy destination`);
+    assert.ok(/\{(?:wa|waHrefNormalized) && (?:!)?forceWhatsAppBelow \? \(/.test(src), `${rel}: WhatsApp CTA gated on a real truthy destination`);
     assert.ok(/\{showDirections \? \(/.test(src), `${rel}: Directions CTA gated on a real resolved maps destination`);
   }
 });

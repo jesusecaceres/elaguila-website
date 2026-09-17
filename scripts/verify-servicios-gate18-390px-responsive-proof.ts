@@ -40,7 +40,11 @@ check("RESULT CARD: contact CTA row wraps instead of overflowing at 390px (flex-
 check("RESULT CARD: WhatsApp absence leaves no dead hole (conditionally rendered, not a hidden/disabled placeholder)", () => {
   for (const rel of [TRADE_CARD, PRO_CARD]) {
     const src = raw(rel);
-    assert.ok(/\{(?:wa|waHrefNormalized) \? \(/.test(src), `${rel}: WhatsApp CTA must be conditionally rendered (absent, not a disabled placeholder)`);
+    // Servicios Final Contact Truth (2026-09-17, Gate 4): WhatsApp is conditionally rendered in one
+    // of two spots (primary row, or its own row when Call+Message+WhatsApp all coexist) — both are
+    // still real truthy gates, never a disabled placeholder.
+    assert.ok(/\{(?:wa|waHrefNormalized) && !forceWhatsAppBelow \? \(/.test(src), `${rel}: WhatsApp CTA (primary row) must be conditionally rendered on a real truthy destination`);
+    assert.ok(/\{(?:wa|waHrefNormalized) && forceWhatsAppBelow \? \(/.test(src), `${rel}: WhatsApp CTA (bumped row) must be conditionally rendered on a real truthy destination`);
     assert.ok(!/WhatsApp[\s\S]{0,80}disabled/.test(src), `${rel}: no disabled/greyed-out WhatsApp button variant`);
   }
 });

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FiGlobe, FiMapPin, FiPhone, FiMail } from "react-icons/fi";
+import { FiGlobe, FiMapPin, FiMessageSquare, FiPhone, FiMail } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
 import type { ServiciosPublicListingRow } from "../lib/serviciosPublicListingsServer";
 import { serviciosEngagementListingKey } from "../lib/serviciosPublicListingSort";
@@ -21,6 +21,7 @@ import {
   buildServiciosGoogleMapsDirectionsUrl,
   serviciosOpenGoogleMapsDirections,
   serviciosOpenMailtoHref,
+  serviciosOpenSmsHref,
   serviciosOpenTelHref,
   serviciosOpenWebsiteUrl,
   serviciosOpenWhatsAppHref,
@@ -31,6 +32,7 @@ import {
   resolveServiciosListingTemplate,
 } from "../lib/serviciosTemplateRouting";
 import { resolveServiciosProfileDirectWhatsAppHref } from "@/app/(site)/servicios/lib/serviciosWhatsAppHref";
+import { buildQuoteSmsHref } from "@/app/(site)/servicios/lib/serviciosContactActions";
 import { ServiciosProfessionalResultCard } from "../ServiciosProfessionalResultCard";
 import { ServiciosAdaptiveLogoPlate } from "@/app/servicios/components/ServiciosAdaptiveLogoPlate";
 import { ServiciosLikeCountBadge } from "@/app/servicios/components/ServiciosLikeCountBadge";
@@ -187,6 +189,11 @@ export function ServiciosHorizontalResultCard({
       if (key === "whatsapp") {
         trackServiciosListingCta(slugKey, "cta_whatsapp_click", ctaTrackMeta);
         serviciosOpenWhatsAppHref(href);
+        return;
+      }
+      if (key === "sms") {
+        trackServiciosListingCta(slugKey, "cta_quote_sms_click", ctaTrackMeta);
+        serviciosOpenSmsHref(href);
         return;
       }
       if (key === "call" || key === "callOffice") {
@@ -375,6 +382,12 @@ export function ServiciosHorizontalResultCard({
   const primaryCall = officeTel && officeDisplay ? { href: officeTel, label: L.callOffice, key: "callOffice" } : tel && phoneDisplay ? { href: tel, label: L.call, key: "call" } : null;
   const wa = resolveServiciosProfileDirectWhatsAppHref(profile.contact) ?? "";
   const showDirections = Boolean(mapsHref && (addressQuery || /^https?:\/\//i.test(mapsHref)));
+  // Gate 2/4 — the dedicated "número para mensajes/cotizaciones"; never WhatsApp, never the office
+  // number merely because it exists. buildQuoteSmsHref preserves the existing quote/message copy.
+  const smsHref = buildQuoteSmsHref(profile.contact.quoteMessagePhone, displayLang);
+  // Gate 4 — WhatsApp is bumped to its own row only when it would otherwise fight Call+Message for
+  // the primary two-up row; with any other combination the real channels stay balanced side by side.
+  const forceWhatsAppBelow = Boolean(primaryCall) && Boolean(smsHref) && Boolean(wa);
 
   return (
     <>
@@ -480,7 +493,17 @@ export function ServiciosHorizontalResultCard({
                   {primaryCall.label}
                 </button>
               ) : null}
-              {wa ? (
+              {smsHref ? (
+                <button
+                  type="button"
+                  className={LX_CTA_CARD_SECONDARY}
+                  onClick={() => openContactKey("sms", smsHref)}
+                >
+                  <FiMessageSquare className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  {L.message}
+                </button>
+              ) : null}
+              {wa && !forceWhatsAppBelow ? (
                 <button
                   type="button"
                   className={LX_CTA_CARD_WHATSAPP}
@@ -501,7 +524,7 @@ export function ServiciosHorizontalResultCard({
                   {displayLang === "en" ? "Directions" : "Cómo llegar"}
                 </button>
               ) : null}
-              {!primaryCall && !wa && (profile.contact.emailMailtoHref || profile.contact.websiteHref) ? (
+              {!primaryCall && !smsHref && !wa && (profile.contact.emailMailtoHref || profile.contact.websiteHref) ? (
                 <>
                   {profile.contact.websiteHref ? (
                     <button
@@ -526,6 +549,20 @@ export function ServiciosHorizontalResultCard({
                 </>
               ) : null}
             </div>
+
+            {/* Gate 4 — WhatsApp gets its own row only when Call AND Message both already filled the
+                primary row; it never displaces Message from the balanced Call+Message pairing. */}
+            {wa && forceWhatsAppBelow ? (
+              <button
+                type="button"
+                className={`${LX_CTA_CARD_WHATSAPP} w-full`}
+                style={{ backgroundColor: LX.whatsApp, boxShadow: LX.whatsAppShadow }}
+                onClick={() => openContactKey("whatsapp", wa)}
+              >
+                <FaWhatsapp className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                {L.whatsapp}
+              </button>
+            ) : null}
 
             <div className="flex flex-wrap items-center justify-between gap-2" data-servicios-card-trust-strip="1">
               <span className="inline-flex items-center gap-1 rounded-full border border-[#E8D7B8] bg-[#FFF9F2] px-2.5 py-1 text-[10px] font-bold text-[#7A1E2C] sm:text-[11px]">
