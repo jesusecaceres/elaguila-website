@@ -192,10 +192,22 @@ export async function listServiciosPublicListingsFromDb(limit = 48): Promise<Ser
     const supabase = getAdminSupabase();
     /** Fetch enough rows to sort by discovery timestamp in-process (avoids `republish_sort_at` / missing columns). */
     const fetchCap = Math.min(800, Math.max(limit * 4, 120));
+    // Gate 14 (Servicios Final Consolidated Lifecycle Execution, 2026-09-18) — this `.limit()` had
+    // no `.order()` before it, so which rows land in the truncated set was not deterministic once
+    // total published rows exceed `fetchCap`: Postgres/PostgREST give no ordering guarantee for an
+    // unordered LIMIT, so the same query could silently drop a different arbitrary subset of real
+    // published listings on different requests. Ordered on the always-present `published_at`
+    // column (the owner's own suggested canonical ordering) purely to make the DB-level truncation
+    // deterministic — the existing in-process `compareServiciosPublicDiscoveryNewestFirst` sort
+    // below remains the actual final discovery order, and any paid-priority/entitlement ranking
+    // applied further downstream by callers (e.g. the results page) is untouched. Deliberately NOT
+    // `republish_sort_at` here — Gate 13 explicitly keeps that column unwired from ranking in this
+    // pass.
     const { data, error } = await supabase
       .from("servicios_public_listings")
       .select(SERVICIOS_PUBLIC_LISTING_SELECT)
       .ilike("listing_status", SERVICIOS_LISTING_STATUS_PUBLISHED)
+      .order("published_at", { ascending: false, nullsFirst: false })
       .limit(fetchCap);
     if (error || !data) return [];
     return (data as ServiciosPublicListingRow[])
