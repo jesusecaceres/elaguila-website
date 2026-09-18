@@ -19,20 +19,50 @@ import { coerceAutosVehicleMediaImageEntries } from "@/app/lib/clasificados/auto
 
 export type AutosDashboardHydrationResult = { ok: true } | { ok: false; userMessage: string };
 
-function durableHttpUrls(raw: unknown): string[] {
-  if (!Array.isArray(raw)) return [];
-  const out: string[] = [];
-  for (const item of raw) {
-    let url = "";
-    if (typeof item === "string") url = item.trim();
-    else if (item && typeof item === "object") {
-      const o = item as Record<string, unknown>;
-      url = String(o.url ?? o.src ?? o.path ?? "").trim();
-    }
-    if (!url.startsWith("http://") && !url.startsWith("https://")) continue;
-    if (!out.includes(url)) out.push(url);
+function normalizeIdentityKey(v: unknown): string {
+  return String(v ?? "").trim().toLowerCase();
+}
+
+/** Strongest stable identity available for a child draft/row, in preference order (VIN, then
+ * stock number, then — only when neither exists — a title-shaped fallback). Returns every key
+ * that applies so callers can match on any of them. */
+function childIdentityKeys(
+  v: Pick<AutosAdditionalInventoryVehicleDraft, "vin" | "stockNumber" | "year" | "make" | "model" | "trim">,
+): string[] {
+  const keys: string[] = [];
+  const vin = normalizeIdentityKey(v.vin);
+  const stock = normalizeIdentityKey(v.stockNumber);
+  if (vin) keys.push(`vin:${vin}`);
+  if (stock) keys.push(`stock:${stock}`);
+  if (!vin && !stock) {
+    const title = [v.year, v.make, v.model, v.trim].map(normalizeIdentityKey).join("|");
+    if (title.replace(/\|/g, "").trim()) keys.push(`title:${title}`);
   }
-  return out;
+  return keys;
+}
+
+/**
+ * Reconcile the parent's pre-checkout embedded child bundle (listing_payload
+ * .additionalInventoryVehicles, staged durably before Stripe) with real published child rows.
+ * Real rows are always canonical for a child that has one — an embedded draft is only kept when
+ * it does NOT match any real row by the strongest identity available (VIN, then stock number,
+ * then title as a last resort), so a partially-fulfilled dealer never loses a still-unpublished
+ * sibling and never sees a duplicate for one that already published.
+ */
+export function reconcileAdditionalInventoryVehicles(
+  realChildren: AutosAdditionalInventoryVehicleDraft[],
+  embeddedChildren: AutosAdditionalInventoryVehicleDraft[],
+): AutosAdditionalInventoryVehicleDraft[] {
+  if (!realChildren.length) return normalizeAdditionalInventoryVehicles(embeddedChildren);
+  if (!embeddedChildren.length) return normalizeAdditionalInventoryVehicles(realChildren);
+
+  const realKeys = new Set(realChildren.flatMap((c) => childIdentityKeys(c)));
+  const unmatchedEmbedded = embeddedChildren.filter((c) => {
+    const keys = childIdentityKeys(c);
+    if (!keys.length) return true;
+    return !keys.some((k) => realKeys.has(k));
+  });
+  return normalizeAdditionalInventoryVehicles([...realChildren, ...unmatchedEmbedded]);
 }
 
 function mapChildListingPayloadToDraft(
@@ -213,6 +243,14 @@ export async function hydrateAutosDealerListingForDashboardEdit(input: {
     const children = childListings.filter((c): c is AutosAdditionalInventoryVehicleDraft => c != null);
 
     const parentListing = normalizeLoadedListing(parentJson.listing);
+
+    // Gate 6 — real published child rows are canonical, but a pending-payment (or
+    // partially-fulfilled) dealer's saved additional vehicles may only exist in the parent's own
+    // durable pre-checkout staging (listing_payload.additionalInventoryVehicles). Without this,
+    // editing that listing before the webhook fulfills it silently loses the whole child bundle.
+    const embeddedChildren = normalizeAdditionalInventoryVehicles(parentListing.additionalInventoryVehicles ?? []);
+    const resolvedChildren = reconcileAdditionalInventoryVehicles(children, embeddedChildren);
+
     const rawNamespace = await resolveAutosNegociosDraftNamespace();
     const namespace = autosListingEditNamespace(rawNamespace, listingId);
 
@@ -222,7 +260,7 @@ export async function hydrateAutosDealerListingForDashboardEdit(input: {
       listing: parentListing,
       editorStep: input.focusInventory ? 6 : 0,
       editorMaxReached: input.focusInventory ? 6 : 0,
-      additionalInventoryVehicles: normalizeAdditionalInventoryVehicles(children),
+      additionalInventoryVehicles: resolvedChildren,
       inProgressInventoryVehicleDraft: null,
       inventoryDrawerEditingId: null,
       inventoryDrawerOpen: false,

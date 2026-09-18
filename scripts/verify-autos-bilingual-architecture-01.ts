@@ -43,6 +43,10 @@ import {
   autosInventoryDraftHasLocalPhotos,
 } from "../app/lib/clasificados/autos/autosDraftPhotoPublishPrepare";
 import { autosDraftImageRequiresUpload } from "../app/lib/clasificados/autos/autosPublishMediaTransport";
+import {
+  reconcileAdditionalInventoryVehicles,
+} from "../app/(site)/publicar/autos/negocios/lib/autosPublishedToDealerApplicationDraft";
+import { createEmptyInventoryVehicleDraft } from "../app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 
 const failures: string[] = [];
 function check(name: string, fn: () => void) {
@@ -1724,6 +1728,108 @@ check("Gate 12: the newsletter checkbox itself defaults unchecked in the one sha
 check("Gate 13: the newsletter engine's checkout-capture schema (unsubscribe_token / unsubscribe_token_expires_at) is proven present on the live production table — confirmed via a direct read-only information_schema query, no migration applied this round", () => {
   const migration = raw("supabase/migrations/20260916140000_newsletter_unsubscribe_token_columns.sql");
   assert.ok(migration.includes("unsubscribe_token") && migration.includes("unsubscribe_token_expires_at"));
+});
+
+/* ================================================================================================
+ * MEDIA + CHILD ROUND-TRIP RECOVERY CLOSEOUT — owner-proven runtime defects (2026-09-18/19):
+ * durable parent photos rendering as URL-only rows on Dashboard edit, the pre-checkout child
+ * bundle disappearing on the same edit, and a second competing "Publicar anuncio" path on the
+ * Dealer application's final review step.
+ * ============================================================================================ */
+check("Round-trip Gate A/B/C: the media manager no longer classifies canonical gallery photos by sourceType — durable/uploaded and owner-typed-URL images render through ONE visual sortable grid (thumbnail, cover, order, remove), not two separate UI worlds", () => {
+  const mgr = raw("app/(site)/publicar/autos/negocios/components/AutosNegociosMediaManager.tsx");
+  assert.ok(!mgr.includes("isUrlSource"), "the sourceType-based UI split must be removed entirely");
+  assert.ok(!mgr.includes("fileImages"), "no separate file-only image array should remain");
+  assert.ok(!mgr.includes("urlImages"), "no separate url-only image array/list should remain");
+  assert.ok(mgr.includes("<AutosSortablePhotoGrid"), "the visual grid must still be rendered");
+  assert.ok(
+    /<AutosSortablePhotoGrid\s+images=\{images\}/.test(mgr),
+    "the grid must receive the FULL canonical images array (both origins), not a filtered subset",
+  );
+  assert.ok(
+    mgr.includes('images.length === 0 ? (') && mgr.includes("images.length > 0"),
+    "empty-state and grid-visibility must be gated on the full image count, not a file-only subset",
+  );
+});
+check("Round-trip Gate C: dragging to reorder and the left/right move buttons operate on the full canonical mediaImages array (both origins), so a durable/uploaded photo's position round-trips exactly like a file-sourced one", () => {
+  const mgr = raw("app/(site)/publicar/autos/negocios/components/AutosNegociosMediaManager.tsx");
+  const moveFn = mgr.slice(mgr.indexOf("const move = "), mgr.indexOf("const onVideoUrlsChange"));
+  assert.ok(moveFn.includes("sortByOrder(listing.mediaImages ?? [])"), "move() must reorder within the full mediaImages array, not a file-only filtered copy");
+  const onReorder = mgr.slice(mgr.indexOf("onReorder={(next)"), mgr.indexOf("onSetPrimary={setPrimary}"));
+  assert.ok(!onReorder.includes("urlOnly"), "onReorder must not re-append a separately-tracked url-only subset (that silently forced url images to the end)");
+});
+check("Round-trip Gate B: cover selection is unchanged (still the same isPrimary field on MediaImageEntry, still the same setPrimary/commitImages path) — the fix is purely which images are ELIGIBLE for the grid, never how the persisted cover flag is read or written", () => {
+  const mgr = raw("app/(site)/publicar/autos/negocios/components/AutosNegociosMediaManager.tsx");
+  assert.ok(mgr.includes("const setPrimary = (id: string) => {"));
+  assert.ok(mgr.includes("x.id === id"), "setPrimary must still flip isPrimary by id across the full array");
+  const grid = raw("app/(site)/publicar/autos/shared/components/AutosSortablePhotoGrid.tsx");
+  assert.ok(grid.includes("img.isPrimary"), "the grid tile must still read isPrimary directly off each entry — no separate cover field introduced");
+});
+check("Round-trip Gate D: zero real child rows + a durable embedded additionalInventoryVehicles bundle on the parent restores the FULL staged child bundle (no fields dropped)", () => {
+  const embedded = [
+    createEmptyInventoryVehicleDraft("draft-a"),
+    createEmptyInventoryVehicleDraft("draft-b"),
+  ];
+  const result = reconcileAdditionalInventoryVehicles([], embedded);
+  assert.equal(result.length, 2, "both staged children must be restored when no real rows exist yet");
+});
+check("Round-trip Gate E: once a real published child row exists, it is canonical — a stale embedded draft that matches it by VIN is not duplicated alongside it", () => {
+  const real = { ...createEmptyInventoryVehicleDraft("real-row-uuid"), vin: "1HGCM82633A004352" };
+  const staleEmbedded = { ...createEmptyInventoryVehicleDraft("pre-checkout-draft-id"), vin: "1HGCM82633A004352" };
+  const result = reconcileAdditionalInventoryVehicles([real], [staleEmbedded]);
+  assert.equal(result.length, 1, "the real row must win — no duplicate for the same VIN");
+  assert.equal(result[0]?.id, "real-row-uuid", "the surviving entry must be the real canonical row, not the stale draft");
+});
+check("Round-trip Gate F: partial fulfillment reconciles deterministically — a real child is kept once, and a still-unpublished sibling staged in the same embedded bundle is recovered rather than silently dropped", () => {
+  const real = { ...createEmptyInventoryVehicleDraft("real-row-uuid"), vin: "1HGCM82633A004352" };
+  const embeddedMatching = { ...createEmptyInventoryVehicleDraft("pre-checkout-a"), vin: "1HGCM82633A004352" };
+  const embeddedUnpublishedSibling = { ...createEmptyInventoryVehicleDraft("pre-checkout-b"), vin: "5YJ3E1EA8KF317000" };
+  const result = reconcileAdditionalInventoryVehicles([real], [embeddedMatching, embeddedUnpublishedSibling]);
+  assert.equal(result.length, 2, "exactly one real + one still-unpublished sibling — no duplicate, no silent drop");
+  const ids = result.map((r) => r.id);
+  assert.ok(ids.includes("real-row-uuid"));
+  assert.ok(ids.includes("pre-checkout-b"));
+  assert.ok(!ids.includes("pre-checkout-a"), "the matched stale draft must not survive alongside its real row");
+});
+check("Round-trip Gate D/E fallback: with no VIN/stock number on either side, identity falls back to a title-shaped key (year/make/model/trim) rather than always treating them as distinct — this only applies when neither side has a stronger identifier", () => {
+  const real = { ...createEmptyInventoryVehicleDraft("real-row-uuid"), year: 2021, make: "Lexus", model: "RX", trim: "F Sport" };
+  const embeddedSame = { ...createEmptyInventoryVehicleDraft("pre-checkout-a"), year: 2021, make: "Lexus", model: "RX", trim: "F Sport" };
+  const result = reconcileAdditionalInventoryVehicles([real], [embeddedSame]);
+  assert.equal(result.length, 1, "identical title-shaped fallback identity must still de-duplicate when neither side has VIN/stock");
+});
+check("Round-trip Gate H: the Dealer main application review step exposes ONLY Vista previa/Preview — the second 'Publicar anuncio'/'continue to publish' CTA and its gating checklist are hidden for lane=negocios when not in inventory-add-child mode", () => {
+  const actions = raw("app/(site)/publicar/autos/shared/components/AutosApplicationFinalActions.tsx");
+  assert.ok(
+    actions.includes('const showSecondaryContinueButton = publishLane !== "negocios" || inventoryAddMode;'),
+    "the second CTA must be hidden exactly when lane is negocios and this is not the child-add flow",
+  );
+  assert.ok(
+    actions.includes("{showSecondaryContinueButton ? (") ,
+    "the second CTA button must be conditionally rendered",
+  );
+  assert.ok(
+    /\{showSecondaryContinueButton \? \(\s*<div className="mt-6">/.test(actions),
+    "the 'Before publishing' checklist that only gates the removed button must also be hidden alongside it, not left as dead UI",
+  );
+});
+check("Round-trip Gate H/J: 'Agregar al inventario' (child-draft save, NOT public publication) and Privado's own continue-to-publish path are both unaffected by the Dealer main Step-7 change", () => {
+  const actions = raw("app/(site)/publicar/autos/shared/components/AutosApplicationFinalActions.tsx");
+  assert.ok(actions.includes('inventoryAddMode && publishLane === "negocios"'), "inventory-add-child mode must still resolve its own distinct continue label");
+  const negocios = raw("app/(site)/publicar/autos/negocios/components/AutosNegociosApplication.tsx");
+  assert.ok(negocios.includes('lane="negocios"') && negocios.includes("inventoryAddMode={inventoryAddMode}"), "Dealer main still passes its real inventoryAddMode state through, unmodified");
+  const privado = raw("app/(site)/publicar/autos/privado/components/AutosPrivadoApplication.tsx");
+  assert.ok(privado.includes('lane="privado"'), "Privado's lane prop is untouched, so showSecondaryContinueButton is always true for Privado");
+});
+check("Round-trip Gate I: early progressive media preparation (pre-Pay durable upload, bounded concurrency) is completely untouched by this pass — no source line in the upload engine itself changed", () => {
+  const prepare = raw("app/lib/clasificados/autos/autosDraftPhotoPublishPrepare.ts");
+  assert.ok(prepare.includes("AUTOS_DRAFT_UPLOAD_CONCURRENCY = 4"), "bounded concurrency constant unchanged");
+  assert.ok(prepare.includes("onProgress?: (done: number, total: number) => void;"), "readiness progress callback unchanged");
+});
+check("Round-trip Gate J: Privado is protected — the shared media manager fix and the child-bundle reconciliation helper are generic, lane-agnostic repairs (no new Dealer-only branch was added to a component Privado also renders)", () => {
+  const mgr = raw("app/(site)/publicar/autos/negocios/components/AutosNegociosMediaManager.tsx");
+  assert.ok(!mgr.includes('lane ==='), "the media manager must not have grown a lane-conditional branch");
+  const privado = raw("app/(site)/publicar/autos/privado/components/AutosPrivadoApplication.tsx");
+  assert.ok(privado.includes("AutosNegociosMediaManager"), "Privado still uses the exact same shared, now-corrected media manager");
 });
 
 if (failures.length) {

@@ -10,10 +10,7 @@ import {
   normalizeMediaImagesOrder,
 } from "@/app/clasificados/autos/negocios/lib/autoDealerHeroImages";
 import { dedupeAutosVideoUrls } from "@/app/lib/clasificados/autos/autosExternalVideoUrlValidation";
-import {
-  autosExternalImageUrlDuplicate,
-  autosExternalImageUrlListLabel,
-} from "@/app/lib/clasificados/autos/autosExternalImageUrlsCopy";
+import { autosExternalImageUrlDuplicate } from "@/app/lib/clasificados/autos/autosExternalImageUrlsCopy";
 import { readFileAsDataUrl } from "../lib/readFileAsDataUrl";
 import { AutosSortablePhotoGrid } from "@/app/publicar/autos/shared/components/AutosSortablePhotoGrid";
 import { AutosExternalVideoUrlsField } from "@/app/publicar/autos/shared/components/AutosExternalVideoUrlsField";
@@ -34,10 +31,6 @@ const BTN_SECONDARY =
 
 function sortByOrder(images: MediaImageEntry[]): MediaImageEntry[] {
   return normalizeMediaImagesOrder(images);
-}
-
-function isUrlSource(entry: MediaImageEntry): boolean {
-  return entry.sourceType === "url";
 }
 
 /** Some mobile pickers omit MIME or use HEIC; avoid dropping valid photos from multi-select. */
@@ -69,8 +62,6 @@ export function AutosNegociosMediaManager({
 }) {
   const m = copy.media;
   const images = sortByOrder(listing.mediaImages ?? []);
-  const fileImages = images.filter((x) => !isUrlSource(x));
-  const urlImages = images.filter((x) => isUrlSource(x));
   const [singleImageUrlDraft, setSingleImageUrlDraft] = useState("");
   const [singleUrlError, setSingleUrlError] = useState<string | null>(null);
   const [dragOverPhotos, setDragOverPhotos] = useState(false);
@@ -161,7 +152,7 @@ export function AutosNegociosMediaManager({
   };
 
   const move = (id: string, dir: -1 | 1) => {
-    const sorted = sortByOrder(fileImages);
+    const sorted = sortByOrder(listing.mediaImages ?? []);
     const idx = sorted.findIndex((x) => x.id === id);
     if (idx < 0) return;
     const j = idx + dir;
@@ -311,14 +302,14 @@ export function AutosNegociosMediaManager({
         <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{m.pickerMultiNote}</p>
       </div>
 
-      {fileImages.length > 0 ? (
+      {images.length > 0 ? (
         <div className="mt-5 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 py-3">
           <p className="text-sm font-bold text-[color:var(--lx-text)]">{m.reorderHeading}</p>
           <p className="mt-1 text-xs leading-relaxed text-[color:var(--lx-muted)]">{m.reorderHint}</p>
         </div>
       ) : null}
 
-      {fileImages.length === 0 && images.length === 0 ? (
+      {images.length === 0 ? (
         <div
           className="mt-4 flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] px-4 py-6 text-center"
           role="status"
@@ -326,16 +317,15 @@ export function AutosNegociosMediaManager({
           <p className="text-sm font-semibold text-[color:var(--lx-text-2)]">{m.emptyPhotos}</p>
           <p className="text-xs text-[color:var(--lx-muted)]">{m.emptyPhotosHint}</p>
         </div>
-      ) : fileImages.length > 0 ? (
+      ) : (
         <AutosSortablePhotoGrid
-          images={fileImages}
+          images={images}
           onReorder={(next) => {
-            const urlOnly = images.filter(isUrlSource);
             // Drag reorder changes array position, not the stored sortOrder field.
             // Reassign sortOrder to match the new array order before normalizing,
             // otherwise normalizeMediaImagesOrder re-sorts by the stale field and
             // silently undoes the drag.
-            const reindexed = [...next, ...urlOnly].map((img, i) => ({ ...img, sortOrder: i }));
+            const reindexed = next.map((img, i) => ({ ...img, sortOrder: i }));
             commitImages(normalizeMediaImagesOrder(reindexed));
           }}
           onSetPrimary={setPrimary}
@@ -354,7 +344,7 @@ export function AutosNegociosMediaManager({
             dragHandle: m.dragHandle,
           }}
         />
-      ) : null}
+      )}
 
       <h3 className={`${SUBHEAD} mt-6`}>{m.urlSectionHeading}</h3>
       <p className="mt-1 text-xs leading-relaxed text-[color:var(--lx-muted)]">{m.urlHelper}</p>
@@ -387,39 +377,6 @@ export function AutosNegociosMediaManager({
           <p className="mt-2 text-xs font-medium text-red-800" role="alert">
             {singleUrlError}
           </p>
-        ) : null}
-
-        {urlImages.length > 0 ? (
-          <ul className="mt-4 space-y-2">
-            {urlImages.map((img, i) => (
-              <li
-                key={img.id}
-                className="flex flex-col gap-2 rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold text-[color:var(--lx-text)]">
-                    {lang ? autosExternalImageUrlListLabel(lang, i) : `Image URL ${i + 1}`}
-                    {img.isPrimary ? (
-                      <span className="ml-2 inline-flex rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-nav-hover)] px-2 py-0.5 text-[10px] font-bold text-[color:var(--lx-text)]">
-                        {m.activeCover}
-                      </span>
-                    ) : null}
-                  </p>
-                  <p className="truncate text-xs text-[color:var(--lx-text-2)]">{img.url}</p>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  {!img.isPrimary ? (
-                    <button type="button" className="text-xs font-bold text-[color:var(--lx-gold)] underline" onClick={() => setPrimary(img.id)}>
-                      {m.useAsCover}
-                    </button>
-                  ) : null}
-                  <button type="button" className="text-xs font-bold text-red-800 underline" onClick={() => remove(img.id)}>
-                    {m.remove}
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
         ) : null}
       </div>
 
