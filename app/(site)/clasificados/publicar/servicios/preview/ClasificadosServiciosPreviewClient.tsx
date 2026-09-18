@@ -193,6 +193,10 @@ export function ClasificadosServiciosPreviewClient() {
   // listing_status for a listing-bound preview (never fabricated — see previewListingRow below).
   const [listingBoundStatus, setListingBoundStatus] = useState<string | null>(null);
   const [savedChangesNotice, setSavedChangesNotice] = useState(false);
+  // Gate 15 (Servicios Final Consolidated Lifecycle Execution, 2026-09-18) — real, server-resolved
+  // coupons/offers capability truth for a listing-bound preview (see profile below); null until
+  // hydrated, meaning "not yet known" rather than "not entitled".
+  const [listingBoundOffersEntitled, setListingBoundOffersEntitled] = useState<boolean | null>(null);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [checkoutErr, setCheckoutErr] = useState<string | null>(null);
 
@@ -288,6 +292,7 @@ export function ClasificadosServiciosPreviewClient() {
           primeServiciosExistingPublicSlug(hydrated.editIdentity.slug);
           primeServiciosExistingListingId(hydrated.editIdentity.id);
           setListingBoundStatus(hydrated.editIdentity.status);
+          setListingBoundOffersEntitled(data.listing.offers_entitled === true);
           let normalized = normalizeClasificadosServiciosApplicationState(hydrated.state);
           if (alreadyEditingThisListing) {
             const localDraft = await loadClasificadosServiciosApplicationResolved();
@@ -591,13 +596,19 @@ export function ClasificadosServiciosPreviewClient() {
     let wire = mapServiciosApplicationDraftToBusinessProfile(appDraft);
     wire = applyClasificadosCouponsToServiciosWireProfile(wire, appDraft);
     let resolved = resolveServiciosProfile(wire, lang);
-    if (appState.couponsAddOn) {
+    // Gate 15 — a listing-bound preview must consume the SAME server-resolved `coupons_offers`
+    // capability truth the published page uses, not `appState.couponsAddOn` (an intent flag
+    // inferred from stored profile content on hydration, which can diverge from real entitlement —
+    // e.g. a lapsed package that still has old coupon content saved). A fresh, not-yet-persisted
+    // application has no real entitlement to check yet, so it keeps using the owner's selection.
+    const offersEntitled = listingBoundPreview ? listingBoundOffersEntitled === true : appState.couponsAddOn;
+    if (offersEntitled) {
       resolved = mergeClasificadosCouponsOntoServiciosProfile(resolved, appState, lang);
     } else {
       resolved = { ...resolved, promotions: [], coupons: [] };
     }
     return resolved;
-  }, [source, appDraft, appState, lang]);
+  }, [source, appDraft, appState, lang, listingBoundPreview, listingBoundOffersEntitled]);
 
   const listingTemplate = useMemo(() => {
     if (source !== "application" || !appState) return "standard_service" as const;

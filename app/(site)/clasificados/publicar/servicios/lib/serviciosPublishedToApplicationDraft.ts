@@ -32,6 +32,9 @@ export type ServiciosPublishedListingHydrationSource = {
   city?: string | null;
   listing_status?: string | null;
   profile_json?: ServiciosBusinessProfile | null;
+  /** Gate 15 — real, server-resolved `coupons_offers` capability truth (same authority the
+   * publish route and public profile page use), not inferred from stored profile content. */
+  offers_entitled?: boolean;
 };
 
 export type ServiciosEditIdentity = {

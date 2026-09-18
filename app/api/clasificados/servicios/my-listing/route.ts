@@ -8,6 +8,7 @@ import {
 } from "@/app/clasificados/servicios/lib/serviciosAddressPrivacy";
 import { readAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
 import { isListingLinkedToBusiness } from "@/app/lib/business/assistedListingCustody";
+import { resolveBusinessToolsAccess } from "@/app/lib/listingPlans/categoryCommercialPlan";
 
 export const runtime = "nodejs";
 
@@ -117,6 +118,23 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  // Gate 15 (Servicios Final Consolidated Lifecycle Execution, 2026-09-18) — the SAME
+  // server-resolved `coupons_offers` capability the publish route and the public profile page
+  // already use, so listing-bound Preview can render coupons/promotions from real entitlement
+  // truth instead of inferring intent from stored profile content (which can diverge from what
+  // the published page actually shows).
+  const offersEntitled =
+    typeof rec.id === "string"
+      ? await resolveBusinessToolsAccess({
+          category: "servicios",
+          listingSource: "servicios_public_listings",
+          listingId: rec.id,
+          capability: "coupons_offers",
+        })
+          .then((d) => d.allowed === true)
+          .catch(() => false)
+      : false;
+
   return NextResponse.json({
     ok: true,
     listing: {
@@ -130,6 +148,7 @@ export async function GET(req: NextRequest) {
       listing_status: typeof rec.listing_status === "string" ? rec.listing_status : "published",
       leonix_verified: rec.leonix_verified === true,
       profile_json: ownerProfile,
+      offers_entitled: offersEntitled,
     },
   });
 }
