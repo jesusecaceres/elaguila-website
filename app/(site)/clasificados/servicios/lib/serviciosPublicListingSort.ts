@@ -12,7 +12,7 @@ export const SERVICIOS_PUBLIC_LISTING_SELECT =
 
 export type ServiciosPublicListingSortInput = {
   slug: string;
-  published_at: string;
+  published_at: string | null;
   updated_at?: string | null;
   republished_at?: string | null;
   /** When present on `servicios_public_listings` (not all deployments); results newest coalesce only. */
@@ -35,17 +35,32 @@ export function serviciosEngagementListingKey(row: {
 /**
  * All `listing_id` values that may appear in `listing_analytics` for this listing (writes use
  * {@link serviciosEngagementListingKey}; older rows may have used `id` or `slug` only).
+ *
+ * Gate 16 (Servicios Final Consolidated Lifecycle Execution, 2026-09-18) — also includes the
+ * prefixed `servicios_public_listings:{id}` fallback form the SEPARATE global analytics writer
+ * (`buildCanonicalAdId` in `app/lib/analytics/listingAnalyticsIdentity.ts`) can produce for an
+ * event tracked when neither `leonix_ad_id` nor a stable `slug` was available at write time.
+ * Without it, any event actually stored under that prefixed key was invisible to every reader of
+ * this alias set (Results/Public engagement counts, the owner dashboard, and Admin's canonical
+ * analytics rollup all call this same function) — a real analytics-identity mismatch, not merely a
+ * missing safeguard. Deliberately inlined (not imported) to keep this file's "no server-only
+ * imports" client-shareable guarantee intact; the literal table name mirrors
+ * `LISTING_ANALYTICS_SOURCE_TABLES`'s `"servicios_public_listings"` entry.
  */
 export function serviciosLikeCountAliasKeys(row: {
   leonix_ad_id?: string | null;
   id?: string | null;
   slug: string;
 }): string[] {
+  const id = (row.id ?? "").trim();
   return [
     ...new Set(
-      [(row.leonix_ad_id ?? "").trim(), (row.id ?? "").trim(), (row.slug ?? "").trim()].filter(
-        (s): s is string => Boolean(s),
-      ),
+      [
+        (row.leonix_ad_id ?? "").trim(),
+        id,
+        (row.slug ?? "").trim(),
+        id ? `servicios_public_listings:${id}` : "",
+      ].filter((s): s is string => Boolean(s)),
     ),
   ];
 }

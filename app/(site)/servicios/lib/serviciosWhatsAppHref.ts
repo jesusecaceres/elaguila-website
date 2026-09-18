@@ -1,6 +1,7 @@
 import { trimText } from "./serviciosProfileSanitize";
 import type { ServiciosProfileResolved } from "../types/serviciosBusinessProfile";
 import { normalizeInternationalWhatsAppDigits, whatsAppDigitsOnly } from "@/app/lib/whatsapp/internationalWhatsApp";
+import { getFormattedPhone } from "@/app/components/cta/ctaDataHelpers";
 
 /** Strip spaces, parentheses, dashes, dots; keep digits only. */
 export function stripServiciosWhatsAppDigits(raw: string): string {
@@ -14,6 +15,26 @@ export function stripServiciosWhatsAppDigits(raw: string): string {
  */
 export function normalizeServiciosWhatsAppDigits(raw: string): string | null {
   return normalizeInternationalWhatsAppDigits(raw);
+}
+
+/**
+ * Servicios Final Phone Destination Closeout (2026-09-17, Gate 5) — human-readable WhatsApp number
+ * for any future read-only display surface. DISPLAY VALUE vs DESTINATION are deliberately separate:
+ * the destination (wa.me href) always needs a country code, so `normalizeServiciosWhatsAppDigits`
+ * force-prefixes a bare 10-digit US number with "1" — but the owner's worked example shows the
+ * DISPLAY value without that prefix ("6693664300" -> "(669) 366-4300", not "+1 (669) 366-4300").
+ * Validity is still gated by the same normalizer used for the destination (so an invalid/too-short
+ * number correctly shows nothing), but the actual digits formatted are the plain stripped input —
+ * the same raw digit-stripping (`whatsAppDigitsOnly`) the destination normalizer itself starts from,
+ * never a second independent extraction — passed through the shared `getFormattedPhone` helper,
+ * which only applies US "(XXX) XXX-XXXX" grouping for 10-digit or 11-digit-leading-1 numbers and
+ * leaves every other length/shape untouched — never mis-formats a non-US international number as if
+ * it were American. The wa.me href itself is built separately and is never affected by this helper.
+ */
+export function formatServiciosWhatsAppDisplay(raw: string | null | undefined): string {
+  const valid = normalizeServiciosWhatsAppDigits(String(raw ?? ""));
+  if (!valid) return "";
+  return getFormattedPhone(whatsAppDigitsOnly(String(raw ?? "")));
 }
 
 function tryParseWhatsAppUrl(raw: string): URL | null {

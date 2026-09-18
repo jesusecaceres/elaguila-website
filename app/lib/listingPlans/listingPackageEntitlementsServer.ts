@@ -77,6 +77,20 @@ function rowToActiveEntitlement(raw: Record<string, unknown>, now: Date): Active
 /**
  * Load active package entitlements for published listings (service role).
  * Matches `listing_id` to row `id`, `slug`, or `leonix_ad_id`.
+ *
+ * Gate 11 (Servicios Final Consolidated Lifecycle Execution, 2026-09-18) — `listing_source` is
+ * deliberately NOT part of this query's filter, for the same reason already documented and fixed
+ * for the Business Tools/coupons resolver (`categoryCommercialPlan.ts`, "Gate RESTAURANTES-1") and
+ * `addonEntitlementReader.ts`: that column has been written inconsistently across the platform —
+ * the generic Revenue OS webhook fulfillment path (`revenueEntitlementFulfillment.ts`) writes the
+ * bare CATEGORY string (e.g. `"servicios"`), while every caller of this overlay (Servicios,
+ * Restaurantes, Bienes Raíces, Autos, Rentas) passes the TABLE name (e.g.
+ * `"servicios_public_listings"`). Filtering on it here silently dropped a real, active Premium/
+ * Full-page placement entitlement from public results whenever it was fulfilled through that
+ * shared path instead of a category-specific one. `category` + `listing_id` remains the durable,
+ * collision-safe match (a listing id is a real UUID primary key, globally unique on its own; the
+ * `category` filter below still prevents any cross-category match even in principle) — dropping
+ * the column narrows nothing that matters and fixes every caller of this shared function at once.
  */
 export async function fetchActiveListingPackageEntitlementsForRows(
   rows: Array<{ id?: string | null; slug?: string | null; leonix_ad_id?: string | null }>,
@@ -105,7 +119,6 @@ export async function fetchActiveListingPackageEntitlementsForRows(
       .from("listing_package_entitlements")
       .select("listing_id, package_tier, starts_at, ends_at, status, revoked_at, metadata")
       .eq("category", opts.category)
-      .eq("listing_source", opts.listingSource)
       .in("listing_id", chunk)
       .neq("status", "revoked")
       .is("revoked_at", null);

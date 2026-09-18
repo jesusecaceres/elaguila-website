@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/revenue-os/admin/subscription-sweep",
+      "schedule": "0 6 * * *"
+    }
+  ]
+}

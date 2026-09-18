@@ -117,6 +117,7 @@ import {
   MAX_CUSTOM_BUSINESS_HIGHLIGHTS,
 } from "../lib/serviciosHighlightCaps";
 import { digitsOnly, formatPhoneInputDisplay, formatWhatsAppInputDisplay } from "../lib/serviciosPhoneUi";
+import { formatServiciosWhatsAppDisplay } from "@/app/(site)/servicios/lib/serviciosWhatsAppHref";
 import { resolveServiciosBusinessHighlightVisual } from "@/app/(site)/clasificados/servicios/lib/serviciosBusinessHighlightVisual";
 import { resolveServiciosServiceVisual } from "@/app/(site)/clasificados/servicios/lib/serviciosServiceVisualCatalog";
 import {
@@ -295,6 +296,12 @@ export function ClasificadosServiciosApplication() {
   const [newFieldsMissing, setNewFieldsMissing] = useState<string[]>([]);
   const [languageOtherPending, setLanguageOtherPending] = useState("");
   const [serviceAreaPending, setServiceAreaPending] = useState("");
+  // WhatsApp field display-format micro-fix — show the nicely formatted US "(XXX) XXX-XXXX" value
+  // (when applicable) while the field is NOT focused, and the raw international-safe editing value
+  // while the owner is actively typing, so keystrokes never fight a reformatting value prop. The
+  // STORED state.whatsapp value (and everything downstream: publish payload, resolver, wa.me
+  // destination) is completely untouched by this — display-only.
+  const [whatsappFieldFocused, setWhatsappFieldFocused] = useState(false);
 
   // Owner UX doctrine (INPUT -> ACCEPTED -> PERSISTED): one useAddedConfirmation() instance per
   // distinct explicit Add flow. Groups/rows that repeat a fixed, bounded set (5 amenity groups,
@@ -644,8 +651,15 @@ export function ClasificadosServiciosApplication() {
       setHydrated(false);
       return;
     }
-    primeServiciosExistingPublicSlug(null);
-    primeServiciosExistingListingId(null);
+    // Gate 6 (Servicios Final Consolidated Lifecycle Execution, 2026-09-18): this branch runs on
+    // EVERY ordinary (non dashboard-edit) mount of the application, including resuming the exact
+    // same draft after an abandoned/canceled Stripe checkout. It used to unconditionally wipe the
+    // canonical listing id primed by a prior pending-payment save (serviciosPublishClient.ts) right
+    // before restoring that SAME draft from storage below — so a retried checkout always allocated
+    // a fresh slug and INSERTed a duplicate row instead of updating the one already saved as
+    // pending_payment. The id must only ever be cleared by an EXPLICIT "start over" action
+    // (deleteApplicationDraft, below) or by hydrating a DIFFERENT listing for dashboard edit (which
+    // already sets it to that listing's own real id) — never merely by revisiting this page.
     setEditIdentity(null);
     setNewFieldsMissing([]);
     setEditHydration({ status: "idle" });
@@ -1923,8 +1937,14 @@ export function ClasificadosServiciosApplication() {
                     type="tel"
                     inputMode="tel"
                     placeholder={lang === "es" ? "+1 713 555 0100" : "+1 713 555 0100"}
-                    value={formatWhatsAppInputDisplay(state.whatsapp)}
+                    value={
+                      whatsappFieldFocused
+                        ? formatWhatsAppInputDisplay(state.whatsapp)
+                        : formatServiciosWhatsAppDisplay(state.whatsapp) || formatWhatsAppInputDisplay(state.whatsapp)
+                    }
                     onChange={(e) => setState((s) => ({ ...s, whatsapp: formatWhatsAppInputDisplay(e.target.value) }))}
+                    onFocus={() => setWhatsappFieldFocused(true)}
+                    onBlur={() => setWhatsappFieldFocused(false)}
                   />
                 </div>
                 <div>

@@ -14,6 +14,7 @@ import { ServiciosHorizontalResultCard } from "@/app/(site)/clasificados/servici
 import { ServiciosProfessionalResultCard } from "@/app/(site)/clasificados/servicios/ServiciosProfessionalResultCard";
 import type { ServiciosPublicListingRow } from "@/app/(site)/clasificados/servicios/lib/serviciosPublicListingsServer";
 import { SERVICIOS_LISTING_STATUS_PUBLISHED } from "@/app/(site)/clasificados/servicios/lib/serviciosListingLifecycle";
+import { SERVICIOS_AWAITING_BASE_PURCHASE_STATUSES } from "@/app/(site)/clasificados/servicios/lib/serviciosOwnerMutationPolicy";
 import {
   isServiciosProfessionalTemplate,
   resolveServiciosListingTemplate,
@@ -41,6 +42,7 @@ import {
   postServiciosPublishApi,
   primeServiciosExistingListingId,
   primeServiciosExistingPublicSlug,
+  SERVICIOS_EXISTING_LISTING_ID_SESSION_KEY,
 } from "../lib/serviciosPublishClient";
 import { useAssistedPublishingUi } from "@/app/components/auth/AssistedPublishingUiContext";
 import { readConciergeReturnContext } from "@/app/lib/business/applicationContext/conciergeReturnContext";
@@ -187,6 +189,18 @@ export function ClasificadosServiciosPreviewClient() {
   const [listingHydrationError, setListingHydrationError] = useState<string | null>(null);
   const [publishBusy, setPublishBusy] = useState(false);
   const [publishErr, setPublishErr] = useState<string | null>(null);
+  // Gate 7 (Servicios Final Consolidated Lifecycle Execution, 2026-09-18): the REAL persisted
+  // listing_status for a listing-bound preview (never fabricated — see previewListingRow below).
+  const [listingBoundStatus, setListingBoundStatus] = useState<string | null>(null);
+  const [savedChangesNotice, setSavedChangesNotice] = useState(false);
+  // Gate 15 (Servicios Final Consolidated Lifecycle Execution, 2026-09-18) — real, server-resolved
+  // coupons/offers capability truth for a listing-bound preview (see profile below); null until
+  // hydrated, meaning "not yet known" rather than "not entitled".
+  const [listingBoundOffersEntitled, setListingBoundOffersEntitled] = useState<boolean | null>(null);
+  // Gate 4 (Servicios Golden lifecycle closeout, 2026-09-18) — real, server-verified
+  // leonix_verified truth for a listing-bound preview (see profile above); false until hydrated,
+  // which is the same honest default an unverified/not-yet-real row would show.
+  const [listingBoundLeonixVerified, setListingBoundLeonixVerified] = useState<boolean | null>(null);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [checkoutErr, setCheckoutErr] = useState<string | null>(null);
 
@@ -240,6 +254,20 @@ export function ClasificadosServiciosPreviewClient() {
                 : "Inicia sesión para ver la vista previa de este anuncio publicado.",
             );
           }
+          // Gate 7 (Servicios Final Consolidated Lifecycle Execution, 2026-09-18): if the owner is
+          // ALREADY editing this exact listing earlier in this browser session (Application ->
+          // Preview -> back to Application -> Preview again), the local draft below may hold content
+          // edits that were never persisted yet. The database fetch always runs so identity and the
+          // REAL listing_status stay authoritative, but a matching local draft's CONTENT wins over
+          // the (possibly stale-relative-to-those-edits) database snapshot — otherwise every Preview
+          // visit would silently discard unsaved changes.
+          let alreadyEditingThisListing = false;
+          try {
+            const primedId = window.sessionStorage.getItem(SERVICIOS_EXISTING_LISTING_ID_SESSION_KEY);
+            alreadyEditingThisListing = Boolean(listingId) && primedId === listingId;
+          } catch {
+            alreadyEditingThisListing = false;
+          }
           const q = new URLSearchParams();
           if (listingId) q.set("id", listingId);
           else if (listingSlug) q.set("slug", listingSlug);
@@ -267,7 +295,16 @@ export function ClasificadosServiciosPreviewClient() {
           // even if the business was renamed, and no base recharge.
           primeServiciosExistingPublicSlug(hydrated.editIdentity.slug);
           primeServiciosExistingListingId(hydrated.editIdentity.id);
-          const normalized = normalizeClasificadosServiciosApplicationState(hydrated.state);
+          setListingBoundStatus(hydrated.editIdentity.status);
+          setListingBoundOffersEntitled(data.listing.offers_entitled === true);
+          setListingBoundLeonixVerified(data.listing.leonix_verified === true);
+          let normalized = normalizeClasificadosServiciosApplicationState(hydrated.state);
+          if (alreadyEditingThisListing) {
+            const localDraft = await loadClasificadosServiciosApplicationResolved();
+            if (localDraft) {
+              normalized = normalizeClasificadosServiciosApplicationState(localDraft);
+            }
+          }
           setAppState(normalized);
           const mapped = mapClasificadosServiciosApplicationToServiciosDraft(normalized, lang);
           setAppDraft({
@@ -329,13 +366,70 @@ export function ClasificadosServiciosPreviewClient() {
     return evaluateServiciosPublishReadiness(appState, lang);
   }, [source, appState, lang]);
 
+  // Gate 7 (Servicios Final Consolidated Lifecycle Execution, 2026-09-18): an existing listing's
+  // ordinary edit-save does NOT re-collect the three legal confirmations captured once at the
+  // original application/checkout — only a fresh application (never listing-bound) requires them,
+  // mirroring the exemption `previewReadiness` above already applies for listing-bound previews.
   const canPublishFromPreview =
     source === "application" &&
     appState &&
     publishReadiness.ok &&
-    appState.confirmListingAccurate &&
-    appState.confirmPhotosRepresentBusiness &&
-    appState.confirmCommunityRules;
+    (listingBoundPreview ||
+      (appState.confirmListingAccurate && appState.confirmPhotosRepresentBusiness && appState.confirmCommunityRules));
+
+  // Gate 7 — a listing-bound preview whose REAL status has not yet cleared its base purchase must
+  // save through the pending-payment-preserving path (never a full publish attempt): the row stays
+  // hidden and untouched by Stripe until the owner completes checkout (Gate 8).
+  const listingBoundAwaitsBasePurchase =
+    listingBoundPreview &&
+    listingBoundStatus != null &&
+    SERVICIOS_AWAITING_BASE_PURCHASE_STATUSES.has(listingBoundStatus.trim().toLowerCase());
+
+  // Gate 13 — a listing-bound preview of an ALREADY-published row: saving here is a republish of
+  // the SAME live listing, never a first-time publish (no recharge, no new subscription — the
+  // server route's owner-save transition table already keeps `published` as `published`
+  // regardless; see decideServiciosOwnerSaveStatus). Drives the CTA label and suppresses the
+  // "just published" success panel on the redirect target below.
+  const isRepublishOfPublished = listingBoundPreview && listingBoundStatus?.trim().toLowerCase() === SERVICIOS_LISTING_STATUS_PUBLISHED;
+
+  // Gate 7 (Servicios Final Consolidated Lifecycle Execution, 2026-09-18) — "Guardar cambios" for a
+  // listing-bound preview whose real status still awaits its base purchase (pending_payment / draft
+  // / preview_ready / publish_ready). Reuses the SAME already-proven pending-payment save
+  // (`saveServiciosPendingBeforeCheckout`, Gate SERVICIOS-GLOBAL-CHECKOUT-STANDARD-PARITY-01) the
+  // pre-checkout flow already relies on: it PATCHes the durable row (Gate 6), explicitly requests
+  // `activationMode: "pending_payment"` so the server-side transition table
+  // (`decideServiciosOwnerSaveStatus`) leaves the row in `pending_payment` rather than advancing it
+  // toward a public status, and never calls Stripe. Unlike a first-time publish it must NOT clear
+  // the draft or navigate to the (still non-public) listing page — the owner stays on Preview with a
+  // truthful "saved" confirmation and can still reach "Completar pago" (Gate 8) separately.
+  const handleSaveChangesForPendingListing = useCallback(async () => {
+    if (!appState || !canPublishFromPreview) return;
+    setPublishBusy(true);
+    setPublishErr(null);
+    setSavedChangesNotice(false);
+    try {
+      await saveClasificadosServiciosApplicationResolved(appState);
+      let accessToken: string | null = null;
+      try {
+        const sb = createSupabaseBrowserClient();
+        const { data: sess } = await withAuthTimeout(sb.auth.getSession(), AUTH_CHECK_TIMEOUT_MS);
+        accessToken = sess.session?.access_token ?? null;
+      } catch {
+        accessToken = null;
+      }
+      const result = await saveServiciosPendingBeforeCheckout({ state: appState, lang, accessToken });
+      if (!result.ok) {
+        setPublishErr(result.userMessage);
+        setPublishBusy(false);
+        return;
+      }
+      setSavedChangesNotice(true);
+      setPublishBusy(false);
+    } catch {
+      setPublishErr(lang === "en" ? "Network error." : "Error de red.");
+      setPublishBusy(false);
+    }
+  }, [appState, canPublishFromPreview, lang]);
 
   const handlePublishFromPreview = useCallback(async () => {
     if (!appState || !canPublishFromPreview) return;
@@ -437,7 +531,9 @@ export function ClasificadosServiciosPreviewClient() {
       // Clear draft after successful publish
       await clearServiciosDraftStorageAndIdb();
       const q = new URLSearchParams({ lang });
-      q.set("justPublished", "1");
+      // Gate 13 — a republish of an already-published listing must never show the "just
+      // published" congratulatory panel; the owner already knows this listing is live.
+      if (!isRepublishOfPublished) q.set("justPublished", "1");
       if (data.persistence) q.set("persistence", data.persistence);
       if (data.listingStatus) q.set("listingStatus", data.listingStatus);
       if (data.skippedOversizedVideos) q.set("videoSkipped", "1");
@@ -452,7 +548,7 @@ export function ClasificadosServiciosPreviewClient() {
       setPublishErr(lang === "en" ? "Network error." : "Error de red.");
       setPublishBusy(false);
     }
-  }, [appState, canPublishFromPreview, lang, router]);
+  }, [appState, canPublishFromPreview, lang, router, isRepublishOfPublished]);
 
   /**
    * Business name is display-only, from the same unsigned sessionStorage record
@@ -504,14 +600,29 @@ export function ClasificadosServiciosPreviewClient() {
     if (source !== "application" || !appDraft || !appState) return null;
     let wire = mapServiciosApplicationDraftToBusinessProfile(appDraft);
     wire = applyClasificadosCouponsToServiciosWireProfile(wire, appDraft);
+    // Gate 4 (Servicios Golden lifecycle closeout, 2026-09-18) — a listing-bound preview of an
+    // ALREADY leonix_verified listing must show the real badge, mirroring the exact override the
+    // published page itself applies (page.tsx: `wireMerged.identity = {...,leonixVerified:
+    // row.leonix_verified === true}`) — never fabricated, but also never silently hidden for a
+    // listing that is genuinely verified. A fresh application has no real DB row yet, so it stays
+    // false (unchanged).
+    if (listingBoundPreview) {
+      wire = { ...wire, identity: { ...wire.identity, leonixVerified: listingBoundLeonixVerified === true } };
+    }
     let resolved = resolveServiciosProfile(wire, lang);
-    if (appState.couponsAddOn) {
+    // Gate 15 — a listing-bound preview must consume the SAME server-resolved `coupons_offers`
+    // capability truth the published page uses, not `appState.couponsAddOn` (an intent flag
+    // inferred from stored profile content on hydration, which can diverge from real entitlement —
+    // e.g. a lapsed package that still has old coupon content saved). A fresh, not-yet-persisted
+    // application has no real entitlement to check yet, so it keeps using the owner's selection.
+    const offersEntitled = listingBoundPreview ? listingBoundOffersEntitled === true : appState.couponsAddOn;
+    if (offersEntitled) {
       resolved = mergeClasificadosCouponsOntoServiciosProfile(resolved, appState, lang);
     } else {
       resolved = { ...resolved, promotions: [], coupons: [] };
     }
     return resolved;
-  }, [source, appDraft, appState, lang]);
+  }, [source, appDraft, appState, lang, listingBoundPreview, listingBoundOffersEntitled, listingBoundLeonixVerified]);
 
   const listingTemplate = useMemo(() => {
     if (source !== "application" || !appState) return "standard_service" as const;
@@ -534,21 +645,48 @@ export function ClasificadosServiciosPreviewClient() {
       slug,
       business_name: appState.businessName.trim() || profile.identity.businessName,
       city: appState.city.trim(),
-      published_at: new Date().toISOString(),
+      // Gate 7 (Servicios Final Consolidated Lifecycle Execution, 2026-09-18): a listing-bound
+      // preview has no real `published_at` to show (the hydration source does not carry it) — the
+      // truthful value is `null` (the same "not published yet" convention `serviciosPublicListingsServer`
+      // already uses), never a fabricated "now". A fresh, not-yet-persisted application preview has
+      // no real row at all yet, so "now" remains an honest stand-in for that case only.
+      published_at: listingBoundPreview ? null : new Date().toISOString(),
       profile_json: wire,
-      leonix_verified: appState.leonixVerifiedInterest === true,
+      // Gate 5 (Servicios Final Consolidated Lifecycle Execution, 2026-09-18): never fake the
+      // Verified badge. `leonixVerifiedInterest` is the owner's stated INTEREST in verification
+      // (opsMeta only) — it is not, and must never render as, the real staff-granted
+      // `leonix_verified` truth. A fresh application's publish route always inserts a NEW row as
+      // `leonix_verified: false` (only staff can grant it afterward via Admin), so `false` is
+      // honest there. Gate 4 (Golden lifecycle closeout, 2026-09-18): for a LISTING-BOUND preview
+      // the real value already exists in the DB and is fetched by the my-listing route — showing
+      // `false` unconditionally would be a Preview/Public mismatch for an already-verified
+      // listing, not merely a safe default.
+      leonix_verified: listingBoundPreview ? listingBoundLeonixVerified === true : false,
       internal_group: getBusinessTypePreset(appState.businessTypeId)?.internalGroup ?? null,
-      listing_status: SERVICIOS_LISTING_STATUS_PUBLISHED,
+      // Gate 7 — stop cosmetically faking `published` for a listing-bound preview: use the REAL
+      // hydrated status (e.g. `pending_payment`) when known, falling back to the honest "published"
+      // stand-in only for a fresh application preview, which has no real row/status yet.
+      listing_status: listingBoundPreview && listingBoundStatus ? listingBoundStatus : SERVICIOS_LISTING_STATUS_PUBLISHED,
     };
-  }, [useProfessionalPreview, appState, appDraft, profile]);
+  }, [useProfessionalPreview, appState, appDraft, profile, listingBoundPreview, listingBoundStatus, listingBoundLeonixVerified]);
 
-  // Servicios global checkout standard — final checkpoint shown after preview for the
-  // NEW application publish flow only. Dashboard existing-listing preview keeps its own
-  // update/golden-loop button (already paid, no re-charge).
+  // Servicios global checkout standard — final checkpoint shown after preview for the NEW
+  // application publish flow, and (Gate 8, Servicios Final Consolidated Lifecycle Execution,
+  // 2026-09-18) reused as-is for "Completar pago" on a listing-bound row still awaiting its base
+  // purchase (pending_payment / draft / preview_ready / publish_ready) — the SAME
+  // servicios_base_monthly checkout, promo handling, newsletter capture, and confirmations, driven
+  // by the SAME onCheckout below, which already resolves the durable canonical listing id/Ad id
+  // from the pending-payment save result (never a duplicate row). An already-published/paused/
+  // pending_review listing-bound preview never sees this — its Dashboard action bar keeps its own
+  // update/republish button (already paid, no re-charge).
   const offersAddonSelected = Boolean(appState?.couponsAddOn);
   const serviciosPipeline = useProfessionalPreview ? "professional" : "trades";
   const showFinalCheckout =
-    !assistedUi && !listingBoundPreview && source === "application" && Boolean(profile) && previewReadiness.ok;
+    !assistedUi &&
+    (!listingBoundPreview || listingBoundAwaitsBasePurchase) &&
+    source === "application" &&
+    Boolean(profile) &&
+    previewReadiness.ok;
 
   // Package C Build 3 (C5/C6) — owner-locked: coupons/offers are included in the $399/mo base
   // package. The toggle stays as content/setup intent only — never a checkout line item.
@@ -832,12 +970,34 @@ export function ClasificadosServiciosPreviewClient() {
         ) : (
           <div className="mx-auto flex max-w-[1280px] flex-wrap items-center justify-end gap-2 px-4 py-3 md:px-6">
             {showFinalCheckout ? (
-              <a
-                href="#servicios-publish-checkout-checkpoint"
-                className="inline-flex min-h-[44px] touch-manipulation items-center rounded-full bg-[#3B66AD] px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699]"
-              >
-                {lang === "en" ? "Continue to payment" : "Continuar al pago"}
-              </a>
+              <>
+                {/* Gate 8 — "Guardar cambios" stays available NEXT TO "Completar pago" so an owner
+                    resuming an abandoned checkout can save further content edits without being
+                    forced through payment first. A fresh (non listing-bound) application has no
+                    existing row to save yet, so it only ever sees the payment button. */}
+                {listingBoundAwaitsBasePurchase ? (
+                  <button
+                    type="button"
+                    disabled={!canPublishFromPreview || publishBusy}
+                    onClick={() => void handleSaveChangesForPendingListing()}
+                    className="inline-flex min-h-[44px] touch-manipulation items-center rounded-full border border-[#3B66AD] bg-white px-4 py-2 text-sm font-bold text-[#3B66AD] shadow-sm transition hover:bg-[#EEF3FB] disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    {publishBusy ? (lang === "en" ? "Saving…" : "Guardando…") : lang === "en" ? "Save changes" : "Guardar cambios"}
+                  </button>
+                ) : null}
+                <a
+                  href="#servicios-publish-checkout-checkpoint"
+                  className="inline-flex min-h-[44px] touch-manipulation items-center rounded-full bg-[#3B66AD] px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699]"
+                >
+                  {listingBoundAwaitsBasePurchase
+                    ? lang === "en"
+                      ? "Complete payment"
+                      : "Completar pago"
+                    : lang === "en"
+                      ? "Continue to payment"
+                      : "Continuar al pago"}
+                </a>
+              </>
             ) : (
               <button
                 type="button"
@@ -852,7 +1012,21 @@ export function ClasificadosServiciosPreviewClient() {
                 onClick={() => void handlePublishFromPreview()}
                 className="inline-flex min-h-[44px] touch-manipulation items-center rounded-full bg-[#3B66AD] px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699] disabled:cursor-not-allowed disabled:opacity-45"
               >
-                {publishBusy ? (lang === "en" ? "Publishing…" : "Publicando…") : lang === "en" ? "Publish" : "Publicar"}
+                {isRepublishOfPublished
+                  ? publishBusy
+                    ? lang === "en"
+                      ? "Republishing…"
+                      : "Republicando…"
+                    : lang === "en"
+                      ? "Save & Republish"
+                      : "Guardar y republicar"
+                  : publishBusy
+                    ? lang === "en"
+                      ? "Publishing…"
+                      : "Publicando…"
+                    : lang === "en"
+                      ? "Publish"
+                      : "Publicar"}
               </button>
             )}
             <Link href={editHref} onClick={markPublishFlowReturningToEdit} className={EDIT_LINK}>
@@ -864,6 +1038,15 @@ export function ClasificadosServiciosPreviewClient() {
           <div className="mx-auto max-w-[1280px] px-4 pb-2 md:px-6">
             <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
               {lang === "en" ? "Saved for client." : "Guardado para el cliente."} Leonix ID: {assistedResult.listingId} ({assistedResult.status})
+            </p>
+          </div>
+        ) : null}
+        {savedChangesNotice ? (
+          <div className="mx-auto max-w-[1280px] px-4 pb-2 md:px-6">
+            <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+              {lang === "en"
+                ? "Changes saved. This listing stays hidden until payment is completed."
+                : "Cambios guardados. Este anuncio permanece oculto hasta completar el pago."}
             </p>
           </div>
         ) : null}

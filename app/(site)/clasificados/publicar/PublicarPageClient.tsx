@@ -26,6 +26,7 @@ import newLogo from "../../../../public/logo.png";
 import { normalizeLang, navCopyLang, replaceLangInHref } from "@/app/lib/language";
 import { getPublishChooserCopy } from "@/app/lib/clasificados/publishChooserCopy";
 import { getPublicCategoryLabel } from "@/app/lib/clasificados/publicCategoryCopyGuard";
+import { CATEGORY_ROUTE_REGISTRY } from "@/app/lib/listingIdentity/categoryRouteRegistry";
 import type { HubCategoryKey } from "../config/clasificadosHub";
 
 type ChooserDeepLinkTarget = Exclude<CategoryKey, "all"> | "bienes-raices" | "";
@@ -114,7 +115,7 @@ export default function PublicarPageClient({
         : deepLinkCat === "autos"
           ? `/publicar/autos?${p.toString()}`
           : deepLinkCat === "servicios"
-            ? `/clasificados/publicar/servicios/checkpoint?${p.toString()}`
+            ? `${CATEGORY_ROUTE_REGISTRY.servicios.checkpointRoute}?${p.toString()}`
             : deepLinkCat === "restaurantes"
               ? `/clasificados/publicar/restaurantes?${p.toString()}`
               : deepLinkCat === "travel"
@@ -235,7 +236,7 @@ export default function PublicarPageClient({
                 key === "autos"
                   ? replaceLangInHref("/publicar/autos", routeLang)
                   : key === "servicios"
-                    ? `/clasificados/publicar/servicios/checkpoint?lang=${routeLang}`
+                    ? `${CATEGORY_ROUTE_REGISTRY.servicios.checkpointRoute}?lang=${routeLang}`
                     : key === "restaurantes"
                       ? replaceLangInHref("/publicar/restaurantes", routeLang)
                       : key === "travel"

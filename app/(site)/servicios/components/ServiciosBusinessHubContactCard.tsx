@@ -17,6 +17,7 @@ import { LeonixCommunityTrust } from "@/app/components/leonixCommunityTrust/Leon
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
 import { nonEmpty } from "../lib/serviciosProfilePrimitives";
 import {
+  normalizeServiciosPhoneForCompare,
   resolveServiciosQuoteDestination,
   type ServiciosQuoteDestinationKind,
 } from "../lib/serviciosContactActions";
@@ -279,17 +280,29 @@ export function ServiciosBusinessHubContactCard({
     if (intent) setEmailSheetIntent(intent);
   };
 
-  // Servicios Final Contact Truth + Email No-Mailto Closeout (2026-09-17, Gate 1/8) — one Call
-  // action: office phone when present, principal phone as fallback. Never two separate buttons.
+  // Servicios Final Phone Destination Closeout (2026-09-17, Gate 1/4) — principal and office phone
+  // are DISTINCT destinations with their own CTAs; principal is never suppressed merely because an
+  // office phone exists. They dedupe against each other ONLY when they resolve to the literal same
+  // number (Gate 8), never simply because both are "a phone".
   const officeCallTel = profile.contact.phoneOfficeTelHref?.trim();
   const officeCallDisplay = profile.contact.phoneOfficeDisplay?.trim();
-  const useOfficeCall = Boolean(officeCallTel && officeCallDisplay);
-  const callTel = useOfficeCall ? officeCallTel : profile.contact.phoneTelHref?.trim();
+  const principalCallTel = profile.contact.phoneTelHref?.trim();
+  const sameCallNumber = Boolean(
+    principalCallTel && officeCallTel && normalizeServiciosPhoneForCompare(principalCallTel) === normalizeServiciosPhoneForCompare(officeCallTel),
+  );
+  const callTel = principalCallTel;
+  const showOfficeCall = Boolean(officeCallTel && officeCallDisplay && !sameCallNumber);
 
   const openCall = () => {
     if (!callTel) return;
     trackServiciosListingCta(listingSlug, "cta_call_click", { ...analyticsBase, source: "business_hub" });
     serviciosOpenTelHref(callTel);
+  };
+
+  const openOfficeCall = () => {
+    if (!officeCallTel) return;
+    trackServiciosListingCta(listingSlug, "cta_call_click", { ...analyticsBase, source: "business_hub" });
+    serviciosOpenTelHref(officeCallTel);
   };
 
   const openMessage = () => {
@@ -340,8 +353,16 @@ export function ServiciosBusinessHubContactCard({
   if (callTel) {
     contactActions.push({
       id: "call",
-      label: useOfficeCall ? L.callOffice : L.call,
+      label: L.call,
       onClick: openCall,
+      icon: <FiPhone className="h-5 w-5 shrink-0 text-current" aria-hidden />,
+    });
+  }
+  if (showOfficeCall) {
+    contactActions.push({
+      id: "callOffice",
+      label: L.callOffice,
+      onClick: openOfficeCall,
       icon: <FiPhone className="h-5 w-5 shrink-0 text-current" aria-hidden />,
     });
   }

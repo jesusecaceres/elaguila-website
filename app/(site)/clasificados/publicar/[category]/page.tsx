@@ -6,6 +6,7 @@ import { categoryConfig, type CategoryKey } from "@/app/clasificados/config/cate
 import ClasificadosCategoryComingSoon from "@/app/clasificados/publicar/components/ClasificadosCategoryComingSoon";
 import { RENTAS_PUBLICAR_HUB } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { resolveClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
+import { CATEGORY_ROUTE_REGISTRY } from "@/app/lib/listingIdentity/categoryRouteRegistry";
 
 function normalizeCategory(raw: string): CategoryKey | "" {
   const v = (raw ?? "").trim().toLowerCase();
@@ -42,7 +43,7 @@ function PublicarCategoryPageContent() {
       return;
     }
     if (categoryFromUrl === "servicios") {
-      router.replace(`/clasificados/publicar/servicios/checkpoint?lang=${routeLang}`);
+      router.replace(`${CATEGORY_ROUTE_REGISTRY.servicios.checkpointRoute}?lang=${routeLang}`);
       return;
     }
     if (categoryFromUrl === "restaurantes") {

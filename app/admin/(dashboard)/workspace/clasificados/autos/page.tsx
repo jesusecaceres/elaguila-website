@@ -150,10 +150,16 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
     rows = rows.filter((r) => autosRowIsPublicLive(r as unknown as Record<string, unknown>));
   }
 
-  const dealerActiveCountByOwner = new Map<string, number>();
+  // Gate 17 (lifecycle closeout, 2026-09-18) — key by the dealer inventory group, not the owner:
+  // an owner_user_id can hold more than one distinct Dealer parent/group, and counting by owner
+  // alone would merge two unrelated groups' active counts into one displayed number. Ungrouped
+  // standalone parents (no dealer_inventory_group_id yet) fall back to their own row id, matching
+  // resolveAutosDealerInventoryGroupKey's own parent-fallback convention on the owner dashboard.
+  const dealerActiveCountByGroup = new Map<string, number>();
   for (const r of rows) {
     if (r.lane !== "negocios" || r.status !== "active") continue;
-    dealerActiveCountByOwner.set(r.owner_user_id, (dealerActiveCountByOwner.get(r.owner_user_id) ?? 0) + 1);
+    const groupKey = r.dealer_inventory_group_id?.trim() || r.dealer_inventory_parent_listing_id?.trim() || r.id;
+    dealerActiveCountByGroup.set(groupKey, (dealerActiveCountByGroup.get(groupKey) ?? 0) + 1);
   }
 
   const surface = clasificadosQueueSurfaceForSlug("autos");
@@ -264,7 +270,8 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                   dash.thumbUrl ? "photo" : "",
                   payload.muxPlaybackId?.trim() || payload.muxPlaybackUrl?.trim() || (payload.videoUrls?.length ?? 0) > 0 ? "video" : "",
                 ].filter(Boolean).join(" + ");
-                const dealerActiveCount = r.lane === "negocios" ? dealerActiveCountByOwner.get(r.owner_user_id) ?? 0 : null;
+                const dealerGroupKey = r.dealer_inventory_group_id?.trim() || r.dealer_inventory_parent_listing_id?.trim() || r.id;
+                const dealerActiveCount = r.lane === "negocios" ? dealerActiveCountByGroup.get(dealerGroupKey) ?? 0 : null;
                 const liveHref =
                   r.status === "active"
                     ? `${autosLiveVehiclePath(r.id)}?lang=${r.lang === "en" ? "en" : "es"}`

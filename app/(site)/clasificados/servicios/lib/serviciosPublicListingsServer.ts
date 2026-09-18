@@ -37,10 +37,13 @@ function normalizeServiciosListingStatus(raw: unknown): string {
 
 function mapDbRowToServiciosPublicListingRow(r: ServiciosPublicListingRow): ServiciosPublicListingRow {
   const listing_status = normalizeServiciosListingStatus(r.listing_status);
+  // Gate 4 (Servicios Paid-Publish Blocker repair, 2026-09-17): a pending/unpublished row has no
+  // real published_at. This must stay null (truthful "—"/"Not published" in the UI) — it must never
+  // fall back to `new Date(0).toISOString()`, which renders as Dec 31, 1969 in US Pacific time.
   const published_at =
-    typeof r.published_at === "string" && r.published_at.trim() ? r.published_at : new Date(0).toISOString();
+    typeof r.published_at === "string" && r.published_at.trim() ? r.published_at.trim() : null;
   const updated_at =
-    typeof r.updated_at === "string" && r.updated_at.trim() ? r.updated_at.trim() : published_at;
+    typeof r.updated_at === "string" && r.updated_at.trim() ? r.updated_at.trim() : published_at ?? undefined;
   const leonix_ad_id =
     typeof r.leonix_ad_id === "string" && r.leonix_ad_id.trim() ? r.leonix_ad_id.trim() : null;
   const id = typeof r.id === "string" && r.id.trim() ? r.id.trim() : undefined;
@@ -61,7 +64,8 @@ export type ServiciosPublicListingRow = {
   slug: string;
   business_name: string;
   city: string;
-  published_at: string;
+  /** Null for pending/unpublished rows (Gate 4, 2026-09-17) — never a fake epoch fallback. */
+  published_at: string | null;
   /** Present on `servicios_public_listings` baseline; used for discovery ordering with `published_at`. */
   updated_at?: string;
   /** Optional when DB adds republish migrations — not selected in minimal public read. */
@@ -188,10 +192,22 @@ export async function listServiciosPublicListingsFromDb(limit = 48): Promise<Ser
     const supabase = getAdminSupabase();
     /** Fetch enough rows to sort by discovery timestamp in-process (avoids `republish_sort_at` / missing columns). */
     const fetchCap = Math.min(800, Math.max(limit * 4, 120));
+    // Gate 14 (Servicios Final Consolidated Lifecycle Execution, 2026-09-18) — this `.limit()` had
+    // no `.order()` before it, so which rows land in the truncated set was not deterministic once
+    // total published rows exceed `fetchCap`: Postgres/PostgREST give no ordering guarantee for an
+    // unordered LIMIT, so the same query could silently drop a different arbitrary subset of real
+    // published listings on different requests. Ordered on the always-present `published_at`
+    // column (the owner's own suggested canonical ordering) purely to make the DB-level truncation
+    // deterministic — the existing in-process `compareServiciosPublicDiscoveryNewestFirst` sort
+    // below remains the actual final discovery order, and any paid-priority/entitlement ranking
+    // applied further downstream by callers (e.g. the results page) is untouched. Deliberately NOT
+    // `republish_sort_at` here — Gate 13 explicitly keeps that column unwired from ranking in this
+    // pass.
     const { data, error } = await supabase
       .from("servicios_public_listings")
       .select(SERVICIOS_PUBLIC_LISTING_SELECT)
       .ilike("listing_status", SERVICIOS_LISTING_STATUS_PUBLISHED)
+      .order("published_at", { ascending: false, nullsFirst: false })
       .limit(fetchCap);
     if (error || !data) return [];
     return (data as ServiciosPublicListingRow[])

@@ -101,54 +101,61 @@ export function AutosApplicationFinalActions({
         : "Add to inventory"
       : h.continueToPublish;
   const del = copy.app.hints.deleteApplicationConfirm;
+  // Owner lock — Dealer main application review step exposes Preview only; publication happens
+  // exclusively from Preview → Checkout Checkpoint → Revenue OS → Stripe → verified webhook.
+  // Privado keeps its existing proven "continue to publish" path, and the child-draft
+  // "Agregar al inventario" action is NOT public publication, so it stays for both lanes.
+  const showSecondaryContinueButton = publishLane !== "negocios" || inventoryAddMode;
 
   return (
     <div className="mt-6 border-t border-[color:var(--lx-nav-border)] pt-6">
       <p className="text-sm leading-relaxed text-[color:var(--lx-text-2)]">{shell.finalStepActionsIntro}</p>
 
-      <div className="mt-6">
-        <h3 className="text-sm font-bold text-[color:var(--lx-text)]">{shell.finalStepPublishHeading}</h3>
-        <ul className="mt-4 space-y-3.5">
-          <li className="flex gap-3">
-            <input
-              id={`${baseId}-a`}
-              type="checkbox"
-              checked={checks[0]}
-              onChange={(e) => setChecks((x) => [e.target.checked, x[1], x[2]])}
-              className="mt-0.5 h-5 w-5 shrink-0 rounded border-[color:var(--lx-nav-border)]"
-            />
-            <label htmlFor={`${baseId}-a`} className="text-sm leading-snug text-[color:var(--lx-text)]">
-              {c.checks.accurate}
-            </label>
-          </li>
-          <li className="flex gap-3">
-            <input
-              id={`${baseId}-b`}
-              type="checkbox"
-              checked={checks[1]}
-              onChange={(e) => setChecks((x) => [x[0], e.target.checked, x[2]])}
-              className="mt-0.5 h-5 w-5 shrink-0 rounded border-[color:var(--lx-nav-border)]"
-            />
-            <label htmlFor={`${baseId}-b`} className="text-sm leading-snug text-[color:var(--lx-text)]">
-              {c.checks.rules}
-            </label>
-          </li>
-          <li className="flex gap-3">
-            <input
-              id={`${baseId}-c`}
-              type="checkbox"
-              checked={checks[2]}
-              onChange={(e) => setChecks((x) => [x[0], x[1], e.target.checked])}
-              className="mt-0.5 h-5 w-5 shrink-0 rounded border-[color:var(--lx-nav-border)]"
-            />
-            <label htmlFor={`${baseId}-c`} className="text-sm leading-snug text-[color:var(--lx-text)]">
-              {c.checks.paidPlaceholder}
-            </label>
-          </li>
-        </ul>
-        <p className="mt-2 text-xs text-[color:var(--lx-muted)]">{c.mustCheck}</p>
-        <p className="mt-3 text-xs leading-relaxed text-[color:var(--lx-text-2)]">{c.phaseNote}</p>
-      </div>
+      {showSecondaryContinueButton ? (
+        <div className="mt-6">
+          <h3 className="text-sm font-bold text-[color:var(--lx-text)]">{shell.finalStepPublishHeading}</h3>
+          <ul className="mt-4 space-y-3.5">
+            <li className="flex gap-3">
+              <input
+                id={`${baseId}-a`}
+                type="checkbox"
+                checked={checks[0]}
+                onChange={(e) => setChecks((x) => [e.target.checked, x[1], x[2]])}
+                className="mt-0.5 h-5 w-5 shrink-0 rounded border-[color:var(--lx-nav-border)]"
+              />
+              <label htmlFor={`${baseId}-a`} className="text-sm leading-snug text-[color:var(--lx-text)]">
+                {c.checks.accurate}
+              </label>
+            </li>
+            <li className="flex gap-3">
+              <input
+                id={`${baseId}-b`}
+                type="checkbox"
+                checked={checks[1]}
+                onChange={(e) => setChecks((x) => [x[0], e.target.checked, x[2]])}
+                className="mt-0.5 h-5 w-5 shrink-0 rounded border-[color:var(--lx-nav-border)]"
+              />
+              <label htmlFor={`${baseId}-b`} className="text-sm leading-snug text-[color:var(--lx-text)]">
+                {c.checks.rules}
+              </label>
+            </li>
+            <li className="flex gap-3">
+              <input
+                id={`${baseId}-c`}
+                type="checkbox"
+                checked={checks[2]}
+                onChange={(e) => setChecks((x) => [x[0], x[1], e.target.checked])}
+                className="mt-0.5 h-5 w-5 shrink-0 rounded border-[color:var(--lx-nav-border)]"
+              />
+              <label htmlFor={`${baseId}-c`} className="text-sm leading-snug text-[color:var(--lx-text)]">
+                {c.checks.paidPlaceholder}
+              </label>
+            </li>
+          </ul>
+          <p className="mt-2 text-xs text-[color:var(--lx-muted)]">{c.mustCheck}</p>
+          <p className="mt-3 text-xs leading-relaxed text-[color:var(--lx-text-2)]">{c.phaseNote}</p>
+        </div>
+      ) : null}
 
       <div
         className="mt-6 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-stretch"
@@ -169,33 +176,35 @@ export function AutosApplicationFinalActions({
         >
           {h.openPreview}
         </button>
-        <button
-          type="button"
-          className={BTN_SECONDARY}
-          disabled={continueBusy}
-          onClick={() => {
-            if (issues.length > 0) {
-              navigateToFirstBlockingStep();
-              setBlockedTap("publish");
-              return;
-            }
-            if (!allChecks) {
-              setBlockedTap("checks");
-              return;
-            }
-            setContinueBusy(true);
-            void (async () => {
-              try {
-                await flushDraft();
-                router.push(publishConfirmHref);
-              } finally {
-                setContinueBusy(false);
+        {showSecondaryContinueButton ? (
+          <button
+            type="button"
+            className={BTN_SECONDARY}
+            disabled={continueBusy}
+            onClick={() => {
+              if (issues.length > 0) {
+                navigateToFirstBlockingStep();
+                setBlockedTap("publish");
+                return;
               }
-            })();
-          }}
-        >
-          {continueLabel}
-        </button>
+              if (!allChecks) {
+                setBlockedTap("checks");
+                return;
+              }
+              setContinueBusy(true);
+              void (async () => {
+                try {
+                  await flushDraft();
+                  router.push(publishConfirmHref);
+                } finally {
+                  setContinueBusy(false);
+                }
+              })();
+            }}
+          >
+            {continueLabel}
+          </button>
+        ) : null}
       </div>
       {blockedMessage ? (
         <p

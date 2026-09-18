@@ -42,7 +42,14 @@ function vehicleTitleFromDraft(draft: AutosAdditionalInventoryVehicleDraft): str
   return buildVehicleTitle(draft.year, draft.make, draft.model, draft.trim) || "—";
 }
 
-function publishableChildren(raw: AutosAdditionalInventoryVehicleDraft[]): AutosAdditionalInventoryVehicleDraft[] {
+/**
+ * Exported for revenueAutosDealerFulfillment.ts's retry/resume idempotency (Gate 10/11, 2026-09-18):
+ * this is the SAME filter/order publishNegociosBundleAdditionalVehicles applies internally before
+ * looping and creating rows one at a time, fail-fast. A caller that already knows N child rows
+ * exist for this parent can slice this exact list by N to resume from the correct remaining
+ * vehicle, since creation always proceeds through this filtered list strictly in order.
+ */
+export function publishableChildren(raw: AutosAdditionalInventoryVehicleDraft[]): AutosAdditionalInventoryVehicleDraft[] {
   return raw
     .map((c) => prepareInventoryVehicleForSave(c))
     .filter((c) => computeInventoryVehicleStatus(c) === "ready_for_preview");

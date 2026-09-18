@@ -64,3 +64,14 @@ export function serviciosStatusChipClass(status: ServiciosListingLifecycleStatus
 export function serviciosVisibilityBucket(status: ServiciosListingLifecycleStatus): "public" | "pre_publish" | "inactive" | "suspended" {
   return getVisibilityBucket(mapServiciosStatusToCanonical(status));
 }
+
+/**
+ * Gate SERVICIOS-EXEC-2 (2026-09-18) — pending_payment is commercial/payment truth, never a staff-
+ * moderation state. It may only change via the Revenue OS webhook on real paid truth. Admin's
+ * legacy free-text status form must refuse to mutate listing_status whenever the row's real current
+ * status is pending_payment, regardless of what was submitted — this is the one guard that property
+ * depends on, kept pure and standalone so it is unit-testable without a database.
+ */
+export function serviciosStatusFormAllowsMutation(currentStatus: string | null | undefined): boolean {
+  return (currentStatus ?? "").trim().toLowerCase() !== SERVICIOS_LISTING_STATUS_PENDING_PAYMENT;
+}

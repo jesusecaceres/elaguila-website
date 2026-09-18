@@ -1,6 +1,6 @@
 import type { AutosPublicListing } from "@/app/clasificados/autos/data/autosPublicSampleTypes";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
-import { deriveHeroImageUrls } from "@/app/clasificados/autos/negocios/lib/autoDealerHeroImages";
+import { derivePrimaryImageUrl } from "@/app/clasificados/autos/negocios/lib/autoDealerHeroImages";
 import { normalizeLoadedListing } from "@/app/clasificados/autos/negocios/lib/autoDealerDraftDefaults";
 import { buildVehicleTitle } from "@/app/(site)/publicar/autos/negocios/lib/autoDealerTitle";
 import { withNormalizedVehicleIdentityForDisplay } from "@/app/lib/clasificados/autos/autosListingDisplayIdentity";
@@ -69,8 +69,7 @@ function buildSearchableBlurb(L: AutoDealerListing): string {
 }
 
 function firstImageUrl(listing: AutoDealerListing): string {
-  const urls = deriveHeroImageUrls(normalizeLoadedListing(listing));
-  return urls[0] ?? "";
+  return derivePrimaryImageUrl(normalizeLoadedListing(listing));
 }
 
 /**
