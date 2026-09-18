@@ -27,6 +27,7 @@ import {
   analyticsLabel,
 } from "../lib/dashboardMisAnunciosCategoryTools";
 import { resolveListingUiStatus, listingUiStatusLabel, listingUiStatusChipClass } from "../lib/listingDisplayStatus";
+import { resolveOwnerDashboardStatusDisplay, ownerDashboardStatusLabel } from "../lib/dashboardOwnerStatusDisplay";
 import {
   dashboardHasCapabilityForKey,
   fetchDashboardListingPackageEntitlementBadges,
@@ -498,6 +499,21 @@ function DashboardServiciosPageContent() {
                 }
                 const uiStatus = resolveListingUiStatus({ status: r.listingStatus });
                 const isCloudPublished = r.source === "cloud" && r.listingStatus === "published";
+                // Gate 9 (Servicios Final Consolidated Lifecycle Execution, 2026-09-18) — this
+                // page's own `uiStatus`/`listingUiStatusLabel` collapses `pending_payment` into
+                // the generic "draft"/"Borrador" bucket (no dedicated pre-publish sub-state),
+                // while the Mis Anuncios dashboard card already shows the real, truthful "Pago
+                // pendiente"/"Payment pending" label via `resolveOwnerDashboardStatusDisplay` —
+                // the exact "one surface says Draft, the other says Pago pendiente" defect the
+                // owner flagged. Reuse that SAME already-correct shared resolver here for the
+                // label text (kept `uiStatus`/`listingUiStatusChipClass` for the chip's visual
+                // styling only, unchanged — no redesign).
+                const statusDisplay =
+                  r.source === "cloud" ? resolveOwnerDashboardStatusDisplay("servicios", r.listingStatus) : null;
+                const isPendingPayment = statusDisplay?.displayKey === "pending_payment";
+                const isPubliclyVisibleStatus = statusDisplay
+                  ? statusDisplay.displayKey === "published" || statusDisplay.displayKey === "active"
+                  : true; // non-cloud (local-only) rows have no lifecycle gate here — unchanged behavior
                 const detailItems = [
                   { label: t.slug, value: r.slug },
                   { label: t.city, value: r.city || "—" },
@@ -518,19 +534,37 @@ function DashboardServiciosPageContent() {
                   capabilities.communityTrust === "supported" && trustSummary
                     ? trustSummary.map((s) => ({ key: s.key, label: lang === "es" ? s.es : s.en, count: s.count }))
                     : null;
-                const quickActions: ActionItem[] = [
-                  { href: `/clasificados/servicios/${encodeURIComponent(r.slug)}?${q}`, label: publicViewLabel(lang), tone: "secondary" },
-                  {
-                    href: `/clasificados/servicios/resultados?${q}&q=${encodeURIComponent(r.businessName)}`,
-                    label: publicResultsListingLabel(lang),
-                    tone: "subtle",
-                  },
-                ];
-                if (isCloudPublished) {
+                // Gate 9 — Owner Lock #4/#12: a non-public row (pending_payment above all — never
+                // paid/published) must not offer a working-looking "View Public"/"View Results"
+                // link (the public route requires public-eligible status and would 404 or, worse,
+                // look broken). Previously these two were pushed unconditionally for every row.
+                const quickActions: ActionItem[] = [];
+                if (isPubliclyVisibleStatus) {
+                  quickActions.push(
+                    { href: `/clasificados/servicios/${encodeURIComponent(r.slug)}?${q}`, label: publicViewLabel(lang), tone: "secondary" },
+                    {
+                      href: `/clasificados/servicios/resultados?${q}&q=${encodeURIComponent(r.businessName)}`,
+                      label: publicResultsListingLabel(lang),
+                      tone: "subtle",
+                    },
+                  );
+                }
+                if (isCloudPublished || isPendingPayment) {
+                  // Gate 9 — Preview must be reachable for a pending_payment row too (Owner Lock
+                  // #4: "Preview available"), not only once published.
                   quickActions.push({ href: serviciosPreviewHref(r), label: previewLabel(lang), tone: "subtle" });
-                  if (capabilities.identity.analytics !== "unsupported") {
+                  if (isCloudPublished && capabilities.identity.analytics !== "unsupported") {
                     quickActions.push({ href: `/dashboard/analytics?${q}`, label: analyticsLabel(lang), tone: "subtle" });
                   }
+                }
+                if (isPendingPayment) {
+                  // Gate 8/9 — same canonical resume-payment destination the Mis Anuncios card
+                  // uses: the listing-bound Preview's checkout checkpoint, never a new entry point.
+                  quickActions.push({
+                    href: `${serviciosPreviewHref(r)}#servicios-publish-checkout-checkpoint`,
+                    label: lang === "es" ? "Completar pago" : "Complete payment",
+                    tone: "primary",
+                  });
                 }
                 const lifecycleActions: ActionItem[] = [];
                 if (r.source === "cloud" && r.listingStatus === "published") {
@@ -586,7 +620,7 @@ function DashboardServiciosPageContent() {
                     header={{
                       eyebrow: t.title,
                       title: r.businessName,
-                      statusLabel: listingUiStatusLabel(uiStatus, lang),
+                      statusLabel: statusDisplay ? ownerDashboardStatusLabel(statusDisplay, lang) : listingUiStatusLabel(uiStatus, lang),
                       statusChipClass: listingUiStatusChipClass(uiStatus),
                       leonixId: r.leonixAdId ?? null,
                     }}

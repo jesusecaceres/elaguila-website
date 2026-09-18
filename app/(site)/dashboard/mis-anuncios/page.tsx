@@ -485,6 +485,23 @@ function MyListingsPageContent() {
       );
     }
 
+    // Gate 9 (Servicios Final Consolidated Lifecycle Execution, 2026-09-18) — Servicios already
+    // carries real, already-computed status truth (`resolveOwnerDashboardStatusDisplay`, same as
+    // Empleos/Viajes above) but was never wired into this attention pass, so a paid-category
+    // listing stuck in `pending_payment` never surfaced here despite the resolver already
+    // supporting "payment_required" generically for any category.
+    for (const item of serviciosInventory) {
+      out.push(
+        ...resolveOwnerDashboardAttentionItems({
+          id: item.id,
+          category: "servicios",
+          statusDisplayKey: item.statusDisplay?.displayKey ?? "unknown",
+          editHref: item.editHref,
+          publicHref: item.publicHref,
+        }),
+      );
+    }
+
     for (const row of listings) {
       const cat = String(row.category ?? "").toLowerCase();
       // Gate 20 — Bienes Raíces Privado/FSBO shares this same attention pass (same
@@ -553,7 +570,7 @@ function MyListingsPageContent() {
     }
 
     return out;
-  }, [empleosInventory, viajesInventory, listings, q]);
+  }, [empleosInventory, viajesInventory, serviciosInventory, listings, q]);
 
   const attentionSeverityCounts = useMemo(() => countByAttentionSeverity(attentionItems), [attentionItems]);
 
