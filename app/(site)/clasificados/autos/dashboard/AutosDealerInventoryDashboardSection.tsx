@@ -7,6 +7,7 @@ import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import type { AutosClassifiedsDashboardRow } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
 import { summarizeDealerInventory, type AutosDealerInventoryCount } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
 import {
+  autosListingStatusChipClass,
   autosListingStatusLabelEn,
   autosListingStatusLabelEs,
 } from "@/app/lib/clasificados/autos/autosClassifiedsVisibility";
@@ -42,7 +43,6 @@ import { OwnerEntityWorkspace, type OwnerEntitySpecializedGroup } from "@/app/(s
 import { DashboardListingActionBar, type ActionItem } from "@/app/(site)/dashboard/components/DashboardListingActionBar";
 import { getOwnerEntityCapabilities, isLiveCapability } from "@/app/(site)/dashboard/lib/ownerEntityCapabilityRegistry";
 import { ownerBusinessToolsSpecializedGroup } from "@/app/(site)/dashboard/lib/ownerBusinessToolsSpecializedGroup";
-import { resolveListingUiStatus, listingUiStatusLabel, listingUiStatusChipClass } from "@/app/(site)/dashboard/lib/listingDisplayStatus";
 import {
   editListingLabel,
   publicViewLabel,
@@ -405,7 +405,6 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
   return (
     <div className="mt-6 flex flex-col gap-4">
       {privadoRows.map((row) => {
-        const uiStatus = resolveListingUiStatus({ status: row.status });
         const busy = busyId === row.id;
         const liveHref = `${autosLiveVehiclePath(row.id)}?lang=${row.lang}`;
         // Gate 20 — fixed-term ($24.99/30 days) lifecycle: expiration is purely expires_at vs
@@ -458,8 +457,14 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
             header={{
               eyebrow: t.eyebrowPrivado,
               title: row.title,
-              statusLabel: listingUiStatusLabel(uiStatus, lang),
-              statusChipClass: listingUiStatusChipClass(uiStatus),
+              // Gate 15 (lifecycle closeout, 2026-09-18) — the shared cross-category
+              // resolveListingUiStatus collapses pending_payment/payment_failed into the same
+              // generic "draft"/"archived" bucket as a never-started application, hiding a real
+              // payment-pending listing behind an untruthful label. Autos already has its own
+              // truthful, canonical-status-aware label/chip pair (used correctly for child rows
+              // below) — reuse it here instead of touching the shared cross-category resolver.
+              statusLabel: statusLabel(row.status, lang),
+              statusChipClass: autosListingStatusChipClass(row.status as AutosClassifiedsListingStatus),
               leonixId: row.leonix_ad_id,
             }}
             detailItems={vehicleDetailItems(row)}
@@ -513,7 +518,6 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
           ? canonicalAutosNegocioActions(parentRow, false, ownerUserId, lang)
           : new Map<string, DashboardAction>();
         const childRows = group.rows.filter((r) => r.inventory_role === "inventory_vehicle" || r.id !== parentId);
-        const uiStatus = resolveListingUiStatus({ status: parentRow?.status });
         const busy = busyId === parentId;
         const subState = dashboardSubscriptionStateForKey(subscriptionStates, [parentId]);
         const note = subState
@@ -603,8 +607,12 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
               eyebrow: t.eyebrowDealer,
               title: group.dealerName,
               subtitle: parentRow?.title,
-              statusLabel: listingUiStatusLabel(uiStatus, lang),
-              statusChipClass: listingUiStatusChipClass(uiStatus),
+              // Gate 15 — same reasoning as the Privado header above: reuse Autos' own truthful,
+              // canonical-status-aware label/chip pair for the Dealer parent badge instead of the
+              // shared resolver, which would otherwise show "Borrador"/"Archivado" for a genuinely
+              // pending_payment/payment_failed parent.
+              statusLabel: parentRow ? statusLabel(parentRow.status, lang) : "",
+              statusChipClass: parentRow ? autosListingStatusChipClass(parentRow.status as AutosClassifiedsListingStatus) : "",
               leonixId: parentRow?.leonix_ad_id,
               badges: [t.negocios],
             }}
