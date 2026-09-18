@@ -37,10 +37,13 @@ function normalizeServiciosListingStatus(raw: unknown): string {
 
 function mapDbRowToServiciosPublicListingRow(r: ServiciosPublicListingRow): ServiciosPublicListingRow {
   const listing_status = normalizeServiciosListingStatus(r.listing_status);
+  // Gate 4 (Servicios Paid-Publish Blocker repair, 2026-09-17): a pending/unpublished row has no
+  // real published_at. This must stay null (truthful "—"/"Not published" in the UI) — it must never
+  // fall back to `new Date(0).toISOString()`, which renders as Dec 31, 1969 in US Pacific time.
   const published_at =
-    typeof r.published_at === "string" && r.published_at.trim() ? r.published_at : new Date(0).toISOString();
+    typeof r.published_at === "string" && r.published_at.trim() ? r.published_at.trim() : null;
   const updated_at =
-    typeof r.updated_at === "string" && r.updated_at.trim() ? r.updated_at.trim() : published_at;
+    typeof r.updated_at === "string" && r.updated_at.trim() ? r.updated_at.trim() : published_at ?? undefined;
   const leonix_ad_id =
     typeof r.leonix_ad_id === "string" && r.leonix_ad_id.trim() ? r.leonix_ad_id.trim() : null;
   const id = typeof r.id === "string" && r.id.trim() ? r.id.trim() : undefined;
@@ -61,7 +64,8 @@ export type ServiciosPublicListingRow = {
   slug: string;
   business_name: string;
   city: string;
-  published_at: string;
+  /** Null for pending/unpublished rows (Gate 4, 2026-09-17) — never a fake epoch fallback. */
+  published_at: string | null;
   /** Present on `servicios_public_listings` baseline; used for discovery ordering with `published_at`. */
   updated_at?: string;
   /** Optional when DB adds republish migrations — not selected in minimal public read. */
