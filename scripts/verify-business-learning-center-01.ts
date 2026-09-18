@@ -1241,17 +1241,33 @@ check("G2 activity: the customer sentence is built ONLY from learner input — b
   const none = buildCustomerStatement({}, "es");
   assert.strictEqual(none.filledCount, 0);
   assert.strictEqual(none.complete, false);
-  assert.strictEqual(none.text, "Vendo [qué vendes]. Ayudo a [quién] que necesita [problema] en [dónde]. Me eligen porque [por qué tú].");
+  assert.strictEqual(none.text, "Ayudo a [quién] con [problema] en [dónde] ofreciendo [qué vendes]. Me eligen porque [por qué tú].");
+  assert.strictEqual(buildCustomerStatement({}, "en").text, "I help [who] with [problem] in [where] by offering [what you sell]. They choose me because [why you].");
   assert.ok(none.parts.filter((p) => p.kind === "blank").length === 5 && none.parts.every((p) => p.kind !== "answer"));
 
   const one = buildCustomerStatement({ who: "  familias de mi   vecindario. " }, "es");
   assert.strictEqual(one.filledCount, 1);
-  assert.ok(one.text.includes("Ayudo a familias de mi vecindario que necesita [problema]"), "only the typed answer appears; the rest stay blank");
+  assert.strictEqual(one.text, "Ayudo a familias de mi vecindario con [problema] en [dónde] ofreciendo [qué vendes]. Me eligen porque [por qué tú].", "only the typed answer appears; the rest stay blank");
+
+  // Grammar-safe: no template verb has to agree with a learner answer, so singular and plural both read correctly.
+  for (const lang of ["es", "en"] as const) {
+    const fixed = buildCustomerStatement({}, lang).parts.filter((p) => p.kind === "text").map((p) => p.text).join("|");
+    assert.ok(!/necesita|necesitan|\bneeds?\b|\bwho\b|\bque\b/.test(fixed), `${lang} template still has a verb/relative clause that must agree with the answer: ${fixed}`);
+  }
+  const plural = buildCustomerStatement({ who: "familias de mi vecindario", problem: "pasteles de cumpleaños con poco aviso", where: "mi vecindario", offer: "pasteles personalizados", why: "cumplo la fecha" }, "es").text;
+  const singular = buildCustomerStatement({ who: "una familia ocupada", problem: "su pastel de cumpleaños", where: "San José", offer: "pasteles personalizados", why: "cumplo la fecha" }, "es").text;
+  assert.strictEqual(plural, "Ayudo a familias de mi vecindario con pasteles de cumpleaños con poco aviso en mi vecindario ofreciendo pasteles personalizados. Me eligen porque cumplo la fecha.");
+  assert.strictEqual(singular, "Ayudo a una familia ocupada con su pastel de cumpleaños en San José ofreciendo pasteles personalizados. Me eligen porque cumplo la fecha.");
+  // All five answers are used, in both languages, and messy punctuation never doubles up.
+  const messy = buildCustomerStatement({ who: "families.", problem: ", a special cake;", where: "my area!!", offer: "cakes.,", why: "  I deliver on time?  " }, "en");
+  assert.strictEqual(messy.text, "I help families with a special cake in my area by offering cakes. They choose me because I deliver on time.");
+  assert.ok(!/\.\.|,\.|;\.|\s\.|\s,| {2}/.test(messy.text), "no duplicate or dangling punctuation");
+  assert.strictEqual(messy.parts.filter((p) => p.kind === "answer").length, 5);
   if (activity.type === "activity") for (const f of activity.fields) assert.ok(!none.text.includes(f.placeholder.es.replace("p. ej. ", "")), "placeholder examples must never leak into the sentence");
 
   const full = buildCustomerStatement({ offer: "cakes", who: "families", problem: "a special cake", where: "my neighborhood", why: "I deliver on time!" }, "en");
   assert.strictEqual(full.complete, true);
-  assert.strictEqual(full.text, "I sell cakes. I help families who need a special cake in my neighborhood. They choose me because I deliver on time.");
+  assert.strictEqual(full.text, "I help families with a special cake in my neighborhood by offering cakes. They choose me because I deliver on time.");
   assert.strictEqual(cleanStatementAnswer("x".repeat(500)).length, MAX_STATEMENT_ANSWER_LENGTH);
   assert.strictEqual(cleanStatementAnswer(null), "");
 
@@ -1334,10 +1350,53 @@ check("G2 renderer: server shell with small client islands; modes are anchors in
   assert.strictEqual((renderer.match(/<h1\b/g) ?? []).length, 1, "exactly one h1");
   assert.ok(renderer.includes("sticky top-[3.25rem]"), "mode bar sticks below the fixed site header");
   assert.ok(renderer.includes("overflow-x-clip") && !stripComments(renderer).includes("overflow-x-hidden"), "overflow-x-hidden on <main> would break the sticky mode bar — use overflow-x-clip");
-  assert.ok(renderer.includes("LessonProgressButton"), "existing account progress stays wired (semantics unchanged until G5)");
+  assert.ok(renderer.includes("LessonProgressButton"), "existing account progress stays wired for legacy lessons (semantics unchanged until G5)");
   for (const type of ["hook", "outcomes", "explain", "visual_model", "example", "compare", "activity", "ai_prompt", "mistakes", "glossary", "checklist", "resource", "verify", "pro_help", "recap", "steps", "note"]) {
     assert.ok(renderer.includes(`case "${type}":`), `renderer does not handle block type ${type}`);
   }
+});
+
+check("G2 owner-QA: the flagship (structured package) never renders the legacy one-click account completion; legacy lessons keep it untouched", () => {
+  const renderer = stripComments(read(`${LESSON_UI_DIR}/LessonRenderer.tsx`));
+  assert.strictEqual((renderer.match(/<LessonProgressButton\b/g) ?? []).length, 1, "the legacy account control must be rendered from exactly one place");
+  assert.ok(
+    /\{pkg\.source === "legacy" \? \(\s*<div data-legacy-account-progress>[\s\S]{0,400}?<LessonProgressButton lessonKey=\{pkg\.lessonKey\} lang=\{lang\} \/>[\s\S]{0,120}?\) : null\}/.test(renderer),
+    "LessonProgressButton must sit behind the source === \"legacy\" guard",
+  );
+  assert.strictEqual(FLAGSHIP.source, "package", "the flagship is a structured package → the guard hides the account control for it");
+  assert.strictEqual(resolveLessonPackage(seedLesson("who_is_your_customer")).source, "package");
+  assert.strictEqual(resolveLessonPackage(seedLesson("revenue_vs_profit")).source, "legacy", "legacy lessons keep their existing progress behaviour");
+  assert.ok(renderer.includes("<LessonLocalCompletion"), "the flagship closes with the device-local completion pattern");
+  // Untouched for the later G5 replacement: component, API actions, schema, capability grant.
+  const button = read(`${APRENDER_DIR}/_components/LessonProgressButton.tsx`);
+  assert.ok(button.includes('action: "start"') && button.includes('action: "complete"'), "LessonProgressButton semantics must be unchanged");
+  assert.ok(LEARNING_REPOSITORY_SRC.includes('source: "lesson_completed"') && LEARNING_REPOSITORY_SRC.includes("capability_key: lesson.capabilityKey"), "capability grant logic must be unchanged");
+});
+
+check("G2 owner-QA: compact phone breadcrumb — one back target + a non-link checkpoint label; full linked breadcrumb from sm; neutral mode still works", () => {
+  const renderer = stripComments(read(`${LESSON_UI_DIR}/LessonRenderer.tsx`));
+  assert.ok(renderer.includes('<li className={journey && pathwayHref ? "hidden sm:block" : undefined}>'), "with a journey the Learning Center link is desktop-only; with no journey it stays the phone back target");
+  assert.ok(renderer.includes('<FiArrowLeft className="h-4 w-4 sm:hidden" aria-hidden />'), "on phones the journey link is the single back target");
+  assert.ok(/<span className="[^"]*sm:hidden[^"]*" data-checkpoint-label>\s*\{checkpointText\}\s*<\/span>/.test(renderer), "on phones the checkpoint is a compact non-link label");
+  assert.ok(renderer.includes("className={`hidden sm:inline-flex ${LEARNING_LINK}`}"), "from sm the checkpoint is a real link again");
+  assert.ok(renderer.includes("flex flex-col items-start gap-0") && renderer.includes("sm:flex-row sm:flex-wrap"), "breadcrumb stacks compactly on phones, wraps in a row from sm");
+  const header = renderer.slice(renderer.indexOf("<header"), renderer.indexOf("</header>"));
+  assert.strictEqual((header.match(/<Link\b/g) ?? []).length, 3, "home, journey and checkpoint links only");
+  for (const m of header.matchAll(/<Link\b[\s\S]{0,200}?>/g)) assert.ok(m[0].includes("LEARNING_LINK"), "every breadcrumb control keeps the ≥44 px target");
+  assert.strictEqual((renderer.match(/<h1\b/g) ?? []).length, 1);
+  assert.strictEqual(lessonCopy("es").header.checkpointLabel, "Punto");
+  assert.strictEqual(lessonCopy("en").header.checkpointLabel, "Checkpoint");
+});
+
+check("G2 owner-QA: the normal lesson URL shows no Listen mode without a valid recording; ?audio=preview stays an owner script-review switch", () => {
+  assert.strictEqual(hasPlayableAudio(FLAGSHIP, "es"), false);
+  assert.strictEqual(hasPlayableAudio(FLAGSHIP, "en"), false);
+  const renderer = stripComments(read(`${LESSON_UI_DIR}/LessonRenderer.tsx`));
+  assert.ok(renderer.includes("const showListen = Boolean(pkg.audio) && (playable || audioPreview);"));
+  assert.ok(renderer.includes("if (showListen) modes.push") && renderer.includes("const listenSection = showListen && pkg.audio ?"), "no Listen chip and no Listen section unless showListen");
+  assert.ok(renderer.includes("if (showListen && pkg.audio) metaItems.push"), "the header must not advertise a listening time when nothing can be played");
+  assert.ok(read(LESSON_PAGE).includes('audioPreview={first(sp.audio) === "preview"}'), "preview is opt-in by URL only");
+  for (const rel of [...APRENDER_G1_FILES, LESSON_PAGE, ...LESSON_SERVER_UI]) assert.ok(!stripComments(read(rel)).includes("audio=preview"), `${rel} links to the preview switch — it must never be public navigation`);
 });
 
 check("G2 journey-aware NEXT: never exposes an unpublished lesson; prefers the package's wish only once it is published", () => {

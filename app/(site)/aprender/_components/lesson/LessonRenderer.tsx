@@ -118,6 +118,9 @@ export function LessonRenderer({
 
   const checkpointKey = LEARNING_LESSON_CHECKPOINT[pkg.lessonKey] ?? null;
   const pathwayHref = journey ? buildJourneyHref(journey, routeLang) : null;
+  const checkpointText = checkpointKey
+    ? `${copy.header.checkpointLabel} ${String(LEARNING_CHECKPOINT_KEYS.indexOf(checkpointKey) + 1).padStart(2, "0")} · ${pathway.spine.checkpoints[checkpointKey].title}`
+    : "";
 
   const metaItems: string[] = [`${pkg.meta.readMinutes} ${copy.header.minutes} ${copy.header.read}`];
   if (showListen && pkg.audio) metaItems.push(`${pkg.audio.estimatedMinutes} ${copy.header.minutes} ${copy.header.listen}`);
@@ -292,8 +295,12 @@ export function LessonRenderer({
       {/* HEADER — top padding clears the fixed site header, same as the landing and pathway heroes. */}
       <header className={`${LESSON_COLUMN} pb-7 pt-20 sm:pt-24`}>
         <nav aria-label={copy.header.breadcrumbAria}>
-          <ol className="flex flex-wrap items-center gap-x-1 gap-y-0 text-sm text-[#5C5346]">
-            <li>
+          {/*
+            Phones: ONE back target (the learner's journey, or the Learning Center when there is no
+            journey) plus a compact non-link checkpoint label. From sm: the full linked breadcrumb.
+          */}
+          <ol className="flex flex-col items-start gap-0 text-sm text-[#5C5346] sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-1">
+            <li className={journey && pathwayHref ? "hidden sm:block" : undefined}>
               <Link href={landingHref(routeLang)} className={LEARNING_LINK}>
                 <FiArrowLeft className="h-4 w-4" aria-hidden />
                 {copy.header.home}
@@ -301,17 +308,21 @@ export function LessonRenderer({
             </li>
             {journey && pathwayHref ? (
               <li className="flex items-center gap-1">
-                <FiChevronRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                <FiChevronRight className="hidden h-3.5 w-3.5 shrink-0 sm:block" aria-hidden />
                 <Link href={pathwayHref} className={LEARNING_LINK}>
+                  <FiArrowLeft className="h-4 w-4 sm:hidden" aria-hidden />
                   {landing.journeys.items[journey].title}
                 </Link>
               </li>
             ) : null}
             {journey && pathwayHref && checkpointKey ? (
               <li className="flex items-center gap-1">
-                <FiChevronRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                <Link href={`${pathwayHref}#${checkpointAnchor(checkpointKey)}`} className={LEARNING_LINK}>
-                  {copy.header.checkpointLabel} {String(LEARNING_CHECKPOINT_KEYS.indexOf(checkpointKey) + 1).padStart(2, "0")} · {pathway.spine.checkpoints[checkpointKey].title}
+                <FiChevronRight className="hidden h-3.5 w-3.5 shrink-0 sm:block" aria-hidden />
+                <span className="px-1 text-sm font-semibold text-[#5C5346] sm:hidden" data-checkpoint-label>
+                  {checkpointText}
+                </span>
+                <Link href={`${pathwayHref}#${checkpointAnchor(checkpointKey)}`} className={`hidden sm:inline-flex ${LEARNING_LINK}`}>
+                  {checkpointText}
                 </Link>
               </li>
             ) : null}
@@ -385,12 +396,20 @@ export function LessonRenderer({
                 copy={copy.print}
               />
             ) : null}
-            <div>
-              <h3 className="font-serif text-lg font-bold text-[#2A4536]">{copy.completion.accountTitle}</h3>
-              <div className="mt-2">
-                <LessonProgressButton lessonKey={pkg.lessonKey} lang={lang} />
+            {/*
+              The account "mark completed" control grants a capability record in one click. Until the
+              truthful progress model lands (G5) it is NOT offered on structured packages, whose close
+              is the device-local completion above. Legacy lessons keep their existing behaviour; the
+              component, API and schema are untouched.
+            */}
+            {pkg.source === "legacy" ? (
+              <div data-legacy-account-progress>
+                <h3 className="font-serif text-lg font-bold text-[#2A4536]">{copy.completion.accountTitle}</h3>
+                <div className="mt-2">
+                  <LessonProgressButton lessonKey={pkg.lessonKey} lang={lang} />
+                </div>
               </div>
-            </div>
+            ) : null}
             {pkg.source === "legacy" ? <p className="text-xs leading-relaxed text-[#5C5346]">{copy.completion.essentialFormat}</p> : null}
           </div>
         </div>

@@ -13,9 +13,14 @@ export const MAX_STATEMENT_ANSWER_LENGTH = 160;
 
 export type StatementPart = { kind: "text"; text: string } | { kind: "answer" | "blank"; text: string; fieldKey: CustomerStatementFieldKey };
 
+/**
+ * Grammar-safe by construction: no verb in the template has to agree in number or person with a
+ * learner answer ("con [problema]" / "with [problem]" instead of "que necesita" / "who need"), so
+ * "familias" and "una familia" both read correctly. All five answers are used.
+ */
 const TEMPLATE: Record<LessonLang, readonly (string | CustomerStatementFieldKey)[]> = {
-  es: ["Vendo ", "offer", ". Ayudo a ", "who", " que necesita ", "problem", " en ", "where", ". Me eligen porque ", "why", "."],
-  en: ["I sell ", "offer", ". I help ", "who", " who need ", "problem", " in ", "where", ". They choose me because ", "why", "."],
+  es: ["Ayudo a ", "who", " con ", "problem", " en ", "where", " ofreciendo ", "offer", ". Me eligen porque ", "why", "."],
+  en: ["I help ", "who", " with ", "problem", " in ", "where", " by offering ", "offer", ". They choose me because ", "why", "."],
 };
 
 /** Short names shown inside a blank, e.g. "[quién]". */
@@ -24,13 +29,17 @@ export const STATEMENT_BLANK_LABELS: Record<LessonLang, Record<CustomerStatement
   en: { offer: "what you sell", who: "who", problem: "problem", where: "where", why: "why you" },
 };
 
-/** Trim, collapse whitespace, drop a trailing sentence mark (the template adds its own), cap the length. */
+/**
+ * Collapse whitespace, cap the length, then drop leading/trailing punctuation — the template adds
+ * its own, so an answer like "pasteles.," can never produce ".." or ",." in the sentence.
+ */
 export function cleanStatementAnswer(raw: string | undefined | null): string {
   return (raw ?? "")
     .replace(/\s+/g, " ")
     .trim()
-    .replace(/[.。!?¡¿\s]+$/u, "")
-    .slice(0, MAX_STATEMENT_ANSWER_LENGTH);
+    .slice(0, MAX_STATEMENT_ANSWER_LENGTH)
+    .replace(/^[\s.,;:]+/u, "")
+    .replace(/[\s.。,;:!?¡¿]+$/u, "");
 }
 
 function isFieldKey(v: string): v is CustomerStatementFieldKey {
