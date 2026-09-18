@@ -375,6 +375,13 @@ export function ClasificadosServiciosPreviewClient() {
     listingBoundStatus != null &&
     SERVICIOS_AWAITING_BASE_PURCHASE_STATUSES.has(listingBoundStatus.trim().toLowerCase());
 
+  // Gate 13 — a listing-bound preview of an ALREADY-published row: saving here is a republish of
+  // the SAME live listing, never a first-time publish (no recharge, no new subscription — the
+  // server route's owner-save transition table already keeps `published` as `published`
+  // regardless; see decideServiciosOwnerSaveStatus). Drives the CTA label and suppresses the
+  // "just published" success panel on the redirect target below.
+  const isRepublishOfPublished = listingBoundPreview && listingBoundStatus?.trim().toLowerCase() === SERVICIOS_LISTING_STATUS_PUBLISHED;
+
   // Gate 7 (Servicios Final Consolidated Lifecycle Execution, 2026-09-18) — "Guardar cambios" for a
   // listing-bound preview whose real status still awaits its base purchase (pending_payment / draft
   // / preview_ready / publish_ready). Reuses the SAME already-proven pending-payment save
@@ -514,7 +521,9 @@ export function ClasificadosServiciosPreviewClient() {
       // Clear draft after successful publish
       await clearServiciosDraftStorageAndIdb();
       const q = new URLSearchParams({ lang });
-      q.set("justPublished", "1");
+      // Gate 13 — a republish of an already-published listing must never show the "just
+      // published" congratulatory panel; the owner already knows this listing is live.
+      if (!isRepublishOfPublished) q.set("justPublished", "1");
       if (data.persistence) q.set("persistence", data.persistence);
       if (data.listingStatus) q.set("listingStatus", data.listingStatus);
       if (data.skippedOversizedVideos) q.set("videoSkipped", "1");
@@ -529,7 +538,7 @@ export function ClasificadosServiciosPreviewClient() {
       setPublishErr(lang === "en" ? "Network error." : "Error de red.");
       setPublishBusy(false);
     }
-  }, [appState, canPublishFromPreview, lang, router]);
+  }, [appState, canPublishFromPreview, lang, router, isRepublishOfPublished]);
 
   /**
    * Business name is display-only, from the same unsigned sessionStorage record
@@ -976,7 +985,21 @@ export function ClasificadosServiciosPreviewClient() {
                 onClick={() => void handlePublishFromPreview()}
                 className="inline-flex min-h-[44px] touch-manipulation items-center rounded-full bg-[#3B66AD] px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699] disabled:cursor-not-allowed disabled:opacity-45"
               >
-                {publishBusy ? (lang === "en" ? "Publishing…" : "Publicando…") : lang === "en" ? "Publish" : "Publicar"}
+                {isRepublishOfPublished
+                  ? publishBusy
+                    ? lang === "en"
+                      ? "Republishing…"
+                      : "Republicando…"
+                    : lang === "en"
+                      ? "Save & Republish"
+                      : "Guardar y republicar"
+                  : publishBusy
+                    ? lang === "en"
+                      ? "Publishing…"
+                      : "Publicando…"
+                    : lang === "en"
+                      ? "Publish"
+                      : "Publicar"}
               </button>
             )}
             <Link href={editHref} onClick={markPublishFlowReturningToEdit} className={EDIT_LINK}>
