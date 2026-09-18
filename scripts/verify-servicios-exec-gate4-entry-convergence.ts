@@ -85,7 +85,12 @@ check("the proven-zero-importer dead CTA file is deleted", () => {
   const hits = execSync('git grep -l "PublishServiceCTA" || true', { cwd: ROOT, encoding: "utf8" })
     .split("\n")
     .filter(Boolean);
-  assert.ok(hits.every((f) => f.includes("SERVICIOS_LIVE_WIRING_MAP.md")), "no remaining code reference to the deleted file");
+  // Tolerated: the historical doc reference, and this verifier script's own text (which necessarily
+  // names the deleted file to check for it) once it is committed and tracked by git grep itself.
+  assert.ok(
+    hits.every((f) => f.includes("SERVICIOS_LIVE_WIRING_MAP.md") || f.endsWith("verify-servicios-exec-gate4-entry-convergence.ts")),
+    "no remaining code reference to the deleted file",
+  );
 });
 
 check("the internal Servicios application route (implementation infrastructure) is untouched", () => {

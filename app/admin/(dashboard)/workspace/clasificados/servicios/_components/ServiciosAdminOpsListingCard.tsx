@@ -24,6 +24,12 @@ function formatWhen(iso: string | null | undefined, fallback?: string | null): s
   return Number.isFinite(d.getTime()) ? d.toLocaleString() : "—";
 }
 
+/** Cents-truth field -> a dollar-formatted string field for `ServiciosOpsTruthRow` (never render raw cents as if they were dollars). */
+function centsOpsField(field: ServiciosOpsField<number> | undefined): ServiciosOpsField<string> | undefined {
+  if (!field) return undefined;
+  return { ...field, value: typeof field.value === "number" ? `$${(field.value / 100).toFixed(2)}` : null };
+}
+
 function statusBadgeClass(status: string | null): string {
   const s = (status ?? "").toLowerCase();
   if (s === "published") return "border-[#2A4536]/40 bg-[#F4FAF2] text-[#2A4536]";
@@ -139,8 +145,8 @@ export function ServiciosAdminOpsListingCard({
               <ServiciosOpsTruthRow label="Period end" field={commercial?.subscriptionPeriodEnd} />
               <ServiciosOpsTruthRow label="Stripe payment" field={commercial?.payment} />
               <ServiciosOpsTruthRow label="Payment status" field={commercial?.paymentRecordStatus} />
-              <ServiciosOpsTruthRow label="Amount paid" field={commercial?.paymentAmountPaidCents} />
-              <ServiciosOpsTruthRow label="Amount expected" field={commercial?.paymentAmountExpectedCents} />
+              <ServiciosOpsTruthRow label="Amount paid" field={centsOpsField(commercial?.paymentAmountPaidCents)} />
+              <ServiciosOpsTruthRow label="Amount expected" field={centsOpsField(commercial?.paymentAmountExpectedCents)} />
               <ServiciosOpsTruthRow label="Paid at" field={commercial?.paymentPaidAt} />
               <ServiciosOpsTruthRow label="Stripe payment intent" field={commercial?.paymentStripePaymentIntentId} />
             </dl>
