@@ -12,7 +12,7 @@ export const SERVICIOS_PUBLIC_LISTING_SELECT =
 
 export type ServiciosPublicListingSortInput = {
   slug: string;
-  published_at: string;
+  published_at: string | null;
   updated_at?: string | null;
   republished_at?: string | null;
   /** When present on `servicios_public_listings` (not all deployments); results newest coalesce only. */

@@ -4,7 +4,8 @@ export type ServiciosPublicAdminRow = {
   leonix_ad_id?: string | null;
   business_name: string;
   city: string;
-  published_at: string;
+  /** Null for pending/unpublished rows (Servicios epoch-fallback repair, 2026-09-17/18) — no fake epoch. */
+  published_at: string | null;
   updated_at: string | null;
   leonix_verified: boolean;
   listing_status: string | null;
