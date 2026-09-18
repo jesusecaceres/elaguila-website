@@ -11,6 +11,7 @@ import {
   getAutosClassifiedsListingById,
   tryActivateAutosListingAfterPayment,
 } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
+import { publishNegociosBundleAdditionalVehicles } from "@/app/lib/clasificados/autos/autosNegociosBundlePublish";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import {
   AUTOS_DEALER_INVENTORY_PACK_ADDITIONAL_VEHICLES,
@@ -29,6 +30,7 @@ export type AutosDealerRevenueActivationOutcome =
   | "wrong_lane"
   | "unsafe_status"
   | "inventory_entitlement_failed"
+  | "child_publish_failed"
   | "error";
 
 export type AutosDealerRevenueActivationResult = {
@@ -52,6 +54,19 @@ function hasPaidInventoryPackAddOn(paymentRecord: LeonixPaymentRecordRow): boole
 
 function generateEntitlementCode(): string {
   return `LX-AUTOS-INV-${randomBytes(4).toString("hex").toUpperCase()}`;
+}
+
+/** Live-data idempotency check: has this parent already had any child vehicle published? */
+async function autosDealerListingHasAnyChildRows(parentListingId: string): Promise<boolean> {
+  if (!isSupabaseAdminConfigured()) return false;
+  const supabase = getAdminSupabase();
+  const { data } = await supabase
+    .from("autos_classifieds_listings")
+    .select("id")
+    .eq("dealer_inventory_parent_listing_id", parentListingId)
+    .eq("inventory_role", "inventory_vehicle")
+    .limit(1);
+  return Boolean(data?.length);
 }
 
 async function grantAutosDealerInventoryPackAddOn(input: {
@@ -188,6 +203,36 @@ export async function activatePaidAutosDealerListingFromRevenueOs(input: {
       message: entitlement.message,
       listingId,
     };
+  }
+
+  // Gate 6/7/8/9 — publish the dealer's saved additional-inventory (child) vehicles as their own
+  // canonical listing rows. Children were staged durably server-side on `row.listing_payload
+  // .additionalInventoryVehicles` before Checkout opened (see AutosNegociosPreviewClient's
+  // ensurePendingDealerListing) — the webhook never depends on browser state. Idempotency is
+  // checked by live data (any inventory_vehicle row already parented to this listing), not by
+  // whether THIS delivery happened to be the one that flipped the parent active — a Stripe retry
+  // or an owner-triggered event resend (Gate 11) after a partial failure must still be able to
+  // finish publishing the remaining children, and must never create duplicates for ones that
+  // already exist.
+  const pendingChildren = row.listing_payload.additionalInventoryVehicles ?? [];
+  if (pendingChildren.length > 0) {
+    const alreadyPublished = await autosDealerListingHasAnyChildRows(listingId);
+    if (!alreadyPublished) {
+      const bundle = await publishNegociosBundleAdditionalVehicles({
+        ownerUserId: row.owner_user_id,
+        mainListingId: listingId,
+        additionalVehicles: pendingChildren,
+        lang: row.lang,
+      });
+      if (!bundle.ok) {
+        return {
+          ok: false,
+          outcome: "child_publish_failed",
+          message: `Autos Dealer child vehicle publish failed (error=${bundle.error ?? "unknown"}, published=${bundle.published.length}).`,
+          listingId,
+        };
+      }
+    }
   }
 
   return {

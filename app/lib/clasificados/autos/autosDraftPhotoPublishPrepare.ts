@@ -24,6 +24,28 @@ import {
 
 const UPLOAD_PATH = "/api/clasificados/autos/media/draft-photo-upload";
 
+/**
+ * Owner lock (2026-09-17, Gate 04): bounded concurrency for the EXISTING upload path — never
+ * more than this many draft-photo uploads in flight at once, across the whole publish-prepare
+ * call (parent gallery + every child vehicle share the same pool). No new queue library; this is
+ * a small worker-pool over the same `uploadAutosDraftPhoto`/`resolveImageBlob` functions below.
+ */
+const AUTOS_DRAFT_UPLOAD_CONCURRENCY = 4;
+
+async function mapWithConcurrency<T, R>(items: T[], limit: number, fn: (item: T, index: number) => Promise<R>): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let cursor = 0;
+  async function worker() {
+    for (;;) {
+      const i = cursor++;
+      if (i >= items.length) return;
+      results[i] = await fn(items[i]!, i);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, () => worker()));
+  return results;
+}
+
 export type AutosPhotoPublishPrepareResult =
   | {
       ok: true;
@@ -129,19 +151,21 @@ async function mapMediaImages(
   namespace: string,
   draftId: string,
   authToken: string | null,
+  onItemDone?: () => void,
 ): Promise<MediaImageEntry[] | undefined> {
   if (!images?.length) return images;
-  const next: MediaImageEntry[] = [];
-  for (let i = 0; i < images.length; i++) {
-    const m = images[i]!;
+  const mapped = await mapWithConcurrency(images, AUTOS_DRAFT_UPLOAD_CONCURRENCY, async (m, i) => {
     const url = m.url ?? "";
-    if (!url.trim()) continue;
+    if (!url.trim()) {
+      onItemDone?.();
+      return null;
+    }
     if (!autosDraftImageRequiresUpload(url)) {
       if (!isAutosPublishableRemoteImageUrl(url)) {
         throw new Error(`unsupported_gallery_ref_${i}`);
       }
-      next.push(m);
-      continue;
+      onItemDone?.();
+      return m;
     }
     const blob = await resolveImageBlob(url, namespace);
     const publicUrl = await uploadAutosDraftPhoto(blob, {
@@ -150,8 +174,10 @@ async function mapMediaImages(
       index: i,
       authToken,
     });
-    next.push({ ...m, url: publicUrl, sourceType: "url" });
-  }
+    onItemDone?.();
+    return { ...m, url: publicUrl, sourceType: "url" as const };
+  });
+  const next = mapped.filter((m): m is MediaImageEntry => m !== null);
   return normalizeMediaImagesOrder(next);
 }
 
@@ -161,14 +187,18 @@ async function resolveOptionalImageField(
   draftId: string,
   slot: "logo" | "finance_image",
   authToken: string | null,
+  onItemDone?: () => void,
 ): Promise<string | null | undefined> {
   if (typeof url !== "string" || !url.trim()) return url ?? undefined;
   if (!autosDraftImageRequiresUpload(url)) {
     if (!isAutosPublishableRemoteImageUrl(url)) return undefined;
+    onItemDone?.();
     return url.trim();
   }
   const blob = await resolveImageBlob(url, namespace);
-  return uploadAutosDraftPhoto(blob, { draftId, slot, authToken });
+  const publicUrl = await uploadAutosDraftPhoto(blob, { draftId, slot, authToken });
+  onItemDone?.();
+  return publicUrl;
 }
 
 /**
@@ -182,9 +212,25 @@ export async function resolveAutosDraftPhotosForPublish(input: {
   draftId: string;
   authToken: string | null;
   lang: "es" | "en";
+  /**
+   * Owner lock (2026-09-17, Gate 05): optional truthful "X of Y" readiness reporting — counts
+   * every image/logo/finance-image across the parent AND every child vehicle, including ones
+   * that are already durable (they report done immediately, no network call). Never used to
+   * gate Stripe/Revenue OS — purely a UI readiness signal for the caller.
+   */
+  onProgress?: (done: number, total: number) => void;
 }): Promise<AutosPhotoPublishPrepareResult> {
   const videoBlock = assertAutosNoLocalVideo(input.listing, input.lang);
   if (videoBlock) return videoBlock;
+
+  const childVehicles = input.additionalInventoryVehicles ?? [];
+  const total =
+    (input.listing.mediaImages?.length ?? 0) +
+    (input.listing.dealerLogo?.trim() ? 1 : 0) +
+    (input.listing.financeContactImageUrl?.trim() ? 1 : 0) +
+    childVehicles.reduce((sum, v) => sum + (v.mediaImages?.length ?? 0), 0);
+  let done = 0;
+  const onItemDone = input.onProgress ? () => input.onProgress!(++done, total) : undefined;
 
   try {
     let listing = { ...input.listing };
@@ -193,6 +239,7 @@ export async function resolveAutosDraftPhotosForPublish(input: {
       input.draftNamespace,
       input.draftId,
       input.authToken,
+      onItemDone,
     );
     if (mediaImages) {
       listing = {
@@ -208,6 +255,7 @@ export async function resolveAutosDraftPhotosForPublish(input: {
       input.draftId,
       "logo",
       input.authToken,
+      onItemDone,
     );
     if (dealerLogo !== listing.dealerLogo) {
       listing = { ...listing, dealerLogo: dealerLogo ?? undefined };
@@ -219,18 +267,19 @@ export async function resolveAutosDraftPhotosForPublish(input: {
       input.draftId,
       "finance_image",
       input.authToken,
+      onItemDone,
     );
     if (financeContactImageUrl !== listing.financeContactImageUrl) {
       listing = { ...listing, financeContactImageUrl: financeContactImageUrl ?? undefined };
     }
 
-    let additionalInventoryVehicles = input.additionalInventoryVehicles ?? [];
+    let additionalInventoryVehicles = childVehicles;
     if (additionalInventoryVehicles.length) {
       const nextInv: AutosAdditionalInventoryVehicleDraft[] = [];
       for (let vi = 0; vi < additionalInventoryVehicles.length; vi++) {
         const v = additionalInventoryVehicles[vi]!;
         const invDraftId = `${input.draftId}-inv-${v.id ?? vi}`;
-        const invMedia = await mapMediaImages(v.mediaImages, input.draftNamespace, invDraftId, input.authToken);
+        const invMedia = await mapMediaImages(v.mediaImages, input.draftNamespace, invDraftId, input.authToken, onItemDone);
         if (invMedia) {
           nextInv.push({
             ...v,
