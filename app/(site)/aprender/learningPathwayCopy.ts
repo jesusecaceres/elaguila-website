@@ -5,7 +5,7 @@ import type { Lang, LearningCheckpointKey, LearningJourneyKey } from "./learning
  * per-lang-object-literal convention as learningCopy.ts. Journey titles, empathy lines and
  * outcomes are reused from learningLandingCopy (one source); this file only adds what a pathway
  * page needs: the journey goal, the 7-checkpoint spine labels, the per-journey focus of each
- * checkpoint, depth/urgency labels and the bridge to the next journey.
+ * checkpoint, depth/urgency labels, the compact method/topics band and the bridge to the next journey.
  */
 export type LearningPathwayCopy = {
   hero: {
@@ -29,6 +29,14 @@ export type LearningPathwayCopy = {
     urgency: Record<"now" | "soon" | "later", string>;
     checkpoints: Record<LearningCheckpointKey, { title: string; body: string }>;
     focus: Record<LearningJourneyKey, Record<LearningCheckpointKey, string>>;
+  };
+  extras: {
+    methodEyebrow: string;
+    methodTitle: string;
+    methodSteps: [string, string, string, string, string];
+    methodNote: string;
+    topicsEyebrow: string;
+    topicsTitle: string;
   };
   bridge: {
     eyebrow: string;
@@ -103,6 +111,15 @@ const PATHWAY_ES: LearningPathwayCopy = {
         siguiente: "Define tu siguiente punto de control.",
       },
     },
+  },
+  extras: {
+    methodEyebrow: "Nuestro método",
+    methodTitle: "Así se aprende en Leonix",
+    methodSteps: ["Aprende", "Practica", "Usa IA", "Verifica", "Sigue"],
+    methodNote:
+      "Así está pensada la escuela: entender, poner en práctica, apoyarte en la IA que prefieras, verificar lo importante y seguir con el siguiente paso.",
+    topicsEyebrow: "Otra forma de entrar",
+    topicsTitle: "Explorar por tema",
   },
   bridge: {
     eyebrow: "Después de esta ruta",
@@ -209,6 +226,15 @@ const PATHWAY_EN: LearningPathwayCopy = {
         siguiente: "Define your next checkpoint.",
       },
     },
+  },
+  extras: {
+    methodEyebrow: "Our method",
+    methodTitle: "How learning works at Leonix",
+    methodSteps: ["Learn", "Practice", "Use AI", "Verify", "Keep going"],
+    methodNote:
+      "This is how the school is designed: understand, put it into practice, lean on the AI assistant you prefer, verify what matters, and move on to the next step.",
+    topicsEyebrow: "Another way in",
+    topicsTitle: "Explore by topic",
   },
   bridge: {
     eyebrow: "After this path",

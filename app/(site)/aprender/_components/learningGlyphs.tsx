@@ -47,6 +47,9 @@ export const CHECKPOINT_GLYPHS: Record<LearningCheckpointKey, IconType> = {
 
 export const METHOD_GLYPHS: readonly IconType[] = [FiBookOpen, FiEye, FiTool, FiCheckCircle, FiArrowRightCircle];
 
+/** Compact pathway method strip: learn → practice → use AI → verify → keep going. */
+export const METHOD_STRIP_GLYPHS: readonly IconType[] = [FiBookOpen, FiTool, FiMessageCircle, FiCheckCircle, FiArrowRightCircle];
+
 export const TRUST_GLYPHS: readonly IconType[] = [FiGlobe, FiTool, FiClock, FiUnlock];
 
 export const CATEGORY_GLYPHS: Record<string, IconType> = {

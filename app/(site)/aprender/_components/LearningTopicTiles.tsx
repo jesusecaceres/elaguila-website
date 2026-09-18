@@ -11,6 +11,8 @@ import { LEARNING_CONTAINER, LEARNING_EYEBROW, LEARNING_FOCUS_RING, LEARNING_H2,
  * Gate L1F — "Explora por tema": the existing category repository rendered as editorial tinted
  * tiles (real title, summary, published count). Categories with zero published lessons are not
  * passed in (see resolveTopicTiles). The existing LearningSearch is slotted in via `search`.
+ * Retained but not rendered since the G1 polish: pathways link to the category pages from the
+ * compact "Explorar por tema" row in LearningPathwayExtras.
  */
 export function LearningTopicTiles({
   copy,

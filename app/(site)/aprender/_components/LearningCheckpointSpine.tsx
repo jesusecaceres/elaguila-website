@@ -36,6 +36,8 @@ export function LearningCheckpointSpine({
   const c = copy.spine;
   const accent = JOURNEY_ACCENT[journey];
   const focus = c.focus[journey];
+  /** The longer "in preparation" explanation is said once; later empty checkpoints keep only the chip. */
+  const firstEmptyKey = checkpoints.find((cp) => cp.items.length === 0)?.key ?? null;
 
   return (
     <section id={LEARNING_ANCHORS.spine} className={`${LEARNING_SECTION} border-t border-[#D6C7AD]/70 bg-[#FFFDF7]/60 py-12 sm:py-14`} aria-labelledby="aprender-spine-title">
@@ -84,7 +86,7 @@ export function LearningCheckpointSpine({
             const hasLessons = cp.items.length > 0;
             const headingId = `aprender-${checkpointAnchor(cp.key)}`;
             return (
-              <li key={cp.key} id={checkpointAnchor(cp.key)} className="relative flex scroll-mt-24 gap-4" aria-labelledby={headingId}>
+              <li key={cp.key} id={checkpointAnchor(cp.key)} className="relative flex scroll-mt-24 gap-3 sm:gap-4" aria-labelledby={headingId}>
                 <span
                   className={`relative z-10 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-[#C9A84A]/70 ${
                     hasLessons ? "bg-[#2A4536] text-[#F3D98A]" : "bg-[#FFFDF7] text-[#7A1E2C]"
@@ -94,7 +96,7 @@ export function LearningCheckpointSpine({
                   <Glyph className="h-5 w-5" />
                 </span>
 
-                <div className={`min-w-0 flex-1 rounded-2xl border bg-[#FFFDF7] shadow-[0_10px_28px_-20px_rgba(31,36,28,0.3)] ${hasLessons ? "border-[#E8DFD0] p-5 sm:p-6" : "border-dashed border-[#D6C7AD] p-4 sm:p-5"}`}>
+                <div className={`min-w-0 flex-1 rounded-2xl border bg-[#FFFDF7] shadow-[0_10px_28px_-20px_rgba(31,36,28,0.3)] ${hasLessons ? "border-[#E8DFD0] p-4 sm:p-6" : "border-dashed border-[#D6C7AD] p-4 sm:p-5"}`}>
                   <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                     <p className="text-[0.66rem] font-bold uppercase tracking-[0.14em] text-[#556B3E]">
                       {c.checkpointLabel} {String(cp.index + 1).padStart(2, "0")}
@@ -156,7 +158,7 @@ export function LearningCheckpointSpine({
                         <FiClock className="h-3.5 w-3.5" aria-hidden />
                         {c.inPreparation}
                       </span>
-                      <span>{c.inPreparationBody}</span>
+                      {cp.key === firstEmptyKey ? <span>{c.inPreparationBody}</span> : null}
                     </p>
                   )}
                 </div>

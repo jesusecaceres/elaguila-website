@@ -521,14 +521,18 @@ const APRENDER_LANDING_COMPONENTS = [
   `${APRENDER_DIR}/_components/LearningToolsRow.tsx`,
   `${APRENDER_DIR}/_components/LearningAccessClose.tsx`,
 ];
-/** What only the pathway pages render. */
+/** What only the pathway pages render (they also share LearningToolsRow + LearningAccessClose with the landing). */
 const APRENDER_PATHWAY_COMPONENTS = [
   `${APRENDER_DIR}/_components/LearningPathwayHero.tsx`,
   `${APRENDER_DIR}/_components/LearningCheckpointSpine.tsx`,
+  `${APRENDER_DIR}/_components/LearningPathwayExtras.tsx`,
+  `${APRENDER_DIR}/_components/LearningPathwayBridge.tsx`,
+];
+/** Approved Phase-1 full-size sections: kept in the repository, rendered by neither the landing nor a pathway. */
+const APRENDER_RETAINED_COMPONENTS = [
   `${APRENDER_DIR}/_components/LearningToolkit.tsx`,
   `${APRENDER_DIR}/_components/LearningMethod.tsx`,
   `${APRENDER_DIR}/_components/LearningTopicTiles.tsx`,
-  `${APRENDER_DIR}/_components/LearningPathwayBridge.tsx`,
 ];
 const APRENDER_G1_FILES = [
   `${APRENDER_DIR}/page.tsx`,
@@ -537,6 +541,7 @@ const APRENDER_G1_FILES = [
   ...APRENDER_SHARED_FILES,
   ...APRENDER_LANDING_COMPONENTS,
   ...APRENDER_PATHWAY_COMPONENTS,
+  ...APRENDER_RETAINED_COMPONENTS,
 ];
 const APRENDER_ALL_PUBLIC_FILES = [
   ...APRENDER_G1_FILES,
@@ -751,6 +756,23 @@ check("G1: /aprender is condensed — hero → doors → trust → helper → to
   assert.ok(!/\.map\(/.test(stripComments(helper)), "helper must not list a curriculum");
 });
 
+check("G1 polish: a pathway is the school route, not a second landing — secondary material is compact, full sections are retained but not rendered", () => {
+  const page = stripComments(read(PATHWAY_PAGE));
+  assert.strictEqual((page.match(/<Learning[A-Z]\w+/g) ?? []).length, 6, "pathway must render exactly six sections");
+  for (const full of ["LearningToolkit", "LearningMethod", "LearningTopicTiles", "LearningSearch"]) {
+    assert.ok(!page.includes(full), `pathway still renders the full ${full} section`);
+  }
+  for (const rel of [...APRENDER_RETAINED_COMPONENTS, `${APRENDER_DIR}/_components/LearningSearch.tsx`]) assert.ok(exists(rel), `${rel} must stay in the repository`);
+  assert.deepStrictEqual(learningPathwayCopy("es").extras.methodSteps, ["Aprende", "Practica", "Usa IA", "Verifica", "Sigue"]);
+  assert.deepStrictEqual(learningPathwayCopy("en").extras.methodSteps, ["Learn", "Practice", "Use AI", "Verify", "Keep going"]);
+  assert.strictEqual(learningPathwayCopy("es").extras.topicsTitle, "Explorar por tema");
+  assert.strictEqual(learningPathwayCopy("en").extras.topicsTitle, "Explore by topic");
+  const extras = stripComments(read(`${APRENDER_DIR}/_components/LearningPathwayExtras.tsx`));
+  assert.ok(extras.includes("METHOD_STRIP_GLYPHS") && extras.includes("c.methodSteps.map"), "method strip must reuse the shared glyph set");
+  assert.ok(!/<details|aria-expanded|useState/.test(extras), "secondary material must not be hidden behind an accordion");
+  assert.ok((extras.match(/flex flex-wrap/g) ?? []).length >= 2, "method strip and topic links must wrap, never scroll sideways");
+});
+
 check("G1: glossary/resource counts stay truth-derived — no literal counts on the landing or the pathway", () => {
   for (const rel of [`${APRENDER_DIR}/page.tsx`, PATHWAY_PAGE]) {
     const page = read(rel);
@@ -772,7 +794,7 @@ check("G1: the three pathway pages resolve through ONE shared page (async params
   assert.ok(/if \(!isLearningJourneyKey\(journeyKey\)\) notFound\(\);/.test(page), "unknown journey keys must 404");
   assert.ok(page.includes("resolveLearningCenterFlagTier(null)") && page.includes('tier !== "global"'), "pathway keeps the flag gate");
   assert.ok(page.includes("normalizeLang(") && page.includes("generateMetadata") && page.includes("alternates: { canonical: path }"));
-  const order = ["<LearningPathwayHero", "<LearningCheckpointSpine", "<LearningToolkit", "<LearningMethod", "<LearningTopicTiles", "<LearningPathwayBridge", "<LearningAccessClose"];
+  const order = ["<LearningPathwayHero", "<LearningCheckpointSpine", "<LearningToolsRow", "<LearningPathwayExtras", "<LearningPathwayBridge", "<LearningAccessClose"];
   const idx = order.map((tag) => page.indexOf(tag));
   assert.ok(idx.every((i) => i !== -1), `pathway is missing a section: ${order.filter((_, i) => idx[i] === -1).join(", ")}`);
   assert.deepStrictEqual([...idx].sort((a, b) => a - b), idx, "pathway sections are out of order");
@@ -835,7 +857,9 @@ check("G1: category browsing is preserved as SECONDARY navigation — hidden whe
   assert.deepStrictEqual(tiles.map((t) => t.category.categoryKey), ["fundamentos_del_negocio", "clientes_y_demanda"]);
   assert.ok(tiles.every((t) => t.publishedCount > 0));
   const pathway = read(PATHWAY_PAGE);
-  assert.ok(pathway.indexOf("<LearningTopicTiles") > pathway.indexOf("<LearningCheckpointSpine"), "topics come after the spine on a pathway");
+  assert.ok(pathway.indexOf("<LearningPathwayExtras") > pathway.indexOf("<LearningCheckpointSpine"), "topic links come after the spine on a pathway");
+  assert.ok(pathway.includes("resolveTopicTiles(categories, lessons)"), "pathway topic links must be truth-derived (published categories only)");
+  assert.ok(read(`${APRENDER_DIR}/_components/LearningPathwayExtras.tsx`).includes("categoryHref(category.categoryKey, routeLang)"), "topic links must open the existing category pages");
   // Static segments win over /aprender/[categoryKey]; a category_key must never shadow one.
   const RESERVED = ["ruta", "leccion", "glosario", "recursos"];
   const seededCategoryKeys = [...MIGRATION.matchAll(/^\('([a-z_]+)', '[^']+', '[^']+', '[^']*', '[^']*', \d, 'active'\)/gm)].map((m) => m[1]);
@@ -912,7 +936,7 @@ check("G1: PT/TL parameter infrastructure preserved (route lang kept in links, c
 
 check("G1: every link/anchor in the landing + pathway components carries a ≥44 px touch-target class", () => {
   const OK = /min-h-11|min-h-\[2\.875rem\]|min-h-\[3rem\]|LEARNING_BTN_PRIMARY|LEARNING_BTN_OUTLINE|LEARNING_LINK|LEARNING_TOOL_TILE|min-h-\[10rem\]|h-full/;
-  for (const rel of [...APRENDER_LANDING_COMPONENTS, ...APRENDER_PATHWAY_COMPONENTS]) {
+  for (const rel of [...APRENDER_LANDING_COMPONENTS, ...APRENDER_PATHWAY_COMPONENTS, ...APRENDER_RETAINED_COMPONENTS]) {
     const src = read(rel);
     const tags = src.match(/<(Link|a)\b[\s\S]*?>/g) ?? [];
     for (const tag of tags) assert.ok(OK.test(tag), `${rel}: link without a touch-target class → ${tag.slice(0, 120)}`);
@@ -939,7 +963,7 @@ check("G1: approved Phase-1 visual primitives are reused — shared tokens/vigne
     `${APRENDER_DIR}/_components/LearningAccessClose.tsx`, `${APRENDER_DIR}/_components/LearningTopicTiles.tsx`, `${APRENDER_DIR}/_components/LearningMethod.tsx`,
     `${APRENDER_DIR}/page.tsx`,
   ]) for (const h of hexes(read(rel))) approved.add(h);
-  const NEW_COMPONENTS = ["LearningTrustStrip", "LearningStartHelper", "LearningToolsRow", "LearningPathwayHero", "LearningCheckpointSpine", "LearningPathwayBridge"];
+  const NEW_COMPONENTS = ["LearningTrustStrip", "LearningStartHelper", "LearningToolsRow", "LearningPathwayHero", "LearningCheckpointSpine", "LearningPathwayExtras", "LearningPathwayBridge"];
   for (const name of NEW_COMPONENTS) {
     const src = read(`${APRENDER_DIR}/_components/${name}.tsx`);
     assert.ok(src.includes('from "./learningUi"'), `${name} must use the shared Learning tokens`);
@@ -996,7 +1020,7 @@ check("G1: decorative SVG vignettes are aria-hidden; landing and pathway each ha
   const h1Count = (files: string[]) => files.reduce((n, rel) => n + (read(rel).match(/<h1\b/g) ?? []).length, 0);
   assert.strictEqual(h1Count(APRENDER_LANDING_COMPONENTS), 1, "landing components must contain exactly one h1 (hero)");
   assert.strictEqual(h1Count(APRENDER_PATHWAY_COMPONENTS), 1, "pathway components must contain exactly one h1 (pathway hero)");
-  for (const name of ["LearningJourneyCards", "LearningStartHelper", "LearningToolsRow", "LearningAccessClose", "LearningCheckpointSpine", "LearningToolkit", "LearningMethod", "LearningTopicTiles", "LearningPathwayBridge"]) {
+  for (const name of ["LearningJourneyCards", "LearningStartHelper", "LearningToolsRow", "LearningAccessClose", "LearningCheckpointSpine", "LearningToolkit", "LearningMethod", "LearningTopicTiles", "LearningPathwayExtras", "LearningPathwayBridge"]) {
     assert.ok(/<h2\b/.test(read(`${APRENDER_DIR}/_components/${name}.tsx`)), `${name} has no h2 section heading`);
   }
   assert.ok(/<h3\b/.test(read(`${APRENDER_DIR}/_components/LearningCheckpointSpine.tsx`)) && /<h4\b/.test(read(`${APRENDER_DIR}/_components/LearningCheckpointSpine.tsx`)), "spine needs checkpoint (h3) and lesson (h4) headings");

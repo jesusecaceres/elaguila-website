@@ -76,7 +76,7 @@ export function LearningPathwayHero({
             </div>
           </div>
 
-          <figure className={`min-w-0 overflow-hidden rounded-2xl border-2 ${accent.border}`}>
+          <figure className={`min-w-0 overflow-hidden rounded-2xl border-2 bg-[#F3EBDC] ${accent.border}`}>
             <JourneyVignette journey={journey} className="block h-auto max-h-40 w-full lg:max-h-none" />
           </figure>
         </div>

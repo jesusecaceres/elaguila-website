@@ -31,7 +31,9 @@ export function LearningPathwayBridge({
     <section id={LEARNING_ANCHORS.bridge} className={`${LEARNING_SECTION} border-t border-[#D6C7AD]/70 py-12 sm:py-14`} aria-labelledby="aprender-bridge-title">
       <div className={LEARNING_CONTAINER}>
         <div className={`grid overflow-hidden rounded-2xl border-2 bg-[#FFFDF7] shadow-[0_14px_36px_-22px_rgba(31,36,28,0.3)] md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.6fr)] ${JOURNEY_ACCENT[next ?? journey].border}`}>
-          <JourneyVignette journey={next ?? journey} className="block h-auto max-h-44 w-full md:h-full md:max-h-none" />
+          <div className="flex items-center bg-[#F3EBDC]">
+            <JourneyVignette journey={next ?? journey} className="block h-auto max-h-44 w-full md:max-h-none" />
+          </div>
           <div className="p-5 sm:p-7">
             <p className={LEARNING_EYEBROW}>{c.eyebrow}</p>
             <h2 id="aprender-bridge-title" className={`mt-1 font-serif text-2xl font-bold leading-snug ${JOURNEY_ACCENT[next ?? journey].ink}`}>

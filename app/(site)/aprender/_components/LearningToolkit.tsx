@@ -10,8 +10,8 @@ import { LEARNING_BTN_OUTLINE, LEARNING_CONTAINER, LEARNING_EYEBROW, LEARNING_H2
 /**
  * Gate L1G — "Kit práctico": the three capabilities that exist today (glossary, checklists &
  * templates, Idea Builder) as three distinct editorial panels. Counts are real published counts;
- * the Idea Builder note states the truth (the tool requires sign-in). Lives on the pathway pages
- * since G1; the landing uses the compact LearningToolsRow.
+ * the Idea Builder note states the truth (the tool requires sign-in). Retained but not rendered
+ * since the G1 polish: the landing and the pathways both use the compact LearningToolsRow.
  */
 export function LearningToolkit({
   copy,

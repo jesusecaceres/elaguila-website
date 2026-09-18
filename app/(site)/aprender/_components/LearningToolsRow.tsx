@@ -8,10 +8,9 @@ import { GlossaryMark, IdeaMark } from "./learningGlyphs";
 import { LEARNING_CONTAINER, LEARNING_EYEBROW, LEARNING_SECTION, LEARNING_TOOL_TILE } from "./learningUi";
 
 /**
- * Gate G1 — compact tools row for the landing: three slim links to what exists today (glossary,
- * checklists & templates, Idea Builder). Counts are real published counts. The Idea Builder chip
- * states the truth: the tool requires sign-in. The full editorial panels (LearningToolkit) live
- * on the pathway pages.
+ * Gate G1 — compact tools row, shared by the landing and the pathway pages: three slim links to
+ * what exists today (glossary, checklists & templates, Idea Builder). Counts are real published
+ * counts. The Idea Builder chip states the truth: the tool requires sign-in.
  */
 export function LearningToolsRow({
   copy,

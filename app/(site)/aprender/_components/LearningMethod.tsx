@@ -5,8 +5,8 @@ import { LEARNING_CONTAINER, LEARNING_EYEBROW, LEARNING_H2, LEARNING_INTRO, LEAR
 
 /**
  * Gate L1H — "Así se aprende en Leonix": five-step learn-by-doing model. Horizontal from `lg`,
- * vertical below (a connector rail carries the sequence in both layouts). Lives on the pathway
- * pages since G1 (`compact`), not on the landing.
+ * vertical below (a connector rail carries the sequence in both layouts). Retained but not
+ * rendered since the G1 polish: pathways use the one-line strip in LearningPathwayExtras.
  */
 export function LearningMethod({ copy, compact = false }: { copy: LearningLandingCopy; compact?: boolean }) {
   const c = copy.method;

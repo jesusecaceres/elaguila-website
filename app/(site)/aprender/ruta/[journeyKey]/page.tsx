@@ -18,12 +18,10 @@ import {
 import { learningPathwayCopy } from "../../learningPathwayCopy";
 import { LearningAccessClose } from "../../_components/LearningAccessClose";
 import { LearningCheckpointSpine } from "../../_components/LearningCheckpointSpine";
-import { LearningMethod } from "../../_components/LearningMethod";
 import { LearningPathwayBridge } from "../../_components/LearningPathwayBridge";
+import { LearningPathwayExtras } from "../../_components/LearningPathwayExtras";
 import { LearningPathwayHero } from "../../_components/LearningPathwayHero";
-import { LearningSearch } from "../../_components/LearningSearch";
-import { LearningToolkit } from "../../_components/LearningToolkit";
-import { LearningTopicTiles } from "../../_components/LearningTopicTiles";
+import { LearningToolsRow } from "../../_components/LearningToolsRow";
 
 export const dynamic = "force-dynamic";
 
@@ -60,8 +58,9 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
  * Gate G1 — one pathway page for the three journeys (idea · empezando · negocio). The journeys
  * are ordered views through ONE school: the same published lessons, arranged on the canonical
  * 7-checkpoint spine with this journey's depth, urgency, framing and action. Composition:
- * journey hero → checkpoint spine → practical toolkit → learn-by-doing method → browse by topic
- * (secondary) → bridge to the next journey → access close.
+ * journey hero → checkpoint spine → compact tools row → compact method strip + explore-by-topic
+ * links (secondary) → bridge to the next journey → access close. A pathway is the school route,
+ * not a second landing page: the full toolkit/method/topic sections are not rendered here.
  *
  * Same truth rules and flag gate as the landing: published-only service-role reads, "En
  * preparación" for empty checkpoints, no planned title ever rendered. Unknown keys 404.
@@ -115,9 +114,8 @@ export default async function LearningPathwayPage({ params, searchParams }: Page
       <div className="relative z-10">
         <LearningPathwayHero landing={landing} copy={copy} chrome={chrome} routeLang={routeLang} journey={journey} lessons={journeyLessons} />
         <LearningCheckpointSpine copy={copy} chrome={chrome} lang={lang} routeLang={routeLang} journey={journey} checkpoints={checkpoints} resourcesByLessonId={resourcesByLessonId} />
-        <LearningToolkit copy={landing} routeLang={routeLang} glossaryCount={glossaryCount} resourceCount={resourceCount} />
-        <LearningMethod copy={landing} compact />
-        <LearningTopicTiles copy={landing} chrome={chrome} lang={lang} routeLang={routeLang} tiles={tiles} search={<LearningSearch lang={lang} />} />
+        <LearningToolsRow copy={landing} routeLang={routeLang} glossaryCount={glossaryCount} resourceCount={resourceCount} />
+        <LearningPathwayExtras copy={copy} lang={lang} routeLang={routeLang} tiles={tiles} />
         <LearningPathwayBridge landing={landing} copy={copy} routeLang={routeLang} journey={journey} />
         <LearningAccessClose copy={landing} ctaHref={landingHref(routeLang, LEARNING_ANCHORS.journeys)} />
       </div>

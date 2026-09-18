@@ -62,7 +62,7 @@ export function LearningJourneyCards({
                     <h3 className={`font-serif text-2xl font-bold leading-tight ${accent.ink}`}>{item.title}</h3>
                     <p className="mt-2 font-serif text-[1.05rem] italic leading-snug text-[#3D3428]">{item.empathy}</p>
                     <p className="mt-3 flex-1 text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">{item.outcome}</p>
-                    <p className={`mt-4 inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-xs font-bold ${accent.chip}`}>
+                    <p className={`mt-4 inline-flex w-fit flex-wrap items-center gap-x-1.5 gap-y-0.5 rounded-2xl px-2.5 py-1 text-xs font-bold lg:gap-x-2 lg:px-3 ${accent.chip}`}>
                       {lessons.length > 0 ? (
                         <>
                           <span>{lessonsCountLabel(lessons.length, chrome.lessonSingular, chrome.lessonPlural)}</span>
