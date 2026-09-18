@@ -1,6 +1,7 @@
 # Leonix Learning Center — Master Curriculum Matrix
 
-**Status:** CANONICAL CURRICULUM CONTROL PLANE (Gate G3) · **Date:** 2026-09-18
+**Status:** CANONICAL CURRICULUM CONTROL PLANE (Gate G3; rev. 2 in Gate G4-I1) · **Date:** 2026-09-18
+**Rev. 2:** owner decision OD-1A restored `ein_and_tax_id_awareness` as its own lesson (row 61). Universal total 61 · V1 40. Owner decisions OD-1…OD-5 and D3 are recorded as resolved in §21.
 **Controlling doctrine:** `LEONIX_LEARNING_CENTER_MASTER_CONSTRUCTION_BIBLE_V2_2026-09-18.md` (esp. §5–§6, §10, §18–§21, §31, §44A–§44B)
 **Working reference implementation:** lesson `who_is_your_customer` (G2 + G2.1) — `app/lib/business/learning/lessonPackage/**`
 **Supersedes:** `docs/business-learning-center-content-batch-02.md` (its 8 planned rows are all carried here; its "1,200 characters + same structure" recipe is replaced by `validateLessonPackage`).
@@ -16,7 +17,7 @@ This document is curriculum **architecture**. It contains no lesson prose. Nothi
 3. **Never collect an answer without showing its use.** Every activity has a `what_do_i_do_with_this_result`. The validator already rejects a package activity without a result bridge.
 4. **AI is both curriculum and method.** Five lessons *teach* AI (rows 3, 4, 5, 27, 41). Every other lesson *uses* AI through a small, stage-aware template set assembled locally from the learner's own answers. Assistant-neutral, no AI API, nothing transmitted, blanks stay blank, "AI helps. You verify."
 5. **Investigate, don't assert.** Anything legal, tax, licensing, insurance, employment, privacy or regulated is taught as *what to investigate, what to verify, and who to ask* — never as a requirement stated as fact (Bible §20–§21). Those rows are `JS = Y` and must carry `verify` + `pro_help` blocks (validator-enforced).
-6. **Quality over count.** 60 universal lessons, 39 in V1. A lesson exists only if a first-time entrepreneur leaves it able to *do* something. No stub lessons, no inflated counts, planned titles are never shown publicly.
+6. **Quality over count.** 61 universal lessons, 40 in V1. A lesson exists only if a first-time entrepreneur leaves it able to *do* something. No stub lessons, no inflated counts, planned titles are never shown publicly.
 7. **Stable identity.** `lesson_key` and `capability_key` of the 16 seeded lessons are frozen (Concierge `relatedLessonKey`, Idea Builder `relatedCapabilityKey` and progress/capability records depend on them).
 8. **Useful without Leonix.** `leonix_connection` is blank for almost every row. Leonix appears factually in a handful of visibility/media rows and transparently in the capstone (row 60), from a capability truth registry the owner certifies (decision D7). No partner is named anywhere (Bible §24).
 9. **Audio teaches; it does not narrate.** Every V1 row has an audio teaching goal and outline. Scripts are separate, conversational, driving-safe, and never read the page.
@@ -27,7 +28,7 @@ This document is curriculum **architecture**. It contains no lesson prose. Nothi
 ## 2. Legend / field definitions
 
 **Status / source:** `PUB` published seed lesson (8) · `PLN` planned seed row, no body (8) · `NEW` no database row yet.
-**Class:** `V1` (39) · `V1.1` (19) · `V2` (2) · `REC` = recurring/current content stream, not a lesson (§20).
+**Class:** `V1` (40) · `V1.1` (19) · `V2` (2) · `REC` = recurring/current content stream, not a lesson (§20).
 **Checkpoint (CP):** 1 entender · 2 construir · 3 preparar · 4 visible · 5 crecer · 6 proteger · 7 siguiente.
 **Domain:** IDEA · CUST · BRAND · FOUND (business foundation) · MONEY · DIGI (digital presence) · SOCIAL · AI · MKT · OPS · PEOPLE · GROW · PROTECT · NEXT.
 **U/C:** `U` universal · `U+R` universal with Restaurant/Food overlay · `U+S` with Services/Trades overlay · `U+RS` both. Category-specific lessons live in §13–§14, not in the universal table.
@@ -79,17 +80,17 @@ All eight keep their seeded `lesson_key` and `capability_key`. None is public un
 | 48 | `simple_analytics` | `simple_analytics_basics` | 5 | –/–/C | V1.1 | Business pathway only. |
 
 **Changes versus the approved 61-row plan (and why):**
-- **Merged** `ein_and_tax_id_awareness` into row 13 `business_structure_concepts`. An EIN/tax ID question cannot be answered without the structure question, both end at the same professionals, and two thin "awareness" lessons would each fail the capability test. One lesson, one verify/pro-help boundary. (61 → 60 rows.)
-- **Promoted** row 6 `customer_conversations` from V1.1 to **V1** and into all three pathways. The flagship's verification step tells every learner to "talk to 3 real people"; the school must teach *how*. V1 stays at the owner-approved **39**. See owner decision OD-1.
+- **Kept** `ein_and_tax_id_awareness` as its own lesson (row 61). Rev. 1 of this matrix merged it into `business_structure_concepts`; the owner rejected that (OD-1A): an EIN / tax ID is a major first-time-entrepreneur concept and deserves its own discoverable lesson. Row 13 is structure only. Row numbers are stable identifiers, not positions, so the restored row is numbered 61 and sits after row 13.
+- **Promoted** row 6 `customer_conversations` from V1.1 to **V1** and into all three pathways. The flagship's verification step tells every learner to "talk to 3 real people"; the school must teach *how* (approved, OD-1B). With the EIN lesson restored, V1 is **40** — curriculum truth outranks a round count.
 - **Re-ordered CP1** so the first AI lessons (3–5) come right after the first business win (rows 1–2): the learner meets the AI lab in the flagship, then learns to use it well before the remaining lessons lean on it.
 
 ---
 
 ## 5. Full universal curriculum matrix
 
-### 5.1 Identity and curriculum (all 60 rows)
+### 5.1 Identity and curriculum (all 61 rows)
 
-`capability_key` for a NEW row equals its `lesson_key` unless shown. Prerequisites are *recommended order*, never a gate — public learning is never blocked.
+Row numbers (`#`) are stable identifiers, not positions: row 61 was restored after rows 1–60 were numbered and sits in CP2 after row 13. `capability_key` for a NEW row equals its `lesson_key` unless shown. Prerequisites are *recommended order*, never a gate — public learning is never blocked.
 
 | # | lesson_key | Título (ES) | Title (EN) | Src | Class | CP | Domain | U/C | I/E/N | Prerequisites |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -105,7 +106,8 @@ All eight keep their seeded `lesson_key` and `capability_key`. None is public un
 | 10 | `simple_business_model` | Cómo gana dinero tu negocio | How your business makes money | NEW | V1.1 | 1 | IDEA | U | C/L/– | 1, 2 |
 | 11 | `naming_your_business` | El nombre de tu negocio | Naming your business | NEW | V1 | 2 | BRAND | U | L/C/– | 8 |
 | 12 | `branding_basics` | Marca: más que un logo | Branding: more than a logo | PLN | V1 | 2 | BRAND | U | L/C/D | 2, 8 |
-| 13 | `business_structure_concepts` | Estructura del negocio y tu número fiscal (EIN): qué preguntar | Business structure and your tax ID (EIN): what to ask | NEW | V1 | 2 | FOUND | U | –/C/L | — |
+| 13 | `business_structure_concepts` | Estructuras de negocio: qué preguntar | Business structures: what to ask | NEW | V1 | 2 | FOUND | U | –/C/L | — |
+| 61 | `ein_and_tax_id_awareness` | EIN y tu identificación fiscal: qué es y qué preguntar | EIN and your tax ID: what it is and what to ask | NEW | V1 | 2 | FOUND | U | –/C/L | 13 |
 | 14 | `licenses_and_permits_awareness` | Licencias y permisos: cómo investigar | Licenses and permits: how to research them | NEW | V1 | 2 | FOUND | U+RS | L/C/L | 1 |
 | 15 | `business_banking_basics` | Separa tu dinero: banca de negocio | Separate your money: business banking | NEW | V1 | 2 | MONEY | U | –/C/L | 13 |
 | 16 | `startup_costs` | Cuánto cuesta empezar | What it costs to start | NEW | V1 | 2 | MONEY | U+RS | C/C/– | 1, 9 |
@@ -154,7 +156,7 @@ All eight keep their seeded `lesson_key` and `capability_key`. None is public un
 | 59 | `quarterly_business_checkup` | Tu revisión trimestral | Your quarterly business checkup | NEW | V1.1 | 7 | NEXT | U | –/L/C | 18 |
 | 60 | `how_to_move_forward` | Ya tienes las herramientas. Ahora decide cómo quieres avanzar. | You have the tools. Now decide how you want to move forward. | NEW | V1 | 7 | NEXT | U | C/C/C | 57 |
 
-**Checkpoint coverage (V1 / all):** CP1 9/10 · CP2 6/6 · CP3 6/11 · CP4 8/14 · CP5 3/10 · CP6 6/7 · CP7 1/2. Every checkpoint has V1 coverage in the Starting pathway; the Idea pathway is intentionally thin in CP4–CP5 ("it is not time to advertise yet").
+**Checkpoint coverage (V1 / all):** CP1 9/10 · CP2 7/7 · CP3 6/11 · CP4 8/14 · CP5 3/10 · CP6 6/7 · CP7 1/2. Every checkpoint has V1 coverage in the Starting pathway; the Idea pathway is intentionally thin in CP4–CP5 ("it is not time to advertise yet").
 
 Stored titles for rows 12 and 23 differ from the display titles above (`Fundamentos de identidad de marca` / `Fundamentos de servicios rentables`); the package's `meta.title` carries the display title, exactly as the flagship does. `next_lesson_by_journey` for every row is given in §5.2 and is derived from the pathway orders in §6–§8.
 
@@ -286,14 +288,24 @@ Coded AI columns (`ai_questions_first`, `assumption_challenge`, `verification_in
 - **Context out:** `brand_voice`.
 - **Next:** I → 14 · E → 13 · N → 13
 
-**13 · `business_structure_concepts`** *(JS — merges the former EIN row)*
-- **Outcomes:** name the common structures and what differs between them (liability, taxes, paperwork, cost); explain what an EIN/tax ID is for; arrive at a professional with the right questions.
+**13 · `business_structure_concepts`** *(JS)*
+- **Outcomes:** name the common structures and what differs between them (liability, taxes, paperwork, cost); arrive at a professional with the right questions.
 - **Why:** the structure affects personal risk and taxes; the wrong "a friend told me" choice is costly to undo.
 - **Hook / example:** the owner and the business drawn as one figure vs. two. Example follows a learner preparing for a first CPA meeting. E: core; N (light): "is my current structure still right?"
 - **Do → result:** `pro_meeting_prep` (my situation in 6 facts · what I want to protect · my questions) → a **question sheet for a CPA/attorney**.
 - **Use it:** take it to the meeting; it shortens (and cheapens) professional time; Leonix does not tell you which structure to choose.
 - **AI:** Set D·E·F. S2. "Explain the terms using my situation; do not tell me which structure to pick; list what I must verify and with whom." Context in: the six facts + state.
 - **Context out:** — (no legal facts are stored as context).
+- **Next:** I — · E → 61 · N → 61
+
+**61 · `ein_and_tax_id_awareness`** *(JS — restored by owner decision OD-1A)*
+- **Outcomes:** explain in plain words what a tax ID / EIN is and what it is used for (bank, taxes, hiring, forms); know who issues it and that the official application is the source of truth; tell it apart from personal identification and from state registrations; arrive at a tax professional with the right questions.
+- **Why:** it is the first "official" thing a bank, a supplier or a form asks a new owner for, and confusion here leads to paying look-alike sites, using a personal number where a business one fits, or freezing at the first form.
+- **Hook / example:** one card for the person, one card for the business. Example: Rosa is asked for "her EIN" when opening a business account and does not know whether she has, needs or can get one. E: core — before the bank and the first supplier; N (light): "do I need one now that I am hiring or changing structure?"
+- **Do → result:** `pro_meeting_prep` (reused: my situation · who asked me for a tax ID and why · my structure status · employees yes/no/later · my questions) → a **tax-ID question sheet**.
+- **Use it:** take it to a tax professional or to the official agency's own help; Leonix explains the concept, it never tells you whether *you* need one, how to file, or what it costs — verify on the official source, and be careful with look-alike sites.
+- **AI:** Set E·D·F. S2. "Explain the terms using my situation; do not tell me whether I need one or fill out anything for me; list what I must confirm on the official source or with a tax professional." Context in: the sheet fields + state.
+- **Context out:** — (no tax facts are stored as context).
 - **Next:** I — · E → 14 · N → 14
 
 **14 · `licenses_and_permits_awareness`** *(JS)*
@@ -555,7 +567,8 @@ Coded AI columns (`ai_questions_first`, `assumption_challenge`, `verification_in
 | 9 | R-FULL | 8 | NEW cheap-test plan | *validación*, `glossary_conversion` | "Ten pre-orders before the oven." |
 | 11 | R-JS | 7 | NEW shortlist + to-verify list | *DBA / nombre ficticio*, *marca registrada* | Three crossed-out names. |
 | 12 | R-FULL | 8 | NEW brand sheet | `glossary_branding` | Brand is not a logo. |
-| 13 | R-JS | 9 | NEW CPA/attorney question sheet | *estructura legal*, *EIN*, *responsabilidad* | One figure vs. two. |
+| 13 | R-JS | 9 | NEW CPA/attorney question sheet | *estructura legal*, *responsabilidad* | One figure vs. two. |
+| 61 | R-JS | 8 | NEW tax-ID question sheet | *EIN*, *ITIN*, *identificación fiscal* | One card for you, one for the business. |
 | 14 | R-JS | 9 | NEW layered research checklist | *licencia*, *permiso*, *zonificación* | City · county · state · federal. |
 | 15 | R-JS | 7 | NEW bank question list | *cuenta de negocio*, `glossary_overhead` | One jar vs. two. |
 | 16 | R-FULL | 8 | NEW startup cost list | `glossary_overhead`, *capital inicial* | The cost iceberg. |
@@ -584,7 +597,7 @@ Coded AI columns (`ai_questions_first`, `assumption_challenge`, `verification_in
 | 57 | R-FULL | 8 | NEW meeting brief | the nine professional types | Nine doors. |
 | 60 | R-CAP | 8 | NEW 90-day plan | — | Four equal doors. |
 
-### 5.4 Truth / safety columns (all 60 rows)
+### 5.4 Truth / safety columns (all 61 rows)
 
 `Truth` = `evergreen_or_current` · `JS` = `jurisdiction_sensitive` · `Scope` = `jurisdiction_scope` (F federal · ST state · CO county · CI city · — none) · `Off.` = `official_verification_needed` · `Pro` = `professional_help_type` · `LV` = `last_verified_required` (a visible verified date is required once any maintained source is shown) · `Cad.` = `review_cadence`.
 
@@ -594,7 +607,8 @@ Coded AI columns (`ai_questions_first`, `assumption_challenge`, `verification_in
 | 3–5 | AI foundation rows | EVG + PLAT (tools change) | N | — | N | all regulated types named in row 5 | N | ANN |
 | 11 | `naming_your_business` | JS | **Y** | F · ST · CO | Y (name/DBA filing office, trademark search) | attorney · licensing_office | Y | ANN |
 | 12 | `branding_basics` | EVG | N | — | N | — | N | E24 |
-| 13 | `business_structure_concepts` | JS | **Y** | F · ST | Y (tax agency, state business filing office) | cpa_tax · attorney | Y | ANN |
+| 13 | `business_structure_concepts` | JS | **Y** | F · ST | Y (state business filing office, tax agency) | cpa_tax · attorney | Y | ANN |
+| 61 | `ein_and_tax_id_awareness` | JS | **Y** | F · ST | Y (the federal tax agency's own application and help; state tax registrations) | cpa_tax | Y | ANN |
 | 14 | `licenses_and_permits_awareness` | JS | **Y** | F · ST · CO · CI | Y (city/county/state licensing offices) | licensing_office · health_department · contractor_board | Y | ANN |
 | 15 | `business_banking_basics` | JS | **Y** | F · ST | Y (the bank's own requirements) | financial · cpa_tax | N | ANN |
 | 16–18, 20–25 | money/ops rows (not 19) | EVG | N | — | N | cpa_tax (light mention in 24) | N | E24 |
@@ -620,7 +634,7 @@ Coded AI columns (`ai_questions_first`, `assumption_challenge`, `verification_in
 
 **What Leonix teaches vs. what must be verified, for every `JS = Y` row:** Leonix teaches the *concepts*, the *questions to ask*, *which type of office or professional answers them*, and *how to prepare*. The learner verifies the *actual requirement, rate, date, form or coverage* for their location and business model. No `JS` lesson may state a requirement as universal fact; every one carries the permanent line "Verifica los requisitos exactos donde operas antes de confiar en esta información" and the `pro_help` block (validator rule).
 
-### 5.5 Product connection and delivery columns (all 60 rows)
+### 5.5 Product connection and delivery columns (all 61 rows)
 
 `Lx` = `leonix_connection` · `Playbook` = `category_playbook_dependency` (R restaurant/food · S services/trades) · `Partner` = `partner_dependency` (**none** for every row: the school works with no partner; a partner block can only ever be added by configuration) · `An` = `analytics_priority` · `Pri` = `authoring_priority` (batch id from §18–§19) · `Deps` = `implementation_dependency` · `QA` = `owner_QA_required`.
 
@@ -639,6 +653,7 @@ Coded AI columns (`ai_questions_first`, `assumption_challenge`, `verification_in
 | 11 | naming_your_business | — | — | M | I-4 | ENG · SEED · ACT:name_shortlist_tester | LEGAL (attorney) |
 | 12 | branding_basics | — | — | M | I-4 | ENG (row exists) · ACT:brand_basics_sheet | STD |
 | 13 | business_structure_concepts | — | — | M | E-1 | ENG · SEED · ACT:pro_meeting_prep · TRUTH (later) | LEGAL (cpa_tax · attorney) |
+| 61 | ein_and_tax_id_awareness | — | — | M | E-1 | ENG · SEED · ACT:pro_meeting_prep (reused) · TRUTH (later) | LEGAL (cpa_tax) |
 | 14 | licenses_and_permits_awareness | — | R · S (largest overlay) | H | I-4 | ENG · SEED · ACT:permit_research_checklist · TRUTH (later) | LEGAL (licensing_office) |
 | 15 | business_banking_basics | — | — | L | E-1 | ENG · SEED | LEGAL (cpa_tax) |
 | 16 | startup_costs | — | R · S | H | I-3 | ENG · SEED · ACT:startup_cost_list (CALC optional) | STD |
@@ -707,26 +722,26 @@ Goal (Bible §4): *can this become a real business, and what should I understand
 
 CP5 has no Idea lesson by design ("todavía no toca anunciarte; primero valida tu idea"). V1.1 adds `simple_business_model` after order 9. **Minimum complete Idea set** (the smallest set that still honours every Idea topic in Bible §4): orders 1–10, 13–15, 18–20 = **16 lessons**; orders 11, 12, 16, 17 are the four "light" enrichments.
 
-## 7. Starting pathway order — *Estoy empezando* (39 V1 lessons; every V1 lesson appears)
+## 7. Starting pathway order — *Estoy empezando* (40 V1 lessons; every V1 lesson appears)
 
 Goal: build the foundation correctly and become ready to serve customers. Tone: organise · research · prepare · turn decisions into launch actions.
 
 CP1 → `who_is_your_customer` C · `what_problem_do_you_solve` L · `ai_basics_for_business` C · `build_your_ai_business_coach` C · `ai_helps_you_verify` C · `customer_conversations` C · `what_makes_you_different` C · `know_your_competition` L · `validate_before_you_spend` L (the soft opening is the test)
-CP2 → `naming_your_business` C · `branding_basics` C · `business_structure_concepts` C · `licenses_and_permits_awareness` C · `business_banking_basics` C · `startup_costs` C
+CP2 → `naming_your_business` C · `branding_basics` C · `business_structure_concepts` C · `ein_and_tax_id_awareness` C · `licenses_and_permits_awareness` C · `business_banking_basics` C · `startup_costs` C
 CP3 → `pricing_basics` C · `revenue_vs_profit` C · `record_keeping_basics` C · `customer_experience_basics` C · `simple_operations_and_follow_up` C · `healthy_boundaries_and_capacity` C
 CP4 → `consistent_business_information` C · `google_business_basics` C · `yelp_basics` C · `website_basics` C · `choosing_social_platforms` C · `whatsapp_business_basics` C · `reviews_and_customer_response` L · `local_seo_basics` L
 CP5 → `marketing_fundamentals` C · `advertising_fundamentals` C · `referrals_basics` L
 CP6 → `insurance_awareness` C · `tax_awareness` C · `employees_contractors_payroll` L · `customer_data_protection` C · `scams_and_online_safety` C · `when_to_get_professional_help` C
 CP7 → `how_to_move_forward` C (launch plan → bridge to *Ya tengo un negocio*)
 
-V1.1 slots (15): 10 · 23 · 24 · 25 · 26 · 27 · 36 · 37 · 38 · 39 · 40 · 41 · 46 · 58 · 59. Urgency "now" in Starting: 2, 13, 14, 15, 17, 18, 28, 29, 52, 53.
+V1.1 slots (15): 10 · 23 · 24 · 25 · 26 · 27 · 36 · 37 · 38 · 39 · 40 · 41 · 46 · 58 · 59. Urgency "now" in Starting: 2, 13, 61, 14, 15, 17, 18, 28, 29, 52, 53.
 
-## 8. Existing-business pathway order — *Ya tengo un negocio* (35 V1 lessons)
+## 8. Existing-business pathway order — *Ya tengo un negocio* (36 V1 lessons)
 
 Goal: stronger, more modern, easier to discover, more sustainable. Tone: diagnose · compare periods · find patterns · systemise · measure. The spine order is fixed (CP1→CP7); **urgency** carries the Bible's "profitability first" emphasis: rows 18, 22, 28, 34 are flagged *now*, so the pathway page surfaces them as the recommended starting points even though CP1 is listed first.
 
 CP1 → `who_is_your_customer` D · `ai_basics_for_business` C · `build_your_ai_business_coach` C · `ai_helps_you_verify` C · `customer_conversations` L · `know_your_competition` D · `what_makes_you_different` D
-CP2 → `branding_basics` D · `business_structure_concepts` L · `licenses_and_permits_awareness` L (renewal/expiry audit) · `business_banking_basics` L
+CP2 → `branding_basics` D · `business_structure_concepts` L · `ein_and_tax_id_awareness` L · `licenses_and_permits_awareness` L (renewal/expiry audit) · `business_banking_basics` L
 CP3 → `pricing_basics` D · `revenue_vs_profit` C · `record_keeping_basics` C · `customer_experience_basics` C · `simple_operations_and_follow_up` C · `healthy_boundaries_and_capacity` C
 CP4 → `consistent_business_information` C · `google_business_basics` C · `yelp_basics` C · `website_basics` D · `choosing_social_platforms` C · `whatsapp_business_basics` C · `reviews_and_customer_response` C · `local_seo_basics` C
 CP5 → `marketing_fundamentals` C · `advertising_fundamentals` C · `referrals_basics` C
@@ -760,6 +775,7 @@ The order in §6–§8 is compatible with the code-owned map in `learningJourney
 | 11 | naming_your_business | A·D | S2 | Y | N | V-OFFICIAL | P-STD |
 | 12 | branding_basics | A·B·E | S3 | Y | N | V-REAL | P-STD |
 | 13 | business_structure_concepts | D·E·F | S2 | Y | N | V-PRO · V-OFFICIAL | P-FIN |
+| 61 | ein_and_tax_id_awareness | E·D·F | S2 | Y | N | V-PRO · V-OFFICIAL | P-FIN |
 | 14 | licenses_and_permits_awareness | D·E | S3 | Y | N | V-OFFICIAL | P-STD |
 | 15 | business_banking_basics | D·F | S2 | Y | N | V-OFFICIAL (the bank) | P-FIN |
 | 16 | startup_costs | A·C | S2 | Y | Y | V-REAL (real quotes) | P-FIN |
@@ -798,7 +814,7 @@ The order in §6–§8 is compatible with the code-owned map in `learningJourney
 | 59 | quarterly_business_checkup | A·C·F | S1 | Y | Y | V-DATA | P-FIN |
 | 60 | how_to_move_forward | F | S3 | Y | N | V-REAL | P-STD |
 
-Template-type usage across the 39 V1 lessons: A 27 · B 14 · C 16 · D 19 · E 11 · F 13. Every V1 lesson has a set of two or three, except the capstone (one). No lesson uses all six.
+Template-type usage across the 40 V1 lessons: A 27 · B 14 · C 16 · D 20 · E 12 · F 14. Every V1 lesson has a set of two or three, except the capstone (one). No lesson uses all six.
 
 ### 9.2 What "stage-aware" means for each template type
 
@@ -920,18 +936,19 @@ No storage is built. This map only records **where a field can first be produced
 | `team_size` | 4 `build_your_ai_business_coach` | 21 · 54 |
 | `things_ai_must_never_assume` | 3 `ai_basics_for_business` | 4 · 5 · 55 |
 
-All **21** fields have a producing lesson inside V1. Rows 13, 15, 52, 53, 54, 58 deliberately produce **no** context field: legal, tax, insurance and employment facts are never stored as reusable AI context — the learner's question sheets are, by design, taken to a professional instead. Row 4 is the assembly point and row 59 the quarterly refresh.
+All **21** fields have a producing lesson inside V1. Rows 13, 61, 15, 52, 53, 54, 58 deliberately produce **no** context field: legal, tax, insurance and employment facts are never stored as reusable AI context — the learner's question sheets are, by design, taken to a professional instead. Row 4 is the assembly point and row 59 the quarterly refresh.
 
 ---
 
-## 11. Jurisdiction-sensitive lesson register (14 lessons)
+## 11. Jurisdiction-sensitive lesson register (15 lessons)
 
 V1 maintained-source scope (decision D5): **U.S. federal · California · Santa Clara County · San José**. `MS` = a maintained current source is eventually required. No source is researched or seeded in this gate. Until the maintained-source model exists (`TRUTH`), these lessons publish as *investigation education only* — they link to no "current official" source and show no "verified" badge.
 
 | # | lesson_key | Class | What Leonix teaches | What the learner must verify | Source / professional TYPE | MS | Cadence |
 |---|---|---|---|---|---|---|---|
 | 11 | `naming_your_business` | V1 | how names are tested; that DBA/fictitious-name, trademark, domain and handle checks exist | availability and filing rules for their name and location | county/state filing office · trademark search · attorney | Y | ANN |
-| 13 | `business_structure_concepts` | V1 | what the common structures are and what differs; what an EIN/tax ID is for | which structure fits; how and whether to obtain a tax ID; state fees | cpa_tax · attorney · federal and state tax/business agencies | Y | ANN |
+| 13 | `business_structure_concepts` | V1 | what the common structures are and what differs | which structure fits; filing steps; state fees | cpa_tax · attorney · federal and state tax/business agencies | Y | ANN |
+| 61 | `ein_and_tax_id_awareness` | V1 | what a tax ID / EIN is and is used for; who issues it; how it differs from personal identification and state registrations | whether they need one, how to apply, any cost, state-level registrations | cpa_tax · the federal tax agency's own application/help · state tax agency | Y | ANN |
 | 14 | `licenses_and_permits_awareness` | V1 | the four levels; how to find the office; how to ask and record answers | every actual license, permit, zoning or inspection requirement | city · county · state licensing offices · health department · contractor board | Y | ANN |
 | 15 | `business_banking_basics` | V1 | why to separate money; what banks commonly ask; which fees matter | documents and fees at the chosen bank; implications for their structure | the bank · cpa_tax | N | ANN |
 | 19 | `record_keeping_basics` | V1 | a weekly habit and simple categories | how long to keep records; what is deductible | cpa_tax | N | ANN |
@@ -945,15 +962,15 @@ V1 maintained-source scope (decision D5): **U.S. federal · California · Santa 
 | 55 | `customer_data_protection` | V1 | data inventory; keep less; account safety | which privacy duties apply to a business of their size and location | attorney | N | ANN |
 | 58 | `workers_comp_and_workplace_notices` | V1.1 | what these are; that rules depend on state and headcount | whether and what coverage/notices apply | insurer · state labor agency · hr | Y | ANN |
 
-V1 contains **9** of the 14 (11, 13, 14, 15, 19, 52, 53, 54, 55). The Idea pathway touches only **2** (11 and 14, both *light*: "what would I have to investigate?"), which is why the Idea batch can ship before the maintained-source model.
+V1 contains **10** of the 15 (11, 13, 61, 14, 15, 19, 52, 53, 54, 55). The Idea pathway touches only **2** (11 and 14, both *light*: "what would I have to investigate?"), which is why the Idea batch can ship before the maintained-source model.
 
 ## 12. Professional-help register
 
-15 lessons carry a `pro_help` block: the 14 above plus row 57, which teaches the pattern itself. Light professional mentions (no block): 5, 24, 60.
+16 lessons carry a `pro_help` block: the 15 above plus row 57, which teaches the pattern itself. Light professional mentions (no block): 5, 24, 60.
 
 | Professional / agency type | Lessons where it appears |
 |---|---|
-| `cpa_tax` | 13 · 15 · 19 · 24 (mention) · 49 · 51 · 53 · 54 · 57 |
+| `cpa_tax` | 13 · 61 · 15 · 19 · 24 (mention) · 49 · 51 · 53 · 54 · 57 |
 | `attorney` | 11 · 13 · 26 · 40 · 49 · 51 · 54 · 55 · 57 |
 | `insurance` | 52 · 58 · 57 |
 | `licensing_office` | 11 · 14 · 57 |
@@ -1022,6 +1039,7 @@ Every script follows the nine-segment structure proven in the flagship (hook · 
 | 11 | avoid the expensive rename | three crossed-out names → say it, spell it, check it → what to verify, with whom | 7 | JS |
 | 12 | brand is how it feels everywhere | one business shown twice → three words, two colours, one voice → look at your own signs | 8 | STD |
 | 13 | arrive prepared at a CPA/attorney | one figure vs. two → what differs between structures, no recommendation → six facts and your questions | 9 | JS |
+| 61 | a number for the business, not a mystery | Rosa asked for "her EIN" at the bank → what a tax ID is for, who issues it, what it is not → what to ask, and to use only the official source | 8 | JS |
 | 14 | replace fear of permits with a research method | the four layers → which office answers what → write down who you asked and when | 9 | JS |
 | 15 | separate the jars | the owner who could not tell if she was earning → why separation matters → two banks, one question list | 7 | JS |
 | 16 | see the iceberg under the oven | Rosa's forgotten three slow months → one-time vs. monthly vs. runway → list it when parked | 8 | WS |
@@ -1056,20 +1074,20 @@ V1.1/V2 rows inherit the handling of their domain (24 `WS` · 26/40/49/51/58 `JS
 
 | Class | Count | Rows |
 |---|---|---|
-| **V1** | **39** | 1–9 · 11–22 · 28–35 · 42–44 · 52–57 · 60 — *8 published to upgrade · 4 planned seed rows (12, 35, 44, 55) · 27 new* |
+| **V1** | **40** | 1–9 · 11–22 · 61 · 28–35 · 42–44 · 52–57 · 60 — *8 published to upgrade · 4 planned seed rows (12, 35, 44, 55) · 28 new* |
 | **V1.1** | **19** | 10 · 23–27 · 36–41 · 45–49 · 58 · 59 — *4 planned seed rows (23, 37, 38, 48) · 15 new* |
 | **V2** | **2** | 50 · 51 |
-| **Universal total** | **60** | |
+| **Universal total** | **61** | |
 | Category-specific (V1.1, outside the universal count) | 8 | 4 Restaurant + 4 Services/Trades (§13–§14) |
 | Recurring / current streams (not lessons) | 8 | §20 |
 
-V1 by checkpoint: CP1 9 · CP2 6 · CP3 6 · CP4 8 · CP5 3 · CP6 6 · CP7 1. V1 by pathway: Idea 20 · Starting 39 · Business 35.
+V1 by checkpoint: CP1 9 · CP2 7 · CP3 6 · CP4 8 · CP5 3 · CP6 6 · CP7 1. V1 by pathway: Idea 20 · Starting 40 · Business 36.
 
 ## 17. Shared-lesson reuse map
 
-- **54 of 60** lessons serve two or more pathways; **6** are single-pathway (Business only: 45, 47, 48, 49, 50, 51).
+- **55 of 61** lessons serve two or more pathways; **6** are single-pathway (Business only: 45, 47, 48, 49, 50, 51).
 - **16 lessons serve all three pathways** — author once, unlock three: 2 · 3 · 4 · 5 · 6 · 7 · 8 · 12 · 14 · 17 · 18 · 22 · 32 · 56 · 57 · 60.
-- **Finishing the Idea pathway (20 lessons) completes 20 of Starting's 39 and 16 of Business's 35.** Every Business V1 lesson is also a Starting lesson, so after Idea only 19 more V1 lessons exist to author — and they finish both remaining pathways.
+- **Finishing the Idea pathway (20 lessons) completes 20 of Starting's 40 and 16 of Business's 36.** Every Business V1 lesson is also a Starting lesson, so after Idea only 20 more V1 lessons exist to author — and they finish both remaining pathways.
 - Per-pathway variation for a shared lesson is *data*, never a copy: depth · urgency · framing · recommended action (journey map) · example variant (`example.variants[]`) · AI template variant (`prompt.variants`).
 - Highest-leverage rows (three pathways **and** context-producing): 2, 4, 8, 17, 12.
 
@@ -1079,20 +1097,20 @@ Lessons already contributing: **`who_is_your_customer`** (done), **`revenue_vs_p
 
 | Batch | Lessons (in authoring order) | New activities | Notes |
 |---|---|---|---|
-| **I-1** | `what_problem_do_you_solve` · `customer_conversations` · `know_your_competition` | problem_statement_builder · conversation_plan_builder · alternatives_grid | All evergreen, `guided_fields` kind already proven. Smallest batch that proves the engine beyond the flagship. Needs the first `SEED`. |
+| **I-1** | `what_problem_do_you_solve` · `customer_conversations` · `know_your_competition` | problem_statement_builder · conversation_plan_builder · alternatives_grid | All evergreen, `guided_fields` kind already proven. Smallest batch that proves the engine beyond the flagship. Needs the first `SEED`. **AUTHORED in Gate G4-I1 (2026-09-18):** packages, generic guided activity, 3 template sets, audio scripts; seed `20260918120000_learning_center_content_batch_i1.sql` written (includes the D3 accent repair) and **not applied** — the lessons go live only when the owner applies it, staging first. |
 | **I-2** | `ai_basics_for_business` · `build_your_ai_business_coach` · `ai_helps_you_verify` | bare_vs_context_compare · ai_starter_profile_builder · fact_assumption_sorter | The AI unit. Owner QA `FULL` — this is doctrine. |
 | **I-3** | `what_makes_you_different` · `validate_before_you_spend` · `startup_costs` · `pricing_basics` | value_statement_builder · cheap_test_planner · startup_cost_list · unit_cost_price_builder | Money lessons work as guided fields first; `CALC` is an enhancement, not a blocker. |
 | **I-4** | `naming_your_business` · `branding_basics` · `licenses_and_permits_awareness` | name_shortlist_tester · brand_basics_sheet · permit_research_checklist | The two `JS` rows of the Idea pathway. `LEGAL` read recommended. Publish as investigation education only (no maintained sources). |
 | **I-5** | upgrade `revenue_vs_profit` · upgrade `healthy_boundaries_and_capacity` · `choosing_social_platforms` | month_profit_snapshot · weekly_capacity_check · platform_fit_picker | Replaces two legacy-adapter lessons with full packages. |
 | **I-6** | `scams_and_online_safety` · `when_to_get_professional_help` · `how_to_move_forward` | spot_the_red_flags (tap_reveal) · pro_meeting_prep · next_90_days_plan | **Row 60 is blocked on decision D7** (capability registry). Until then the Idea pathway closes on row 57 plus the bridge. |
 
-Jurisdiction-sensitive lessons that can safely wait until the Starting batches: 13, 15, 19, 52, 53, 54, 55 (none is in the Idea pathway).
+Jurisdiction-sensitive lessons that can safely wait until the Starting batches: 13, 61, 15, 19, 52, 53, 54, 55 (none is in the Idea pathway).
 
 ## 19. Authoring batches after Idea
 
 | Batch | Lessons | Notes |
 |---|---|---|
-| **E-1** | `business_structure_concepts` · `business_banking_basics` · `record_keeping_basics` | `JS`; `LEGAL` read (cpa_tax · attorney) |
+| **E-1** | `business_structure_concepts` · `ein_and_tax_id_awareness` · `business_banking_basics` · `record_keeping_basics` | `JS`; review per OD-4 (cpa_tax · attorney) |
 | **E-2** | `customer_experience_basics` · `simple_operations_and_follow_up` | evergreen |
 | **E-3** | upgrade `consistent_business_information` · upgrade `google_business_basics` · `yelp_basics` · `website_basics` · upgrade `whatsapp_business_basics` | platform review cadence starts here |
 | **E-4** | `marketing_fundamentals` · upgrade `advertising_fundamentals` | |
@@ -1103,7 +1121,7 @@ Jurisdiction-sensitive lessons that can safely wait until the Starting batches: 
 | **Playbooks** | Restaurant, then Services/Trades (8 category lessons + overlays) | needs playbook data model + `TRUTH` for the two "how to investigate" lessons |
 | **V2** | 50 · 51 | |
 
-After I-1…I-6 and E-1…E-5, 35 of the 39 V1 lessons exist. The last four (34, 35, 44, 54) are *light* in Starting and *core* in Business; N-1 and N-2 author them and complete Starting (39), Business (35) and V1 (39) together.
+After I-1…I-6 and E-1…E-5, 36 of the 40 V1 lessons exist. The last four (34, 35, 44, 54) are *light* in Starting and *core* in Business; N-1 and N-2 author them and complete Starting (40), Business (36) and V1 (40) together.
 
 ## 20. Deferred / current / recurring content (not lessons)
 
@@ -1122,16 +1140,21 @@ Eight streams live in a secondary "Al día" layer, never inside the permanent pa
 
 Also deferred, by design: the maintained-source model and any official links (`TRUTH`) · audio recordings (D6) · *Mi contexto de negocio* storage · the content editor · analytics · partner and success-story modules (only with a real partner) · podcast / video distribution · progress semantics (G5).
 
-## 21. Owner decisions still required
+## 21. Owner decisions
 
-- **OD-1 — Confirm the two structural changes to the approved 61-row plan:** (a) merge the EIN row into `business_structure_concepts`; (b) promote `customer_conversations` to V1 and into all three pathways. V1 stays at 39. *Recommended: yes to both.*
-- **OD-2 — Approve the content-batch delivery mechanism.** A new lesson cannot render without a published database row, so each batch needs one additive, reviewed **data seed** (INSERT of the batch's rows with correctly accented titles and a plain-text rendition) applied to staging first. No schema change. Alternative: move packages to the database first (the larger "engine schema" gate). *Recommended: data seed per batch now; schema later.*
-- **OD-3 — Idea pathway size.** Ship the full 20, or launch the pathway at the 16-lesson minimum and add the four light enrichments after. *Recommended: 20, in the six batches above.*
-- **D7 (still open) — Leonix capability truth registry** for row 60 and the factual mentions in rows 28, 29, 30, 34, 43, 47. Row 60 cannot be authored without it.
-- **D3 (still open) — accent repair** of the 16 seeded rows, 6 categories and 25 resources. Most visible on pathway cards and legacy lessons; natural to bundle with the first data seed.
-- **D6 (still open) — audio voice/provider.** Scripts can be authored per batch regardless.
-- **OD-4 — `LEGAL` read-through.** Who reviews the `JS` lessons before publishing (rows 11 and 14 arrive in batch I-4).
-- **OD-5 — Flagship template wording** (12 bodies) still awaits owner approval; Bible decision 30 gates copying the pattern to other lessons on that approval.
+**Resolved (2026-09-18, Gate G4-I1):**
+- **OD-1A — REJECTED.** `ein_and_tax_id_awareness` stays its own canonical lesson (row 61). Universal total 61, V1 40.
+- **OD-1B — APPROVED.** `customer_conversations` is V1 and belongs to all three pathways.
+- **OD-2 — APPROVED.** One additive, reviewed data seed per content batch; staging first; never applied by an authoring gate.
+- **OD-3 — APPROVED.** The Idea pathway target is the full 20-lesson experience.
+- **OD-4 — Jurisdiction-sensitive publishing rule.** Coach + owner review against current authoritative sources before publishing; professional review when material crosses from general education into consequential legal, tax, licensing, labor/employment, insurance or regulated interpretation. Evergreen lessons need neither.
+- **OD-5 — APPROVED.** The G2.1 AI-development architecture may propagate to other lessons; exact wording stays subject to normal lesson QA.
+- **D3 — APPROVED.** Seeded Spanish accents are repaired in the first reviewed content seed (Batch I-1), with an explicit before → after ledger.
+
+**Still open:**
+- **D6 — audio voice/provider.** Scripts are authored per batch regardless; no player renders without a recording.
+- **D7 — Leonix capability truth registry** for row 60 and the factual mentions in rows 28, 29, 30, 34, 43, 47. Row 60 cannot be authored without it.
+- English apostrophes missing in a few seeded strings ("customers information", "people decisions") are outside D3 (Spanish accents) — a small follow-up data correction.
 
 ## 22. Definition of curriculum completeness
 
@@ -1139,6 +1162,6 @@ A **lesson** is complete when: its row here is filled; its LessonPackage passes 
 
 A **pathway** is complete when every V1 lesson in its order (§6–§8) is published as a full package, no checkpoint it uses shows "En preparación", and its bridge leads to a live next pathway.
 
-**V1 curriculum** is complete when all 39 V1 rows are complete, the three pathways are complete, every one of the 21 business-context fields has a live producing lesson, no published lesson renders through the legacy adapter, and no published lesson states a legal, tax, licensing, insurance or employment requirement as fact.
+**V1 curriculum** is complete when all 40 V1 rows are complete, the three pathways are complete, every one of the 21 business-context fields has a live producing lesson, no published lesson renders through the legacy adapter, and no published lesson states a legal, tax, licensing, insurance or employment requirement as fact.
 
 The **school** is complete — never finished — when V1.1 and the two first playbooks are live, the recurring layer is publishing on its cadences, every `JS` lesson is inside its review date, and a first-time entrepreneur can honestly say the nine statements of Bible §42.

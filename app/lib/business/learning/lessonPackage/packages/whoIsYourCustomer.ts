@@ -328,7 +328,8 @@ export const WHO_IS_YOUR_CUSTOMER_PACKAGE: LessonPackage = {
   ],
   audio: WHO_IS_YOUR_CUSTOMER_AUDIO,
   next: {
-    // Desired future sequence. Skipped automatically until those lessons are published.
-    preferred: { idea: ["know_your_competition"], neutral: ["know_your_competition"] },
+    // Inside a journey the journey's own order decides (… → customer_conversations → know_your_competition).
+    // With no journey, continue to the lesson that teaches how to check this sentence. Skipped until published.
+    preferred: { neutral: ["customer_conversations", "know_your_competition"] },
   },
 };

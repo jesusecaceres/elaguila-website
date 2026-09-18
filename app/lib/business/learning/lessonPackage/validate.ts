@@ -143,6 +143,25 @@ export function validateLessonPackage(pkg: LessonPackage, ctx: { prompts: Readon
         if (b.resultBridge && b.resultBridge.points.length < 2) errors.push(`${b.id}: resultBridge needs at least two points`);
         if (b.fields.length === 0) errors.push(`${b.id}: activity has no fields`);
         if (new Set(b.fields.map((f) => f.key)).size !== b.fields.length) errors.push(`${b.id}: duplicate activity field key`);
+        if (b.activityKey !== "customer_statement_builder") {
+          // A guided activity declares what it produces; every answer must show up in that result.
+          if (!b.result || (!b.result.sentence && !(b.result.sections && b.result.sections.length > 0))) {
+            errors.push(`${b.id}: a guided activity must declare its result (a sentence and/or sections)`);
+          } else {
+            const fieldKeys = b.fields.map((f) => f.key);
+            const used = new Set<string>(b.result.sections?.flatMap((s) => s.fieldKeys) ?? []);
+            for (const lang of ["es", "en"] as const) {
+              const inSentence = extractPromptTokens(b.result.sentence?.[lang] ?? "");
+              for (const t of inSentence) {
+                if (!fieldKeys.includes(t)) errors.push(`${b.id}: result.sentence.${lang} uses unknown field [[${t}]]`);
+                used.add(t);
+              }
+              if (b.result.sentence && new Set(inSentence).size !== new Set(extractPromptTokens(b.result.sentence.es)).size) errors.push(`${b.id}: result.sentence must use the same fields in both languages`);
+            }
+            for (const k of used) if (!fieldKeys.includes(k)) errors.push(`${b.id}: result references unknown field "${k}"`);
+            for (const k of fieldKeys) if (!used.has(k)) errors.push(`${b.id}: answer "${k}" is collected but never shown in the result`);
+          }
+        }
         break;
       case "checklist":
         if (b.items.length === 0) errors.push(`${b.id}: checklist has no items`);

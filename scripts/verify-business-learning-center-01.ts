@@ -1,5 +1,5 @@
 /**
- * TODAY-1 + G1 + G2 + G2.1 + G3 — Public Business Learning Center (foundation, checkpoint landing, pathway
+ * TODAY-1 + G1 + G2 + G2.1 + G3 + G4-I1 — Public Business Learning Center (foundation, checkpoint landing, pathway
  * pages, canonical lesson engine)
  * + Idea Builder foundation verification. Hand-rolled
  * node:assert script, matching this repo's testing convention (no jest/vitest). Run via `npx tsx
@@ -573,6 +573,8 @@ const PUBLISHED_SEED_KEYS = [
   "consistent_business_information", "who_is_your_customer", "revenue_vs_profit", "healthy_boundaries_and_capacity",
   "google_business_basics", "advertising_fundamentals", "whatsapp_business_basics", "reviews_and_customer_response",
 ];
+/** Gate G4-I1 — Idea batch 1. Authored as packages; each renders only once its database row is published (seed I-1). */
+const BATCH_I1_KEYS = ["what_problem_do_you_solve", "customer_conversations", "know_your_competition"];
 const PLANNED_SEED_KEYS = [
   "branding_basics", "referrals_basics", "profitable_service_basics", "simple_analytics",
   "local_seo_basics", "product_photography_basics", "short_video_basics", "customer_data_protection",
@@ -662,7 +664,7 @@ check("G1: exactly the seven canonical checkpoints (7/7) in Bible order, ES + EN
 check("G1: zero fake lesson keys — every mapped key is a real PUBLISHED seed lesson with one home checkpoint, none planned", () => {
   const mapped = new Set<string>([...Object.values(LEARNING_JOURNEY_LESSON_KEYS).flat(), ...Object.keys(LEARNING_LESSON_CHECKPOINT)]);
   for (const key of mapped) {
-    assert.ok(PUBLISHED_SEED_KEYS.includes(key), `mapped lesson key "${key}" is not a published seed lesson`);
+    assert.ok(PUBLISHED_SEED_KEYS.includes(key) || (BATCH_I1_KEYS.includes(key) && getCodeOwnedLessonPackage(key) !== null), `mapped lesson key "${key}" is neither a published seed lesson nor an authored batch package`);
     assert.ok(!PLANNED_SEED_KEYS.includes(key), `mapped lesson key "${key}" is a planned (unpublished) lesson`);
     assert.ok(LEARNING_CHECKPOINT_KEYS.includes(LEARNING_LESSON_CHECKPOINT[key]), `lesson "${key}" has no canonical home checkpoint`);
   }
@@ -1039,6 +1041,9 @@ import { CUSTOMER_STATEMENT_FIELD_KEYS, MAX_STATEMENT_ANSWER_LENGTH, buildCustom
 import type { LessonPackage } from "../app/lib/business/learning/lessonPackage/types";
 import { lessonCopy } from "../app/(site)/aprender/lessonCopy";
 import { resolveNextLesson } from "../app/(site)/aprender/learningJourneys";
+import { buildGuidedResult, cleanGuidedAnswer } from "../app/lib/business/learning/lessonPackage/guidedResult";
+import { packageToPlainText } from "../app/lib/business/learning/lessonPackage/plainText";
+import { SEED_I1_LEDGER, SEED_I1_LESSONS, SEED_I1_SQL, buildAccentRepairs, buildLedger, buildSeedSql, changedWords, repairSpanishAccents, stripMarks } from "./generate-learning-content-seed-i1";
 
 const LESSON_LIB_DIR = "app/lib/business/learning/lessonPackage";
 const LESSON_UI_DIR = `${APRENDER_DIR}/_components/lesson`;
@@ -1047,15 +1052,24 @@ const LESSON_LIB_FILES = [
   `${LESSON_LIB_DIR}/types.ts`, `${LESSON_LIB_DIR}/validate.ts`, `${LESSON_LIB_DIR}/legacyAdapter.ts`, `${LESSON_LIB_DIR}/registry.ts`,
   `${LESSON_LIB_DIR}/prompts.ts`, `${LESSON_LIB_DIR}/customerStatement.ts`,
   `${LESSON_LIB_DIR}/packages/whoIsYourCustomer.ts`, `${LESSON_LIB_DIR}/packages/whoIsYourCustomerAudio.ts`,
+  `${LESSON_LIB_DIR}/guidedResult.ts`, `${LESSON_LIB_DIR}/plainText.ts`, `${LESSON_LIB_DIR}/promptParts.ts`,
+  ...["whatProblemDoYouSolve", "customerConversations", "knowYourCompetition"].flatMap((n) => [`${LESSON_LIB_DIR}/packages/${n}.ts`, `${LESSON_LIB_DIR}/packages/${n}Audio.ts`, `${LESSON_LIB_DIR}/promptSets/${n}.ts`]),
 ];
 const LESSON_SERVER_UI = [`${LESSON_UI_DIR}/LessonRenderer.tsx`, `${LESSON_UI_DIR}/LessonBlocks.tsx`, `${LESSON_UI_DIR}/lessonVisuals.tsx`];
 const LESSON_CLIENT_UI = [
-  `${LESSON_UI_DIR}/LessonActivityCustomerStatement.tsx`, `${LESSON_UI_DIR}/LessonPromptBlock.tsx`, `${LESSON_UI_DIR}/LessonChecklist.tsx`,
+  `${LESSON_UI_DIR}/LessonActivityCustomerStatement.tsx`, `${LESSON_UI_DIR}/LessonActivityGuided.tsx`, `${LESSON_UI_DIR}/LessonPromptBlock.tsx`, `${LESSON_UI_DIR}/LessonChecklist.tsx`,
   `${LESSON_UI_DIR}/LessonLocalCompletion.tsx`, `${LESSON_UI_DIR}/LessonPrintSheet.tsx`, `${LESSON_UI_DIR}/LessonAudioPlayer.tsx`, `${LESSON_UI_DIR}/lessonLocalStore.ts`,
 ];
 const LESSON_ALL_FILES = [...LESSON_LIB_FILES, ...LESSON_SERVER_UI, ...LESSON_CLIENT_UI, LESSON_PAGE, `${APRENDER_DIR}/lessonCopy.ts`];
 
 const FLAGSHIP = WHO_IS_YOUR_CUSTOMER_PACKAGE;
+/** The flagship's own three templates — the G2.1 checks below are about this set, not the whole registry. */
+const FLAGSHIP_PROMPTS = ["who_is_your_customer", "who_is_your_customer_interview", "who_is_your_customer_challenge"].map((k) => LEARNING_PROMPTS[k]);
+const BATCH_I1_FILES = [
+  `${LESSON_LIB_DIR}/guidedResult.ts`, `${LESSON_LIB_DIR}/plainText.ts`, `${LESSON_LIB_DIR}/promptParts.ts`,
+  ...["whatProblemDoYouSolve", "customerConversations", "knowYourCompetition"].flatMap((n) => [`${LESSON_LIB_DIR}/packages/${n}.ts`, `${LESSON_LIB_DIR}/packages/${n}Audio.ts`, `${LESSON_LIB_DIR}/promptSets/${n}.ts`]),
+  `${LESSON_UI_DIR}/LessonActivityGuided.tsx`,
+];
 const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 const words = (s: string) => s.trim().split(/\s+/).length;
 
@@ -1202,7 +1216,7 @@ check("G2.1 AI development lab: exactly three full, assistant-neutral conversati
   if (block.type !== "ai_prompt") return;
   const keys = [block.promptKey, ...(block.moreTemplateKeys ?? [])];
   assert.deepStrictEqual(keys, ["who_is_your_customer", "who_is_your_customer_interview", "who_is_your_customer_challenge"], "exactly three templates, develop first");
-  assert.deepStrictEqual(Object.keys(LEARNING_PROMPTS).sort(), [...keys].sort(), "no template beyond the flagship three is registered yet");
+  assert.deepStrictEqual(FLAGSHIP_PROMPTS.map((p) => p.promptKey), keys, "the flagship lab is exactly these three");
   assert.deepStrictEqual(block.title, { es: "Desarrolla a tu cliente con tu IA", en: "Develop your customer with AI" });
   assert.ok(block.intro && block.intro.es.length > 40 && block.intro.en.length > 40);
 
@@ -1249,7 +1263,7 @@ check("G2.1 AI development lab: exactly three full, assistant-neutral conversati
   const allText = JSON.stringify(LEARNING_PROMPTS);
   assert.ok(!/zero-shot|few-shot|context window|ventana de contexto|system prompt|prompt engineering/i.test(allText), "no technical AI jargon in the flagship templates");
   assert.ok(!/garantiz|guarantee|sin duda|definitely|con certeza|100%/i.test(allText), "templates must not claim certainty");
-  const BRANDS = /openai|chatgpt|\bgpt-?\d|claude|anthropic|gemini|copilot|\bbard\b|llama|mistral|perplexity|deepseek/i;
+  const BRANDS = /openai|chatgpt|\bgpt-?\d|claude|anthropic|gemini|copilot|\bbard\b|\bllama ?\d|mistral|perplexity|deepseek/i;
   for (const rel of LESSON_ALL_FILES) assert.ok(!BRANDS.test(stripComments(read(rel))), `${rel} names an AI provider — templates must stay assistant-neutral`);
   assert.ok(develop.customize.length === 4 && develop.followUps.length === 3, "lab-level customise + keep-asking coaching stays on the primary template");
 });
@@ -1258,7 +1272,7 @@ check("G2.1 auto-fill: all five activity answers + city + stage populate every t
   const activity = FLAGSHIP.blocks.find((b) => b.type === "activity")!;
   assert.ok(activity.type === "activity");
   const answers = { offer: "pasteles personalizados", who: "familias de mi vecindario", problem: "un pastel especial con poco aviso", where: "grupos de WhatsApp del vecindario", why: "cumplo la fecha" };
-  for (const p of Object.values(LEARNING_PROMPTS)) {
+  for (const p of FLAGSHIP_PROMPTS) {
     const activityTokens = p.fields.filter((f) => f.prefillFrom?.kind === "activity_field");
     assert.deepStrictEqual(activityTokens.map((f) => (f.prefillFrom as { fieldKey: string }).fieldKey), [...CUSTOMER_STATEMENT_FIELD_KEYS], `${p.promptKey}: all five activity answers feed the template`);
     if (activity.type === "activity") for (const f of activityTokens) assert.ok(activity.fields.some((a) => a.key === (f.prefillFrom as { fieldKey: string }).fieldKey));
@@ -1294,7 +1308,7 @@ check("G2.1 auto-fill: all five activity answers + city + stage populate every t
 });
 
 check("G2.1 stage-aware: idea explores, empezando prepares, negocio diagnoses — same lesson, different AI conversation; invalid journey falls back to neutral", () => {
-  for (const p of Object.values(LEARNING_PROMPTS)) {
+  for (const p of FLAGSHIP_PROMPTS) {
     const bodies = { neutral: resolvePromptBody(p, null), idea: resolvePromptBody(p, "idea"), empezando: resolvePromptBody(p, "empezando"), negocio: resolvePromptBody(p, "negocio") };
     assert.strictEqual(new Set(Object.values(bodies).map((b) => b.es)).size, 4, `${p.promptKey}: the four ES bodies must differ`);
     assert.strictEqual(new Set(Object.values(bodies).map((b) => b.en)).size, 4, `${p.promptKey}: the four EN bodies must differ`);
@@ -1381,7 +1395,7 @@ check("G2.1 print: “Imprimir mi hoja” prints ONLY the worksheet DOM (title �
   assert.ok(!/visibility:\s*hidden/.test(css), "visibility:hidden keeps layout — that is what printed 13 pages");
   assert.ok(css.includes("#${LESSON_SHEET_ID} { display: none; }"), "the sheet never shows on screen");
   assert.ok(css.includes('setAttribute(SHEET_PRINT_ATTR, "")') && css.includes('addEventListener("afterprint", clear)'), "sheet-only rules apply only while the button prints");
-  for (const part of ["{copy.sheetTitle}: {lessonTitle}", "{statement.text}", "checklist.map", "{promptText}", "{copy.footer}"]) assert.ok(sheet.includes(part), `sheet is missing ${part}`);
+  for (const part of ["{copy.sheetTitle}: {lessonTitle}", "{resultText}", "checklist.map", "{promptText}", "{copy.footer}"]) assert.ok(sheet.includes(part), `sheet is missing ${part}`);
   assert.ok(sheet.includes("/** The primary template only. */") && !sheet.includes("prompts.map"), "only the PRIMARY template is printed");
   assert.ok(/verificas|verify/i.test(lessonCopy("es").print.footer) && /verify/i.test(lessonCopy("en").print.footer), "the sheet ends with the verification reminder");
   assert.ok(!/jspdf|pdfkit|pdf-lib|react-pdf|puppeteer|html2canvas/i.test(sheet), "no PDF library");
@@ -1487,7 +1501,8 @@ check("G2 legacy adapter: the 7 other published lessons become an honest reduced
 });
 
 check("G2: all 8 published lessons resolve through ONE renderer; no plain essay box remains; planned lessons stay unreachable", () => {
-  assert.deepStrictEqual(Object.keys(CODE_OWNED_LESSON_PACKAGES), ["who_is_your_customer"], "G2 authors exactly one flagship package (no mass curriculum)");
+  assert.strictEqual(Object.keys(CODE_OWNED_LESSON_PACKAGES)[0], "who_is_your_customer", "the flagship stays the reference package");
+  for (const key of PUBLISHED_SEED_KEYS) assert.strictEqual(key in CODE_OWNED_LESSON_PACKAGES, key === "who_is_your_customer", "no seeded lesson other than the flagship has been upgraded yet");
   for (const key of PUBLISHED_SEED_KEYS) {
     const pkg = resolveLessonPackage(seedLesson(key));
     assert.strictEqual(pkg.lessonKey, key);
@@ -1571,8 +1586,9 @@ check("G2 owner-QA: the normal lesson URL shows no Listen mode without a valid r
 
 check("G2 journey-aware NEXT: never exposes an unpublished lesson; prefers the package's wish only once it is published", () => {
   const published = PUBLISHED_SEED_KEYS.map((k, i) => lesson({ id: `n${i}`, lessonKey: k, status: "published" }));
-  const preferred = FLAGSHIP.next?.preferred?.idea ?? [];
-  assert.deepStrictEqual(preferred, ["know_your_competition"]);
+  // The flagship prefers nothing inside a journey (the journey order decides); the resolver contract is tested with an explicit preference.
+  assert.deepStrictEqual(FLAGSHIP.next?.preferred, { neutral: ["customer_conversations", "know_your_competition"] });
+  const preferred = ["know_your_competition"];
   const n1 = resolveNextLesson({ lessonKey: "who_is_your_customer", journey: "idea", lessons: published, preferred });
   assert.strictEqual(n1?.lesson.lessonKey, "revenue_vs_profit", "an unpublished preferred lesson must be skipped for the next PUBLISHED one");
   const withPlanned = [...published, lesson({ id: "kp", lessonKey: "know_your_competition", status: "planned" })];
@@ -1637,7 +1653,7 @@ check("G2 audio: a separate conversational ES/EN teaching script (~8–10 min), 
 check("G2 SAVE + completion: print CSS sheet (no PDF library); completion is a local visual pattern — no timers, no new grants", () => {
   const sheet = read(`${LESSON_UI_DIR}/LessonPrintSheet.tsx`);
   assert.ok(sheet.includes("@media print") && sheet.includes("window.print()") && sheet.includes("id={LESSON_SHEET_ID}"));
-  assert.ok(sheet.includes("statement.text") && sheet.includes("promptText") && sheet.includes("checklist.map"), "sheet = learner statement + checklist + AI prompt");
+  assert.ok(sheet.includes("resultText") && sheet.includes("buildCustomerStatement(") && sheet.includes("promptText") && sheet.includes("checklist.map"), "sheet = learner statement + checklist + AI prompt");
   assert.strictEqual(lessonCopy("es").print.sheetTitle, "Mi hoja");
   const completion = stripComments(read(`${LESSON_UI_DIR}/LessonLocalCompletion.tsx`));
   assert.ok(!/setTimeout|setInterval|Date\.now|performance\.now|fetch\(/.test(completion), "completion must not use timers or the network");
@@ -1649,7 +1665,7 @@ check("G2 SAVE + completion: print CSS sheet (no PDF library); completion is a l
 
 check("G2: no migration, no schema change, no reach into Home / BR / Rentas / Concierge", () => {
   const migrations = fs.readdirSync(path.join(ROOT, "supabase/migrations")).filter((f) => /learning/i.test(f));
-  assert.deepStrictEqual(migrations.sort(), ["20260807120000_business_learning_center_foundation.sql", "20260807130000_business_learning_center_privilege_hardening.sql"], "G2 must not add a learning migration");
+  assert.deepStrictEqual(migrations.sort(), ["20260807120000_business_learning_center_foundation.sql", "20260807130000_business_learning_center_privilege_hardening.sql", "20260918120000_learning_center_content_batch_i1.sql"], "the only learning migration added since TODAY-1 is the data-only content seed I-1 (no schema change — see the G4-I1 seed check)");
   for (const rel of LESSON_ALL_FILES) {
     const src = read(rel);
     assert.ok(!/from ["'][^"']*\/(home|bienes-raices|rentas|concierge)\//.test(src), `${rel} reaches outside the Learning Center`);
@@ -1698,7 +1714,7 @@ check("G2 accessibility + visual language: 44px targets, labels, text alternativ
 // code-owned journey map that is live today.
 // ---------------------------------------------------------------------------
 
-check("G3 matrix: 60 unique universal rows (39 V1 / 19 V1.1 / 2 V2); all 16 seeded lesson keys appear exactly once; agrees with the live journey map", () => {
+check("G3 matrix: 61 unique universal rows (40 V1 / 19 V1.1 / 2 V2; EIN lesson restored as row 61); all 16 seeded lesson keys appear exactly once; agrees with the live journey map", () => {
   const rel = "docs/learning-center-curriculum-matrix.md";
   assert.ok(exists(rel), `missing ${rel}`);
   const doc = read(rel);
@@ -1712,11 +1728,15 @@ check("G3 matrix: 60 unique universal rows (39 V1 / 19 V1.1 / 2 V2); all 16 seed
       const cells = line.split("|").map((c) => c.trim());
       return { n: Number(cells[1]), key: cells[2].replace(/`/g, ""), src: cells[5], cls: cells[6], cp: cells[7], depth: cells[10].split("/") };
     });
-  assert.strictEqual(rows.length, 60, `expected 60 universal rows, found ${rows.length}`);
-  assert.strictEqual(new Set(rows.map((r) => r.key)).size, 60, "lesson keys must be unique");
-  assert.deepStrictEqual(rows.map((r) => r.n), Array.from({ length: 60 }, (_, i) => i + 1), "rows are numbered 1–60 in order");
+  assert.strictEqual(rows.length, 61, `expected 61 universal rows, found ${rows.length}`);
+  assert.strictEqual(new Set(rows.map((r) => r.key)).size, 61, "lesson keys must be unique");
+  // Row numbers are stable identifiers, not positions: row 61 (EIN, restored by owner decision OD-1A) sits after row 13.
+  assert.deepStrictEqual([...rows.map((r) => r.n)].sort((a, b) => a - b), Array.from({ length: 61 }, (_, i) => i + 1), "row ids are exactly 1–61");
+  const ein = rows.find((r) => r.key === "ein_and_tax_id_awareness");
+  assert.ok(ein && ein.n === 61 && ein.cls === "V1" && ein.cp === "2" && ein.depth.join("/") === "–/C/L", "ein_and_tax_id_awareness must be its own V1 lesson in CP2 (Starting core, Business light)");
+  assert.ok(!/merges the former EIN/i.test(doc), "the EIN lesson must not be merged into business_structure_concepts");
   const byClass = (c: string) => rows.filter((r) => r.cls === c).length;
-  assert.deepStrictEqual([byClass("V1"), byClass("V1.1"), byClass("V2")], [39, 19, 2]);
+  assert.deepStrictEqual([byClass("V1"), byClass("V1.1"), byClass("V2")], [40, 19, 2]);
 
   for (const key of [...PUBLISHED_SEED_KEYS, ...PLANNED_SEED_KEYS]) {
     assert.strictEqual(rows.filter((r) => r.key === key).length, 1, `seed lesson ${key} must be exactly one canonical matrix row`);
@@ -1731,7 +1751,7 @@ check("G3 matrix: 60 unique universal rows (39 V1 / 19 V1.1 / 2 V2); all 16 seed
   }
   for (let cp = 1; cp <= 7; cp++) assert.ok(rows.some((r) => r.cp === String(cp) && r.cls === "V1"), `checkpoint ${cp} has no V1 lesson`);
   const v1In = (i: number) => rows.filter((r) => r.cls === "V1" && r.depth[i] !== "–").length;
-  assert.deepStrictEqual([v1In(0), v1In(1), v1In(2)], [20, 39, 35], "V1 pathway sizes (Idea / Starting / Business)");
+  assert.deepStrictEqual([v1In(0), v1In(1), v1In(2)], [20, 40, 36], "V1 pathway sizes (Idea / Starting / Business)");
 
   // Frozen capability keys of seeded lessons whose key differs from the lesson_key are recorded in the matrix.
   for (const cap of ["know_your_customer", "consistent_business_info", "healthy_capacity_boundaries", "review_response_basics", "referral_program_basics", "simple_analytics_basics"]) {
@@ -1752,6 +1772,323 @@ check("G3 matrix: 60 unique universal rows (39 V1 / 19 V1.1 / 2 V2); all 16 seed
 
   assert.ok(!/sponsor|patrocin/i.test(doc), "the matrix must not name a sponsor");
   assert.ok(read("docs/business-learning-center-content-batch-02.md").includes("SUPERSEDED"), "the old batch doc must point to the matrix");
+});
+
+// ---------------------------------------------------------------------------
+// Gate G4-I1 — Idea batch 1: three authored LessonPackages (what_problem_do_you_solve ·
+// customer_conversations · know_your_competition), the generic guided activity, their stage-aware AI
+// template sets, their audio scripts, the journey-map additions, and the first reviewed data seed
+// (3 new rows + D3 Spanish accent repair). The publication gate is never weakened.
+// ---------------------------------------------------------------------------
+
+const BATCH_I1_PACKAGES = BATCH_I1_KEYS.map((k) => CODE_OWNED_LESSON_PACKAGES[k]);
+const activityOf = (pkg: LessonPackage) => pkg.blocks.find((b): b is Extract<LessonPackage["blocks"][number], { type: "activity" }> => b.type === "activity")!;
+const promptBlockOf = (pkg: LessonPackage) => pkg.blocks.find((b): b is Extract<LessonPackage["blocks"][number], { type: "ai_prompt" }> => b.type === "ai_prompt")!;
+const promptsOf = (pkg: LessonPackage) => [promptBlockOf(pkg).promptKey, ...(promptBlockOf(pkg).moreTemplateKeys ?? [])].map((k) => LEARNING_PROMPTS[k]);
+const lf = (text: string) => text.replace(/\r\n/g, "\n");
+const SEED_SQL = exists(SEED_I1_SQL) ? lf(read(SEED_I1_SQL)) : "";
+const SEED_LF_LITERALS = new Set(sqlLiterals(lf(MIGRATION)));
+
+check("G4-I1 scope: exactly three new packages are authored (4 code-owned in total); the EIN lesson and every other matrix row stay unauthored", () => {
+  assert.deepStrictEqual(Object.keys(CODE_OWNED_LESSON_PACKAGES), ["who_is_your_customer", ...BATCH_I1_KEYS]);
+  assert.strictEqual(getCodeOwnedLessonPackage("ein_and_tax_id_awareness"), null, "the EIN lesson is restored in the matrix only — not authored in this gate");
+  for (const rel of BATCH_I1_FILES) assert.ok(exists(rel), `missing ${rel}`);
+  assert.strictEqual(Object.keys(LEARNING_PROMPTS).length, 12, "3 flagship templates + 3 per batch lesson");
+});
+
+check("G4-I1 validator: all three packages pass with zero errors and zero warnings; evergreen, not consequential; full ES/EN parity", () => {
+  for (const pkg of BATCH_I1_PACKAGES) {
+    const r = validateLessonPackage(pkg, { prompts: LEARNING_PROMPTS });
+    assert.deepStrictEqual(r.errors, [], `${pkg.lessonKey}: ${r.errors.join(" | ")}`);
+    assert.deepStrictEqual(r.warnings, [], `${pkg.lessonKey}: ${r.warnings.join(" | ")}`);
+    assert.strictEqual(pkg.source, "package");
+    assert.strictEqual(pkg.meta.truthClass, "evergreen");
+    assert.strictEqual(pkg.meta.consequential, false);
+    assert.deepStrictEqual(collectParityProblems(pkg), []);
+    for (const type of [...REQUIRED_PACKAGE_BLOCKS, "activity", "ai_prompt", "mistakes", "checklist", "verify"] as const) {
+      assert.ok(pkg.blocks.some((b) => b.type === type), `${pkg.lessonKey}: missing ${type}`);
+    }
+    const verify = pkg.blocks.find((b) => b.type === "verify")!;
+    if (verify.type === "verify") assert.deepStrictEqual(verify.doctrine, { es: "La IA ayuda. Tú verificas.", en: "AI helps. You verify." });
+    const example = pkg.blocks.find((b) => b.type === "example")!;
+    if (example.type === "example") {
+      assert.deepStrictEqual(example.label, { es: "Ejemplo ilustrativo", en: "Illustrative example" }, "invented examples are always labelled");
+      assert.ok(example.variants.some((v) => v.journey === "idea") && example.variants.some((v) => v.journey === "empezando"));
+    }
+    assert.ok(SPANISH_DIACRITICS.test(JSON.stringify(pkg)), `${pkg.lessonKey}: Spanish must be properly accented`);
+  }
+});
+
+check("G4-I1 composition: the three lessons are not clones — each has its own hook visual, its own block order and its own activity", () => {
+  const hooks = BATCH_I1_PACKAGES.map((p) => { const h = p.blocks.find((b) => b.type === "hook")!; return h.type === "hook" ? h.visualKey : ""; });
+  assert.deepStrictEqual(hooks, ["product_vs_problem", "pitch_vs_ask", "alternatives_fork"]);
+  const visuals = read(`${LESSON_UI_DIR}/lessonVisuals.tsx`);
+  for (const key of hooks) assert.ok(visuals.includes(`case "${key}":`), `lessonVisuals.tsx does not draw ${key}`);
+  const orders = [FLAGSHIP, ...BATCH_I1_PACKAGES].map((p) => p.blocks.map((b) => b.type).join(">"));
+  assert.strictEqual(new Set(orders).size, 4, "every authored lesson has its own block sequence");
+  assert.deepStrictEqual(BATCH_I1_PACKAGES.map((p) => activityOf(p).activityKey), ["problem_statement_builder", "conversation_plan_builder", "alternatives_grid"], "activity keys match the curriculum matrix");
+  for (const p of BATCH_I1_PACKAGES) {
+    const hook = p.blocks.find((b) => b.type === "hook")!;
+    if (hook.type === "hook") assert.ok(hook.textAlternative.es.length > 120 && hook.textAlternative.en.length > 120, `${p.lessonKey}: the visual needs a full text alternative`);
+  }
+});
+
+check("G4-I1 activities: results are built ONLY from the learner's words — blanks stay blanks, every answer appears in the result, each has a result bridge into the AI lab", () => {
+  for (const pkg of BATCH_I1_PACKAGES) {
+    const a = activityOf(pkg);
+    assert.ok(a.result, `${pkg.lessonKey}: a guided activity declares its result`);
+    assert.ok(a.resultBridge && a.resultBridge.points.length >= 3, `${pkg.lessonKey}: result bridge`);
+    assert.deepStrictEqual(a.resultBridge!.title, { es: "¿Y ahora qué hago con esto?", en: "What do I do with this now?" });
+    for (const lang of ["es", "en"] as const) {
+      const empty = buildGuidedResult(a.fields, a.result!, {}, lang);
+      assert.strictEqual(empty.filledCount, 0);
+      assert.strictEqual(empty.complete, false);
+      assert.strictEqual((empty.text.match(/\[[^\]]+\]/g) ?? []).length, a.fields.length, `${pkg.lessonKey}.${lang}: every unanswered question is a visible blank`);
+      const answers = Object.fromEntries(a.fields.map((f, i) => [f.key, `respuesta ${String.fromCharCode(97 + i)}`]));
+      const full = buildGuidedResult(a.fields, a.result!, answers, lang);
+      assert.strictEqual(full.complete, true);
+      assert.ok(!/\[[^\]]+\]/.test(full.text), "no blank remains once everything is answered");
+      for (const v of Object.values(answers)) assert.ok(full.text.includes(v), `${pkg.lessonKey}.${lang}: answer missing from the result`);
+      const one = buildGuidedResult(a.fields, a.result!, { [a.fields[0].key]: "  solo   esto.  " }, lang);
+      assert.strictEqual(one.filledCount, 1);
+      assert.ok(one.text.includes("solo esto") && !one.text.includes("solo esto."), "answers are cleaned, never completed");
+    }
+  }
+  const problem = activityOf(CODE_OWNED_LESSON_PACKAGES.what_problem_do_you_solve);
+  const sentence = buildGuidedResult(problem.fields, problem.result!, { who: "enfermeras con turnos de 12 horas", wrong: "no tener tiempo para lavar", often: "cada semana", today: "acumular ropa", cost: "su día libre" }, "es").text;
+  assert.strictEqual(sentence, "Para enfermeras con turnos de 12 horas, el problema es no tener tiempo para lavar. Pasa cada semana. Hoy la salida es acumular ropa, y el costo es su día libre.");
+  assert.strictEqual(cleanGuidedAnswer("uno\n\n  dos  \n", true), "uno\ndos", "multi-line answers keep their lines");
+
+  const broken = clone(CODE_OWNED_LESSON_PACKAGES.customer_conversations);
+  const act = activityOf(broken);
+  act.result!.sections = act.result!.sections!.filter((s) => !s.fieldKeys.includes("change"));
+  assert.ok(validateLessonPackage(broken, { prompts: LEARNING_PROMPTS }).errors.some((e) => e.includes('"change" is collected but never shown')), "the validator refuses an answer that is collected and then dropped");
+  const noResult = clone(CODE_OWNED_LESSON_PACKAGES.know_your_competition);
+  delete activityOf(noResult).result;
+  assert.ok(!validateLessonPackage(noResult, { prompts: LEARNING_PROMPTS }).ok, "a guided activity without a declared result is invalid");
+});
+
+check("G4-I1 UI: one generic guided activity renders all three (the renderer stays data-driven); the flagship builder is untouched; DO anchors the activity", () => {
+  const renderer = read(`${LESSON_UI_DIR}/LessonRenderer.tsx`);
+  assert.ok(renderer.includes("<LessonActivityGuided") && renderer.includes("b.result ?"), "guided activities are chosen by data (result), not by lesson");
+  for (const key of BATCH_I1_KEYS) assert.ok(!stripComments(renderer).includes(key), `LessonRenderer must not special-case ${key}`);
+  assert.ok(renderer.includes('blocks.find((b) => b.type === "activity") ?? blocks.find((b) => b.type === "checklist")'), "“Hacer” points at the activity even when practical steps come first");
+  const guided = read(`${LESSON_UI_DIR}/LessonActivityGuided.tsx`);
+  assert.ok(guided.startsWith('"use client";') && guided.includes("buildGuidedResult(") && guided.includes("<textarea") && guided.includes("data-result-bridge"));
+  assert.ok(guided.includes("<label htmlFor={id}") && guided.includes('aria-live="polite"'), "labelled inputs and an announced result");
+  assert.ok(!/\bfetch\(|XMLHttpRequest|sendBeacon|\/api\//.test(stripComments(guided)), "the guided activity sends nothing over the network");
+  const sheet = read(`${LESSON_UI_DIR}/LessonPrintSheet.tsx`);
+  assert.ok(sheet.includes("buildGuidedResult(guided.fields, guided.result, state.answers, lang)") && sheet.includes("guided.result.printLabel[lang]"), "“Mi hoja” prints the guided result");
+  assert.ok(lessonCopy("es").activity.progressOf === "de" && lessonCopy("en").activity.progressOf === "of");
+});
+
+check("G4-I1 AI labs: three stage-aware, assistant-neutral templates per lesson, auto-filled ONLY from that lesson's activity; missing stays missing", () => {
+  for (const pkg of BATCH_I1_PACKAGES) {
+    const a = activityOf(pkg);
+    const set = promptsOf(pkg);
+    assert.strictEqual(set.length, 3, `${pkg.lessonKey}: exactly three templates`);
+    assert.strictEqual(set[0].promptKey, pkg.lessonKey, "the primary template carries the lesson key");
+    for (const p of set) {
+      assert.deepStrictEqual(validateLessonPrompt(p).errors, []);
+      assert.ok(p.purpose && p.whyItWorks.length >= 3 && p.privacy.never.length >= 4 && /verificas/.test(p.verify.es) && /verify/i.test(p.verify.en), `${p.promptKey}: purpose · why · privacy · verify`);
+      assert.deepStrictEqual(p.fields.filter((f) => f.prefillFrom?.kind === "activity_field").map((f) => (f.prefillFrom as { fieldKey: string }).fieldKey), a.fields.map((f) => f.key), `${p.promptKey}: every activity answer feeds the template`);
+      assert.deepStrictEqual(editablePromptFields(p).map((f) => f.token), editablePromptFields(set[0]).map((f) => f.token), "one context form serves the whole lab");
+      const bodies = [resolvePromptBody(p, null), resolvePromptBody(p, "idea"), resolvePromptBody(p, "empezando"), resolvePromptBody(p, "negocio")];
+      assert.strictEqual(new Set(bodies.map((b) => b.es)).size, 4, `${p.promptKey}: four different ES conversations`);
+      assert.strictEqual(new Set(bodies.map((b) => b.en)).size, 4, `${p.promptKey}: four different EN conversations`);
+      assert.strictEqual(resolvePromptBody(p, "otro" as never), p.body, "unknown journey → neutral");
+      assert.ok(/antes de gastar/.test(bodies[1].es) && /Ya decid[ií] empezar/.test(bodies[2].es) && /Ya opero un negocio/.test(bodies[3].es), `${p.promptKey}: idea explores · empezando prepares · negocio operates`);
+      for (const b of bodies) {
+        assert.ok(/No inventes|no inventes|inventadas|No saques conclusiones|No presentes datos/.test(b.es) && /[Dd]o not invent|made up|Do not draw conclusions|Do not present market facts/.test(b.en), `${p.promptKey}: every conversation forbids invention`);
+        assert.ok(!/chatgpt|openai|claude|gemini|copilot|anthropic|mistral|perplexity|deepseek/i.test(b.es + b.en), `${p.promptKey}: assistant-neutral`);
+      }
+      const answers = Object.fromEntries(a.fields.map((f) => [f.key, `dato-${f.key}`]));
+      const values = resolvePromptValues(p, { answers, typed: { city: "San José", idea: "lavandería móvil", customer: "enfermeras" }, journey: "idea", lang: "es" });
+      const filled = renderPrompt(p, "es", values, "idea");
+      assert.deepStrictEqual(filled.missing, [], `${p.promptKey}: fully filled`);
+      for (const f of a.fields) assert.ok(filled.text.includes(`dato-${f.key}`));
+      const blank = renderPrompt(p, "es", resolvePromptValues(p, { answers: {}, typed: {}, journey: null, lang: "es" }), null);
+      assert.strictEqual(blank.missing.length, p.fields.length, "nothing is guessed: every missing value stays a visible [placeholder]");
+    }
+  }
+  const practice = LEARNING_PROMPTS.customer_conversations_practice;
+  assert.ok(/solo pr[aá]ctica/i.test(practice.title.es) && /practice only/i.test(practice.title.en), "the rehearsal is labelled as practice");
+  assert.ok(/ESTO ES SOLO UN ENSAYO/.test(practice.body.es) && /No son evidencia/.test(practice.body.es) && /not evidence/.test(practice.body.en), "an AI rehearsal is never evidence");
+  for (const p of promptsOf(CODE_OWNED_LESSON_PACKAGES.know_your_competition)) {
+    for (const b of [p.body, ...Object.values(p.variants ?? {}).map((v) => v.body)]) {
+      assert.ok(/No inventes nombres de negocios, precios, horarios, reseñas/.test(b.es) && /Do not invent business names, prices, hours, reviews/.test(b.en), `${p.promptKey}: no invented competitor facts`);
+      assert.ok(/p[uú]blica y actual/.test(b.es) && /public, current/.test(b.en) && /No me propongas engañar/.test(b.es) && /Do not suggest deceiving/.test(b.en), `${p.promptKey}: public, current, honest research only`);
+    }
+    assert.ok(/puede inventar negocios, precios y reseñas/.test(p.verify.es) && /can invent businesses, prices, and reviews/.test(p.verify.en));
+  }
+});
+
+check("G4-I1 competition lesson: teaches honest research — no scraping, no deception, no copying, no trusting an AI for competitor facts", () => {
+  const text = JSON.stringify(CODE_OWNED_LESSON_PACKAGES.know_your_competition);
+  assert.ok(/no te hagas pasar por cliente para sacar información privada/.test(text) && /do not pose as a customer to extract private information/.test(text));
+  assert.ok(/no copies/.test(text) && /do not copy/.test(text));
+  assert.ok(/puede inventar nombres, precios y reseñas/.test(text) && /can invent names, prices, and reviews/.test(text));
+  assert.ok(/no hacer nada/.test(text) && /do nothing/.test(text), "the invisible alternatives are taught");
+  assert.ok(!/scrap/i.test(text.replace(/no scraping/gi, "")), "the lesson never proposes scraping");
+  assert.ok(CODE_OWNED_LESSON_PACKAGES.know_your_competition.blocks.some((b) => b.type === "note"), "the honesty boundary is its own block");
+});
+
+check("G4-I1 LISTEN: a real ES/EN teaching script per lesson (9 segments, written for the ear, screen instructions only when parked); no recording → no player", () => {
+  for (const pkg of BATCH_I1_PACKAGES) {
+    const audio = pkg.audio!;
+    assert.ok(audio, `${pkg.lessonKey}: audio script`);
+    assert.strictEqual(audio.scriptVersion, 1);
+    assert.strictEqual(audio.assets, undefined, "no recording exists");
+    assert.ok(!hasPlayableAudio(pkg, "es") && !hasPlayableAudio(pkg, "en"));
+    assert.deepStrictEqual(audio.segments.map((s) => s.kind), ["hook", "learn", "story", "concept", "reflect", "action", "parked", "recap", "next"]);
+    for (const lang of ["es", "en"] as const) {
+      const total = audio.segments.reduce((n, s) => n + words(s.text[lang]), 0);
+      assert.ok(total >= 650 && total <= 1100, `${pkg.lessonKey}.${lang}: ${total} words`);
+      assert.ok(Math.abs(total / 115 - audio.estimatedMinutes) <= 1.5, `${pkg.lessonKey}.${lang}: estimatedMinutes must be honest (${total} words)`);
+      for (const s of audio.segments) {
+        if (s.kind !== "parked") assert.ok(!/abre la lecci[oó]n|open the lesson|toca |tap |haz clic|click/i.test(s.text[lang]), `${pkg.lessonKey}.${s.id}.${lang}: screen instructions belong in the parked segment`);
+      }
+      const parked = audio.segments.find((s) => s.kind === "parked")!;
+      assert.ok(/estacionado o en casa|parked or at home/.test(parked.text[lang]));
+      const story = audio.segments.find((s) => s.kind === "story")!;
+      assert.ok(/inventado|made-up/.test(story.text[lang]), "the example is announced as invented");
+      assert.ok(/La IA ayuda\. Tú verificas\.|AI helps\. You verify\./.test(audio.segments[audio.segments.length - 1].text[lang]));
+    }
+    assert.ok(audio.segments.find((s) => s.kind === "reflect")!.pauseSeconds, "reflection carries a deliberate pause");
+    const page = JSON.stringify(pkg.blocks);
+    for (const s of audio.segments) assert.ok(!page.includes(s.text.es.slice(0, 80)), `${pkg.lessonKey}.${s.id}: the script is not a reading of the page`);
+  }
+});
+
+check("G4-I1 journeys: the three lessons join the code-owned map at the matrix's depth, in the matrix's order, with their own framing per journey", () => {
+  const at = (j: "idea" | "empezando" | "negocio", key: string) => LEARNING_JOURNEY_LESSONS[j].find((e) => e.lessonKey === key);
+  assert.deepStrictEqual(LEARNING_JOURNEY_LESSON_KEYS.idea.slice(0, 4), ["what_problem_do_you_solve", "who_is_your_customer", "customer_conversations", "know_your_competition"]);
+  assert.deepStrictEqual(LEARNING_JOURNEY_LESSON_KEYS.empezando.slice(0, 4), ["who_is_your_customer", "what_problem_do_you_solve", "customer_conversations", "know_your_competition"]);
+  assert.deepStrictEqual(LEARNING_JOURNEY_LESSON_KEYS.negocio.slice(0, 3), ["who_is_your_customer", "customer_conversations", "know_your_competition"]);
+  assert.ok(!LEARNING_JOURNEY_LESSON_KEYS.negocio.includes("what_problem_do_you_solve"), "matrix row 1 is C/L/– : not in the existing-business pathway");
+  assert.deepStrictEqual([at("idea", "what_problem_do_you_solve")?.depth, at("empezando", "what_problem_do_you_solve")?.depth], ["core", "light"]);
+  assert.deepStrictEqual([at("idea", "customer_conversations")?.depth, at("empezando", "customer_conversations")?.depth, at("negocio", "customer_conversations")?.depth], ["core", "core", "light"]);
+  assert.deepStrictEqual([at("idea", "know_your_competition")?.depth, at("empezando", "know_your_competition")?.depth, at("negocio", "know_your_competition")?.depth], ["core", "light", "deep"]);
+  for (const key of BATCH_I1_KEYS) assert.strictEqual(LEARNING_LESSON_CHECKPOINT[key], "entender");
+  for (const key of ["customer_conversations", "know_your_competition"]) {
+    assert.strictEqual(new Set((["idea", "empezando", "negocio"] as const).map((j) => at(j, key)!.framing.es)).size, 3, `${key}: each journey frames the lesson differently`);
+  }
+});
+
+check("G4-I1 publication gate: unpublished batch lessons are never surfaced, counted or linked; NEXT walks the journey order once they are published", () => {
+  // Today's database: the 8 TODAY-1 lessons only. The batch keys are in the map but have no published row.
+  const published = PUBLISHED_SEED_KEYS.map((k, i) => lesson({ id: `p${i}`, lessonKey: k, status: "published" }));
+  for (const j of LEARNING_JOURNEY_KEYS) {
+    const resolved = resolveJourneyLessons(j, published).map((r) => r.lessonKey);
+    for (const key of BATCH_I1_KEYS) assert.ok(!resolved.includes(key), `${j}: ${key} must not appear without a published row`);
+    assert.strictEqual(resolved.length, j === "idea" ? 3 : 8, `${j}: counts stay truthful`);
+  }
+  assert.strictEqual(resolveNextLesson({ lessonKey: "who_is_your_customer", journey: "idea", lessons: published, preferred: FLAGSHIP.next?.preferred?.idea ?? [] })?.lesson.lessonKey, "revenue_vs_profit", "unpublished lessons are skipped, never linked");
+  const planned = [...published, ...BATCH_I1_KEYS.map((k, i) => lesson({ id: `d${i}`, lessonKey: k, status: "draft" }))];
+  assert.strictEqual(resolveNextLesson({ lessonKey: "who_is_your_customer", journey: "idea", lessons: planned, preferred: [] })?.lesson.lessonKey, "revenue_vs_profit");
+  assert.strictEqual(filterPublishedLessons(planned).length, 8);
+
+  // After the seed is applied: the journey order carries the learner through the batch.
+  const after = [...published, ...BATCH_I1_KEYS.map((k, i) => lesson({ id: `b${i}`, lessonKey: k, status: "published" }))];
+  const next = (key: string, journey: "idea" | "empezando" | "negocio" | null, preferred: string[] = []) => resolveNextLesson({ lessonKey: key, journey, lessons: after, preferred })?.lesson.lessonKey;
+  assert.strictEqual(next("what_problem_do_you_solve", "idea"), "who_is_your_customer");
+  assert.strictEqual(next("who_is_your_customer", "idea", FLAGSHIP.next?.preferred?.idea ?? []), "customer_conversations", "the flagship no longer jumps over customer_conversations");
+  assert.strictEqual(next("customer_conversations", "idea"), "know_your_competition");
+  assert.strictEqual(next("know_your_competition", "idea"), "revenue_vs_profit");
+  assert.strictEqual(next("who_is_your_customer", "negocio"), "customer_conversations");
+  assert.strictEqual(next("who_is_your_customer", null, FLAGSHIP.next?.preferred?.neutral ?? []), "customer_conversations");
+  assert.strictEqual(resolveJourneyLessons("idea", after).length, 6);
+
+  const page = read(LESSON_PAGE);
+  assert.ok(page.includes("getPublishedLessonByKey") && page.includes("notFound()"), "the lesson page 404s without a published row");
+  // The only query flags the page reads are lang, journey and the audio-script preview. Nothing can unlock an unpublished lesson.
+  assert.deepStrictEqual([...new Set([...stripComments(page).matchAll(/\bsp\.([a-zA-Z]+)/g)].map((m) => m[1]))].sort(), ["audio", "journey", "lang"].filter((k) => stripComments(page).includes(`sp.${k}`)).sort(), "no preview/bypass query flag was added for QA");
+  assert.ok(!/bypass|draft|unpublished|includeUnpublished|status\s*[!=]==/i.test(stripComments(page)), "the lesson page never reasons about non-published states");
+});
+
+check("G4-I1 seed: ONE additive, data-only file — exactly three new published rows, generated from the packages; deterministic; not applied by this gate", () => {
+  assert.ok(exists(SEED_I1_SQL), "seed file missing");
+  assert.strictEqual(SEED_SQL, buildSeedSql(MIGRATION), "the seed file must equal the generator output (re-run the generator, never hand-edit)");
+  const added = fs.readdirSync(path.join(ROOT, "supabase/migrations")).filter((f) => f > "20260916150000_business_profile_foundation.sql");
+  assert.deepStrictEqual(added, [path.basename(SEED_I1_SQL)], "one seed file per batch");
+
+  const code = SEED_SQL.split("\n").filter((l) => !l.startsWith("--")).join("\n");
+  assert.ok(!/\b(CREATE|ALTER|DROP|TRUNCATE|DELETE|GRANT|REVOKE|POLICY|TRIGGER|FUNCTION|INDEX)\b/.test(code.replace(/'(?:[^']|'')*'/g, "''")), "data only: no DDL, no deletes");
+  const tables = [...new Set([...code.matchAll(/public\.([a-z_]+)/g)].map((m) => m[1]))].sort();
+  assert.deepStrictEqual(tables, ["business_learning_categories", "business_learning_lessons", "business_learning_resources"], "no unrelated table is touched");
+  assert.strictEqual((code.match(/^INSERT INTO /gm) ?? []).length, 3);
+  assert.strictEqual((code.match(/^ON CONFLICT \(lesson_key\) DO NOTHING;$/gm) ?? []).length, 3, "additive and idempotent");
+
+  const literals = sqlLiterals(SEED_SQL);
+  for (const row of SEED_I1_LESSONS) {
+    const i = literals.indexOf(row.pkg.lessonKey);
+    assert.ok(i !== -1, `${row.pkg.lessonKey} not seeded`);
+    const [titleEs, titleEn, summaryEs, summaryEn, bodyEs, bodyEn, level, capability] = literals.slice(i + 1, i + 9);
+    assert.deepStrictEqual({ es: titleEs, en: titleEn }, row.pkg.meta.title, "the row title is the package title");
+    assert.deepStrictEqual([summaryEs, summaryEn], [row.summary.es, row.summary.en]);
+    assert.strictEqual(bodyEs, packageToPlainText(row.pkg, "es"), "body_es is the package's own plain-text rendition");
+    assert.strictEqual(bodyEn, packageToPlainText(row.pkg, "en"));
+    assert.ok(isPublishableBody(bodyEs, bodyEn) && bodyEs.length > 1200 && bodyEn.length > 1200, "bodies satisfy the published-body rule");
+    assert.ok(SPANISH_DIACRITICS.test(bodyEs) && SPANISH_DIACRITICS.test(titleEs + summaryEs), "new Spanish content is accented from day one");
+    assert.ok(summaryEs.length <= 500 && summaryEn.length <= 500 && titleEs.length <= 200);
+    assert.strictEqual(level, "foundation");
+    assert.strictEqual(capability, row.pkg.lessonKey, "capability_key of a new row equals its lesson_key (matrix §5.1)");
+    for (const d of row.dimensionKeys) assert.ok(isKnownHealthDimensionKey(d), `unknown health dimension ${d}`);
+    assert.strictEqual(row.categoryKey, "clientes_y_demanda");
+    assert.ok(!MIGRATION.includes(`'${row.pkg.lessonKey}'`), "the key is new — never a rename of a seeded lesson");
+    // The stored body round-trips through the legacy reader too (search, fallbacks): never an empty page.
+    assert.doesNotThrow(() => parseLegacyBody(bodyEs));
+  }
+  assert.deepStrictEqual(SEED_I1_LESSONS.map((r) => r.sortOrder), [3, 4, 5], "after the two rows already seeded in the category");
+});
+
+check("G4-I1 D3: the accent repair changes ONLY diacritics and ¿ ¡ — provably; guarded by the original value; ledger is complete; English untouched", () => {
+  const repairs = buildAccentRepairs(MIGRATION);
+  assert.ok(repairs.length >= 60, `expected a broad repair, got ${repairs.length}`);
+  for (const r of repairs) {
+    assert.strictEqual(stripMarks(r.after), r.before, `${r.key}.${r.column}: more than accents changed`);
+    assert.notStrictEqual(r.after, r.before);
+    assert.ok(r.column.endsWith("_es"), "only Spanish columns");
+    assert.ok(SEED_LF_LITERALS.has(r.before), `${r.key}.${r.column}: 'before' is not the seeded value`);
+    for (const [a, b] of changedWords(r)) assert.strictEqual(stripMarks(b), a);
+  }
+  assert.ok(!/_en = /.test(SEED_SQL), "no English column is updated");
+  assert.strictEqual((SEED_SQL.match(/^UPDATE public\./gm) ?? []).length, repairs.length);
+  assert.strictEqual((SEED_SQL.match(/AND md5\(replace\([a-z_]+, chr\(13\), ''\)\) = '[0-9a-f]{32}';$/gm) ?? []).length, repairs.length, "every UPDATE is guarded by the original value");
+
+  // Meaning-dependent words are repaired only inside reviewed phrases.
+  assert.strictEqual(repairSpanishAccents("Practica decir que no"), "Practica decir que no", "imperative stays unaccented");
+  assert.strictEqual(repairSpanishAccents("una oportunidad perdida, no solo una molestia"), "una oportunidad perdida, no solo una molestia");
+  assert.strictEqual(repairSpanishAccents("le hablan directamente a esta persona"), "le hablan directamente a esta persona");
+  assert.strictEqual(repairSpanishAccents("si le compartes mi contacto"), "si le compartes mi contacto");
+  assert.strictEqual(repairSpanishAccents("Por que importa: tu negocio esta leccion"), "Por qué importa: tu negocio esta lección");
+  assert.strictEqual(repairSpanishAccents("Como definir a tu cliente ideal para escribir mensajes mas claros."), "Cómo definir a tu cliente ideal para escribir mensajes más claros.");
+
+  // Every published body is repaired, keeps its structure, and still parses for the legacy renderer.
+  for (const key of PUBLISHED_SEED_KEYS) {
+    const body = repairs.find((r) => r.key === key && r.column === "body_es");
+    assert.ok(body, `${key}: body not repaired`);
+    assert.ok(body!.after.includes("Por qué importa:") && body!.after.includes("Pasos prácticos:") && SPANISH_DIACRITICS.test(body!.after));
+    const parsed = parseLegacyBody(body!.after);
+    assert.ok(parsed.structured && parsed.steps.length >= 4, `${key}: the repaired body must still parse`);
+    assert.strictEqual(parsed.steps.length, parseLegacyBody(body!.before).steps.length);
+  }
+  assert.ok(repairs.some((r) => r.key === "who_is_your_customer" && r.column === "title_es" && r.after === "Quién es tu cliente"));
+
+  assert.strictEqual(lf(read(SEED_I1_LEDGER)), buildLedger(MIGRATION), "the ledger must equal the generator output");
+  const ledger = lf(read(SEED_I1_LEDGER));
+  for (const r of repairs) assert.ok(ledger.includes(`\`${r.key}\` | ${r.column} |`), `ledger is missing ${r.key}.${r.column}`);
+});
+
+check("G4-I1 doctrine: no provider names, no sponsor, no guarantees, no asserted legal requirements in the new lessons", () => {
+  for (const pkg of BATCH_I1_PACKAGES) {
+    const text = JSON.stringify(pkg) + JSON.stringify(promptsOf(pkg));
+    assert.ok(!/chatgpt|openai|claude|gemini|copilot|anthropic/i.test(text), `${pkg.lessonKey}: assistant-neutral`);
+    assert.ok(!/sponsor|patrocin/i.test(text));
+    assert.ok(!/garantiz|guarantee/i.test(text), `${pkg.lessonKey}: no guarantees`);
+    assert.ok(!/la ley exige|required by law|debes registrar|you must register/i.test(text));
+    assert.ok(!/Leonix/.test(text), `${pkg.lessonKey}: useful without Leonix — no commercial mention`);
+  }
 });
 
 console.log(`\n${passed} check(s) passed${failed ? `, ${failed} FAILED` : ""}.`);

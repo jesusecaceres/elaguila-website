@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { FiPrinter } from "react-icons/fi";
 import { buildCustomerStatement, type CustomerStatementAnswers } from "@/app/lib/business/learning/lessonPackage/customerStatement";
+import { buildGuidedResult } from "@/app/lib/business/learning/lessonPackage/guidedResult";
 import { renderPrompt, resolvePromptValues } from "@/app/lib/business/learning/lessonPackage/prompts";
-import type { LessonJourneyKey, LessonLang, LessonPrompt } from "@/app/lib/business/learning/lessonPackage/types";
+import type { ActivityField, ActivityResult, LessonJourneyKey, LessonLang, LessonPrompt } from "@/app/lib/business/learning/lessonPackage/types";
 import { LEARNING_BTN_OUTLINE } from "../learningUi";
 import { useLessonLocalState } from "./lessonLocalStore";
 
@@ -14,7 +15,7 @@ export const LESSON_SHEET_ID = "leonix-lesson-sheet";
 const SHEET_PRINT_ATTR = "data-leonix-print-sheet";
 
 /**
- * Gate G2 / G2.1 — SAVE. "Mi hoja": the learner's own sentence, checklist, PRIMARY AI template and
+ * Gate G2 / G2.1 — SAVE. "Mi hoja": the learner's own result (sentence, plan or comparison), checklist, PRIMARY AI template and
  * the verification reminder on one print-friendly sheet. Pure print CSS (the browser's print dialog
  * can also save a PDF) — no PDF library.
  *
@@ -30,6 +31,7 @@ export function LessonPrintSheet({
   lang,
   journey,
   lessonTitle,
+  guided,
   checklist,
   prompt,
   copy,
@@ -38,6 +40,8 @@ export function LessonPrintSheet({
   lang: LessonLang;
   journey: LessonJourneyKey | null;
   lessonTitle: string;
+  /** A guided activity's declared result; null = the flagship customer sentence. */
+  guided: { fields: ActivityField[]; result: ActivityResult } | null;
   checklist: { key: string; text: string }[];
   /** The primary template only. */
   prompt: LessonPrompt | null;
@@ -60,7 +64,8 @@ export function LessonPrintSheet({
     window.print();
   }
 
-  const statement = buildCustomerStatement(state.answers as CustomerStatementAnswers, lang);
+  const resultLabel = guided ? guided.result.printLabel[lang] : copy.statement;
+  const resultText = guided ? buildGuidedResult(guided.fields, guided.result, state.answers, lang).text : buildCustomerStatement(state.answers as CustomerStatementAnswers, lang).text;
   const promptText = prompt ? renderPrompt(prompt, lang, resolvePromptValues(prompt, { answers: state.answers, typed: state.prompt, journey, lang }), journey).text : "";
 
   const sheet = (
@@ -79,8 +84,8 @@ export function LessonPrintSheet({
         {copy.sheetTitle}: {lessonTitle}
       </p>
 
-      <p style={{ fontSize: "11pt", fontWeight: 700, marginTop: "16pt" }}>{copy.statement}</p>
-      <p style={{ fontSize: "14pt", lineHeight: 1.5, fontFamily: "Georgia, serif", marginTop: "4pt" }}>{statement.text}</p>
+      <p style={{ fontSize: "11pt", fontWeight: 700, marginTop: "16pt" }}>{resultLabel}</p>
+      <p style={{ fontSize: guided ? "12pt" : "14pt", lineHeight: 1.5, fontFamily: "Georgia, serif", marginTop: "4pt", whiteSpace: "pre-wrap" }}>{resultText}</p>
 
       {checklist.length > 0 ? (
         <>

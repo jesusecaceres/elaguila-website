@@ -31,7 +31,8 @@ import type { LearningPathwayCopy } from "../../learningPathwayCopy";
 import type { LessonCopy } from "../../lessonCopy";
 import { LEARNING_BTN_PRIMARY, LEARNING_EYEBROW, LEARNING_EYEBROW_BURGUNDY, LEARNING_FOCUS_RING, LEARNING_LINK } from "../learningUi";
 import { LessonProgressButton } from "../LessonProgressButton";
-import { LessonActivityCustomerStatement } from "./LessonActivityCustomerStatement";
+import { LessonActivityCustomerStatement, type ActivityBridgeView } from "./LessonActivityCustomerStatement";
+import { LessonActivityGuided } from "./LessonActivityGuided";
 import { LessonAudioPlayer } from "./LessonAudioPlayer";
 import {
   CompareBlockView,
@@ -109,7 +110,8 @@ export function LessonRenderer({
 
   // Which block carries each mode anchor (first match in authored order).
   const readBlockId = blocks.find((b) => b.type === "outcomes" || b.type === "explain")?.id ?? null;
-  const doBlockId = blocks.find((b) => b.type === "activity" || b.type === "checklist" || b.type === "steps")?.id ?? null;
+  // DO points at the learner's own work first: the activity, else the checklist, else practical steps.
+  const doBlockId = (blocks.find((b) => b.type === "activity") ?? blocks.find((b) => b.type === "checklist") ?? blocks.find((b) => b.type === "steps"))?.id ?? null;
   const anchorFor = (b: LessonBlock): string => (b.id === readBlockId ? LESSON_MODE_ANCHORS.read : b.id === doBlockId ? LESSON_MODE_ANCHORS.do : b.type === "ai_prompt" ? LESSON_MODE_ANCHORS.askAi : `b-${b.id}`);
 
   const modes: { key: string; href: string; label: string; icon: ReactNode }[] = [];
@@ -174,6 +176,19 @@ export function LessonRenderer({
   // LISTEN sits right after the hook/outcomes so an audio learner can start before the reading.
   const listenAfterId = blocks.find((b) => b.type === "outcomes")?.id ?? blocks[0]?.id ?? null;
 
+  function bridgeView(b: Extract<LessonBlock, { type: "activity" }>): ActivityBridgeView | null {
+    const r = b.resultBridge;
+    if (!r) return null;
+    return {
+      title: r.title[lang],
+      lead: r.lead[lang],
+      points: r.points.map((p) => p[lang]),
+      carryForward: r.carryForward[lang],
+      cta: r.cta[lang],
+      ctaHref: prompt ? `#${LESSON_MODE_ANCHORS.askAi}` : null,
+    };
+  }
+
   function renderBlock(b: LessonBlock): ReactNode {
     const id = anchorFor(b);
     switch (b.type) {
@@ -220,20 +235,12 @@ export function LessonRenderer({
                     lessonKey={pkg.lessonKey}
                     lang={lang}
                     fields={b.fields.map((f) => ({ key: f.key, label: f.label[lang], placeholder: f.placeholder[lang] }))}
-                    bridge={
-                      b.resultBridge
-                        ? {
-                            title: b.resultBridge.title[lang],
-                            lead: b.resultBridge.lead[lang],
-                            points: b.resultBridge.points.map((p) => p[lang]),
-                            carryForward: b.resultBridge.carryForward[lang],
-                            cta: b.resultBridge.cta[lang],
-                            ctaHref: prompt ? `#${LESSON_MODE_ANCHORS.askAi}` : null,
-                          }
-                        : null
-                    }
+                    bridge={bridgeView(b)}
                     copy={copy.activity}
                   />
+                ) : b.result ? (
+                  // Every other activity is data: the package declares its questions and its result.
+                  <LessonActivityGuided lessonKey={pkg.lessonKey} lang={lang} fields={b.fields} result={b.result} bridge={bridgeView(b)} copy={copy.activity} />
                 ) : null}
               </div>
             </div>
@@ -413,6 +420,7 @@ export function LessonRenderer({
                 lang={lang}
                 journey={journey}
                 lessonTitle={title}
+                guided={activity.result ? { fields: activity.fields, result: activity.result } : null}
                 checklist={checklist ? checklist.items.map((i) => ({ key: i.key, text: i.text[lang] })) : []}
                 prompt={prompt}
                 copy={copy.print}

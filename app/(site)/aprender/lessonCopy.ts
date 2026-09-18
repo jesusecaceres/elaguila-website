@@ -52,6 +52,8 @@ export type LessonCopy = {
     statementLabel: string;
     statementHint: string;
     progress: string;
+    /** Generic guided activities: "3 de 8" / "3 of 8". */
+    progressOf: string;
     copy: string;
     copied: string;
     clear: string;
@@ -154,6 +156,7 @@ const LESSON_ES: LessonCopy = {
     statementLabel: "Tu frase",
     statementHint: "Se arma solo con lo que tú escribes.",
     progress: "respuestas de 5",
+    progressOf: "de",
     copy: "Copiar mi frase",
     copied: "Frase copiada",
     clear: "Borrar mis respuestas",
@@ -197,9 +200,9 @@ const LESSON_ES: LessonCopy = {
     eyebrow: "Cierre",
     title: "Cierra la lección",
     readyTitle: "Lección lista",
-    readyBody: "Armaste tu frase y confirmaste tu lista. El siguiente paso es comprobarla con personas reales.",
+    readyBody: "Hiciste tu parte en “Tu turno” y confirmaste tu lista. El siguiente paso es comprobarlo con personas reales.",
     pendingTitle: "Te falta poco",
-    pendingActivity: "Completa tu frase en “Tu turno”.",
+    pendingActivity: "Completa “Tu turno”.",
     pendingChecklist: "Marca los puntos de tu lista de comprobación.",
     localNote: "Este avance vive solo en este dispositivo.",
     accountTitle: "Guardar en tu cuenta",
@@ -207,7 +210,7 @@ const LESSON_ES: LessonCopy = {
   },
   print: {
     button: "Imprimir mi hoja",
-    hint: "Solo tu hoja: tu frase, tu lista y tu conversación principal para la IA. También puedes guardarla como PDF desde la ventana de impresión.",
+    hint: "Solo tu hoja: tu resultado, tu lista y tu conversación principal para la IA. También puedes guardarla como PDF desde la ventana de impresión.",
     sheetEyebrow: "Centro de Aprendizaje Leonix",
     sheetTitle: "Mi hoja",
     statement: "Mi frase",
@@ -272,6 +275,7 @@ const LESSON_EN: LessonCopy = {
     statementLabel: "Your sentence",
     statementHint: "It is built only from what you type.",
     progress: "of 5 answers",
+    progressOf: "of",
     copy: "Copy my sentence",
     copied: "Sentence copied",
     clear: "Clear my answers",
@@ -315,9 +319,9 @@ const LESSON_EN: LessonCopy = {
     eyebrow: "Wrap-up",
     title: "Close the lesson",
     readyTitle: "Lesson ready",
-    readyBody: "You built your sentence and confirmed your checklist. The next step is to check it with real people.",
+    readyBody: "You did your part in “Your turn” and confirmed your checklist. The next step is to check it with real people.",
     pendingTitle: "Almost there",
-    pendingActivity: "Finish your sentence in “Your turn.”",
+    pendingActivity: "Finish “Your turn.”",
     pendingChecklist: "Tick the items on your checklist.",
     localNote: "This progress lives only on this device.",
     accountTitle: "Save to your account",
@@ -325,7 +329,7 @@ const LESSON_EN: LessonCopy = {
   },
   print: {
     button: "Print my sheet",
-    hint: "Just your sheet: your sentence, your checklist, and your main AI conversation. You can also save it as a PDF from the print window.",
+    hint: "Just your sheet: your result, your checklist, and your main AI conversation. You can also save it as a PDF from the print window.",
     sheetEyebrow: "Leonix Learning Center",
     sheetTitle: "My sheet",
     statement: "My sentence",

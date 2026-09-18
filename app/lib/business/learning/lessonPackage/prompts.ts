@@ -11,15 +11,16 @@
  *
  * A published prompt version is immutable: changing the text means a new `version`.
  */
+import { MENTOR, PRIVACY, STAGES, STAGE_LABELS, both, type Stage } from "./promptParts";
+import { CUSTOMER_CONVERSATIONS_PROMPTS } from "./promptSets/customerConversations";
+import { KNOW_YOUR_COMPETITION_PROMPTS } from "./promptSets/knowYourCompetition";
+import { WHAT_PROBLEM_DO_YOU_SOLVE_PROMPTS } from "./promptSets/whatProblemDoYouSolve";
 import type { L, LessonJourneyKey, LessonLang, LessonPrompt, LessonPromptField } from "./types";
 
 /* ---------------------------------------------------------------------------------------------- */
 /* Flagship template set — "Quién es tu cliente". Three templates × (neutral + three journeys).    */
 /* The bodies are composed from shared parts so the five-answer context is written once per stage. */
 /* ---------------------------------------------------------------------------------------------- */
-
-type Stage = LessonJourneyKey | "neutral";
-const STAGES: readonly Stage[] = ["neutral", "idea", "empezando", "negocio"];
 
 const OPENER: Record<Stage, L> = {
   neutral: {
@@ -75,18 +76,10 @@ function compose(parts: Record<Stage, (ctx: L, opener: L) => L>): { body: L; var
   return { body: built.neutral, variants: { idea: { body: built.idea }, empezando: { body: built.empezando }, negocio: { body: built.negocio } } };
 }
 
-const join = (lang: LessonLang, ...blocks: L[]): string => blocks.map((b) => b[lang]).join("\n\n");
-const both = (...blocks: L[]): L => ({ es: join("es", ...blocks), en: join("en", ...blocks) });
-
 const NO_INVENT: L = {
   es: "No inventes datos sobre mis clientes ni sobre mi mercado. Si supones algo, márcalo como suposición y dime cómo comprobarlo.",
   en: "Do not invent facts about my customers or my market. If you assume something, label it as an assumption and tell me how I could check it.",
 };
-const MENTOR: L = {
-  es: "Actúa como un mentor de negocios paciente y usa lenguaje sencillo.",
-  en: "Act as a patient business mentor and use plain language.",
-};
-
 /* TEMPLATE A — DEVELOP MY CUSTOMER */
 const DEVELOP = compose({
   neutral: (ctx, opener) =>
@@ -255,22 +248,6 @@ const CUSTOMER_FIELDS: LessonPromptField[] = [
   { token: "stage", label: { es: "Tu etapa", en: "Your stage" }, placeholder: { es: "idea / empezando / ya opero", en: "idea / getting started / already operating" }, prefillFrom: { kind: "journey_stage" } },
 ];
 
-const STAGE_LABELS: Record<LessonJourneyKey, L> = {
-  idea: { es: "tengo una idea y todavía no vendo", en: "I have an idea and I am not selling yet" },
-  empezando: { es: "estoy empezando", en: "I am just getting started" },
-  negocio: { es: "ya opero mi negocio", en: "I am already operating my business" },
-};
-
-const PRIVACY: LessonPrompt["privacy"] = {
-  intro: { es: "Antes de pegar algo en una IA, quita los datos de personas reales. No pegues de tus clientes:", en: "Before you paste anything into an AI, remove real people's details. Do not paste your customers':" },
-  never: [
-    { es: "nombres completos", en: "full names" },
-    { es: "números de teléfono", en: "phone numbers" },
-    { es: "direcciones", en: "addresses" },
-    { es: "información privada de cuentas", en: "private account information" },
-  ],
-};
-
 const VERIFY_LINE: L = {
   es: "La IA ayuda. Tú verificas. Lo que te digan clientes reales vale más que cualquier suposición de una IA.",
   en: "AI helps. You verify. What real customers tell you outranks any guess an AI makes.",
@@ -366,6 +343,8 @@ export const LEARNING_PROMPTS: Readonly<Record<string, LessonPrompt>> = {
   [WHO_IS_YOUR_CUSTOMER_PROMPT.promptKey]: WHO_IS_YOUR_CUSTOMER_PROMPT,
   [WHO_IS_YOUR_CUSTOMER_INTERVIEW_PROMPT.promptKey]: WHO_IS_YOUR_CUSTOMER_INTERVIEW_PROMPT,
   [WHO_IS_YOUR_CUSTOMER_CHALLENGE_PROMPT.promptKey]: WHO_IS_YOUR_CUSTOMER_CHALLENGE_PROMPT,
+  // Gate G4-I1 — Idea batch 1. One module per lesson under ./promptSets.
+  ...Object.fromEntries([...WHAT_PROBLEM_DO_YOU_SOLVE_PROMPTS, ...CUSTOMER_CONVERSATIONS_PROMPTS, ...KNOW_YOUR_COMPETITION_PROMPTS].map((p) => [p.promptKey, p])),
 };
 
 export function getLessonPrompt(promptKey: string): LessonPrompt | null {

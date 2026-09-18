@@ -33,7 +33,10 @@ export const LEARNING_CHECKPOINT_KEYS: readonly LearningCheckpointKey[] = [
 
 /** One home checkpoint per lesson_key. Unmapped lessons simply do not appear on a pathway. */
 export const LEARNING_LESSON_CHECKPOINT: Record<string, LearningCheckpointKey> = {
+  what_problem_do_you_solve: "entender",
   who_is_your_customer: "entender",
+  customer_conversations: "entender",
+  know_your_competition: "entender",
   revenue_vs_profit: "preparar",
   healthy_boundaries_and_capacity: "preparar",
   consistent_business_information: "visible",
@@ -59,6 +62,19 @@ export type JourneyLessonEntry = {
 export const LEARNING_JOURNEY_LESSONS: Record<LearningJourneyKey, readonly JourneyLessonEntry[]> = {
   idea: [
     {
+      lessonKey: "what_problem_do_you_solve",
+      depth: "core",
+      urgency: "now",
+      framing: {
+        es: "Antes del producto, el problema: ¿qué le quitas de encima a quién?",
+        en: "Before the product, the problem: what do you take off whose hands?",
+      },
+      action: {
+        es: "Escribe en una frase el problema, sin mencionar tu producto.",
+        en: "Write the problem in one sentence, without mentioning your product.",
+      },
+    },
+    {
       lessonKey: "who_is_your_customer",
       depth: "core",
       urgency: "now",
@@ -69,6 +85,32 @@ export const LEARNING_JOURNEY_LESSONS: Record<LearningJourneyKey, readonly Journ
       action: {
         es: "Describe en una frase a la persona que más necesita lo que quieres ofrecer.",
         en: "Describe in one sentence the person who most needs what you want to offer.",
+      },
+    },
+    {
+      lessonKey: "customer_conversations",
+      depth: "core",
+      urgency: "now",
+      framing: {
+        es: "Tu idea es una suposición hasta que hablas con personas reales.",
+        en: "Your idea is an assumption until you talk with real people.",
+      },
+      action: {
+        es: "Habla con 3 personas esta semana. Pregunta por lo que ya les pasó, no por tu idea.",
+        en: "Talk with 3 people this week. Ask about what already happened to them, not about your idea.",
+      },
+    },
+    {
+      lessonKey: "know_your_competition",
+      depth: "core",
+      urgency: "soon",
+      framing: {
+        es: "¿Qué usa hoy la gente en lugar de lo que tú ofrecerías?",
+        en: "What do people use today instead of what you would offer?",
+      },
+      action: {
+        es: "Enumera 3 alternativas, incluida “no hacer nada”, y visita una como cliente.",
+        en: "List 3 alternatives, including “do nothing”, and visit one as a customer.",
       },
     },
     {
@@ -110,6 +152,45 @@ export const LEARNING_JOURNEY_LESSONS: Record<LearningJourneyKey, readonly Journ
       action: {
         es: "Escribe la descripción de tu cliente y úsala en todo lo que publiques.",
         en: "Write your customer description and use it in everything you publish.",
+      },
+    },
+    {
+      lessonKey: "what_problem_do_you_solve",
+      depth: "light",
+      urgency: "now",
+      framing: {
+        es: "Asegúrate de que tus primeros clientes pagan por un problema real.",
+        en: "Make sure your first customers are paying for a real problem.",
+      },
+      action: {
+        es: "Di en una frase el problema que tus primeros clientes quieren resolver.",
+        en: "State in one sentence the problem your first customers want solved.",
+      },
+    },
+    {
+      lessonKey: "customer_conversations",
+      depth: "core",
+      urgency: "now",
+      framing: {
+        es: "Aprende de tus primeros compradores y de quienes preguntaron y no compraron.",
+        en: "Learn from your first buyers and from the people who asked and did not buy.",
+      },
+      action: {
+        es: "Habla con 3 personas esta semana y anota sus palabras exactas.",
+        en: "Talk with 3 people this week and write down their exact words.",
+      },
+    },
+    {
+      lessonKey: "know_your_competition",
+      depth: "light",
+      urgency: "soon",
+      framing: {
+        es: "Antes de fijar precios, mira qué otras opciones tiene tu cliente cerca.",
+        en: "Before you set prices, look at what other options your customer has nearby.",
+      },
+      action: {
+        es: "Visita una alternativa como cliente y anota, con fecha, lo que cualquiera puede ver.",
+        en: "Visit one alternative as a customer and write down, with the date, what anyone can see.",
       },
     },
     {
@@ -216,6 +297,32 @@ export const LEARNING_JOURNEY_LESSONS: Record<LearningJourneyKey, readonly Journ
       action: {
         es: "Revisa tus últimos diez clientes y busca qué tienen en común.",
         en: "Review your last ten customers and look for what they have in common.",
+      },
+    },
+    {
+      lessonKey: "customer_conversations",
+      depth: "light",
+      urgency: "soon",
+      framing: {
+        es: "Tus clientes de siempre, y los que se fueron, saben cosas que tus ventas no dicen.",
+        en: "Your regulars, and the customers who left, know things your sales do not show.",
+      },
+      action: {
+        es: "Habla con dos clientes frecuentes y con uno que dejó de venir.",
+        en: "Talk with two regulars and one customer who stopped coming.",
+      },
+    },
+    {
+      lessonKey: "know_your_competition",
+      depth: "deep",
+      urgency: "soon",
+      framing: {
+        es: "Averigua a quién más le compran tus clientes y por qué a veces cambian.",
+        en: "Find out who else your customers buy from and why they sometimes switch.",
+      },
+      action: {
+        es: "Pregunta a 3 clientes qué otra opción usan cuando no te compran a ti.",
+        en: "Ask 3 customers what other option they use when they do not buy from you.",
       },
     },
     {

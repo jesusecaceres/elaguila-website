@@ -37,10 +37,10 @@ export type ProHelpType =
   | "hr";
 
 /** Code-owned visual components the renderer knows how to draw. */
-export type LessonVisualKey = "customer_focus_orbit" | "focus_progression";
+export type LessonVisualKey = "customer_focus_orbit" | "focus_progression" | "product_vs_problem" | "pitch_vs_ask" | "alternatives_fork";
 
 /** Code-owned interactive activities the renderer knows how to mount. */
-export type LessonActivityKey = "customer_statement_builder";
+export type LessonActivityKey = "customer_statement_builder" | "problem_statement_builder" | "conversation_plan_builder" | "alternatives_grid";
 
 type BlockBase = {
   /** Stable within the package; used for anchors and keys. */
@@ -95,7 +95,33 @@ export type CompareBlock = BlockBase & {
   strong: { label: L; text: L; annotations: { tag: L; fragment: L; note: L }[] };
 };
 
-export type ActivityField = { key: string; label: L; placeholder: L };
+export type ActivityField = {
+  key: string;
+  label: L;
+  placeholder: L;
+  /** Longer answers (a list of questions, notes) get a textarea. */
+  multiline?: boolean;
+  /** Short name shown inside a blank of the result sentence, e.g. "[quién]". Defaults to the label. */
+  blankLabel?: L;
+};
+
+/**
+ * What a guided activity PRODUCES, as data (Gate G4): an optional one-sentence result assembled from
+ * `[[fieldKey]]` markers and/or a sheet of labelled sections. Built only from the learner's own
+ * words — a missing answer stays a visible blank. The `customer_statement_builder` flagship keeps
+ * its own dedicated builder; every other activity declares its result here.
+ */
+export type ActivityResult = {
+  /** e.g. "Tu frase del problema" / "Tu plan de conversaciones". */
+  label: L;
+  hint: L;
+  sentence?: L;
+  sections?: { label: L; fieldKeys: string[] }[];
+  copyLabel: L;
+  copiedLabel: L;
+  /** Heading used on the printed sheet. */
+  printLabel: L;
+};
 
 /**
  * "What do I do with this?" (Bible §44A-A): never collect an answer without showing what it is
@@ -119,6 +145,7 @@ export type ActivityBlock = BlockBase & {
   intro: L;
   estimatedMinutes: number;
   fields: ActivityField[];
+  result?: ActivityResult;
   resultBridge?: ActivityResultBridge;
 };
 
