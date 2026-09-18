@@ -72,6 +72,13 @@ export type LessonCopy = {
     copiedShort: string;
     privacy: string;
     verify: string;
+    contextTitle: string;
+    answersIncluded: string;
+    editAnswers: string;
+    purpose: string;
+    startHere: string;
+    moreTemplates: string;
+    reminder: string;
   };
   audio: {
     title: string;
@@ -156,9 +163,9 @@ const LESSON_ES: LessonCopy = {
     neutral: "Funciona con el asistente de IA que tú prefieras. Cópiala y pégala ahí.",
     version: "versión",
     fieldsTitle: "Completa antes de copiar",
-    promptLabel: "Tu pregunta lista para copiar",
-    copy: "Copiar pregunta",
-    copied: "Pregunta copiada. Pégala en tu asistente de IA.",
+    promptLabel: "Tu conversación lista para copiar",
+    copy: "Copiar conversación",
+    copied: "Copiada. Pégala en tu asistente de IA y sigue la conversación.",
     missing: "Todavía hay espacios entre corchetes. Puedes llenarlos aquí o directamente en tu asistente.",
     why: "Por qué funciona",
     customize: "Personalízalo",
@@ -167,6 +174,13 @@ const LESSON_ES: LessonCopy = {
     copiedShort: "Copiada",
     privacy: "Privacidad",
     verify: "Verifica",
+    contextTitle: "Tu contexto",
+    answersIncluded: "respuestas de “Tu turno” ya incluidas en estas conversaciones.",
+    editAnswers: "Editar mis respuestas",
+    purpose: "Para qué sirve",
+    startHere: "Empieza aquí",
+    moreTemplates: "Más conversaciones para seguir",
+    reminder: "Antes de pegar: quita datos personales de tus clientes. Después: comprueba lo importante con personas reales.",
   },
   audio: {
     title: "Escucha esta lección",
@@ -193,12 +207,12 @@ const LESSON_ES: LessonCopy = {
   },
   print: {
     button: "Imprimir mi hoja",
-    hint: "Tu frase, tu lista y tu pregunta para la IA en una sola hoja. También puedes guardarla como PDF desde la ventana de impresión.",
+    hint: "Solo tu hoja: tu frase, tu lista y tu conversación principal para la IA. También puedes guardarla como PDF desde la ventana de impresión.",
     sheetEyebrow: "Centro de Aprendizaje Leonix",
     sheetTitle: "Mi hoja",
     statement: "Mi frase",
     checklist: "Mi lista de comprobación",
-    prompt: "Mi pregunta para la IA",
+    prompt: "Mi conversación para la IA",
     footer: "La IA ayuda. Tú verificas. Habla con 3 personas reales antes de cambiar tu negocio.",
   },
   next: {
@@ -267,9 +281,9 @@ const LESSON_EN: LessonCopy = {
     neutral: "It works with whichever AI assistant you prefer. Copy it and paste it there.",
     version: "version",
     fieldsTitle: "Fill in before copying",
-    promptLabel: "Your question, ready to copy",
-    copy: "Copy question",
-    copied: "Question copied. Paste it into your AI assistant.",
+    promptLabel: "Your conversation, ready to copy",
+    copy: "Copy conversation",
+    copied: "Copied. Paste it into your AI assistant and keep the conversation going.",
     missing: "There are still blanks in brackets. You can fill them in here or directly in your assistant.",
     why: "Why it works",
     customize: "Make it yours",
@@ -278,6 +292,13 @@ const LESSON_EN: LessonCopy = {
     copiedShort: "Copied",
     privacy: "Privacy",
     verify: "Verify",
+    contextTitle: "Your context",
+    answersIncluded: "answers from “Your turn” already included in these conversations.",
+    editAnswers: "Edit my answers",
+    purpose: "What this helps with",
+    startHere: "Start here",
+    moreTemplates: "More conversations to continue",
+    reminder: "Before you paste: remove your customers' personal details. Afterwards: check what matters with real people.",
   },
   audio: {
     title: "Listen to this lesson",
@@ -304,12 +325,12 @@ const LESSON_EN: LessonCopy = {
   },
   print: {
     button: "Print my sheet",
-    hint: "Your sentence, your checklist, and your AI question on one sheet. You can also save it as a PDF from the print window.",
+    hint: "Just your sheet: your sentence, your checklist, and your main AI conversation. You can also save it as a PDF from the print window.",
     sheetEyebrow: "Leonix Learning Center",
     sheetTitle: "My sheet",
     statement: "My sentence",
     checklist: "My checklist",
-    prompt: "My question for the AI",
+    prompt: "My conversation for the AI",
     footer: "AI helps. You verify. Talk with 3 real people before you change your business.",
   },
   next: {

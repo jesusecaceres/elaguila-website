@@ -1,32 +1,38 @@
 "use client";
 
 import { useState } from "react";
-import { FiCopy, FiTrash2 } from "react-icons/fi";
+import { FiArrowDown, FiCopy, FiTrash2 } from "react-icons/fi";
 import {
   MAX_STATEMENT_ANSWER_LENGTH,
   buildCustomerStatement,
   type CustomerStatementAnswers,
 } from "@/app/lib/business/learning/lessonPackage/customerStatement";
 import type { LessonLang } from "@/app/lib/business/learning/lessonPackage/types";
-import { LEARNING_BTN_OUTLINE, LEARNING_FOCUS_RING } from "../learningUi";
+import { LEARNING_BTN_OUTLINE, LEARNING_BTN_PRIMARY, LEARNING_FOCUS_RING } from "../learningUi";
 import { copyText, useLessonLocalState } from "./lessonLocalStore";
 
 export type ActivityFieldView = { key: string; label: string; placeholder: string };
 
+/** "What do I do with this?" — already resolved to the learner's language by the server renderer. */
+export type ActivityBridgeView = { title: string; lead: string; points: string[]; carryForward: string; cta: string; ctaHref: string | null };
+
 /**
  * Gate G2 — `customer_statement_builder`. Five labelled questions; the sentence below is assembled
  * live from the learner's own words only (see buildCustomerStatement). Blanks stay blanks. No AI,
- * no network: answers live in this device's localStorage.
+ * no network: answers live in this device's localStorage. The result bridge below the sentence
+ * answers "what do I do with this?" and leads into the AI development lab (Bible §44A-A).
  */
 export function LessonActivityCustomerStatement({
   lessonKey,
   lang,
   fields,
+  bridge,
   copy,
 }: {
   lessonKey: string;
   lang: LessonLang;
   fields: ActivityFieldView[];
+  bridge: ActivityBridgeView | null;
   copy: { statementLabel: string; statementHint: string; progress: string; copy: string; copied: string; clear: string; savedLocal: string };
 }) {
   const { state, update } = useLessonLocalState(lessonKey);
@@ -118,6 +124,29 @@ export function LessonActivityCustomerStatement({
         </div>
       </div>
       <p className="mt-3 text-xs leading-relaxed text-[#5C5346]">{copy.savedLocal}</p>
+
+      {/* RESULT BRIDGE — what this result is, what it is for, what still has to be tested, and where it goes next. */}
+      {bridge ? (
+        <div className="mt-7 border-l-4 border-[#7A1E2C] pl-5" data-result-bridge>
+          <h3 className="font-serif text-2xl font-bold leading-snug text-[#7A1E2C]">{bridge.title}</h3>
+          <p className="mt-2 font-serif text-lg leading-snug text-[#1E1810]">{bridge.lead}</p>
+          <ul className="mt-3 space-y-1.5 text-[0.9375rem] leading-relaxed text-[#3D3428]">
+            {bridge.points.map((point) => (
+              <li key={point} className="flex gap-2">
+                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#C9A84A]" aria-hidden />
+                <span>{point}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-[0.9375rem] font-semibold leading-relaxed text-[#2A4536]">{bridge.carryForward}</p>
+          {bridge.ctaHref ? (
+            <a href={bridge.ctaHref} className={`mt-4 ${LEARNING_BTN_PRIMARY}`}>
+              {bridge.cta}
+              <FiArrowDown className="h-4 w-4" aria-hidden />
+            </a>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -100,7 +100,9 @@ export function LessonRenderer({
   const activity = blocks.find((b): b is Extract<LessonBlock, { type: "activity" }> => b.type === "activity") ?? null;
   const checklist = blocks.find((b): b is Extract<LessonBlock, { type: "checklist" }> => b.type === "checklist") ?? null;
   const promptBlock = blocks.find((b): b is Extract<LessonBlock, { type: "ai_prompt" }> => b.type === "ai_prompt") ?? null;
-  const prompt = promptBlock ? getLessonPrompt(promptBlock.promptKey) : null;
+  /** Primary first; unknown keys are dropped (the validator reports them). */
+  const prompts = promptBlock ? [promptBlock.promptKey, ...(promptBlock.moreTemplateKeys ?? [])].flatMap((k) => getLessonPrompt(k) ?? []) : [];
+  const prompt = prompts[0] ?? null;
 
   const playable = hasPlayableAudio(pkg, lang);
   const showListen = Boolean(pkg.audio) && (playable || audioPreview);
@@ -218,6 +220,18 @@ export function LessonRenderer({
                     lessonKey={pkg.lessonKey}
                     lang={lang}
                     fields={b.fields.map((f) => ({ key: f.key, label: f.label[lang], placeholder: f.placeholder[lang] }))}
+                    bridge={
+                      b.resultBridge
+                        ? {
+                            title: b.resultBridge.title[lang],
+                            lead: b.resultBridge.lead[lang],
+                            points: b.resultBridge.points.map((p) => p[lang]),
+                            carryForward: b.resultBridge.carryForward[lang],
+                            cta: b.resultBridge.cta[lang],
+                            ctaHref: prompt ? `#${LESSON_MODE_ANCHORS.askAi}` : null,
+                          }
+                        : null
+                    }
                     copy={copy.activity}
                   />
                 ) : null}
@@ -227,8 +241,16 @@ export function LessonRenderer({
         );
       case "ai_prompt":
         return prompt ? (
-          <LessonSection id={id} eyebrow={copy.sections.askAi} title={prompt.title[lang]} band>
-            <LessonPromptBlock lessonKey={pkg.lessonKey} lang={lang} journey={journey} prompt={prompt} copy={copy.prompt} />
+          <LessonSection id={id} eyebrow={copy.sections.askAi} title={(b.title ?? prompt.title)[lang]} band>
+            <LessonPromptBlock
+              lessonKey={pkg.lessonKey}
+              lang={lang}
+              journey={journey}
+              prompts={prompts}
+              intro={b.intro?.[lang] ?? null}
+              activityAnchor={activity ? `#${LESSON_MODE_ANCHORS.do}` : null}
+              copy={copy.prompt}
+            />
           </LessonSection>
         ) : null;
       case "mistakes":

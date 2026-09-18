@@ -1,16 +1,29 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { FiPrinter } from "react-icons/fi";
 import { buildCustomerStatement, type CustomerStatementAnswers } from "@/app/lib/business/learning/lessonPackage/customerStatement";
-import { journeyStageValue, renderPrompt } from "@/app/lib/business/learning/lessonPackage/prompts";
+import { renderPrompt, resolvePromptValues } from "@/app/lib/business/learning/lessonPackage/prompts";
 import type { LessonJourneyKey, LessonLang, LessonPrompt } from "@/app/lib/business/learning/lessonPackage/types";
 import { LEARNING_BTN_OUTLINE } from "../learningUi";
 import { useLessonLocalState } from "./lessonLocalStore";
 
+export const LESSON_SHEET_ID = "leonix-lesson-sheet";
+/** Set on <html> only while "Imprimir mi hoja" is printing, so a normal browser print of the lesson is left alone. */
+const SHEET_PRINT_ATTR = "data-leonix-print-sheet";
+
 /**
- * Gate G2 — SAVE. "Mi hoja": the learner's own sentence, checklist and AI question on one
- * print-friendly sheet. Pure print CSS (the browser's print dialog can also save a PDF) — no PDF
- * library. On screen only the button shows; when printing, only the sheet shows.
+ * Gate G2 / G2.1 — SAVE. "Mi hoja": the learner's own sentence, checklist, PRIMARY AI template and
+ * the verification reminder on one print-friendly sheet. Pure print CSS (the browser's print dialog
+ * can also save a PDF) — no PDF library.
+ *
+ * Printing must output ONLY the sheet. `visibility: hidden` is not enough: hidden content keeps
+ * its layout, so the whole 13-screen lesson still paginated as blank pages. The sheet is therefore
+ * portalled to <body> as a direct child, and the print stylesheet removes every other body child
+ * with `display: none`, so the printed document is exactly as long as the sheet (1–2 pages). The
+ * rules only apply while the button's print is running (an <html> attribute cleared on
+ * `afterprint`), so a normal browser print of the lesson itself is untouched.
  */
 export function LessonPrintSheet({
   lessonKey,
@@ -26,72 +39,83 @@ export function LessonPrintSheet({
   journey: LessonJourneyKey | null;
   lessonTitle: string;
   checklist: { key: string; text: string }[];
+  /** The primary template only. */
   prompt: LessonPrompt | null;
   copy: { button: string; hint: string; sheetEyebrow: string; sheetTitle: string; statement: string; checklist: string; prompt: string; footer: string };
 }) {
   const { state } = useLessonLocalState(lessonKey);
-  const statement = buildCustomerStatement(state.answers as CustomerStatementAnswers, lang);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+    const clear = () => document.documentElement.removeAttribute(SHEET_PRINT_ATTR);
+    window.addEventListener("afterprint", clear);
+    return () => {
+      window.removeEventListener("afterprint", clear);
+      clear();
+    };
+  }, []);
 
-  let promptText = "";
-  if (prompt) {
-    const values: Record<string, string> = {};
-    for (const field of prompt.fields) {
-      const typed = state.prompt[field.token];
-      if (typed !== undefined) values[field.token] = typed;
-      else if (field.prefillFrom?.kind === "activity_field") values[field.token] = state.answers[field.prefillFrom.fieldKey] ?? "";
-      else if (field.prefillFrom?.kind === "journey_stage") values[field.token] = journeyStageValue(prompt, journey, lang);
-    }
-    promptText = renderPrompt(prompt, lang, values).text;
+  function printSheet() {
+    document.documentElement.setAttribute(SHEET_PRINT_ATTR, "");
+    window.print();
   }
 
-  return (
-    <div>
+  const statement = buildCustomerStatement(state.answers as CustomerStatementAnswers, lang);
+  const promptText = prompt ? renderPrompt(prompt, lang, resolvePromptValues(prompt, { answers: state.answers, typed: state.prompt, journey, lang }), journey).text : "";
+
+  const sheet = (
+    <div id={LESSON_SHEET_ID} aria-hidden>
       <style>{`
+        #${LESSON_SHEET_ID} { display: none; }
         @media print {
-          body * { visibility: hidden !important; }
-          #leonix-lesson-sheet, #leonix-lesson-sheet * { visibility: visible !important; }
-          #leonix-lesson-sheet { display: block !important; position: absolute; left: 0; top: 0; width: 100%; padding: 0 1.5rem; color: #000; background: #fff; }
+          html[${SHEET_PRINT_ATTR}] body > *:not(#${LESSON_SHEET_ID}) { display: none !important; }
+          html[${SHEET_PRINT_ATTR}] #${LESSON_SHEET_ID} { display: block !important; color: #000; background: #fff; font-family: Arial, Helvetica, sans-serif; }
+          html[${SHEET_PRINT_ATTR}], html[${SHEET_PRINT_ATTR}] body { background: #fff !important; height: auto !important; overflow: visible !important; }
           @page { margin: 1.5cm; }
         }
       `}</style>
+      <p style={{ fontSize: "10pt", letterSpacing: "0.12em", textTransform: "uppercase" }}>{copy.sheetEyebrow}</p>
+      <p style={{ fontSize: "20pt", fontWeight: 700, fontFamily: "Georgia, serif", marginTop: "4pt" }}>
+        {copy.sheetTitle}: {lessonTitle}
+      </p>
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-        <button type="button" onClick={() => window.print()} className={LEARNING_BTN_OUTLINE}>
-          <FiPrinter className="h-4 w-4" aria-hidden />
-          {copy.button}
-        </button>
-        <p className="max-w-md text-xs leading-relaxed text-[#5C5346]">{copy.hint}</p>
-      </div>
+      <p style={{ fontSize: "11pt", fontWeight: 700, marginTop: "16pt" }}>{copy.statement}</p>
+      <p style={{ fontSize: "14pt", lineHeight: 1.5, fontFamily: "Georgia, serif", marginTop: "4pt" }}>{statement.text}</p>
 
-      <div id="leonix-lesson-sheet" className="hidden" aria-hidden>
-        <p style={{ fontSize: "10pt", letterSpacing: "0.12em", textTransform: "uppercase" }}>{copy.sheetEyebrow}</p>
-        <p style={{ fontSize: "20pt", fontWeight: 700, fontFamily: "Georgia, serif", marginTop: "4pt" }}>
-          {copy.sheetTitle}: {lessonTitle}
-        </p>
+      {checklist.length > 0 ? (
+        <>
+          <p style={{ fontSize: "11pt", fontWeight: 700, marginTop: "16pt" }}>{copy.checklist}</p>
+          {checklist.map((item) => (
+            <p key={item.key} style={{ fontSize: "11pt", lineHeight: 1.5, marginTop: "4pt" }}>
+              {state.checklist[item.key] ? "☑" : "☐"} {item.text}
+            </p>
+          ))}
+        </>
+      ) : null}
 
-        <p style={{ fontSize: "11pt", fontWeight: 700, marginTop: "18pt" }}>{copy.statement}</p>
-        <p style={{ fontSize: "14pt", lineHeight: 1.5, fontFamily: "Georgia, serif", marginTop: "4pt" }}>{statement.text}</p>
+      {prompt && promptText ? (
+        <>
+          <p style={{ fontSize: "11pt", fontWeight: 700, marginTop: "16pt" }}>
+            {copy.prompt}: {prompt.title[lang]}
+          </p>
+          <p style={{ fontSize: "10.5pt", lineHeight: 1.45, whiteSpace: "pre-wrap", marginTop: "4pt" }}>{promptText}</p>
+        </>
+      ) : null}
 
-        {checklist.length > 0 ? (
-          <>
-            <p style={{ fontSize: "11pt", fontWeight: 700, marginTop: "18pt" }}>{copy.checklist}</p>
-            {checklist.map((item) => (
-              <p key={item.key} style={{ fontSize: "11pt", lineHeight: 1.5, marginTop: "4pt" }}>
-                {state.checklist[item.key] ? "☑" : "☐"} {item.text}
-              </p>
-            ))}
-          </>
-        ) : null}
+      <p style={{ fontSize: "9.5pt", marginTop: "18pt", borderTop: "1px solid #999", paddingTop: "8pt" }}>
+        {copy.footer}
+      </p>
+    </div>
+  );
 
-        {promptText ? (
-          <>
-            <p style={{ fontSize: "11pt", fontWeight: 700, marginTop: "18pt" }}>{copy.prompt}</p>
-            <p style={{ fontSize: "10.5pt", lineHeight: 1.5, whiteSpace: "pre-wrap", marginTop: "4pt" }}>{promptText}</p>
-          </>
-        ) : null}
-
-        <p style={{ fontSize: "9.5pt", marginTop: "22pt", borderTop: "1px solid #999", paddingTop: "8pt" }}>{copy.footer}</p>
-      </div>
+  return (
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+      <button type="button" onClick={printSheet} className={LEARNING_BTN_OUTLINE}>
+        <FiPrinter className="h-4 w-4" aria-hidden />
+        {copy.button}
+      </button>
+      <p className="max-w-md text-xs leading-relaxed text-[#5C5346]">{copy.hint}</p>
+      {mounted ? createPortal(sheet, document.body) : null}
     </div>
   );
 }

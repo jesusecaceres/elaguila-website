@@ -64,14 +64,20 @@ export function validateLessonPrompt(prompt: LessonPrompt): LessonValidationResu
 
   const fieldTokens = prompt.fields.map((f) => f.token);
   if (new Set(fieldTokens).size !== fieldTokens.length) errors.push(`${prompt.promptKey}: duplicate field token`);
-  for (const lang of ["es", "en"] as const) {
-    const used = new Set(extractPromptTokens(prompt.body[lang] ?? ""));
-    for (const t of fieldTokens) if (!used.has(t)) errors.push(`${prompt.promptKey}: body.${lang} never uses [[${t}]]`);
-    for (const t of used) if (!fieldTokens.includes(t)) errors.push(`${prompt.promptKey}: body.${lang} uses undeclared token [[${t}]]`);
+  // Every body — the neutral one and each stage-aware variant — must use every learner-context
+  // token (so no journey silently drops part of the learner's work) and only declared tokens.
+  // The stage token is optional inside a variant, whose wording already carries the stage.
+  const requiredTokens = prompt.fields.filter((f) => f.prefillFrom?.kind !== "journey_stage").map((f) => f.token);
+  const bodies: [string, { es: string; en: string }][] = [["body", prompt.body], ...Object.entries(prompt.variants ?? {}).map(([j, v]) => [`variants.${j}.body`, v.body] as [string, { es: string; en: string }])];
+  for (const [name, body] of bodies) {
+    for (const lang of ["es", "en"] as const) {
+      const used = new Set(extractPromptTokens(body?.[lang] ?? ""));
+      const must = name === "body" ? fieldTokens : requiredTokens;
+      for (const t of must) if (!used.has(t)) errors.push(`${prompt.promptKey}: ${name}.${lang} never uses [[${t}]]`);
+      for (const t of used) if (!fieldTokens.includes(t)) errors.push(`${prompt.promptKey}: ${name}.${lang} uses undeclared token [[${t}]]`);
+    }
   }
   if (prompt.whyItWorks.length === 0) errors.push(`${prompt.promptKey}: "why it works" is required`);
-  if (prompt.customize.length === 0) errors.push(`${prompt.promptKey}: customization tips are required`);
-  if (prompt.followUps.length === 0) errors.push(`${prompt.promptKey}: follow-up prompts are required`);
   if (prompt.privacy.never.length === 0) errors.push(`${prompt.promptKey}: the privacy reminder must list what never to paste`);
   if (prompt.consequential && !(prompt.verify.es.trim() && prompt.verify.en.trim())) {
     errors.push(`${prompt.promptKey}: a consequential prompt must carry a verification line`);
@@ -133,6 +139,8 @@ export function validateLessonPackage(pkg: LessonPackage, ctx: { prompts: Readon
         }
         break;
       case "activity":
+        if (pkg.source === "package" && !b.resultBridge) errors.push(`${b.id}: an activity must explain what its result is for (resultBridge) — never collect an answer without showing its use`);
+        if (b.resultBridge && b.resultBridge.points.length < 2) errors.push(`${b.id}: resultBridge needs at least two points`);
         if (b.fields.length === 0) errors.push(`${b.id}: activity has no fields`);
         if (new Set(b.fields.map((f) => f.key)).size !== b.fields.length) errors.push(`${b.id}: duplicate activity field key`);
         break;
@@ -144,14 +152,23 @@ export function validateLessonPackage(pkg: LessonPackage, ctx: { prompts: Readon
         if (pkg.source === "package" && b.points.length < 2) errors.push(`${b.id}: recap needs at least two points`);
         break;
       case "ai_prompt": {
-        const prompt = ctx.prompts[b.promptKey];
-        if (!prompt) {
-          errors.push(`${b.id}: unknown promptKey "${b.promptKey}"`);
-          break;
+        const keys = [b.promptKey, ...(b.moreTemplateKeys ?? [])];
+        if (new Set(keys).size !== keys.length) errors.push(`${b.id}: duplicate template key`);
+        const activityFieldKeys = new Set(pkg.blocks.flatMap((x) => (x.type === "activity" ? x.fields.map((f) => f.key) : [])));
+        for (const key of keys) {
+          const prompt = ctx.prompts[key];
+          if (!prompt) {
+            errors.push(`${b.id}: unknown promptKey "${key}"`);
+            continue;
+          }
+          errors.push(...validateLessonPrompt(prompt).errors);
+          if (pkg.meta.consequential && !prompt.consequential) errors.push(`${b.id}: a consequential lesson needs a consequential (verify-carrying) prompt`);
+          for (const f of prompt.fields) {
+            if (f.prefillFrom?.kind === "activity_field" && !activityFieldKeys.has(f.prefillFrom.fieldKey)) {
+              errors.push(`${b.id}: ${key} prefills [[${f.token}]] from activity field "${f.prefillFrom.fieldKey}", which this lesson does not have`);
+            }
+          }
         }
-        const r = validateLessonPrompt(prompt);
-        errors.push(...r.errors);
-        if (pkg.meta.consequential && !prompt.consequential) errors.push(`${b.id}: a consequential lesson needs a consequential (verify-carrying) prompt`);
         break;
       }
       case "steps":

@@ -1,5 +1,5 @@
 /**
- * TODAY-1 + G1 + G2 — Public Business Learning Center (foundation, checkpoint landing, pathway
+ * TODAY-1 + G1 + G2 + G2.1 — Public Business Learning Center (foundation, checkpoint landing, pathway
  * pages, canonical lesson engine)
  * + Idea Builder foundation verification. Hand-rolled
  * node:assert script, matching this repo's testing convention (no jest/vitest). Run via `npx tsx
@@ -1034,7 +1034,7 @@ import { validateLessonPackage, validateLessonPrompt, collectParityProblems, has
 import { legacyLessonToPackage, parseLegacyBody, LEGACY_SECTION_LABELS } from "../app/lib/business/learning/lessonPackage/legacyAdapter";
 import { CODE_OWNED_LESSON_PACKAGES, getCodeOwnedLessonPackage, resolveLessonPackage } from "../app/lib/business/learning/lessonPackage/registry";
 import { WHO_IS_YOUR_CUSTOMER_PACKAGE } from "../app/lib/business/learning/lessonPackage/packages/whoIsYourCustomer";
-import { LEARNING_PROMPTS, WHO_IS_YOUR_CUSTOMER_PROMPT, journeyStageValue, renderPrompt } from "../app/lib/business/learning/lessonPackage/prompts";
+import { LEARNING_PROMPTS, WHO_IS_YOUR_CUSTOMER_PROMPT, editablePromptFields, renderPrompt, resolvePromptBody, resolvePromptValues } from "../app/lib/business/learning/lessonPackage/prompts";
 import { CUSTOMER_STATEMENT_FIELD_KEYS, MAX_STATEMENT_ANSWER_LENGTH, buildCustomerStatement, cleanStatementAnswer } from "../app/lib/business/learning/lessonPackage/customerStatement";
 import type { LessonPackage } from "../app/lib/business/learning/lessonPackage/types";
 import { lessonCopy } from "../app/(site)/aprender/lessonCopy";
@@ -1196,26 +1196,196 @@ check("G2: ES/EN parity across the flagship package, prompt, audio script and le
   assert.deepStrictEqual([lessonCopy("en").modes.read, lessonCopy("en").modes.listen, lessonCopy("en").modes.do, lessonCopy("en").modes.askAi], ["Read", "Listen", "Do", "Ask AI"]);
 });
 
-check("G2 AI Companion: questions-first, no-invention, assumptions marked; privacy + verify present; placeholders stay visible; assistant-neutral", () => {
-  const p = WHO_IS_YOUR_CUSTOMER_PROMPT;
-  assert.ok(/hazme de 5 a 7 preguntas, una a la vez/.test(p.body.es) && /ask me 5 to 7 questions, one at a time/.test(p.body.en));
-  assert.ok(/No inventes datos/.test(p.body.es) && /Do not invent facts/.test(p.body.en));
-  assert.ok(/m[aá]rcalo como suposici[oó]n/.test(p.body.es) && /label it as an assumption/.test(p.body.en));
-  assert.ok(p.whyItWorks.length === 5 && p.customize.length === 4 && p.followUps.length === 3);
-  assert.deepStrictEqual(p.privacy.never.map((n) => n.en), ["full names", "phone numbers", "addresses", "private account information"]);
-  assert.ok(/clientes reales/.test(p.verify.es) && /real customers/i.test(p.verify.en));
-  assert.ok(Number.isInteger(p.version) && p.version >= 1, "prompts are versioned");
+check("G2.1 AI development lab: exactly three full, assistant-neutral conversation templates (develop · interview · challenge) with purpose, why-it-works, privacy and verify", () => {
+  const block = FLAGSHIP.blocks.find((b) => b.type === "ai_prompt")!;
+  assert.ok(block.type === "ai_prompt");
+  if (block.type !== "ai_prompt") return;
+  const keys = [block.promptKey, ...(block.moreTemplateKeys ?? [])];
+  assert.deepStrictEqual(keys, ["who_is_your_customer", "who_is_your_customer_interview", "who_is_your_customer_challenge"], "exactly three templates, develop first");
+  assert.deepStrictEqual(Object.keys(LEARNING_PROMPTS).sort(), [...keys].sort(), "no template beyond the flagship three is registered yet");
+  assert.deepStrictEqual(block.title, { es: "Desarrolla a tu cliente con tu IA", en: "Develop your customer with AI" });
+  assert.ok(block.intro && block.intro.es.length > 40 && block.intro.en.length > 40);
 
-  const empty = renderPrompt(p, "es", {});
-  assert.deepStrictEqual(empty.missing, ["offer", "city", "stage"]);
-  assert.ok(empty.text.includes("[qué vendes]") && empty.text.includes("[ciudad]") && !empty.text.includes("[["), "unfilled tokens must stay visible as bracketed placeholders");
-  const filled = renderPrompt(p, "en", { offer: "  custom   cakes ", city: "San Jose", stage: journeyStageValue(p, "idea", "en") });
-  assert.deepStrictEqual(filled.missing, []);
-  assert.ok(filled.text.includes("My business: custom cakes") && filled.text.includes("City: San Jose") && filled.text.includes("I have an idea"));
-  assert.strictEqual(journeyStageValue(p, null, "es"), "", "no journey → the stage is never guessed");
+  const [develop, interview, challenge] = keys.map((k) => LEARNING_PROMPTS[k]);
+  assert.deepStrictEqual([develop.title.es, interview.title.es, challenge.title.es], ["Desarrolla a mi cliente", "Entrevístame", "Reta mis suposiciones"]);
+  assert.deepStrictEqual([develop.title.en, interview.title.en, challenge.title.en], ["Develop my customer", "Interview me", "Challenge my assumptions"]);
+  assert.strictEqual(develop.version, 2, "the evolved primary template is a new version (a published prompt version is immutable)");
 
+  for (const p of [develop, interview, challenge]) {
+    assert.deepStrictEqual(validateLessonPrompt(p).errors, [], `${p.promptKey}: ${validateLessonPrompt(p).errors.join(" | ")}`);
+    assert.deepStrictEqual(collectParityProblems(p), [], `${p.promptKey}: ES/EN parity`);
+    assert.ok(p.purpose && p.purpose.es.length > 30 && p.purpose.en.length > 30, `${p.promptKey}: needs a "what this helps with" line`);
+    assert.ok(p.whyItWorks.length >= 3, `${p.promptKey}: needs "why it works"`);
+    assert.deepStrictEqual(p.privacy.never.map((n) => n.en), ["full names", "phone numbers", "addresses", "private account information"]);
+    assert.ok(/clientes reales/.test(p.verify.es) && /real customers/i.test(p.verify.en), `${p.promptKey}: verify line`);
+    assert.deepStrictEqual(Object.keys(p.variants ?? {}).sort(), ["empezando", "idea", "negocio"], `${p.promptKey}: needs idea / empezando / negocio variants`);
+    // Full conversation starters, not one-line questions.
+    for (const body of [p.body, ...Object.values(p.variants ?? {}).map((v) => v.body)]) {
+      for (const lang of ["es", "en"] as const) {
+        assert.ok(words(body[lang]) >= 90, `${p.promptKey}: a template must be a complete conversation starter (${words(body[lang])} words)`);
+        assert.ok(!/\[\[[a-z_]+\]\]\S*\[\[/.test(body[lang]));
+      }
+    }
+  }
+
+  // Behaviour each template must teach.
+  for (const body of [develop.body, ...Object.values(develop.variants!).map((v) => v.body)]) {
+    assert.ok(/hip[oó]tesis|suposiciones|observaciones/i.test(body.es) && /hypothes|assumptions|observations/i.test(body.en), "develop: answers are framed as hypotheses/observations, not facts");
+    assert.ok(/No (inventes|supongas)/.test(body.es) && /Do not (invent|assume)/.test(body.en), "develop: forbids invention");
+    assert.ok(/personas reales|ventas reales/.test(body.es) && /real people|real sales/.test(body.en), "develop: ends in what to test for real");
+  }
+  for (const body of [interview.body, ...Object.values(interview.variants!).map((v) => v.body)]) {
+    assert.ok(/unas 5 preguntas, una a la vez, y espera mi respuesta/.test(body.es) && /about 5 questions, one at a time, and wait for my answer/.test(body.en), "interview: ~5 questions, one at a time, waits");
+    assert.ok(/No me des respuestas todav[ií]a/.test(body.es) && /Do not give me answers yet/.test(body.en));
+    assert.ok(/No inventes nada/.test(body.es) && /Do not invent anything/.test(body.en));
+  }
+  for (const body of [challenge.body, ...Object.values(challenge.variants!).map((v) => v.body)]) {
+    assert.ok(/No quiero que me des la raz[oó]n/.test(body.es) && /I do not want you to agree with me/.test(body.en), "challenge: not only for agreement");
+    assert.ok(/Separa lo que parece que realmente s[eé] de lo que solo estoy suponiendo/.test(body.es) && /Separate what I seem to actually know from what I am only assuming/.test(body.en));
+    assert.ok(/No presentes datos de mercado como si fueran ciertos/.test(body.es) && /Do not present market facts as if they were certain/.test(body.en), "challenge: never pretends market facts are known");
+  }
+
+  // Practical communication, no prompt-engineering jargon; no claimed certainty; assistant-neutral.
+  const allText = JSON.stringify(LEARNING_PROMPTS);
+  assert.ok(!/zero-shot|few-shot|context window|ventana de contexto|system prompt|prompt engineering/i.test(allText), "no technical AI jargon in the flagship templates");
+  assert.ok(!/garantiz|guarantee|sin duda|definitely|con certeza|100%/i.test(allText), "templates must not claim certainty");
   const BRANDS = /openai|chatgpt|\bgpt-?\d|claude|anthropic|gemini|copilot|\bbard\b|llama|mistral|perplexity|deepseek/i;
-  for (const rel of LESSON_ALL_FILES) assert.ok(!BRANDS.test(stripComments(read(rel))), `${rel} names an AI provider — prompts must stay assistant-neutral`);
+  for (const rel of LESSON_ALL_FILES) assert.ok(!BRANDS.test(stripComments(read(rel))), `${rel} names an AI provider — templates must stay assistant-neutral`);
+  assert.ok(develop.customize.length === 4 && develop.followUps.length === 3, "lab-level customise + keep-asking coaching stays on the primary template");
+});
+
+check("G2.1 auto-fill: all five activity answers + city + stage populate every template locally; missing stays missing; clearing the activity clears the templates", () => {
+  const activity = FLAGSHIP.blocks.find((b) => b.type === "activity")!;
+  assert.ok(activity.type === "activity");
+  const answers = { offer: "pasteles personalizados", who: "familias de mi vecindario", problem: "un pastel especial con poco aviso", where: "grupos de WhatsApp del vecindario", why: "cumplo la fecha" };
+  for (const p of Object.values(LEARNING_PROMPTS)) {
+    const activityTokens = p.fields.filter((f) => f.prefillFrom?.kind === "activity_field");
+    assert.deepStrictEqual(activityTokens.map((f) => (f.prefillFrom as { fieldKey: string }).fieldKey), [...CUSTOMER_STATEMENT_FIELD_KEYS], `${p.promptKey}: all five activity answers feed the template`);
+    if (activity.type === "activity") for (const f of activityTokens) assert.ok(activity.fields.some((a) => a.key === (f.prefillFrom as { fieldKey: string }).fieldKey));
+    assert.deepStrictEqual(editablePromptFields(p).map((f) => f.token), ["city", "stage"], "the learner only adds what Leonix does not already have");
+
+    for (const journey of ["idea", "empezando", "negocio", null] as const) {
+      // Nothing typed, nothing answered → every learner value is a visible blank; nothing is invented.
+      const emptyValues = resolvePromptValues(p, { answers: {}, typed: {}, journey, lang: "es" });
+      const empty = renderPrompt(p, "es", emptyValues, journey);
+      for (const t of ["offer", "who", "problem", "where", "why", "city"]) assert.ok(empty.missing.includes(t), `${p.promptKey}/${String(journey)}: [[${t}]] must stay missing`);
+      assert.ok(empty.text.includes("[qué vendes]") && empty.text.includes("[ciudad]") && !empty.text.includes("[["), "blanks stay visibly incomplete");
+      assert.ok(empty.parts.every((part) => part.kind !== "filled" || part.token === "stage"), "only the journey stage may be prefilled without learner input");
+
+      // All five answers + city flow in, verbatim.
+      const values = resolvePromptValues(p, { answers, typed: { city: "San José" }, journey, lang: "es" });
+      const full = renderPrompt(p, "es", values, journey);
+      for (const v of [...Object.values(answers), "San José"]) assert.ok(full.text.includes(v), `${p.promptKey}/${String(journey)}: "${v}" did not reach the template`);
+      assert.deepStrictEqual(full.missing, journey ? [] : ["stage"], "with no journey the stage stays for the learner to fill");
+
+      // One source of truth: a stale typed override can never resurrect an activity answer…
+      const stale = resolvePromptValues(p, { answers: {}, typed: { offer: "valor viejo", city: "San José" }, journey, lang: "es" });
+      assert.strictEqual(stale.offer, "", "clearing the activity clears the value in every template");
+      // …and editing the activity updates the template.
+      assert.strictEqual(resolvePromptValues(p, { answers: { ...answers, who: "oficinas del centro" }, typed: {}, journey, lang: "es" }).who, "oficinas del centro");
+    }
+    // The learner can overwrite the stage; an emptied stage stays empty (never re-guessed).
+    assert.strictEqual(resolvePromptValues(p, { answers, typed: { stage: "" }, journey: "idea", lang: "es" }).stage, "");
+    assert.strictEqual(resolvePromptValues(p, { answers, typed: {}, journey: "idea", lang: "en" }).stage, "I have an idea and I am not selling yet");
+  }
+  const lab = stripComments(read(`${LESSON_UI_DIR}/LessonPromptBlock.tsx`));
+  assert.ok(lab.includes("resolvePromptValues(prompt, ctx)") && lab.includes("answers: state.answers"), "the lab assembles templates from the shared local lesson state");
+  assert.ok(read(`${LESSON_UI_DIR}/LessonActivityCustomerStatement.tsx`).includes("update((prev) => ({ ...prev, answers: {} }))"), "“Borrar mis respuestas” empties the answers the templates read");
+});
+
+check("G2.1 stage-aware: idea explores, empezando prepares, negocio diagnoses — same lesson, different AI conversation; invalid journey falls back to neutral", () => {
+  for (const p of Object.values(LEARNING_PROMPTS)) {
+    const bodies = { neutral: resolvePromptBody(p, null), idea: resolvePromptBody(p, "idea"), empezando: resolvePromptBody(p, "empezando"), negocio: resolvePromptBody(p, "negocio") };
+    assert.strictEqual(new Set(Object.values(bodies).map((b) => b.es)).size, 4, `${p.promptKey}: the four ES bodies must differ`);
+    assert.strictEqual(new Set(Object.values(bodies).map((b) => b.en)).size, 4, `${p.promptKey}: the four EN bodies must differ`);
+    assert.strictEqual(bodies.neutral, p.body);
+    assert.ok(/Estoy pensando en empezar un negocio/.test(bodies.idea.es) && /I am thinking about starting a small business/.test(bodies.idea.en), "idea: considering the business");
+    assert.ok(/antes de gastar/.test(bodies.idea.es) && /before I spend/.test(bodies.idea.en), "idea: validate before spending");
+    assert.ok(/Ya decid[ií] empezar/.test(bodies.empezando.es) && /I have decided to start/.test(bodies.empezando.en), "empezando: decided to start");
+    assert.ok(/Ya opero un negocio/.test(bodies.negocio.es) && /I already operate a small business/.test(bodies.negocio.en), "negocio: already operating");
+    assert.ok(/mis clientes principales/.test(bodies.negocio.es) && /my main customers/.test(bodies.negocio.en), "negocio: the five answers become observations about existing customers");
+    assert.ok(bodies.neutral.es.includes("[[stage]]") && !bodies.negocio.es.includes("[[stage]]"), "a variant carries its stage in its wording; neutral asks for it");
+  }
+  const develop = LEARNING_PROMPTS.who_is_your_customer;
+  assert.ok(/qu[eé] me falta aprender todav[ií]a/.test(resolvePromptBody(develop, "idea").es) && /de forma barata, antes de gastar fuerte/.test(resolvePromptBody(develop, "idea").es));
+  assert.ok(/evidencia que deber[ií]a reunir antes de lanzar/.test(resolvePromptBody(develop, "empezando").es) && /No inventes fechas, precios, requisitos/.test(resolvePromptBody(develop, "empezando").es), "empezando: launch actions, no invented launch facts");
+  const negocio = resolvePromptBody(develop, "negocio");
+  assert.ok(/si mi base de clientes est[aá] cambiando/.test(negocio.es) && /sin perder a los clientes que ya tengo/.test(negocio.es));
+  assert.ok(/qu[eé] informaci[oó]n real de clientes y de ventas tengo disponible/.test(negocio.es) && /No supongas datos demogr[aá]ficos, de ventas ni de mercado/.test(negocio.es));
+  assert.ok(/whether my customer base is changing/.test(negocio.en) && /Do not assume demographic, sales, or market facts I have not provided/.test(negocio.en));
+
+  // Invalid / absent journey → neutral behaviour, safely.
+  assert.strictEqual(journeyFromSearchParams({ journey: "hack" }), null);
+  assert.strictEqual(resolvePromptBody(develop, journeyFromSearchParams({ journey: "hack" })), develop.body);
+  assert.strictEqual(resolvePromptBody({ ...develop, variants: undefined }, "idea"), develop.body, "a single-body prompt (original form) still works");
+  const lab = read(`${LESSON_UI_DIR}/LessonPromptBlock.tsx`);
+  assert.ok(lab.includes("renderPrompt(prompt, lang, resolvePromptValues(prompt, ctx), journey)"), "the lab renders the journey's variant");
+  assert.ok(read(`${LESSON_UI_DIR}/LessonPrintSheet.tsx`).includes("journey).text"), "the printed primary template is the journey's variant too");
+  // Stage variants live in data — the renderer stays generic (no lesson- or journey-specific branches).
+  const renderer = stripComments(read(`${LESSON_UI_DIR}/LessonRenderer.tsx`));
+  assert.ok(!/who_is_your_customer|journey === "(idea|empezando|negocio)"/.test(renderer + stripComments(lab)), "no lesson/journey condition jungle in the UI");
+});
+
+check("G2.1 result bridge: right after the customer sentence the learner is told what it is, what it is for, that it must be tested — with a CTA into the AI lab", () => {
+  const activity = FLAGSHIP.blocks.find((b) => b.type === "activity")!;
+  assert.ok(activity.type === "activity" && activity.resultBridge);
+  if (activity.type !== "activity" || !activity.resultBridge) return;
+  const b = activity.resultBridge;
+  assert.deepStrictEqual(b.title, { es: "¿Y ahora qué hago con esto?", en: "What do I do with this now?" });
+  assert.deepStrictEqual(b.cta, { es: "Desarrollarlo con mi IA", en: "Develop it with my AI" });
+  assert.ok(/primer borrador de cliente/.test(b.lead.es) && /hip[oó]tesis de trabajo/.test(b.lead.es) && /no un anuncio terminado/.test(b.lead.es), "a first working draft — never finished advertising copy");
+  assert.ok(/first customer draft/.test(b.lead.en) && /working hypothesis/.test(b.lead.en) && /not finished advertising copy/.test(b.lead.en));
+  const points = b.points.map((p) => p.es).join(" ");
+  assert.ok(/lo que hoy crees/.test(points) && /tu mensaje/.test(points) && /d[oó]nde encontrar/.test(points) && /investigar/.test(points) && /personas reales/.test(points), "organises beliefs · message/where/what to investigate · must be tested");
+  assert.ok(/contexto para las conversaciones con tu IA/.test(b.carryForward.es) && /context for the AI conversations/.test(b.carryForward.en));
+  assert.ok(b.points.length <= 4 && [b.lead, ...b.points, b.carryForward].every((t) => t.es.length < 170 && t.en.length < 170), "the bridge stays concise — not a new giant section");
+  assert.deepStrictEqual(collectParityProblems(b), []);
+
+  // A package activity without a bridge is rejected: never collect an answer without showing its use.
+  const noBridge = clone(FLAGSHIP);
+  for (const x of noBridge.blocks) if (x.type === "activity") delete x.resultBridge;
+  assert.ok(/resultBridge/.test(validateLessonPackage(noBridge, { prompts: LEARNING_PROMPTS }).errors.join(" | ")));
+
+  const ui = read(`${LESSON_UI_DIR}/LessonActivityCustomerStatement.tsx`);
+  assert.ok(ui.indexOf("data-result-bridge") > ui.indexOf("copy.savedLocal") && ui.indexOf("copy.savedLocal") > ui.indexOf('aria-live="polite"'), "the bridge comes immediately after the generated sentence");
+  assert.ok(ui.includes("<a href={bridge.ctaHref} className={`mt-4 ${LEARNING_BTN_PRIMARY}`}>"), "the CTA is a real ≥44 px anchor");
+  assert.ok(ui.includes("{copy.copy}") && ui.includes("{copy.clear}"), "Copy my phrase / Clear my answers are kept");
+  const renderer = read(`${LESSON_UI_DIR}/LessonRenderer.tsx`);
+  assert.ok(renderer.includes("ctaHref: prompt ? `#${LESSON_MODE_ANCHORS.askAi}` : null"), "result → AI anchor targets the AI development section");
+  assert.ok(renderer.includes('askAi: "preguntar-ia"') && renderer.includes("LESSON_MODE_ANCHORS.askAi : `b-${b.id}`"), "the AI section carries that anchor id");
+});
+
+check("G2.1 lab UI: primary template open, the others in native <details> (content stays in the HTML); compact per-template reminders; lab-level privacy + verify", () => {
+  const lab = read(`${LESSON_UI_DIR}/LessonPromptBlock.tsx`);
+  assert.ok(lab.includes("prompts.slice(1).map") && lab.includes("<details") && lab.includes("<summary"), "secondary templates use native disclosure, not JS tabs");
+  assert.ok(!/role="tab|aria-selected|hidden=\{|display:\s*none/.test(stripComments(lab)), "no tab pattern that removes template content from the document");
+  assert.ok(lab.includes("min-h-12 cursor-pointer"), "the disclosure control is a ≥44 px target");
+  assert.ok(lab.includes("copy.purpose") && lab.includes("copy.why") && lab.includes("copy.reminder") && lab.includes("primary.privacy.never") && lab.includes("primary.verify[lang]"));
+  assert.ok(lab.includes("motion-reduce:transition-none"), "the chevron respects reduced motion");
+  for (const lang of ["es", "en"] as const) {
+    const c = lessonCopy(lang).prompt;
+    assert.ok(/datos personales|personal details/.test(c.reminder) && /personas reales|real people/.test(c.reminder), "each template repeats a one-line privacy + verify reminder");
+    assert.ok(!/\b(tres|three|dos|two)\b/i.test(`${c.answersIncluded} ${c.moreTemplates}`), "lab chrome must not hardcode the template count");
+  }
+  assert.strictEqual(lessonCopy("es").prompt.purpose, "Para qué sirve");
+  assert.strictEqual(lessonCopy("en").prompt.purpose, "What this helps with");
+  assert.strictEqual(lessonCopy("es").prompt.why, "Por qué funciona");
+  assert.strictEqual(lessonCopy("en").prompt.why, "Why it works");
+});
+
+check("G2.1 print: “Imprimir mi hoja” prints ONLY the worksheet DOM (title · sentence · checklist · primary AI template · verify reminder) — not the whole lesson", () => {
+  const sheet = read(`${LESSON_UI_DIR}/LessonPrintSheet.tsx`);
+  const css = stripComments(sheet);
+  assert.ok(sheet.includes('LESSON_SHEET_ID = "leonix-lesson-sheet"') && sheet.includes("createPortal(sheet, document.body)"), "the sheet is a direct child of <body>");
+  assert.ok(css.includes("body > *:not(#${LESSON_SHEET_ID}) { display: none !important; }"), "everything else is removed from the print layout (display:none), so no blank lesson pages paginate");
+  assert.ok(!/visibility:\s*hidden/.test(css), "visibility:hidden keeps layout — that is what printed 13 pages");
+  assert.ok(css.includes("#${LESSON_SHEET_ID} { display: none; }"), "the sheet never shows on screen");
+  assert.ok(css.includes('setAttribute(SHEET_PRINT_ATTR, "")') && css.includes('addEventListener("afterprint", clear)'), "sheet-only rules apply only while the button prints");
+  for (const part of ["{copy.sheetTitle}: {lessonTitle}", "{statement.text}", "checklist.map", "{promptText}", "{copy.footer}"]) assert.ok(sheet.includes(part), `sheet is missing ${part}`);
+  assert.ok(sheet.includes("/** The primary template only. */") && !sheet.includes("prompts.map"), "only the PRIMARY template is printed");
+  assert.ok(/verificas|verify/i.test(lessonCopy("es").print.footer) && /verify/i.test(lessonCopy("en").print.footer), "the sheet ends with the verification reminder");
+  assert.ok(!/jspdf|pdfkit|pdf-lib|react-pdf|puppeteer|html2canvas/i.test(sheet), "no PDF library");
+  assert.ok(read(`${LESSON_UI_DIR}/LessonRenderer.tsx`).includes("prompt={prompt}"), "the renderer hands the sheet the primary template");
 });
 
 check("G2: Leonix calls no AI API and lesson islands send nothing over the network (learner text stays in the browser)", () => {
@@ -1466,7 +1636,7 @@ check("G2 audio: a separate conversational ES/EN teaching script (~8–10 min), 
 
 check("G2 SAVE + completion: print CSS sheet (no PDF library); completion is a local visual pattern — no timers, no new grants", () => {
   const sheet = read(`${LESSON_UI_DIR}/LessonPrintSheet.tsx`);
-  assert.ok(sheet.includes("@media print") && sheet.includes("window.print()") && sheet.includes('id="leonix-lesson-sheet"'));
+  assert.ok(sheet.includes("@media print") && sheet.includes("window.print()") && sheet.includes("id={LESSON_SHEET_ID}"));
   assert.ok(sheet.includes("statement.text") && sheet.includes("promptText") && sheet.includes("checklist.map"), "sheet = learner statement + checklist + AI prompt");
   assert.strictEqual(lessonCopy("es").print.sheetTitle, "Mi hoja");
   const completion = stripComments(read(`${LESSON_UI_DIR}/LessonLocalCompletion.tsx`));

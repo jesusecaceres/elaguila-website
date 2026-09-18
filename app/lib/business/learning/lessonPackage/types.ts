@@ -97,6 +97,21 @@ export type CompareBlock = BlockBase & {
 
 export type ActivityField = { key: string; label: L; placeholder: L };
 
+/**
+ * "What do I do with this?" (Bible §44A-A): never collect an answer without showing what it is
+ * useful for. Shown right after the learner's result; `cta` leads into the AI development lab.
+ */
+export type ActivityResultBridge = {
+  title: L;
+  /** What this result IS (a first working draft / hypothesis — never finished advertising copy). */
+  lead: L;
+  /** What it helps with, and what still has to be tested. */
+  points: L[];
+  /** How it carries forward into the AI templates. */
+  carryForward: L;
+  cta: L;
+};
+
 export type ActivityBlock = BlockBase & {
   type: "activity";
   activityKey: LessonActivityKey;
@@ -104,9 +119,15 @@ export type ActivityBlock = BlockBase & {
   intro: L;
   estimatedMinutes: number;
   fields: ActivityField[];
+  resultBridge?: ActivityResultBridge;
 };
 
-export type AiPromptBlock = BlockBase & { type: "ai_prompt"; promptKey: string };
+/**
+ * ASK AI. `promptKey` is the primary template (open by default, printed on "Mi hoja");
+ * `moreTemplateKeys` are further full conversation starters in the same lab (Bible §44A-D).
+ * A block with only `promptKey` is the original single-prompt form and stays valid.
+ */
+export type AiPromptBlock = BlockBase & { type: "ai_prompt"; promptKey: string; moreTemplateKeys?: string[]; title?: L; intro?: L };
 
 export type MistakesBlock = BlockBase & { type: "mistakes"; items: { mistake: L; instead: L }[] };
 
@@ -243,8 +264,15 @@ export type LessonPrompt = {
   promptKey: string;
   version: number;
   title: L;
-  /** Prompt text with `[[token]]` markers. */
+  /** "Para qué sirve" — one line on what this conversation helps with. */
+  purpose?: L;
+  /** Prompt text with `[[token]]` markers. This is the neutral body (no journey context). */
   body: L;
+  /**
+   * Stage-aware bodies (Bible §44A-C): same topic, different stage, different AI conversation.
+   * A journey without a variant — and a lesson opened with no/unknown journey — uses `body`.
+   */
+  variants?: Partial<Record<LessonJourneyKey, { body: L }>>;
   fields: LessonPromptField[];
   whyItWorks: L[];
   customize: L[];

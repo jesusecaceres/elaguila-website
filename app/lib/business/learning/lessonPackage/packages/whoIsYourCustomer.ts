@@ -238,8 +238,41 @@ export const WHO_IS_YOUR_CUSTOMER_PACKAGE: LessonPackage = {
           placeholder: { es: "p. ej. lo hago a su gusto y cumplo la fecha", en: "e.g. I make it the way they want and I deliver on time" },
         },
       ],
+      resultBridge: {
+        title: { es: "¿Y ahora qué hago con esto?", en: "What do I do with this now?" },
+        lead: {
+          es: "Esta frase es tu primer borrador de cliente: una hipótesis de trabajo, no un anuncio terminado.",
+          en: "This sentence is your first customer draft: a working hypothesis, not finished advertising copy.",
+        },
+        points: [
+          { es: "Ordena lo que hoy crees sobre a quién sirves.", en: "It puts what you currently believe about who you serve in order." },
+          {
+            es: "Te ayuda a pensar tu mensaje, dónde encontrar a esos clientes y qué te falta investigar.",
+            en: "It helps you think about your message, where to reach those customers, and what you still need to find out.",
+          },
+          {
+            es: "Todavía hay que comprobarla con personas reales y con lo que de verdad pasa en tu negocio.",
+            en: "It still has to be tested against real people and what actually happens in your business.",
+          },
+        ],
+        carryForward: {
+          es: "Tus respuestas ya quedaron listas como contexto para las conversaciones con tu IA, aquí abajo.",
+          en: "Your answers are now ready as context for the AI conversations just below.",
+        },
+        cta: { es: "Desarrollarlo con mi IA", en: "Develop it with my AI" },
+      },
     },
-    { id: "ask-ai", type: "ai_prompt", promptKey: "who_is_your_customer" },
+    {
+      id: "ask-ai",
+      type: "ai_prompt",
+      promptKey: "who_is_your_customer",
+      moreTemplateKeys: ["who_is_your_customer_interview", "who_is_your_customer_challenge"],
+      title: { es: "Desarrolla a tu cliente con tu IA", en: "Develop your customer with AI" },
+      intro: {
+        es: "Tres conversaciones completas, armadas con tus propias respuestas. Completa lo que falte, copia y pega en el asistente de IA que tú prefieras.",
+        en: "Three complete conversations, built from your own answers. Fill in what is missing, copy, and paste into whichever AI assistant you prefer.",
+      },
+    },
     {
       id: "mistakes",
       type: "mistakes",
