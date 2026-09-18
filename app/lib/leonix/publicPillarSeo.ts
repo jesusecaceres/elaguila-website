@@ -11,7 +11,8 @@ export type PublicPillarId =
   | "recursos-comunitarios"
   | "viajes"
   | "iglesias"
-  | "productos-promocion";
+  | "productos-promocion"
+  | "aprender";
 
 type PillarSeoCopy = {
   title: string;
@@ -29,6 +30,7 @@ export const PUBLIC_PILLAR_PATH: Record<PublicPillarId, string> = {
   viajes: "/clasificados/viajes",
   iglesias: "/iglesias",
   "productos-promocion": "/productos-promocion",
+  aprender: "/aprender",
 };
 
 const PILLAR_SEO_ES: Record<PublicPillarId, PillarSeoCopy> = {
@@ -86,6 +88,12 @@ const PILLAR_SEO_ES: Record<PublicPillarId, PillarSeoCopy> = {
       "Tarjetas, volantes, letreros, banners y mercancía con marca para negocios. Productos promocionales de Leonix — no cupones ni ofertas de consumo.",
     schemaName: "Productos Promocionales",
   },
+  aprender: {
+    title: "Centro de Aprendizaje: educación práctica de negocios sin costo",
+    description:
+      "Aprende. Construye. Haz crecer tu idea. Lecciones prácticas de negocios en lenguaje claro, bilingües y sin costo: rutas guiadas, glosario, listas y plantillas de Leonix Media.",
+    schemaName: "Centro de Aprendizaje Leonix",
+  },
 };
 
 const PILLAR_SEO_EN: Record<PublicPillarId, PillarSeoCopy> = {
@@ -142,6 +150,12 @@ const PILLAR_SEO_EN: Record<PublicPillarId, PillarSeoCopy> = {
     description:
       "Business cards, flyers, signs, banners, and branded merchandise for companies. Leonix promotional products — not consumer coupons or deals.",
     schemaName: "Promotional Products",
+  },
+  aprender: {
+    title: "Learning Center: practical, no-cost business education",
+    description:
+      "Learn. Build. Grow your idea. Practical business lessons in plain language, bilingual and free of charge: guided paths, a glossary, checklists, and templates from Leonix Media.",
+    schemaName: "Leonix Learning Center",
   },
 };
 

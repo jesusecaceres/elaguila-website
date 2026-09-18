@@ -482,6 +482,279 @@ check("No secret pattern or the production Supabase ref appears in any TODAY-1 f
   }
 });
 
+// ---------------------------------------------------------------------------
+// Phase 1 — flagship /aprender landing (Gate L1). Truth, copy hygiene, parity, a11y standard.
+// ---------------------------------------------------------------------------
+
+import { learningCopy, learningLandingCopy, contentLangFromRouteLang } from "../app/(site)/aprender/learningCopy";
+import {
+  LEARNING_JOURNEY_KEYS, LEARNING_JOURNEY_LESSON_KEYS, LEARNING_LESSON_STAGE, LEARNING_ROADMAP_STAGE_KEYS,
+  LEARNING_ROUTES, LEARNING_START_HERE_KEYS, buildJourneyHref, resolveJourneyLessons, resolveRoadmapStages,
+  resolveStartHereLessons, resolveTopicTiles,
+} from "../app/(site)/aprender/learningJourneys";
+import type { LearningCategory } from "../app/lib/business/learning/types";
+
+const APRENDER_DIR = "app/(site)/aprender";
+const APRENDER_LANDING_FILES = [
+  `${APRENDER_DIR}/page.tsx`,
+  `${APRENDER_DIR}/learningCopy.ts`,
+  `${APRENDER_DIR}/learningJourneys.ts`,
+  `${APRENDER_DIR}/_components/learningUi.ts`,
+  `${APRENDER_DIR}/_components/learningGlyphs.tsx`,
+  `${APRENDER_DIR}/_components/LearningHero.tsx`,
+  `${APRENDER_DIR}/_components/LearningJourneyCards.tsx`,
+  `${APRENDER_DIR}/_components/LearningBusinessRoadmap.tsx`,
+  `${APRENDER_DIR}/_components/LearningStartHere.tsx`,
+  `${APRENDER_DIR}/_components/LearningTopicTiles.tsx`,
+  `${APRENDER_DIR}/_components/LearningToolkit.tsx`,
+  `${APRENDER_DIR}/_components/LearningMethod.tsx`,
+  `${APRENDER_DIR}/_components/LearningAccessClose.tsx`,
+];
+const APRENDER_ALL_PUBLIC_FILES = [
+  ...APRENDER_LANDING_FILES,
+  `${APRENDER_DIR}/[categoryKey]/page.tsx`,
+  `${APRENDER_DIR}/leccion/[lessonKey]/page.tsx`,
+  `${APRENDER_DIR}/glosario/page.tsx`,
+  `${APRENDER_DIR}/recursos/page.tsx`,
+  `${APRENDER_DIR}/_components/LearningSearch.tsx`,
+  `${APRENDER_DIR}/_components/LessonProgressButton.tsx`,
+];
+
+/** Source with block/line comments removed so doc comments never trip a copy assertion. */
+function stripComments(src: string): string {
+  return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`])\/\/[^\n]*/g, "$1");
+}
+
+const PUBLISHED_SEED_KEYS = [
+  "consistent_business_information", "who_is_your_customer", "revenue_vs_profit", "healthy_boundaries_and_capacity",
+  "google_business_basics", "advertising_fundamentals", "whatsapp_business_basics", "reviews_and_customer_response",
+];
+const PLANNED_SEED_KEYS = [
+  "branding_basics", "referrals_basics", "profitable_service_basics", "simple_analytics",
+  "local_seo_basics", "product_photography_basics", "short_video_basics", "customer_data_protection",
+];
+
+check("Phase 1: every landing file exists", () => {
+  for (const rel of APRENDER_LANDING_FILES) assert.ok(exists(rel), `missing ${rel}`);
+});
+
+check("Phase 1: no 'Business Concierge' eyebrow/UI anywhere on public /aprender (comments excluded)", () => {
+  for (const rel of APRENDER_ALL_PUBLIC_FILES) {
+    const src = stripComments(read(rel));
+    assert.ok(!/Business Concierge/i.test(src), `${rel} still renders a Business Concierge string`);
+    assert.ok(!/business-tools\/concierge|BusinessConcierge|HealthMap|healthMap/.test(src), `${rel} imports/renders Concierge UI`);
+  }
+  assert.strictEqual(learningCopy("es").siteEyebrow, "Centro de Aprendizaje Leonix");
+  assert.strictEqual(learningCopy("en").siteEyebrow, "Leonix Learning Center");
+});
+
+check("Phase 1: hero copy exists in ES and EN (locked concepts, CTAs, four trust marks)", () => {
+  const es = learningLandingCopy("es").hero;
+  const en = learningLandingCopy("en").hero;
+  assert.strictEqual(es.title, "Aprende. Construye. Haz crecer tu idea.");
+  assert.strictEqual(en.title, "Learn. Build. Grow your idea.");
+  assert.strictEqual(es.ctaPrimary, "Encontrar mi punto de partida");
+  assert.strictEqual(en.ctaPrimary, "Find where to start");
+  assert.strictEqual(es.ctaSecondary, "Explorar todos los temas");
+  assert.strictEqual(en.ctaSecondary, "Explore all topics");
+  assert.deepStrictEqual(es.trust, ["Bilingüe", "Práctico", "A tu ritmo", "Sin costo"]);
+  assert.deepStrictEqual(en.trust, ["Bilingual", "Practical", "At your pace", "No cost"]);
+  assert.ok(es.support.length > 40 && en.support.length > 40);
+});
+
+check("Phase 1: three journey cards (3/3) with title, empathy, outcome and CTA in both languages", () => {
+  assert.strictEqual(LEARNING_JOURNEY_KEYS.length, 3);
+  for (const lang of ["es", "en"] as const) {
+    const items = learningLandingCopy(lang).journeys.items;
+    for (const key of LEARNING_JOURNEY_KEYS) {
+      const it = items[key];
+      assert.ok(it.title && it.empathy && it.outcome && it.cta, `${lang}/${key} journey copy incomplete`);
+      assert.ok(LEARNING_JOURNEY_LESSON_KEYS[key].length > 0, `${key} journey has no lesson sequence`);
+    }
+  }
+  assert.strictEqual(learningLandingCopy("es").journeys.items.idea.cta, "Empezar por mi idea");
+  assert.strictEqual(learningLandingCopy("es").journeys.items.empezando.cta, "Preparar mi negocio");
+  assert.strictEqual(learningLandingCopy("es").journeys.items.negocio.cta, "Hacer crecer mi negocio");
+});
+
+check("Phase 1: roadmap has exactly the seven locked stages (7/7) in order, ES + EN labels", () => {
+  assert.deepStrictEqual([...LEARNING_ROADMAP_STAGE_KEYS], ["idea", "cliente", "marca", "numeros", "preparacion", "lanzamiento", "crecimiento"]);
+  const es = learningLandingCopy("es").roadmap.stages;
+  const en = learningLandingCopy("en").roadmap.stages;
+  assert.deepStrictEqual(LEARNING_ROADMAP_STAGE_KEYS.map((k) => es[k].title), ["Idea", "Cliente", "Marca", "Números", "Preparación", "Lanzamiento", "Crecimiento"]);
+  for (const k of LEARNING_ROADMAP_STAGE_KEYS) assert.ok(en[k].title && en[k].body, `EN roadmap stage ${k} missing`);
+  assert.strictEqual(learningLandingCopy("es").roadmap.intro, "No necesitas aprender todo hoy. Solo entender tu siguiente paso.");
+  assert.strictEqual(learningLandingCopy("es").roadmap.inPreparation, "En preparación");
+});
+
+check("Phase 1: zero fake lesson keys — every mapped key is a real PUBLISHED seed lesson, none planned", () => {
+  const mapped = new Set<string>([
+    ...Object.values(LEARNING_JOURNEY_LESSON_KEYS).flat(),
+    ...Object.keys(LEARNING_LESSON_STAGE),
+    ...LEARNING_START_HERE_KEYS,
+  ]);
+  for (const key of mapped) {
+    assert.ok(PUBLISHED_SEED_KEYS.includes(key), `mapped lesson key "${key}" is not a published seed lesson`);
+    assert.ok(!PLANNED_SEED_KEYS.includes(key), `mapped lesson key "${key}" is a planned (unpublished) lesson`);
+  }
+  assert.deepStrictEqual([...LEARNING_START_HERE_KEYS], [
+    "who_is_your_customer", "revenue_vs_profit", "consistent_business_information", "google_business_basics", "reviews_and_customer_response",
+  ]);
+});
+
+check("Phase 1: start-here / journey / roadmap resolvers only ever surface published lessons and never invent counts", () => {
+  const catalog = [
+    lesson({ id: "l1", lessonKey: "who_is_your_customer", status: "published", estimatedMinutes: 12 }),
+    lesson({ id: "l2", lessonKey: "revenue_vs_profit", status: "planned" }),
+    lesson({ id: "l3", lessonKey: "consistent_business_information", status: "draft" }),
+    lesson({ id: "l4", lessonKey: "google_business_basics", status: "published", estimatedMinutes: 15 }),
+    lesson({ id: "l5", lessonKey: "reviews_and_customer_response", status: "archived" }),
+  ];
+  const startHere = resolveStartHereLessons(catalog).map((l) => l.lessonKey);
+  assert.deepStrictEqual(startHere, ["who_is_your_customer", "google_business_basics"], "unpublished curated keys must be silently omitted");
+  assert.deepStrictEqual(resolveJourneyLessons("idea", catalog).map((l) => l.lessonKey), ["who_is_your_customer"]);
+  const stages = resolveRoadmapStages(catalog);
+  assert.strictEqual(stages.length, 7);
+  assert.strictEqual(stages.find((s) => s.key === "numeros")?.lessons.length, 0, "a planned lesson must not count toward a stage");
+  assert.strictEqual(stages.find((s) => s.key === "cliente")?.lessons.length, 1);
+  assert.strictEqual(stages.find((s) => s.key === "idea")?.lessons.length, 0, "idea stage has no published lesson yet → 'En preparación'");
+});
+
+check("Phase 1: a category with zero published lessons is hidden from the topic tiles", () => {
+  const cat = (id: string, key: string, sortOrder: number): LearningCategory => ({
+    id, categoryKey: key, titleEs: key, titleEn: key, summaryEs: "", summaryEn: "", sortOrder, status: "active", createdAt: NOW, updatedAt: NOW,
+  });
+  const categories = [cat("c1", "fundamentos_del_negocio", 1), cat("c6", "proteccion_y_datos", 6), cat("c2", "clientes_y_demanda", 2)];
+  const catalog = [
+    lesson({ id: "a", categoryId: "c1", lessonKey: "consistent_business_information", status: "published" }),
+    lesson({ id: "b", categoryId: "c6", lessonKey: "customer_data_protection", status: "planned" }),
+    lesson({ id: "c", categoryId: "c2", lessonKey: "who_is_your_customer", status: "published" }),
+  ];
+  const tiles = resolveTopicTiles(categories, catalog);
+  assert.deepStrictEqual(tiles.map((t) => t.category.categoryKey), ["fundamentos_del_negocio", "clientes_y_demanda"]);
+  assert.ok(tiles.every((t) => t.publishedCount > 0));
+});
+
+check("Phase 1: glossary/resource counts are derived from published resources — no literal counts in the landing", () => {
+  const page = read(`${APRENDER_DIR}/page.tsx`);
+  assert.ok(page.includes("listAllPublishedResources"), "landing must read published resources");
+  assert.ok(page.includes('r.resourceType === "glossary_term"'), "glossary count must be truth-derived");
+  assert.ok(page.includes('r.resourceType === "checklist" || r.resourceType === "template"'), "resource count must be truth-derived");
+  const toolkit = stripComments(read(`${APRENDER_DIR}/_components/LearningToolkit.tsx`));
+  assert.ok(!/\b(19|7|8|16)\b\s*<\//.test(toolkit), "toolkit must not hardcode counts");
+  assert.ok(toolkit.includes("glossaryCount") && toolkit.includes("resourceCount"));
+});
+
+check("Phase 1: Idea Builder route preserved and rendered honestly (explore now, sign in to save)", () => {
+  assert.strictEqual(LEARNING_ROUTES.ideaBuilder, "/dashboard/business-tools/idea-builder");
+  assert.ok(exists("app/(site)/dashboard/business-tools/idea-builder/page.tsx"));
+  assert.strictEqual(learningLandingCopy("es").toolkit.ideaBuilder.note, "Puedes explorar la herramienta ahora. Inicia sesión para guardar y continuar después.");
+  assert.ok(/sign in/i.test(learningLandingCopy("en").toolkit.ideaBuilder.note));
+});
+
+check("Phase 1: no /publicar anywhere on public /aprender", () => {
+  for (const rel of APRENDER_ALL_PUBLIC_FILES) assert.ok(!read(rel).includes("/publicar"), `${rel} links to /publicar`);
+});
+
+check("Phase 1: ES/EN parity — identical copy shape, every EN leaf non-empty, no Spanish diacritics leaking into EN", () => {
+  const leaves = (v: unknown, prefix = ""): [string, string][] => {
+    if (typeof v === "string") return [[prefix, v]];
+    if (Array.isArray(v)) return v.flatMap((x, i) => leaves(x, `${prefix}[${i}]`));
+    if (v && typeof v === "object") return Object.entries(v as Record<string, unknown>).flatMap(([k, x]) => leaves(x, `${prefix}.${k}`));
+    return [];
+  };
+  const es = leaves(learningLandingCopy("es"));
+  const en = leaves(learningLandingCopy("en"));
+  assert.deepStrictEqual(en.map(([k]) => k), es.map(([k]) => k), "EN copy shape must mirror ES exactly");
+  for (const [k, v] of en) {
+    assert.ok(v.trim().length > 0, `EN leaf ${k} is empty`);
+    assert.ok(!/[áéíóúñ¿¡]/i.test(v), `EN leaf ${k} contains Spanish diacritics: ${v}`);
+  }
+  const chromeEs = leaves(learningCopy("es"));
+  const chromeEn = leaves(learningCopy("en"));
+  assert.deepStrictEqual(chromeEn.map(([k]) => k), chromeEs.map(([k]) => k));
+  for (const [k, v] of chromeEn) assert.ok(!/[áéíóúñ¿¡]/i.test(v), `EN chrome leaf ${k} contains Spanish diacritics`);
+});
+
+check("Phase 1: ES chrome uses correct accents (no unaccented legacy chrome strings)", () => {
+  const es = learningCopy("es");
+  assert.strictEqual(es.categoriesTitle, "Categorías");
+  assert.strictEqual(es.levelLabel.practical, "Práctico");
+  assert.strictEqual(es.lessonSingular, "lección");
+  assert.strictEqual(es.checklistLabel, "Lista de verificación");
+  assert.strictEqual(es.backToCategory, "Volver a la categoría");
+  const src = stripComments(read(`${APRENDER_DIR}/learningCopy.ts`));
+  for (const bad of ["Educacion", "Categorias", "Practico", "leccion(es)", "Leccion", "Informacion", "Proteccion", "verificacion", "categoria\"", "sesion"]) {
+    assert.ok(!src.includes(bad), `learningCopy.ts still contains unaccented "${bad}"`);
+  }
+});
+
+check("Phase 1: PT/TL parameter infrastructure preserved (route lang kept in links, content falls back to ES)", () => {
+  assert.strictEqual(contentLangFromRouteLang("pt"), "es");
+  assert.strictEqual(contentLangFromRouteLang("tl"), "es");
+  assert.strictEqual(contentLangFromRouteLang("en"), "en");
+  assert.ok(buildJourneyHref("idea", "pt").includes("lang=pt"), "journey href must keep ?lang=pt");
+  assert.ok(buildJourneyHref("negocio", "en").includes("journey=negocio"));
+  assert.ok(buildJourneyHref("idea", "es").includes("#donde-estas"), "Phase 1 journey links anchor to the journey section");
+  const page = read(`${APRENDER_DIR}/page.tsx`);
+  assert.ok(page.includes("normalizeLang("), "landing must normalize the route language via app/lib/language");
+});
+
+check("Phase 1: every link/anchor in the landing components carries a ≥44 px touch-target class", () => {
+  const OK = /min-h-11|min-h-\[2\.875rem\]|min-h-\[3rem\]|LEARNING_BTN_PRIMARY|LEARNING_BTN_OUTLINE|LEARNING_LINK|min-h-\[10rem\]|h-full/;
+  for (const rel of APRENDER_LANDING_FILES.filter((f) => f.endsWith(".tsx"))) {
+    const src = read(rel);
+    const tags = src.match(/<(Link|a)\b[\s\S]*?>/g) ?? [];
+    for (const tag of tags) assert.ok(OK.test(tag), `${rel}: link without a touch-target class → ${tag.slice(0, 120)}`);
+  }
+  const ui = read(`${APRENDER_DIR}/_components/learningUi.ts`);
+  assert.ok(ui.includes("min-h-[2.875rem]") && ui.includes("min-h-11"));
+});
+
+check("Phase 1: professional-help boundary and access/trust copy present in ES and EN close band", () => {
+  const es = learningLandingCopy("es").close;
+  const en = learningLandingCopy("en").close;
+  assert.strictEqual(es.title, "Conocimiento para avanzar, sin barreras.");
+  assert.strictEqual(es.trustLine, "Aprendizaje práctico. Bilingüe. Sin costo.");
+  assert.ok(es.boundary.includes("profesional autorizado"));
+  assert.ok(/licensed professional/i.test(en.boundary));
+  assert.strictEqual(es.cta, "Encontrar mi ruta");
+  const close = read(`${APRENDER_DIR}/_components/LearningAccessClose.tsx`);
+  assert.ok(close.includes("c.boundary") && close.includes("#${LEARNING_ANCHORS.journeys}"));
+  assert.ok(!/partner|sponsor|patrocin/i.test(stripComments(close)), "close band must not name a partner or sponsor");
+});
+
+check("Phase 1: hero never hides critical text behind animation (no framer-motion / opacity-0 in landing components)", () => {
+  for (const rel of APRENDER_LANDING_FILES) {
+    const src = stripComments(read(rel));
+    assert.ok(!src.includes("framer-motion"), `${rel} imports framer-motion`);
+    assert.ok(!/opacity-0|opacity:\s*0/.test(src), `${rel} starts content at opacity 0`);
+  }
+});
+
+check("Phase 1: /aprender is a public SEO pillar (metadata + CollectionPage JSON-LD), sitemap untouched", () => {
+  const seo = read("app/lib/leonix/publicPillarSeo.ts");
+  assert.ok(seo.includes('| "aprender"'), "PublicPillarId must include aprender");
+  assert.ok(seo.includes('aprender: "/aprender"'), "pillar path must be /aprender");
+  assert.ok(seo.includes("Centro de Aprendizaje Leonix") && seo.includes("Leonix Learning Center"));
+  const page = read(`${APRENDER_DIR}/page.tsx`);
+  assert.ok(page.includes('buildPublicPillarMetadata("aprender"') && page.includes('<PublicPillarJsonLd id="aprender"'));
+  const sitemap = read("app/sitemap.ts");
+  assert.ok(!sitemap.includes("/aprender"), "Phase 1 must not expand the sitemap (reported for a later gate)");
+});
+
+check("Phase 1: decorative SVG vignettes are aria-hidden and the landing has one h1 plus real section headings", () => {
+  const glyphs = read(`${APRENDER_DIR}/_components/learningGlyphs.tsx`);
+  const svgTags = glyphs.match(/<svg\b[^>]*>/g) ?? [];
+  assert.ok(svgTags.length >= 5, `expected the hero, three journey and Idea Builder vignettes (found ${svgTags.length})`);
+  for (const tag of svgTags) assert.ok(tag.includes("aria-hidden"), `SVG without aria-hidden: ${tag.slice(0, 80)}`);
+  const hero = read(`${APRENDER_DIR}/_components/LearningHero.tsx`);
+  assert.strictEqual((hero.match(/<h1\b/g) ?? []).length, 1);
+  for (const rel of APRENDER_LANDING_FILES.filter((f) => /Learning(JourneyCards|BusinessRoadmap|StartHere|TopicTiles|Toolkit|Method|AccessClose)\.tsx$/.test(f))) {
+    assert.ok(/<h2\b/.test(read(rel)), `${rel} has no h2 section heading`);
+  }
+});
+
 console.log(`\n${passed} check(s) passed${failed ? `, ${failed} FAILED` : ""}.`);
 if (failed > 0) {
   console.log("\nSome checks failed.");
