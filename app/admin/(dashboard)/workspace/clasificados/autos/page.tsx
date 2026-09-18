@@ -27,16 +27,21 @@ import { ClasificadosQueueHeader } from "../_components/ClasificadosQueueHeader"
 import { ClasificadosScopeNav } from "../_components/ClasificadosScopeNav";
 import { clasificadosQueueSurfaceForSlug } from "../_lib/clasificadosQueueSurfaceMeta";
 import { appendPreservedSearchParams, parseAdminScope } from "../_lib/clasificadosAdminScopeUrls";
-import { adminCardBase, adminBtnSecondary, adminCtaChipSecondary } from "../../../../_components/adminTheme";
+import { adminCardBase, adminBtnSecondary, adminCtaChip, adminCtaChipSecondary } from "../../../../_components/adminTheme";
 import { AdminPagePurposeCard } from "../../../../_components/AdminPagePurposeCard";
 import { ClassifiedAdminRowActions } from "../_components/ClassifiedAdminRowActions";
 import { AdminListingMonetizationSummary } from "../_components/AdminListingMonetizationSummary";
 import type { AdminLang } from "@/app/admin/_lib/adminI18nCookie";
+import {
+  ADMIN_AUTOS_LANE_OPTIONS,
+  ADMIN_AUTOS_WORKSPACE_PATH,
+  parseAdminAutosLane,
+} from "@/app/admin/_lib/adminAutosLanes";
 
 export const dynamic = "force-dynamic";
 
 type AutosAdminPageProps = {
-  searchParams?: Promise<{ q?: string; scope?: string }>;
+  searchParams?: Promise<{ q?: string; scope?: string; lane?: string }>;
 };
 
 function autosStripeAdminHint(row: AutosClassifiedsListingRow): string {
@@ -98,13 +103,18 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
   );
   const scope = parseAdminScope(sp);
   const qRaw = typeof sp.q === "string" ? sp.q.trim() : "";
-  const autosBase = "/admin/workspace/clasificados/autos";
-  const queueNavHref = appendPreservedSearchParams(autosBase, sp, null);
-  const liveNavHref = appendPreservedSearchParams(autosBase, sp, "live");
-  let rows = await listAllAutosClassifiedsRowsForAdmin(
-    qRaw ? 500 : queueLimit,
-    scope === "live" ? { scope: "live" } : undefined,
-  );
+  const autosBase = ADMIN_AUTOS_WORKSPACE_PATH;
+  // Dealers vs Privados — one engine, one table; `lane` is the canonical `row.lane` value and is
+  // applied in the SQL query (not as a cosmetic client filter over the same rows).
+  const lane = parseAdminAutosLane(sp);
+  const queueNavHref = appendPreservedSearchParams(autosBase, sp, null, ["lane"]);
+  const liveNavHref = appendPreservedSearchParams(autosBase, sp, "live", ["lane"]);
+  const laneHref = (target: (typeof ADMIN_AUTOS_LANE_OPTIONS)[number]["value"]) =>
+    appendPreservedSearchParams(autosBase, { ...sp, lane: target === "all" ? undefined : target }, scope, ["lane"]);
+  let rows = await listAllAutosClassifiedsRowsForAdmin(qRaw ? 500 : queueLimit, {
+    ...(scope === "live" ? { scope: "live" as const } : {}),
+    ...(lane !== "all" ? { lane } : {}),
+  });
   if (qRaw) {
     const profileSet = new Set<string>();
     if (isSupabaseAdminConfigured() && qRaw.length >= 2) {
@@ -195,11 +205,33 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
         </Link>
       </div>
 
+      <div className={`${adminCardBase} mb-6 space-y-2 p-4 text-sm text-[#5C5346]`} data-testid="autos-lane-selector">
+        <p className="font-bold text-[#1E1810]">Autos lane</p>
+        <p className="text-[10px] leading-snug text-[#7A7164]">
+          Dealers and private sellers share this one Autos workspace and table — pick a lane to see only that
+          operation. Search, Queue/Live scope, and row actions all apply inside the selected lane.
+        </p>
+        <nav className="flex flex-wrap gap-2" aria-label="Autos lane">
+          {ADMIN_AUTOS_LANE_OPTIONS.map((opt) => (
+            <Link
+              key={opt.value}
+              href={laneHref(opt.value)}
+              className={`${opt.value === lane ? adminCtaChip : adminCtaChipSecondary} inline-flex`}
+              aria-current={opt.value === lane ? "page" : undefined}
+              title={opt.hint}
+            >
+              {opt.label}
+            </Link>
+          ))}
+        </nav>
+      </div>
+
       <div className={`${adminCardBase} mb-6 space-y-3 p-4 text-sm text-[#5C5346]`}>
         <p className="font-bold text-[#1E1810]">{m("autosQueue.searchTitle")}</p>
         <p className="text-[10px] leading-snug text-[#7A7164]">{m("autosQueue.searchHint")}</p>
         <form className="flex flex-col flex-wrap gap-2 sm:flex-row sm:items-end" method="get" action={autosBase}>
           {scope === "live" ? <input type="hidden" name="scope" value="live" /> : null}
+          {lane !== "all" ? <input type="hidden" name="lane" value={lane} /> : null}
           <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-xs">
             <span className="font-semibold text-[#5C5346]">{m("autosQueue.labelQ")}</span>
             <input
@@ -306,7 +338,9 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                         </p>
                       ) : null}
                     </td>
-                    <td className="px-3 py-2">{r.lane}</td>
+                    <td className="px-3 py-2" title={r.lane}>
+                      {r.lane === "negocios" ? "Dealer" : "Privado"}
+                    </td>
                     <td className="px-3 py-2">{r.featured ? m("autosQueue.yes") : m("autosQueue.no")}</td>
                     <td className="px-3 py-2">{statusLabel(r.status)}</td>
                     <td className="px-3 py-2">{vis}</td>

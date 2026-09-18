@@ -38,6 +38,8 @@ const DEDICATED_TABLE_BY_SLUG: Record<
   travel: { table: "viajes_staged_listings", pendingStatusColumn: "lifecycle_status", pendingStatusValues: ["submitted", "in_review", "changes_requested"] },
   /** GATE 3 — confirmed ALLOWED_STATUS = draft/published/paused/suspended only (comida-local/actions.ts); no review-gate status exists, so no pendingStatusColumn. */
   "comida-local": { table: "comida_local_public_listings" },
+  /** Coverage gate 11 — Ofertas Locales lives in `ofertas_locales` (statuses draft/submitted/pending_review/approved/rejected/archived/expired), never in `listings`; without this the hub reported a false "0". */
+  "ofertas-locales": { table: "ofertas_locales", pendingStatusColumn: "status", pendingStatusValues: ["submitted", "pending_review"] },
 };
 
 export async function fetchListingStatsForCategorySlugs(slugs: string[]): Promise<CategoryListingStatsRow[]> {

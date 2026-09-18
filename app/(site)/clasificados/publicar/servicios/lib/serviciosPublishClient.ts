@@ -5,6 +5,11 @@ import type { ClasificadosServiciosApplicationState } from "./clasificadosServic
 import type { ServiciosLang } from "./clasificadosServiciosApplicationTypes";
 import { buildServiciosPublishTransportBody } from "./buildServiciosPublishPayload";
 import { resolveServiciosDraftMediaToRemoteUrls } from "./serviciosDraftPublishPrepare";
+import {
+  readServiciosDraftListingIdentity,
+  rememberServiciosDraftListingIdentity,
+  resolveServiciosExistingListingId,
+} from "./serviciosDraftListingIdentity";
 
 export type ServiciosPublishPersistence = "database" | "dev_workspace" | "none";
 
@@ -109,11 +114,15 @@ export async function postServiciosPublishApi(args: {
       ? sessionStorage.getItem(SERVICIOS_EXISTING_PUBLIC_SLUG_SESSION_KEY) ?? undefined
       : undefined;
 
-  const existingListingId =
-    args.existingListingId?.trim() ||
-    (typeof window !== "undefined"
-      ? sessionStorage.getItem(SERVICIOS_EXISTING_LISTING_ID_SESSION_KEY) ?? undefined
-      : undefined);
+  // ONE APPLICATION = ONE LISTING: an explicit id wins, then the primed session id, then the
+  // identity bound to this draft (survives the Application form re-mounting after a cancelled
+  // checkout / "Back to edit"). `undefined` only for a genuinely brand-new application.
+  const existingListingId = resolveServiciosExistingListingId({
+    explicit: args.existingListingId,
+    sessionPrimed:
+      typeof window !== "undefined" ? sessionStorage.getItem(SERVICIOS_EXISTING_LISTING_ID_SESSION_KEY) : null,
+    draftIdentity: typeof window !== "undefined" ? readServiciosDraftListingIdentity(sessionStorage) : null,
+  });
 
   let resolved: ClasificadosServiciosApplicationState;
   let skippedOversizedVideos = false;
@@ -185,6 +194,14 @@ export async function postServiciosPublishApi(args: {
   // the same row even if the owner renames the business (which changes the slug).
   if (data.ok && data.listingId) {
     primeServiciosExistingListingId(data.listingId);
+    // Bind the canonical identity to the DRAFT so it outlives the Application form re-mounting.
+    if (typeof window !== "undefined") {
+      rememberServiciosDraftListingIdentity(sessionStorage, {
+        listingId: data.listingId,
+        leonixAdId: data.leonixAdId ?? null,
+        slug: data.slug ?? null,
+      });
+    }
   }
 
   return { res, data };

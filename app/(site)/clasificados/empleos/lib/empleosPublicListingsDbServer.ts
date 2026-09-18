@@ -10,6 +10,7 @@ import { empleosEnvelopeToCanonical } from "./staged/empleosEnvelopeToJobRecord"
 import type { EmpleosCanonicalListing } from "./staged/empleosCanonicalListing";
 import { buildEmpleosLiveSlugBase } from "./empleosLiveSlug";
 import { resolveEmpleosPublicationLane } from "./empleosLaneResolve";
+import { resolveEmpleosOwnerTransition, resolveEmpleosUpsertLifecycle } from "./empleosPublishLifecyclePolicy";
 
 export type EmpleosListingLifecycleDb =
   | "draft"
@@ -171,8 +172,17 @@ export async function upsertEmpleosListingFromEnvelope(input: {
   const slug =
     (existing as EmpleosPublicListingRow | null)?.slug ?? (await allocateUniqueEmpleosSlugServer(envelopeTitle(input.envelope)));
 
-  const lifecycle: EmpleosListingLifecycleDb =
-    input.mode === "draft" ? "draft" : input.mode === "publish" ? publishLifecycleForInsert() : "draft";
+  // Lifecycle is decided by the shared policy (never trust the client's mode alone): payment for the
+  // paid lanes is applied only by the Revenue OS webhook, draft saves never demote a live row, and
+  // staff-held (rejected / archived / pending_review / paused) rows are never re-published here.
+  const decision = resolveEmpleosUpsertLifecycle({
+    mode: input.mode,
+    lane: (input.envelope.lane as string | undefined) ?? (existing as EmpleosPublicListingRow | null)?.lane,
+    existingStatus: (existing as EmpleosPublicListingRow | null)?.lifecycle_status ?? null,
+    requireReview: publishLifecycleForInsert() === "pending_review",
+  });
+  if (!decision.ok) return { ok: false, error: decision.error };
+  const lifecycle: EmpleosListingLifecycleDb = decision.lifecycle;
 
   const stamped: EmpleosPublishEnvelope = {
     ...input.envelope,
@@ -216,10 +226,16 @@ export async function upsertEmpleosListingFromEnvelope(input: {
   );
 
   if (existing) {
+    // An owner content save must never erase a staff decision or the original publish date:
+    // `mapCanonicalToRow` writes null for both, which used to wipe moderation_reason / review_notes.
+    const prior = existing as EmpleosPublicListingRow;
     const { error } = await supabase
       .from("empleos_public_listings")
       .update({
         ...row,
+        moderation_reason: prior.moderation_reason ?? null,
+        review_notes: prior.review_notes ?? null,
+        published_at: (prior as { published_at?: string | null }).published_at ?? row.published_at,
         updated_at: now,
       })
       .eq("id", listingId);
@@ -434,15 +450,30 @@ export async function updateEmpleosListingLifecycleOwner(input: {
   const supabase = getAdminSupabase();
   const { data: row, error: rErr } = await supabase
     .from("empleos_public_listings")
-    .select("owner_user_id")
+    .select("owner_user_id, lifecycle_status, lane, moderation_reason, review_notes, published_at")
     .eq("id", input.id)
     .maybeSingle();
   if (rErr || !row || (row as { owner_user_id: string }).owner_user_id !== input.ownerUserId) {
     return { ok: false, error: "forbidden" };
   }
+  const current = row as Pick<EmpleosPublicListingRow, "lifecycle_status" | "lane" | "moderation_reason" | "review_notes"> & {
+    published_at?: string | null;
+  };
+  const decision = resolveEmpleosOwnerTransition({
+    lane: current.lane,
+    current: current.lifecycle_status,
+    next: input.lifecycle_status,
+    hasStaffReason: Boolean(current.moderation_reason?.trim()),
+    everPublished: Boolean(current.published_at),
+  });
+  if (!decision.ok) return { ok: false, error: decision.error };
+  if (current.lifecycle_status === input.lifecycle_status) return { ok: true };
   return updateEmpleosListingLifecycleAdmin({
     id: input.id,
     lifecycle_status: input.lifecycle_status,
+    // Keep any staff note attached to the row; the owner path only moves the status.
+    moderation_reason: current.moderation_reason ?? null,
+    review_notes: current.review_notes ?? null,
   });
 }
 

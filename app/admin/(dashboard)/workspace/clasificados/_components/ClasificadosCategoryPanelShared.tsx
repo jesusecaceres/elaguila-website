@@ -23,6 +23,7 @@ import {
 } from "@/app/admin/_lib/adminCategoryWorkspaceQueueHref";
 
 import { getClassifiedsOpsContract } from "@/app/admin/_lib/classifiedsOpsContract";
+import { ADMIN_AUTOS_LANE_OPTIONS, adminAutosLaneHref } from "@/app/admin/_lib/adminAutosLanes";
 import type { AdminLang } from "@/app/admin/_lib/adminI18nCookie";
 import { adminMessages } from "@/app/admin/_lib/adminStrings";
 import {
@@ -179,6 +180,32 @@ export function ClasificadosCategorySelectedPanel({
           </li>
         </ul>
       </div>
+
+      {entry.slug === "autos" ? (
+        <div
+          className="mt-4 rounded-lg border border-[#C9B46A]/40 bg-[#FFFCF7] p-3"
+          data-testid="clasificados-autos-lane-panel"
+        >
+          <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">Autos lanes</p>
+          <p className="mt-1 text-xs leading-relaxed text-[#5C5346]">
+            Autos has two operations in one workspace and one table: dealers and private sellers. Open the lane you
+            need — same engine, filtered to that lane.
+          </p>
+          <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {ADMIN_AUTOS_LANE_OPTIONS.filter((o) => o.value !== "all").map((o) => (
+              <Link
+                key={o.value}
+                href={adminAutosLaneHref(o.value)}
+                className={`${adminDashboardCtaPrimary} ${compact}`}
+                title={o.hint}
+                data-testid={`clasificados-autos-lane-${o.value}`}
+              >
+                {o.label} →
+              </Link>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <div className="mt-5 grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2" data-testid="clasificados-category-cta-grid">
         <Link href={queueHref} className={`${adminDashboardCtaPrimary} ${compact}`} title={queueCta.title}>

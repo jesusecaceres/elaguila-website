@@ -12,6 +12,7 @@ import { resolveAdminLangFromCookieJar } from "@/app/admin/_lib/adminI18nCookie"
 import { adminTr } from "@/app/admin/_lib/adminStrings";
 import { fetchPaymentTrackerSnapshot, type LeonixPaymentRecordRow } from "@/app/admin/_lib/paymentTrackerData";
 import { resolveRevenuePackageLabel, maskStripeReference } from "@/app/lib/listingPlans/revenueDisplay";
+import type { CircuitStep } from "@/app/admin/_lib/paymentCircuit";
 
 function statusChip(status: string) {
   const s = status.toLowerCase();
@@ -75,6 +76,13 @@ export default async function AdminPaymentTrackerPage({
             </p>
             <p className="text-xs text-emerald-900/90">
               This tracker shows real Revenue OS payment records and entitlement linkage. No secrets are displayed.
+            </p>
+            <p className="text-xs text-emerald-900/90" data-testid="payment-circuit-legend">
+              <strong>Four separate facts:</strong> Checkout created ≠ Paid ≠ Entitlement active ≠ Listing live. A
+              Stripe Checkout session existing does not mean the customer paid; “Paid” comes only from the verified
+              webhook; the listing&apos;s own lifecycle decides whether it is public. The <em>Circuit</em> column
+              names which link is missing. Pending rows with a checkout session but no confirmation point to
+              System Health → “Revenue OS webhook”.
             </p>
           </div>
         </header>
@@ -195,6 +203,7 @@ export default async function AdminPaymentTrackerPage({
                         <th className="px-4 py-3">Subscription</th>
                         <th className="px-4 py-3">Sales rep</th>
                         <th className="px-4 py-3">Status</th>
+                        <th className="px-4 py-3">Circuit / diagnosis</th>
                         <th className="px-4 py-3">Amount</th>
                         <th className="px-4 py-3">Commission</th>
                         <th className="px-4 py-3">Source</th>
@@ -246,6 +255,63 @@ function SummaryCard({ label, value, tone }: { label: string; value: string | nu
     <div className={`rounded-2xl border ${border} bg-[#FFFCF7]/95 p-4 shadow-sm`}>
       <p className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">{label}</p>
       <p className="mt-1 text-2xl font-bold tabular-nums text-[#1E1810]">{value}</p>
+    </div>
+  );
+}
+
+const STEP_LABEL: Record<CircuitStep, string> = {
+  done: "✓",
+  waiting: "…",
+  missing: "✗",
+  blocked: "!",
+  na: "–",
+};
+
+function stepTone(step: CircuitStep): string {
+  if (step === "done") return "bg-emerald-100 text-emerald-900";
+  if (step === "waiting") return "bg-amber-100 text-amber-900";
+  if (step === "missing" || step === "blocked") return "bg-red-100 text-red-900";
+  return "bg-stone-100 text-stone-600";
+}
+
+/** Read-only diagnosis: which of checkout / paid / entitlement / listing is missing, and why. */
+function CircuitCell({ row }: { row: LeonixPaymentRecordRow }) {
+  const c = row.circuit;
+  if (!c) return <span className="text-[#7A7164]">—</span>;
+  const steps: [string, CircuitStep][] = [
+    ["Checkout", c.checkout],
+    ["Paid", c.paid],
+    ["Entitlement", c.entitlement],
+    ["Listing", c.listing],
+  ];
+  const headTone = c.severity === "ok" ? "text-emerald-900" : c.severity === "attention" ? "text-red-800" : "text-amber-900";
+  return (
+    <div>
+      <div className="flex flex-wrap gap-1">
+        {steps.map(([label, step]) => (
+          <span key={label} title={`${label}: ${step}`} className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${stepTone(step)}`}>
+            {label} {STEP_LABEL[step]}
+          </span>
+        ))}
+      </div>
+      <p className={`mt-1 font-semibold ${headTone}`}>{c.headline}</p>
+      <p className="mt-0.5 text-[11px] leading-snug text-[#5C5346]">{c.detail}</p>
+      {row.publication ? (
+        <p className="mt-0.5 text-[11px] text-[#7A7164]">
+          Listing state: <span className="font-mono">{row.publication.rawStatus ?? "—"}</span> ({row.publication.semantic.replace(/_/g, " ").toLowerCase()})
+        </p>
+      ) : null}
+      {row.webhook_diag ? (
+        <p className="mt-0.5 text-[11px] text-[#7A7164]">
+          Webhook: {row.webhook_diag.status}
+          {row.webhook_diag.resultCode ? ` (${row.webhook_diag.resultCode})` : ""}
+        </p>
+      ) : null}
+      {row.listing_admin_href ? (
+        <Link href={row.listing_admin_href} className="mt-1 inline-block font-semibold text-[#6B5B2E] underline">
+          Open listing in Admin →
+        </Link>
+      ) : null}
     </div>
   );
 }
@@ -310,6 +376,9 @@ function PaymentRow({ row }: { row: LeonixPaymentRecordRow }) {
         <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${statusChip(row.payment_status)}`}>
           {formatPaymentStatusLabel(row.payment_status)}
         </span>
+      </td>
+      <td className="min-w-[260px] px-4 py-3 text-xs" data-testid="payment-circuit-cell">
+        <CircuitCell row={row} />
       </td>
       <td className="px-4 py-3 tabular-nums text-xs">{amountLine}</td>
       <td className="px-4 py-3 text-xs text-[#5C5346]">{commissionLine}</td>

@@ -155,6 +155,10 @@ import {
 } from "@/app/servicios/lib/serviciosCredentialsCatalog";
 import { primeServiciosExistingListingId, primeServiciosExistingPublicSlug } from "../lib/serviciosPublishClient";
 import {
+  readServiciosDraftListingIdentity,
+  reconcileServiciosPrimedIdentityOnApplicationMount,
+} from "../lib/serviciosDraftListingIdentity";
+import {
   serviciosPublishedToApplicationDraft,
   type ServiciosEditIdentity,
   type ServiciosPublishedListingHydrationSource,
@@ -651,8 +655,16 @@ export function ClasificadosServiciosApplication() {
       setHydrated(false);
       return;
     }
-    primeServiciosExistingPublicSlug(null);
-    primeServiciosExistingListingId(null);
+    // ONE APPLICATION = ONE LISTING. This used to wipe both primed keys unconditionally on every
+    // mount, then restore only the draft — so returning to the form after a cancelled checkout /
+    // "Back to edit" made the next save mint a NEW listing (name-2, name-3…). The canonical identity
+    // is bound to the draft now: restore it if the draft has one; only a draft with no bound
+    // identity (a genuinely new application) starts clean. Deleting the draft clears it.
+    const restored = reconcileServiciosPrimedIdentityOnApplicationMount(
+      readServiciosDraftListingIdentity(typeof window !== "undefined" ? window.sessionStorage : null),
+    );
+    primeServiciosExistingPublicSlug(restored.slug);
+    primeServiciosExistingListingId(restored.listingId);
     setEditIdentity(null);
     setNewFieldsMissing([]);
     setEditHydration({ status: "idle" });

@@ -158,6 +158,8 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       return NextResponse.json({ ok: false, error: "not_active" }, { status: 400 });
     }
     patch.status = "removed" satisfies AutosClassifiedsListingStatus;
+    // Staff moderation marker: the owner restore route refuses rows carrying a suspended_reason.
+    patch.suspended_reason = "moderation";
   } else if (action === "restore_active" || action === "unsuspend") {
     if (row.status !== "removed" && row.status !== "cancelled") {
       return NextResponse.json({ ok: false, error: "not_removed_or_cancelled" }, { status: 400 });
@@ -179,6 +181,13 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
           { status: 409 },
         );
       }
+      // The RPC moves status only; clear the staff-moderation marker so a later owner unpublish/restore
+      // cycle is not permanently blocked by a suspension Admin has now lifted.
+      await supabase
+        .from("autos_classifieds_listings")
+        .update({ suspended_reason: null, updated_at: now })
+        .eq("id", id)
+        .eq("suspended_reason", "moderation");
       void appendAdminAuditLog({
         action: `autos_admin_${action}`,
         targetType: "autos_classifieds_listing",
@@ -192,6 +201,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     }
     patch.status = "active" satisfies AutosClassifiedsListingStatus;
     patch.published_at = row.published_at ?? now;
+    patch.suspended_reason = null;
   } else if (action === "promote_on") {
     patch.featured = true;
   } else if (action === "promote_off") {

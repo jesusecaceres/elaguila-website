@@ -266,7 +266,10 @@ function EmpleosEmployerManagePageContent() {
   }
   if (
     isLiveCapability(capabilities.lifecycle.reactivate) &&
-    (row.lifecycle_status === "paused" || row.lifecycle_status === "archived" || row.lifecycle_status === "draft")
+    // Paid-lane drafts only go live through payment (server-enforced) — no dead "resume" button.
+    (row.lifecycle_status === "paused" ||
+      row.lifecycle_status === "archived" ||
+      (row.lifecycle_status === "draft" && row.lane === "feria"))
   ) {
     lifecycleActions.push({ label: resumeListingLabel(lang), onClick: () => void patchStatus("published"), disabled: busy, tone: "positive" });
   }
