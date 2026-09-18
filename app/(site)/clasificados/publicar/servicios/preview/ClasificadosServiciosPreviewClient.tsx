@@ -634,13 +634,23 @@ export function ClasificadosServiciosPreviewClient() {
     };
   }, [useProfessionalPreview, appState, appDraft, profile, listingBoundPreview, listingBoundStatus]);
 
-  // Servicios global checkout standard — final checkpoint shown after preview for the
-  // NEW application publish flow only. Dashboard existing-listing preview keeps its own
-  // update/golden-loop button (already paid, no re-charge).
+  // Servicios global checkout standard — final checkpoint shown after preview for the NEW
+  // application publish flow, and (Gate 8, Servicios Final Consolidated Lifecycle Execution,
+  // 2026-09-18) reused as-is for "Completar pago" on a listing-bound row still awaiting its base
+  // purchase (pending_payment / draft / preview_ready / publish_ready) — the SAME
+  // servicios_base_monthly checkout, promo handling, newsletter capture, and confirmations, driven
+  // by the SAME onCheckout below, which already resolves the durable canonical listing id/Ad id
+  // from the pending-payment save result (never a duplicate row). An already-published/paused/
+  // pending_review listing-bound preview never sees this — its Dashboard action bar keeps its own
+  // update/republish button (already paid, no re-charge).
   const offersAddonSelected = Boolean(appState?.couponsAddOn);
   const serviciosPipeline = useProfessionalPreview ? "professional" : "trades";
   const showFinalCheckout =
-    !assistedUi && !listingBoundPreview && source === "application" && Boolean(profile) && previewReadiness.ok;
+    !assistedUi &&
+    (!listingBoundPreview || listingBoundAwaitsBasePurchase) &&
+    source === "application" &&
+    Boolean(profile) &&
+    previewReadiness.ok;
 
   // Package C Build 3 (C5/C6) — owner-locked: coupons/offers are included in the $399/mo base
   // package. The toggle stays as content/setup intent only — never a checkout line item.
@@ -924,21 +934,34 @@ export function ClasificadosServiciosPreviewClient() {
         ) : (
           <div className="mx-auto flex max-w-[1280px] flex-wrap items-center justify-end gap-2 px-4 py-3 md:px-6">
             {showFinalCheckout ? (
-              <a
-                href="#servicios-publish-checkout-checkpoint"
-                className="inline-flex min-h-[44px] touch-manipulation items-center rounded-full bg-[#3B66AD] px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699]"
-              >
-                {lang === "en" ? "Continue to payment" : "Continuar al pago"}
-              </a>
-            ) : listingBoundAwaitsBasePurchase ? (
-              <button
-                type="button"
-                disabled={!canPublishFromPreview || publishBusy}
-                onClick={() => void handleSaveChangesForPendingListing()}
-                className="inline-flex min-h-[44px] touch-manipulation items-center rounded-full bg-[#3B66AD] px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699] disabled:cursor-not-allowed disabled:opacity-45"
-              >
-                {publishBusy ? (lang === "en" ? "Saving…" : "Guardando…") : lang === "en" ? "Save changes" : "Guardar cambios"}
-              </button>
+              <>
+                {/* Gate 8 — "Guardar cambios" stays available NEXT TO "Completar pago" so an owner
+                    resuming an abandoned checkout can save further content edits without being
+                    forced through payment first. A fresh (non listing-bound) application has no
+                    existing row to save yet, so it only ever sees the payment button. */}
+                {listingBoundAwaitsBasePurchase ? (
+                  <button
+                    type="button"
+                    disabled={!canPublishFromPreview || publishBusy}
+                    onClick={() => void handleSaveChangesForPendingListing()}
+                    className="inline-flex min-h-[44px] touch-manipulation items-center rounded-full border border-[#3B66AD] bg-white px-4 py-2 text-sm font-bold text-[#3B66AD] shadow-sm transition hover:bg-[#EEF3FB] disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    {publishBusy ? (lang === "en" ? "Saving…" : "Guardando…") : lang === "en" ? "Save changes" : "Guardar cambios"}
+                  </button>
+                ) : null}
+                <a
+                  href="#servicios-publish-checkout-checkpoint"
+                  className="inline-flex min-h-[44px] touch-manipulation items-center rounded-full bg-[#3B66AD] px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699]"
+                >
+                  {listingBoundAwaitsBasePurchase
+                    ? lang === "en"
+                      ? "Complete payment"
+                      : "Completar pago"
+                    : lang === "en"
+                      ? "Continue to payment"
+                      : "Continuar al pago"}
+                </a>
+              </>
             ) : (
               <button
                 type="button"
