@@ -55,6 +55,7 @@ import { BienesRaicesNegocioLiveDetailShell } from "@/app/clasificados/bienes-ra
 import { BienesRaicesPrivadoLiveDetailShell } from "@/app/clasificados/bienes-raices/listing/BienesRaicesPrivadoLiveDetailShell";
 import { resolveBrListingLane } from "@/app/clasificados/bienes-raices/listing/brListingLane";
 import { isBrFsboRowWithinTerm, type BrFsboRowLike } from "@/app/lib/listingLifecycle/bienesFsboLifecycle";
+import { isListingRowWithinEnforcedTerm, type EnforcedTermRowLike } from "@/app/lib/listingLifecycle/enforcedTermReadPredicate";
 import { useRentasAnuncioDerived } from "../../rentas/listing/hooks/useRentasAnuncioDerived";
 import { RentasAnuncioHeroMonthlyRent } from "../../rentas/listing/components/RentasAnuncioHeroMonthlyRent";
 import { RentasAnuncioMetaFactChips } from "../../rentas/listing/components/RentasAnuncioMetaFactChips";
@@ -640,6 +641,15 @@ function AnuncioDetallePageContent() {
         // real `expires_at` are untouched by it. Applied before the parent gate because an expired
         // FSBO row has no parent concept at all.
         if (!isBrFsboRowWithinTerm(row as BrFsboRowLike)) {
+          setFetchedListing(undefined);
+          setRemoteState("ready");
+          return;
+        }
+
+        // 2026-09 category closeout — paid Rentas / Clases terms are enforced on read too: an active
+        // row whose real expires_at has passed fails closed to the same "not found" outcome. Rows
+        // without expires_at and every other category are untouched (shared pure rule).
+        if (!isListingRowWithinEnforcedTerm(row as EnforcedTermRowLike)) {
           setFetchedListing(undefined);
           setRemoteState("ready");
           return;
@@ -1405,6 +1415,7 @@ function AnuncioDetallePageContent() {
           contact_email: listing.contact_email ?? null,
           detailPairs: proseListing!.detailPairs,
           owner_id: listing.owner_id ?? null,
+          leonix_ad_id: listing.leonix_ad_id ?? null,
         }}
         lang={lang}
         skipAnalytics={Boolean(sampleListing)}
@@ -1427,6 +1438,7 @@ function AnuncioDetallePageContent() {
             contact_phone: listing.contact_phone ?? null,
             contact_email: listing.contact_email ?? null,
             detailPairs: proseListing!.detailPairs,
+            leonix_ad_id: listing.leonix_ad_id ?? null,
           }}
           lang={lang}
           skipAnalytics={Boolean(sampleListing)}
@@ -1452,6 +1464,7 @@ function AnuncioDetallePageContent() {
           contact_email: listing.contact_email ?? null,
           detailPairs: proseListing!.detailPairs,
           owner_id: listing.owner_id ?? null,
+          leonix_ad_id: listing.leonix_ad_id ?? null,
         }}
         lang={lang}
         skipAnalytics={Boolean(sampleListing)}

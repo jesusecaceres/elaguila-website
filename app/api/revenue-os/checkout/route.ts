@@ -19,6 +19,7 @@ import {
   AUTOS_PRIVADO_30D_PACKAGE_KEY,
   BR_INVENTORY_PACK_PACKAGE_KEY,
   OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY,
+  EMPLEOS_JOB_POST_PAID_PACKAGE_KEY,
   OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY,
   SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
 } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
@@ -626,6 +627,83 @@ export async function POST(request: NextRequest) {
         { status: 409 },
       );
     }
+  }
+
+  // ── Empleos paid-post pre-flight (2026-09 category closeout) ─────────────────────────────
+  // `empleos_job_post_paid` is not in the shared base-entitlement guard, so a listing that is
+  // already live (or awaiting review after payment, paused, rejected or archived) could be sent
+  // through Stripe again and charged twice for nothing: fulfilment only activates `draft` rows.
+  // Only an owned `draft` post may start this payment.
+  if (packageDef.category === "empleos" && packageDef.packageKey === EMPLEOS_JOB_POST_PAID_PACKAGE_KEY && listingRef) {
+    const { data: empleoRow } = await getAdminSupabase()
+      .from("empleos_public_listings")
+      .select("owner_user_id, lifecycle_status")
+      .eq("id", listingRef)
+      .maybeSingle();
+    const row = empleoRow as { owner_user_id: string | null; lifecycle_status: string | null } | null;
+    if (!row) {
+      return NextResponse.json({ ok: false, code: "empleos_listing_not_found", message: "Empleos listing not found." }, { status: 404 });
+    }
+    if (bearerUserId && row.owner_user_id !== bearerUserId) {
+      return NextResponse.json({ ok: false, code: "empleos_listing_owner_mismatch", message: "This listing belongs to a different account." }, { status: 403 });
+    }
+    if (String(row.lifecycle_status ?? "").toLowerCase() !== "draft") {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "already_published_no_recharge",
+          message: `This job post is already "${row.lifecycle_status}" — no additional payment is needed. Edit it instead of checking out again.`,
+        },
+        { status: 409 },
+      );
+    }
+  }
+
+  // ── Shared `listings` paid-lane pre-flight (2026-09 category closeout) ───────────────────
+  // rentas_30d / br_fsbo_45d / clases_paid_30d have NO base-entitlement guard, and their renewal
+  // validators only run when the client sends operation=renew_listing. Omitting it reached Stripe
+  // for ANY listing id — including a live one (charged, then fulfilment no-ops on already_published)
+  // or another owner's. Fulfilment activates only from `pending`, so only an owned, unpublished,
+  // `pending` row of the matching category may start this payment.
+  const LISTINGS_PAID_BASE_CATEGORY: Record<string, string> = {
+    rentas_30d: "rentas",
+    br_fsbo_45d: "bienes-raices",
+    clases_paid_30d: "clases",
+  };
+  const expectedListingsCategory = LISTINGS_PAID_BASE_CATEGORY[packageDef.packageKey];
+  if (expectedListingsCategory && operationEarly !== "renew_listing" && listingRef) {
+    const { data: listingsRow } = await getAdminSupabase()
+      .from("listings")
+      .select("owner_id, category, status, is_published")
+      .eq("id", listingRef)
+      .maybeSingle();
+    const lr = listingsRow as { owner_id: string | null; category: string | null; status: string | null; is_published: boolean | null } | null;
+    if (!lr || String(lr.category ?? "").trim().toLowerCase() !== expectedListingsCategory) {
+      return NextResponse.json({ ok: false, code: "listing_not_found", message: "Listing not found for this package." }, { status: 404 });
+    }
+    if (bearerUserId && lr.owner_id !== bearerUserId) {
+      return NextResponse.json({ ok: false, code: "listing_owner_mismatch", message: "This listing belongs to a different account." }, { status: 403 });
+    }
+    if (String(lr.status ?? "").toLowerCase() !== "pending" || lr.is_published === true) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "already_published_no_recharge",
+          message: `This listing is already "${lr.status}" — it cannot start a new base payment. Use Renew for an expiring listing, or edit it instead.`,
+        },
+        { status: 409 },
+      );
+    }
+  }
+
+  // viajes_business_monthly is Stripe-eligible in the pricing matrix but has NO fulfilment path
+  // (nothing activates a viajes listing from a payment), so a charge could never deliver anything.
+  // Refuse it until an owner decision either builds fulfilment or removes the paid card.
+  if (packageDef.packageKey === "viajes_business_monthly") {
+    return NextResponse.json(
+      { ok: false, code: "viajes_checkout_not_available", message: "Paid Viajes business checkout is not available yet." },
+      { status: 422 },
+    );
   }
 
   const locale = body.locale === "en" ? "en" : "es";

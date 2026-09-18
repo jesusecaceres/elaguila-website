@@ -1,10 +1,20 @@
 "use client";
 
-import { insertListingsRowResilient } from "@/app/clasificados/lib/listingsSelectShrink";
+import { insertListingsRowResilient, updateListingsRowResilient } from "@/app/clasificados/lib/listingsSelectShrink";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { digitsOnly } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
+
+import {
+  clearSessionPublishAttemptKey,
+  fetchOwnListingIdByPublishAttemptKey,
+  getOrCreateSessionPublishAttemptKey,
+  isPublishAttemptKeyConflict,
+  logQuickListingReuseFailure,
+  quickListingExistingIdentityInvalidMessage,
+  verifyQuickListingReusable,
+} from "@/app/(site)/clasificados/lib/quickListingIdempotency";
 
 import { gateMascotasPerdidosQuickPreview } from "./mascotasPerdidosRequiredForPreview";
 import type { MascotasPerdidosQuickDraft } from "./mascotasPerdidosQuickTypes";
@@ -96,8 +106,11 @@ function orderedImageUrls(images: MascotasPerdidosQuickDraft["images"]): string[
 export async function publishMascotasPerdidosQuickToListings(input: {
   draft: MascotasPerdidosQuickDraft;
   lang: Lang;
+  /** In-flight id of a prior attempt of THIS submission — updated in place, never re-inserted. */
+  existingListingId?: string | null;
+  onListingIdKnown?: (listingId: string) => void;
 }): Promise<MascotasPerdidosQuickPublishToListingsResult> {
-  const { draft: d, lang } = input;
+  const { draft: d, lang, existingListingId, onListingIdKnown } = input;
   const err = (es: string, en: string) => (lang === "es" ? es : en);
 
   const gate = gateMascotasPerdidosQuickPreview(d, lang);
@@ -153,14 +166,57 @@ export async function publishMascotasPerdidosQuickToListings(input: {
     detail_pairs: pairs.length ? pairs : null,
   };
 
-  const ins = await insertListingsRowResilient(supabase, insertPayload);
-  if (ins.error) {
-    return { ok: false, error: ins.error.message };
+  const reuseCheck = existingListingId
+    ? await verifyQuickListingReusable(supabase, {
+        candidateId: existingListingId,
+        ownerUserId: userId,
+        expectedCategory: "mascotas-y-perdidos",
+      })
+    : null;
+
+  let listingId: string | undefined;
+  if (reuseCheck?.safe) {
+    listingId = reuseCheck.listingId;
+    const { category: _category, owner_id: _ownerId, ...updatablePayload } = insertPayload;
+    void _category;
+    void _ownerId;
+    const upd = await updateListingsRowResilient(supabase, listingId, updatablePayload);
+    if (upd.error) {
+      return { ok: false, error: upd.error.message };
+    }
+  } else if (existingListingId) {
+    // An existing-listing intention that fails verification fails CLOSED: never fall back to an
+    // INSERT, or a failed identity check would silently become a second, duplicate row.
+    logQuickListingReuseFailure("mascotas-y-perdidos", reuseCheck!.reason);
+    return { ok: false, error: quickListingExistingIdentityInvalidMessage(lang) };
+  } else {
+    // Session-stable idempotency key (unique index listings_owner_publish_attempt_key_uidx once its
+    // migration is applied; an older DB drops the unknown column and behaves as before).
+    const publishAttemptKey = getOrCreateSessionPublishAttemptKey("mascotas-y-perdidos");
+    if (publishAttemptKey) insertPayload.publish_attempt_key = publishAttemptKey;
+    const ins = await insertListingsRowResilient(supabase, insertPayload);
+    if (ins.error && publishAttemptKey && isPublishAttemptKeyConflict(ins.error)) {
+      const recoveredId = await fetchOwnListingIdByPublishAttemptKey(supabase, {
+        ownerUserId: userId,
+        attemptKey: publishAttemptKey,
+        expectedCategory: "mascotas-y-perdidos",
+      });
+      if (recoveredId) {
+        listingId = recoveredId;
+      } else {
+        return { ok: false, error: ins.error.message };
+      }
+    } else if (ins.error) {
+      return { ok: false, error: ins.error.message };
+    } else {
+      listingId = ins.data?.id;
+    }
+    if (listingId) clearSessionPublishAttemptKey("mascotas-y-perdidos");
   }
-  const listingId = ins.data?.id;
   if (!listingId) {
     return { ok: false, error: err("No se recibió el ID del anuncio.", "No listing id returned.") };
   }
+  onListingIdKnown?.(listingId);
 
   const markPublishFailedNonPublic = async () => {
     await supabase.from("listings").update({ status: "removed", is_published: false }).eq("id", listingId);

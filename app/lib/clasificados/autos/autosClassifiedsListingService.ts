@@ -250,7 +250,10 @@ export async function updateAutosClassifiedsListingDraft(
   }
 
   const recoverableStatus = row.status === "draft" || row.status === "payment_failed" || row.status === "pending_payment";
-  const negociosActiveEditable = row.lane === "negocios" && row.status === "active";
+  // An ACTIVE listing (either lane) may have its content edited in place: this update writes only
+  // listing_payload / lang / updated_at — never status, expires_at or payment fields. (Privado used to
+  // be refused here, so a dashboard edit of a live private listing could never persist.)
+  const negociosActiveEditable = (row.lane === "negocios" || row.lane === "privado") && row.status === "active";
   if (!recoverableStatus && !negociosActiveEditable) {
     return { row: null, persistWarnings: [], errorCode: "AUTOS_LISTING_STATUS_NOT_EDITABLE" };
   }

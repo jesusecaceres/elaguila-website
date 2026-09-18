@@ -32,6 +32,8 @@ type Props = {
   mode: "preview" | "published";
   organizerName: string;
   listingId?: string;
+  /** Stored listings.leonix_ad_id — preferred over the derived LNX- fallback. */
+  leonixAdId?: string | null;
   isOwner?: boolean;
   onShare?: () => void;
   onCopyLink?: () => void;
@@ -47,6 +49,7 @@ export function CommunityQuickPublicDetailSidebar({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   organizerName: _organizerName,
   listingId,
+  leonixAdId: storedLeonixAdId = null,
   isOwner = false,
   onShare,
   onCopyLink,
@@ -54,7 +57,7 @@ export function CommunityQuickPublicDetailSidebar({
 }: Props) {
   const t = COPY[lang];
   const isPreview = mode === "preview";
-  const leonixAdId = !isPreview ? formatLeonixAdId(listingId) : null;
+  const leonixAdId = !isPreview ? formatLeonixAdId(listingId, storedLeonixAdId) : null;
 
   const [viewCount, setViewCount] = useState<number | null>(null);
 

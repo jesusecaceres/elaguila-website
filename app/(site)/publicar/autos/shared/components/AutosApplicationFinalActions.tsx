@@ -43,6 +43,7 @@ export function AutosApplicationFinalActions({
   flushDraft,
   inventoryAddMode = false,
   inventoryAddContext = null,
+  onSaveEdit,
 }: {
   lane: AutosPreviewLane;
   lang: AutosNegociosLang;
@@ -54,6 +55,9 @@ export function AutosApplicationFinalActions({
   flushDraft: () => Promise<void>;
   inventoryAddMode?: boolean;
   inventoryAddContext?: AutosInventoryAddContext | null;
+  /** Dashboard edit of an EXISTING listing: saves to the same row. When set, the "continue to publish"
+   * path (which would POST a NEW listing and start a new charge) is not offered. */
+  onSaveEdit?: () => Promise<{ ok: boolean; message?: string }>;
 }) {
   const router = useRouter();
   const baseId = useId();
@@ -64,6 +68,8 @@ export function AutosApplicationFinalActions({
   const [checks, setChecks] = useState([false, false, false]);
   const [blockedTap, setBlockedTap] = useState<null | "preview" | "publish" | "checks">(null);
   const [continueBusy, setContinueBusy] = useState(false);
+  const [saveBusy, setSaveBusy] = useState(false);
+  const [saveNote, setSaveNote] = useState<{ ok: boolean; text: string } | null>(null);
 
   const allChecks = checks.every(Boolean);
   const publishConfirmHref =
@@ -105,7 +111,7 @@ export function AutosApplicationFinalActions({
   // exclusively from Preview → Checkout Checkpoint → Revenue OS → Stripe → verified webhook.
   // Privado keeps its existing proven "continue to publish" path, and the child-draft
   // "Agregar al inventario" action is NOT public publication, so it stays for both lanes.
-  const showSecondaryContinueButton = publishLane !== "negocios" || inventoryAddMode;
+  const showSecondaryContinueButton = !onSaveEdit && (publishLane !== "negocios" || inventoryAddMode);
 
   return (
     <div className="mt-6 border-t border-[color:var(--lx-nav-border)] pt-6">
@@ -176,6 +182,36 @@ export function AutosApplicationFinalActions({
         >
           {h.openPreview}
         </button>
+        {onSaveEdit ? (
+          <button
+            type="button"
+            className={BTN_SECONDARY}
+            disabled={saveBusy}
+            data-testid="autos-dashboard-edit-save"
+            onClick={() => {
+              if (issues.length > 0) {
+                navigateToFirstBlockingStep();
+                setBlockedTap("preview");
+                return;
+              }
+              setSaveBusy(true);
+              setSaveNote(null);
+              void (async () => {
+                try {
+                  const r = await onSaveEdit();
+                  setSaveNote({
+                    ok: r.ok,
+                    text: r.message ?? (r.ok ? (lang === "es" ? "Cambios guardados." : "Changes saved.") : lang === "es" ? "No se pudo guardar." : "Could not save."),
+                  });
+                } finally {
+                  setSaveBusy(false);
+                }
+              })();
+            }}
+          >
+            {lang === "es" ? "Guardar cambios" : "Save changes"}
+          </button>
+        ) : null}
         {showSecondaryContinueButton ? (
           <button
             type="button"
@@ -206,6 +242,14 @@ export function AutosApplicationFinalActions({
           </button>
         ) : null}
       </div>
+      {saveNote ? (
+        <p
+          className={`mt-3 rounded-[12px] border px-3 py-2 text-[13px] font-medium ${saveNote.ok ? "border-emerald-300/60 bg-emerald-50/90 text-emerald-950" : "border-red-300/60 bg-red-50/90 text-red-950"}`}
+          role="status"
+        >
+          {saveNote.text}
+        </p>
+      ) : null}
       {blockedMessage ? (
         <p
           className="mt-3 rounded-[12px] border border-amber-300/60 bg-amber-50/90 px-3 py-2 text-[13px] font-medium text-amber-950"

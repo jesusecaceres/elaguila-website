@@ -331,11 +331,18 @@ export async function POST(req: Request) {
   let listingIdOut: string | null = null;
   let leonixAdIdOut: string | null = null;
 
-  const { data: existingByDraft, error: exErr } = await supabase
+  // Duplicate-tolerant lookup (2026-09 category closeout): `draft_listing_id` has NO unique index on
+  // restaurantes_public_listings (Comida Local does). Two concurrent first-saves can therefore both
+  // insert, after which `.maybeSingle()` errored on multiple rows and every later edit returned 500.
+  // Take the OLDEST row deterministically instead and address it by primary key below.
+  const { data: existingRowsByDraft, error: exErr } = await supabase
     .from("restaurantes_public_listings")
     .select("id, slug, leonix_verified, status, promoted, package_tier, owner_user_id, leonix_ad_id, listing_json")
     .eq("draft_listing_id", draft.draftListingId)
-    .maybeSingle();
+    .order("published_at", { ascending: true, nullsFirst: false })
+    .order("id", { ascending: true })
+    .limit(1);
+  const existingByDraft = (existingRowsByDraft ?? [])[0] ?? null;
 
   if (exErr) {
     return NextResponse.json({ ok: false, error: "db_read_failed", detail: exErr.message }, { status: 500 });
@@ -472,7 +479,7 @@ export async function POST(req: Request) {
           ...baseRow,
           updated_at: now,
         })
-        .eq("draft_listing_id", draft.draftListingId)
+        .eq("id", existingListingId as string)
         .eq("status", statusDecision.targetStatus)
         .select("id")
         .maybeSingle();

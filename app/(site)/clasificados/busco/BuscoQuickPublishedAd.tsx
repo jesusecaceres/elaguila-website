@@ -16,6 +16,8 @@ export type BuscoPublishedListingLike = {
   contact_phone?: string | null;
   contact_email?: string | null;
   detailPairs?: unknown;
+  /** Stored listings.leonix_ad_id (preferred over the derived LNX- fallback). */
+  leonix_ad_id?: string | null;
 };
 
 export function BuscoQuickPublishedAd({ listing, lang }: { listing: BuscoPublishedListingLike; lang: Lang }) {

@@ -87,6 +87,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     });
     if (!empleosRowIsPublicLive(rowRec)) {
       patch.lifecycle_status = "published";
+      patch.moderation_reason = null;
     }
     const { error } = await supabase.from("empleos_public_listings").update(patch).eq("id", id);
     if (error) {
@@ -109,9 +110,12 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   switch (action) {
     case "suspend":
       patch.lifecycle_status = "paused";
+      // Marker so the owner-side policy cannot self-resume a STAFF suspension.
+      patch.moderation_reason = "staff_suspended";
       break;
     case "unsuspend":
       patch.lifecycle_status = "published";
+      patch.moderation_reason = null;
       break;
     case "promote_on":
       patch.admin_promoted = true;

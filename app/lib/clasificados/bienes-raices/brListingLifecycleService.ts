@@ -29,6 +29,8 @@ import {
   type CapacityActivationBlockedReason,
 } from "@/app/lib/listingPlans/capacityActivationRpc";
 import { BR_CAPACITY_RPC_UNAVAILABLE } from "@/app/lib/clasificados/bienes-raices/brCapacityOwnerFeedback";
+import { fetchAddonEntitlementsForListings } from "@/app/lib/listingPlans/addonEntitlementReader";
+import { brPublishPaymentRequired } from "./brPublishPaymentPolicy";
 import {
   BR_LIFECYCLE_AUTH_REQUIRED_ERROR,
   BR_LIFECYCLE_CHILD_CASCADE_FAILED_ERROR,
@@ -380,6 +382,23 @@ async function applyBrResume(row: BrListingRowForPayment): Promise<BrLifecycleMu
 async function applyBrActivatePending(row: BrListingRowForPayment): Promise<BrLifecycleMutationResult> {
   if (!brActivatePendingEligible(row)) {
     return { ok: false, error: BR_LIFECYCLE_TRANSITION_NOT_ALLOWED_ERROR };
+  }
+
+  // 2026-09 category closeout — the atomic RPC deliberately tolerates "no entitlement yet" for a main
+  // row (the paid webhook activates before its entitlement is written, and that path does NOT come
+  // through here). This owner-facing route therefore must not: without a check, an owner's own
+  // pending main row could be brought live for free. Outside the dev/QA payment bypass, a main (or
+  // legacy null-role) row needs an ACTIVE paid br_agent_monthly entitlement; children are already
+  // gated by the active parent + pack capacity below.
+  if (row.inventory_role !== "inventory_property" && brPublishPaymentRequired("negocio")) {
+    const ent = await fetchAddonEntitlementsForListings({
+      category: "bienes-raices",
+      packageKey: "br_agent_monthly",
+      listingIds: [row.id],
+    });
+    if (ent.get(row.id)?.status !== "active") {
+      return { ok: false, error: BR_LIFECYCLE_TRANSITION_NOT_ALLOWED_ERROR };
+    }
   }
 
   if (row.inventory_role === "inventory_property") {

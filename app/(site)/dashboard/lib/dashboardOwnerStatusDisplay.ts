@@ -75,6 +75,10 @@ const RESTAURANTES_STATUS_MAP: Record<string, ListingLifecycleStatus> = {
   published: "published",
   suspended: "suspended",
   archived: "archived",
+  // 2026-09 category closeout — migration 20260703120000 (restaurantes_pending_payment_status) added
+  // `pending_payment` (the hidden pre-checkout save). Unmapped, an unpaid restaurant showed as
+  // "unknown / needs attention" instead of "awaiting payment".
+  pending_payment: "pending_payment",
 };
 
 function mapCategoryStatusToCanonical(category: string, raw: string): ListingLifecycleStatus | null {

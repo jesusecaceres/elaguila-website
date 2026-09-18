@@ -53,6 +53,8 @@ const ALLOWED_ADMIN_STATUS = new Set([
   "pending_payment",
 ]);
 
+const ADMIN_SEARCH_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function normalizeAdminRow(raw: Record<string, unknown>): ComidaLocalAdminListingRow {
   return raw as ComidaLocalAdminListingRow;
 }
@@ -92,6 +94,9 @@ export async function listAdminComidaLocalListings(
   const search = filters.q?.trim();
   if (search) {
     const like = `%${search}%`;
+    // `id` / `owner_user_id` are uuid columns: an `.eq.` on free text made the WHOLE query error, and the
+    // error was swallowed into an empty list (a Leonix Ad ID search silently returned nothing).
+    const isUuidSearch = ADMIN_SEARCH_UUID_RE.test(search);
     query = query.or(
       [
         `leonix_ad_id.ilike.${like}`,
@@ -99,8 +104,7 @@ export async function listAdminComidaLocalListings(
         `business_name.ilike.${like}`,
         `city_display.ilike.${like}`,
         `city_canonical.ilike.${like}`,
-        `id.eq.${search}`,
-        `owner_user_id.eq.${search}`,
+        ...(isUuidSearch ? [`id.eq.${search}`, `owner_user_id.eq.${search}`] : []),
       ].join(",")
     );
   }

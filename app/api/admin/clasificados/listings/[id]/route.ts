@@ -1,3 +1,4 @@
+import { decideAdminReactivation } from "@/app/admin/_lib/adminReactivationPolicy";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
@@ -121,6 +122,10 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       last_republished_by: null,
     };
     const republishReactivates = !listingsRowIsPublicLive(rowRec);
+    if (republishReactivates) {
+      const gate = decideAdminReactivation({ category, status: String(rowRec.status ?? "") });
+      if (gate.blocked) return NextResponse.json({ ok: false, error: gate.code, message: gate.message }, { status: 409 });
+    }
     const republishReactivatesBrNegocio = republishReactivates && category.toLowerCase() === "bienes-raices";
     if (republishReactivatesBrNegocio) {
       // Package C Build 4 (C7, Gate 4) — reactivating a bienes-raices row via republish is
@@ -193,6 +198,11 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       rowRec.inventory_role === "inventory_property" ||
       rowRec.inventory_role === null ||
       rowRec.inventory_role === undefined);
+
+  if (action === "unsuspend") {
+    const gate = decideAdminReactivation({ category, status: String(rowRec.status ?? "") });
+    if (gate.blocked) return NextResponse.json({ ok: false, error: gate.code, message: gate.message }, { status: 409 });
+  }
 
   if (action === "unsuspend" && isBrNegocioCapacityRow) {
     const rpcResult = await activateBrNegocioListingAtomic({

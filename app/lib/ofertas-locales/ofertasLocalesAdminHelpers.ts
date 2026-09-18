@@ -223,6 +223,8 @@ export type OfertasLocalesAdminListFilters = {
   owner_id?: string;
 };
 
+const ADMIN_SEARCH_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function parseAssetArray(raw: unknown): OfertaLocalPublishedAssetMetadata[] {
   if (!Array.isArray(raw)) return [];
   const out: OfertaLocalPublishedAssetMetadata[] = [];
@@ -555,7 +557,7 @@ export async function listOfertasLocalesAdminRows(
         `city.ilike.${like}`,
         `zip_code.ilike.${like}`,
         `leonix_ad_id.ilike.${like}`,
-        `id.eq.${search}`,
+        ...(ADMIN_SEARCH_UUID_RE.test(search) ? [`id.eq.${search}`] : []),
       ].join(",")
     );
   }

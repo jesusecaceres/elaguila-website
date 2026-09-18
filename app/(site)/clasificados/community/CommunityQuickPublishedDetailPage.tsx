@@ -34,6 +34,7 @@ type Listing = {
   contact_email?: string | null;
   detailPairs?: unknown;
   owner_id?: string | null;
+  leonix_ad_id?: string | null;
 };
 
 const TOP_COPY = {
@@ -110,7 +111,7 @@ export function CommunityQuickPublishedDetailPage({
   const [reportDone, setReportDone] = useState(false);
   const [publishSuccessVisible, setPublishSuccessVisible] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
-  const leonixAdId = formatLeonixAdId(listing.id);
+  const leonixAdId = formatLeonixAdId(listing.id, listing.leonix_ad_id);
 
   const isOwner = Boolean(
     viewerUserId && listing.owner_id && String(listing.owner_id) === String(viewerUserId),
@@ -309,6 +310,7 @@ export function CommunityQuickPublishedDetailPage({
             mode="published"
             organizerName={organizerName}
             listingId={listing.id}
+            leonixAdId={listing.leonix_ad_id ?? null}
             isOwner={isOwner}
             onShare={() => void handleShare()}
             onCopyLink={() => void copyText(typeof window !== "undefined" ? window.location.href : "")}

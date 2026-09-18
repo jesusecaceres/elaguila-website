@@ -837,8 +837,12 @@ function ListingWorkspacePageContent() {
 
   const displayLeonixAdId = useMemo(() => {
     if (!row) return "";
+    // The STORED Leonix Ad ID wins for every category; the derived LNX- form is only a fallback for a
+    // Busco row that has none.
+    const stored = (row.leonix_ad_id ?? "").trim();
+    if (stored) return stored;
     if ((row.category ?? "").toLowerCase() === "busco") return formatLeonixAdId(row.id) ?? "";
-    return (row.leonix_ad_id ?? "").trim();
+    return "";
   }, [row]);
 
   return (

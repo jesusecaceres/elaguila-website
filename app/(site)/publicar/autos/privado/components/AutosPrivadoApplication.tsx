@@ -51,6 +51,7 @@ import { AutosVinDecodeBlock } from "@/app/publicar/autos/shared/components/Auto
 import { AutosDraftSessionRestoredBanner } from "@/app/publicar/autos/shared/components/AutosDraftSessionRestoredBanner";
 import { AutosPricingPlanBanner } from "@/app/publicar/autos/shared/components/AutosPricingPlanBanner";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import { saveAutosPrivadoDashboardEdit } from "@/app/clasificados/autos/privado/lib/saveAutosPrivadoDashboardEdit";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)] sm:p-6";
@@ -752,6 +753,20 @@ export function AutosPrivadoApplication() {
               listing={listing}
               stepCtx={ctx}
               flushDraft={flushDraft}
+              onSaveEdit={
+                isDashboardListingEditMode
+                  ? async () => {
+                      const sb = createSupabaseBrowserClient();
+                      const { data } = await sb.auth.getSession();
+                      const token = data.session?.access_token;
+                      if (!token?.trim()) {
+                        return { ok: false, message: lang === "es" ? "Inicia sesión para guardar." : "Sign in to save." };
+                      }
+                      const r = await saveAutosPrivadoDashboardEdit({ listing, lang: lang === "en" ? "en" : "es", accessToken: token, listingId: editListingId });
+                      return r.ok ? { ok: true } : { ok: false, message: r.userMessage };
+                    }
+                  : undefined
+              }
               onPreview={async () => {
                 const finalStep = AUTOS_PUBLISH_FINAL_STEP_INDEX;
                 setEditorProgress(finalStep, Math.max(editorMaxReached, finalStep));

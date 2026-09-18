@@ -135,6 +135,9 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       patch.status = "active" satisfies AutosClassifiedsListingStatus;
       patch.published_at = row.published_at ?? now;
     }
+    // Staff reactivation lifts the staff-moderation marker (otherwise a later owner unpublish/restore
+    // cycle would be blocked forever by a suspension staff has already lifted).
+    if (republishReactivates) patch.suspended_reason = null;
     const { error } = await supabase.from("autos_classifieds_listings").update(patch).eq("id", id);
     if (error) {
       return NextResponse.json({ ok: false, error: error.message }, { status: 500 });

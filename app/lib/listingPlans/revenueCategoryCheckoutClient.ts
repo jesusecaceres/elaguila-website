@@ -53,6 +53,7 @@ export async function startRevenueCategoryCheckout(
       checkoutUrl?: string;
       paymentRecordId?: string;
       message?: string;
+      code?: string;
     };
 
     if (res.ok && j.ok && typeof j.checkoutUrl === "string" && j.checkoutUrl.trim()) {
@@ -60,6 +61,18 @@ export async function startRevenueCategoryCheckout(
         ok: true,
         checkoutUrl: j.checkoutUrl.trim(),
         paymentRecordId: j.paymentRecordId,
+      };
+    }
+
+    // The server refuses a second base payment for a listing that is already live / entitled.
+    // That is a success for the owner (their edit is saved), not a "checkout error".
+    if (!res.ok && (j.code === "active_entitlement_no_recharge" || j.code === "already_published_no_recharge")) {
+      return {
+        ok: false,
+        userMessage:
+          lang === "es"
+            ? "Tus cambios se guardaron. Este anuncio ya tiene un paquete activo, así que no se requiere otro pago."
+            : "Your changes are saved. This listing already has an active package, so no additional payment is needed.",
       };
     }
 

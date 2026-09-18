@@ -229,7 +229,7 @@ export function buscoViewModelFromPublished(
     mapQuery: loc.mapQuery,
     ...contact,
     ...social,
-    leonixAdId: formatLeonixAdId(listing.id),
+    leonixAdId: formatLeonixAdId(listing.id, listing.leonix_ad_id),
     listingId: listing.id,
   };
 }

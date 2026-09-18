@@ -169,9 +169,10 @@ function clasificadosLeonixAdminLine(row: Row, detailPairsAvailable: boolean): s
 
 function adminDisplayLeonixAdId(row: Row): string {
   const cat = (row.category ?? "").toLowerCase();
-  if (cat === "clases" || cat === "comunidad" || cat === "busco") return formatLeonixAdId(row.id) ?? "—";
+  // Stored Leonix Ad ID first (what search / payments / support use); derived LNX- only as a fallback.
   const stored = row.leonix_ad_id?.trim();
   if (stored) return stored;
+  if (cat === "clases" || cat === "comunidad" || cat === "busco") return formatLeonixAdId(row.id) ?? "—";
   return "—";
 }
 
