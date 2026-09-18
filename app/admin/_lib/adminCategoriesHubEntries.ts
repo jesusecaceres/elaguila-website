@@ -23,6 +23,24 @@ const SUPPLEMENTAL_HUB_ENTRIES: AdminCategoriesHubEntry[] = [
     configLayer: "code",
     overlayNotes: null,
   },
+  {
+    // Ofertas Locales has a real Admin queue (`/admin/workspace/clasificados/ofertas-locales`) and its own
+    // paid flyer circuit, but no `categoryConfig` schema — so the hub only lists it through this
+    // supplemental entry, backed by its ops-contract row. Iglesias / Recursos are NOT classifieds.
+    slug: "ofertas-locales",
+    displayNameEs: "Ofertas Locales",
+    displayNameEn: "Local Offers",
+    emoji: "🏷️",
+    sortOrder: 910,
+    visibility: "public",
+    operationalStatus: "staged",
+    landingTarget: "/clasificados/ofertas-locales",
+    notes: "Dedicated table ofertas_locales; paid flyer (30d) → admin review → public offers.",
+    readiness: "partial",
+    highlight: false,
+    configLayer: "code",
+    overlayNotes: null,
+  },
 ];
 
 /** Registry rows plus supplemental ops categories missing from categoryConfig. */

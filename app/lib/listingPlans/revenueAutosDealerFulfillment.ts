@@ -9,6 +9,7 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 import {
   getAutosClassifiedsListingById,
+  isAutosListingPayableStatus,
   tryActivateAutosListingAfterPayment,
 } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
 import {
@@ -174,7 +175,7 @@ export async function activatePaidAutosDealerListingFromRevenueOs(input: {
     };
   }
 
-  if (row.status !== "pending_payment" && row.status !== "active") {
+  if (!isAutosListingPayableStatus(row.status) && row.status !== "active") {
     return {
       ok: false,
       outcome: "unsafe_status",

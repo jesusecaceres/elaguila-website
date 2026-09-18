@@ -34,6 +34,13 @@ export type AutosClassifiedsListingRow = {
   published_at: string | null;
   /** Fixed-term (Privado only) expiration — `20260910120000_autos_privado_lifecycle_expires_at.sql`. Always null for dealer/negocios rows. */
   expires_at?: string | null;
+  /**
+   * Why a non-live status was applied (`20260805090500_lane_listing_suspended_reason.sql`).
+   * `moderation` = staff suspend / remove-public: NOT owner-reversible. `payment` = payment engine.
+   * NULL on rows the owner unpublished themselves (and on legacy staff removals written before this
+   * field was set — those remain indistinguishable from an owner unpublish).
+   */
+  suspended_reason?: string | null;
   created_at: string;
   updated_at: string;
 };

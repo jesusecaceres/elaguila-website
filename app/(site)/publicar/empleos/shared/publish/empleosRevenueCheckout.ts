@@ -10,6 +10,11 @@ import {
 } from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
 import { EMPLEOS_PAID_JOB_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import {
+  clearEmpleosPendingCheckoutListingId,
+  readEmpleosPendingCheckoutListingId,
+  rememberEmpleosPendingCheckoutListingId,
+} from "./empleosPendingCheckoutIdentity";
 
 export async function saveEmpleosDraftAndStartPaidJobCheckout(input: {
   envelope: EmpleosPublishEnvelope;
@@ -19,20 +24,34 @@ export async function saveEmpleosDraftAndStartPaidJobCheckout(input: {
   promoCode?: string | null;
 }): Promise<{ ok: true } | { ok: false; message: string }> {
   const lang = input.lang === "en" ? "en" : "es";
-  const res = await fetch("/api/clasificados/empleos/listings", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${input.accessToken}`,
-    },
-    body: JSON.stringify({ envelope: input.envelope, mode: "draft" }),
-  });
-  const json = (await res.json()) as {
-    ok?: boolean;
-    error?: string;
-    id?: string;
-    leonix_ad_id?: string | null;
+  const storage = typeof window !== "undefined" ? window.sessionStorage : null;
+  const identityKey = { lane: String(input.envelope.lane), title: input.envelope.payload.data.title };
+  const rememberedId = input.envelope.listingId ? null : readEmpleosPendingCheckoutListingId(storage, identityKey);
+
+  type SaveJson = { ok?: boolean; error?: string; id?: string; leonix_ad_id?: string | null };
+  const save = async (listingId: string | null): Promise<{ res: Response; json: SaveJson }> => {
+    const res = await fetch("/api/clasificados/empleos/listings", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${input.accessToken}`,
+      },
+      body: JSON.stringify({ envelope: listingId ? { ...input.envelope, listingId } : input.envelope, mode: "draft" }),
+    });
+    return { res, json: (await res.json()) as SaveJson };
   };
+
+  // Reuse the row this application already created; if the server rejects the remembered id
+  // (stale / other owner / other lane), forget it and save once as a fresh application.
+  let saved = await save(rememberedId);
+  if (rememberedId && !saved.res.ok && [400, 403, 404].includes(saved.res.status)) {
+    clearEmpleosPendingCheckoutListingId(storage);
+    saved = await save(null);
+  }
+  const { res, json } = saved;
+  if (res.ok && json.ok && json.id) {
+    rememberEmpleosPendingCheckoutListingId(storage, { ...identityKey, listingId: json.id });
+  }
   if (!res.ok || !json.ok || !json.id) {
     return {
       ok: false,

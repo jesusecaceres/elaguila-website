@@ -27,6 +27,12 @@ import { checkStripeApiKeyLive, isRevenueStripeConfigured } from "@/app/lib/list
 import { resolveLeonixResendConfig } from "@/app/lib/email/leonixResendConfig";
 import { isTwilioVerifyConfigured } from "@/app/lib/sms/twilioVerifyProvider";
 import { getOpenAiModerationApiKey } from "./listingAiModerationEngine";
+import {
+  classifyRevenueWebhookHealth,
+  classifyStripeKeyMode,
+  REVENUE_WEBHOOK_PROOF_WINDOW_DAYS,
+  type RevenueWebhookLedgerSummary,
+} from "./revenueWebhookHealth";
 import { isWebPushConfigured } from "@/app/lib/digitalContact/humanConnection/webPushConfig";
 import { createDailyVideoProvider } from "@/app/lib/digitalContact/humanConnection/providers/dailyProvider";
 import type {
@@ -129,6 +135,74 @@ async function buildStripeHealthComponent(
   };
 }
 
+/**
+ * Revenue OS webhook circuit (2026-09-18 production forensic): reads ONLY this runtime's env-var
+ * presence (never values) plus the local webhook event ledger. See revenueWebhookHealth.ts for the
+ * CONFIG PRESENT / RUNTIME PROOF / RECENT FAILURE separation and the ledger's known blind spot.
+ */
+async function buildRevenueWebhookHealthComponent(
+  supabase: ReturnType<typeof getAdminSupabase> | null,
+): Promise<LeoSystemHealthComponent> {
+  const secretKey = process.env.STRIPE_SECRET_KEY?.trim() || "";
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET?.trim() || "";
+  let supabaseProjectRef: string | null = null;
+  try {
+    const host = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").hostname;
+    supabaseProjectRef = host.split(".")[0] || null;
+  } catch {
+    supabaseProjectRef = null;
+  }
+
+  let ledger: RevenueWebhookLedgerSummary = {
+    available: false,
+    lastReceivedAt: null,
+    lastCheckoutCompletedAt: null,
+    failedRetryable7d: 0,
+    failedTerminal7d: 0,
+    latestLivemode: null,
+  };
+  if (supabase) {
+    try {
+      const since = new Date(Date.now() - REVENUE_WEBHOOK_PROOF_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
+      const { data, error } = await supabase
+        .from("leonix_stripe_webhook_events")
+        .select("status, event_type, livemode, received_at")
+        .gte("received_at", since)
+        .order("received_at", { ascending: false })
+        .limit(200);
+      if (!error) {
+        const rows = (data ?? []) as { status: string; event_type: string; livemode: boolean | null; received_at: string }[];
+        const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+        ledger = {
+          available: true,
+          lastReceivedAt: rows[0]?.received_at ?? null,
+          lastCheckoutCompletedAt:
+            rows.find((r) => r.event_type === "checkout.session.completed" && r.status === "completed")?.received_at ?? null,
+          failedRetryable7d: rows.filter((r) => r.status === "failed_retryable" && new Date(r.received_at).getTime() >= weekAgo).length,
+          failedTerminal7d: rows.filter((r) => r.status === "failed_terminal" && new Date(r.received_at).getTime() >= weekAgo).length,
+          latestLivemode: rows[0]?.livemode ?? null,
+        };
+      }
+    } catch {
+      /* stays available:false — reported as unreadable, never as "no traffic" */
+    }
+  }
+
+  const health = classifyRevenueWebhookHealth({
+    stripeSecretKeyPresent: Boolean(secretKey),
+    keyMode: classifyStripeKeyMode(secretKey),
+    webhookSecretPresent: Boolean(webhookSecret),
+    supabaseProjectRef,
+    ledger,
+  });
+  return {
+    key: "revenue_webhook",
+    label: "Revenue OS webhook (payment → listing activation)",
+    state: health.state,
+    ownerMessage: health.message,
+  };
+}
+
 function overallFromComponents(states: LeoSystemHealthState[]): LeoSystemHealthState {
   if (states.some((s) => s === "UNAVAILABLE")) return "DEGRADED";
   if (states.some((s) => s === "DEGRADED")) return "DEGRADED";
@@ -202,6 +276,7 @@ export async function buildAdminSystemHealthSnapshot(): Promise<LeoSystemHealthS
   // or exposes the credential values themselves.
   const stripeConfigured = isRevenueStripeConfigured();
   components.push(await buildStripeHealthComponent(stripeConfigured, configured ? getAdminSupabase() : null));
+  components.push(await buildRevenueWebhookHealthComponent(configured ? getAdminSupabase() : null));
 
   const emailConfig = resolveLeonixResendConfig();
   components.push({

@@ -8,6 +8,15 @@ import {
   type PaymentStatus,
 } from "@/app/lib/listingPlans/paymentTracking";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
+import { adminCategoryWorkspaceQueueHref } from "@/app/admin/_lib/adminCategoryWorkspaceQueueHref";
+import { derivePaymentCircuit, type PaymentCircuit } from "./paymentCircuit";
+import {
+  classifyPublication,
+  publicationSourceForCategory,
+  PUBLICATION_SOURCE_SELECT,
+  type PublicationSource,
+  type PublicationTruth,
+} from "./publicationSemantics";
 
 export type LeonixPaymentRecordRow = {
   id: string;
@@ -69,6 +78,16 @@ export type LeonixPaymentRecordRow = {
   verified_intro_discount_phone_masked: string | null;
   verified_intro_discount_business_identity_type: string | null;
   verified_intro_discount_business_identity_fallback_reason: string | null;
+  /** Gate 2/12 — read-only enrichment: never a DB column, never written back. */
+  billing_mode: string | null;
+  /** The category's OWN listing row read through the shared publication semantics (null when the
+   * category/row has no safe canonical lookup). Payment truth stays separate from this. */
+  publication: PublicationTruth | null;
+  /** Read-only link into the canonical Admin category queue, pre-filtered by Leonix Ad ID / listing id. */
+  listing_admin_href: string | null;
+  /** Most recent webhook-ledger row linked to this payment record (completed fulfilments only link). */
+  webhook_diag: { status: string; resultCode: string | null; receivedAt: string | null } | null;
+  circuit: PaymentCircuit | null;
 };
 
 export type PaymentTrackerSnapshot = {
@@ -146,7 +165,84 @@ function rowFromDb(raw: Record<string, unknown>): LeonixPaymentRecordRow {
     verified_intro_discount_phone_masked: null,
     verified_intro_discount_business_identity_type: null,
     verified_intro_discount_business_identity_fallback_reason: null,
+    billing_mode: raw.billing_mode != null ? String(raw.billing_mode) : null,
+    publication: null,
+    listing_admin_href: null,
+    webhook_diag: null,
+    circuit: null,
   };
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Gate 2/12 — batch-read each row's OWN canonical listing (per category table) and the webhook
+ * ledger rows linked to these payment records. Read-only; a failed lookup degrades to an honest
+ * "lookup failed" instead of a guess.
+ */
+async function loadListingAndWebhookTruth(rows: LeonixPaymentRecordRow[]): Promise<{
+  publicationByRowId: Map<string, PublicationTruth>;
+  webhookByPaymentId: Map<string, { status: string; resultCode: string | null; receivedAt: string | null }>;
+}> {
+  const supabase = getAdminSupabase();
+  const publicationByRowId = new Map<string, PublicationTruth>();
+  const webhookByPaymentId = new Map<string, { status: string; resultCode: string | null; receivedAt: string | null }>();
+
+  const idsBySource = new Map<PublicationSource, Set<string>>();
+  for (const r of rows) {
+    const src = publicationSourceForCategory(r.category);
+    if (!src || !r.listing_id || !UUID_RE.test(r.listing_id)) continue;
+    if (!idsBySource.has(src)) idsBySource.set(src, new Set());
+    idsBySource.get(src)!.add(r.listing_id);
+  }
+  for (const [src, idSet] of idsBySource) {
+    const ids = [...idSet].slice(0, 100);
+    let byId = new Map<string, Record<string, unknown>>();
+    let failed = false;
+    try {
+      const { data, error } = await supabase.from(src).select(PUBLICATION_SOURCE_SELECT[src]).in("id", ids);
+      if (error) failed = true;
+      else byId = new Map(((data ?? []) as unknown as Record<string, unknown>[]).map((d) => [String(d.id), d]));
+    } catch {
+      failed = true;
+    }
+    for (const r of rows) {
+      if (publicationSourceForCategory(r.category) !== src || !r.listing_id || !UUID_RE.test(r.listing_id)) continue;
+      publicationByRowId.set(
+        r.id,
+        failed
+          ? { semantic: "UNKNOWN", reason: "Listing lookup failed (query error) — state could not be read.", rawStatus: null, source: src }
+          : classifyPublication(src, byId.get(r.listing_id) ?? null, { paymentCleared: isPaymentCleared(normalizePaymentStatus(r.payment_status)) }),
+      );
+    }
+  }
+
+  const paymentIds = rows.map((r) => r.id).slice(0, 100);
+  if (paymentIds.length > 0) {
+    try {
+      const { data } = await supabase
+        .from("leonix_stripe_webhook_events")
+        .select("payment_record_id, status, result_code, received_at")
+        .in("payment_record_id", paymentIds)
+        .order("received_at", { ascending: false });
+      for (const e of (data ?? []) as { payment_record_id: string; status: string; result_code: string | null; received_at: string | null }[]) {
+        if (!webhookByPaymentId.has(e.payment_record_id)) {
+          webhookByPaymentId.set(e.payment_record_id, { status: e.status, resultCode: e.result_code, receivedAt: e.received_at });
+        }
+      }
+    } catch {
+      /* ledger unreadable → no webhook_diag; the circuit text never claims one exists */
+    }
+  }
+  return { publicationByRowId, webhookByPaymentId };
+}
+
+function adminQueueLinkFor(row: LeonixPaymentRecordRow): string | null {
+  if (!publicationSourceForCategory(row.category) || !row.category) return null;
+  const q = row.leonix_ad_id || row.listing_id;
+  if (!q) return null;
+  const base = adminCategoryWorkspaceQueueHref(row.category.trim().toLowerCase().replace(/_/g, "-"));
+  return `${base}${base.includes("?") ? "&" : "?"}q=${encodeURIComponent(q)}`;
 }
 
 async function enrichPaymentTrackerRows(
@@ -235,12 +331,39 @@ async function enrichPaymentTrackerRows(
     }
   }
 
+  const { publicationByRowId, webhookByPaymentId } = await loadListingAndWebhookTruth(rows);
+
   return rows.map((row) => {
     const verifiedIntro = row.verified_intro_discount_redemption_id
       ? verifiedIntroById.get(row.verified_intro_discount_redemption_id) ?? null
       : null;
+    const entitlementStatus = row.package_entitlement_id
+      ? entitlementStatusById.get(row.package_entitlement_id) ?? "missing"
+      : null;
+    const subscriptionStatus = (row as { stripe_subscription_id?: string | null }).stripe_subscription_id
+      ? subscriptionStatusBySubId.get(
+          String((row as { stripe_subscription_id?: string | null }).stripe_subscription_id),
+        ) ?? null
+      : null;
+    const publication = publicationByRowId.get(row.id) ?? null;
+    const webhookDiag = webhookByPaymentId.get(row.id) ?? null;
     return {
       ...row,
+      publication,
+      webhook_diag: webhookDiag,
+      listing_admin_href: adminQueueLinkFor(row),
+      circuit: derivePaymentCircuit({
+        paymentStatus: row.payment_status,
+        source: row.source,
+        hasCheckoutSession: Boolean(row.stripe_checkout_session_id),
+        hasListingId: Boolean(row.listing_id),
+        billingMode: row.billing_mode,
+        packageEntitlementId: row.package_entitlement_id,
+        entitlementStatus,
+        subscriptionStatus,
+        listing: publication,
+        webhook: webhookDiag,
+      }),
       entitlement_status: row.package_entitlement_id
         ? entitlementStatusById.get(row.package_entitlement_id) ?? "missing"
         : null,

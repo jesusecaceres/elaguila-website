@@ -27,7 +27,11 @@ import {
   validateOfertasLocalesCheckoutOwnership,
 } from "@/app/lib/ofertas-locales/ofertasLocalesCommercialServer";
 import type { OfertaLocalCommercialProduct } from "@/app/lib/ofertas-locales/ofertasLocalesCommercial";
-import { setAutosListingPendingPayment } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
+import {
+  getAutosClassifiedsListingById,
+  isAutosListingPayableStatus,
+  setAutosListingPendingPayment,
+} from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
 import {
   attachStripeSessionToPaymentRecord,
   attachPromoRedemptionToPaymentRecord,
@@ -586,6 +590,44 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // ── Autos base-package pre-flight (2026-09-18 publication-circuit audit) ─────────────────
+  // This route flips the Autos listing to `pending_payment` after the Stripe session is created.
+  // That write used to be unconditional: any caller who knew a public vehicle UUID could POST a base
+  // checkout for it and take a LIVE listing offline. Refuse BEFORE any Stripe session / payment
+  // record exists when the listing is missing, owned by someone else (when the caller is
+  // authenticated), or not in a pre-payment status. Renewals have their own ownership gate above.
+  if (
+    packageDef.category === "autos" &&
+    !isAutosPrivadoRenewalEarly &&
+    (packageDef.packageKey === AUTOS_PRIVADO_30D_PACKAGE_KEY ||
+      packageDef.packageKey === AUTOS_DEALER_MONTHLY_PACKAGE_KEY) &&
+    listingRef
+  ) {
+    const autosRow = await getAutosClassifiedsListingById(listingRef);
+    if (!autosRow) {
+      return NextResponse.json(
+        { ok: false, code: "autos_listing_not_found", message: "Autos listing not found." },
+        { status: 404 },
+      );
+    }
+    if (bearerUserId && autosRow.owner_user_id !== bearerUserId) {
+      return NextResponse.json(
+        { ok: false, code: "autos_listing_owner_mismatch", message: "This listing belongs to a different account." },
+        { status: 403 },
+      );
+    }
+    if (!isAutosListingPayableStatus(autosRow.status)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "autos_listing_not_payable",
+          message: `This listing is "${autosRow.status}" and cannot start a new base payment. Only draft, pending-payment or payment-failed listings can be paid for.`,
+        },
+        { status: 409 },
+      );
+    }
+  }
+
   const locale = body.locale === "en" ? "en" : "es";
   const isRestauranteAddonOnly =
     packageDef.packageKey === RESTAURANTES_OFFERS_ADDON_PACKAGE_KEY &&
@@ -969,7 +1011,16 @@ export async function POST(request: NextRequest) {
       packageDef.packageKey === AUTOS_DEALER_MONTHLY_PACKAGE_KEY) &&
     listingRef
   ) {
-    await setAutosListingPendingPayment(listingRef, stripeResult.sessionId);
+    const flipped = await setAutosListingPendingPayment(listingRef, stripeResult.sessionId);
+    if (!flipped) {
+      // Pre-flight passed a moment ago, so this is a race (status changed between the read and the
+      // conditional write). Leave the listing untouched — never force a status — and make it visible.
+      console.error("[revenue-os checkout] autos listing was not flipped to pending_payment", {
+        listingId: listingRef,
+        packageKey: packageDef.packageKey,
+        paymentRecordId: paymentInsert.paymentRecordId,
+      });
+    }
   }
 
   return NextResponse.json({

@@ -226,7 +226,11 @@ function EmpleosEmployerDashboardPageContent() {
           }
           if (
             isLiveCapability(capabilities.lifecycle.reactivate) &&
-            (r.lifecycle_status === "paused" || r.lifecycle_status === "archived" || r.lifecycle_status === "draft")
+            // A paid-lane draft only goes live through payment (server enforces it); do not offer a
+            // "resume" button that cannot succeed. Free-lane (feria) drafts may still be published.
+            (r.lifecycle_status === "paused" ||
+              r.lifecycle_status === "archived" ||
+              (r.lifecycle_status === "draft" && r.lane === "feria"))
           ) {
             lifecycleActions.push({
               label: resumeListingLabel(lang),
