@@ -6,7 +6,7 @@ Owner decision **D3**: the Spanish text seeded by TODAY-1 (`20260807120000_busin
 
 **Rule of the repair:** only diacritics (á é í ó ú ñ ü) and the opening marks ¿ ¡ may change. For every string below, removing those marks from *after* gives back *before* exactly — asserted by the generator and by `npm run verify:business-learning-center`. No wording, meaning, punctuation or English text changes.
 
-**Known, out of scope:** a few seeded *English* strings are missing an apostrophe (for example “customers information”). D3 covers Spanish accents only; that is a separate small data correction.
+**Known, out of scope:** four *English* strings of the TODAY-1 foundation seed are missing a possessive apostrophe — `proteccion_y_datos.summary_en` and `customer_data_protection.summary_en` (“your customers information”), and `reviews_and_customer_response.body_en` (“many people decisions”, “your customers experience”). They are TODAY-1 content, not I-1 content; D3 covers Spanish accents only, and this seed deliberately updates no English column. They need their own small reviewed correction.
 
 **Scope:** 75 strings · 357 word repairs · 135 distinct before → after pairs.
 

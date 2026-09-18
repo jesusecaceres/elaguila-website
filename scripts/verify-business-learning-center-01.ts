@@ -1665,7 +1665,7 @@ check("G2 SAVE + completion: print CSS sheet (no PDF library); completion is a l
 
 check("G2: no migration, no schema change, no reach into Home / BR / Rentas / Concierge", () => {
   const migrations = fs.readdirSync(path.join(ROOT, "supabase/migrations")).filter((f) => /learning/i.test(f));
-  assert.deepStrictEqual(migrations.sort(), ["20260807120000_business_learning_center_foundation.sql", "20260807130000_business_learning_center_privilege_hardening.sql", "20260918120000_learning_center_content_batch_i1.sql"], "the only learning migration added since TODAY-1 is the data-only content seed I-1 (no schema change — see the G4-I1 seed check)");
+  assert.deepStrictEqual(migrations.sort(), ["20260807120000_business_learning_center_foundation.sql", "20260807130000_business_learning_center_privilege_hardening.sql"], "no learning migration has been added since TODAY-1 — content batches are reviewed seeds, never migrations");
   for (const rel of LESSON_ALL_FILES) {
     const src = read(rel);
     assert.ok(!/from ["'][^"']*\/(home|bienes-raices|rentas|concierge)\//.test(src), `${rel} reaches outside the Learning Center`);
@@ -2009,8 +2009,19 @@ check("G4-I1 publication gate: unpublished batch lessons are never surfaced, cou
 check("G4-I1 seed: ONE additive, data-only file — exactly three new published rows, generated from the packages; deterministic; not applied by this gate", () => {
   assert.ok(exists(SEED_I1_SQL), "seed file missing");
   assert.strictEqual(SEED_SQL, buildSeedSql(MIGRATION), "the seed file must equal the generator output (re-run the generator, never hand-edit)");
-  const added = fs.readdirSync(path.join(ROOT, "supabase/migrations")).filter((f) => f > "20260916150000_business_profile_foundation.sql");
-  assert.deepStrictEqual(added, [path.basename(SEED_I1_SQL)], "one seed file per batch");
+  // QUARANTINE (G4-I1.1): a content batch is a REVIEWED seed. It must never sit where `supabase db push` would apply it.
+  assert.strictEqual(SEED_I1_SQL, "supabase/reviewed-seeds/learning-center/20260918_content_batch_i1.sql");
+  const migrationFiles = fs.readdirSync(path.join(ROOT, "supabase/migrations"));
+  assert.deepStrictEqual(migrationFiles.filter((f) => /content[_-]?batch|reviewed[_-]?seed|_i1\b|batch_i\d/i.test(f)), [], "no content-batch SQL may live under supabase/migrations/");
+  for (const f of migrationFiles.filter((m) => m > "20260916150000_business_profile_foundation.sql")) {
+    const sql = read(`supabase/migrations/${f}`);
+    for (const key of BATCH_I1_KEYS) assert.ok(!sql.includes(`'${key}'`), `${f} seeds ${key} — I-1 content must not be applied through a migration`);
+  }
+  assert.deepStrictEqual(fs.readdirSync(path.join(ROOT, "supabase/reviewed-seeds/learning-center")), [path.basename(SEED_I1_SQL)], "one reviewed seed file per batch");
+  assert.ok(SEED_SQL.includes("REVIEWED SEED — NOT A MIGRATION") && SEED_SQL.includes("DO NOT move it into supabase/migrations/") && SEED_SQL.includes("blind `supabase db push`"), "the file itself says how it may and may not be applied");
+  assert.strictEqual(buildSeedSql(MIGRATION), buildSeedSql(MIGRATION), "generation is deterministic");
+  assert.ok(!/now\(\)|random|uuid/i.test(SEED_SQL.replace(/'published', now\(\)/g, "")), "the only non-literal value is published_at = now() on the three inserts");
+  assert.ok(exists("docs/learning-center-i1-staging-apply-runbook.md"), "staging runbook missing");
 
   const code = SEED_SQL.split("\n").filter((l) => !l.startsWith("--")).join("\n");
   assert.ok(!/\b(CREATE|ALTER|DROP|TRUNCATE|DELETE|GRANT|REVOKE|POLICY|TRIGGER|FUNCTION|INDEX)\b/.test(code.replace(/'(?:[^']|'')*'/g, "''")), "data only: no DDL, no deletes");

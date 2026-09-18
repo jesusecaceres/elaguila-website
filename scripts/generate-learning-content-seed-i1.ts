@@ -4,7 +4,7 @@
  *   npx tsx scripts/generate-learning-content-seed-i1.ts --write
  *
  * Emits two files, deterministically, from sources that already live in the repo:
- *   1. supabase/migrations/20260918120000_learning_center_content_batch_i1.sql   (DATA ONLY — no DDL)
+ *   1. supabase/reviewed-seeds/learning-center/20260918_content_batch_i1.sql   (DATA ONLY — no DDL)
  *        a. three new `published` lesson rows whose body is the plain-text rendition of the SAME
  *           validated LessonPackage the page renders (one source, no hand-written second copy);
  *        b. D3 — repair of the Spanish accents missing from the TODAY-1 foundation seed.
@@ -15,6 +15,11 @@
  * `npm run verify:business-learning-center`. Meaning, wording, punctuation and English are untouched.
  * Each UPDATE is guarded by an md5 of the ORIGINAL value (CR-stripped), so a row that someone has
  * edited since seeding is left alone, and re-running the seed is a no-op.
+ *
+ * QUARANTINE (Gate G4-I1.1): the seed is written to `supabase/reviewed-seeds/`, which no Supabase
+ * command reads. It must NEVER live in `supabase/migrations/`, where an ordinary `supabase db push`
+ * would apply it (and publish three lessons) without review. Applying it is an explicit,
+ * project-verified step: docs/learning-center-i1-staging-apply-runbook.md.
  *
  * This script never talks to a database. Generating the file does not apply it.
  */
@@ -31,7 +36,8 @@ import { validateLessonPackage } from "../app/lib/business/learning/lessonPackag
 
 const ROOT = path.resolve(__dirname, "..");
 export const FOUNDATION_MIGRATION = "supabase/migrations/20260807120000_business_learning_center_foundation.sql";
-export const SEED_I1_SQL = "supabase/migrations/20260918120000_learning_center_content_batch_i1.sql";
+/** Reviewed, NOT auto-applied. Never move this under supabase/migrations/. */
+export const SEED_I1_SQL = "supabase/reviewed-seeds/learning-center/20260918_content_batch_i1.sql";
 export const SEED_I1_LEDGER = "docs/learning-center-seed-i1-accent-ledger.md";
 
 /* ---------------------------------------------------------------------------------------------- */
@@ -275,6 +281,11 @@ export function buildSeedSql(foundationSql: string): string {
     "-- changed. Touches exactly three tables that already exist (TODAY-1 foundation):",
     "--   business_learning_lessons · business_learning_categories · business_learning_resources",
     "--",
+    "-- REVIEWED SEED — NOT A MIGRATION. This file lives in supabase/reviewed-seeds/ on purpose:",
+    "-- nothing applies it automatically. DO NOT move it into supabase/migrations/ and DO NOT use a",
+    "-- blind `supabase db push` for it. Apply it explicitly, to a project you have verified, following",
+    "-- docs/learning-center-i1-staging-apply-runbook.md.",
+    "--",
     "-- REVIEW BEFORE APPLYING (owner decision OD-2): staging first, never straight to production.",
     "-- Authoring this file did NOT apply it. Applying it PUBLISHES three lessons.",
     "--",
@@ -342,7 +353,7 @@ export function buildLedger(foundationSql: string): string {
     "",
     "**Rule of the repair:** only diacritics (á é í ó ú ñ ü) and the opening marks ¿ ¡ may change. For every string below, removing those marks from *after* gives back *before* exactly — asserted by the generator and by `npm run verify:business-learning-center`. No wording, meaning, punctuation or English text changes.",
     "",
-    "**Known, out of scope:** a few seeded *English* strings are missing an apostrophe (for example “customers information”). D3 covers Spanish accents only; that is a separate small data correction.",
+    "**Known, out of scope:** four *English* strings of the TODAY-1 foundation seed are missing a possessive apostrophe — `proteccion_y_datos.summary_en` and `customer_data_protection.summary_en` (“your customers information”), and `reviews_and_customer_response.body_en` (“many people decisions”, “your customers experience”). They are TODAY-1 content, not I-1 content; D3 covers Spanish accents only, and this seed deliberately updates no English column. They need their own small reviewed correction.",
     "",
     `**Scope:** ${repairs.length} strings · ${[...totals.values()].reduce((n, x) => n + x, 0)} word repairs · ${totals.size} distinct before → after pairs.`,
     "",
@@ -370,6 +381,7 @@ export function buildLedger(foundationSql: string): string {
 
 if (process.argv.includes("--write")) {
   const foundation = fs.readFileSync(path.join(ROOT, FOUNDATION_MIGRATION), "utf8");
+  fs.mkdirSync(path.dirname(path.join(ROOT, SEED_I1_SQL)), { recursive: true });
   fs.writeFileSync(path.join(ROOT, SEED_I1_SQL), buildSeedSql(foundation));
   fs.writeFileSync(path.join(ROOT, SEED_I1_LEDGER), buildLedger(foundation));
   console.log(`wrote ${SEED_I1_SQL}\nwrote ${SEED_I1_LEDGER}`);

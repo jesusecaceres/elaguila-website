@@ -8,6 +8,11 @@
 -- changed. Touches exactly three tables that already exist (TODAY-1 foundation):
 --   business_learning_lessons · business_learning_categories · business_learning_resources
 --
+-- REVIEWED SEED — NOT A MIGRATION. This file lives in supabase/reviewed-seeds/ on purpose:
+-- nothing applies it automatically. DO NOT move it into supabase/migrations/ and DO NOT use a
+-- blind `supabase db push` for it. Apply it explicitly, to a project you have verified, following
+-- docs/learning-center-i1-staging-apply-runbook.md.
+--
 -- REVIEW BEFORE APPLYING (owner decision OD-2): staging first, never straight to production.
 -- Authoring this file did NOT apply it. Applying it PUBLISHES three lessons.
 --
