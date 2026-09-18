@@ -15,6 +15,7 @@ import type {
   ServiciosCommercialOpsRow,
   ServiciosOpsField,
 } from "@/app/admin/_lib/serviciosCommercialOps";
+import { isPubliclyVisible, isValidLifecycleStatus } from "@/app/lib/clasificados/listingLifecycleDomain";
 import { ServiciosAdminMonetizationPanel } from "./ServiciosAdminMonetizationPanel";
 
 function formatWhen(iso: string | null | undefined, fallback?: string | null): string {
@@ -107,6 +108,12 @@ export function ServiciosAdminOpsListingCard({
   highlighted: boolean;
 }) {
   const publicLive = (row.listing_status ?? "") === "published";
+  // Gate 10 (Servicios Final Consolidated Lifecycle Execution, 2026-09-18) — the same shared
+  // public-eligibility predicate Gate 9 used on the owner dashboard (canonical
+  // `isPubliclyVisible`/`getVisibilityBucket`, not a bespoke re-check): a `pending_payment` row
+  // is never public, so Admin must not render a working-looking "View public listing" link for
+  // it. This never mutates listing_status — read-only display gating only.
+  const publiclyVisible = isValidLifecycleStatus(row.listing_status) && isPubliclyVisible(row.listing_status);
 
   return (
     <article
@@ -283,14 +290,20 @@ export function ServiciosAdminOpsListingCard({
             </div>
           </div>
 
-          <Link
-            href={`/clasificados/servicios/${row.slug}?lang=es`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`${adminDashboardCtaView} w-full sm:w-auto`}
-          >
-            View public listing →
-          </Link>
+          {publiclyVisible ? (
+            <Link
+              href={`/clasificados/servicios/${row.slug}?lang=es`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${adminDashboardCtaView} w-full sm:w-auto`}
+            >
+              View public listing →
+            </Link>
+          ) : (
+            <p className="w-full rounded-lg border border-[#E8DFD0] bg-[#FAF7F2] px-3 py-2 text-xs text-[#7A7164] sm:w-auto">
+              Not public yet ({row.listing_status ?? "—"}) — no public page to view.
+            </p>
+          )}
         </div>
 
         <div className="min-w-0 space-y-4 border-[#E8DFD0]/70 lg:border-l lg:pl-6">
