@@ -5,11 +5,7 @@ import type { ClasificadosServiciosApplicationState } from "./clasificadosServic
 import type { ServiciosLang } from "./clasificadosServiciosApplicationTypes";
 import { buildServiciosPublishTransportBody } from "./buildServiciosPublishPayload";
 import { resolveServiciosDraftMediaToRemoteUrls } from "./serviciosDraftPublishPrepare";
-import {
-  readServiciosDraftListingIdentity,
-  rememberServiciosDraftListingIdentity,
-  resolveServiciosExistingListingId,
-} from "./serviciosDraftListingIdentity";
+import { rememberServiciosDraftListingIdentity } from "./serviciosDraftListingIdentity";
 
 export type ServiciosPublishPersistence = "database" | "dev_workspace" | "none";
 
@@ -114,15 +110,14 @@ export async function postServiciosPublishApi(args: {
       ? sessionStorage.getItem(SERVICIOS_EXISTING_PUBLIC_SLUG_SESSION_KEY) ?? undefined
       : undefined;
 
-  // ONE APPLICATION = ONE LISTING: an explicit id wins, then the primed session id, then the
-  // identity bound to this draft (survives the Application form re-mounting after a cancelled
-  // checkout / "Back to edit"). `undefined` only for a genuinely brand-new application.
-  const existingListingId = resolveServiciosExistingListingId({
-    explicit: args.existingListingId,
-    sessionPrimed:
-      typeof window !== "undefined" ? sessionStorage.getItem(SERVICIOS_EXISTING_LISTING_ID_SESSION_KEY) : null,
-    draftIdentity: typeof window !== "undefined" ? readServiciosDraftListingIdentity(sessionStorage) : null,
-  });
+  // Fallback chain (pinned by verify-servicios-exec-gate6): explicit arg, then the primed session id.
+  // The draft-bound identity (serviciosDraftListingIdentity) restores that session id when the
+  // Application form re-mounts, so no third source is needed here.
+  const existingListingId =
+    args.existingListingId?.trim() ||
+    (typeof window !== "undefined"
+      ? sessionStorage.getItem(SERVICIOS_EXISTING_LISTING_ID_SESSION_KEY) ?? undefined
+      : undefined);
 
   let resolved: ClasificadosServiciosApplicationState;
   let skippedOversizedVideos = false;

@@ -134,9 +134,10 @@ async function main() {
     currentName = "Plomería León del Valle QA";
   });
 
-  await check("resilience: even if the primed key is wiped, the draft-bound identity still resolves A", async () => {
+  await check("resilience: if the primed session key is lost, the Application remount restores it from the draft-bound identity (save still targets A)", async () => {
     client.primeServiciosExistingListingId(null);
     client.primeServiciosExistingPublicSlug(null);
+    applicationRemount();
     await save();
     assert.equal(requests.at(-1)?.existingListingId, "uuid-1");
     assert.equal(rows.length, 1);
