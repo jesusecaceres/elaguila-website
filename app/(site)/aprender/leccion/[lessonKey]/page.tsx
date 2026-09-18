@@ -1,32 +1,68 @@
-import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { resolveLearningCenterFlagTier } from "@/app/lib/business/learning/featureFlag";
-import { getPublishedLessonByKey, listAllPublishedResources } from "@/app/lib/business/learning/repository";
-import { langFromSearchParams, learningCopy } from "../../learningCopy";
-import { LessonProgressButton } from "../../_components/LessonProgressButton";
+import { getCodeOwnedLessonPackage, resolveLessonPackage } from "@/app/lib/business/learning/lessonPackage/registry";
+import { getPublishedLessonByKey, listAllPublishedResources, listPublishedLessons } from "@/app/lib/business/learning/repository";
+import { normalizeLang } from "@/app/lib/language";
+import { LEONIX_MEDIA_SITE_NAME, leonixPageTitle } from "@/app/lib/leonixBrand";
+import { contentLangFromRouteLang, learningCopy, learningLandingCopy } from "../../learningCopy";
+import { LEARNING_ROUTES, journeyFromSearchParams, resolveNextLesson } from "../../learningJourneys";
+import { learningPathwayCopy } from "../../learningPathwayCopy";
+import { lessonCopy } from "../../lessonCopy";
+import { LessonRenderer, type LessonNextView } from "../../_components/lesson/LessonRenderer";
 
 export const dynamic = "force-dynamic";
 
-/** TODAY-1 — one published lesson's full bilingual body + related resources. A planned/draft/archived lesson always 404s. */
-export default async function LearningLessonPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ lessonKey: string }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const { lessonKey } = await params;
-  const sp = await searchParams;
-  const lang = langFromSearchParams(sp);
-  const t = learningCopy(lang);
-  const q = `lang=${lang}`;
+type SearchParams = Record<string, string | string[] | undefined>;
+type PageProps = { params: Promise<{ lessonKey: string }>; searchParams: Promise<SearchParams> };
+
+function first(v: string | string[] | undefined): string | undefined {
+  return Array.isArray(v) ? v[0] : v;
+}
+
+export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
+  const [{ lessonKey }, sp] = await Promise.all([params, searchParams]);
+  const tier = await resolveLearningCenterFlagTier(null);
+  if (tier !== "global") return {};
+  const lesson = await getPublishedLessonByKey(lessonKey);
+  if (!lesson) return {};
+  const lang = contentLangFromRouteLang(normalizeLang(first(sp.lang)));
+  const pkg = resolveLessonPackage(lesson);
+  const title = pkg.meta.title[lang];
+  const description = pkg.meta.outcome[lang];
+  const path = `${LEARNING_ROUTES.home}/leccion/${lesson.lessonKey}`;
+  return {
+    title,
+    description,
+    alternates: { canonical: path },
+    openGraph: { title: leonixPageTitle(title), description, url: path, siteName: LEONIX_MEDIA_SITE_NAME, type: "article", locale: lang === "en" ? "en_US" : "es_ES" },
+  };
+}
+
+/**
+ * Gate G2 — one published lesson through the canonical lesson renderer. The database row stays the
+ * publish-state truth (a planned/draft/archived lesson always 404s) and the stable identity; the
+ * CONTENT comes from a LessonPackage: the authored package when one exists, otherwise the reduced
+ * package the deterministic legacy adapter derives from the stored body. No lesson renders as a
+ * single plain essay box any more.
+ *
+ * Optional `?journey=` (idea · empezando · negocio) drives breadcrumb, example variant and NEXT;
+ * an unknown value is ignored and the lesson renders neutrally. `?audio=preview` shows the authored
+ * listening script, clearly labelled, while no recording exists — never a fake player.
+ */
+export default async function LearningLessonPage({ params, searchParams }: PageProps) {
+  const [{ lessonKey }, sp] = await Promise.all([params, searchParams]);
+  const routeLang = normalizeLang(first(sp.lang));
+  const lang = contentLangFromRouteLang(routeLang);
+  const chrome = learningCopy(lang);
 
   const tier = await resolveLearningCenterFlagTier(null);
   if (tier !== "global") {
     return (
       <main className="mx-auto w-full max-w-2xl min-w-0 space-y-4 px-4 py-10 sm:px-6">
-        <h1 className="text-xl font-bold text-[#1E1810]">{t.comingSoonTitle}</h1>
-        <p className="text-sm text-[#5C5346]">{t.comingSoonBody}</p>
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#7A1E2C]">{chrome.siteEyebrow}</p>
+        <h1 className="font-serif text-2xl font-bold text-[#2A4536]">{chrome.comingSoonTitle}</h1>
+        <p className="text-sm text-[#5C5346]">{chrome.comingSoonBody}</p>
       </main>
     );
   }
@@ -34,43 +70,38 @@ export default async function LearningLessonPage({
   const lesson = await getPublishedLessonByKey(lessonKey);
   if (!lesson) notFound();
 
-  const allResources = await listAllPublishedResources();
-  const relatedResources = allResources.filter((r) => r.lessonId === lesson.id);
+  const [resources, publishedLessons] = await Promise.all([listAllPublishedResources(), listPublishedLessons()]);
+  const relatedResourceKeys = resources.filter((r) => r.lessonId === lesson.id && r.resourceType !== "glossary_term").map((r) => r.resourceKey);
+  const pkg = resolveLessonPackage(lesson, relatedResourceKeys);
 
-  const body = lang === "es" ? lesson.bodyEs : lesson.bodyEn;
+  const journey = journeyFromSearchParams(sp);
+  const preferred = pkg.next?.preferred?.[journey ?? "neutral"] ?? [];
+  const nextResolved = resolveNextLesson({ lessonKey: lesson.lessonKey, journey, lessons: publishedLessons, preferred });
+  let next: LessonNextView = null;
+  if (nextResolved) {
+    const n = nextResolved.lesson;
+    const nextPkg = getCodeOwnedLessonPackage(n.lessonKey);
+    next = {
+      lessonKey: n.lessonKey,
+      title: nextPkg ? nextPkg.meta.title[lang] : lang === "es" ? n.titleEs : n.titleEn,
+      summary: lang === "es" ? n.summaryEs : n.summaryEn,
+      minutes: n.estimatedMinutes,
+    };
+  }
 
   return (
-    <main className="mx-auto w-full max-w-2xl min-w-0 space-y-5 px-4 py-6 sm:px-6">
-      <Link href={`/aprender?${q}`} className="inline-flex min-h-11 items-center text-sm font-semibold text-[#7A1E2C]">← {t.backToHome}</Link>
-
-      <header className="space-y-2">
-        <h1 className="text-xl font-bold tracking-tight text-[#1E1810]">{lang === "es" ? lesson.titleEs : lesson.titleEn}</h1>
-        <p className="text-sm leading-relaxed text-[#5C5346]">{lang === "es" ? lesson.summaryEs : lesson.summaryEn}</p>
-        <p className="text-[11px] text-[#9A9184]">{t.levelLabel[lesson.level]} · {lesson.estimatedMinutes} {t.minutesLabel}</p>
-      </header>
-
-      <LessonProgressButton lessonKey={lesson.lessonKey} lang={lang} />
-
-      <article className="whitespace-pre-line break-words rounded-2xl border border-[#E8DFD0] bg-white p-4 text-sm leading-relaxed text-[#3D3428] sm:p-6">
-        {body}
-      </article>
-
-      {relatedResources.length > 0 ? (
-        <section className="space-y-3">
-          <h2 className="text-sm font-bold text-[#1E1810]">{t.relatedResourcesTitle}</h2>
-          <ul className="space-y-3">
-            {relatedResources.map((r) => (
-              <li key={r.id} className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-[#9A9184]">
-                  {r.resourceType === "checklist" ? t.checklistLabel : t.templateLabel}
-                </p>
-                <p className="mt-1 break-words text-sm font-semibold text-[#1E1810]">{lang === "es" ? r.titleEs : r.titleEn}</p>
-                <p className="mt-1 whitespace-pre-line break-words text-xs leading-relaxed text-[#5C5346]">{lang === "es" ? r.bodyEs : r.bodyEn}</p>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-    </main>
+    <LessonRenderer
+      pkg={pkg}
+      lang={lang}
+      routeLang={routeLang}
+      journey={journey}
+      resources={resources}
+      next={next}
+      audioPreview={first(sp.audio) === "preview"}
+      copy={lessonCopy(lang)}
+      landing={learningLandingCopy(lang)}
+      pathway={learningPathwayCopy(lang)}
+      chrome={chrome}
+    />
   );
 }

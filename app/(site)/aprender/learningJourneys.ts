@@ -428,6 +428,43 @@ export function resolveJourneyCheckpoints(journey: LearningJourneyKey, lessons: 
   });
 }
 
+/** Journeys whose sequence contains this lesson, in canonical journey order. */
+export function journeysForLesson(lessonKey: string): LearningJourneyKey[] {
+  return LEARNING_JOURNEY_KEYS.filter((j) => LEARNING_JOURNEY_LESSON_KEYS[j].includes(lessonKey));
+}
+
+export type NextLessonView = {
+  lesson: LearningLesson;
+  /** The journey whose order produced this suggestion (kept in the link only when the learner arrived with one). */
+  orderJourney: LearningJourneyKey;
+};
+
+/**
+ * NEXT — the lesson to suggest after `lessonKey`. Tries the package's preferred keys first, then
+ * the lessons that follow in the journey order (the learner's journey, or — with no journey
+ * context — the first journey that contains the lesson). Only PUBLISHED lessons can ever be
+ * returned: a preferred-but-unpublished key (e.g. a lesson still being written) is skipped.
+ */
+export function resolveNextLesson(args: {
+  lessonKey: string;
+  journey: LearningJourneyKey | null;
+  lessons: readonly LearningLesson[];
+  preferred?: readonly string[];
+}): NextLessonView | null {
+  const { lessonKey, journey, lessons, preferred = [] } = args;
+  const orderJourney = journey && LEARNING_JOURNEY_LESSON_KEYS[journey].includes(lessonKey) ? journey : (journeysForLesson(lessonKey)[0] ?? null);
+  if (!orderJourney) return null;
+  const order = LEARNING_JOURNEY_LESSON_KEYS[orderJourney];
+  const after = order.slice(order.indexOf(lessonKey) + 1);
+  const byKey = publishedByKey(lessons);
+  for (const key of [...preferred, ...after]) {
+    if (key === lessonKey) continue;
+    const lesson = byKey.get(key);
+    if (lesson) return { lesson, orderJourney };
+  }
+  return null;
+}
+
 export type TopicTileView = {
   category: LearningCategory;
   publishedCount: number;

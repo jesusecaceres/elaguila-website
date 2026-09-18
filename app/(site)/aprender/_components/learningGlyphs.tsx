@@ -84,7 +84,7 @@ function Bulb({ x, y, s = 1, color = BURGUNDY }: { x: number; y: number; s?: num
   );
 }
 
-function Storefront({ x, y, s = 1, color = GREEN, open = false }: { x: number; y: number; s?: number; color?: string; open?: boolean }) {
+export function Storefront({ x, y, s = 1, color = GREEN, open = false }: { x: number; y: number; s?: number; color?: string; open?: boolean }) {
   return (
     <g transform={`translate(${x} ${y}) scale(${s})`}>
       <rect x="-44" y="-8" width="88" height="56" fill={IVORY} stroke={color} strokeWidth="3" strokeLinejoin="round" />

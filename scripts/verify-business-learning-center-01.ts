@@ -1,5 +1,6 @@
 /**
- * TODAY-1 + G1 — Public Business Learning Center (foundation, checkpoint landing, pathway pages)
+ * TODAY-1 + G1 + G2 — Public Business Learning Center (foundation, checkpoint landing, pathway
+ * pages, canonical lesson engine)
  * + Idea Builder foundation verification. Hand-rolled
  * node:assert script, matching this repo's testing convention (no jest/vitest). Run via `npx tsx
  * scripts/verify-business-learning-center-01.ts`.
@@ -876,10 +877,7 @@ check("G1: stable keys and deep links intact — lesson_key/capability_key untou
   assert.ok(exists(`${APRENDER_DIR}/leccion/[lessonKey]/page.tsx`) && exists(`${APRENDER_DIR}/glosario/page.tsx`) && exists(`${APRENDER_DIR}/recursos/page.tsx`));
 });
 
-check("G1 boundary: lesson pages, progress semantics and Home are not part of this gate", () => {
-  const lessonPage = read(`${APRENDER_DIR}/leccion/[lessonKey]/page.tsx`);
-  assert.ok(lessonPage.includes("LessonProgressButton") && lessonPage.includes("getPublishedLessonByKey"));
-  assert.ok(!/learningPathwayCopy|LearningCheckpointSpine|LessonPackage/.test(lessonPage), "lesson page must not be redesigned in G1");
+check("G1 boundary: progress semantics and Home are not part of the landing/pathway work (the lesson page is owned by G2)", () => {
   const progress = read("app/api/dashboard/business/learning/progress/route.ts");
   assert.ok(progress.includes('body.action === "start" || body.action === "complete"'), "progress actions must be unchanged in G1");
   for (const rel of APRENDER_G1_FILES) assert.ok(!/from ["'][^"']*\/home\//.test(read(rel)), `${rel} must not reach into Home`);
@@ -1024,6 +1022,445 @@ check("G1: decorative SVG vignettes are aria-hidden; landing and pathway each ha
     assert.ok(/<h2\b/.test(read(`${APRENDER_DIR}/_components/${name}.tsx`)), `${name} has no h2 section heading`);
   }
   assert.ok(/<h3\b/.test(read(`${APRENDER_DIR}/_components/LearningCheckpointSpine.tsx`)) && /<h4\b/.test(read(`${APRENDER_DIR}/_components/LearningCheckpointSpine.tsx`)), "spine needs checkpoint (h3) and lesson (h4) headings");
+});
+
+// ---------------------------------------------------------------------------
+// Gate G2 — canonical lesson engine: LessonPackage + validator + legacy adapter + flagship lesson
+// "Quién es tu cliente" (READ · LISTEN · DO · ASK AI · VERIFY · SAVE · NEXT). Pure-unit checks run
+// against the real modules; structure checks read source. No schema, progress or migration change.
+// ---------------------------------------------------------------------------
+
+import { validateLessonPackage, validateLessonPrompt, collectParityProblems, hasPlayableAudio, REQUIRED_PACKAGE_BLOCKS } from "../app/lib/business/learning/lessonPackage/validate";
+import { legacyLessonToPackage, parseLegacyBody, LEGACY_SECTION_LABELS } from "../app/lib/business/learning/lessonPackage/legacyAdapter";
+import { CODE_OWNED_LESSON_PACKAGES, getCodeOwnedLessonPackage, resolveLessonPackage } from "../app/lib/business/learning/lessonPackage/registry";
+import { WHO_IS_YOUR_CUSTOMER_PACKAGE } from "../app/lib/business/learning/lessonPackage/packages/whoIsYourCustomer";
+import { LEARNING_PROMPTS, WHO_IS_YOUR_CUSTOMER_PROMPT, journeyStageValue, renderPrompt } from "../app/lib/business/learning/lessonPackage/prompts";
+import { CUSTOMER_STATEMENT_FIELD_KEYS, MAX_STATEMENT_ANSWER_LENGTH, buildCustomerStatement, cleanStatementAnswer } from "../app/lib/business/learning/lessonPackage/customerStatement";
+import type { LessonPackage } from "../app/lib/business/learning/lessonPackage/types";
+import { lessonCopy } from "../app/(site)/aprender/lessonCopy";
+import { resolveNextLesson } from "../app/(site)/aprender/learningJourneys";
+
+const LESSON_LIB_DIR = "app/lib/business/learning/lessonPackage";
+const LESSON_UI_DIR = `${APRENDER_DIR}/_components/lesson`;
+const LESSON_PAGE = `${APRENDER_DIR}/leccion/[lessonKey]/page.tsx`;
+const LESSON_LIB_FILES = [
+  `${LESSON_LIB_DIR}/types.ts`, `${LESSON_LIB_DIR}/validate.ts`, `${LESSON_LIB_DIR}/legacyAdapter.ts`, `${LESSON_LIB_DIR}/registry.ts`,
+  `${LESSON_LIB_DIR}/prompts.ts`, `${LESSON_LIB_DIR}/customerStatement.ts`,
+  `${LESSON_LIB_DIR}/packages/whoIsYourCustomer.ts`, `${LESSON_LIB_DIR}/packages/whoIsYourCustomerAudio.ts`,
+];
+const LESSON_SERVER_UI = [`${LESSON_UI_DIR}/LessonRenderer.tsx`, `${LESSON_UI_DIR}/LessonBlocks.tsx`, `${LESSON_UI_DIR}/lessonVisuals.tsx`];
+const LESSON_CLIENT_UI = [
+  `${LESSON_UI_DIR}/LessonActivityCustomerStatement.tsx`, `${LESSON_UI_DIR}/LessonPromptBlock.tsx`, `${LESSON_UI_DIR}/LessonChecklist.tsx`,
+  `${LESSON_UI_DIR}/LessonLocalCompletion.tsx`, `${LESSON_UI_DIR}/LessonPrintSheet.tsx`, `${LESSON_UI_DIR}/LessonAudioPlayer.tsx`, `${LESSON_UI_DIR}/lessonLocalStore.ts`,
+];
+const LESSON_ALL_FILES = [...LESSON_LIB_FILES, ...LESSON_SERVER_UI, ...LESSON_CLIENT_UI, LESSON_PAGE, `${APRENDER_DIR}/lessonCopy.ts`];
+
+const FLAGSHIP = WHO_IS_YOUR_CUSTOMER_PACKAGE;
+const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
+const words = (s: string) => s.trim().split(/\s+/).length;
+
+/** Every single-quoted SQL literal in the seed migration, in order (same scan the TODAY-1 body-length check uses). */
+function sqlLiterals(sql: string): string[] {
+  const stripped = sql.split("\n").map((line) => { const i = line.indexOf("--"); return i === -1 ? line : line.slice(0, i); }).join("\n");
+  const out: string[] = [];
+  let i = 0;
+  while (i < stripped.length) {
+    if (stripped[i] !== "'") { i++; continue; }
+    let j = i + 1;
+    let buf = "";
+    while (j < stripped.length) {
+      if (stripped[j] === "'") { if (stripped[j + 1] === "'") { buf += "'"; j += 2; continue; } break; }
+      buf += stripped[j];
+      j++;
+    }
+    out.push(buf);
+    i = j + 1;
+  }
+  return out;
+}
+const SEED_LITERALS = sqlLiterals(MIGRATION);
+function seedLesson(key: string) {
+  const idx = SEED_LITERALS.indexOf(key);
+  assert.ok(idx !== -1, `seed lesson ${key} not found`);
+  const [titleEs, titleEn, summaryEs, summaryEn, bodyEs, bodyEn] = SEED_LITERALS.slice(idx + 1, idx + 7);
+  return { lessonKey: key, titleEs, titleEn, summaryEs, summaryEn, bodyEs, bodyEn, estimatedMinutes: 12 };
+}
+
+check("G2: lesson engine files exist (package library, renderer, client islands, flagship package + audio script)", () => {
+  for (const rel of LESSON_ALL_FILES) assert.ok(exists(rel), `missing ${rel}`);
+  const types = read(`${LESSON_LIB_DIR}/types.ts`);
+  assert.ok(types.includes("export type LessonPackage = {") && types.includes("export type LessonBlock ="), "LessonPackage / LessonBlock types must exist");
+  for (const t of ["hook", "outcomes", "explain", "visual_model", "example", "compare", "activity", "ai_prompt", "mistakes", "glossary", "checklist", "resource", "verify", "pro_help", "recap"]) {
+    assert.ok(types.includes(`type: "${t}"`), `block vocabulary is missing "${t}"`);
+  }
+  assert.ok(types.includes("visualKey: LessonVisualKey") && types.includes("activityKey: LessonActivityKey"), "visuals/activities must be referenced by code-owned keys");
+  assert.ok(!/JSX|ReactNode|React\./.test(stripComments(types)) && !/from ["']react["']/.test(types), "LessonPackage must stay plain JSON (no JSX in content data)");
+  for (const rel of LESSON_LIB_FILES) assert.ok(!stripComments(read(rel)).includes("server-only") && !/from ["']react/.test(read(rel)), `${rel} must stay a pure module`);
+});
+
+check("G2 validator: the flagship package passes with zero errors; every prompt in the registry passes", () => {
+  const r = validateLessonPackage(FLAGSHIP, { prompts: LEARNING_PROMPTS });
+  assert.deepStrictEqual(r.errors, [], `flagship validation errors: ${r.errors.join(" | ")}`);
+  assert.strictEqual(r.ok, true);
+  assert.deepStrictEqual(r.warnings, []);
+  for (const p of Object.values(LEARNING_PROMPTS)) assert.deepStrictEqual(validateLessonPrompt(p).errors, [], `${p.promptKey} prompt invalid`);
+  assert.strictEqual(getCodeOwnedLessonPackage("who_is_your_customer"), FLAGSHIP);
+  assert.strictEqual(FLAGSHIP.lessonKey, "who_is_your_customer", "stable lesson_key must not be renamed");
+  assert.strictEqual(FLAGSHIP.source, "package");
+});
+
+check("G2 validator: rejects broken packages (identity, parity, required blocks, DO, prompt integrity, verify / pro-help boundaries, stale audio)", () => {
+  const ctx = { prompts: LEARNING_PROMPTS };
+  const errorsOf = (mutate: (p: LessonPackage) => void, c = ctx) => { const p = clone(FLAGSHIP); mutate(p); return validateLessonPackage(p, c).errors.join(" | "); };
+
+  assert.ok(/lessonKey/.test(errorsOf((p) => { p.lessonKey = "Quien Es"; })), "bad identity key must fail");
+  assert.ok(/\.en is empty/.test(errorsOf((p) => { p.meta.title.en = " "; })), "ES/EN parity must fail on an empty EN leaf");
+  assert.ok(/only one language/.test(errorsOf((p) => { (p.meta as unknown as Record<string, unknown>).outcome = { es: "solo" }; })), "a half leaf must fail");
+  for (const type of [...REQUIRED_PACKAGE_BLOCKS]) {
+    assert.ok(new RegExp(`missing required block: ${type}|explain block is required`).test(errorsOf((p) => { p.blocks = p.blocks.filter((b) => b.type !== type); })), `missing ${type} must fail`);
+  }
+  assert.ok(/activity or a checklist/.test(errorsOf((p) => { p.blocks = p.blocks.filter((b) => b.type !== "activity" && b.type !== "checklist"); })), "a lesson with no DO must fail");
+  assert.ok(!/activity or a checklist/.test(errorsOf((p) => { p.blocks = p.blocks.filter((b) => b.type !== "activity"); })), "checklist alone satisfies DO");
+  assert.ok(/neutral variant/.test(errorsOf((p) => { for (const b of p.blocks) if (b.type === "example") b.variants = b.variants.filter((v) => v.journey); })), "example must work without journey context");
+  assert.ok(/unknown promptKey/.test(errorsOf((p) => { for (const b of p.blocks) if (b.type === "ai_prompt") b.promptKey = "nope"; })));
+  assert.ok(/block ids must be unique/.test(errorsOf((p) => { p.blocks[1].id = p.blocks[0].id; })));
+  assert.ok(/consequential content requires a verify block/.test(errorsOf((p) => { p.meta.consequential = true; p.blocks = p.blocks.filter((b) => b.type !== "verify"); })));
+  assert.ok(/requires a pro_help block/.test(errorsOf((p) => { p.meta.truthClass = "jurisdiction_sensitive"; })), "jurisdiction-sensitive content must demand professional-help");
+  assert.ok(/recorded from script v/.test(errorsOf((p) => { p.audio!.assets = { es: { src: "/a.mp3", mime: "audio/mpeg", durationSeconds: 500, scriptVersion: 99, sourceKind: "human" } }; })), "a stale recording must fail");
+
+  const badPrompt = clone(WHO_IS_YOUR_CUSTOMER_PROMPT);
+  badPrompt.body.en = badPrompt.body.en.replace("[[city]]", "[[town]]");
+  const pe = validateLessonPrompt(badPrompt).errors.join(" | ");
+  assert.ok(/never uses \[\[city\]\]/.test(pe) && /undeclared token \[\[town\]\]/.test(pe), "prompt tokens must match declared fields in both languages");
+  const consequential = clone(WHO_IS_YOUR_CUSTOMER_PROMPT);
+  consequential.consequential = true;
+  consequential.verify = { es: "", en: "" };
+  assert.ok(/verification line/.test(validateLessonPrompt(consequential).errors.join(" | ")));
+  assert.deepStrictEqual(collectParityProblems({ a: { es: "x", en: "y" }, b: [{ es: "x", en: "" }] }), ["b[0].en is empty"]);
+});
+
+check("G2 flagship: full canonical block vocabulary in teaching order, locked headline, accented display title, journey variants", () => {
+  const types = FLAGSHIP.blocks.map((b) => b.type);
+  assert.deepStrictEqual(types, ["hook", "outcomes", "explain", "visual_model", "example", "compare", "activity", "ai_prompt", "mistakes", "glossary", "checklist", "verify", "recap"]);
+  assert.deepStrictEqual(FLAGSHIP.meta.title, { es: "Quién es tu cliente", en: "Who is your customer?" });
+  assert.strictEqual(FLAGSHIP.meta.truthClass, "evergreen");
+  assert.ok(!types.includes("pro_help"), "an evergreen lesson does not need a professional-help block");
+  const hook = FLAGSHIP.blocks.find((b) => b.type === "hook")!;
+  assert.ok(hook.type === "hook" && hook.headline.es === "Tu cliente no es “todo el mundo”." && hook.headline.en === "Your customer is not “everyone”.");
+  assert.ok(hook.type === "hook" && hook.textAlternative.es.length > 120 && hook.textAlternative.en.length > 120, "the hook visual needs a useful text alternative");
+  const outcomes = FLAGSHIP.blocks.find((b) => b.type === "outcomes")!;
+  assert.ok(outcomes.type === "outcomes" && outcomes.items.length === 3);
+  const explain = FLAGSHIP.blocks.find((b) => b.type === "explain")!;
+  assert.ok(explain.type === "explain" && explain.chunks.length >= 3 && explain.chunks.every((c) => c.body.es.length < 420), "explanation must be short chunks, not one article");
+  const model = FLAGSHIP.blocks.find((b) => b.type === "visual_model")!;
+  assert.ok(model.type === "visual_model" && model.steps.map((s) => s.label.es).join(" → ") === "Todos → Quien más lo necesita → Tu mensaje");
+  const example = FLAGSHIP.blocks.find((b) => b.type === "example")!;
+  assert.ok(example.type === "example" && example.business.es === "Panadería de Rosa" && example.label.es === "Ejemplo ilustrativo" && example.label.en === "Illustrative example");
+  assert.ok(example.type === "example" && ["idea", "empezando", "negocio", undefined].every((j) => example.variants.some((v) => v.journey === j)), "Rosa needs idea / empezando / negocio / neutral variants");
+  assert.ok(example.type === "example" && new Set(example.variants.map((v) => v.story.es)).size === 4);
+  const compare = FLAGSHIP.blocks.find((b) => b.type === "compare")!;
+  assert.ok(compare.type === "compare" && compare.weak.text.es.includes("Mi cliente es cualquiera que quiera comprar."));
+  assert.ok(compare.type === "compare" && compare.strong.text.es.includes("Familias de mi vecindario que necesitan pasteles de cumpleaños personalizados con 2–3 días de aviso y prefieren pedir por WhatsApp."));
+  assert.ok(compare.type === "compare" && compare.strong.annotations.map((a) => a.tag.es).join(",") === "Quién,Problema,Dónde,Por qué tú");
+  const mistakes = FLAGSHIP.blocks.find((b) => b.type === "mistakes")!;
+  assert.ok(mistakes.type === "mistakes" && /te gustar[ií]a tener/.test(mistakes.items[0].mistake.es));
+  const checklistBlock = FLAGSHIP.blocks.find((b) => b.type === "checklist")!;
+  assert.ok(checklistBlock.type === "checklist" && checklistBlock.items.length === 4);
+  const verify = FLAGSHIP.blocks.find((b) => b.type === "verify")!;
+  assert.ok(verify.type === "verify" && verify.doctrine.es === "La IA ayuda. Tú verificas." && verify.doctrine.en === "AI helps. You verify." && /3 clientes reales/.test(verify.statement.es));
+  const recap = FLAGSHIP.blocks.find((b) => b.type === "recap")!;
+  assert.ok(recap.type === "recap" && recap.points.length === 3);
+  const glossary = FLAGSHIP.blocks.find((b) => b.type === "glossary")!;
+  assert.ok(glossary.type === "glossary" && glossary.resourceKeys.includes("glossary_target_customer"));
+  if (glossary.type === "glossary") for (const key of glossary.resourceKeys) assert.ok(MIGRATION.includes(`'${key}'`), `glossary key ${key} is not a real seeded resource`);
+});
+
+check("G2: ES/EN parity across the flagship package, prompt, audio script and lesson chrome — no Spanish diacritics in EN", () => {
+  assert.deepStrictEqual(collectParityProblems(FLAGSHIP), []);
+  assert.deepStrictEqual(collectParityProblems(WHO_IS_YOUR_CUSTOMER_PROMPT), []);
+  const enLeaves = (v: unknown, path = ""): [string, string][] => {
+    if (v && typeof v === "object" && !Array.isArray(v) && Object.keys(v).length === 2 && "es" in v && "en" in v) return [[path, String((v as { en: unknown }).en)]];
+    if (Array.isArray(v)) return v.flatMap((x, i) => enLeaves(x, `${path}[${i}]`));
+    if (v && typeof v === "object") return Object.entries(v).flatMap(([k, x]) => enLeaves(x, `${path}.${k}`));
+    return [];
+  };
+  for (const [path, text] of [...enLeaves(FLAGSHIP, "pkg"), ...enLeaves(WHO_IS_YOUR_CUSTOMER_PROMPT, "prompt")]) {
+    assert.ok(!SPANISH_DIACRITICS.test(text), `EN leaf ${path} contains Spanish diacritics: ${text.slice(0, 60)}`);
+  }
+  const es = leaves(lessonCopy("es"));
+  const en = leaves(lessonCopy("en"));
+  assert.deepStrictEqual(en.map(([k]) => k), es.map(([k]) => k), "lesson chrome: EN shape must mirror ES");
+  for (const [k, v] of en) assert.ok(v.trim().length > 0 && !SPANISH_DIACRITICS.test(v), `lesson chrome EN leaf ${k} is empty or has Spanish diacritics`);
+  for (const [k, v] of es) assert.ok(v.trim().length > 0, `lesson chrome ES leaf ${k} is empty`);
+  assert.deepStrictEqual([lessonCopy("es").modes.read, lessonCopy("es").modes.listen, lessonCopy("es").modes.do, lessonCopy("es").modes.askAi], ["Leer", "Escuchar", "Hacer", "Preguntar a IA"]);
+  assert.deepStrictEqual([lessonCopy("en").modes.read, lessonCopy("en").modes.listen, lessonCopy("en").modes.do, lessonCopy("en").modes.askAi], ["Read", "Listen", "Do", "Ask AI"]);
+});
+
+check("G2 AI Companion: questions-first, no-invention, assumptions marked; privacy + verify present; placeholders stay visible; assistant-neutral", () => {
+  const p = WHO_IS_YOUR_CUSTOMER_PROMPT;
+  assert.ok(/hazme de 5 a 7 preguntas, una a la vez/.test(p.body.es) && /ask me 5 to 7 questions, one at a time/.test(p.body.en));
+  assert.ok(/No inventes datos/.test(p.body.es) && /Do not invent facts/.test(p.body.en));
+  assert.ok(/m[aá]rcalo como suposici[oó]n/.test(p.body.es) && /label it as an assumption/.test(p.body.en));
+  assert.ok(p.whyItWorks.length === 5 && p.customize.length === 4 && p.followUps.length === 3);
+  assert.deepStrictEqual(p.privacy.never.map((n) => n.en), ["full names", "phone numbers", "addresses", "private account information"]);
+  assert.ok(/clientes reales/.test(p.verify.es) && /real customers/i.test(p.verify.en));
+  assert.ok(Number.isInteger(p.version) && p.version >= 1, "prompts are versioned");
+
+  const empty = renderPrompt(p, "es", {});
+  assert.deepStrictEqual(empty.missing, ["offer", "city", "stage"]);
+  assert.ok(empty.text.includes("[qué vendes]") && empty.text.includes("[ciudad]") && !empty.text.includes("[["), "unfilled tokens must stay visible as bracketed placeholders");
+  const filled = renderPrompt(p, "en", { offer: "  custom   cakes ", city: "San Jose", stage: journeyStageValue(p, "idea", "en") });
+  assert.deepStrictEqual(filled.missing, []);
+  assert.ok(filled.text.includes("My business: custom cakes") && filled.text.includes("City: San Jose") && filled.text.includes("I have an idea"));
+  assert.strictEqual(journeyStageValue(p, null, "es"), "", "no journey → the stage is never guessed");
+
+  const BRANDS = /openai|chatgpt|\bgpt-?\d|claude|anthropic|gemini|copilot|\bbard\b|llama|mistral|perplexity|deepseek/i;
+  for (const rel of LESSON_ALL_FILES) assert.ok(!BRANDS.test(stripComments(read(rel))), `${rel} names an AI provider — prompts must stay assistant-neutral`);
+});
+
+check("G2: Leonix calls no AI API and lesson islands send nothing over the network (learner text stays in the browser)", () => {
+  for (const rel of [...LESSON_LIB_FILES, ...LESSON_SERVER_UI, ...LESSON_CLIENT_UI]) {
+    const src = stripComments(read(rel));
+    assert.ok(!/\bfetch\(|XMLHttpRequest|sendBeacon|axios|\/api\//.test(src), `${rel} performs a network call`);
+    assert.ok(!/@anthropic-ai|from ["']openai["']|generativeai|api\.openai|\/v1\/(chat|messages|completions)/.test(src), `${rel} references an AI SDK/API`);
+  }
+  const store = read(`${LESSON_UI_DIR}/lessonLocalStore.ts`);
+  assert.ok(store.includes("window.localStorage") && store.includes('"leonix.learning.v1"'), "anonymous answers live in localStorage");
+  const pkgJson = read("package.json");
+  assert.ok(!/jspdf|pdfkit|pdf-lib|react-pdf|puppeteer/i.test(read(`${LESSON_UI_DIR}/LessonPrintSheet.tsx`)), "print sheet must not use a PDF library");
+  assert.ok(pkgJson.length > 0);
+});
+
+check("G2 activity: the customer sentence is built ONLY from learner input — blanks stay blanks, nothing is generated", () => {
+  assert.deepStrictEqual([...CUSTOMER_STATEMENT_FIELD_KEYS], ["offer", "who", "problem", "where", "why"]);
+  const activity = FLAGSHIP.blocks.find((b) => b.type === "activity")!;
+  assert.ok(activity.type === "activity" && activity.activityKey === "customer_statement_builder");
+  assert.ok(activity.type === "activity" && activity.fields.map((f) => f.key).join(",") === CUSTOMER_STATEMENT_FIELD_KEYS.join(","));
+  assert.ok(activity.type === "activity" && activity.fields.map((f) => f.label.es).join("|") === "¿Qué vendes?|¿Quién lo necesita más?|¿Qué problema resuelves?|¿Dónde están?|¿Por qué te elegirían?");
+
+  const none = buildCustomerStatement({}, "es");
+  assert.strictEqual(none.filledCount, 0);
+  assert.strictEqual(none.complete, false);
+  assert.strictEqual(none.text, "Vendo [qué vendes]. Ayudo a [quién] que necesita [problema] en [dónde]. Me eligen porque [por qué tú].");
+  assert.ok(none.parts.filter((p) => p.kind === "blank").length === 5 && none.parts.every((p) => p.kind !== "answer"));
+
+  const one = buildCustomerStatement({ who: "  familias de mi   vecindario. " }, "es");
+  assert.strictEqual(one.filledCount, 1);
+  assert.ok(one.text.includes("Ayudo a familias de mi vecindario que necesita [problema]"), "only the typed answer appears; the rest stay blank");
+  if (activity.type === "activity") for (const f of activity.fields) assert.ok(!none.text.includes(f.placeholder.es.replace("p. ej. ", "")), "placeholder examples must never leak into the sentence");
+
+  const full = buildCustomerStatement({ offer: "cakes", who: "families", problem: "a special cake", where: "my neighborhood", why: "I deliver on time!" }, "en");
+  assert.strictEqual(full.complete, true);
+  assert.strictEqual(full.text, "I sell cakes. I help families who need a special cake in my neighborhood. They choose me because I deliver on time.");
+  assert.strictEqual(cleanStatementAnswer("x".repeat(500)).length, MAX_STATEMENT_ANSWER_LENGTH);
+  assert.strictEqual(cleanStatementAnswer(null), "");
+
+  const ui = stripComments(read(`${LESSON_UI_DIR}/LessonActivityCustomerStatement.tsx`));
+  assert.ok(ui.includes("buildCustomerStatement(") && ui.includes("htmlFor={id}") && ui.includes('aria-live="polite"'), "activity needs labels and a polite live region");
+  assert.ok(!/prompts|renderPrompt|generate|suggest/i.test(ui), "the activity must not generate or suggest answers");
+});
+
+check("G2 legacy adapter: the 7 other published lessons become an honest reduced structure made ONLY of stored text", () => {
+  const others = PUBLISHED_SEED_KEYS.filter((k) => k !== "who_is_your_customer");
+  assert.strictEqual(others.length, 7);
+  for (const key of others) {
+    const seed = seedLesson(key);
+    assert.ok((seed.bodyEs ?? "").length > 1200 && (seed.bodyEn ?? "").length > 1200, `${key}: could not read the stored bodies`);
+    for (const body of [seed.bodyEs, seed.bodyEn]) {
+      const parsed = parseLegacyBody(body);
+      assert.strictEqual(parsed.structured, true, `${key}: stored body was not recognised`);
+      assert.strictEqual(parsed.steps.length, 5, `${key}: expected five stored practical steps`);
+    }
+    const pkg = legacyLessonToPackage(seed, ["checklist_x"]);
+    assert.strictEqual(pkg.source, "legacy");
+    assert.deepStrictEqual(pkg.blocks.map((b) => b.type), ["explain", "steps", "note", "resource"], `${key}: reduced structure`);
+    assert.ok(!pkg.audio && !pkg.blocks.some((b) => ["hook", "example", "activity", "ai_prompt", "compare", "visual_model"].includes(b.type)), `${key}: adapter must not pretend to be a flagship package`);
+    const r = validateLessonPackage(pkg, { prompts: LEARNING_PROMPTS });
+    assert.deepStrictEqual(r.errors, [], `${key}: ${r.errors.join(" | ")}`);
+
+    // Every emitted sentence is a verbatim slice of the stored body (labels are the only added words).
+    const labelTexts = new Set(Object.values(LEGACY_SECTION_LABELS).flatMap((l) => [l.es, l.en]));
+    const emitted: [string, string][] = [];
+    for (const b of pkg.blocks) {
+      if (b.type === "explain") for (const c of b.chunks) emitted.push([c.body.es, c.body.en]);
+      if (b.type === "steps") for (const i of b.items) emitted.push([i.es, i.en]);
+      if (b.type === "note") emitted.push([b.body.es, b.body.en]);
+    }
+    assert.ok(emitted.length >= 8, `${key}: intro + why + 5 steps + note`);
+    for (const [esText, enText] of emitted) {
+      assert.ok(!labelTexts.has(esText) && (seed.bodyEs ?? "").includes(esText), `${key}: adapter invented ES text: ${esText.slice(0, 50)}`);
+      assert.ok((seed.bodyEn ?? "").includes(enText), `${key}: adapter invented EN text: ${enText.slice(0, 50)}`);
+    }
+    assert.deepStrictEqual(pkg.meta.title, { es: seed.titleEs, en: seed.titleEn }, "legacy titles render exactly as stored (no DB mutation, no silent rewrite)");
+  }
+  // Unknown shapes never fall back to one essay box, and never throw.
+  const odd = legacyLessonToPackage({ lessonKey: "odd", titleEs: "t", titleEn: "t", summaryEs: "s", summaryEn: "s", bodyEs: "Uno.\n\nDos.\n\nTres.", bodyEn: "One.\n\nTwo.", estimatedMinutes: 5 });
+  assert.deepStrictEqual(odd.blocks.map((b) => b.type), ["explain"]);
+  assert.ok(odd.blocks[0].type === "explain" && odd.blocks[0].chunks.length === 3);
+  assert.doesNotThrow(() => legacyLessonToPackage({ lessonKey: "empty", titleEs: "t", titleEn: "t", summaryEs: "", summaryEn: "", bodyEs: null, bodyEn: null, estimatedMinutes: 5 }));
+});
+
+check("G2: all 8 published lessons resolve through ONE renderer; no plain essay box remains; planned lessons stay unreachable", () => {
+  assert.deepStrictEqual(Object.keys(CODE_OWNED_LESSON_PACKAGES), ["who_is_your_customer"], "G2 authors exactly one flagship package (no mass curriculum)");
+  for (const key of PUBLISHED_SEED_KEYS) {
+    const pkg = resolveLessonPackage(seedLesson(key));
+    assert.strictEqual(pkg.lessonKey, key);
+    assert.strictEqual(pkg.source, key === "who_is_your_customer" ? "package" : "legacy");
+    assert.ok(pkg.blocks.some((b) => b.type === "explain"));
+  }
+  for (const key of PLANNED_SEED_KEYS) assert.strictEqual(getCodeOwnedLessonPackage(key), null, `planned lesson ${key} must not get a package in G2`);
+  for (const rel of LESSON_ALL_FILES) for (const key of PLANNED_SEED_KEYS) assert.ok(!stripComments(read(rel)).includes(key), `${rel} references planned lesson ${key}`);
+
+  const page = read(LESSON_PAGE);
+  assert.ok(page.includes("getPublishedLessonByKey(lessonKey)") && page.includes("if (!lesson) notFound();"), "a planned/draft/archived lesson must still 404");
+  assert.ok(page.includes("resolveLessonPackage(lesson, relatedResourceKeys)") && page.includes("<LessonRenderer"), "the page must render through the package renderer");
+  assert.ok(page.includes("params: Promise<{ lessonKey: string }>") && page.includes("journeyFromSearchParams(sp)"));
+  for (const rel of [LESSON_PAGE, ...LESSON_SERVER_UI]) {
+    const src = stripComments(read(rel));
+    assert.ok(!src.includes("whitespace-pre-line"), `${rel} still renders a whitespace-pre-line essay`);
+    assert.ok(!/\{body\}|lesson\.bodyEs|lesson\.bodyEn/.test(src), `${rel} still prints the raw stored body`);
+  }
+  assert.ok(read("app/(site)/dashboard/business-tools/concierge/_components/ActionCard.tsx").includes("/aprender/leccion/${data.relatedLessonKey}"), "Concierge deep link intact");
+  assert.ok(read("app/(site)/dashboard/business-tools/idea-builder/IdeaBuilderWizard.tsx").includes("/aprender/leccion/${l.lessonKey}"), "Idea Builder deep link intact");
+});
+
+check("G2 renderer: server shell with small client islands; modes are anchors in one document and only appear when real", () => {
+  for (const rel of LESSON_SERVER_UI) assert.ok(!/^["']use client["']/m.test(read(rel)), `${rel} must stay a server component`);
+  for (const rel of LESSON_CLIENT_UI) assert.ok(/^["']use client["']/m.test(read(rel)), `${rel} must be a client island`);
+  const renderer = read(`${LESSON_UI_DIR}/LessonRenderer.tsx`);
+  assert.ok(renderer.includes('{ read: "leer", listen: "escuchar", do: "hacer", askAi: "preguntar-ia" }'));
+  assert.ok(!/role="tab|aria-selected|useState/.test(stripComments(renderer)), "modes must be anchors, not tabs that remove content");
+  assert.ok(renderer.includes("if (showListen) modes.push") && renderer.includes("if (prompt) modes.push") && renderer.includes("if (doBlockId) modes.push"), "a mode chip appears only when that mode exists");
+  assert.strictEqual((renderer.match(/<h1\b/g) ?? []).length, 1, "exactly one h1");
+  assert.ok(renderer.includes("sticky top-[3.25rem]"), "mode bar sticks below the fixed site header");
+  assert.ok(renderer.includes("overflow-x-clip") && !stripComments(renderer).includes("overflow-x-hidden"), "overflow-x-hidden on <main> would break the sticky mode bar — use overflow-x-clip");
+  assert.ok(renderer.includes("LessonProgressButton"), "existing account progress stays wired (semantics unchanged until G5)");
+  for (const type of ["hook", "outcomes", "explain", "visual_model", "example", "compare", "activity", "ai_prompt", "mistakes", "glossary", "checklist", "resource", "verify", "pro_help", "recap", "steps", "note"]) {
+    assert.ok(renderer.includes(`case "${type}":`), `renderer does not handle block type ${type}`);
+  }
+});
+
+check("G2 journey-aware NEXT: never exposes an unpublished lesson; prefers the package's wish only once it is published", () => {
+  const published = PUBLISHED_SEED_KEYS.map((k, i) => lesson({ id: `n${i}`, lessonKey: k, status: "published" }));
+  const preferred = FLAGSHIP.next?.preferred?.idea ?? [];
+  assert.deepStrictEqual(preferred, ["know_your_competition"]);
+  const n1 = resolveNextLesson({ lessonKey: "who_is_your_customer", journey: "idea", lessons: published, preferred });
+  assert.strictEqual(n1?.lesson.lessonKey, "revenue_vs_profit", "an unpublished preferred lesson must be skipped for the next PUBLISHED one");
+  const withPlanned = [...published, lesson({ id: "kp", lessonKey: "know_your_competition", status: "planned" })];
+  assert.strictEqual(resolveNextLesson({ lessonKey: "who_is_your_customer", journey: "idea", lessons: withPlanned, preferred })?.lesson.lessonKey, "revenue_vs_profit");
+  const withPublished = [...published, lesson({ id: "kc", lessonKey: "know_your_competition", status: "published" })];
+  assert.strictEqual(resolveNextLesson({ lessonKey: "who_is_your_customer", journey: "idea", lessons: withPublished, preferred })?.lesson.lessonKey, "know_your_competition");
+  assert.strictEqual(resolveNextLesson({ lessonKey: "who_is_your_customer", journey: "negocio", lessons: published })?.lesson.lessonKey, "revenue_vs_profit");
+  assert.strictEqual(resolveNextLesson({ lessonKey: "who_is_your_customer", journey: null, lessons: published })?.orderJourney, "idea", "no journey → neutral order, lesson still valid");
+  assert.strictEqual(resolveNextLesson({ lessonKey: "advertising_fundamentals", journey: "negocio", lessons: published }), null, "last lesson of a journey has no next");
+  assert.strictEqual(resolveNextLesson({ lessonKey: "not_a_lesson", journey: "idea", lessons: published }), null);
+  const onlyDrafts = PUBLISHED_SEED_KEYS.map((k, i) => lesson({ id: `d${i}`, lessonKey: k, status: k === "who_is_your_customer" ? "published" : "draft" }));
+  assert.strictEqual(resolveNextLesson({ lessonKey: "who_is_your_customer", journey: "empezando", lessons: onlyDrafts }), null);
+  for (const j of ["idea", "empezando", "negocio"] as const) {
+    for (const k of PUBLISHED_SEED_KEYS) {
+      const n = resolveNextLesson({ lessonKey: k, journey: j, lessons: withPlanned, preferred: ["know_your_competition", "branding_basics"] });
+      assert.ok(n === null || n.lesson.status === "published", `${j}/${k}: NEXT leaked a non-published lesson`);
+    }
+  }
+  assert.strictEqual(journeyFromSearchParams({ journey: "hack" }), null, "unknown journey values are ignored");
+});
+
+check("G2 audio: a separate conversational ES/EN teaching script (~8–10 min), driving-safe, and NO player without a real recording", () => {
+  const audio = FLAGSHIP.audio!;
+  assert.deepStrictEqual(audio.segments.map((s) => s.kind), ["hook", "learn", "story", "concept", "reflect", "action", "parked", "recap", "next"]);
+  for (const lang of ["es", "en"] as const) {
+    const total = audio.segments.reduce((n, s) => n + words(s.text[lang]), 0);
+    assert.ok(total >= 950 && total <= 1600, `${lang} script is ${total} words — expected roughly 8–10 spoken minutes`);
+  }
+  assert.ok(audio.segments.find((s) => s.kind === "reflect")?.pauseSeconds, "the reflection needs a real pause");
+  const parked = audio.segments.find((s) => s.kind === "parked")!;
+  assert.ok(/Cuando est[eé]s estacionado, o ya en casa/.test(parked.text.es) && /When you're parked, or back at home/.test(parked.text.en));
+  assert.ok(/Si vas manejando, ahorita solo escucha/.test(parked.text.es) && /If you're driving, for now just listen/.test(parked.text.en));
+  for (const s of audio.segments.filter((x) => x.kind !== "parked")) {
+    assert.ok(!/abre esta lecci|tu tel[eé]fono|copia|pantalla|open this lesson|your phone|\bcopy\b|\bscreen\b|\btap\b/i.test(`${s.text.es} ${s.text.en}`), `segment ${s.id} asks for the screen outside the parked instruction`);
+  }
+  // Not a reading of the page: no explain chunk is recited verbatim.
+  const explain = FLAGSHIP.blocks.find((b) => b.type === "explain")!;
+  const spoken = audio.segments.map((s) => s.text.es).join(" ");
+  if (explain.type === "explain") for (const c of explain.chunks) assert.ok(!spoken.includes(c.body.es), "the audio script must not read the page body aloud");
+  assert.ok(/ejemplo que inventamos/.test(spoken), "Rosa must be declared an invented example in the audio too");
+
+  assert.strictEqual(audio.assets, undefined, "no recording exists yet");
+  assert.strictEqual(hasPlayableAudio(FLAGSHIP, "es"), false);
+  assert.strictEqual(hasPlayableAudio(FLAGSHIP, "en"), false);
+  const stale = clone(FLAGSHIP);
+  stale.audio!.assets = { es: { src: "/x.mp3", mime: "audio/mpeg", durationSeconds: 540, scriptVersion: 2, sourceKind: "human" } };
+  assert.strictEqual(hasPlayableAudio(stale, "es"), false, "a recording of another script version is never played");
+  const fresh = clone(FLAGSHIP);
+  fresh.audio!.assets = { es: { src: "/x.mp3", mime: "audio/mpeg", durationSeconds: 540, scriptVersion: 1, sourceKind: "human" } };
+  assert.strictEqual(hasPlayableAudio(fresh, "es"), true, "adding an asset is all Coach needs to do — content architecture is unchanged");
+  assert.strictEqual(hasPlayableAudio(fresh, "en"), false);
+
+  const renderer = stripComments(read(`${LESSON_UI_DIR}/LessonRenderer.tsx`));
+  assert.ok(renderer.includes("const showListen = Boolean(pkg.audio) && (playable || audioPreview);"), "Listen only renders with a real asset or an explicit preview");
+  assert.ok(/\{playable && pkg\.audio\.assets\?\.\[lang\] \? \(\s*<div className="mt-4">\s*<LessonAudioPlayer/.test(renderer), "the player renders only behind hasPlayableAudio");
+  assert.ok(renderer.includes("copy.audio.previewBadge"), "preview state must be clearly labelled");
+  assert.ok(read(LESSON_PAGE).includes('audioPreview={first(sp.audio) === "preview"}'));
+  const player = read(`${LESSON_UI_DIR}/LessonAudioPlayer.tsx`);
+  assert.ok(player.includes("<audio ref={ref} controls") && !/autoPlay|autoplay/.test(stripComments(player)), "native controls, never autoplay");
+});
+
+check("G2 SAVE + completion: print CSS sheet (no PDF library); completion is a local visual pattern — no timers, no new grants", () => {
+  const sheet = read(`${LESSON_UI_DIR}/LessonPrintSheet.tsx`);
+  assert.ok(sheet.includes("@media print") && sheet.includes("window.print()") && sheet.includes('id="leonix-lesson-sheet"'));
+  assert.ok(sheet.includes("statement.text") && sheet.includes("promptText") && sheet.includes("checklist.map"), "sheet = learner statement + checklist + AI prompt");
+  assert.strictEqual(lessonCopy("es").print.sheetTitle, "Mi hoja");
+  const completion = stripComments(read(`${LESSON_UI_DIR}/LessonLocalCompletion.tsx`));
+  assert.ok(!/setTimeout|setInterval|Date\.now|performance\.now|fetch\(/.test(completion), "completion must not use timers or the network");
+  for (const rel of LESSON_CLIENT_UI) assert.ok(!/learning\/progress|capability/i.test(stripComments(read(rel))), `${rel} must not touch server progress or capability records`);
+  const progress = read("app/api/dashboard/business/learning/progress/route.ts");
+  assert.ok(progress.includes('body.action === "start" || body.action === "complete"'), "progress API actions unchanged in G2");
+  assert.ok(MIGRATION.includes("status IN ('started', 'completed')"), "progress schema unchanged");
+});
+
+check("G2: no migration, no schema change, no reach into Home / BR / Rentas / Concierge", () => {
+  const migrations = fs.readdirSync(path.join(ROOT, "supabase/migrations")).filter((f) => /learning/i.test(f));
+  assert.deepStrictEqual(migrations.sort(), ["20260807120000_business_learning_center_foundation.sql", "20260807130000_business_learning_center_privilege_hardening.sql"], "G2 must not add a learning migration");
+  for (const rel of LESSON_ALL_FILES) {
+    const src = read(rel);
+    assert.ok(!/from ["'][^"']*\/(home|bienes-raices|rentas|concierge)\//.test(src), `${rel} reaches outside the Learning Center`);
+    assert.ok(!src.includes("/publicar"), `${rel} links to /publicar`);
+    assert.ok(!/Business Concierge|HealthMap|healthMap/.test(stripComments(src)), `${rel} renders Concierge UI`);
+    assert.ok(!/partner|sponsor|patrocin/i.test(stripComments(src)), `${rel} names a partner or sponsor`);
+  }
+});
+
+check("G2 accessibility + visual language: 44px targets, labels, text alternative, no colour-only meaning, approved palette, no hidden-by-animation content", () => {
+  const TARGET_OK = /min-h-11|min-h-12|min-h-\[2\.875rem\]|LEARNING_BTN_PRIMARY|LEARNING_BTN_OUTLINE|LEARNING_LINK/;
+  for (const rel of [...LESSON_SERVER_UI, ...LESSON_CLIENT_UI].filter((f) => f.endsWith(".tsx"))) {
+    const src = read(rel);
+    for (const m of src.matchAll(/<(Link|a|button|summary)\b/g)) {
+      const tag = src.slice(m.index ?? 0, (m.index ?? 0) + 700);
+      assert.ok(TARGET_OK.test(tag), `${rel}: <${m[1]}> without a ≥44 px touch-target class → ${tag.slice(0, 90).replace(/\s+/g, " ")}`);
+    }
+    for (const m of src.matchAll(/<input\b/g)) {
+      const tag = src.slice(m.index ?? 0, (m.index ?? 0) + 700);
+      assert.ok(/type="checkbox"/.test(tag) ? src.includes("min-h-12 cursor-pointer") : TARGET_OK.test(tag), `${rel}: input without a ≥44 px target`);
+    }
+    assert.ok(!src.includes("framer-motion") && !/opacity-0\b/.test(stripComments(src)), `${rel} hides content behind animation`);
+    assert.ok(!/overflow-x-(auto|scroll)|snap-x/.test(stripComments(src)), `${rel} introduces sideways scrolling`);
+    assert.ok(!/purple|violet|fuchsia|indigo|backdrop-blur-(md|lg|xl)|bg-gradient/.test(stripComments(src)), `${rel} drifts from the approved visual language`);
+  }
+  const visuals = read(`${LESSON_UI_DIR}/lessonVisuals.tsx`);
+  for (const tag of visuals.match(/<svg\b[^>]*>/g) ?? []) assert.ok(tag.includes("aria-hidden"), "lesson SVGs are decorative; meaning is carried by text");
+  const blocks = read(`${LESSON_UI_DIR}/LessonBlocks.tsx`);
+  assert.ok(blocks.includes("block.textAlternative[lang]") && blocks.includes("<figcaption"), "the hook visual needs a rendered text alternative");
+  assert.ok(blocks.includes("copy.sections.weakMark") && blocks.includes("copy.sections.strongMark") && blocks.includes("<FiX") && blocks.includes("<FiCheck"), "weak/strong must be carried by icon + words, not colour alone");
+  assert.ok(blocks.includes("md:hidden") && blocks.includes("flex-col"), "the visual model reads vertically on phones");
+  assert.ok(read(`${LESSON_UI_DIR}/LessonPromptBlock.tsx`).includes('role="status"') && read(`${LESSON_UI_DIR}/LessonChecklist.tsx`).includes("htmlFor={id}"));
+
+  const hexes = (src: string) => new Set((src.match(/#[0-9A-Fa-f]{6}\b/g) ?? []).map((h) => h.toUpperCase()));
+  const approved = new Set<string>();
+  for (const rel of [
+    `${APRENDER_DIR}/_components/learningUi.ts`, `${APRENDER_DIR}/_components/learningGlyphs.tsx`, `${APRENDER_DIR}/_components/LearningToolkit.tsx`,
+    `${APRENDER_DIR}/_components/LearningAccessClose.tsx`, `${APRENDER_DIR}/_components/LearningTopicTiles.tsx`, `${APRENDER_DIR}/page.tsx`,
+  ]) for (const h of hexes(read(rel))) approved.add(h);
+  for (const rel of [...LESSON_SERVER_UI, ...LESSON_CLIENT_UI]) for (const h of hexes(read(rel))) assert.ok(approved.has(h), `${rel} introduces a colour outside the approved Learning palette: ${h}`);
 });
 
 console.log(`\n${passed} check(s) passed${failed ? `, ${failed} FAILED` : ""}.`);
