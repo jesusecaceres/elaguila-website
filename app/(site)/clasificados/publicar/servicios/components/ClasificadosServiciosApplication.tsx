@@ -651,8 +651,15 @@ export function ClasificadosServiciosApplication() {
       setHydrated(false);
       return;
     }
-    primeServiciosExistingPublicSlug(null);
-    primeServiciosExistingListingId(null);
+    // Gate 6 (Servicios Final Consolidated Lifecycle Execution, 2026-09-18): this branch runs on
+    // EVERY ordinary (non dashboard-edit) mount of the application, including resuming the exact
+    // same draft after an abandoned/canceled Stripe checkout. It used to unconditionally wipe the
+    // canonical listing id primed by a prior pending-payment save (serviciosPublishClient.ts) right
+    // before restoring that SAME draft from storage below — so a retried checkout always allocated
+    // a fresh slug and INSERTed a duplicate row instead of updating the one already saved as
+    // pending_payment. The id must only ever be cleared by an EXPLICIT "start over" action
+    // (deleteApplicationDraft, below) or by hydrating a DIFFERENT listing for dashboard edit (which
+    // already sets it to that listing's own real id) — never merely by revisiting this page.
     setEditIdentity(null);
     setNewFieldsMissing([]);
     setEditHydration({ status: "idle" });
