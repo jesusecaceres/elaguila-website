@@ -197,6 +197,10 @@ export function ClasificadosServiciosPreviewClient() {
   // coupons/offers capability truth for a listing-bound preview (see profile below); null until
   // hydrated, meaning "not yet known" rather than "not entitled".
   const [listingBoundOffersEntitled, setListingBoundOffersEntitled] = useState<boolean | null>(null);
+  // Gate 4 (Servicios Golden lifecycle closeout, 2026-09-18) — real, server-verified
+  // leonix_verified truth for a listing-bound preview (see profile above); false until hydrated,
+  // which is the same honest default an unverified/not-yet-real row would show.
+  const [listingBoundLeonixVerified, setListingBoundLeonixVerified] = useState<boolean | null>(null);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [checkoutErr, setCheckoutErr] = useState<string | null>(null);
 
@@ -293,6 +297,7 @@ export function ClasificadosServiciosPreviewClient() {
           primeServiciosExistingListingId(hydrated.editIdentity.id);
           setListingBoundStatus(hydrated.editIdentity.status);
           setListingBoundOffersEntitled(data.listing.offers_entitled === true);
+          setListingBoundLeonixVerified(data.listing.leonix_verified === true);
           let normalized = normalizeClasificadosServiciosApplicationState(hydrated.state);
           if (alreadyEditingThisListing) {
             const localDraft = await loadClasificadosServiciosApplicationResolved();
@@ -595,6 +600,15 @@ export function ClasificadosServiciosPreviewClient() {
     if (source !== "application" || !appDraft || !appState) return null;
     let wire = mapServiciosApplicationDraftToBusinessProfile(appDraft);
     wire = applyClasificadosCouponsToServiciosWireProfile(wire, appDraft);
+    // Gate 4 (Servicios Golden lifecycle closeout, 2026-09-18) — a listing-bound preview of an
+    // ALREADY leonix_verified listing must show the real badge, mirroring the exact override the
+    // published page itself applies (page.tsx: `wireMerged.identity = {...,leonixVerified:
+    // row.leonix_verified === true}`) — never fabricated, but also never silently hidden for a
+    // listing that is genuinely verified. A fresh application has no real DB row yet, so it stays
+    // false (unchanged).
+    if (listingBoundPreview) {
+      wire = { ...wire, identity: { ...wire.identity, leonixVerified: listingBoundLeonixVerified === true } };
+    }
     let resolved = resolveServiciosProfile(wire, lang);
     // Gate 15 — a listing-bound preview must consume the SAME server-resolved `coupons_offers`
     // capability truth the published page uses, not `appState.couponsAddOn` (an intent flag
@@ -608,7 +622,7 @@ export function ClasificadosServiciosPreviewClient() {
       resolved = { ...resolved, promotions: [], coupons: [] };
     }
     return resolved;
-  }, [source, appDraft, appState, lang, listingBoundPreview, listingBoundOffersEntitled]);
+  }, [source, appDraft, appState, lang, listingBoundPreview, listingBoundOffersEntitled, listingBoundLeonixVerified]);
 
   const listingTemplate = useMemo(() => {
     if (source !== "application" || !appState) return "standard_service" as const;
@@ -641,18 +655,20 @@ export function ClasificadosServiciosPreviewClient() {
       // Gate 5 (Servicios Final Consolidated Lifecycle Execution, 2026-09-18): never fake the
       // Verified badge. `leonixVerifiedInterest` is the owner's stated INTEREST in verification
       // (opsMeta only) — it is not, and must never render as, the real staff-granted
-      // `leonix_verified` truth. The publish route always inserts a NEW row as `leonix_verified:
-      // false` (only staff can grant it afterward via Admin), and this draft/preview model has no
-      // access to a real, already-granted value for an existing listing either — so the only
-      // honest value here is `false`, matching what the DB itself would actually show.
-      leonix_verified: false,
+      // `leonix_verified` truth. A fresh application's publish route always inserts a NEW row as
+      // `leonix_verified: false` (only staff can grant it afterward via Admin), so `false` is
+      // honest there. Gate 4 (Golden lifecycle closeout, 2026-09-18): for a LISTING-BOUND preview
+      // the real value already exists in the DB and is fetched by the my-listing route — showing
+      // `false` unconditionally would be a Preview/Public mismatch for an already-verified
+      // listing, not merely a safe default.
+      leonix_verified: listingBoundPreview ? listingBoundLeonixVerified === true : false,
       internal_group: getBusinessTypePreset(appState.businessTypeId)?.internalGroup ?? null,
       // Gate 7 — stop cosmetically faking `published` for a listing-bound preview: use the REAL
       // hydrated status (e.g. `pending_payment`) when known, falling back to the honest "published"
       // stand-in only for a fresh application preview, which has no real row/status yet.
       listing_status: listingBoundPreview && listingBoundStatus ? listingBoundStatus : SERVICIOS_LISTING_STATUS_PUBLISHED,
     };
-  }, [useProfessionalPreview, appState, appDraft, profile, listingBoundPreview, listingBoundStatus]);
+  }, [useProfessionalPreview, appState, appDraft, profile, listingBoundPreview, listingBoundStatus, listingBoundLeonixVerified]);
 
   // Servicios global checkout standard — final checkpoint shown after preview for the NEW
   // application publish flow, and (Gate 8, Servicios Final Consolidated Lifecycle Execution,

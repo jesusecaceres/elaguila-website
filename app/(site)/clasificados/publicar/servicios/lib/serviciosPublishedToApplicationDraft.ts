@@ -35,6 +35,8 @@ export type ServiciosPublishedListingHydrationSource = {
   /** Gate 15 — real, server-resolved `coupons_offers` capability truth (same authority the
    * publish route and public profile page use), not inferred from stored profile content. */
   offers_entitled?: boolean;
+  /** Gate 4 (Servicios Golden lifecycle closeout) — real, server-verified badge truth. */
+  leonix_verified?: boolean;
 };
 
 export type ServiciosEditIdentity = {
