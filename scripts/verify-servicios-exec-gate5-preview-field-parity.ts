@@ -53,7 +53,12 @@ check("A: coverUrl is now written into hero.coverImageUrl/coverImageAlt", () => 
 check("B: Preview's mock listing row never fabricates the Verified badge from owner-stated interest", () => {
   const src = raw(PREVIEW);
   assert.ok(!/leonix_verified:\s*appState\.leonixVerifiedInterest/.test(src), "must not derive the real badge from the interest flag");
-  assert.ok(src.includes("leonix_verified: false,"), "must use the same honest default the DB insert itself uses");
+  // Refined by Golden Gate 4: listing-bound previews use the REAL DB value; a fresh application
+  // still defaults to the same honest `false` the DB insert itself uses.
+  assert.ok(
+    src.includes("leonix_verified: listingBoundPreview ? listingBoundLeonixVerified === true : false,"),
+    "must be real DB truth for a listing-bound preview and the honest false default otherwise",
+  );
 });
 
 check("C: the unsupported '4 free promotions included' bullet is gone from both locales, no invented replacement", () => {
