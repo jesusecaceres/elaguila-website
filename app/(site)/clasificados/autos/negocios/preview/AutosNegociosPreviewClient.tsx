@@ -444,7 +444,13 @@ function AutosNegociosPreviewInner({
     });
     if (!photoPrep.ok) return { ok: false, message: photoPrep.message };
 
-    const preparedListing = prepareAutosListingForApiTransport(photoPrep.listing);
+    // Stage the exact saved children (with durable photo URLs) inside the parent's own durable
+    // row before Stripe Checkout opens. The webhook that fulfills payment runs server-side with
+    // no access to browser state, so this is the only place it can read the bundle from.
+    const preparedListing = prepareAutosListingForApiTransport({
+      ...photoPrep.listing,
+      additionalInventoryVehicles: photoPrep.additionalInventoryVehicles,
+    });
 
     // An existing canonical listing (reached via dashboard edit) is PATCHed only — never
     // falls back to POST/create. A failure here is surfaced as a clear error, not silently

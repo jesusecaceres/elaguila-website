@@ -69,8 +69,18 @@ export function AutosPublicResultsShell({ market = "private" }: { market?: Autos
   const marketCopy = getAutosPublicMarketCopy(market, lang);
 
   useEffect(() => {
-    const seller = new URLSearchParams(spStr).get("seller");
-    if (seller === "dealer" || seller === "private") return;
+    const params = new URLSearchParams(spStr);
+    const seller = params.get("seller");
+    if (seller === "dealer" || seller === "private") {
+      if (seller !== marketDefaultSeller) {
+        // Mismatched market URL (e.g. /clasificados/autos/results?seller=dealer) — canonicalize
+        // to the peer market's own results route instead of rendering that market's inventory
+        // under this market's heading/shell.
+        const peerMarket: AutosPublicMarket = seller === "dealer" ? "dealer" : "private";
+        router.replace(`${autosMarketResultsPath(peerMarket)}?${params.toString()}`);
+      }
+      return;
+    }
     const parsed = parseAutosBrowseUrl(new URLSearchParams(spStr));
     router.replace(
       `${RESULTADOS_PATH}?${serializeAutosBrowseUrl({

@@ -22,7 +22,7 @@ const LANE_EXPLORE_PATH: Record<BusinessLaneKey, string> = {
   servicios: "/clasificados/servicios",
   restaurantes: "/clasificados/restaurantes",
   "comida-local": "/clasificados/comida-local",
-  "autos-dealer": "/clasificados/autos/results",
+  "autos-dealer": "/clasificados/dealers-de-autos",
   "bienes-raices": "/clasificados/bienes-raices",
 };
 
@@ -32,7 +32,7 @@ const LANE_ADVERTISE_PATH: Record<BusinessLaneKey, string> = {
   servicios: "/clasificados/publicar/servicios",
   restaurantes: "/clasificados/publicar/restaurantes",
   "comida-local": "/publicar/comida-local",
-  "autos-dealer": "/clasificados/publicar/autos",
+  "autos-dealer": "/publicar/autos/negocios",
   "bienes-raices": "/clasificados/publicar/bienes-raices",
 };
 
@@ -112,10 +112,6 @@ function appendLangToPath(path: string, lang: SupportedLang): string {
 }
 
 export function buildNegociosExploreHref(lane: BusinessLaneKey, lang: SupportedLang): string {
-  if (lane === "autos-dealer") {
-    const params = new URLSearchParams({ lang, seller: "dealer" });
-    return `${LANE_EXPLORE_PATH[lane]}?${params.toString()}`;
-  }
   return appendLangToPath(LANE_EXPLORE_PATH[lane], lang);
 }
 
