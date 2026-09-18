@@ -1,26 +1,18 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { PublicPillarJsonLd } from "@/app/components/PublicPillarJsonLd";
 import { resolveLearningCenterFlagTier } from "@/app/lib/business/learning/featureFlag";
-import { listActiveCategories, listAllPublishedResources, listPublishedLessons } from "@/app/lib/business/learning/repository";
+import { listAllPublishedResources, listPublishedLessons } from "@/app/lib/business/learning/repository";
 import { normalizeLang } from "@/app/lib/language";
 import { buildPublicPillarMetadata } from "@/app/lib/leonix/publicPillarSeo";
 import { contentLangFromRouteLang, learningCopy, learningLandingCopy } from "./learningCopy";
-import {
-  journeyFromSearchParams,
-  resolveAllJourneys,
-  resolveRoadmapStages,
-  resolveStartHereLessons,
-  resolveTopicTiles,
-} from "./learningJourneys";
+import { buildJourneyHref, journeyFromSearchParams, resolveAllJourneys } from "./learningJourneys";
 import { LearningAccessClose } from "./_components/LearningAccessClose";
-import { LearningBusinessRoadmap } from "./_components/LearningBusinessRoadmap";
 import { LearningHero } from "./_components/LearningHero";
 import { LearningJourneyCards } from "./_components/LearningJourneyCards";
-import { LearningMethod } from "./_components/LearningMethod";
-import { LearningSearch } from "./_components/LearningSearch";
-import { LearningStartHere } from "./_components/LearningStartHere";
-import { LearningToolkit } from "./_components/LearningToolkit";
-import { LearningTopicTiles } from "./_components/LearningTopicTiles";
+import { LearningStartHelper } from "./_components/LearningStartHelper";
+import { LearningToolsRow } from "./_components/LearningToolsRow";
+import { LearningTrustStrip } from "./_components/LearningTrustStrip";
 
 export const dynamic = "force-dynamic";
 
@@ -33,20 +25,25 @@ export async function generateMetadata(props: { searchParams: Promise<SearchPara
 }
 
 /**
- * Phase 1 — flagship public Learning Center landing (Gate L1). Server component: reads the
- * published catalog through the service-role repository (never an anon grant), keeps the
- * `business_learning_center` flag gate with its truthful coming-soon state, and composes
- * hero → journeys → roadmap → start here → topics → toolkit → method → access close.
+ * Gate G1 — the Learning Center front door. A short checkpoint, not the whole school:
+ * hero → "¿Dónde estás hoy?" three doors → trust strip → "No sé por dónde empezar" helper →
+ * compact tools row → access close. The curriculum itself lives on the pathway pages
+ * (`/aprender/ruta/{journey}`). Legacy Phase-1 links (`/aprender?journey=idea`) redirect there.
  *
- * Truth rules (locked): only published lessons count; journey/roadmap/start-here mappings are
- * code-owned and validated against the published catalog at render; a stage/journey with no
- * published lesson renders "En preparación"; categories with zero published lessons are hidden.
- * Content strings from the database render exactly as stored.
+ * Truth rules (locked): only published lessons count; the journey mapping is code-owned and
+ * validated against the published catalog at render; a journey with no published lesson renders
+ * "En preparación". Server component: reads the catalog through the service-role repository
+ * (never an anon grant) and keeps the `business_learning_center` flag gate with its truthful
+ * coming-soon state. Content strings from the database render exactly as stored.
  */
 export default async function LearningCenterHomePage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const sp = await searchParams;
   const rawLang = Array.isArray(sp.lang) ? sp.lang[0] : sp.lang;
   const routeLang = normalizeLang(rawLang);
+
+  const legacyJourney = journeyFromSearchParams(sp);
+  if (legacyJourney) redirect(buildJourneyHref(legacyJourney, routeLang));
+
   const lang = contentLangFromRouteLang(routeLang);
   const chrome = learningCopy(lang);
   const copy = learningLandingCopy(lang);
@@ -62,16 +59,11 @@ export default async function LearningCenterHomePage({ searchParams }: { searchP
     );
   }
 
-  const [categories, lessons, resources] = await Promise.all([listActiveCategories(), listPublishedLessons(), listAllPublishedResources()]);
+  const [lessons, resources] = await Promise.all([listPublishedLessons(), listAllPublishedResources()]);
 
   const journeys = resolveAllJourneys(lessons);
-  const stages = resolveRoadmapStages(lessons);
-  const startHere = resolveStartHereLessons(lessons);
-  const tiles = resolveTopicTiles(categories, lessons);
-  const categoriesById = new Map(categories.map((c) => [c.id, c] as const));
   const glossaryCount = resources.filter((r) => r.resourceType === "glossary_term").length;
   const resourceCount = resources.filter((r) => r.resourceType === "checklist" || r.resourceType === "template").length;
-  const selectedJourney = journeyFromSearchParams(sp);
 
   return (
     <>
@@ -87,12 +79,10 @@ export default async function LearningCenterHomePage({ searchParams }: { searchP
         />
         <div className="relative z-10">
           <LearningHero copy={copy} />
-          <LearningJourneyCards copy={copy} chrome={chrome} lang={lang} routeLang={routeLang} journeys={journeys} selected={selectedJourney} />
-          <LearningBusinessRoadmap copy={copy} chrome={chrome} lang={lang} routeLang={routeLang} stages={stages} />
-          <LearningStartHere copy={copy} chrome={chrome} lang={lang} routeLang={routeLang} lessons={startHere} categoriesById={categoriesById} />
-          <LearningTopicTiles copy={copy} chrome={chrome} lang={lang} routeLang={routeLang} tiles={tiles} search={<LearningSearch lang={lang} />} />
-          <LearningToolkit copy={copy} routeLang={routeLang} glossaryCount={glossaryCount} resourceCount={resourceCount} />
-          <LearningMethod copy={copy} />
+          <LearningJourneyCards copy={copy} chrome={chrome} routeLang={routeLang} journeys={journeys} />
+          <LearningTrustStrip copy={copy} />
+          <LearningStartHelper copy={copy} chrome={chrome} lang={lang} routeLang={routeLang} firstLesson={journeys.idea[0] ?? null} />
+          <LearningToolsRow copy={copy} routeLang={routeLang} glossaryCount={glossaryCount} resourceCount={resourceCount} />
           <LearningAccessClose copy={copy} />
         </div>
       </main>

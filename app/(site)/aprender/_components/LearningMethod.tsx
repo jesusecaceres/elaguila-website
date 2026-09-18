@@ -5,12 +5,13 @@ import { LEARNING_CONTAINER, LEARNING_EYEBROW, LEARNING_H2, LEARNING_INTRO, LEAR
 
 /**
  * Gate L1H — "Así se aprende en Leonix": five-step learn-by-doing model. Horizontal from `lg`,
- * vertical below (a connector rail carries the sequence in both layouts).
+ * vertical below (a connector rail carries the sequence in both layouts). Lives on the pathway
+ * pages since G1 (`compact`), not on the landing.
  */
-export function LearningMethod({ copy }: { copy: LearningLandingCopy }) {
+export function LearningMethod({ copy, compact = false }: { copy: LearningLandingCopy; compact?: boolean }) {
   const c = copy.method;
   return (
-    <section id={LEARNING_ANCHORS.method} className={`${LEARNING_SECTION} border-t border-[#D6C7AD]/70 bg-[#FFFDF7]/60 py-12 sm:py-14`} aria-labelledby="aprender-method-title">
+    <section id={LEARNING_ANCHORS.method} className={`${LEARNING_SECTION} border-t border-[#D6C7AD]/70 bg-[#FFFDF7]/60 ${compact ? "py-9 sm:py-10" : "py-12 sm:py-14"}`} aria-labelledby="aprender-method-title">
       <div className={LEARNING_CONTAINER}>
         <p className={LEARNING_EYEBROW}>{c.eyebrow}</p>
         <h2 id="aprender-method-title" className={LEARNING_H2}>
@@ -18,7 +19,7 @@ export function LearningMethod({ copy }: { copy: LearningLandingCopy }) {
         </h2>
         <p className={LEARNING_INTRO}>{c.intro}</p>
 
-        <ol className="relative mt-10 grid gap-6 lg:grid-cols-5 lg:gap-4">
+        <ol className={`relative grid lg:grid-cols-5 lg:gap-4 ${compact ? "mt-7 gap-4" : "mt-10 gap-6"}`}>
           <div className="pointer-events-none absolute left-[1.375rem] top-2 h-[calc(100%-1rem)] w-0.5 bg-[#2A4536]/30 lg:left-0 lg:top-[1.375rem] lg:h-0.5 lg:w-full" aria-hidden />
           {c.steps.map((step, i) => {
             const Glyph = METHOD_GLYPHS[i];

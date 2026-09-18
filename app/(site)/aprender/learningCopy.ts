@@ -8,7 +8,7 @@ export type Lang = "es" | "en";
  * framework). Lesson/category/glossary/resource CONTENT always comes from the database and is
  * rendered exactly as stored; only chrome lives here.
  *
- * Phase 1 (flagship landing): the eyebrow is "Centro de Aprendizaje Leonix" — never
+ * The eyebrow is "Centro de Aprendizaje Leonix" — never
  * "Leonix Business Concierge" (the Learning Center teaches; the Concierge applies).
  */
 export function learningCopy(lang: Lang) {
@@ -88,14 +88,16 @@ export function learningCopy(lang: Lang) {
 }
 
 export type LearningJourneyKey = "idea" | "empezando" | "negocio";
-export type LearningRoadmapStageKey =
-  | "idea"
-  | "cliente"
-  | "marca"
-  | "numeros"
-  | "preparacion"
-  | "lanzamiento"
-  | "crecimiento";
+
+/** Canonical 7-checkpoint business spine (owner decision D1). "Marca" and "Números" live on as topics inside these. */
+export type LearningCheckpointKey =
+  | "entender"
+  | "construir"
+  | "preparar"
+  | "visible"
+  | "crecer"
+  | "proteger"
+  | "siguiente";
 
 export type LearningLandingCopy = {
   hero: {
@@ -105,6 +107,7 @@ export type LearningLandingCopy = {
     ctaPrimary: string;
     ctaSecondary: string;
     trust: [string, string, string, string];
+    trustLabel: string;
     vignetteLabel: string;
     vignetteStages: [string, string, string];
   };
@@ -112,27 +115,15 @@ export type LearningLandingCopy = {
     eyebrow: string;
     title: string;
     intro: string;
-    unsure: string;
-    availableLabel: string;
-    selectedEyebrow: string;
-    selectedIntro: string;
-    startWith: string;
-    openLesson: string;
+    inPreparation: string;
     items: Record<LearningJourneyKey, { title: string; empathy: string; outcome: string; cta: string }>;
   };
-  roadmap: {
+  helper: {
     eyebrow: string;
     title: string;
-    intro: string;
-    inPreparation: string;
-    stageAria: string;
-    stages: Record<LearningRoadmapStageKey, { title: string; body: string }>;
-  };
-  startHere: {
-    eyebrow: string;
-    title: string;
-    intro: string;
-    stepLabel: string;
+    body: string;
+    cta: string;
+    firstLessonLabel: string;
   };
   topics: {
     eyebrow: string;
@@ -145,9 +136,10 @@ export type LearningLandingCopy = {
     eyebrow: string;
     title: string;
     intro: string;
+    rowTitle: string;
     glossary: { title: string; body: string; cta: string; countLabel: string };
     resources: { title: string; body: string; cta: string; countLabel: string };
-    ideaBuilder: { title: string; body: string; note: string; cta: string };
+    ideaBuilder: { title: string; body: string; note: string; signInShort: string; cta: string };
   };
   method: {
     eyebrow: string;
@@ -177,8 +169,9 @@ const LANDING_ES: LearningLandingCopy = {
     support:
       "Conocimiento práctico de negocios, en lenguaje claro, para ayudarte a pasar de una idea a un negocio más fuerte.",
     ctaPrimary: "Encontrar mi punto de partida",
-    ctaSecondary: "Explorar todos los temas",
+    ctaSecondary: "No sé por dónde empezar",
     trust: ["Bilingüe", "Práctico", "A tu ritmo", "Sin costo"],
+    trustLabel: "Cómo es aprender aquí",
     vignetteLabel: "El camino: de la idea al negocio y al crecimiento",
     vignetteStages: ["Idea", "Negocio", "Crecimiento"],
   },
@@ -186,12 +179,7 @@ const LANDING_ES: LearningLandingCopy = {
     eyebrow: "Tu punto de partida",
     title: "¿Dónde estás hoy?",
     intro: "Elige la ruta que describe tu momento. Cada una ordena las lecciones para que sepas qué sigue.",
-    unsure: "¿No estás seguro? Empieza por “Tengo una idea”. Nada se pierde.",
-    availableLabel: "lecciones disponibles",
-    selectedEyebrow: "Tu ruta",
-    selectedIntro: "Estas son las lecciones publicadas para esta ruta, en el orden sugerido.",
-    startWith: "Empezar con esta lección",
-    openLesson: "Abrir lección",
+    inPreparation: "En preparación",
     items: {
       idea: {
         title: "Tengo una idea",
@@ -213,27 +201,12 @@ const LANDING_ES: LearningLandingCopy = {
       },
     },
   },
-  roadmap: {
-    eyebrow: "Mapa de aprendizaje",
-    title: "El camino de un negocio",
-    intro: "No necesitas aprender todo hoy. Solo entender tu siguiente paso.",
-    inPreparation: "En preparación",
-    stageAria: "Etapas del camino de un negocio",
-    stages: {
-      idea: { title: "Idea", body: "Qué quieres ofrecer y qué problema resuelve." },
-      cliente: { title: "Cliente", body: "A quién sirves y qué necesita de verdad." },
-      marca: { title: "Marca", body: "Cómo te llamas, cómo te ves y cómo suenas." },
-      numeros: { title: "Números", body: "Costos, precios y lo que realmente queda." },
-      preparacion: { title: "Preparación", body: "Las bases en orden antes de abrir la puerta." },
-      lanzamiento: { title: "Lanzamiento", body: "Hacerte visible y atender a tus primeros clientes." },
-      crecimiento: { title: "Crecimiento", body: "Reputación, sistemas y decisiones para crecer." },
-    },
-  },
-  startHere: {
-    eyebrow: "Empieza aquí",
-    title: "Cinco fundamentos para arrancar",
-    intro: "Si no sabes por dónde empezar, empieza con estos fundamentos.",
-    stepLabel: "Fundamento",
+  helper: {
+    eyebrow: "¿Con dudas?",
+    title: "No sé por dónde empezar",
+    body: "Empieza por “Tengo una idea”. Las tres rutas recorren la misma escuela, así que nada se pierde si después cambias de ruta.",
+    cta: "Ir a “Tengo una idea”",
+    firstLessonLabel: "O abre directamente la primera lección:",
   },
   topics: {
     eyebrow: "Explora por tema",
@@ -246,6 +219,7 @@ const LANDING_ES: LearningLandingCopy = {
     eyebrow: "Kit práctico",
     title: "Herramientas para poner en práctica lo aprendido",
     intro: "Además de las lecciones, tienes estos apoyos listos para usar.",
+    rowTitle: "Herramientas que puedes usar cuando quieras",
     glossary: {
       title: "Glosario",
       body: "Términos de negocio explicados en lenguaje sencillo, sin dar nada por sabido.",
@@ -261,7 +235,8 @@ const LANDING_ES: LearningLandingCopy = {
     ideaBuilder: {
       title: "Constructor de ideas",
       body: "Organiza tu idea de negocio paso a paso: qué ofreces, a quién y qué problema resuelves.",
-      note: "Puedes explorar la herramienta ahora. Inicia sesión para guardar y continuar después.",
+      note: "Inicia sesión para usar el Constructor de ideas y guardar tu progreso.",
+      signInShort: "Requiere iniciar sesión",
       cta: "Abrir el Constructor de ideas",
     },
   },
@@ -294,8 +269,9 @@ const LANDING_EN: LearningLandingCopy = {
     support:
       "Practical business knowledge in plain language, to help you go from an idea to a stronger business.",
     ctaPrimary: "Find where to start",
-    ctaSecondary: "Explore all topics",
+    ctaSecondary: "I'm not sure where to start",
     trust: ["Bilingual", "Practical", "At your pace", "No cost"],
+    trustLabel: "What learning here is like",
     vignetteLabel: "The path: from idea to business to growth",
     vignetteStages: ["Idea", "Business", "Growth"],
   },
@@ -303,12 +279,7 @@ const LANDING_EN: LearningLandingCopy = {
     eyebrow: "Your starting point",
     title: "Where are you today?",
     intro: "Pick the path that describes where you are. Each one puts the lessons in order so you know what comes next.",
-    unsure: "Not sure? Start with “I have an idea.” Nothing is lost.",
-    availableLabel: "lessons available",
-    selectedEyebrow: "Your path",
-    selectedIntro: "These are the published lessons for this path, in the suggested order.",
-    startWith: "Start with this lesson",
-    openLesson: "Open lesson",
+    inPreparation: "In preparation",
     items: {
       idea: {
         title: "I have an idea",
@@ -330,27 +301,12 @@ const LANDING_EN: LearningLandingCopy = {
       },
     },
   },
-  roadmap: {
-    eyebrow: "Learning map",
-    title: "The path of a business",
-    intro: "You don't need to learn everything today. Just understand your next step.",
-    inPreparation: "In preparation",
-    stageAria: "Stages on the path of a business",
-    stages: {
-      idea: { title: "Idea", body: "What you want to offer and the problem it solves." },
-      cliente: { title: "Customer", body: "Who you serve and what they truly need." },
-      marca: { title: "Brand", body: "What you're called, how you look, and how you sound." },
-      numeros: { title: "Numbers", body: "Costs, prices, and what is actually left over." },
-      preparacion: { title: "Preparation", body: "The basics in order before you open the door." },
-      lanzamiento: { title: "Launch", body: "Becoming visible and serving your first customers." },
-      crecimiento: { title: "Growth", body: "Reputation, systems, and decisions to grow." },
-    },
-  },
-  startHere: {
-    eyebrow: "Start here",
-    title: "Five fundamentals to get going",
-    intro: "If you don't know where to start, start with these fundamentals.",
-    stepLabel: "Fundamental",
+  helper: {
+    eyebrow: "Not sure?",
+    title: "I'm not sure where to start",
+    body: "Start with “I have an idea.” All three paths run through the same school, so nothing is lost if you switch paths later.",
+    cta: "Go to “I have an idea”",
+    firstLessonLabel: "Or open the first lesson directly:",
   },
   topics: {
     eyebrow: "Explore by topic",
@@ -363,6 +319,7 @@ const LANDING_EN: LearningLandingCopy = {
     eyebrow: "Practical toolkit",
     title: "Tools to put what you learn into practice",
     intro: "Beyond the lessons, these supports are ready to use.",
+    rowTitle: "Tools you can use anytime",
     glossary: {
       title: "Glossary",
       body: "Business terms explained in plain language, with nothing taken for granted.",
@@ -378,7 +335,8 @@ const LANDING_EN: LearningLandingCopy = {
     ideaBuilder: {
       title: "Idea Builder",
       body: "Organize your business idea step by step: what you offer, to whom, and the problem you solve.",
-      note: "You can explore the tool now. Sign in to save your work and continue later.",
+      note: "Sign in to use the Idea Builder and save your progress.",
+      signInShort: "Sign-in required",
       cta: "Open the Idea Builder",
     },
   },
@@ -403,6 +361,7 @@ const LANDING_EN: LearningLandingCopy = {
     cta: "Find my path",
   },
 };
+
 
 export function learningLandingCopy(lang: Lang): LearningLandingCopy {
   return lang === "es" ? LANDING_ES : LANDING_EN;

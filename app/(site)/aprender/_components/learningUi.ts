@@ -18,6 +18,9 @@ export const LEARNING_BTN_OUTLINE = `inline-flex min-h-[2.875rem] items-center j
 /** Text-style link that still meets the 44 px touch target. */
 export const LEARNING_LINK = `inline-flex min-h-11 items-center gap-1.5 rounded-lg px-1 text-sm font-bold text-[#7A1E2C] underline-offset-4 hover:underline ${LEARNING_FOCUS_RING}`;
 
+/** Slim link tile (landing tools row): comfortably above the 44 px touch target. */
+export const LEARNING_TOOL_TILE = `group flex min-h-[4.5rem] items-center gap-3 rounded-2xl border border-[#E8DFD0] bg-[#FFFDF7] p-4 shadow-[0_10px_28px_-22px_rgba(31,36,28,0.3)] transition hover:border-[#C9A84A]/70 ${LEARNING_FOCUS_RING}`;
+
 export const LEARNING_SECTION = "scroll-mt-24";
 
 /** Per-category editorial tint (glyph + panel). Unknown keys fall back to the neutral cream tint. */

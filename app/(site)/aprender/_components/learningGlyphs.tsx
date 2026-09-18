@@ -19,13 +19,12 @@ import {
   FiLayers,
   FiMessageCircle,
   FiShield,
-  FiTag,
   FiTool,
   FiTrendingUp,
   FiUnlock,
   FiUsers,
 } from "react-icons/fi";
-import type { LearningJourneyKey, LearningRoadmapStageKey } from "../learningCopy";
+import type { LearningCheckpointKey, LearningJourneyKey } from "../learningCopy";
 
 const INK = "#1E1810";
 const BURGUNDY = "#7A1E2C";
@@ -36,14 +35,14 @@ const GOLD_LIGHT = "#F3D98A";
 const IVORY = "#FFFDF7";
 const CREAM = "#F3EBDC";
 
-export const STAGE_GLYPHS: Record<LearningRoadmapStageKey, IconType> = {
-  idea: FiEdit3,
-  cliente: FiUsers,
-  marca: FiTag,
-  numeros: FiDollarSign,
-  preparacion: FiCheckSquare,
-  lanzamiento: FiFlag,
-  crecimiento: FiTrendingUp,
+export const CHECKPOINT_GLYPHS: Record<LearningCheckpointKey, IconType> = {
+  entender: FiEdit3,
+  construir: FiLayers,
+  preparar: FiCheckSquare,
+  visible: FiEye,
+  crecer: FiTrendingUp,
+  proteger: FiShield,
+  siguiente: FiFlag,
 };
 
 export const METHOD_GLYPHS: readonly IconType[] = [FiBookOpen, FiEye, FiTool, FiCheckCircle, FiArrowRightCircle];

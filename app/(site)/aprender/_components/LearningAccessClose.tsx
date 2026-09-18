@@ -5,9 +5,10 @@ import { LEARNING_CONTAINER } from "./learningUi";
 
 /**
  * Gate L1I — restrained access/trust close in the Leonix deep-green band style. No partner, no
- * sponsor, no human-help promise: only the access message and the professional boundary.
+ * sponsor, no human-help promise: only the access message and the professional boundary. On a
+ * pathway page `ctaHref` points the CTA back to the three doors on the landing.
  */
-export function LearningAccessClose({ copy }: { copy: LearningLandingCopy }) {
+export function LearningAccessClose({ copy, ctaHref }: { copy: LearningLandingCopy; ctaHref?: string }) {
   const c = copy.close;
   return (
     <section className="py-12 sm:py-16" aria-labelledby="aprender-close-title">
@@ -21,7 +22,7 @@ export function LearningAccessClose({ copy }: { copy: LearningLandingCopy }) {
               </h2>
               <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[#EDE6D6] sm:text-base">{c.support}</p>
               <a
-                href={`#${LEARNING_ANCHORS.journeys}`}
+                href={ctaHref ?? `#${LEARNING_ANCHORS.journeys}`}
                 className="mt-6 inline-flex min-h-[3rem] items-center justify-center gap-2 rounded-full bg-[#7A1E2C] px-7 text-sm font-bold text-white transition hover:bg-[#5e1721] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A84A] sm:text-[0.9375rem]"
               >
                 {c.cta}
