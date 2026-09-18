@@ -25,6 +25,7 @@ import { AutosNegociosResultsCardPreview } from "../components/AutosNegociosResu
 import type { AutosAdditionalInventoryVehicleDraft } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 import { AutosDraftPreviewErrorBoundary } from "@/app/clasificados/autos/shared/components/AutosDraftPreviewErrorBoundary";
 import { AutosNegociosPreviewPromiseStrip } from "../components/AutosNegociosPreviewPromiseStrip";
+import { AutosNegociosSaveChangesBar } from "../components/AutosNegociosSaveChangesBar";
 import { mapAutosNegociosBuyerPreviewViewModel } from "@/app/lib/clasificados/autos/mapAutosNegociosBuyerPreviewViewModel";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { PublishCheckoutCheckpoint } from "@/app/(site)/clasificados/components/PublishCheckoutCheckpoint";
@@ -44,7 +45,10 @@ import {
   resolveAutosDraftPhotosForPublish,
 } from "@/app/lib/clasificados/autos/autosDraftPhotoPublishPrepare";
 import { resolveAutosNegociosDraftNamespace } from "../lib/autosNegociosDraftNamespace";
-import { countApplicationInventoryVehicles } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
+import {
+  countApplicationInventoryVehicles,
+  normalizeAdditionalInventoryVehicles,
+} from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 import {
   applyAutosDealerPreviewPromoCode,
   AUTOS_DEALER_NEWSLETTER_INTERESTS,
@@ -90,7 +94,13 @@ type CanonicalDealerListingApiResponse = {
 async function fetchCanonicalDealerPreview(
   listingId: string,
 ): Promise<
-  | { ok: true; listing: AutoDealerListing; status: string; listingLang: "es" | "en" | null }
+  | {
+      ok: true;
+      listing: AutoDealerListing;
+      status: string;
+      listingLang: "es" | "en" | null;
+      additionalInventoryVehicles: AutosAdditionalInventoryVehicleDraft[];
+    }
   | { ok: false; reason: CanonicalPreviewErrorReason }
 > {
   let token: string | null = null;
@@ -125,7 +135,16 @@ async function fetchCanonicalDealerPreview(
 
   const listing = safeNormalizeAutosDraftListing({ ...json.listing, autosLane: "negocios" }, "negocios");
   const listingLang = json.lang === "en" || json.lang === "es" ? json.lang : null;
-  return { ok: true, listing, status: json.status ?? "", listingLang };
+  // Gate 4/11 (Autos Dealer lifecycle closeout, 2026-09-18): `listing_payload.additionalInventoryVehicles`
+  // is the pre-fulfillment child fallback bundle — it rides along as a sibling field inside the same
+  // stored JSON `json.listing` (AutoDealerListing's TS type doesn't declare it, since it's not part of
+  // the parent's own vehicle fields), exactly like the server-side reads in
+  // revenueAutosDealerFulfillment.ts / syncDealerInventoryChildRowsFromParentPayload. It must be
+  // hydrated here, not discarded, or a dashboard-edit Save would silently wipe it.
+  const additionalInventoryVehicles = normalizeAdditionalInventoryVehicles(
+    (json.listing as { additionalInventoryVehicles?: unknown })?.additionalInventoryVehicles,
+  );
+  return { ok: true, listing, status: json.status ?? "", listingLang, additionalInventoryVehicles };
 }
 
 function autosNegociosCanonicalErrorCopy(reason: CanonicalPreviewErrorReason, lang: "es" | "en"): { title: string; body: string } {
@@ -280,7 +299,9 @@ async function resolvePreviewStateForRoute(urlListingId: string | null): Promise
         // draft-capture shell so the owner can still complete checkout, bound to this same id.
         mode: fetched.status === "active" ? "canonical-active" : "draft",
         listing: fetched.listing,
-        additionalInventoryVehicles: [],
+        // Gate 4/11: hydrate the real embedded fallback bundle instead of discarding it — a
+        // dashboard-edit save must round-trip whatever children already exist, never wipe them.
+        additionalInventoryVehicles: fetched.additionalInventoryVehicles,
         canonicalListingId: urlListingId,
         canonicalError: null,
         listingLang: fetched.listingLang,
@@ -386,6 +407,12 @@ function AutosNegociosPreviewInner({
   }, [mode, canonicalListingId, lang]);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  /** Gate 6/7/8/9: "Guardar cambios" for an existing (canonical) parent or child — separate busy/
+   * error/success state from the checkout flow, since the two actions are mutually exclusive per
+   * session (edit intent vs brand-new purchase) but must never share error/success messaging. */
+  const [saveBusy, setSaveBusy] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   /**
    * Owner lock (2026-09-19): a canonical dashboard edit (real listingId, reached via
    * ?edit=1&source=dashboard — see AutosNegociosApplication's previewHref, which sets these
@@ -396,9 +423,6 @@ function AutosNegociosPreviewInner({
    */
   const isDashboardListingEditPreview =
     Boolean(canonicalListingId) && searchParams?.get("edit") === "1" && searchParams?.get("source") === "dashboard";
-  const [saveBusy, setSaveBusy] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [saveSuccess, setSaveSuccess] = useState(false);
   /**
    * Owner lock (2026-09-17, Gate 08): the newsletter checkout identity is the AUTHENTICATED
    * session email — never an editable/marketing address the customer could redirect elsewhere.
@@ -560,7 +584,9 @@ function AutosNegociosPreviewInner({
    * persists the SAME canonical row via the existing PATCH-only path inside
    * ensurePendingDealerListing — it never touches startRevenueCategoryCheckout,
    * redirectToRevenueCategoryCheckout, promo apply, verified-intro, or newsletter checkout
-   * capture. No lifecycle mutation, no payment mutation, no new row.
+   * capture. No lifecycle mutation, no payment mutation, no new row. Also covers Gate 8/9: the
+   * same action is reused for an already-active parent and for a canonical child, both reached
+   * only via a dashboard edit link (never a brand-new-purchase entry point).
    */
   const onSaveDealerChanges = useCallback(async () => {
     setSaveBusy(true);
@@ -690,6 +716,16 @@ function AutosNegociosPreviewInner({
             </AutosNegociosPreviewLocaleProvider>
           )}
         </AutosListingTranslationLayer>
+        {/* Gate 8/9: an already-active parent or a canonical child is opened here only via the
+            dashboard edit route (?listingId=...) — never a brand-new-purchase entry point — so
+            Save (same-row PATCH), never checkout, is the only action. */}
+        <AutosNegociosSaveChangesBar
+          lang={lang}
+          busy={saveBusy}
+          error={saveError}
+          saved={saveSuccess}
+          onSave={() => void onSaveDealerChanges()}
+        />
       </AutosDraftPreviewErrorBoundary>
     );
   }

@@ -1,6 +1,6 @@
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
-import { deriveHeroImageUrls } from "@/app/clasificados/autos/negocios/lib/autoDealerHeroImages";
+import { derivePrimaryImageUrl } from "@/app/clasificados/autos/negocios/lib/autoDealerHeroImages";
 import { normalizeLoadedListing } from "@/app/clasificados/autos/negocios/lib/autoDealerDraftDefaults";
 import { buildVehicleTitle } from "@/app/publicar/autos/negocios/lib/autoDealerTitle";
 import { buildRelatedPublicListings } from "@/app/clasificados/autos/lib/mapAutosPublicListingToAutoDealer";
@@ -424,7 +424,10 @@ export function autosClassifiedsRowToDashboardRow(row: AutosClassifiedsListingRo
   const L = row.listing_payload;
   const autoTitle = buildVehicleTitle(L.year, L.make, L.model, L.trim);
   const title = (L.vehicleTitle?.trim() || autoTitle || "").trim() || "—";
-  const thumbs = deriveHeroImageUrls(L);
+  // Gate 14 (Autos Dealer lifecycle closeout, 2026-09-18): the dashboard thumbnail must be the
+  // owner's chosen cover, matching Preview/results/public detail — not merely the first image by
+  // sortOrder (see derivePrimaryImageUrl's own doc comment).
+  const thumbUrl = derivePrimaryImageUrl(L) || null;
   const priceUsd = typeof L.price === "number" && Number.isFinite(L.price) ? L.price : null;
   const mileage = typeof L.mileage === "number" && Number.isFinite(L.mileage) ? L.mileage : null;
   return {
@@ -440,7 +443,7 @@ export function autosClassifiedsRowToDashboardRow(row: AutosClassifiedsListingRo
     mileage,
     priceUsd,
     city: (L.city ?? "").trim(),
-    thumbUrl: thumbs[0] ?? null,
+    thumbUrl,
     leonix_ad_id: row.leonix_ad_id?.trim() ? row.leonix_ad_id.trim() : null,
     dealer_inventory_group_id: row.dealer_inventory_group_id ?? null,
     dealer_inventory_parent_listing_id: row.dealer_inventory_parent_listing_id ?? null,

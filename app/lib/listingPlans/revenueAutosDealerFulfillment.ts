@@ -11,7 +11,10 @@ import {
   getAutosClassifiedsListingById,
   tryActivateAutosListingAfterPayment,
 } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
-import { publishNegociosBundleAdditionalVehicles } from "@/app/lib/clasificados/autos/autosNegociosBundlePublish";
+import {
+  publishableChildren,
+  publishNegociosBundleAdditionalVehicles,
+} from "@/app/lib/clasificados/autos/autosNegociosBundlePublish";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import {
   AUTOS_DEALER_INVENTORY_PACK_ADDITIONAL_VEHICLES,
@@ -56,17 +59,22 @@ function generateEntitlementCode(): string {
   return `LX-AUTOS-INV-${randomBytes(4).toString("hex").toUpperCase()}`;
 }
 
-/** Live-data idempotency check: has this parent already had any child vehicle published? */
-async function autosDealerListingHasAnyChildRows(parentListingId: string): Promise<boolean> {
-  if (!isSupabaseAdminConfigured()) return false;
+/**
+ * Live-data idempotency: how many child vehicles has this parent already had published?
+ * publishNegociosBundleAdditionalVehicles always processes its filtered/ordered vehicle list
+ * strictly in order and stops at the first failure (Gate 10/11, 2026-09-18) — so N existing child
+ * rows means the first N vehicles in that same filtered order already succeeded, and a retry only
+ * needs to resume from index N, never re-attempt (and duplicate) them.
+ */
+async function countAutosDealerListingChildRows(parentListingId: string): Promise<number> {
+  if (!isSupabaseAdminConfigured()) return 0;
   const supabase = getAdminSupabase();
-  const { data } = await supabase
+  const { count } = await supabase
     .from("autos_classifieds_listings")
-    .select("id")
+    .select("id", { count: "exact", head: true })
     .eq("dealer_inventory_parent_listing_id", parentListingId)
-    .eq("inventory_role", "inventory_vehicle")
-    .limit(1);
-  return Boolean(data?.length);
+    .eq("inventory_role", "inventory_vehicle");
+  return count ?? 0;
 }
 
 async function grantAutosDealerInventoryPackAddOn(input: {
@@ -208,20 +216,24 @@ export async function activatePaidAutosDealerListingFromRevenueOs(input: {
   // Gate 6/7/8/9 — publish the dealer's saved additional-inventory (child) vehicles as their own
   // canonical listing rows. Children were staged durably server-side on `row.listing_payload
   // .additionalInventoryVehicles` before Checkout opened (see AutosNegociosPreviewClient's
-  // ensurePendingDealerListing) — the webhook never depends on browser state. Idempotency is
-  // checked by live data (any inventory_vehicle row already parented to this listing), not by
-  // whether THIS delivery happened to be the one that flipped the parent active — a Stripe retry
-  // or an owner-triggered event resend (Gate 11) after a partial failure must still be able to
-  // finish publishing the remaining children, and must never create duplicates for ones that
-  // already exist.
+  // ensurePendingDealerListing) — the webhook never depends on browser state.
+  //
+  // Gate 10/11 (2026-09-18): idempotency is resolved by live data — how many child rows already
+  // exist for this parent — not a whole-bundle boolean. publishNegociosBundleAdditionalVehicles
+  // processes its filtered/ordered vehicle list strictly in order and stops at the first failure,
+  // so N existing child rows means the first N vehicles (in that same filtered order) already
+  // succeeded; a Stripe retry or an owner-triggered event resend after a partial failure resumes
+  // from exactly index N instead of either re-attempting (duplicating) or skipping (losing) the
+  // remaining children.
   const pendingChildren = row.listing_payload.additionalInventoryVehicles ?? [];
   if (pendingChildren.length > 0) {
-    const alreadyPublished = await autosDealerListingHasAnyChildRows(listingId);
-    if (!alreadyPublished) {
+    const alreadyPublishedCount = await countAutosDealerListingChildRows(listingId);
+    const remainingChildren = publishableChildren(pendingChildren).slice(alreadyPublishedCount);
+    if (remainingChildren.length > 0) {
       const bundle = await publishNegociosBundleAdditionalVehicles({
         ownerUserId: row.owner_user_id,
         mainListingId: listingId,
-        additionalVehicles: pendingChildren,
+        additionalVehicles: remainingChildren,
         lang: row.lang,
       });
       if (!bundle.ok) {

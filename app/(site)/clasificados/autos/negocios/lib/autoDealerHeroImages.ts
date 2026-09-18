@@ -59,6 +59,22 @@ export function deriveHeroImageUrls(listing: AutoDealerListing): string[] {
   return listing.heroImages ?? [];
 }
 
+/**
+ * Deterministic cover/thumbnail: the owner's chosen `isPrimary` image — never merely "whichever
+ * sorts first" in gallery order. Gallery order itself (deriveHeroImageUrls) is untouched; this is
+ * only for single-image surfaces (results cards, browse tiles) that must agree with the full
+ * gallery/Preview on which photo is the cover, per the Autos Dealer lifecycle closeout (Gate 1/3/6).
+ */
+export function derivePrimaryImageUrl(listing: AutoDealerListing): string {
+  const rows = listing.mediaImages;
+  if (rows?.length) {
+    const normalized = normalizeMediaImagesOrder(rows);
+    const primary = normalized.find((x) => x.isPrimary) ?? normalized[0];
+    return primary?.url ?? "";
+  }
+  return listing.heroImages?.[0] ?? "";
+}
+
 /** Legacy `heroImages` only → structured rows. */
 export function migrateHeroImagesToMediaImages(heroImages: string[]): MediaImageEntry[] {
   return heroImages.map((url, i) => ({
