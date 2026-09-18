@@ -1,5 +1,5 @@
 /**
- * TODAY-1 + G1 + G2 + G2.1 — Public Business Learning Center (foundation, checkpoint landing, pathway
+ * TODAY-1 + G1 + G2 + G2.1 + G3 — Public Business Learning Center (foundation, checkpoint landing, pathway
  * pages, canonical lesson engine)
  * + Idea Builder foundation verification. Hand-rolled
  * node:assert script, matching this repo's testing convention (no jest/vitest). Run via `npx tsx
@@ -1690,6 +1690,68 @@ check("G2 accessibility + visual language: 44px targets, labels, text alternativ
     `${APRENDER_DIR}/_components/LearningAccessClose.tsx`, `${APRENDER_DIR}/_components/LearningTopicTiles.tsx`, `${APRENDER_DIR}/page.tsx`,
   ]) for (const h of hexes(read(rel))) approved.add(h);
   for (const rel of [...LESSON_SERVER_UI, ...LESSON_CLIENT_UI]) for (const h of hexes(read(rel))) assert.ok(approved.has(h), `${rel} introduces a colour outside the approved Learning palette: ${h}`);
+});
+
+// ---------------------------------------------------------------------------
+// Gate G3 — Master Curriculum Matrix (docs). A light guard on the control document: stable keys are
+// never lost, every row has one home checkpoint, and the planned pathways never contradict the
+// code-owned journey map that is live today.
+// ---------------------------------------------------------------------------
+
+check("G3 matrix: 60 unique universal rows (39 V1 / 19 V1.1 / 2 V2); all 16 seeded lesson keys appear exactly once; agrees with the live journey map", () => {
+  const rel = "docs/learning-center-curriculum-matrix.md";
+  assert.ok(exists(rel), `missing ${rel}`);
+  const doc = read(rel);
+  for (let n = 1; n <= 22; n++) assert.ok(doc.includes(`\n## ${n}. `), `matrix is missing section ${n}`);
+
+  const identity = doc.slice(doc.indexOf("### 5.1"), doc.indexOf("**Checkpoint coverage"));
+  const rows = identity
+    .split("\n")
+    .filter((line) => /^\| \d+ \| `[a-z_]+` \|/.test(line))
+    .map((line) => {
+      const cells = line.split("|").map((c) => c.trim());
+      return { n: Number(cells[1]), key: cells[2].replace(/`/g, ""), src: cells[5], cls: cells[6], cp: cells[7], depth: cells[10].split("/") };
+    });
+  assert.strictEqual(rows.length, 60, `expected 60 universal rows, found ${rows.length}`);
+  assert.strictEqual(new Set(rows.map((r) => r.key)).size, 60, "lesson keys must be unique");
+  assert.deepStrictEqual(rows.map((r) => r.n), Array.from({ length: 60 }, (_, i) => i + 1), "rows are numbered 1–60 in order");
+  const byClass = (c: string) => rows.filter((r) => r.cls === c).length;
+  assert.deepStrictEqual([byClass("V1"), byClass("V1.1"), byClass("V2")], [39, 19, 2]);
+
+  for (const key of [...PUBLISHED_SEED_KEYS, ...PLANNED_SEED_KEYS]) {
+    assert.strictEqual(rows.filter((r) => r.key === key).length, 1, `seed lesson ${key} must be exactly one canonical matrix row`);
+  }
+  for (const key of PUBLISHED_SEED_KEYS) assert.strictEqual(rows.find((r) => r.key === key)?.src, "PUB", `${key} must be marked published`);
+  for (const key of PLANNED_SEED_KEYS) assert.strictEqual(rows.find((r) => r.key === key)?.src, "PLN", `${key} must be marked planned`);
+
+  for (const r of rows) {
+    assert.ok(/^[1-7]$/.test(r.cp), `${r.key}: exactly one home checkpoint (1–7)`);
+    assert.ok(r.depth.length === 3 && r.depth.every((d) => ["C", "L", "D", "–"].includes(d)), `${r.key}: depth must be I/E/N`);
+    assert.ok(r.depth.some((d) => d !== "–"), `${r.key}: belongs to no pathway`);
+  }
+  for (let cp = 1; cp <= 7; cp++) assert.ok(rows.some((r) => r.cp === String(cp) && r.cls === "V1"), `checkpoint ${cp} has no V1 lesson`);
+  const v1In = (i: number) => rows.filter((r) => r.cls === "V1" && r.depth[i] !== "–").length;
+  assert.deepStrictEqual([v1In(0), v1In(1), v1In(2)], [20, 39, 35], "V1 pathway sizes (Idea / Starting / Business)");
+
+  // Frozen capability keys of seeded lessons whose key differs from the lesson_key are recorded in the matrix.
+  for (const cap of ["know_your_customer", "consistent_business_info", "healthy_capacity_boundaries", "review_response_basics", "referral_program_basics", "simple_analytics_basics"]) {
+    assert.ok(doc.includes("`" + cap + "`") && MIGRATION.includes("'" + cap + "'"), `capability key ${cap} must be recorded in the matrix and exist in the seed`);
+  }
+
+  // The matrix agrees with what is live today in learningJourneys.ts.
+  const cpIndex: Record<string, string> = { entender: "1", construir: "2", preparar: "3", visible: "4", crecer: "5", proteger: "6", siguiente: "7" };
+  for (const [key, cp] of Object.entries(LEARNING_LESSON_CHECKPOINT)) {
+    assert.strictEqual(rows.find((r) => r.key === key)?.cp, cpIndex[cp], `${key}: matrix checkpoint disagrees with learningJourneys.ts`);
+  }
+  const col = { idea: 0, empezando: 1, negocio: 2 } as const;
+  for (const j of LEARNING_JOURNEY_KEYS) {
+    for (const key of LEARNING_JOURNEY_LESSON_KEYS[j]) {
+      assert.notStrictEqual(rows.find((r) => r.key === key)?.depth[col[j]], "–", `${key} is live in the ${j} journey but the matrix excludes it`);
+    }
+  }
+
+  assert.ok(!/sponsor|patrocin/i.test(doc), "the matrix must not name a sponsor");
+  assert.ok(read("docs/business-learning-center-content-batch-02.md").includes("SUPERSEDED"), "the old batch doc must point to the matrix");
 });
 
 console.log(`\n${passed} check(s) passed${failed ? `, ${failed} FAILED` : ""}.`);
