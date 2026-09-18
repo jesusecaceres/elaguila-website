@@ -8,7 +8,6 @@ import { NegociosLocalesBusinessCard } from "./_components/NegociosLocalesBusine
 import { NegociosLocalesFeaturedOfertasModule } from "./_components/NegociosLocalesFeaturedOfertasModule";
 import { NEGOCIOS_LANE_CARD_IMAGE } from "./_lib/negociosLocalesLaneImages";
 import {
-  buildBusinessAdvertiseEntryHref,
   buildNegociosAdvertiseHref,
   buildNegociosExploreHref,
   NEGOCIOS_LANE_COPY,
@@ -165,7 +164,14 @@ function NegociosLocalesInner() {
   const routeLang = resolveRouteLang(useSearchParams()?.get("lang"));
   const pageLang = pageLangFromRoute(routeLang);
   const t = PAGE_COPY[pageLang];
-  const advertiseEntryHref = buildBusinessAdvertiseEntryHref(routeLang);
+  // Gate 4 (Servicios Final Consolidated Lifecycle Execution, 2026-09-18): these three generic
+  // "Anunciar mi negocio" CTAs (hero, sponsor block, bottom promo) previously routed through the
+  // deprecated generic /publicar gateway via a login redirect. Servicios, Restaurantes, and
+  // Autos-Dealer are co-equal priority lanes on this page (PRIORITY_LANES) — anchoring to the
+  // on-page sector grid fixes the deprecated-gateway defect for every lane, including Servicios
+  // (via its own already-correct NegociosLocalesBusinessCard advertiseHref below), without biasing
+  // the page's most prominent CTAs toward one lane over the other two.
+  const advertiseEntryHref = "#sectores";
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#FAF6EE] pb-20 text-[#1F241C]">

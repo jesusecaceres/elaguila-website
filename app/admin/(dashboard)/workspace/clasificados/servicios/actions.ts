@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { insertServiciosAnalyticsEvent } from "@/app/clasificados/servicios/lib/serviciosOpsTablesServer";
+import { serviciosStatusFormAllowsMutation } from "@/app/clasificados/servicios/lib/serviciosListingLifecycle";
 import { getAdminSupabase, requireAdminCookie } from "@/app/lib/supabase/server";
 
 const ALLOWED_STATUS = new Set([
@@ -16,6 +17,26 @@ const ALLOWED_STATUS = new Set([
   "suspended",
 ]);
 
+/** Moderation notes only — never touches listing_status. Safe to call regardless of lifecycle state. */
+export async function updateServiciosModerationNotesAction(formData: FormData): Promise<void> {
+  const c = await cookies();
+  if (!requireAdminCookie(c)) throw new Error("Unauthorized");
+
+  const id = String(formData.get("listing_id") ?? "").trim();
+  if (!id) return;
+
+  const notesRaw = String(formData.get("moderation_notes") ?? "");
+  const moderation_notes = notesRaw.trim().length > 0 ? notesRaw.trim().slice(0, 8000) : null;
+
+  const supabase = getAdminSupabase();
+  await supabase
+    .from("servicios_public_listings")
+    .update({ moderation_notes, updated_at: new Date().toISOString() })
+    .eq("id", id);
+
+  revalidatePath("/admin/workspace/clasificados/servicios");
+}
+
 export async function updateServiciosPublicListingStatusAction(formData: FormData): Promise<void> {
   const c = await cookies();
   if (!requireAdminCookie(c)) throw new Error("Unauthorized");
@@ -28,8 +49,23 @@ export async function updateServiciosPublicListingStatusAction(formData: FormDat
   const moderation_notes = notesRaw.trim().length > 0 ? notesRaw.trim().slice(0, 8000) : null;
 
   const supabase = getAdminSupabase();
-  const { data: row } = await supabase.from("servicios_public_listings").select("slug").eq("id", id).maybeSingle();
+  const { data: row } = await supabase
+    .from("servicios_public_listings")
+    .select("slug, listing_status")
+    .eq("id", id)
+    .maybeSingle();
   const slug = row && typeof (row as { slug?: string }).slug === "string" ? (row as { slug: string }).slug : null;
+
+  // Server-side twin of the client-side guard: a pending_payment row's listing_status is commercial
+  // truth, never staff-editable through this legacy form, regardless of what was submitted.
+  if (!serviciosStatusFormAllowsMutation((row as { listing_status?: string } | null)?.listing_status)) {
+    await supabase
+      .from("servicios_public_listings")
+      .update({ moderation_notes, updated_at: new Date().toISOString() })
+      .eq("id", id);
+    revalidatePath("/admin/workspace/clasificados/servicios");
+    return;
+  }
 
   await supabase
     .from("servicios_public_listings")

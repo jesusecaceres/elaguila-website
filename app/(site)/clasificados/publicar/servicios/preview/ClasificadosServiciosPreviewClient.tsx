@@ -536,7 +536,14 @@ export function ClasificadosServiciosPreviewClient() {
       city: appState.city.trim(),
       published_at: new Date().toISOString(),
       profile_json: wire,
-      leonix_verified: appState.leonixVerifiedInterest === true,
+      // Gate 5 (Servicios Final Consolidated Lifecycle Execution, 2026-09-18): never fake the
+      // Verified badge. `leonixVerifiedInterest` is the owner's stated INTEREST in verification
+      // (opsMeta only) — it is not, and must never render as, the real staff-granted
+      // `leonix_verified` truth. The publish route always inserts a NEW row as `leonix_verified:
+      // false` (only staff can grant it afterward via Admin), and this draft/preview model has no
+      // access to a real, already-granted value for an existing listing either — so the only
+      // honest value here is `false`, matching what the DB itself would actually show.
+      leonix_verified: false,
       internal_group: getBusinessTypePreset(appState.businessTypeId)?.internalGroup ?? null,
       listing_status: SERVICIOS_LISTING_STATUS_PUBLISHED,
     };

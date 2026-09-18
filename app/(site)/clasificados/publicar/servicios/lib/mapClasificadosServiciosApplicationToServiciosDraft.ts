@@ -95,6 +95,7 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   const countryValue = state.country.trim() || undefined;
 
   const logoAlt = lang === "en" ? "Business logo" : "Logo del negocio";
+  const coverAlt = lang === "en" ? "Cover photo" : "Foto de portada";
 
   const heroBadges: ServiciosApplicationDraft["hero"]["badges"] = [];
   for (const lab of buildServiciosLanguageLabels(state, lang)) {
@@ -438,6 +439,13 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
       categoryLine,
       logoUrl: state.logoUrl.trim() || undefined,
       logoAlt: state.logoUrl.trim() ? logoAlt : undefined,
+      // Gate 5 (Servicios Final Consolidated Lifecycle Execution, 2026-09-18): coverUrl was
+      // captured, uploaded, and even gated the publish-readiness hero-visual requirement, but was
+      // never actually written into the persisted profile — every consumer downstream
+      // (resolveServiciosProfile, serviciosPublishedToApplicationDraft) already reads
+      // hero.coverImageUrl; only this mapper was missing the two-line write.
+      coverImageUrl: state.coverUrl.trim() || undefined,
+      coverImageAlt: state.coverUrl.trim() ? coverAlt : undefined,
       locationSummary,
       state: stateValue,
       country: countryValue,
