@@ -118,8 +118,3 @@ export function buildNegociosExploreHref(lane: BusinessLaneKey, lang: SupportedL
 export function buildNegociosAdvertiseHref(lane: BusinessLaneKey, lang: SupportedLang): string {
   return appendLangToPath(LANE_ADVERTISE_PATH[lane], lang);
 }
-
-export function buildBusinessAdvertiseEntryHref(lang: SupportedLang): string {
-  const redirect = encodeURIComponent(`/publicar?lang=${lang}`);
-  return `/login?mode=post&lang=${lang}&redirect=${redirect}`;
-}

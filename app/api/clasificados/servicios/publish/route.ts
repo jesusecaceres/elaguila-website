@@ -786,6 +786,30 @@ export async function POST(req: NextRequest) {
         }
         const nextStatus = saveDecision.status;
         actualListingStatus = nextStatus;
+
+        // Gate 13 (Servicios Final Consolidated Lifecycle Execution, 2026-09-18) — "Guardar y
+        // republicar": an owner content-save that keeps an ALREADY-published row published (never
+        // a first-time transition INTO published, e.g. moderation approval or Resume) records
+        // republish audit metadata on the SAME row/UUID. No $399 recharge and no new subscription
+        // are possible here — this branch never touches Stripe or leonix_subscription_records, it
+        // is a plain content PATCH. `republish_sort_at` (the DB-generated ranking column) is
+        // deliberately left alone: this pass does not wire it into any ranking query (Gate 14).
+        let republishAuditPatch: Record<string, unknown> = {};
+        if (existingStatus.trim().toLowerCase() === "published" && nextStatus === "published") {
+          const republishTargetId = canonicalListingId ?? existing.id;
+          const { data: republishRow } = await supabase
+            .from("servicios_public_listings")
+            .select("republish_count")
+            .eq("id", republishTargetId)
+            .maybeSingle();
+          republishAuditPatch = {
+            republished_at: now,
+            republish_count: Number(republishRow?.republish_count ?? 0) + 1,
+            last_republished_source: "owner",
+            last_republished_by: ownerUserId ?? null,
+          };
+        }
+
         // owner_user_id is deliberately not written: ownership was proven above and a content save
         // must never be able to re-assign it.
         const updateQuery = supabase
@@ -798,6 +822,7 @@ export async function POST(req: NextRequest) {
             internal_group: internalGroup,
             listing_status: nextStatus,
             updated_at: now,
+            ...republishAuditPatch,
           });
         // Gate SERVICIOS-1 — target the canonical row id when we have one (it survives a business
         // rename); the slug predicate stays only for the legacy no-id path.

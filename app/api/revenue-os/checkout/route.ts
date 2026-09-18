@@ -278,9 +278,20 @@ export async function POST(request: NextRequest) {
     serverVerifiedOwnerUserId = ownerGate.ownerUserId;
   }
 
+  // Gate 12 (Servicios Final Consolidated Lifecycle Execution, 2026-09-18) — the base/default
+  // branch (which the Servicios `servicios_base_monthly` checkout falls into, since it is not one
+  // of the special early-exit categories above) used to let a client-submitted `body.ownerUserId`
+  // take priority over the server-verified authenticated bearer user whenever a bearer session
+  // existed. The real client never actually sends `ownerUserId` (it relies entirely on the bearer
+  // token), so this had no effect on the golden path — but a crafted request with a valid bearer
+  // token for one user and a DIFFERENT `ownerUserId` in the body could otherwise borrow another
+  // user's identity for the owner-scoped verified-intro-discount phone-identity lookup below, or
+  // for the existing-row lookup — real, exploitable identity confusion, not merely defensive
+  // hardening. The authenticated bearer now always wins when present; `body.ownerUserId` remains
+  // only as a fallback for the (bearer-absent) case, unchanged from before.
   const ownerUserId = isRestauranteAddonOnlyEarly || isAutosDealerInventoryAddonEarly || isBienesInventoryAddonOnlyEarly || isServiciosOffersAddonOnlyEarly || isRentasRenewalEarly || isAutosPrivadoRenewalEarly || isBienesFsboRenewalEarly || isOfertasLocalesCheckoutEarly
     ? serverVerifiedOwnerUserId ?? bearerUserId
-    : body.ownerUserId?.trim() || bearerUserId || null;
+    : bearerUserId || body.ownerUserId?.trim() || null;
 
   const addOnValidation = validateRevenueCheckoutAddOns({
     category: String(body.category ?? "").trim().toLowerCase(),

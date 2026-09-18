@@ -153,7 +153,12 @@ import {
   SERVICIOS_CERTIFICATION_LABEL_MAX,
   SERVICIOS_CREDENTIAL_STRING_MAX,
 } from "@/app/servicios/lib/serviciosCredentialsCatalog";
-import { primeServiciosExistingListingId, primeServiciosExistingPublicSlug } from "../lib/serviciosPublishClient";
+import {
+  primeServiciosExistingListingId,
+  primeServiciosExistingPublicSlug,
+  SERVICIOS_EXISTING_LISTING_ID_SESSION_KEY,
+  SERVICIOS_EXISTING_PUBLIC_SLUG_SESSION_KEY,
+} from "../lib/serviciosPublishClient";
 import {
   readServiciosDraftListingIdentity,
   reconcileServiciosPrimedIdentityOnApplicationMount,
@@ -658,10 +663,14 @@ export function ClasificadosServiciosApplication() {
     // ONE APPLICATION = ONE LISTING. This used to wipe both primed keys unconditionally on every
     // mount, then restore only the draft — so returning to the form after a cancelled checkout /
     // "Back to edit" made the next save mint a NEW listing (name-2, name-3…). The canonical identity
-    // is bound to the draft now: restore it if the draft has one; only a draft with no bound
-    // identity (a genuinely new application) starts clean. Deleting the draft clears it.
+    // is bound to the draft now: restore it if the draft has one; a draft with no bound
+    // identity keeps whatever is already primed (never wiped on mount). Deleting the draft clears it.
     const restored = reconcileServiciosPrimedIdentityOnApplicationMount(
       readServiciosDraftListingIdentity(typeof window !== "undefined" ? window.sessionStorage : null),
+      {
+        listingId: typeof window !== "undefined" ? window.sessionStorage.getItem(SERVICIOS_EXISTING_LISTING_ID_SESSION_KEY) : null,
+        slug: typeof window !== "undefined" ? window.sessionStorage.getItem(SERVICIOS_EXISTING_PUBLIC_SLUG_SESSION_KEY) : null,
+      },
     );
     primeServiciosExistingPublicSlug(restored.slug);
     primeServiciosExistingListingId(restored.listingId);

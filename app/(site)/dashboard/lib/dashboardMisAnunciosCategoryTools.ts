@@ -422,6 +422,22 @@ export function buildInventoryListingActions(
     });
   }
 
+  if (category === "servicios" && item.status === "pending_payment" && listingToolIsReady(category, "preview")) {
+    // Gate 8 (Servicios Final Consolidated Lifecycle Execution, 2026-09-18) — a hidden
+    // `pending_payment` listing's most urgent action is resuming its Revenue OS checkout. Routes
+    // to the SAME listing-bound Preview the "Preview" action below uses (same canonical id, same
+    // "Completar pago" button Gate 8 added there — no separate checkout entry point to maintain),
+    // anchored straight to the checkout checkpoint.
+    const resumePaymentPreviewHref = canonical.get("preview")?.href ?? item.previewHref;
+    if (resumePaymentPreviewHref) {
+      actions.push({
+        href: `${resumePaymentPreviewHref}#servicios-publish-checkout-checkpoint`,
+        label: lang === "es" ? "Completar pago" : "Complete payment",
+        tone: "warning",
+      });
+    }
+  }
+
   if (
     category === "servicios" &&
     opts?.serviciosOffersActive &&

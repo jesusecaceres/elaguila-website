@@ -95,6 +95,7 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   const countryValue = state.country.trim() || undefined;
 
   const logoAlt = lang === "en" ? "Business logo" : "Logo del negocio";
+  const coverAlt = lang === "en" ? "Cover photo" : "Foto de portada";
 
   const heroBadges: ServiciosApplicationDraft["hero"]["badges"] = [];
   for (const lab of buildServiciosLanguageLabels(state, lang)) {
@@ -356,16 +357,23 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
     if (extraLinks.length >= 2) break;
   }
   if (extraLinks.length > 0) contact.extraLinks = extraLinks;
-  const wa = waMeUrl(state.whatsapp);
-  if (wa) {
-    contact.socialWhatsappUrl = wa;
-  }
-  const biz = trimUrl(state.whatsappBusinessUrl);
-  if (biz && isProbablyValidWebUrl(biz)) {
-    const normalized = normalizeHttpUrl(biz);
-    const socialHref = resolveServiciosWhatsAppSocialRowHref(normalized);
-    if (socialHref) {
-      contact.socialWhatsappProfileUrl = socialHref;
+  // Gate 4 (Servicios Golden lifecycle closeout, 2026-09-18) — "WhatsApp only when configured"
+  // means only when the owner has BOTH entered a number AND left the WhatsApp toggle enabled.
+  // This gate was previously missing (unlike the matching enableCall/enableEmail/enableWebsite
+  // checks just above for phone/email/website), so unchecking "WhatsApp" after typing a number
+  // did not actually stop it from being written and publicly rendered.
+  if (state.enableWhatsapp) {
+    const wa = waMeUrl(state.whatsapp);
+    if (wa) {
+      contact.socialWhatsappUrl = wa;
+    }
+    const biz = trimUrl(state.whatsappBusinessUrl);
+    if (biz && isProbablyValidWebUrl(biz)) {
+      const normalized = normalizeHttpUrl(biz);
+      const socialHref = resolveServiciosWhatsAppSocialRowHref(normalized);
+      if (socialHref) {
+        contact.socialWhatsappProfileUrl = socialHref;
+      }
     }
   }
 
@@ -438,6 +446,13 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
       categoryLine,
       logoUrl: state.logoUrl.trim() || undefined,
       logoAlt: state.logoUrl.trim() ? logoAlt : undefined,
+      // Gate 5 (Servicios Final Consolidated Lifecycle Execution, 2026-09-18): coverUrl was
+      // captured, uploaded, and even gated the publish-readiness hero-visual requirement, but was
+      // never actually written into the persisted profile — every consumer downstream
+      // (resolveServiciosProfile, serviciosPublishedToApplicationDraft) already reads
+      // hero.coverImageUrl; only this mapper was missing the two-line write.
+      coverImageUrl: state.coverUrl.trim() || undefined,
+      coverImageAlt: state.coverUrl.trim() ? coverAlt : undefined,
       locationSummary,
       state: stateValue,
       country: countryValue,

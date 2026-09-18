@@ -80,7 +80,10 @@ async function main() {
 
   /** What the Application form's non-edit mount effect now does (mirrors the component exactly). */
   const applicationRemount = () => {
-    const restored = identity.reconcileServiciosPrimedIdentityOnApplicationMount(identity.readServiciosDraftListingIdentity(session));
+    const restored = identity.reconcileServiciosPrimedIdentityOnApplicationMount(identity.readServiciosDraftListingIdentity(session), {
+      listingId: session.getItem(client.SERVICIOS_EXISTING_LISTING_ID_SESSION_KEY),
+      slug: session.getItem(client.SERVICIOS_EXISTING_PUBLIC_SLUG_SESSION_KEY),
+    });
     client.primeServiciosExistingPublicSlug(restored.slug);
     client.primeServiciosExistingListingId(restored.listingId);
   };

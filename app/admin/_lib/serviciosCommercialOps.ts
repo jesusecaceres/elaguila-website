@@ -59,6 +59,17 @@ export type ServiciosCommercialOpsRow = {
   subscriptionPeriodEnd: ServiciosOpsField<string>;
   /** Whether a real Stripe payment identity is linked at all. */
   payment: ServiciosOpsField<"linked" | "not_linked">;
+  /**
+   * Servicios Final Consolidated Lifecycle Execution — Gate 3 (2026-09-18) — the actual
+   * `leonix_payment_records` row, never previously projected into Servicios Admin at all. Bounded,
+   * read-only, no secrets: Stripe object ids are safe to show authenticated staff (they are not
+   * credentials), amounts are cents already resolved server-side by the webhook, never re-derived.
+   */
+  paymentRecordStatus: ServiciosOpsField<string>;
+  paymentAmountPaidCents: ServiciosOpsField<number>;
+  paymentAmountExpectedCents: ServiciosOpsField<number>;
+  paymentPaidAt: ServiciosOpsField<string>;
+  paymentStripePaymentIntentId: ServiciosOpsField<string>;
 };
 
 const UNAVAILABLE_NOTE =
@@ -75,6 +86,16 @@ type SubscriptionRow = {
   stripe_subscription_id?: string | null;
   current_period_end?: string | null;
   grace_ends_at?: string | null;
+};
+
+type PaymentRecordRow = {
+  listing_id?: string | null;
+  payment_status?: string | null;
+  amount_cents?: number | null;
+  amount_total_cents?: number | null;
+  paid_at?: string | null;
+  stripe_payment_intent_id?: string | null;
+  package_key?: string | null;
 };
 
 /**
@@ -98,6 +119,11 @@ export async function loadServiciosCommercialOps(
     subscription: unavailable(),
     subscriptionPeriodEnd: unavailable(),
     payment: unavailable(),
+    paymentRecordStatus: unavailable(),
+    paymentAmountPaidCents: unavailable(),
+    paymentAmountExpectedCents: unavailable(),
+    paymentPaidAt: unavailable(),
+    paymentStripePaymentIntentId: unavailable(),
   });
   for (const id of ids) out.set(id, base(id));
 
@@ -184,6 +210,73 @@ export async function loadServiciosCommercialOps(
     }
   } catch {
     // Leave subscription/payment UNAVAILABLE.
+  }
+
+  // ── Payment record — the real leonix_payment_records row (Gate 3, 2026-09-18) ─────────────
+  // Canonical match is category + listing_id (Gate 11 doctrine) — never listing_source, which
+  // this table does not even carry a column for.
+  try {
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase
+      .from("leonix_payment_records")
+      .select(
+        "listing_id, payment_status, amount_cents, amount_total_cents, paid_at, stripe_payment_intent_id, package_key",
+      )
+      .eq("category", SERVICIOS_BASE_CHECKOUT.category)
+      .eq("package_key", SERVICIOS_BASE_CHECKOUT.packageKey)
+      .in("listing_id", ids);
+
+    if (!error) {
+      const byListing = new Map<string, PaymentRecordRow>();
+      for (const rec of (data ?? []) as PaymentRecordRow[]) {
+        const key = rec.listing_id?.trim();
+        if (!key) continue;
+        const existing = byListing.get(key);
+        // Prefer a paid record over a pending one when more than one exists for the same listing.
+        if (!existing || (rec.payment_status === "paid" && existing.payment_status !== "paid")) {
+          byListing.set(key, rec);
+        }
+      }
+      for (const id of ids) {
+        const row = out.get(id);
+        if (!row) continue;
+        const rec = byListing.get(id);
+        if (!rec) {
+          row.paymentRecordStatus = {
+            value: null,
+            truth: "PARTIAL",
+            note: "No payment record exists yet for this listing's base plan.",
+          };
+          row.paymentAmountPaidCents = { value: null, truth: "PARTIAL" };
+          row.paymentAmountExpectedCents = { value: null, truth: "PARTIAL" };
+          row.paymentPaidAt = { value: null, truth: "PARTIAL" };
+          row.paymentStripePaymentIntentId = { value: null, truth: "PARTIAL" };
+          continue;
+        }
+        const status = (rec.payment_status ?? "").trim();
+        row.paymentRecordStatus = status ? { value: status, truth: "REAL" } : { value: null, truth: "NEEDS_PROOF" };
+        row.paymentAmountExpectedCents =
+          rec.amount_total_cents != null || rec.amount_cents != null
+            ? { value: rec.amount_total_cents ?? rec.amount_cents ?? null, truth: "REAL" }
+            : { value: null, truth: "PARTIAL" };
+        row.paymentAmountPaidCents =
+          status === "paid" && (rec.amount_total_cents != null || rec.amount_cents != null)
+            ? { value: rec.amount_total_cents ?? rec.amount_cents ?? null, truth: "REAL" }
+            : {
+                value: null,
+                truth: "PARTIAL",
+                note: status === "paid" ? "Marked paid but carries no amount." : "Not yet paid.",
+              };
+        row.paymentPaidAt = rec.paid_at
+          ? { value: rec.paid_at, truth: "REAL" }
+          : { value: null, truth: "PARTIAL", note: "No paid_at — this record has not cleared." };
+        row.paymentStripePaymentIntentId = rec.stripe_payment_intent_id?.trim()
+          ? { value: rec.stripe_payment_intent_id.trim(), truth: "REAL" }
+          : { value: null, truth: "PARTIAL", note: "No Stripe payment intent linked yet." };
+      }
+    }
+  } catch {
+    // Leave payment-record fields UNAVAILABLE.
   }
 
   return out;

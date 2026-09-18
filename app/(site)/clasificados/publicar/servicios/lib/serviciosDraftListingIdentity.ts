@@ -89,12 +89,16 @@ export function resolveServiciosExistingListingId(input: {
 
 /**
  * What the Application form must do to the "primed" session keys when it (re)mounts in NON-edit
- * mode. Previously this was an unconditional wipe. Now: if the draft it is about to restore is bound
- * to a canonical listing, that identity is RESTORED into the primed keys; only a draft with no bound
- * identity (a genuinely new application) starts with cleared keys.
+ * mode. It NEVER wipes them (the old unconditional wipe minted name-2, name-3… on every return from a
+ * cancelled checkout; origin/main Gate 6/7 also depend on the primed id surviving Application →
+ * Preview → Application). If the draft being restored carries a bound identity, that identity wins
+ * (it restores the id after the session key was lost); otherwise whatever is already primed is kept.
+ * Only an explicit delete-draft or hydrating a different listing clears/replaces the identity.
  */
 export function reconcileServiciosPrimedIdentityOnApplicationMount(
   draftIdentity: ServiciosDraftListingIdentity | null,
+  currentlyPrimed: { listingId: string | null; slug: string | null } = { listingId: null, slug: null },
 ): { listingId: string | null; slug: string | null } {
-  return { listingId: draftIdentity?.listingId ?? null, slug: draftIdentity?.slug ?? null };
+  if (draftIdentity?.listingId) return { listingId: draftIdentity.listingId, slug: draftIdentity.slug ?? currentlyPrimed.slug };
+  return { listingId: currentlyPrimed.listingId, slug: currentlyPrimed.slug };
 }
