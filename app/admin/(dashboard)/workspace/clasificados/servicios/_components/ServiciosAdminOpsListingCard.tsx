@@ -16,7 +16,7 @@ import type {
 } from "@/app/admin/_lib/serviciosCommercialOps";
 import { ServiciosAdminMonetizationPanel } from "./ServiciosAdminMonetizationPanel";
 
-function formatWhen(iso: string | null | undefined, fallback?: string): string {
+function formatWhen(iso: string | null | undefined, fallback?: string | null): string {
   const raw = iso ?? fallback;
   if (!raw) return "—";
   const d = new Date(raw);
