@@ -1832,6 +1832,76 @@ check("Round-trip Gate J: Privado is protected — the shared media manager fix 
   assert.ok(privado.includes("AutosNegociosMediaManager"), "Privado still uses the exact same shared, now-corrected media manager");
 });
 
+/* ================================================================================================
+ * EDIT PREVIEW MODE — a canonical Dashboard edit (?edit=1&source=dashboard&listingId=<real id>)
+ * must never re-offer the $399 base Dealer checkout merely because the row's lifecycle status
+ * happens to be pending_payment. Route intent and lifecycle status are separate axes.
+ * ============================================================================================ */
+check("Edit preview mode: dashboard-edit detection is derived from ROUTE INTENT (canonicalListingId + ?edit=1&source=dashboard), never from the row's lifecycle status alone", () => {
+  const client = raw("app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx");
+  assert.ok(
+    client.includes(
+      'const isDashboardListingEditPreview =\n    Boolean(canonicalListingId) && searchParams?.get("edit") === "1" && searchParams?.get("source") === "dashboard";',
+    ),
+    "must gate on route intent params, not on mode/status",
+  );
+  const appHref = raw("app/(site)/publicar/autos/negocios/components/AutosNegociosApplication.tsx");
+  assert.ok(
+    appHref.includes('edit: "1"') && appHref.includes('source: "dashboard"'),
+    "the application's own previewHref must set the exact params the Preview page reads",
+  );
+});
+check("Edit preview mode: a canonical dashboard edit renders Save Changes, never PublishCheckoutCheckpoint — a brand-new application (no edit route intent) still renders the real $399 checkout", () => {
+  const client = raw("app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx");
+  const branchStart = client.indexOf("{isDashboardListingEditPreview ? (");
+  const branchEnd = client.indexOf(")}", client.indexOf("<PublishCheckoutCheckpoint", branchStart));
+  const branch = client.slice(branchStart, branchEnd);
+  assert.ok(branch.includes("Guardar cambios") && branch.includes("Save changes"), "the true branch must be the Save Changes UI");
+  assert.ok(branch.includes("<PublishCheckoutCheckpoint"), "the false branch (new application) must still render the real checkout");
+  assert.ok(!/isDashboardListingEditPreview \? \(\s*<PublishCheckoutCheckpoint/.test(client), "PublishCheckoutCheckpoint must be on the FALSE side of the branch, never the true (edit) side");
+});
+check("Edit preview mode payment firewall: Save Changes calls ONLY ensurePendingDealerListing (the existing PATCH-only-for-canonical-id path) — never startRevenueCategoryCheckout, redirectToRevenueCategoryCheckout, promo apply, verified-intro, or newsletter checkout capture", () => {
+  const client = raw("app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx");
+  const fnStart = client.indexOf("const onSaveDealerChanges = useCallback(async () => {");
+  const fnEnd = client.indexOf("}, [ensurePendingDealerListing]);", fnStart);
+  const fnBody = client.slice(fnStart, fnEnd);
+  assert.ok(fnBody.includes("await ensurePendingDealerListing()"), "must call the existing canonical-PATCH-only preparation path");
+  for (const forbidden of [
+    "startRevenueCategoryCheckout",
+    "redirectToRevenueCategoryCheckout",
+    "applyAutosDealerPreviewPromoCode",
+    "captureCheckoutNewsletterSubscriber",
+    "requestVerifiedIntroDiscount",
+  ]) {
+    assert.ok(!fnBody.includes(forbidden), `Save Changes must never call ${forbidden} — ordinary listing edits must have zero payment side effects`);
+  }
+});
+check("Edit preview mode: ensurePendingDealerListing still PATCHes the SAME canonical row (never falls back to POST/create) when canonicalListingId is present, and includes the complete restored listing + child bundle so Save never strips media", () => {
+  const client = raw("app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx");
+  assert.ok(client.includes("if (canonicalListingId) {"), "the canonical-id PATCH-only branch must still exist");
+  assert.ok(
+    client.includes("additionalInventoryVehicles: photoPrep.additionalInventoryVehicles,"),
+    "the PATCH payload must carry the complete restored child bundle, not a stripped one",
+  );
+});
+check("Edit preview mode: the underlying Autos PATCH route only ever updates listing_payload/lang/updated_at — status, published_at, payment/subscription/entitlement, id, owner_user_id, and inventory identity are structurally impossible for Save Changes to mutate", () => {
+  const svc = raw("app/lib/clasificados/autos/autosClassifiedsListingService.ts");
+  const fnStart = svc.indexOf("export async function updateAutosClassifiedsListingDraft(");
+  const updateStart = svc.indexOf(".update({", fnStart);
+  const updateEnd = svc.indexOf("})", updateStart);
+  const updatePayload = svc.slice(updateStart, updateEnd);
+  assert.ok(updatePayload.includes("listing_payload: payload") && updatePayload.includes("lang,") && updatePayload.includes("updated_at:"));
+  assert.ok(
+    !/status\s*:|published_at\s*:|inventory_role\s*:|dealer_inventory_group_id\s*:|stripe_/i.test(updatePayload),
+    "the update payload must never include lifecycle/payment/inventory-identity fields",
+  );
+  const recoverableCheck = svc.slice(fnStart, updateStart);
+  assert.ok(
+    recoverableCheck.includes('row.status === "pending_payment"') && recoverableCheck.includes('row.status === "active"'),
+    "both a pending-payment row (Case 1) and an active row (Case 2) must remain editable through this same path",
+  );
+});
+
 if (failures.length) {
   console.error(`\nverify-autos-bilingual-architecture-01: ${failures.length} failure(s)`);
   process.exit(1);

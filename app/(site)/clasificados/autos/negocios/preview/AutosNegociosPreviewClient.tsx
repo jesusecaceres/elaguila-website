@@ -387,6 +387,19 @@ function AutosNegociosPreviewInner({
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   /**
+   * Owner lock (2026-09-19): a canonical dashboard edit (real listingId, reached via
+   * ?edit=1&source=dashboard — see AutosNegociosApplication's previewHref, which sets these
+   * exact params for listing-edit AND inventory-edit) is NOT a new-purchase Preview merely
+   * because the row's lifecycle status happens to be pending_payment. Route intent and lifecycle
+   * status are separate axes — only route intent decides whether this Preview offers a
+   * $399 Revenue OS checkout or a plain Save Changes action on the SAME row.
+   */
+  const isDashboardListingEditPreview =
+    Boolean(canonicalListingId) && searchParams?.get("edit") === "1" && searchParams?.get("source") === "dashboard";
+  const [saveBusy, setSaveBusy] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  /**
    * Owner lock (2026-09-17, Gate 08): the newsletter checkout identity is the AUTHENTICATED
    * session email — never an editable/marketing address the customer could redirect elsewhere.
    * Resolved once on mount (mirrors Servicios' pattern) so it's visible in the checkpoint UI
@@ -541,6 +554,26 @@ function AutosNegociosPreviewInner({
       customerEmail: data.session?.user?.email ?? null,
     };
   }, [additionalInventoryVehicles, lang, listing, canonicalListingId]);
+
+  /**
+   * Payment firewall (owner lock, 2026-09-19): a dashboard listing-edit Save only durably
+   * persists the SAME canonical row via the existing PATCH-only path inside
+   * ensurePendingDealerListing — it never touches startRevenueCategoryCheckout,
+   * redirectToRevenueCategoryCheckout, promo apply, verified-intro, or newsletter checkout
+   * capture. No lifecycle mutation, no payment mutation, no new row.
+   */
+  const onSaveDealerChanges = useCallback(async () => {
+    setSaveBusy(true);
+    setSaveError(null);
+    setSaveSuccess(false);
+    const result = await ensurePendingDealerListing();
+    setSaveBusy(false);
+    if (!result.ok) {
+      setSaveError(result.message);
+      return;
+    }
+    setSaveSuccess(true);
+  }, [ensurePendingDealerListing]);
 
   const onStartDealerCheckout = useCallback(
     async (ctx: {
@@ -720,26 +753,67 @@ function AutosNegociosPreviewInner({
             }}
           </AutosListingTranslationLayer>
           <div className={`mx-auto ${autosPreviewPageMaxWidthClass} px-4 pb-10 pt-2 md:px-6 lg:px-8`}>
-            <PublishCheckoutCheckpoint
-              config={checkpointConfig}
-              lang={lang}
-              busy={checkoutBusy}
-              errorMessage={checkoutError}
-              draftReady={mediaReadiness.phase !== "preparing"}
-              draftReadyMessage={
-                mediaReadiness.phase === "preparing"
-                  ? lang === "es"
-                    ? `Preparando imágenes… ${mediaReadiness.done} de ${mediaReadiness.total}`
-                    : `Preparing images… ${mediaReadiness.done} of ${mediaReadiness.total}`
-                  : null
-              }
-              onPromoApply={(code) => applyAutosDealerPreviewPromoCode({ code, lang, totalVehicleCount })}
-              onCheckout={(ctx) => void onStartDealerCheckout(ctx)}
-              rulesModal={AUTOS_DEALER_PREVIEW_RULES_MODAL}
-              newsletterEmail={newsletterEmail}
-              newsletterCaptureNote={newsletterCaptureNote}
-              className="mx-auto w-full max-w-xl"
-            />
+            {isDashboardListingEditPreview ? (
+              <div className="mx-auto w-full max-w-xl rounded-2xl border border-[#D6C7AD]/70 bg-[#FFFDF7] p-5 text-center shadow-[0_10px_28px_-16px_rgba(31,36,28,0.18)]">
+                <p className="text-sm text-[#5C5346]">
+                  {mediaReadiness.phase === "preparing"
+                    ? lang === "es"
+                      ? `Preparando imágenes… ${mediaReadiness.done} de ${mediaReadiness.total}`
+                      : `Preparing images… ${mediaReadiness.done} of ${mediaReadiness.total}`
+                    : lang === "es"
+                      ? "Revisa tu anuncio y guarda los cambios cuando esté listo."
+                      : "Review your listing and save your changes when ready."}
+                </p>
+                <button
+                  type="button"
+                  disabled={saveBusy || mediaReadiness.phase === "preparing"}
+                  onClick={() => void onSaveDealerChanges()}
+                  className="mt-4 inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-[#7A1E2C] px-5 text-sm font-bold text-[#FFFCF7] shadow-md transition hover:bg-[#5e1721] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {saveBusy
+                    ? lang === "es"
+                      ? "Guardando cambios…"
+                      : "Saving changes…"
+                    : lang === "es"
+                      ? "Guardar cambios"
+                      : "Save changes"}
+                </button>
+                {saveSuccess ? (
+                  <p className="mt-3 text-sm font-semibold text-[#2A7F3E]" role="status">
+                    {lang === "es" ? "Cambios guardados." : "Changes saved."}
+                  </p>
+                ) : null}
+                {saveError ? (
+                  <p className="mt-3 text-sm font-semibold text-red-800" role="alert">
+                    {saveError}
+                  </p>
+                ) : null}
+                <Link href={editBackHref} className="mt-4 inline-block text-xs font-bold text-[#7A1E2C] underline">
+                  {lang === "es" ? "Volver a editar" : "Back to edit"}
+                </Link>
+              </div>
+            ) : (
+              <PublishCheckoutCheckpoint
+                config={checkpointConfig}
+                lang={lang}
+                busy={checkoutBusy}
+                errorMessage={checkoutError}
+                draftReady={mediaReadiness.phase !== "preparing"}
+                draftReadyMessage={
+                  mediaReadiness.phase === "preparing"
+                    ? lang === "es"
+                      ? `Preparando imágenes… ${mediaReadiness.done} de ${mediaReadiness.total}`
+                      : `Preparing images… ${mediaReadiness.done} of ${mediaReadiness.total}`
+                    : null
+                }
+                onPromoApply={(code) => applyAutosDealerPreviewPromoCode({ code, lang, totalVehicleCount })}
+                onCheckout={(ctx) => void onStartDealerCheckout(ctx)}
+                rulesModal={AUTOS_DEALER_PREVIEW_RULES_MODAL}
+                newsletterEmail={newsletterEmail}
+                newsletterCaptureNote={newsletterCaptureNote}
+                className="mx-auto w-full max-w-xl"
+              />
+            )}
           </div>
         </AutoDealerPreviewChrome>
         </div>
