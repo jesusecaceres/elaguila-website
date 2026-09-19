@@ -350,9 +350,12 @@ export function LessonRenderer({
                 <span className="px-1 text-sm font-semibold text-[#5C5346] sm:hidden" data-checkpoint-label>
                   {checkpointText}
                 </span>
-                <Link href={`${pathwayHref}#${checkpointAnchor(checkpointKey)}`} className={`hidden sm:inline-flex ${LEARNING_LINK}`}>
-                  {checkpointText}
-                </Link>
+                {/* The wrapper owns visibility: LEARNING_LINK carries its own display utility, which would override `hidden`. */}
+                <span className="hidden sm:inline-flex">
+                  <Link href={`${pathwayHref}#${checkpointAnchor(checkpointKey)}`} className={LEARNING_LINK}>
+                    {checkpointText}
+                  </Link>
+                </span>
               </li>
             ) : null}
           </ol>

@@ -1564,7 +1564,8 @@ check("G2 owner-QA: compact phone breadcrumb — one back target + a non-link ch
   assert.ok(renderer.includes('<li className={journey && pathwayHref ? "hidden sm:block" : undefined}>'), "with a journey the Learning Center link is desktop-only; with no journey it stays the phone back target");
   assert.ok(renderer.includes('<FiArrowLeft className="h-4 w-4 sm:hidden" aria-hidden />'), "on phones the journey link is the single back target");
   assert.ok(/<span className="[^"]*sm:hidden[^"]*" data-checkpoint-label>\s*\{checkpointText\}\s*<\/span>/.test(renderer), "on phones the checkpoint is a compact non-link label");
-  assert.ok(renderer.includes("className={`hidden sm:inline-flex ${LEARNING_LINK}`}"), "from sm the checkpoint is a real link again");
+  // The wrapper owns visibility: LEARNING_LINK has its own display utility, which overrides `hidden` on the same element (seen at 390 in release QA).
+  assert.ok(renderer.includes("<span className=\"hidden sm:inline-flex\">") && !renderer.includes("hidden sm:inline-flex ${LEARNING_LINK}"), "from sm the checkpoint is a real link again — and it is truly hidden on phones");
   assert.ok(renderer.includes("flex flex-col items-start gap-0") && renderer.includes("sm:flex-row sm:flex-wrap"), "breadcrumb stacks compactly on phones, wraps in a row from sm");
   const header = renderer.slice(renderer.indexOf("<header"), renderer.indexOf("</header>"));
   assert.strictEqual((header.match(/<Link\b/g) ?? []).length, 3, "home, journey and checkpoint links only");
