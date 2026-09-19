@@ -1,5 +1,7 @@
 "use client";
 
+import { dashboardOwnerMayActivateFromStatus } from "../../lib/dashboardOwnerRelistPolicy";
+import { dashboardSafeMutationErrorCopy } from "../../lib/dashboardSafeErrorCopy";
 import Link from "next/link";
 import {useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import { useParams, useRouter, useSearchParams, usePathname } from "next/navigation";
@@ -67,6 +69,22 @@ import {
   bienesListingPreviewHref,
 } from "../../lib/bienesDashboardInventoryAddonCheckout";
 import { manageInventoryLabel, previewLabel } from "../../lib/dashboardMisAnunciosCategoryTools";
+import { getStatusChipClass } from "@/app/lib/clasificados/listingLifecycleDomain";
+import {
+  dashboardAwaitingPaymentLabel,
+  dashboardCompletePaymentLabel,
+  dashboardNotLiveNote,
+  dashboardStartingPaymentLabel,
+  isSharedListingsRowNotLive,
+  resolveSharedListingPaymentLane,
+} from "../../lib/dashboardPendingPayment";
+import { startDashboardResumePayment } from "../../lib/dashboardResumePaymentClient";
+import {
+  dashboardBrParentsFromOwnerRows,
+  dashboardListingsCategoryKey,
+  dashboardOwnerReasonNote,
+  dashboardOwnerActionPlan,
+} from "../../lib/dashboardListingStateMachine";
 
 export const dynamic = "force-dynamic";
 
@@ -180,6 +198,15 @@ function ListingWorkspacePageContent() {
 
   const [loading, setLoading] = useState(true);
   const [row, setRow] = useState<ListingRow | null>(null);
+  /** Gate 2 (item 3): the canonical parent of a BR inventory child, read once, so the public link honours the parent gate. */
+  const [brParent, setBrParent] = useState<{
+    id: string;
+    category: string | null;
+    seller_type: string | null;
+    inventory_role: string | null;
+    status: string | null;
+    is_published: boolean | null;
+  } | null>(null);
   const [accountPlan, setAccountPlan] = useState<Plan>("free");
   const [userId, setUserId] = useState<string | null>(null);
   const [name, setName] = useState<string | null>(null);
@@ -267,6 +294,16 @@ function ListingWorkspacePageContent() {
     const listing = ownerRow as ListingRow;
     setRow(listing);
     setAccess("ok");
+    if (String(listing.inventory_role ?? "") === "inventory_property" && String(listing.br_inventory_parent_listing_id ?? "").trim()) {
+      const { data: parentRow } = await sb
+        .from("listings")
+        .select("id, category, seller_type, inventory_role, status, is_published")
+        .eq("id", String(listing.br_inventory_parent_listing_id).trim())
+        .maybeSingle();
+      setBrParent((parentRow ?? null) as typeof brParent);
+    } else {
+      setBrParent(null);
+    }
 
     const listingUuid = String(listing.id ?? "").trim();
     const leonixAdId = String(listing.leonix_ad_id ?? "").trim();
@@ -356,6 +393,30 @@ function ListingWorkspacePageContent() {
   const listingPlan = row ? listingPlanFromDetailPairs(row.detail_pairs) : "free";
   const visibilityWindowActive = row ? isListingRepublishWindowActive(row.republished_at) : false;
   const uiStatus = row ? resolveListingUiStatus(row) : "unknown";
+  // CLOSEOUT 2 — an unpaid / pre-publication row is NOT live: truthful status, payment action where a
+  // Revenue OS package exists (Rentas / BR FSBO / paid Clases), and no public "View listing" link.
+  const rowNotLive = row ? isSharedListingsRowNotLive(row) : false;
+  // Gate 2: "View public" only when the public detail page would resolve (same predicates as the public readers / Admin
+  // Live: Rentas term, FSBO term, Clases term, BR child needs an active published same-owner parent). A paused / expired /
+  // removed / flagged row has no public page.
+  const wsCategoryKey = row ? dashboardListingsCategoryKey(row) : null;
+  const wsPlan =
+    row && wsCategoryKey
+      ? dashboardOwnerActionPlan(wsCategoryKey, row, {
+          ownerId: row.owner_id ?? userId,
+          brParentsById: brParent ? dashboardBrParentsFromOwnerRows([brParent], row.owner_id ?? userId) : undefined,
+        })
+      : null;
+  const wsViewPublic = row ? (wsPlan ? wsPlan.viewPublic : !rowNotLive) : false;
+  const wsReasonNote = wsPlan && wsPlan.reason !== "live" && wsPlan.reason !== "payment_pending" ? dashboardOwnerReasonNote(wsPlan.reason, lang) : null;
+  const unpaidPayLane = row
+    ? resolveSharedListingPaymentLane({
+        category: row.category,
+        status: row.status,
+        is_published: row.is_published,
+        detail_pairs: row.detail_pairs,
+      })
+    : null;
   const priceLine = row ? formatPrice(row.price, lang) : "—";
   const cityLine = (row?.city ?? "").trim() || "—";
   const visibilityWindowEndIso = row ? listingRepublishVisibilityWindowEndIso(row.republished_at) : null;
@@ -465,6 +526,13 @@ function ListingWorkspacePageContent() {
       ...(userId ? { last_republished_by: userId } : {}),
     };
     if (!live) {
+      // Refresh bumps a listing that is live, or relists one the owner paused / sold. Pending (unpaid), flagged
+      // (staff moderation), expired and removed rows are never activated by this button.
+      if (!dashboardOwnerMayActivateFromStatus(row.status)) {
+        setResumeError(dashboardSafeMutationErrorCopy(lang));
+        setBusy(false);
+        return;
+      }
       patch.is_published = true;
       patch.status = "active";
     }
@@ -518,12 +586,43 @@ function ListingWorkspacePageContent() {
       setBusy(false);
       return;
     }
+    if (status === "active" && !dashboardOwnerMayActivateFromStatus(row.status)) {
+      setResumeError(dashboardSafeMutationErrorCopy(lang));
+      setBusy(false);
+      return;
+    }
     const sb = createSupabaseBrowserClient();
     const patch: Record<string, unknown> = { status };
     if (status === "active") patch.is_published = true;
     const { error } = await applyOwnerListingPatch(sb, row.id, userId, patch);
     if (!error) setRow((r) => (r ? { ...r, status, ...(status === "active" ? { is_published: true } : {}) } : r));
     setBusy(false);
+  }
+
+  /** CLOSEOUT 2 — Revenue OS base payment for an unpaid `pending` Rentas / BR FSBO / paid-Clases row. */
+  async function completeUnpaidListingPayment() {
+    if (!row || !unpaidPayLane) return;
+    setBusy(true);
+    setResumeError(null);
+    try {
+      const result = await startDashboardResumePayment({
+        lane: unpaidPayLane,
+        listingId: row.id,
+        leonixAdId: row.leonix_ad_id,
+        lang,
+      });
+      if (!result.ok) {
+        setResumeError(result.userMessage);
+        setBusy(false);
+      }
+    } catch {
+      setResumeError(
+        lang === "es"
+          ? "No pudimos iniciar el pago seguro. Intenta de nuevo o contacta a Leonix."
+          : "We could not start secure payment. Please try again or contact Leonix.",
+      );
+      setBusy(false);
+    }
   }
 
   async function startFsboRenewal() {
@@ -761,7 +860,15 @@ function ListingWorkspacePageContent() {
         ? `/clasificados/anuncio/${row.id}?${q}`
         : "#";
 
-  const quickActions: ActionItem[] = row ? [{ href: publicListingHref, label: t.publicLink, tone: "secondary" }] : [];
+  const quickActions: ActionItem[] = row && wsViewPublic ? [{ href: publicListingHref, label: t.publicLink, tone: "secondary" }] : [];
+  if (row && unpaidPayLane) {
+    quickActions.unshift({
+      label: busy ? dashboardStartingPaymentLabel(lang) : dashboardCompletePaymentLabel(lang),
+      onClick: () => void completeUnpaidListingPayment(),
+      disabled: busy,
+      tone: "warning",
+    });
+  }
   if (row && isBrNegocio && isBrInventoryMainListing(row)) {
     quickActions.push({
       href: bienesListingPreviewHref({ lang, listingId: row.id, leonixAdId: row.leonix_ad_id }),
@@ -837,8 +944,12 @@ function ListingWorkspacePageContent() {
 
   const displayLeonixAdId = useMemo(() => {
     if (!row) return "";
+    // The STORED Leonix Ad ID wins for every category; the derived LNX- form is only a fallback for a
+    // Busco row that has none.
+    const stored = (row.leonix_ad_id ?? "").trim();
+    if (stored) return stored;
     if ((row.category ?? "").toLowerCase() === "busco") return formatLeonixAdId(row.id) ?? "";
-    return (row.leonix_ad_id ?? "").trim();
+    return "";
   }, [row]);
 
   return (
@@ -896,12 +1007,20 @@ function ListingWorkspacePageContent() {
             header={{
               eyebrow: genericCategoryEyebrow(row.category, lang),
               title: row.title?.trim() || "—",
-              statusLabel: listingUiStatusLabel(uiStatus, lang),
-              statusChipClass: listingUiStatusChipClass(uiStatus),
+              statusLabel: unpaidPayLane ? dashboardAwaitingPaymentLabel(lang) : listingUiStatusLabel(wsPlan?.termElapsed ? "expired" : uiStatus, lang),
+              statusChipClass: unpaidPayLane ? getStatusChipClass("pending_payment") : listingUiStatusChipClass(wsPlan?.termElapsed ? "expired" : uiStatus),
               plan: listingPlan.toUpperCase(),
               leonixId: displayLeonixAdId || `${t.listingRef}: ${shortListingRef(row.id)}`,
             }}
-            note={resumeError ? { text: resumeError, tone: "urgent" } : null}
+            note={
+              resumeError
+                ? { text: resumeError, tone: "urgent" }
+                : unpaidPayLane
+                  ? { text: dashboardNotLiveNote(lang), tone: "warning" }
+                  : wsReasonNote
+                    ? { text: wsReasonNote, tone: "warning" }
+                    : null
+            }
             detailItems={detailItems}
             performance={{ title: t.performanceTitle, metrics: performanceMetrics }}
             primaryAction={{

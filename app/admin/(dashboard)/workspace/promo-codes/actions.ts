@@ -1,5 +1,6 @@
 "use server";
 
+import { isVerifiedAdminSession } from "@/app/admin/_lib/adminVerifiedSession";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -16,7 +17,7 @@ import {
   normalizePromoCodeForStorage,
   promoCodePrefixForCategory,
 } from "@/app/lib/listingPlans/promoCodeLifecycle";
-import { getAdminSupabase, requireAdminCookie } from "@/app/lib/supabase/server";
+import { getAdminSupabase } from "@/app/lib/supabase/server";
 
 const ALLOWED_CODE_TYPES = new Set([
   "entitlement",
@@ -56,7 +57,7 @@ function redirectWith(query: Record<string, string>): never {
 
 export async function createPromoCodeAction(formData: FormData): Promise<void> {
   const c = await cookies();
-  if (!requireAdminCookie(c)) throw new Error("Unauthorized");
+  if (!(await isVerifiedAdminSession(c))) throw new Error("Unauthorized");
   const access = await getCurrentAdminAccessContext();
 
   let code = normalizePromoCodeForStorage(String(formData.get("code") ?? ""));
@@ -245,7 +246,7 @@ export async function createPromoCodeAction(formData: FormData): Promise<void> {
 
 export async function revokePromoCodeAction(formData: FormData): Promise<void> {
   const c = await cookies();
-  if (!requireAdminCookie(c)) throw new Error("Unauthorized");
+  if (!(await isVerifiedAdminSession(c))) throw new Error("Unauthorized");
   const access = await getCurrentAdminAccessContext();
 
   const id = String(formData.get("id") ?? "").trim();

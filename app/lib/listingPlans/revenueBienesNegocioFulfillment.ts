@@ -80,10 +80,14 @@ export async function activatePaidBienesNegocioListingFromRevenueOs(input: {
   }
 
   if (row.status !== "pending" || row.is_published !== false) {
+    // D4: a paused / expired / otherwise non-pending parent is NOT activated (fail closed), but the outcome is TERMINAL
+    // (ok:true), not retryable. `ok:false` made the webhook answer 422 `failed_retryable` and Stripe redeliver forever
+    // while the customer stays charged. The caller records revenue_webhook_ignored (reason
+    // bienes_negocio_activation_unsafe_status) with this message so staff can see: paid, needs staff action.
     return {
-      ok: false,
+      ok: true,
       outcome: "unsafe_status",
-      message: `Cannot activate Bienes negocio listing from status "${String(row.status ?? "")}" (published=${String(row.is_published)}).`,
+      message: `Payment received but Bienes negocio listing status "${String(row.status ?? "")}" (published=${String(row.is_published)}) is not activatable by webhook - NOT activated; needs staff action.`,
       listingId,
     };
   }

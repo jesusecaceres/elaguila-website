@@ -1,3 +1,4 @@
+import { isVerifiedAdminSession } from "@/app/admin/_lib/adminVerifiedSession";
 import { NextRequest, NextResponse } from "next/server";
 
 import { fetchAllViajesStagedForAdmin } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingsDbServer";
@@ -6,7 +7,7 @@ import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  if (req.cookies.get("leonix_admin")?.value !== "1") {
+  if (!(await isVerifiedAdminSession(req.cookies))) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
   if (!isSupabaseAdminConfigured()) {

@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { dashboardOwnerMayActivateFromStatus } from "../lib/dashboardOwnerRelistPolicy";
 import Link from "next/link";
 import {useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
@@ -44,13 +45,29 @@ import {
   listingAnalyticsIsProven,
 } from "../lib/dashboardMisAnunciosCategoryTools";
 import { ownerDashboardStatusLabel } from "../lib/dashboardOwnerStatusDisplay";
-import { resolveOwnerDashboardAttentionItems, countByAttentionSeverity, type OwnerAttentionItem } from "../lib/dashboardAttentionItems";
+import {
+  attachCompletePaymentAction,
+  resolveOwnerDashboardAttentionItems,
+  countByAttentionSeverity,
+  type OwnerAttentionItem,
+} from "../lib/dashboardAttentionItems";
+import {
+  dashboardAwaitingPaymentLabel,
+  dashboardCompletePaymentLabel,
+  dashboardNotLiveNote,
+  dashboardStartingPaymentLabel,
+  isSharedListingsRowNotLive,
+  resolveSharedListingPaymentLane,
+  type DashboardPendingPaymentLane,
+} from "../lib/dashboardPendingPayment";
+import { startDashboardResumePayment } from "../lib/dashboardResumePaymentClient";
+import { prepareRestauranteResumePayment } from "../lib/restaurantesDashboardResumePayment";
 import { classifyOwnerDashboardRow, type OwnerDashboardGroup } from "../lib/dashboardOwnerClassification";
 import { fetchOwnerListingsForDashboard, mapOwnerListingRow } from "../lib/ownerListingsQuery";
 import {
   DEFERRED_DEDICATED_CATEGORIES,
   EMPTY_DEDICATED_CATEGORY_COUNTS,
-  fetchDedicatedCategoryCounts,
+  fetchDedicatedCategoryCountsChecked,
   resolveMisAnunciosLoadPlan,
   type DedicatedCategoryCounts,
 } from "../lib/dashboardMisAnunciosCategoryLoadPlan";
@@ -67,8 +84,21 @@ import {
   fetchOwnerEmpleosListings,
   fetchOwnerServiciosListings,
   fetchOwnerViajesListings,
+  readOwnerAutosClassifiedsListings,
+  readOwnerEmpleosListings,
+  readOwnerRestaurantListings,
+  readOwnerServiciosListings,
+  readOwnerViajesListings,
   type DashboardInventoryItem,
 } from "../lib/dashboardInventory";
+import {
+  dashboardEmpleosTransitionErrorMessage,
+  dashboardListingsRowBucket,
+  dashboardOwnerActionPlan,
+  dashboardOwnerReasonNote,
+  dashboardViewPublicAllowed,
+  type DashboardStateCategory,
+} from "../lib/dashboardListingStateMachine";
 import {
   countOwnerActiveListingsAcrossSources,
   countOwnerInventoryListings,
@@ -127,7 +157,10 @@ import type { BrFsboOwnerStatusAction } from "@/app/lib/clasificados/bienes-raic
 import { isBrFsboRow } from "@/app/lib/listingLifecycle/bienesFsboLifecycle";
 import { startListingRenewalCheckout } from "@/app/lib/listingLifecycle/listingRenewalCheckout";
 import { ComidaLocalDashboardListings } from "@/app/lib/clasificados/comida-local/ComidaLocalDashboardListings";
-import { fetchOwnerComidaLocalListings } from "@/app/lib/clasificados/comida-local/comidaLocalDashboardQueries";
+import {
+  fetchOwnerComidaLocalListings,
+  fetchOwnerComidaLocalListingsResult,
+} from "@/app/lib/clasificados/comida-local/comidaLocalDashboardQueries";
 import { mapComidaLocalRowToDashboardVm } from "@/app/lib/clasificados/comida-local/mapComidaLocalDashboardListing";
 import { misAnunciosListCopy } from "../lib/dashboardI18n";
 import type { Lang } from "../lib/dashboardI18n";
@@ -314,12 +347,23 @@ function brLifecycleErrorMessage(code: string, lang: Lang): string {
   return table[code] ?? (lang === "es" ? "No se pudo completar la acción." : "Could not complete the action.");
 }
 
-function passesTab(row: ListingRow, tab: Tab): boolean {
+function passesTab(row: ListingRow, tab: Tab, ownerId?: string | null): boolean {
   const st = normalizeStatus(row.status);
   /** Keep removed rows in "All" so sellers see failed publish / admin removals; other tabs stay discovery-focused. */
   if (st === "removed") return tab === "all";
   const isDraft = row.is_published === false || st === "draft";
   if (tab === "all") return true;
+  // Gate 2 (2026-09 dashboard state machine, items 5-7): a Rentas / FSBO / Clases row whose paid or fixed term ELAPSED still
+  // says `status = active` (the term is never written back), so the plain status test counted it under "Active" and hid it
+  // from "Expired". The bucket comes from the shared state machine (same term predicates as the public readers).
+  const catKey = listingRowCategoryKey(row);
+  if (catKey !== "other") {
+    const bucket = dashboardListingsRowBucket(catKey as DashboardStateCategory, row, { ownerId });
+    if (tab === "active") return bucket === "active";
+    if (tab === "expired") return bucket === "expired";
+    if (tab === "moderation") return bucket === "moderation";
+    return true;
+  }
   if (tab === "active") return st === "active" && !isDraft;
   if (tab === "expired") return st === "sold" || st === "expired";
   if (tab === "moderation") return st === "pending" || st === "flagged" || st === "paused";
@@ -458,18 +502,22 @@ function MyListingsPageContent() {
   // status/lifecycle truth are covered here (Empleos, Viajes, and Rentas via the same
   // `resolveListingLifecycle` used by the Rentas card render path) — this intentionally does not
   // attempt to re-derive every category's own bespoke status logic a second time.
-  const attentionItems = useMemo<OwnerAttentionItem[]>(() => {
+  const coreAttentionItems = useMemo<OwnerAttentionItem[]>(() => {
     const out: OwnerAttentionItem[] = [];
 
     for (const item of empleosInventory) {
+      const empleoAttention = resolveOwnerDashboardAttentionItems({
+        id: item.id,
+        category: "empleos",
+        statusDisplayKey: item.statusDisplay?.displayKey ?? "unknown",
+        editHref: item.editHref,
+        publicHref: item.publicHref,
+      });
+      // CLOSEOUT 2 — a paid-lane draft is an unpaid application: offer the Revenue OS payment.
       out.push(
-        ...resolveOwnerDashboardAttentionItems({
-          id: item.id,
-          category: "empleos",
-          statusDisplayKey: item.statusDisplay?.displayKey ?? "unknown",
-          editHref: item.editHref,
-          publicHref: item.publicHref,
-        }),
+        ...(item.awaitingPayment
+          ? attachCompletePaymentAction(empleoAttention, { lane: "empleos", listingId: item.id, leonixAdId: item.leonixAdId })
+          : empleoAttention),
       );
     }
 
@@ -508,6 +556,28 @@ function MyListingsPageContent() {
       // resolveListingLifecycle truth the card render path already uses); Negocio rows are
       // excluded (their own certified brLifecycleContract descriptors are unaffected).
       const isBrFsbo = cat === "bienes-raices" && parseLeonixListingContract(row.detail_pairs).branch === "bienes_raices_privado";
+      // CLOSEOUT 2 — the lane (if any) whose base Revenue OS checkout the server will accept for this row
+      // (status pending + not published; Rentas / BR FSBO / Clases-pagada only — never Bienes Negocio).
+      const sharedPayLane = resolveSharedListingPaymentLane({
+        category: row.category,
+        status: row.status,
+        is_published: row.is_published,
+        detail_pairs: row.detail_pairs,
+      });
+      if (sharedPayLane === "clases") {
+        out.push(
+          ...attachCompletePaymentAction(
+            resolveOwnerDashboardAttentionItems({
+              id: row.id,
+              category: "clases",
+              statusDisplayKey: "pending_payment",
+              isPublished: row.is_published,
+            }),
+            { lane: "clases", listingId: row.id, leonixAdId: row.leonix_ad_id ?? null },
+          ),
+        );
+        continue;
+      }
       if (cat !== "rentas" && !isBrFsbo) continue;
       const lifecycle = resolveListingLifecycle(
         isBrFsbo
@@ -537,8 +607,7 @@ function MyListingsPageContent() {
             : lifecycle.lifecycleState === "suspended"
               ? "suspended"
               : "active";
-      out.push(
-        ...resolveOwnerDashboardAttentionItems({
+      const realEstateAttention = resolveOwnerDashboardAttentionItems({
           id: row.id,
           category: isBrFsbo ? "bienes-raices" : "rentas",
           statusDisplayKey,
@@ -548,7 +617,15 @@ function MyListingsPageContent() {
           // own render path; this attention pass only claims what it has actually verified.
           publicHref: isBrFsbo ? leonixLiveAnuncioPath(row.id) : rentasListingPublicPath(row.id),
           renewal: { isRenewalEligible: lifecycle.isRenewalEligible, hasRealAction: true },
-        }),
+        });
+      out.push(
+        ...(sharedPayLane === "rentas" || sharedPayLane === "bienes-raices-fsbo"
+          ? attachCompletePaymentAction(realEstateAttention, {
+              lane: sharedPayLane,
+              listingId: row.id,
+              leonixAdId: row.leonix_ad_id ?? null,
+            })
+          : realEstateAttention),
       );
     }
 
@@ -571,6 +648,41 @@ function MyListingsPageContent() {
 
     return out;
   }, [empleosInventory, viajesInventory, serviciosInventory, listings, q]);
+
+  // CLOSEOUT 2 — Restaurantes / Autos Privado pending-payment rows surface in the same panel, each with the
+  // resume-payment action that is valid for that lane (restaurant: consent checkpoint; autos: Revenue OS).
+  const attentionItems = useMemo<OwnerAttentionItem[]>(() => {
+    const out: OwnerAttentionItem[] = [...coreAttentionItems];
+    for (const item of restaurantInventory) {
+      if (!item.awaitingPayment) continue;
+      out.push(
+        ...attachCompletePaymentAction(
+          resolveOwnerDashboardAttentionItems({
+            id: item.id,
+            category: "restaurantes",
+            statusDisplayKey: "pending_payment",
+            editHref: item.editHref,
+          }),
+          { lane: "restaurantes", listingId: item.id, leonixAdId: item.leonixAdId },
+        ),
+      );
+    }
+    for (const item of autosPaidInventory) {
+      if (!item.awaitingPayment) continue;
+      out.push(
+        ...attachCompletePaymentAction(
+          resolveOwnerDashboardAttentionItems({
+            id: item.id,
+            category: "autos",
+            statusDisplayKey: "pending_payment",
+            editHref: item.editHref,
+          }),
+          { lane: "autos-privado", listingId: item.id, leonixAdId: item.leonixAdId },
+        ),
+      );
+    }
+    return out;
+  }, [coreAttentionItems, restaurantInventory, autosPaidInventory]);
 
   const attentionSeverityCounts = useMemo(() => countByAttentionSeverity(attentionItems), [attentionItems]);
 
@@ -599,6 +711,12 @@ function MyListingsPageContent() {
   }
 
   const [error, setError] = useState<string | null>(null);
+  /** Gate 2: a FAILED read is an error state, never the "you have no listings" empty state. */
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [countsFailed, setCountsFailed] = useState(false);
+  const [serviciosReadFailed, setServiciosReadFailed] = useState(false);
+  const [categoryLoadError, setCategoryLoadError] = useState<MisAnunciosCategoryKey | null>(null);
+  const [retryNonce, setRetryNonce] = useState(0);
   const [republishColsAvailable, setRepublishColsAvailable] = useState(true);
   const [analyticsByListing, setAnalyticsByListing] = useState<Record<string, ListingAnalyticsBucket>>({});
   const [listingAnalyticsDegraded, setListingAnalyticsDegraded] = useState(false);
@@ -606,6 +724,8 @@ function MyListingsPageContent() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [renewalCheckoutBusyId, setRenewalCheckoutBusyId] = useState<string | null>(null);
   const [couponEditBusyId, setCouponEditBusyId] = useState<string | null>(null);
+  /** CLOSEOUT 2 — row id whose "Completar pago" (Revenue OS checkout / restaurant resume) is in flight. */
+  const [pendingPaymentBusyId, setPendingPaymentBusyId] = useState<string | null>(null);
   const [serviciosManageBusySlug, setServiciosManageBusySlug] = useState<string | null>(null);
   const [empleosLifecycleBusyId, setEmpleosLifecycleBusyId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("all");
@@ -680,10 +800,12 @@ function MyListingsPageContent() {
         console.error("[mis-anuncios]", qErr.message);
         setError(dashboardSafeMutationErrorCopy(lang));
         setListings([]);
+        setLoadFailed(true);
         setListingsLoading(false);
         return;
       }
 
+      setLoadFailed(false);
       setRepublishColsAvailable(meta?.republishColsAvailable !== false);
       const list = ((rows ?? []) as Record<string, unknown>[]).map((r) => mapOwnerListingRow(r)) as ListingRow[];
       setListings(list);
@@ -694,18 +816,20 @@ function MyListingsPageContent() {
       // see the Gate I.4.2 report §3/§6; re-confirmed still true under Gate 2A — see Task 2A-6
       // note below). Every other dedicated category's full content loads on demand only once
       // actually selected, via the separate effect below.
-      const [dedCounts, activeAcross, serviciosRows, managedTotal] = await Promise.all([
-        fetchDedicatedCategoryCounts(supabase, u.id),
+      const [dedCountsChecked, activeAcross, serviciosRead, managedTotal] = await Promise.all([
+        fetchDedicatedCategoryCountsChecked(supabase, u.id),
         countOwnerActiveListingsAcrossSources(supabase, u.id),
-        fetchOwnerServiciosListings(token),
+        readOwnerServiciosListings(token),
         countOwnerInventoryListings(supabase, u.id),
       ]);
 
       if (!mounted) return;
-      setDedicatedCounts(dedCounts);
+      setDedicatedCounts(dedCountsChecked.counts);
+      setCountsFailed(dedCountsChecked.failed);
       setUnifiedActiveCount(activeAcross);
       setTotalManagedCount(managedTotal);
-      setServiciosRawRows(serviciosRows);
+      setServiciosReadFailed(!serviciosRead.ok);
+      setServiciosRawRows(serviciosRead.rows);
 
       // Gate 2A — selected-category content no longer waits on Ofertas Locales: this fetch has
       // no bearing on what the owner is looking at (a separate, isolated dashboard surface), so
@@ -778,34 +902,46 @@ function MyListingsPageContent() {
 
     (async () => {
       setCategoryInventoryLoading(true);
+      setCategoryLoadError((prev) => (prev === categoryFilter ? null : prev));
       try {
+        // Gate 2: a failed read is NOT marked as loaded (so it is retried) and shows an error - never the empty state.
+        let readOk = true;
         if (categoryFilter === "restaurantes") {
-          const fetched = await fetchOwnerRestaurantListings(supabase, userId);
+          const fetched = await readOwnerRestaurantListings(supabase, userId);
           if (cancelled) return;
-          setRestaurantRawRows(fetched);
+          readOk = fetched.ok;
+          if (fetched.ok) setRestaurantRawRows(fetched.rows);
         } else if (categoryFilter === "empleos") {
-          const fetched = await fetchOwnerEmpleosListings(supabase, userId);
+          const fetched = await readOwnerEmpleosListings(supabase, userId);
           if (cancelled) return;
-          setEmpleosRawRows(fetched);
+          readOk = fetched.ok;
+          if (fetched.ok) setEmpleosRawRows(fetched.rows);
         } else if (categoryFilter === "viajes") {
-          const fetched = await fetchOwnerViajesListings(supabase, userId);
+          const fetched = await readOwnerViajesListings(supabase, userId);
           if (cancelled) return;
-          setViajesRawRows(fetched);
+          readOk = fetched.ok;
+          if (fetched.ok) setViajesRawRows(fetched.rows);
         } else if (categoryFilter === "autos") {
-          const fetched = await fetchOwnerAutosClassifiedsListings(supabase, userId);
+          const fetched = await readOwnerAutosClassifiedsListings(supabase, userId);
           if (cancelled) return;
-          setAutosPaidRawRows(fetched);
+          readOk = fetched.ok;
+          if (fetched.ok) setAutosPaidRawRows(fetched.rows);
         } else if (categoryFilter === "comida-local") {
-          const fetched = await fetchOwnerComidaLocalListings(supabase, userId);
+          const fetched = await fetchOwnerComidaLocalListingsResult(supabase, userId);
           if (cancelled) return;
-          setComidaLocalRawRows(fetched);
+          readOk = fetched.ok;
+          if (fetched.ok) setComidaLocalRawRows(fetched.rows);
         }
         if (!cancelled) {
-          setLoadedDedicatedCategories((prev) => {
-            const next = new Set(prev);
-            next.add(categoryFilter);
-            return next;
-          });
+          if (readOk) {
+            setLoadedDedicatedCategories((prev) => {
+              const next = new Set(prev);
+              next.add(categoryFilter);
+              return next;
+            });
+          } else {
+            setCategoryLoadError(categoryFilter);
+          }
         }
       } finally {
         if (!cancelled) setCategoryInventoryLoading(false);
@@ -815,7 +951,7 @@ function MyListingsPageContent() {
     return () => {
       cancelled = true;
     };
-  }, [inventoryReady, userId, categoryFilter, loadedDedicatedCategories]);
+  }, [inventoryReady, userId, categoryFilter, loadedDedicatedCategories, retryNonce]);
 
   // Gate I.4.2 — entitlement lookup scoped to only the currently selected category's currently
   // loaded rows, never the owner's entire cross-category catalog. Depends only on raw, lang-
@@ -1019,6 +1155,43 @@ function MyListingsPageContent() {
     }
   }
 
+  /**
+   * CLOSEOUT 2 — "Completar pago" for the ONE-TIME paid lanes (Empleos, Rentas, Bienes FSBO, Clases paid).
+   * Revenue OS only (dashboardResumePaymentClient -> startRevenueCategoryCheckout); the server re-validates
+   * ownership + pre-payment state and any 404/403/409 message is shown as returned by the checkout client.
+   */
+  async function startPendingPayment(
+    lane: DashboardPendingPaymentLane,
+    id: string,
+    leonixAdId: string | null | undefined,
+  ) {
+    setPendingPaymentBusyId(id);
+    setError(null);
+    try {
+      const result = await startDashboardResumePayment({ lane, listingId: id, leonixAdId, lang });
+      if (!result.ok) {
+        setError(result.userMessage);
+        setPendingPaymentBusyId(null);
+      }
+    } catch {
+      setError(dashboardSafeMutationErrorCopy(lang));
+      setPendingPaymentBusyId(null);
+    }
+  }
+
+  /** CLOSEOUT 2 — Restaurantes pending_payment: subscription consent lives in the draft-preview checkpoint. */
+  async function resumeRestaurantePayment(id: string, target: "preview" | "checkout") {
+    setPendingPaymentBusyId(id);
+    setError(null);
+    const result = await prepareRestauranteResumePayment({ listingId: id, lang, target });
+    if (!result.ok) {
+      setError(result.userMessage);
+      setPendingPaymentBusyId(null);
+      return;
+    }
+    router.push(result.href);
+  }
+
   // Package E Build E2, Gate 4 — real pause/resume for Servicios, previously only wired on the
   // separate /dashboard/servicios page. Reuses the existing owner-verified
   // /api/clasificados/servicios/manage route; no new mutation API.
@@ -1061,7 +1234,9 @@ function MyListingsPageContent() {
         body: JSON.stringify({ lifecycle_status }),
       });
       if (!res.ok) {
-        setError(dashboardSafeMutationErrorCopy(lang));
+        // Gate 2: say WHY (payment_required / staff_hold / forbidden_transition) instead of a generic failure.
+        const refusal = (await res.json().catch(() => null)) as { error?: string } | null;
+        setError(dashboardEmpleosTransitionErrorMessage(refusal?.error, lang));
         return;
       }
       const supabase = createSupabaseBrowserClient();
@@ -1129,6 +1304,21 @@ function MyListingsPageContent() {
       }
     }
 
+    // 2026-09 category closeout — a client table write may only RELIST a row the owner themselves
+    // took offline (paused / sold). pending (unpaid), flagged (moderation), draft and removed rows are
+    // activated by payment fulfilment or staff, never by this button.
+    const currentRow = listings.find((x) => x.id === id);
+    if (status === "active") {
+      const cur = String(currentRow?.status ?? "").toLowerCase();
+      if (!dashboardOwnerMayActivateFromStatus(cur)) {
+        setError(dashboardSafeMutationErrorCopy(lang));
+        return;
+      }
+    }
+    // An En Venta listing marked sold must stay viewable by direct URL (detail page + RLS allow
+    // `sold` only while is_published is not false); browse results still require status = active.
+    const soldEnVenta = status === "sold" && String(currentRow?.category ?? "").toLowerCase() === "en-venta";
+
     const supabase = createSupabaseBrowserClient();
     setBusyId(id);
     setError(null);
@@ -1136,6 +1326,7 @@ function MyListingsPageContent() {
     const patch: Record<string, unknown> = { status };
     if (status === "active") patch.is_published = true;
     if (status === "sold") patch.is_published = false;
+    if (soldEnVenta) delete patch.is_published;
 
     const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, patch);
 
@@ -1155,7 +1346,9 @@ function MyListingsPageContent() {
               ...(status === "active"
                 ? { is_published: true }
                 : status === "sold"
-                  ? { is_published: false }
+                  ? soldEnVenta
+                    ? {}
+                    : { is_published: false }
                   : {}),
             }
           : x,
@@ -1205,6 +1398,13 @@ function MyListingsPageContent() {
     }
 
     const live = listingsRowIsPublicLive(rec);
+    if (!live) {
+      // 2026-09 category closeout — Republish only bumps a listing that is ALREADY live. A pending
+      // (unpaid), expired, paused, flagged or removed paid-lane row is re-activated by payment
+      // fulfilment / the server lifecycle routes / Renew — never by a client table write.
+      setError(dashboardSafeMutationErrorCopy(lang));
+      return;
+    }
     const supabase = createSupabaseBrowserClient();
     setBusyId(row.id);
     setError(null);
@@ -1217,10 +1417,6 @@ function MyListingsPageContent() {
       last_republished_source: "dashboard",
       ...(userId ? { last_republished_by: userId } : {}),
     };
-    if (!live) {
-      patch.is_published = true;
-      patch.status = "active";
-    }
 
     const { error: uErr } = await applyOwnerListingPatch(supabase, row.id, userId, patch);
 
@@ -1311,6 +1507,13 @@ function MyListingsPageContent() {
 
     const nextCount = Number(row.republish_count ?? 0) + 1;
     const live = listingsRowIsPublicLive(rec);
+    const rowStatusForRepublish = String(row.status ?? "").toLowerCase();
+    if (!live && rowStatusForRepublish !== "paused" && rowStatusForRepublish !== "sold") {
+      // flagged (moderation), pending, draft and removed rows are never self-reactivated.
+      setError(dashboardSafeMutationErrorCopy(lang));
+      setBusyId(null);
+      return;
+    }
     const patch: Record<string, unknown> = {
       republished_at: renewedAtIso,
       republish_count: nextCount,
@@ -1401,8 +1604,8 @@ function MyListingsPageContent() {
 
   const needle = search.trim().toLowerCase();
   const filteredByTab = useMemo(
-    () => listings.filter((x) => passesTab(x, tab)),
-    [listings, tab]
+    () => listings.filter((x) => passesTab(x, tab, userId)),
+    [listings, tab, userId]
   );
 
   const categoryFilteredListings = useMemo(() => {
@@ -1633,6 +1836,33 @@ function MyListingsPageContent() {
 
   const accountRef = userId ? accountRefFromId(userId) : null;
 
+  // Gate 2: shown INSTEAD of a "you have no listings" empty state when the read itself failed.
+  const selectedCategoryReadFailed =
+    (categoryFilter === "servicios" && serviciosReadFailed) || categoryLoadError === categoryFilter;
+  const readFailureCard = (onRetry: () => void) => (
+    <div
+      className="mt-4 rounded-xl border border-red-200 bg-red-50/90 p-4 text-sm text-red-900"
+      role="alert"
+      data-testid="mis-anuncios-read-failed"
+    >
+      <p className="font-semibold">
+        {lang === "es" ? "No pudimos cargar tus anuncios." : "We could not load your listings."}
+      </p>
+      <p className="mt-1 opacity-90">
+        {lang === "es"
+          ? "Es un error de lectura: no significa que no tengas anuncios. Inténtalo de nuevo."
+          : "This is a read error, not an empty account. Please try again."}
+      </p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="mt-3 rounded-xl border border-red-300/70 bg-white px-4 py-2 text-sm font-semibold text-red-800"
+      >
+        {lang === "es" ? "Reintentar" : "Retry"}
+      </button>
+    </div>
+  );
+
   const tabBtn = (id: Tab, label: string) => (
     <button
       type="button"
@@ -1713,6 +1943,27 @@ function MyListingsPageContent() {
                           <Link href={it.href} className="underline">
                             {lang === "es" ? "ver" : "view"}
                           </Link>
+                        </>
+                      ) : null}
+                      {it.completePayment ? (
+                        <>
+                          {" — "}
+                          <button
+                            type="button"
+                            className="font-semibold underline disabled:opacity-50"
+                            disabled={pendingPaymentBusyId === it.completePayment.listingId}
+                            data-testid="mis-anuncios-attention-complete-payment"
+                            onClick={() => {
+                              const cp = it.completePayment;
+                              if (!cp) return;
+                              if (cp.lane === "restaurantes") void resumeRestaurantePayment(cp.listingId, "checkout");
+                              else void startPendingPayment(cp.lane, cp.listingId, cp.leonixAdId);
+                            }}
+                          >
+                            {pendingPaymentBusyId === it.completePayment.listingId
+                              ? dashboardStartingPaymentLabel(lang)
+                              : dashboardCompletePaymentLabel(lang)}
+                          </button>
                         </>
                       ) : null}
                     </span>
@@ -1846,7 +2097,9 @@ function MyListingsPageContent() {
               </div>
             ) : null}
 
-            {!hasAnyInventory ? (
+            {!hasAnyInventory && (loadFailed || countsFailed) ? (
+              readFailureCard(() => window.location.reload())
+            ) : !hasAnyInventory ? (
               <div className="mt-4 rounded-xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-4 text-center sm:p-5">
                 <p className="font-semibold text-[#1E1810]">{t.emptyAll}</p>
                 <Link href={`/publicar?${q}`} className={`mt-4 inline-flex ${LX_DASH.btnPrimary}`}>
@@ -1857,6 +2110,10 @@ function MyListingsPageContent() {
               <div className="mt-4 rounded-xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-4 text-center text-sm text-[#5C5346] sm:p-5">
                 {t.loading}
               </div>
+            ) : !hasSelectedCategoryListings && selectedCategoryReadFailed ? (
+              readFailureCard(() =>
+                categoryFilter === "servicios" ? window.location.reload() : setRetryNonce((n) => n + 1),
+              )
             ) : !hasSelectedCategoryListings ? (
               <div className="mt-4 rounded-xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-4 text-center sm:p-5">
                 <p className="font-semibold text-[#1E1810]">
@@ -1927,7 +2184,7 @@ function MyListingsPageContent() {
                         ? [{ label: lang === "es" ? "ID Leonix" : "Leonix Ad ID", value: item.leonixAdId.trim() }]
                         : []),
                     ]}
-                    lifecycleNote={(() => {
+                    lifecycleNote={item.awaitingPayment ? { text: dashboardNotLiveNote(lang), tone: "warning" as const } : (() => {
                       const subState = dashboardSubscriptionStateForKey(subscriptionStates, [
                         item.id,
                         item.slug ?? "",
@@ -1950,6 +2207,10 @@ function MyListingsPageContent() {
                       onCouponEdit: () => void openRestauranteCouponEdit(item),
                       couponEditBusy: couponEditBusyId === item.id,
                       ownerUserId: userId,
+                      // CLOSEOUT 2 — pending_payment: draft preview + "Completar pago" (consent checkpoint).
+                      onCompletePayment: () => void resumeRestaurantePayment(item.id, "checkout"),
+                      onDraftPreview: () => void resumeRestaurantePayment(item.id, "preview"),
+                      completePaymentBusy: pendingPaymentBusyId === item.id,
                     })}
                   />
                 ))
@@ -1976,9 +2237,13 @@ function MyListingsPageContent() {
                         ? [{ label: lang === "es" ? "ID Leonix" : "Leonix Ad ID", value: item.leonixAdId.trim() }]
                         : []),
                     ]}
+                    lifecycleNote={item.awaitingPayment ? { text: dashboardNotLiveNote(lang), tone: "warning" as const } : null}
                     actions={buildInventoryListingActions("empleos", item, lang, q, {
                       onEmpleosLifecycle: (next) => void updateEmpleosLifecycle(item.id, next),
                       empleosLifecycleBusy: empleosLifecycleBusyId === item.id,
+                      // CLOSEOUT 2 — paid-lane draft: Revenue OS EMPLEOS_PAID_JOB_CHECKOUT for this row.
+                      onCompletePayment: () => void startPendingPayment("empleos", item.id, item.leonixAdId),
+                      completePaymentBusy: pendingPaymentBusyId === item.id,
                     })}
                   />
                 ))
@@ -2024,8 +2289,9 @@ function MyListingsPageContent() {
               onLifecycleChanged={async () => {
                 if (!userId) return;
                 const supabase = createSupabaseBrowserClient();
-                const fetched = await fetchOwnerComidaLocalListings(supabase, userId);
-                setComidaLocalRawRows(fetched);
+                const fetched = await fetchOwnerComidaLocalListingsResult(supabase, userId);
+                if (fetched.ok) setComidaLocalRawRows(fetched.rows);
+                else setError(dashboardSafeMutationErrorCopy(lang));
               }}
             />
           ) : null}
@@ -2190,6 +2456,7 @@ function MyListingsPageContent() {
                         created_at: x.created_at,
                       }}
                       uiStatus={autosUiStatus}
+                      publicViewAllowed={listingsRowIsPublicLive(x as unknown as Record<string, unknown>)}
                       lang={lang}
                       priceText={priceText}
                       dateText={dateText}
@@ -2253,6 +2520,18 @@ function MyListingsPageContent() {
                         )
                       : null;
                   const realEstateCardLifecycle = rentasLifecycle ?? brFsboLifecycle;
+                  // CLOSEOUT 2 — Rentas / BR FSBO unpaid `pending` rows get "Completar pago" (Revenue OS
+                  // rentas_30d / br_fsbo_45d). Bienes Negocio (subscription + consent) never does.
+                  const realEstatePayLaneRaw = resolveSharedListingPaymentLane({
+                    category: x.category,
+                    status: x.status,
+                    is_published: x.is_published,
+                    detail_pairs: x.detail_pairs,
+                  });
+                  const realEstatePayLane =
+                    realEstatePayLaneRaw === "rentas" || realEstatePayLaneRaw === "bienes-raices-fsbo"
+                      ? realEstatePayLaneRaw
+                      : null;
                   // Gate G.2.3.1 — BR-specific client eligibility, paired with the server-side
                   // fix in `applyBrRepublish`: Republish for a Bienes Raíces Negocio row must
                   // never appear enabled for pending/paused/flagged/sold/removed/unknown states,
@@ -2263,13 +2542,16 @@ function MyListingsPageContent() {
                   const isBrNegocioRepublishEligible =
                     !isBrNegocioRepublishRow ||
                     (String(x.status ?? "").toLowerCase() === "active" && x.is_published !== false);
-                  const repKind =
+                  const repKindRaw =
                     catKey !== "rentas" &&
                     republishColsAvailable &&
                     dashboardCanRepublishListingsRow(rowRec, catKey) &&
                     isBrNegocioRepublishEligible
                       ? dashboardRepublishPrimaryKind(rowRec, catKey)
                       : null;
+                  // Gate 2: `renewListingsTableRepublish` only bumps a listing that is ALREADY live and refuses every other
+                  // row, so a non-live "Republish" button here was a dead action - only "Move to top" is offered.
+                  const repKind = repKindRaw === "move_to_top" ? repKindRaw : null;
                   const repLabel = repKind ? dashboardRepublishPrimaryLabel(lang, repKind) : null;
                   const brRentasClassification = classifyOwnerDashboardRow({
                     category: catKey,
@@ -2313,6 +2595,12 @@ function MyListingsPageContent() {
                       republishBusy={busy}
                       lifecycle={realEstateCardLifecycle}
                       renewalBusy={renewalCheckoutBusyId === x.id}
+                      onCompletePayment={
+                        realEstatePayLane
+                          ? () => void startPendingPayment(realEstatePayLane, x.id, x.leonix_ad_id)
+                          : undefined
+                      }
+                      completePaymentBusy={pendingPaymentBusyId === x.id}
                       onRenew={
                         rentasLifecycle?.isRenewalEligible
                           ? () => void startRentasRenewal(x)
@@ -2435,6 +2723,7 @@ function MyListingsPageContent() {
                         ])?.grantsDestacado ?? false
                       }
                       uiStatus={uiSt}
+                      publicViewAllowed={dashboardViewPublicAllowed("en-venta", x, { ownerId: userId })}
                       listingRefShort={shortListingRef(x.id)}
                       expiresIso={
                         renewalVm?.republishWindowEndsAt != null
@@ -2474,7 +2763,7 @@ function MyListingsPageContent() {
 
                 const catLower = (x.category ?? "").toLowerCase();
                 const usesLnxPublicAdId = catLower === "clases" || catLower === "comunidad" || catLower === "busco";
-                const leonixQuickAdId = usesLnxPublicAdId ? formatLeonixAdId(x.id) : null;
+                const leonixQuickAdId = usesLnxPublicAdId ? formatLeonixAdId(x.id, x.leonix_ad_id) : null;
                 const categoryChip =
                   catLower === "clases"
                     ? lang === "es"
@@ -2499,7 +2788,30 @@ function MyListingsPageContent() {
                   catLower === "busco"
                     ? buscoOwnerDashboardLocationLine(x.city, x.detail_pairs)
                     : (x.city || "").trim();
-                const uiStGeneric = normalizeUiStatus(resolveListingUiStatus(x), x);
+                // Gate 2: "View public" only when the public DETAIL page would actually resolve (the same predicates the
+                // public readers / Admin Live use). A paused / expired / term-elapsed / removed / flagged / rented row has no
+                // public page, so it must not offer a link that 404s; a term-elapsed row reads "Expired", not "Active".
+                const genericCatKey = listingRowCategoryKey(x);
+                const genericPlan =
+                  genericCatKey === "other"
+                    ? null
+                    : dashboardOwnerActionPlan(genericCatKey as DashboardStateCategory, x, { ownerId: userId });
+                const genericPublicLinkOk = genericPlan ? genericPlan.viewPublic : !isSharedListingsRowNotLive(x);
+                const genericReasonNote =
+                  genericPlan && genericPlan.reason !== "live" && genericPlan.reason !== "payment_pending"
+                    ? dashboardOwnerReasonNote(genericPlan.reason, lang)
+                    : null;
+                const uiStGeneric: ListingUiStatus = genericPlan?.termElapsed
+                  ? "expired"
+                  : normalizeUiStatus(resolveListingUiStatus(x), x);
+                // CLOSEOUT 2 — an unpaid paid-Clases row (pending, not published) is "payment pending", never
+                // "in review", and no row that is not live shows a public "View listing" link.
+                const genericPayLane = resolveSharedListingPaymentLane({
+                  category: x.category,
+                  status: x.status,
+                  is_published: x.is_published,
+                  detail_pairs: x.detail_pairs,
+                });
                 const genericClassification = classifyOwnerDashboardRow({
                   category: x.category ?? "",
                   brRentasBranch: lx.branch,
@@ -2530,7 +2842,9 @@ function MyListingsPageContent() {
                           <span
                             className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${listingUiStatusChipClass(uiStGeneric)}`}
                           >
-                            {listingUiStatusLabel(uiStGeneric, lang)}
+                            {genericPayLane === "clases"
+                              ? dashboardAwaitingPaymentLabel(lang)
+                              : listingUiStatusLabel(uiStGeneric, lang)}
                           </span>
                           <span className="text-sm font-semibold text-[#1E1810]">{priceText}</span>
                         </div>
@@ -2538,6 +2852,16 @@ function MyListingsPageContent() {
                           {locationLine}
                           {dateText ? ` · ${dateText}` : ""}
                         </p>
+                        {genericPayLane === "clases" ? (
+                          <p className="mt-1 text-xs font-semibold text-amber-800" data-testid="dashboard-listing-not-live-note">
+                            {dashboardNotLiveNote(lang)}
+                          </p>
+                        ) : null}
+                        {genericReasonNote ? (
+                          <p className="mt-1 text-xs font-semibold text-amber-800" data-testid="dashboard-listing-reason-note">
+                            {genericReasonNote}
+                          </p>
+                        ) : null}
                         <p className="mt-2 text-[11px] leading-snug text-[#7A7164]">
                           <span className="font-semibold text-[#5C5346]">{listingPlanFieldLabel(lang)}:</span> {genericAdPlan}
                         </p>
@@ -2563,17 +2887,32 @@ function MyListingsPageContent() {
                         ) : null}
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <Link
-                          href={
-                            (x.category ?? "").toLowerCase() === "rentas"
-                              ? withRentasLandingLang(rentasListingPublicPath(x.id), lang)
-                              : `/clasificados/anuncio/${x.id}?${q}`
-                          }
-                          prefetch={false}
-                          className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
-                        >
-                          {t.viewPublic}
-                        </Link>
+                        {genericPayLane === "clases" ? (
+                          <button
+                            type="button"
+                            disabled={pendingPaymentBusyId === x.id}
+                            onClick={() => void startPendingPayment("clases", x.id, x.leonix_ad_id)}
+                            data-testid="dashboard-listing-complete-payment"
+                            className="rounded-xl bg-[#1E1810] px-4 py-2 text-sm font-bold text-[#F9F6F1] shadow-sm disabled:opacity-50"
+                          >
+                            {pendingPaymentBusyId === x.id
+                              ? dashboardStartingPaymentLabel(lang)
+                              : dashboardCompletePaymentLabel(lang)}
+                          </button>
+                        ) : null}
+                        {!genericPublicLinkOk ? null : (
+                          <Link
+                            href={
+                              (x.category ?? "").toLowerCase() === "rentas"
+                                ? withRentasLandingLang(rentasListingPublicPath(x.id), lang)
+                                : `/clasificados/anuncio/${x.id}?${q}`
+                            }
+                            prefetch={false}
+                            className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
+                          >
+                            {t.viewPublic}
+                          </Link>
+                        )}
                         <Link
                           href={`/dashboard/mis-anuncios/${x.id}?${q}`}
                           prefetch={false}

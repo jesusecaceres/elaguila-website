@@ -1,10 +1,14 @@
 "use server";
 
+import { isVerifiedAdminSession } from "@/app/admin/_lib/adminVerifiedSession";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { insertServiciosAnalyticsEvent } from "@/app/clasificados/servicios/lib/serviciosOpsTablesServer";
 import { serviciosStatusFormAllowsMutation } from "@/app/clasificados/servicios/lib/serviciosListingLifecycle";
-import { getAdminSupabase, requireAdminCookie } from "@/app/lib/supabase/server";
+import { getAdminSupabase } from "@/app/lib/supabase/server";
+import { appendAdminAuditLog } from "@/app/admin/_lib/adminAuditLogServer";
+import { decideServiciosStatusFormChange } from "@/app/admin/_lib/adminPrePublishActionPolicy";
+import { evaluateAdminReactivationHold } from "@/app/admin/_lib/adminPaymentSuspensionPolicyServer";
 
 const ALLOWED_STATUS = new Set([
   "draft",
@@ -20,7 +24,7 @@ const ALLOWED_STATUS = new Set([
 /** Moderation notes only — never touches listing_status. Safe to call regardless of lifecycle state. */
 export async function updateServiciosModerationNotesAction(formData: FormData): Promise<void> {
   const c = await cookies();
-  if (!requireAdminCookie(c)) throw new Error("Unauthorized");
+  if (!(await isVerifiedAdminSession(c))) throw new Error("Unauthorized");
 
   const id = String(formData.get("listing_id") ?? "").trim();
   if (!id) return;
@@ -39,7 +43,7 @@ export async function updateServiciosModerationNotesAction(formData: FormData): 
 
 export async function updateServiciosPublicListingStatusAction(formData: FormData): Promise<void> {
   const c = await cookies();
-  if (!requireAdminCookie(c)) throw new Error("Unauthorized");
+  if (!(await isVerifiedAdminSession(c))) throw new Error("Unauthorized");
 
   const id = String(formData.get("listing_id") ?? "").trim();
   const status = String(formData.get("listing_status") ?? "").trim();
@@ -67,10 +71,50 @@ export async function updateServiciosPublicListingStatusAction(formData: FormDat
     return;
   }
 
-  await supabase
+  // Gate 5: this legacy form is not a publication authority. Pre-payment rows cannot be moved by it, and a change TO
+  // `published` is a reactivation that must clear the payment hold (payment suspension / lapsed entitlement, read-only,
+  // fail-closed). A refusal saves the moderation notes only (same shape as the pending_payment branch above) and is audited.
+  const currentStatus = String((row as { listing_status?: string } | null)?.listing_status ?? "");
+  const change = decideServiciosStatusFormChange({ current: currentStatus, requested: status });
+  let refusal: string | null = change.allowed ? null : change.code;
+  if (change.allowed && change.reactivates) {
+    const hold = await evaluateAdminReactivationHold(supabase, {
+      table: "servicios_public_listings",
+      id,
+      status: currentStatus,
+      requireEntitlement: true,
+    });
+    if (hold.blocked) refusal = hold.code;
+  }
+  if (refusal) {
+    await supabase
+      .from("servicios_public_listings")
+      .update({ moderation_notes, updated_at: new Date().toISOString() })
+      .eq("id", id);
+    void appendAdminAuditLog({
+      action: "servicios_admin_status_form_refused",
+      targetType: "servicios_public_listing",
+      targetId: id,
+      meta: { slug, from: currentStatus, requested: status, code: refusal },
+    });
+    revalidatePath("/admin/workspace/clasificados/servicios");
+    return;
+  }
+
+  let statusUpdate = supabase
     .from("servicios_public_listings")
     .update({ listing_status: status, updated_at: new Date().toISOString(), moderation_notes })
-    .eq("id", id);
+    .eq("id", id)
+    // Compare-and-set on the status the decision was made against (a webhook / payment suspension may have moved it).
+    .eq("listing_status", currentStatus);
+  if (status === "published") statusUpdate = statusUpdate.or("suspended_reason.is.null,suspended_reason.neq.payment");
+  await statusUpdate;
+  void appendAdminAuditLog({
+    action: "servicios_admin_status_form",
+    targetType: "servicios_public_listing",
+    targetId: id,
+    meta: { slug, from: currentStatus, to: status },
+  });
 
   if (slug) {
     await insertServiciosAnalyticsEvent({
@@ -87,7 +131,7 @@ export async function updateServiciosPublicListingStatusAction(formData: FormDat
 
 export async function setServiciosListingLeonixVerifiedAction(formData: FormData): Promise<void> {
   const c = await cookies();
-  if (!requireAdminCookie(c)) throw new Error("Unauthorized");
+  if (!(await isVerifiedAdminSession(c))) throw new Error("Unauthorized");
 
   const id = String(formData.get("listing_id") ?? "").trim();
   const verified = String(formData.get("leonix_verified") ?? "0") === "1";
@@ -119,7 +163,7 @@ const REVIEW_STATUS = new Set(["approved", "rejected"]);
 
 export async function setServiciosReviewModerationStatusAction(formData: FormData): Promise<void> {
   const c = await cookies();
-  if (!requireAdminCookie(c)) throw new Error("Unauthorized");
+  if (!(await isVerifiedAdminSession(c))) throw new Error("Unauthorized");
 
   const reviewId = String(formData.get("review_id") ?? "").trim();
   const status = String(formData.get("review_status") ?? "").trim();

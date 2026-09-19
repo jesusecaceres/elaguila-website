@@ -103,7 +103,12 @@ function run() {
   assert.ok(checkout.includes("dealer_active_limit_reached") && verify.includes("dealer_active_limit_reached"), "Checkout/activation paths must block 11th active Negocio vehicle");
 
   const admin = read("app/admin/(dashboard)/workspace/clasificados/autos/page.tsx");
-  assert.ok(admin.includes("active ${dealerActiveCount}/10"), "Admin Autos row must show dealer active inventory count");
+  // Closeout 2 / final normalization: the count comes from the canonical grouped capacity (fetchAutosDealerCapacityForRows) against the
+  // standard limit (entitlement-proven expansion only) instead of a hard-coded /10 counted over the truncated page.
+  assert.ok(
+    admin.includes("fetchAutosDealerCapacityForRows") && admin.includes("STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT"),
+    "Admin Autos row must show dealer active inventory count",
+  );
 
   const changed = changedFiles();
   for (const p of changed) {

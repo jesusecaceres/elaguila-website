@@ -8,9 +8,11 @@ export function ClasificadosScopeNav(props: {
   lang: AdminLang;
   queueHref: string;
   liveHref: string;
-  active: "queue" | "live";
+  /** Optional third scope (Ofertas Locales): rejected / archived / expired offers. Omitted = no History tab. */
+  historyHref?: string;
+  active: "queue" | "live" | "history";
 }) {
-  const { lang, queueHref, liveHref, active } = props;
+  const { lang, queueHref, liveHref, historyHref, active } = props;
   return (
     <div className="flex flex-wrap gap-2 pt-2" role="navigation" aria-label={adminTr(lang, "scopeNav.aria")}>
       <Link
@@ -29,6 +31,17 @@ export function ClasificadosScopeNav(props: {
       >
         {adminTr(lang, "scopeNav.live")}
       </Link>
+      {historyHref ? (
+        <Link
+          href={historyHref}
+          className={`${adminCtaChipCompact} ${active === "history" ? "ring-2 ring-slate-500/50" : ""}`}
+          title={adminTr(lang, "scopeNav.historyTitle")}
+          aria-current={active === "history" ? "page" : undefined}
+          data-testid="scope-nav-history"
+        >
+          {adminTr(lang, "scopeNav.history")}
+        </Link>
+      ) : null}
     </div>
   );
 }

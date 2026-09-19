@@ -1,5 +1,10 @@
 /**
- * Ofertas Locales admin approve / reject / archive mutations (FINAL-2).
+ * Ofertas Locales admin approve / reject / archive / restore mutations (FINAL-2 + closeout 2).
+ *
+ * `restore` (closeout 2) sends a rejected / archived offer BACK TO REVIEW (`pending_review`) — never straight
+ * to `approved`. Going live again still requires the normal approve gates (paid entitlement or partner
+ * courtesy, resolved AI items, scan-ready public source, valid Leonix Ad ID). Restore writes no payment /
+ * entitlement field and leaves published_at / expires_at untouched.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -16,7 +21,17 @@ import { validateOfertaLocalPartnerCourtesyEligibility } from "./ofertasLocalesP
 import { markOfertaLocalSourceVersionActive } from "./ofertasLocalesAssetLifecycle";
 import type { OfertaLocalPublishStatus } from "./ofertasLocalesTypes";
 
-export type OfertaLocalAdminReviewAction = "approve" | "reject" | "archive";
+export type OfertaLocalAdminReviewAction = "approve" | "reject" | "archive" | "restore";
+
+/** Same chunk prefix `appendOfertaLocalAdminReviewNote` writes (private there); restore notes reuse it. */
+const ADMIN_REVIEW_NOTE_PREFIX = "[admin_review]";
+
+function appendRestoreReviewNote(existingNotes: string | null | undefined, note: string | null | undefined): string {
+  const text = String(note ?? "").trim().slice(0, 2000) || "Restored to review by staff.";
+  const chunk = `${ADMIN_REVIEW_NOTE_PREFIX}${JSON.stringify({ action: "restore", note: text, at: new Date().toISOString() })}`;
+  const base = String(existingNotes ?? "").trim();
+  return (base ? `${base}\n\n${chunk}` : chunk).slice(0, 8000);
+}
 
 export type OfertaLocalAdminReviewResult =
   | { ok: true; id: string; previousStatus: OfertaLocalPublishStatus; newStatus: OfertaLocalPublishStatus }
@@ -40,7 +55,44 @@ const ARCHIVE_FROM: ReadonlySet<OfertaLocalPublishStatus> = new Set([
   "submitted",
   "draft",
   "rejected",
+  // closeout 2: an expired offer (History view) can be archived too.
+  "expired",
 ]);
+
+/** Closeout 2: only rejected / archived offers can be restored, and only back to review. */
+const RESTORE_FROM: ReadonlySet<OfertaLocalPublishStatus> = new Set(["rejected", "archived"]);
+
+/** Status a restored offer returns to. NEVER `approved`. */
+export const OFERTAS_LOCALES_RESTORE_TARGET_STATUS: OfertaLocalPublishStatus = "pending_review";
+
+/**
+ * Pure (Gate 5): term decision for approving a PAID offer.
+ *   - `first`        never published (no published_at / expires_at) -> the approval stamps the first term (payment-activated).
+ *   - `preserve`     once live and the bought term is still running -> keep published_at / expires_at untouched.
+ *   - `term_elapsed` once live and the bought term has ended -> refused; a paid renewal is the only way back.
+ */
+export function decideOfertaApprovalTerm(
+  row: { published_at?: string | null; expires_at?: string | null },
+  nowMs: number = Date.now(),
+): "first" | "preserve" | "term_elapsed" {
+  const published = String(row.published_at ?? "").trim();
+  const expires = String(row.expires_at ?? "").trim();
+  if (!published && !expires) return "first";
+  const expiresMs = expires ? new Date(expires).getTime() : NaN;
+  if (Number.isFinite(expiresMs)) return expiresMs <= nowMs ? "term_elapsed" : "preserve";
+  return "first";
+}
+
+/** Pure: which review actions apply to an offer in `status` (transition table only; approve gates run at mutation time). */
+export function ofertaLocalAdminActionsForStatus(status: string | null | undefined): OfertaLocalAdminReviewAction[] {
+  const st = String(status ?? "").trim() as OfertaLocalPublishStatus;
+  const out: OfertaLocalAdminReviewAction[] = [];
+  if (APPROVE_FROM.has(st)) out.push("approve");
+  if (REJECT_FROM.has(st)) out.push("reject");
+  if (RESTORE_FROM.has(st)) out.push("restore");
+  if (ARCHIVE_FROM.has(st)) out.push("archive");
+  return out;
+}
 
 function targetStatusForAction(action: OfertaLocalAdminReviewAction): OfertaLocalPublishStatus {
   switch (action) {
@@ -50,6 +102,8 @@ function targetStatusForAction(action: OfertaLocalAdminReviewAction): OfertaLoca
       return "rejected";
     case "archive":
       return "archived";
+    case "restore":
+      return OFERTAS_LOCALES_RESTORE_TARGET_STATUS;
     default:
       return "archived";
   }
@@ -66,6 +120,8 @@ function isTransitionAllowed(
       return REJECT_FROM.has(current);
     case "archive":
       return ARCHIVE_FROM.has(current);
+    case "restore":
+      return RESTORE_FROM.has(current);
     default:
       return false;
   }
@@ -209,6 +265,9 @@ export async function mutateOfertaLocalAdminReview(
 
   const newStatus = targetStatusForAction(action);
   let approvalSourceId: string | null = null;
+  // Gate 5: a once-live PAID offer keeps the term it bought. Re-approval (after archive -> restore -> review) never
+  // re-stamps published_at / expires_at: an unexpired term is preserved, an elapsed one needs a paid renewal.
+  let preserveExistingTerm = false;
   if (action === "approve") {
     const unresolved = await assertNoUnresolvedItemsBeforeApproval(sb, offerId);
     if (!unresolved.ok) return unresolved;
@@ -224,6 +283,11 @@ export async function mutateOfertaLocalAdminReview(
       offer.entitlement_status === "active" &&
       Boolean(offer.package_entitlement_id) &&
       Boolean(offer.payment_record_id);
+    if (hasPaidEntitlement) {
+      const decision = decideOfertaApprovalTerm({ published_at: offer.published_at, expires_at: offer.expires_at });
+      if (decision === "term_elapsed") return { ok: false, error: "term_elapsed_renewal_required" };
+      preserveExistingTerm = decision === "preserve";
+    }
     if (!hasPaidEntitlement) {
       const courtesy = await validateOfertaLocalPartnerCourtesyEligibility({
         supabase: sb,
@@ -241,11 +305,10 @@ export async function mutateOfertaLocalAdminReview(
     }
   }
 
-  const internal_notes = appendOfertaLocalAdminReviewNote(
-    (row as OfertaLocalAdminRow).internal_notes,
-    action,
-    adminNote
-  );
+  const internal_notes =
+    action === "restore"
+      ? appendRestoreReviewNote((row as OfertaLocalAdminRow).internal_notes, adminNote)
+      : appendOfertaLocalAdminReviewNote((row as OfertaLocalAdminRow).internal_notes, action, adminNote);
 
   const now = new Date().toISOString();
   const parentUpdate: Record<string, unknown> = {
@@ -269,8 +332,10 @@ export async function mutateOfertaLocalAdminReview(
       });
       if (!activated.ok) return { ok: false, error: activated.error };
     }
-    parentUpdate.published_at = now;
-    parentUpdate.expires_at = calculateOfertaLocalPublicTermExpiresAt(now);
+    if (!preserveExistingTerm) {
+      parentUpdate.published_at = now;
+      parentUpdate.expires_at = calculateOfertaLocalPublicTermExpiresAt(now);
+    }
   }
 
   const { data: updatedRow, error: updateError } = await sb

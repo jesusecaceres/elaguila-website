@@ -2,6 +2,8 @@ import "server-only";
 
 import type { EmpleosPublishEnvelope } from "@/app/publicar/empleos/shared/publish/empleosPublishSnapshots";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { scanPagedRows } from "@/app/admin/_lib/adminPagedScan";
+import { adminQueueNormalizeLeonixAdId } from "@/app/admin/_lib/adminAdSearch";
 import { QUICK_LISTING_EXISTING_IDENTITY_INVALID_CODE } from "@/app/(site)/clasificados/lib/quickListingIdempotency";
 
 import { getEmpleoJobBySlug } from "../data/empleosSampleCatalog";
@@ -10,7 +12,11 @@ import { empleosEnvelopeToCanonical } from "./staged/empleosEnvelopeToJobRecord"
 import type { EmpleosCanonicalListing } from "./staged/empleosCanonicalListing";
 import { buildEmpleosLiveSlugBase } from "./empleosLiveSlug";
 import { resolveEmpleosPublicationLane } from "./empleosLaneResolve";
-import { resolveEmpleosOwnerTransition, resolveEmpleosUpsertLifecycle } from "./empleosPublishLifecyclePolicy";
+import {
+  resolveEmpleosEnvelopeLane,
+  resolveEmpleosOwnerTransition,
+  resolveEmpleosUpsertLifecycle,
+} from "./empleosPublishLifecyclePolicy";
 
 export type EmpleosListingLifecycleDb =
   | "draft"
@@ -140,6 +146,14 @@ export async function upsertEmpleosListingFromEnvelope(input: {
   if (!isSupabaseAdminConfigured()) {
     return { ok: false, error: "supabase_not_configured" };
   }
+  // D13 / F1: the lane is derived from `payload.lane` (single source — the field the content is built from).
+  // A top-level `envelope.lane` that disagrees is refused, and a free (feria) lane must carry a feria payload,
+  // BEFORE any read or write, so the payment decision below can never be steered by a forged top-level lane.
+  const laneDecision = resolveEmpleosEnvelopeLane(input.envelope, input.mode);
+  if (!laneDecision.ok) return { ok: false, error: laneDecision.error };
+  const authoritativeLane = laneDecision.lane;
+  const envelope: EmpleosPublishEnvelope = { ...input.envelope, lane: authoritativeLane };
+
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
 
@@ -147,7 +161,7 @@ export async function upsertEmpleosListingFromEnvelope(input: {
   // must fail closed (never silently mint a fresh id and insert a disconnected new row) when it
   // is not a valid UUID, or when it is well-formed but no row with that id actually exists. Only
   // the genuinely-new-application case (no listingId supplied at all) mints a fresh id here.
-  const rawListingId = typeof input.envelope.listingId === "string" ? input.envelope.listingId.trim() : "";
+  const rawListingId = typeof envelope.listingId === "string" ? envelope.listingId.trim() : "";
   if (rawListingId && !isUuid(rawListingId)) {
     return { ok: false, error: QUICK_LISTING_EXISTING_IDENTITY_INVALID_CODE };
   }
@@ -162,22 +176,23 @@ export async function upsertEmpleosListingFromEnvelope(input: {
     return { ok: false, error: "forbidden" };
   }
   if (existing) {
-    const existingLane = String((existing as EmpleosPublicListingRow).lane ?? "").trim();
-    const incomingLane = String(input.envelope.lane ?? "").trim();
-    if (existingLane && incomingLane && existingLane !== incomingLane) {
+    // The lane of an existing row never changes: a paid-lane row can never become a free (feria) one, and vice versa.
+    const existingLane = String((existing as EmpleosPublicListingRow).lane ?? "").trim().toLowerCase();
+    if (existingLane && existingLane !== authoritativeLane) {
       return { ok: false, error: "lane_mismatch" };
     }
   }
 
   const slug =
-    (existing as EmpleosPublicListingRow | null)?.slug ?? (await allocateUniqueEmpleosSlugServer(envelopeTitle(input.envelope)));
+    (existing as EmpleosPublicListingRow | null)?.slug ?? (await allocateUniqueEmpleosSlugServer(envelopeTitle(envelope)));
 
   // Lifecycle is decided by the shared policy (never trust the client's mode alone): payment for the
   // paid lanes is applied only by the Revenue OS webhook, draft saves never demote a live row, and
   // staff-held (rejected / archived / pending_review / paused) rows are never re-published here.
   const decision = resolveEmpleosUpsertLifecycle({
     mode: input.mode,
-    lane: (input.envelope.lane as string | undefined) ?? (existing as EmpleosPublicListingRow | null)?.lane,
+    // An existing row is judged by ITS stored lane (blank => paid, fail closed); a new row by the derived lane.
+    lane: existing ? (existing as EmpleosPublicListingRow).lane : authoritativeLane,
     existingStatus: (existing as EmpleosPublicListingRow | null)?.lifecycle_status ?? null,
     requireReview: publishLifecycleForInsert() === "pending_review",
   });
@@ -185,10 +200,10 @@ export async function upsertEmpleosListingFromEnvelope(input: {
   const lifecycle: EmpleosListingLifecycleDb = decision.lifecycle;
 
   const stamped: EmpleosPublishEnvelope = {
-    ...input.envelope,
+    ...envelope,
     listingId,
     ownerId: input.ownerUserId,
-    createdAt: (existing as { created_at?: string } | null)?.created_at ?? input.envelope.createdAt ?? now,
+    createdAt: (existing as { created_at?: string } | null)?.created_at ?? envelope.createdAt ?? now,
     updatedAt: now,
     publishedAt: lifecycle === "published" ? now : null,
     listingStatus: lifecycle === "draft" ? "draft" : "published",
@@ -210,7 +225,7 @@ export async function upsertEmpleosListingFromEnvelope(input: {
   const snapshot: EmpleosListingSnapshotJson = {
     version: 1,
     jobRecord: canonical.jobRecord,
-    envelope: input.envelope,
+    envelope,
     canonical,
   };
 
@@ -376,43 +391,115 @@ export async function fetchEmpleosListingsForOwner(ownerUserId: string): Promise
 const EMPLEOS_ADMIN_QUEUE_SELECT =
   "id, slug, leonix_ad_id, title, company_name, lifecycle_status, lane, owner_user_id, moderation_reason, leonix_verified, admin_promoted, apply_count, view_count, republish_override, city, state, postal_code, listing_snapshot";
 
-export async function fetchAllEmpleosListingsForAdmin(opts?: {
+/**
+ * Admin Empleos list. 2026-09 closeout 2 — `rowFilter` (the Admin search / any keep-only predicate) runs
+ * BEFORE the row cap: rows are read in windows until `limit` rows PASS the filter (or the table is
+ * exhausted / the safety cap is hit), so an older matching listing is not hidden behind a page of
+ * non-matching newer ones. `scope: "live"` stays a SQL filter (`lifecycle_status = published`).
+ */
+export type EmpleosAdminListOptions = {
   limit?: number;
   scope?: "live";
-}): Promise<EmpleosPublicListingRow[]> {
-  if (!isSupabaseAdminConfigured()) return [];
+  rowFilter?: (row: EmpleosPublicListingRow) => boolean;
+  /**
+   * SQL predicates (2026-09 final normalization, Gate 3): exact `lifecycle_status` / `lane`, a full owner UUID and a
+   * Leonix Ad ID (complete id -> case-insensitive exact, fragment -> contains). AND-ed with `scope`, applied BEFORE the
+   * row cap. `rowFilter` (free-text search, partial owner) still runs in the bounded windowed scan.
+   */
+  status?: string;
+  lane?: string;
+  owner_user_id?: string;
+  leonix_ad_id?: string;
+};
+
+export type EmpleosAdminListResult = {
+  rows: EmpleosPublicListingRow[];
+  /** Read failure — the array form swallows it into []; this form reports it so the caller can render an ERROR. */
+  error: string | null;
+  /** True when the bounded scan hit its cap before finding `limit` matches — older matches may be missing. */
+  scanCapped: boolean;
+  scanned: number;
+};
+
+const EMPLEOS_ADMIN_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function empleosEscapeLike(v: string): string {
+  return v.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+}
+
+export async function fetchAllEmpleosListingsForAdminDetailed(opts?: EmpleosAdminListOptions): Promise<EmpleosAdminListResult> {
+  if (!isSupabaseAdminConfigured()) return { rows: [], error: "supabase_not_configured", scanCapped: false, scanned: 0 };
   const supabase = getAdminSupabase();
   const cap = Math.min(Math.max(Math.floor(opts?.limit ?? 100), 1), 500);
-
-  let q = supabase.from("empleos_public_listings").select(EMPLEOS_ADMIN_QUEUE_SELECT).order("republish_sort_at", { ascending: false, nullsFirst: true }).limit(cap);
-  if (opts?.scope === "live") {
-    q = q.eq("lifecycle_status", "published");
+  const rowFilter = opts?.rowFilter;
+  const statusFilter = opts?.status?.trim().toLowerCase() ?? "";
+  const laneFilter = opts?.lane?.trim().toLowerCase() ?? "";
+  const ownerFilter = opts?.owner_user_id?.trim() ?? "";
+  const leonixFilter = opts?.leonix_ad_id?.trim() ?? "";
+  if (ownerFilter && !EMPLEOS_ADMIN_UUID_RE.test(ownerFilter)) {
+    return { rows: [], error: "owner must be a full user UUID", scanCapped: false, scanned: 0 };
   }
-  const { data, error } = await q;
-  if (!error && data) return data as unknown as EmpleosPublicListingRow[];
+
+  const scan = (orderColumn: "republish_sort_at" | "updated_at") =>
+    scanPagedRows<EmpleosPublicListingRow>({
+      limit: cap,
+      fetchPage: async (from, to) => {
+        let q = supabase
+          .from("empleos_public_listings")
+          .select(EMPLEOS_ADMIN_QUEUE_SELECT)
+          .order(orderColumn, orderColumn === "republish_sort_at" ? { ascending: false, nullsFirst: true } : { ascending: false })
+          .order("id", { ascending: false })
+          .range(from, to);
+        if (opts?.scope === "live") {
+          q = q.eq("lifecycle_status", "published");
+        }
+        if (statusFilter) q = q.eq("lifecycle_status", statusFilter);
+        if (laneFilter) q = q.eq("lane", laneFilter);
+        if (ownerFilter) q = q.eq("owner_user_id", ownerFilter);
+        if (leonixFilter) {
+          const norm = adminQueueNormalizeLeonixAdId(leonixFilter);
+          q = q.ilike("leonix_ad_id", norm ? empleosEscapeLike(norm) : `%${empleosEscapeLike(leonixFilter)}%`);
+        }
+        const { data, error } = await q;
+        return {
+          data: (data as unknown as EmpleosPublicListingRow[] | null) ?? null,
+          error: error ? { message: error.message } : null,
+        };
+      },
+      accept: rowFilter ? (rows) => rows.filter(rowFilter) : undefined,
+      getId: (r) => r.id,
+    });
+
+  const first = await scan("republish_sort_at");
+  if (!first.error) return { rows: first.rows, error: null, scanCapped: first.capped, scanned: first.scanned };
 
   // CMD-004 / DATA-QUERY-001 schema-drift fallback (same pattern as
   // viajesStagedListingsDbServer.ts): `republish_sort_at` is defined by
   // migrations/20260509120000_classifieds_republish_capability.sql, but has not
   // been applied to every environment's empleos_public_listings table yet. Only
   // fall back for THIS specific, recognized condition — never for any other query
-  // failure (network, RLS/permission, invalid query, etc). Those must stay
-  // visible, not silently become "no rows" — log them so they are observable
-  // server-side.
-  if (!error?.message?.includes("republish_sort_at")) {
-    if (error) console.error("fetchAllEmpleosListingsForAdmin: unexpected query error (not the known schema-drift column)", error.message);
-    return [];
+  // failure (network, RLS/permission, invalid query, etc). Those are REPORTED
+  // (the caller renders an error) and logged, never turned into "no rows".
+  if (!first.error.includes("republish_sort_at")) {
+    console.error("fetchAllEmpleosListingsForAdmin: unexpected query error (not the known schema-drift column)", first.error);
+    return { rows: [], error: first.error, scanCapped: false, scanned: first.scanned };
   }
-  let fallbackQ = supabase.from("empleos_public_listings").select(EMPLEOS_ADMIN_QUEUE_SELECT).order("updated_at", { ascending: false }).limit(cap);
-  if (opts?.scope === "live") {
-    fallbackQ = fallbackQ.eq("lifecycle_status", "published");
-  }
-  const fallback = await fallbackQ;
+  const fallback = await scan("updated_at");
   if (fallback.error) {
-    console.error("fetchAllEmpleosListingsForAdmin: schema-drift fallback query itself failed", fallback.error.message);
-    return [];
+    console.error("fetchAllEmpleosListingsForAdmin: schema-drift fallback query itself failed", fallback.error);
+    return { rows: [], error: fallback.error, scanCapped: false, scanned: fallback.scanned };
   }
-  return (fallback.data ?? []) as unknown as EmpleosPublicListingRow[];
+  return { rows: fallback.rows, error: null, scanCapped: fallback.capped, scanned: fallback.scanned };
+}
+
+/** Array form (errors swallowed -> []) used by the Admin API route. Use the Detailed form to render a read error. */
+export async function fetchAllEmpleosListingsForAdmin(opts?: {
+  limit?: number;
+  scope?: "live";
+  rowFilter?: (row: EmpleosPublicListingRow) => boolean;
+}): Promise<EmpleosPublicListingRow[]> {
+  const res = await fetchAllEmpleosListingsForAdminDetailed(opts);
+  return res.error ? [] : res.rows;
 }
 
 export async function updateEmpleosListingLifecycleAdmin(input: {

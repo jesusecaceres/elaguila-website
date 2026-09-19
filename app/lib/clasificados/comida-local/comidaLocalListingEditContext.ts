@@ -28,6 +28,12 @@ export type ComidaLocalListingEditContext = {
   draftListingId: string;
   /** Row `updated_at` as hydrated — draftWorkspaceContract Rule 3 anchor. */
   sourceUpdatedAt: string | null;
+  /**
+   * Authenticated owner the marker was written for (Gate 2, edit-context marker). The marker is one browser-global
+   * localStorage key, so without an owner a stale marker from another account (or an abandoned edit) could hijack
+   * the next preview. A marker with no owner is never used as a fallback.
+   */
+  ownerUserId?: string | null;
 };
 
 const EDIT_CONTEXT_STORAGE_KEY = "leonix:comida-local:edit-context:v1";
@@ -50,6 +56,7 @@ export function readComidaLocalEditContext(): ComidaLocalListingEditContext | nu
       draftListingId,
       sourceUpdatedAt:
         typeof parsed.sourceUpdatedAt === "string" && parsed.sourceUpdatedAt.trim() ? parsed.sourceUpdatedAt.trim() : null,
+      ownerUserId: typeof parsed.ownerUserId === "string" && parsed.ownerUserId.trim() ? parsed.ownerUserId.trim() : null,
     };
   } catch {
     return null;
@@ -72,6 +79,39 @@ export function clearComidaLocalEditContext(): void {
   } catch {
     /* ignore */
   }
+}
+
+export type ComidaLocalPreviewEditTarget = { listingId: string; source: "url" | "marker" | "none" };
+
+/**
+ * Which listing (if any) a Comida Local PREVIEW is bound to. PURE.
+ *
+ * The URL (`?edit=1&listingId=`) always wins. The localStorage marker is only a fallback for a payment-resume that
+ * lost its query string, so it is honoured ONLY when it (a) belongs to the signed-in owner and (b) was written for a
+ * `pending_payment` row. Anything else - an abandoned edit of a published listing, another account's marker, a marker
+ * written before owners were recorded - resolves to `none`, i.e. a NEW application preview. Before this rule any stale
+ * marker turned the next brand-new application preview into the old listing's edit workspace (and, for a `published`
+ * row, hid the checkout entirely).
+ */
+export function resolveComidaLocalPreviewEditTarget(input: {
+  urlListingId: string | null | undefined;
+  marker: ComidaLocalListingEditContext | null;
+  sessionUserId: string | null | undefined;
+}): ComidaLocalPreviewEditTarget {
+  const fromUrl = String(input.urlListingId ?? "").trim();
+  if (fromUrl) return { listingId: fromUrl, source: "url" };
+  const marker = input.marker;
+  const session = String(input.sessionUserId ?? "").trim();
+  if (
+    marker &&
+    session &&
+    marker.ownerUserId &&
+    marker.ownerUserId === session &&
+    String(marker.status ?? "").trim().toLowerCase() === "pending_payment"
+  ) {
+    return { listingId: marker.listingId, source: "marker" };
+  }
+  return { listingId: "", source: "none" };
 }
 
 export type ComidaLocalEditHydrationResult =
@@ -124,6 +164,7 @@ export async function fetchOwnerComidaLocalListingForEdit(
       status: typeof row.status === "string" ? row.status : "",
       draftListingId: rowDraftListingId,
       sourceUpdatedAt: typeof row.updated_at === "string" && row.updated_at.trim() ? row.updated_at.trim() : null,
+      ownerUserId,
     },
   };
 }

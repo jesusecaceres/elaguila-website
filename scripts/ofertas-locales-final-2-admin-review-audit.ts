@@ -123,9 +123,9 @@ function run() {
   assert.match(adminList, /featuredPlacementScope|Featured placement/, "admin detail featured intent");
   assert.match(adminList, /pending_review/, "admin list references pending queue");
 
-  assert.match(actions, /requireAdminCookie/, "server action must require admin");
+  assert.match(actions, /isVerifiedAdminSession|requireAdminCookie/, "server action must require admin (identity-verified session)");
   assert.match(actions, /approve|reject|archive/, "server action supports review actions");
-  assert.match(reviewApi, /requireAdminCookie/, "review API must require admin");
+  assert.match(reviewApi, /isVerifiedAdminSession|requireAdminCookie/, "review API must require admin (identity-verified session)");
   assert.match(reviewApi, /approve|reject|archive/, "review API supports actions");
 
   assert.match(mutations, /approved/, "approve sets approved status");

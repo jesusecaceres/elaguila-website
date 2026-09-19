@@ -7,6 +7,7 @@ import {
   inlineRentasPrivadoHeavyMediaFromIdb,
   offloadRentasPrivadoHeavyMediaToIdb,
 } from "./rentasPrivadoDraftMedia";
+import { clearRealEstateDraftLifecycleForLaneInBrowser } from "@/app/(site)/clasificados/lib/realEstateDraftKey";
 import { rentasCategoriaPropiedadForTipo } from "@/app/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
 
 export const RENTAS_PRIVADO_DRAFT_STORAGE_KEY = "rentas-privado-draft-v1";
@@ -93,6 +94,9 @@ export async function saveRentasPrivadoDraft(state: RentasPrivadoFormState): Pro
 
 export async function clearRentasPrivadoDraft(): Promise<void> {
   if (typeof window === "undefined") return;
+  // The application's draft key lives exactly as long as this draft (checkout hand-off, delete/reset): a
+  // NEW application in this tab must not inherit it and overwrite the abandoned pending row.
+  clearRealEstateDraftLifecycleForLaneInBrowser({ category: "rentas", sellerType: "personal" }, "application_draft_cleared");
   try {
     sessionStorage.removeItem(RENTAS_PRIVADO_DRAFT_STORAGE_KEY);
     localStorage.removeItem(RENTAS_PRIVADO_DRAFT_STORAGE_KEY);

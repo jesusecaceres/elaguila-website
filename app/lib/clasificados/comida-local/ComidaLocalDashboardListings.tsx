@@ -10,11 +10,28 @@ import {
   resumeListingLabel,
 } from "@/app/(site)/dashboard/lib/dashboardMisAnunciosCategoryTools";
 import { getOwnerEntityCapabilities, isLiveCapability } from "@/app/(site)/dashboard/lib/ownerEntityCapabilityRegistry";
-import { resolveListingUiStatus, listingUiStatusLabel, listingUiStatusChipClass } from "@/app/(site)/dashboard/lib/listingDisplayStatus";
 import { OwnerEntityWorkspace } from "@/app/(site)/dashboard/components/OwnerEntityWorkspace";
+import { getStatusChipClass, getStatusLabel } from "@/app/lib/clasificados/listingLifecycleDomain";
+import {
+  comidaLocalOwnerActionPlan,
+  comidaLocalOwnerReasonNote,
+  comidaLocalResumePaymentHref,
+  comidaLocalResumePaymentLabel,
+  comidaLocalRowHasPublicPage,
+  isComidaLocalAwaitingPayment,
+  type ComidaLocalOwnerReason,
+} from "./comidaLocalPaymentResume";
 import type { ActionItem } from "@/app/(site)/dashboard/components/DashboardListingActionBar";
 
 type Lang = "es" | "en";
+
+/** Canonical lifecycle status used only to pick the status chip colour for a Comida Local row. */
+function comidaChipStatus(reason: ComidaLocalOwnerReason): "published" | "paused" | "suspended" | "draft" {
+  if (reason === "published") return "published";
+  if (reason === "paused_by_owner" || reason === "paused_staff_hold") return "paused";
+  if (reason === "suspended_moderation" || reason === "suspended_payment") return "suspended";
+  return "draft";
+}
 
 type Props = {
   lang: Lang;
@@ -112,24 +129,47 @@ export function ComidaLocalDashboardListings({ lang, items, showEmpty = false, o
   return (
     <div className="mt-8 flex flex-col gap-4">
       {items.map((item) => {
-        const uiStatus = resolveListingUiStatus({ status: item.status });
+        // Gate 2 (2026-09 dashboard state machine) - one owner plan per row: the status chip, reason note, "View public",
+        // Complete payment, Pause and Resume all come from the SAME status/marker truth (`comidaLocalOwnerActionPlan`),
+        // never from a generic status collapse. Suspended rows show WHY; a staff-held pause is not owner-resumable.
+        const plan = comidaLocalOwnerActionPlan({ status: item.status, suspendedReason: item.suspendedReason });
+        const reasonNote = comidaLocalOwnerReasonNote(plan.reason, lang);
+        // Closeout 2 - `pending_payment` is shown truthfully as awaiting payment, with a Complete-payment doorway and
+        // NO public CTA.
+        const awaitingPayment = isComidaLocalAwaitingPayment(item.status);
         const busy = busyId === item.id;
         const editHref = `/publicar/comida-local?edit=1&listingId=${encodeURIComponent(item.id)}&source=dashboard&${q}`;
         const detailItems = [
           item.foodTypeLabel ? { label: t.foodType, value: item.foodTypeLabel } : null,
           item.cityLabel ? { label: t.city, value: item.cityLabel } : null,
-          item.publishedAtLabel ? { label: t.published, value: item.publishedAtLabel } : null,
+          // `published_at` is NOT NULL DEFAULT now(), so an UNPAID pending_payment / draft row already carries a date:
+          // showing it as "Published" would fake a published state. Only rows that were ever live show it.
+          item.publishedAtLabel && plan.reason !== "payment_pending" && plan.reason !== "draft"
+            ? { label: t.published, value: item.publishedAtLabel }
+            : null,
           item.paymentStatusLabel ? { label: t.payment, value: item.paymentStatusLabel } : null,
           item.primaryContactLabel ? { label: t.contact, value: item.primaryContactLabel } : null,
         ].filter((x): x is { label: string; value: string } => x !== null);
 
         const quickActions: ActionItem[] = [];
-        if (isLiveCapability(capabilities.identity.publicView) && item.publicPath) {
+        if (awaitingPayment && plan.completePayment) {
+          // Edit stays the canonical primary action; Complete payment is the first quick action. The href carries this
+          // row's OWN id (`listingId=<row id>`), so the resumed checkout is the SAME listing - never a new application.
+          quickActions.push({ href: comidaLocalResumePaymentHref(item.id, lang), label: comidaLocalResumePaymentLabel(lang), tone: "positive" });
+        }
+        if (
+          isLiveCapability(capabilities.identity.publicView) &&
+          item.publicPath &&
+          comidaLocalRowHasPublicPage(item.status) &&
+          plan.viewPublic
+        ) {
           quickActions.push({ href: `${item.publicPath}?${q}`, label: publicViewLabel(lang), tone: "secondary" });
         }
 
         const lifecycleActions: ActionItem[] = [];
-        if (isLiveCapability(capabilities.lifecycle.pause) && item.status === "published") {
+        // Strict transitions (the lifecycle route enforces the same): Pause only from `published`, Resume only from an
+        // owner-paused `paused` row - the plan adds the marker / staff-hold rule on top of the raw status.
+        if (isLiveCapability(capabilities.lifecycle.pause) && item.status === "published" && plan.pause) {
           lifecycleActions.push({
             label: busy ? (lang === "es" ? "Pausando…" : "Pausing…") : pauseListingLabel(lang),
             onClick: () => void mutateLifecycle(item.id, "pause"),
@@ -137,7 +177,7 @@ export function ComidaLocalDashboardListings({ lang, items, showEmpty = false, o
             tone: "warning",
           });
         }
-        if (isLiveCapability(capabilities.lifecycle.reactivate) && item.status === "paused") {
+        if (isLiveCapability(capabilities.lifecycle.reactivate) && item.status === "paused" && plan.resume) {
           lifecycleActions.push({
             label: busy ? (lang === "es" ? "Reactivando…" : "Resuming…") : resumeListingLabel(lang),
             onClick: () => void mutateLifecycle(item.id, "resume"),
@@ -153,13 +193,25 @@ export function ComidaLocalDashboardListings({ lang, items, showEmpty = false, o
             header={{
               eyebrow: t.eyebrow,
               title: item.title,
-              statusLabel: listingUiStatusLabel(uiStatus, lang),
-              statusChipClass: listingUiStatusChipClass(uiStatus),
+              statusLabel: awaitingPayment ? getStatusLabel("pending_payment", lang) : item.statusLabel,
+              statusChipClass: awaitingPayment ? getStatusChipClass("pending_payment") : getStatusChipClass(comidaChipStatus(plan.reason)),
               plan: item.packageLabel || null,
               leonixId: item.leonixAdId,
               badges: item.categoryLabel ? [item.categoryLabel] : undefined,
             }}
-            note={actionError && busyId === null ? { text: actionError, tone: "urgent" } : null}
+            note={
+              actionError && busyId === null
+                ? { text: actionError, tone: "urgent" }
+                : reasonNote
+                  ? {
+                      text: reasonNote,
+                      tone:
+                        plan.reason === "suspended_moderation" || plan.reason === "suspended_payment" || plan.reason === "unknown"
+                          ? "urgent"
+                          : "warning",
+                    }
+                  : null
+            }
             detailItems={detailItems}
             primaryAction={{ href: editHref, label: editListingLabel(lang) }}
             quickActions={quickActions}

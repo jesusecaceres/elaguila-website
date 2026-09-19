@@ -1,9 +1,11 @@
 import "server-only";
 
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { scanPagedRows } from "@/app/admin/_lib/adminPagedScan";
 
 import type { ViajesStagedLane, ViajesStagedListingRow, ViajesStagedLifecycleStatus } from "./viajesStagedListingTypes";
 import { slugifyViajesListingBase } from "./viajesSlugUtils";
+import { adminQueueNormalizeLeonixAdId } from "@/app/admin/_lib/adminAdSearch";
 
 export async function allocateUniqueViajesStagedSlug(baseTitle: string): Promise<string> {
   if (!isSupabaseAdminConfigured()) {
@@ -56,45 +58,131 @@ const VIAJES_ADMIN_QUEUE_SELECT =
 export type ViajesAdminQueueFilters = {
   limit?: number;
   scope?: "live";
+  /**
+   * Admin search (Leonix Ad ID / title / slug / id substring, case-insensitive). 2026-09 closeout 2 — applied
+   * BEFORE the row limit (windowed scan), so an older match is not hidden behind newer non-matches.
+   */
+  q?: string;
+  /**
+   * Exact `lifecycle_status` (Admin filter bar Status). 2026-09 final normalization (Gate 3): a SQL predicate,
+   * AND-ed with `scope` / `q` / owner / Leonix Ad ID and applied BEFORE the row limit (it used to narrow in memory
+   * after the window was read).
+   */
+  status?: string;
+  /** Full owner user UUID (SQL). A partial owner fragment is not expressible in SQL — the page narrows it in memory. */
+  owner_user_id?: string;
+  /** Leonix Ad ID: complete id -> case-insensitive exact, fragment -> contains (SQL, before the limit). */
+  leonix_ad_id?: string;
 };
 
-/** Admin workspace queue — bounded select, optional live scope at SQL level. */
-export async function fetchViajesStagedAdminQueue(
+export type ViajesAdminQueueResult = {
+  rows: ViajesStagedListingRow[];
+  /** Read failure (the array form swallows it into []; this form reports it so the page renders an ERROR, not an empty list). */
+  error: string | null;
+  /** True when the bounded scan hit its cap before finding `limit` matches — older matches may be missing. */
+  scanCapped: boolean;
+  /** Raw rows the scan read. */
+  scanned: number;
+};
+
+/** Pure: same substring rule the Travel Admin page used to apply after the limit. */
+export function viajesStagedRowMatchesAdminSearch(
+  row: Pick<ViajesStagedListingRow, "id" | "slug" | "title" | "leonix_ad_id">,
+  qRaw: string,
+): boolean {
+  const n = qRaw.trim().toLowerCase();
+  if (!n) return true;
+  if ((row.leonix_ad_id ?? "").toLowerCase().includes(n)) return true;
+  if ((row.title ?? "").toLowerCase().includes(n)) return true;
+  if ((row.slug ?? "").toLowerCase().includes(n)) return true;
+  if ((row.id ?? "").toLowerCase().includes(n)) return true;
+  return false;
+}
+
+const VIAJES_ADMIN_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function viajesEscapeLike(v: string): string {
+  return v.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+}
+
+/**
+ * Admin workspace queue — bounded select, optional live scope at SQL level, status / owner / Leonix Ad ID as SQL
+ * predicates, optional search (`q`, in the bounded windowed scan) before the limit. Reports a read failure and a
+ * scan cap instead of returning [] silently.
+ */
+export async function fetchViajesStagedAdminQueueDetailed(
   opts: ViajesAdminQueueFilters = {},
-): Promise<ViajesStagedListingRow[]> {
-  if (!isSupabaseAdminConfigured()) return [];
+): Promise<ViajesAdminQueueResult> {
+  if (!isSupabaseAdminConfigured()) {
+    return { rows: [], error: "supabase_admin_not_configured", scanCapped: false, scanned: 0 };
+  }
   const supabase = getAdminSupabase();
   const cap = Math.min(Math.max(Math.floor(opts.limit ?? 100), 1), 500);
-
-  let q = supabase.from("viajes_staged_listings").select(VIAJES_ADMIN_QUEUE_SELECT).order("republish_sort_at", { ascending: false, nullsFirst: true }).limit(cap);
-  if (opts.scope === "live") {
-    q = q.eq("lifecycle_status", "approved").eq("is_public", true);
+  const search = opts.q?.trim() ?? "";
+  const statusFilter = opts.status?.trim().toLowerCase() ?? "";
+  const ownerFilter = opts.owner_user_id?.trim() ?? "";
+  const leonixFilter = opts.leonix_ad_id?.trim() ?? "";
+  if (ownerFilter && !VIAJES_ADMIN_UUID_RE.test(ownerFilter)) {
+    return { rows: [], error: "owner must be a full user UUID", scanCapped: false, scanned: 0 };
   }
-  const { data, error } = await q;
-  if (!error && data) return data as unknown as ViajesStagedListingRow[];
+
+  const scan = (orderColumn: "republish_sort_at" | "updated_at") =>
+    scanPagedRows<ViajesStagedListingRow>({
+      limit: cap,
+      fetchPage: async (from, to) => {
+        let q = supabase
+          .from("viajes_staged_listings")
+          .select(VIAJES_ADMIN_QUEUE_SELECT)
+          .order(orderColumn, orderColumn === "republish_sort_at" ? { ascending: false, nullsFirst: true } : { ascending: false })
+          .order("id", { ascending: false })
+          .range(from, to);
+        if (opts.scope === "live") {
+          q = q.eq("lifecycle_status", "approved").eq("is_public", true);
+        }
+        if (statusFilter) q = q.eq("lifecycle_status", statusFilter);
+        if (ownerFilter) q = q.eq("owner_user_id", ownerFilter);
+        if (leonixFilter) {
+          const norm = adminQueueNormalizeLeonixAdId(leonixFilter);
+          q = q.ilike("leonix_ad_id", norm ? viajesEscapeLike(norm) : `%${viajesEscapeLike(leonixFilter)}%`);
+        }
+        const { data, error } = await q;
+        return {
+          data: (data as unknown as ViajesStagedListingRow[] | null) ?? null,
+          error: error ? { message: error.message } : null,
+        };
+      },
+      accept: search ? (rows) => rows.filter((r) => viajesStagedRowMatchesAdminSearch(r, search)) : undefined,
+      getId: (r) => r.id,
+    });
+
+  const first = await scan("republish_sort_at");
+  if (!first.error) return { rows: first.rows, error: null, scanCapped: first.capped, scanned: first.scanned };
 
   // CMD-004 / DATA-QUERY-001 schema-drift fallback: `republish_sort_at` is defined
   // by migrations/20260509120000_classifieds_republish_capability.sql, but that
   // migration has not been applied to every environment's viajes_staged_listings
   // table yet. Only fall back for THIS specific, recognized condition — a missing-
   // column error on this exact column — never for any other query failure (network,
-  // RLS/permission, invalid query, etc). Those must stay visible, not silently
-  // become "no rows to review": log them so they are observable server-side instead
-  // of disappearing the way this same bug once did in the UI.
-  if (!error?.message?.includes("republish_sort_at")) {
-    if (error) console.error("fetchViajesStagedAdminQueue: unexpected query error (not the known schema-drift column)", error.message);
-    return [];
+  // RLS/permission, invalid query, etc). Those are REPORTED (the page renders an error) and logged, never
+  // turned into "no rows to review".
+  if (!first.error.includes("republish_sort_at")) {
+    console.error("fetchViajesStagedAdminQueue: unexpected query error (not the known schema-drift column)", first.error);
+    return { rows: [], error: first.error, scanCapped: false, scanned: first.scanned };
   }
-  let fallbackQ = supabase.from("viajes_staged_listings").select(VIAJES_ADMIN_QUEUE_SELECT).order("updated_at", { ascending: false }).limit(cap);
-  if (opts.scope === "live") {
-    fallbackQ = fallbackQ.eq("lifecycle_status", "approved").eq("is_public", true);
-  }
-  const fallback = await fallbackQ;
+  const fallback = await scan("updated_at");
   if (fallback.error) {
-    console.error("fetchViajesStagedAdminQueue: schema-drift fallback query itself failed", fallback.error.message);
-    return [];
+    console.error("fetchViajesStagedAdminQueue: schema-drift fallback query itself failed", fallback.error);
+    return { rows: [], error: fallback.error, scanCapped: false, scanned: fallback.scanned };
   }
-  return (fallback.data ?? []) as unknown as ViajesStagedListingRow[];
+  return { rows: fallback.rows, error: null, scanCapped: fallback.capped, scanned: fallback.scanned };
+}
+
+/** Array form (errors swallowed -> []) kept for the global search / dashboard callers. The Admin page uses the Detailed form. */
+export async function fetchViajesStagedAdminQueue(
+  opts: ViajesAdminQueueFilters = {},
+): Promise<ViajesStagedListingRow[]> {
+  const res = await fetchViajesStagedAdminQueueDetailed(opts);
+  return res.error ? [] : res.rows;
 }
 
 export async function updateViajesStagedListingModeration(input: {

@@ -18,6 +18,12 @@ import { buildEmpleosPublishEnvelopeFromFeria } from "@/app/publicar/empleos/sha
 import type { EmpleosPublishEnvelope } from "@/app/publicar/empleos/shared/publish/empleosPublishSnapshots";
 import { EmpleosPublishConfirmModal } from "@/app/publicar/empleos/shared/publish/EmpleosPublishConfirmModal";
 import { clearEmpleosStagedPublish } from "@/app/publicar/empleos/shared/publish/empleosPublishStaging";
+import {
+  EMPLEOS_FERIA_LISTING_KEY,
+  clearEmpleosPendingCheckoutListingId,
+  readEmpleosPendingCheckoutListingId,
+  rememberEmpleosPendingCheckoutListingId,
+} from "@/app/publicar/empleos/shared/publish/empleosPendingCheckoutIdentity";
 import { replaceRouteForEmpleosResumeEdit } from "@/app/publicar/empleos/shared/lib/empleosEditLaneRedirect";
 import { hydrateFeriaDraftFromEnvelope } from "@/app/publicar/empleos/shared/lib/empleosDraftFromEnvelope";
 import { flushEmpleosDraftToSession } from "@/app/publicar/empleos/shared/lib/flushEmpleosDraftToSession";
@@ -94,7 +100,44 @@ export default function EmpleoFeriaApplicationClient() {
     router.push(empleosHandoffPreviewUrl("feria", routeLang));
   }, [lang, previewDisabled, router, state]);
 
+  /**
+   * F7: save the feria envelope. The row this application already created (React state, or - after a Back /
+   * remount - the session memo keyed by lane + title) is updated instead of inserting a second feria row. A stale
+   * remembered id (400/403/404) is forgotten once and the application is saved as a fresh row.
+   */
+  const saveFeriaEnvelope = useCallback(
+    async (accessToken: string, mode: "draft" | "publish") => {
+      const base = buildEmpleosPublishEnvelopeFromFeria(state, lang);
+      const storage = typeof window !== "undefined" ? window.sessionStorage : null;
+      const identityKey = { lane: "feria", title: base.payload.data.title };
+      const remembered = serverListingId ? null : readEmpleosPendingCheckoutListingId(storage, identityKey, EMPLEOS_FERIA_LISTING_KEY);
+      const post = async (listingId: string | null) => {
+        const res = await fetch("/api/clasificados/empleos/listings", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ envelope: listingId ? { ...base, listingId } : base, mode }),
+        });
+        const json = (await res.json()) as { ok?: boolean; error?: string; id?: string; slug?: string };
+        return { res, json };
+      };
+      let out = await post(serverListingId ?? remembered);
+      if (!serverListingId && remembered && !out.res.ok && [400, 403, 404].includes(out.res.status)) {
+        clearEmpleosPendingCheckoutListingId(storage, EMPLEOS_FERIA_LISTING_KEY);
+        out = await post(null);
+      }
+      if (out.res.ok && out.json.ok && out.json.id) {
+        rememberEmpleosPendingCheckoutListingId(storage, { ...identityKey, listingId: out.json.id }, EMPLEOS_FERIA_LISTING_KEY);
+      }
+      return out.json;
+    },
+    [state, lang, serverListingId],
+  );
+
   const handleDeleteApplication = useCallback(() => {
+    if (typeof window !== "undefined") clearEmpleosPendingCheckoutListingId(window.sessionStorage, EMPLEOS_FERIA_LISTING_KEY);
     reset();
     setStagedNotice(false);
     clearEmpleosStagedPublish();
@@ -388,17 +431,7 @@ export default function EmpleoFeriaApplicationClient() {
                 window.alert(lang === "es" ? "Inicia sesión para guardar el borrador." : "Sign in to save a draft.");
                 return;
               }
-              const base = buildEmpleosPublishEnvelopeFromFeria(state, lang);
-              const envelope = serverListingId ? { ...base, listingId: serverListingId } : base;
-              const res = await fetch("/api/clasificados/empleos/listings", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${data.session.access_token}`,
-                },
-                body: JSON.stringify({ envelope, mode: "draft" }),
-              });
-              const json = (await res.json()) as { ok?: boolean; error?: string; id?: string };
+              const json = await saveFeriaEnvelope(data.session.access_token, "draft");
               if (!json.ok) {
                 window.alert(json.error ?? (lang === "es" ? "No se pudo guardar" : "Could not save"));
                 return;
@@ -424,17 +457,7 @@ export default function EmpleoFeriaApplicationClient() {
               window.alert(lang === "es" ? "Inicia sesión para publicar." : "Sign in to publish.");
               return;
             }
-            const base = buildEmpleosPublishEnvelopeFromFeria(state, lang);
-            const envelope = serverListingId ? { ...base, listingId: serverListingId } : base;
-            const res = await fetch("/api/clasificados/empleos/listings", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${data.session.access_token}`,
-              },
-              body: JSON.stringify({ envelope, mode: "publish" }),
-            });
-            const json = (await res.json()) as { ok?: boolean; error?: string; id?: string; slug?: string };
+            const json = await saveFeriaEnvelope(data.session.access_token, "publish");
             if (!json.ok || !json.slug) {
               window.alert(json.error ?? (lang === "es" ? "No se pudo publicar" : "Could not publish"));
               return;

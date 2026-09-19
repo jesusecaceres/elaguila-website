@@ -17,6 +17,10 @@ import { EmpleosImageGalleryEditor } from "@/app/publicar/empleos/shared/media/E
 import { EmpleosSingleImageField } from "@/app/publicar/empleos/shared/media/EmpleosSingleImageField";
 import { EmpleosVideoDraftField } from "@/app/publicar/empleos/shared/media/EmpleosVideoDraftField";
 import { buildEmpleosPublishEnvelopeFromPremium } from "@/app/publicar/empleos/shared/publish/buildEmpleosPublishEnvelope";
+import {
+  clearEmpleosPendingCheckoutListingId,
+  rememberEmpleosPendingCheckoutListingId,
+} from "@/app/publicar/empleos/shared/publish/empleosPendingCheckoutIdentity";
 import type { EmpleosPublishEnvelope } from "@/app/publicar/empleos/shared/publish/empleosPublishSnapshots";
 import { clearEmpleosStagedPublish } from "@/app/publicar/empleos/shared/publish/empleosPublishStaging";
 import { replaceRouteForEmpleosResumeEdit } from "@/app/publicar/empleos/shared/lib/empleosEditLaneRedirect";
@@ -91,14 +95,35 @@ export default function EmpleoPremiumApplicationClient() {
   const goPreview = useCallback(() => {
     if (previewDisabled) return;
     flushEmpleosDraftToSession(EMPLEOS_SESSION_KEYS.premium, state);
+    // Editing an EXISTING row: hand its id to the preview's checkout helper so it saves to the SAME row
+    // (never a new draft) and the server's already-live guard answers instead of a second charge.
+    if (serverListingId) {
+      try {
+        rememberEmpleosPendingCheckoutListingId(window.sessionStorage, {
+          lane: "premium",
+          title: buildEmpleosPublishEnvelopeFromPremium(state, lang).payload.data.title,
+          listingId: serverListingId,
+        });
+      } catch {
+        /* storage unavailable — falls back to the previous behaviour */
+      }
+    }
     markPublishFlowOpeningPreview();
     router.push(empleosHandoffPreviewUrl("premium", routeLang));
-  }, [lang, previewDisabled, router, state]);
+  }, [lang, previewDisabled, router, state, serverListingId]);
 
   const handleDeleteApplication = useCallback(() => {
     reset();
     setStagedNotice(false);
     clearEmpleosStagedPublish();
+    // Explicit discard: the NEXT application must not inherit this one's row (in-memory id or the
+    // sessionStorage checkout memo). Never cleared on cancel / retry / back - those reuse the same row.
+    setServerListingId(null);
+    try {
+      clearEmpleosPendingCheckoutListingId(window.sessionStorage);
+    } catch {
+      /* storage unavailable */
+    }
   }, [reset]);
 
   const revokeIfBlob = useCallback((url: string | null) => {

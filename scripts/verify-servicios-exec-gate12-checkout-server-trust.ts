@@ -56,7 +56,10 @@ check("the default checkout branch now trusts the authenticated bearer over a cl
   assert.ok(src.includes("const ownerUserId = isRestauranteAddonOnlyEarly"));
   const idx = src.indexOf("const ownerUserId = isRestauranteAddonOnlyEarly");
   const block = src.slice(idx, idx + 500);
-  assert.ok(block.includes("bearerUserId || body.ownerUserId?.trim() || null;"), "bearer must win over a client-supplied ownerUserId");
+  // D3 (2026-09 final defect closeout): the bearer is now REQUIRED (401 before this point) and the owner is ONLY the
+  // verified bearer - the old "bearer || body.ownerUserId" fallback for bearer-less requests is gone entirely.
+  assert.ok(block.includes(": bearerUserId;"), "the owner is only the verified bearer");
+  assert.ok(!block.includes("body.ownerUserId"), "a client-supplied ownerUserId is never trusted, not even as a fallback");
   assert.ok(!/:\s*body\.ownerUserId\?\.trim\(\)\s*\|\|\s*bearerUserId/.test(block), "the old, client-first priority order must be gone");
 });
 

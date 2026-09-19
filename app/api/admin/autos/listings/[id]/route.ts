@@ -1,3 +1,5 @@
+import { isVerifiedAdminSession } from "@/app/admin/_lib/adminVerifiedSession";
+import { AUTOS_PRE_PUBLISH_STATUSES, decideAutosAdminReactivation } from "@/app/admin/_lib/adminAutosReactivationPolicy";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
@@ -7,14 +9,16 @@ import {
   autosRowIsPublicLive,
   canRepublishListing,
 } from "@/app/admin/_lib/classifiedsRepublishCapability";
-import { getAdminSupabase, requireAdminCookie } from "@/app/lib/supabase/server";
+import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { getAutosClassifiedsListingById } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
 import type { AutosClassifiedsListingStatus } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 import {
   ADMIN_INVENTORY_ACTION_FORBIDDEN_CODE,
+  adminInventoryActionForbiddenMessage,
   assertAutosDealerActionAllowed,
 } from "@/app/admin/_lib/adminInventoryActionGuard";
 import { activateAutosDealerListingAtomic } from "@/app/lib/listingPlans/capacityActivationRpc";
+import { evaluateAdminReactivationHold } from "@/app/admin/_lib/adminPaymentSuspensionPolicyServer";
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +55,7 @@ function isAction(x: unknown): x is StaffAutosAction {
  */
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const jar = await cookies();
-  if (!requireAdminCookie(jar)) {
+  if (!(await isVerifiedAdminSession(jar))) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
@@ -82,7 +86,10 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   // vehicle child, or against a row whose role cannot be confirmed — fails closed, no write.
   const roleCheck = assertAutosDealerActionAllowed(row, action);
   if (!roleCheck.ok) {
-    return NextResponse.json({ ok: false, error: ADMIN_INVENTORY_ACTION_FORBIDDEN_CODE }, { status: 403 });
+    return NextResponse.json(
+      { ok: false, error: ADMIN_INVENTORY_ACTION_FORBIDDEN_CODE, message: adminInventoryActionForbiddenMessage() },
+      { status: 403 },
+    );
   }
 
   const supabase = getAdminSupabase();
@@ -114,6 +121,18 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     // atomic RPC instead of folding status/published_at into the generic patch below.
     const republishReactivates =
       !autosRowIsPublicLive(rec) && (rec.status === "removed" || rec.status === "cancelled");
+    if (republishReactivates) {
+      const gate = decideAutosAdminReactivation({ status: String(rec.status ?? ""), published_at: row.published_at, lane: row.lane, expires_at: row.expires_at });
+      if (gate.blocked) return NextResponse.json({ ok: false, error: gate.code, message: gate.message }, { status: 409 });
+      // Gate 5 - payment hold / lapsed dealer entitlement wins over Admin reactivation (read-only, fail-closed).
+      const hold = await evaluateAdminReactivationHold(supabase, {
+        table: "autos_classifieds_listings",
+        id,
+        status: String(rec.status ?? ""),
+        requireEntitlement: String(rec.lane) === "negocios",
+      });
+      if (hold.blocked) return NextResponse.json({ ok: false, error: hold.code, message: hold.message }, { status: hold.httpStatus });
+    }
     if (republishReactivates && String(rec.lane) === "negocios") {
       const rpcResult = await activateAutosDealerListingAtomic({
         listingId: id,
@@ -135,6 +154,9 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       patch.status = "active" satisfies AutosClassifiedsListingStatus;
       patch.published_at = row.published_at ?? now;
     }
+    // Staff reactivation lifts the staff-moderation marker (otherwise a later owner unpublish/restore
+    // cycle would be blocked forever by a suspension staff has already lifted).
+    if (republishReactivates) patch.suspended_reason = null;
     const { error } = await supabase.from("autos_classifieds_listings").update(patch).eq("id", id);
     if (error) {
       return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
@@ -163,6 +185,18 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   } else if (action === "restore_active" || action === "unsuspend") {
     if (row.status !== "removed" && row.status !== "cancelled") {
       return NextResponse.json({ ok: false, error: "not_removed_or_cancelled" }, { status: 400 });
+    }
+    {
+      const gate = decideAutosAdminReactivation({ status: row.status, published_at: row.published_at, lane: row.lane, expires_at: row.expires_at });
+      if (gate.blocked) return NextResponse.json({ ok: false, error: gate.code, message: gate.message }, { status: 409 });
+      // Gate 5 - payment hold / lapsed dealer entitlement wins over Admin reactivation (read-only, fail-closed).
+      const hold = await evaluateAdminReactivationHold(supabase, {
+        table: "autos_classifieds_listings",
+        id,
+        status: row.status,
+        requireEntitlement: row.lane === "negocios",
+      });
+      if (hold.blocked) return NextResponse.json({ ok: false, error: hold.code, message: hold.message }, { status: hold.httpStatus });
     }
     // Package C Build 4 (C7, Gate 4) — capacity-increasing admin reactivation of a negocios row
     // now routes through the atomic RPC (previously: role-guarded only, zero capacity check).
@@ -211,7 +245,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   } else if (action === "verify_off") {
     patch.leonix_verified = false;
   } else if (action === "archive") {
-    if (row.status === "draft" || row.status === "pending_payment") {
+    if (AUTOS_PRE_PUBLISH_STATUSES.has(String(row.status ?? ""))) {
       return NextResponse.json({ ok: false, error: "cannot_archive_pre_publish" }, { status: 400 });
     }
     patch.status = "cancelled" satisfies AutosClassifiedsListingStatus;

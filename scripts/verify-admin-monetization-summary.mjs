@@ -124,7 +124,7 @@ for (const [name, rel, source] of [
   ["Restaurantes", "app/admin/(dashboard)/workspace/clasificados/restaurantes/page.tsx", "restaurantes_public_listings"],
   ["Servicios", "app/admin/(dashboard)/workspace/clasificados/servicios/page.tsx", "servicios_public_listings"],
   ["Autos", "app/admin/(dashboard)/workspace/clasificados/autos/page.tsx", "autos_classifieds_listings"],
-  ["Empleos", "app/admin/(dashboard)/workspace/clasificados/empleos/page.tsx", "empleos_public_listings"],
+  ["Empleos", "app/admin/(dashboard)/workspace/clasificados/empleos/EmpleosAdminListClient.tsx", "empleos_public_listings"],
   ["Viajes", "app/admin/(dashboard)/workspace/clasificados/travel/page.tsx", "viajes_staged_listings"],
 ]) {
   const text = read(rel);

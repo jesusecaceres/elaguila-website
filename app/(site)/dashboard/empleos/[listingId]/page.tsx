@@ -21,6 +21,22 @@ import {
   archiveListingLabel,
 } from "../../lib/dashboardMisAnunciosCategoryTools";
 import { ownerToolsTitle, ownerApplicationsModuleTitle } from "../../lib/dashboardI18n";
+import { getStatusChipClass } from "@/app/lib/clasificados/listingLifecycleDomain";
+import {
+  dashboardAwaitingPaymentLabel,
+  dashboardCompletePaymentLabel,
+  dashboardNotLiveNote,
+  dashboardStartingPaymentLabel,
+  isEmpleosDraftAwaitingPayment,
+} from "../../lib/dashboardPendingPayment";
+import { startDashboardResumePayment } from "../../lib/dashboardResumePaymentClient";
+import {
+  dashboardEmpleosOwnerTransitions,
+  dashboardEmpleosTransitionErrorMessage,
+  dashboardOwnerActionPlan,
+  dashboardOwnerReasonNote,
+  dashboardVisibleModerationReason,
+} from "../../lib/dashboardListingStateMachine";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +49,7 @@ type ListingRow = {
   company_name: string;
   lifecycle_status: string;
   lane: string;
+  leonix_ad_id?: string | null;
   moderation_reason: string | null;
   apply_count?: number | null;
   view_count?: number | null;
@@ -128,6 +145,12 @@ function EmpleosEmployerManagePageContent() {
   const [appsLoaded, setAppsLoaded] = useState(false);
   const [ownerId, setOwnerId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  /** CLOSEOUT 2 — paid-lane draft "Completar pago": in-flight flag + last checkout-client message. */
+  const [payBusy, setPayBusy] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
+  /** Gate 2: a failed READ is not "listing not found", and a refused lifecycle action is shown, never swallowed. */
+  const [readFailed, setReadFailed] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const refreshListing = useCallback(async () => {
     const supabase = createSupabaseBrowserClient();
@@ -139,13 +162,21 @@ function EmpleosEmployerManagePageContent() {
       }
       setOwnerId(userData.user.id);
       const { data: listing, error } = await supabase.from("empleos_public_listings").select("*").eq("id", listingId).maybeSingle();
-      if (error || !listing) {
+      if (error) {
+        console.error("[dashboard/empleos/listing] read failed", error.message);
+        setReadFailed(true);
+        setRow(null);
+        return;
+      }
+      setReadFailed(false);
+      if (!listing) {
         setRow(null);
         return;
       }
       setRow(listing as ListingRow);
     } catch (err) {
       console.error("[dashboard/empleos/listing] refresh failed", err);
+      setReadFailed(true);
       setRow(null);
     } finally {
       setLoading(false);
@@ -196,20 +227,48 @@ function EmpleosEmployerManagePageContent() {
     if (json.ok) void refreshApplications();
   }
 
+  /** CLOSEOUT 2 — Revenue OS EMPLEOS_PAID_JOB_CHECKOUT for this owned `draft` row (server accepts only draft). */
+  async function completePayment() {
+    if (!row) return;
+    setPayBusy(true);
+    setPayError(null);
+    try {
+      const result = await startDashboardResumePayment({
+        lane: "empleos",
+        listingId: row.id,
+        leonixAdId: row.leonix_ad_id ?? null,
+        lang,
+      });
+      if (!result.ok) {
+        setPayError(result.userMessage);
+        setPayBusy(false);
+      }
+    } catch {
+      setPayError(
+        lang === "es"
+          ? "No pudimos iniciar el pago seguro. Intenta de nuevo o contacta a Leonix."
+          : "We could not start secure payment. Please try again or contact Leonix.",
+      );
+      setPayBusy(false);
+    }
+  }
+
   async function patchStatus(next: "published" | "paused" | "archived") {
     const supabase = createSupabaseBrowserClient();
     const { data } = await supabase.auth.getSession();
     const token = data.session?.access_token;
     if (!token) return;
     setBusy(true);
+    setActionError(null);
     try {
       const res = await fetch(`/api/clasificados/empleos/listings/${listingId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ lifecycle_status: next }),
       });
-      const json = (await res.json()) as { ok?: boolean };
+      const json = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
       if (json.ok) void refreshListing();
+      else setActionError(dashboardEmpleosTransitionErrorMessage(json.error, lang));
     } finally {
       setBusy(false);
     }
@@ -226,7 +285,13 @@ function EmpleosEmployerManagePageContent() {
   if (!row) {
     return (
       <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null} ownerId={ownerId} contentLayout="workbench">
-        <p className="text-[#5C5346]">{t.notFound}</p>
+        <p className="text-[#5C5346]">
+          {readFailed
+            ? lang === "es"
+              ? "No pudimos cargar este listado. Actualiza la página e inténtalo de nuevo."
+              : "We could not load this listing. Refresh the page and try again."
+            : t.notFound}
+        </p>
         <Link href={`/dashboard/empleos?${q}`} className="mt-4 inline-block font-semibold underline">
           {t.back}
         </Link>
@@ -235,6 +300,23 @@ function EmpleosEmployerManagePageContent() {
   }
 
   const uiStatus = resolveListingUiStatus({ status: row.lifecycle_status });
+  // CLOSEOUT 2 — a paid-lane (quick / premium) draft is an UNPAID application, not a resumable draft.
+  const awaitingPayment = isEmpleosDraftAwaitingPayment(row);
+  // Gate 2: owner plan from the SAME truth as the server transition policy (see dashboardListingStateMachine).
+  const empleosPlan = dashboardOwnerActionPlan("empleos", {
+    status: row.lifecycle_status,
+    lane: row.lane,
+    published_at: row.published_at,
+    moderation_reason: row.moderation_reason,
+  });
+  const empleosTransitions = dashboardEmpleosOwnerTransitions({
+    lane: row.lane,
+    lifecycle_status: row.lifecycle_status,
+    published_at: row.published_at,
+    moderation_reason: row.moderation_reason,
+  });
+  const reasonNote = dashboardOwnerReasonNote(empleosPlan.reason, lang);
+  const visibleModeration = dashboardVisibleModerationReason(row.moderation_reason);
   const editHref = empleosEditHref(row.lane, row.id, q);
   const supportsApplications = row.lane !== "feria" && isLiveCapability(capabilities.specialized.applications);
 
@@ -252,7 +334,15 @@ function EmpleosEmployerManagePageContent() {
   ].filter((x): x is { key: string; label: string; value: number } => x !== null);
 
   const quickActions: ActionItem[] = [];
-  if (row.lifecycle_status === "published" && isLiveCapability(capabilities.identity.publicView)) {
+  if (awaitingPayment) {
+    quickActions.push({
+      label: payBusy ? dashboardStartingPaymentLabel(lang) : dashboardCompletePaymentLabel(lang),
+      onClick: () => void completePayment(),
+      disabled: payBusy,
+      tone: "warning",
+    });
+  }
+  if (empleosPlan.viewPublic && isLiveCapability(capabilities.identity.publicView)) {
     quickActions.push({
       href: appendLangToPath(`/clasificados/empleos/${row.slug}`, lang),
       label: publicViewLabel(lang),
@@ -261,19 +351,19 @@ function EmpleosEmployerManagePageContent() {
   }
 
   const lifecycleActions: ActionItem[] = [];
-  if (isLiveCapability(capabilities.lifecycle.pause) && row.lifecycle_status === "published") {
+  if (isLiveCapability(capabilities.lifecycle.pause) && empleosTransitions.pause) {
     lifecycleActions.push({ label: pauseListingLabel(lang), onClick: () => void patchStatus("paused"), disabled: busy, tone: "warning" });
   }
   if (
     isLiveCapability(capabilities.lifecycle.reactivate) &&
-    // Paid-lane drafts only go live through payment (server-enforced) — no dead "resume" button.
-    (row.lifecycle_status === "paused" ||
-      row.lifecycle_status === "archived" ||
-      (row.lifecycle_status === "draft" && row.lane === "feria"))
+    // Exactly what `resolveEmpleosOwnerTransition` (the server policy) accepts: paid-lane drafts only go live through
+    // payment, a STAFF-held pause / archive is never owner-resumable, a never-live archive cannot be reopened, and a
+    // Feria (free lane) draft may still be published - no dead "resume" button.
+    empleosTransitions.resume
   ) {
     lifecycleActions.push({ label: resumeListingLabel(lang), onClick: () => void patchStatus("published"), disabled: busy, tone: "positive" });
   }
-  if (isLiveCapability(capabilities.lifecycle.archive) && row.lifecycle_status !== "archived") {
+  if (isLiveCapability(capabilities.lifecycle.archive) && empleosTransitions.archive) {
     // UX Completion Gate — this Red/terminal action (Master Bible SS10) had no confirmation,
     // unlike the generic entity workspace's and BR's equivalent archive actions.
     lifecycleActions.push({
@@ -334,11 +424,23 @@ function EmpleosEmployerManagePageContent() {
           eyebrow: t.eyebrow,
           title: row.title,
           subtitle: row.company_name,
-          statusLabel: listingUiStatusLabel(uiStatus, lang),
-          statusChipClass: listingUiStatusChipClass(uiStatus),
+          statusLabel: awaitingPayment ? dashboardAwaitingPaymentLabel(lang) : listingUiStatusLabel(uiStatus, lang),
+          statusChipClass: awaitingPayment ? getStatusChipClass("pending_payment") : listingUiStatusChipClass(uiStatus),
           badges: [laneLabel(row.lane, lang)],
         }}
-        note={row.moderation_reason ? { text: `${t.moderation}: ${row.moderation_reason}`, tone: "warning" } : null}
+        note={
+          payError
+            ? { text: payError, tone: "urgent" }
+            : actionError
+              ? { text: actionError, tone: "urgent" }
+              : awaitingPayment
+                ? { text: dashboardNotLiveNote(lang), tone: "warning" }
+                : reasonNote && empleosPlan.reason !== "live"
+                  ? { text: visibleModeration ? `${reasonNote} ${t.moderation}: ${visibleModeration}` : reasonNote, tone: "warning" }
+                  : visibleModeration
+                    ? { text: `${t.moderation}: ${visibleModeration}`, tone: "warning" }
+                    : null
+        }
         detailItems={detailItems}
         performance={performanceMetrics.length > 0 ? { title: t.performanceTitle, metrics: performanceMetrics } : undefined}
         primaryAction={{ href: editHref ?? `/dashboard/empleos/${row.id}?${q}`, label: editListingLabel(lang) }}

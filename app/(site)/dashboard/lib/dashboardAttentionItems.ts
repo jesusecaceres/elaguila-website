@@ -34,6 +34,16 @@ export type OwnerAttentionItem = {
   labelEn: string;
   /** Only set when a real, working route/action exists — never fabricated. */
   href?: string | null;
+  /** CLOSEOUT 2 — optional "Complete payment" action, attached by the page ONLY for a `payment_required`
+   * item whose base Revenue OS checkout is legitimately startable (see `dashboardPendingPayment.ts`). */
+  completePayment?: OwnerAttentionCompletePayment | null;
+};
+
+export type OwnerAttentionCompletePayment = {
+  /** `restaurantes` resumes into the consent checkpoint; every other lane starts Revenue OS checkout. */
+  lane: "empleos" | "rentas" | "bienes-raices-fsbo" | "clases" | "autos-privado" | "restaurantes";
+  listingId: string;
+  leonixAdId?: string | null;
 };
 
 export type OwnerAttentionRowInput = {
@@ -162,6 +172,14 @@ export function resolveOwnerDashboardAttentionItems(row: OwnerAttentionRowInput)
   }
 
   return out;
+}
+
+/** Attach a resume-payment action to the `payment_required` items of one row (pure; other items untouched). */
+export function attachCompletePaymentAction(
+  items: OwnerAttentionItem[],
+  action: OwnerAttentionCompletePayment,
+): OwnerAttentionItem[] {
+  return items.map((it) => (it.reasonKey === "payment_required" ? { ...it, completePayment: action } : it));
 }
 
 export function countByAttentionSeverity(items: OwnerAttentionItem[]): Record<OwnerAttentionSeverity, number> {

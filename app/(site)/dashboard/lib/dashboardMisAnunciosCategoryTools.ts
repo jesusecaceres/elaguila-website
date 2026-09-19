@@ -1,6 +1,8 @@
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { buildListingIdentity, resolveDashboardActions, type DashboardAction } from "@/app/lib/listingIdentity";
 import type { DashboardInventoryItem } from "./dashboardInventory";
+import { dashboardCompletePaymentLabel, dashboardStartingPaymentLabel } from "./dashboardPendingPayment";
+import { dashboardEmpleosOwnerTransitions } from "./dashboardListingStateMachine";
 import {
   type MisAnunciosCategoryDef,
   type MisAnunciosCategoryKey,
@@ -396,6 +398,13 @@ export function buildInventoryListingActions(
      * /api/clasificados/empleos/listings/{id}. */
     onEmpleosLifecycle?: (next: "published" | "paused" | "archived") => void;
     empleosLifecycleBusy?: boolean;
+    /** CLOSEOUT 2 — "Completar pago" for an unpaid pre-publication row (`item.awaitingPayment`).
+     * Empleos: starts Revenue OS checkout directly. Restaurantes: resumes into the draft-preview checkout
+     * checkpoint (subscription consent). Only rendered when the caller supplies it AND the row is awaiting payment. */
+    onCompletePayment?: () => void;
+    completePaymentBusy?: boolean;
+    /** CLOSEOUT 2 — Restaurantes pending_payment: open the draft preview (no public page exists yet). */
+    onDraftPreview?: () => void;
   },
 ): ListingPanelAction[] {
   const actions: ListingPanelAction[] = [];
@@ -451,7 +460,29 @@ export function buildInventoryListingActions(
     });
   }
 
-  if (listingToolIsReady(category, "publicView")) {
+  if (item.awaitingPayment && opts?.onCompletePayment && (category === "restaurantes" || category === "empleos")) {
+    // CLOSEOUT 2 — an unpaid, not-live listing's most urgent action is finishing payment (the row is
+    // NOT public until then, so no "view listing" CTA is offered below).
+    actions.push({
+      label: opts.completePaymentBusy ? dashboardStartingPaymentLabel(lang) : dashboardCompletePaymentLabel(lang),
+      onClick: opts.onCompletePayment,
+      disabled: opts.completePaymentBusy,
+      tone: "warning",
+    });
+  }
+
+  if (category === "restaurantes" && item.awaitingPayment && opts?.onDraftPreview) {
+    actions.push({
+      label: previewLabel(lang),
+      onClick: opts.onDraftPreview,
+      disabled: opts.completePaymentBusy,
+      tone: "subtle",
+    });
+  }
+
+  // CLOSEOUT 2 — the public "View listing" CTA only exists while the row is actually live
+  // (`isPublicLive === false` => pending payment / draft / paused / not yet approved).
+  if (listingToolIsReady(category, "publicView") && item.isPublicLive !== false) {
     // Gate 2C — view-tier action for every category (previously "primary" for
     // non-Servicios categories, which competed visually with the real manage doorway).
     actions.push({
@@ -562,7 +593,16 @@ export function buildInventoryListingActions(
 
   if (category === "empleos" && opts?.onEmpleosLifecycle) {
     const busyLabel = lang === "es" ? "Actualizando…" : "Updating…";
-    if (item.status === "published" && listingToolIsReady(category, "pause")) {
+    // Gate 2 (item 9): offer exactly what the server transition policy will accept (`resolveEmpleosOwnerTransition`):
+    // no Reactivate on a STAFF-held pause / archive or a never-live archive (a dead 402 / 409), and an owner-archived
+    // post that WAS live can be reopened from here as well.
+    const empleosTransitions = dashboardEmpleosOwnerTransitions({
+      lane: item.empleosLane,
+      lifecycle_status: item.status,
+      published_at: item.publishedAt,
+      moderation_reason: item.moderationReason,
+    });
+    if (empleosTransitions.pause && listingToolIsReady(category, "pause")) {
       actions.push({
         label: opts.empleosLifecycleBusy ? busyLabel : pauseListingLabel(lang),
         onClick: () => opts.onEmpleosLifecycle!("paused"),
@@ -570,7 +610,7 @@ export function buildInventoryListingActions(
         tone: "warning",
       });
     }
-    if (item.status === "paused" && listingToolIsReady(category, "reactivate")) {
+    if (empleosTransitions.resume && listingToolIsReady(category, "reactivate")) {
       actions.push({
         label: opts.empleosLifecycleBusy ? busyLabel : resumeListingLabel(lang),
         onClick: () => opts.onEmpleosLifecycle!("published"),
@@ -578,7 +618,7 @@ export function buildInventoryListingActions(
         tone: "positive",
       });
     }
-    if ((item.status === "published" || item.status === "paused") && listingToolIsReady(category, "archive")) {
+    if (empleosTransitions.archive && listingToolIsReady(category, "archive")) {
       actions.push({
         label: opts.empleosLifecycleBusy ? busyLabel : archiveListingLabel(lang),
         onClick: () => opts.onEmpleosLifecycle!("archived"),

@@ -112,6 +112,26 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
     );
   }
 
+  // Gate 9 (2026-09 parity) — a paused / lapsed (`paused_unpublished`) profile is hidden from Servicios results
+  // AND Admin Live, so its direct URL must not render the full profile either (it used to, with only a small
+  // "paused" banner and an indexable <head>). Same fail-closed placeholder as rejected / suspended: no
+  // business content, phone, address or media is rendered.
+  if (row.listing_status === "paused_unpublished") {
+    return (
+      <div className="mx-auto flex min-h-[60vh] max-w-lg flex-col justify-center gap-4 px-4 py-16 text-center text-[#1E1810]">
+        <h1 className="text-xl font-bold">{lang === "en" ? "Profile paused" : "Perfil en pausa"}</h1>
+        <p className="text-sm text-[#5C5346]">
+          {lang === "en"
+            ? "This profile is paused and is not available on Leonix right now. If you are the provider, open your dashboard to resume it."
+            : "Este perfil está en pausa y no está disponible en Leonix por ahora. Si eres el proveedor, abre tu panel para reanudarlo."}
+        </p>
+        <Link href={`/clasificados/servicios/resultados?${q}`} className="text-sm font-bold text-[#3B66AD] underline">
+          {lang === "en" ? "Browse Servicios" : "Explorar Servicios"}
+        </Link>
+      </div>
+    );
+  }
+
   const paused = row.listing_status === "paused_unpublished";
   const isPublishedLive = row.listing_status === SERVICIOS_LISTING_STATUS_PUBLISHED && !paused;
   const dbApproved = isPublishedLive ? await listApprovedServiciosReviewsForSlug(slug) : [];

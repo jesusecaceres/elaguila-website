@@ -66,7 +66,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           ? 402
           : res.error === "not_publishable"
             ? 409
-            : res.error === "lane_mismatch" || res.error === QUICK_LISTING_EXISTING_IDENTITY_INVALID_CODE
+            : res.error === "lane_mismatch" ||
+                res.error === "lane_payload_mismatch" ||
+                res.error === "invalid_lane" ||
+                res.error === "invalid_envelope" ||
+                res.error === "invalid_feria_payload" ||
+                res.error === QUICK_LISTING_EXISTING_IDENTITY_INVALID_CODE
               ? 400
               : 500;
     return NextResponse.json({ ok: false, error: res.error }, { status });

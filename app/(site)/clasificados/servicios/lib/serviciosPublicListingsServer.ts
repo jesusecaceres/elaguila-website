@@ -410,16 +410,43 @@ export type ServiciosAdminQueueFilters = {
   id?: string;
   leonix_ad_id?: string;
   owner_user_id?: string;
+  /**
+   * Exact `listing_status` (closeout 2 round 2). Applied in SQL through the shared query builder, so it
+   * narrows BEFORE the row limit on every search path (default, q, and the exact-field path).
+   */
+  status?: string;
   /** `live` — only publicly published rows (listing_status=published). */
   scope?: "live";
 };
 
+function serviciosUpdatedMs(r: ServiciosPublicListingAdminDbRow): number {
+  const t = r.updated_at ? new Date(r.updated_at).getTime() : NaN;
+  return Number.isFinite(t) ? t : 0;
+}
+
+const SERVICIOS_ADMIN_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
  * Admin workspace queue for `servicios_public_listings` with Phase 4 search (q, slug, id, owner, optional leonix_ad_id).
+ *
+ * FILTER SEMANTICS (2026-09 final normalization, Gate 3): `slug`, `id`, `leonix_ad_id`, `owner_user_id`, `status`
+ * and `scope` are AND-ed into EVERY query (the shared `qb()` builder) and `q` is a free-text search on top of them,
+ * so q + an exact filter is an INTERSECTION — previously the exact-field path returned early and silently dropped q.
+ * Every predicate runs in SQL BEFORE `.limit(limit)`; each search source reads up to `limit` rows (was a fixed 80,
+ * which hid matches when a source had more), the merge is ordered newest-first and cut at `limit`.
+ * A failed read is reported (`unavailable` + `readError`), never returned as an empty list; if only SOME search
+ * sources fail the rows come back with `readWarning`.
  */
 export async function listServiciosPublicListingsAdminQueueFromDb(
   opts: ServiciosAdminQueueFilters = {},
-): Promise<{ rows: ServiciosPublicListingAdminDbRow[]; fullSchema: boolean; unavailable: boolean; readError?: string | null }> {
+): Promise<{
+  rows: ServiciosPublicListingAdminDbRow[];
+  fullSchema: boolean;
+  unavailable: boolean;
+  readError?: string | null;
+  /** Some search sources could not be read: rows are returned but may be incomplete. */
+  readWarning?: string | null;
+}> {
   if (!isSupabaseAdminConfigured()) {
     return { rows: [], fullSchema: true, unavailable: true, readError: "Supabase admin not configured (service role)." };
   }
@@ -429,87 +456,49 @@ export async function listServiciosPublicListingsAdminQueueFromDb(
   const owner = opts.owner_user_id?.trim();
   const leonixParam = opts.leonix_ad_id?.trim();
   const qRaw = opts.q?.trim() ?? "";
+  const statusFilter = opts.status?.trim().toLowerCase() ?? "";
+  const hasExact = Boolean(slug || id || owner || leonixParam);
+  // id / owner_user_id are uuid columns: an .eq on free text makes the WHOLE query error. Say so.
+  if (id && !SERVICIOS_ADMIN_UUID_RE.test(id)) return { rows: [], fullSchema: true, unavailable: true, readError: "id must be a full UUID" };
+  if (owner && !SERVICIOS_ADMIN_UUID_RE.test(owner)) return { rows: [], fullSchema: true, unavailable: true, readError: "owner must be a full user UUID" };
   const supabase = getAdminSupabase();
+  /** scope + status + EVERY exact filter — so every path below intersects with them. */
   const qb = () => {
     let q = supabase.from("servicios_public_listings").select(SERVICIOS_ADMIN_QUEUE_SELECT);
     if (opts.scope === "live") q = q.eq("listing_status", "published");
+    if (statusFilter) q = q.eq("listing_status", statusFilter);
+    if (slug) q = q.eq("slug", slug);
+    if (id) q = q.eq("id", id);
+    if (owner) q = q.eq("owner_user_id", owner);
+    if (leonixParam) {
+      // A complete Leonix Ad ID is an exact (normalized) match; a fragment is a contains match — both in SQL.
+      const normLeonixParam = adminQueueNormalizeLeonixAdId(leonixParam);
+      q = normLeonixParam
+        ? q.eq("leonix_ad_id", normLeonixParam)
+        : q.ilike("leonix_ad_id", `%${escapeIlikeServicios(leonixParam)}%`);
+    }
     return q;
   };
+  const columnMissing = (message: string) => /column|does not exist|schema cache/i.test(message);
 
   try {
-    if (slug || id || owner || leonixParam) {
-      let rowQuery = qb();
-      if (slug) rowQuery = rowQuery.eq("slug", slug);
-      if (id) rowQuery = rowQuery.eq("id", id);
-      if (owner) rowQuery = rowQuery.eq("owner_user_id", owner);
-      if (leonixParam) rowQuery = rowQuery.eq("leonix_ad_id", leonixParam);
-      const { data, error } = await rowQuery.order("updated_at", { ascending: false }).limit(limit);
-      if (error) {
-        if (/column|does not exist|schema cache/i.test(error.message)) {
+    if (!qRaw) {
+      const { data, error } = await qb().order("updated_at", { ascending: false }).limit(limit);
+      if (!error) return { rows: (data ?? []) as ServiciosPublicListingAdminDbRow[], fullSchema: true, unavailable: false };
+      if (columnMissing(error.message)) {
+        if (hasExact) {
           return { rows: [], fullSchema: false, unavailable: true, readError: "Column missing on servicios_public_listings." };
         }
-        return { rows: [], fullSchema: true, unavailable: true, readError: "Service role read failed." };
-      }
-      const rows = (data ?? []) as ServiciosPublicListingAdminDbRow[];
-      return { rows, fullSchema: true, unavailable: false };
-    }
-
-    if (qRaw) {
-      const q = qRaw;
-      const qLower = q.toLowerCase();
-
-      if (adminQueueIsUuid(q)) {
-        const { data, error } = await qb().or(`id.eq.${q},owner_user_id.eq.${q}`).limit(50);
-        if (!error && data?.length) return { rows: data as ServiciosPublicListingAdminDbRow[], fullSchema: true, unavailable: false };
-      }
-
-      const normLeonixQ = adminQueueNormalizeLeonixAdId(q);
-      if (normLeonixQ) {
-        const { data, error } = await qb().eq("leonix_ad_id", normLeonixQ).limit(20);
-        if (!error && data?.length) return { rows: data as ServiciosPublicListingAdminDbRow[], fullSchema: true, unavailable: false };
-      }
-
-      const fromUrl = adminQueueExtractServiciosSlugFromUrl(q);
-      if (fromUrl) {
-        const { data, error } = await qb().eq("slug", fromUrl).limit(20);
-        if (!error && data?.length) return { rows: data as ServiciosPublicListingAdminDbRow[], fullSchema: true, unavailable: false };
-      }
-
-      const { data: bySlug, error: slugErr } = await qb().eq("slug", qLower).limit(20);
-      if (!slugErr && bySlug?.length) return { rows: bySlug as ServiciosPublicListingAdminDbRow[], fullSchema: true, unavailable: false };
-
-      const term = `%${escapeIlikeServicios(qLower)}%`;
-      const [nameRes, slugRes, leonixRes] = await Promise.all([
-        qb().ilike("business_name", term).order("updated_at", { ascending: false }).limit(80),
-        qb().ilike("slug", term).order("updated_at", { ascending: false }).limit(80),
-        qb().ilike("leonix_ad_id", term).order("updated_at", { ascending: false }).limit(80),
-      ]);
-      let merged = mergeServiciosAdminRows(
-        [
-          ...((nameRes.data ?? []) as ServiciosPublicListingAdminDbRow[]),
-          ...((slugRes.data ?? []) as ServiciosPublicListingAdminDbRow[]),
-          ...((leonixRes.data ?? []) as ServiciosPublicListingAdminDbRow[]),
-        ],
-        limit,
-      );
-      const profileIds = await fetchProfileIdsMatchingAdminQueueSearch(supabase, qRaw);
-      if (profileIds.length > 0) {
-        const { data: profRows } = await qb().in("owner_user_id", profileIds).order("updated_at", { ascending: false }).limit(limit);
-        if (profRows?.length) {
-          merged = mergeServiciosAdminRows([...merged, ...(profRows as ServiciosPublicListingAdminDbRow[])], limit);
+        // Reduced-schema mode has no listing_status to filter on — never return unfiltered rows for a status / live
+        // filter, and never present that as an empty result: report it.
+        if (statusFilter || opts.scope === "live") {
+          return {
+            rows: [],
+            fullSchema: false,
+            unavailable: true,
+            readError: "Reduced schema: the listing_status column is missing, so status / Live cannot be read. Apply the Servicios migrations.",
+          };
         }
-      }
-      if (merged.length) return { rows: merged, fullSchema: true, unavailable: false };
-      if (profileIds.length > 0) {
-        const { data: profOnly } = await qb().in("owner_user_id", profileIds).order("updated_at", { ascending: false }).limit(limit);
-        if (profOnly?.length) return { rows: profOnly as ServiciosPublicListingAdminDbRow[], fullSchema: true, unavailable: false };
-      }
-      return { rows: [], fullSchema: true, unavailable: false };
-    }
-
-    const { data, error } = await qb().order("updated_at", { ascending: false }).limit(limit);
-    if (error) {
-      if (/column|does not exist|schema cache/i.test(error.message)) {
         const leg = await supabase
           .from("servicios_public_listings")
           .select("id, slug, business_name, city, published_at, leonix_verified")
@@ -532,7 +521,84 @@ export async function listServiciosPublicListingsAdminQueueFromDb(
       }
       return { rows: [], fullSchema: true, unavailable: true, readError: "Service role read failed." };
     }
-    return { rows: (data ?? []) as ServiciosPublicListingAdminDbRow[], fullSchema: true, unavailable: false };
+
+    const q = qRaw;
+    const qLower = q.toLowerCase();
+    let firstError: string | null = null;
+    const track = (res: { error?: { message: string } | null }) => {
+      if (res.error && !firstError) firstError = res.error.message;
+    };
+    const hit = (res: { data: unknown; error?: { message: string } | null }): ServiciosPublicListingAdminDbRow[] | null => {
+      track(res);
+      const rows = res.data as ServiciosPublicListingAdminDbRow[] | null;
+      return !res.error && rows?.length ? rows : null;
+    };
+    const okRows = (rows: ServiciosPublicListingAdminDbRow[]) => ({ rows, fullSchema: true, unavailable: false });
+
+    // Identity shortcuts (a pasted UUID / Ad ID / slug / URL resolves that row). qb() carries the exact
+    // filters, so a shortcut hit is still INTERSECTED with them.
+    if (adminQueueIsUuid(q)) {
+      const rows = hit(await qb().or(`id.eq.${q},owner_user_id.eq.${q}`).limit(50));
+      if (rows) return okRows(rows);
+    }
+    const normLeonixQ = adminQueueNormalizeLeonixAdId(q);
+    if (normLeonixQ) {
+      const rows = hit(await qb().eq("leonix_ad_id", normLeonixQ).limit(20));
+      if (rows) return okRows(rows);
+    }
+    const fromUrl = adminQueueExtractServiciosSlugFromUrl(q);
+    if (fromUrl) {
+      const rows = hit(await qb().eq("slug", fromUrl).limit(20));
+      if (rows) return okRows(rows);
+    }
+    {
+      const rows = hit(await qb().eq("slug", qLower).limit(20));
+      if (rows) return okRows(rows);
+    }
+
+    const term = `%${escapeIlikeServicios(qLower)}%`;
+    const textResults = await Promise.all([
+      qb().ilike("business_name", term).order("updated_at", { ascending: false }).limit(limit),
+      qb().ilike("slug", term).order("updated_at", { ascending: false }).limit(limit),
+      qb().ilike("leonix_ad_id", term).order("updated_at", { ascending: false }).limit(limit),
+    ]);
+    let failedSources = 0;
+    let collected: ServiciosPublicListingAdminDbRow[] = [];
+    for (const res of textResults) {
+      track(res);
+      if (res.error) failedSources += 1;
+      else collected = collected.concat((res.data ?? []) as ServiciosPublicListingAdminDbRow[]);
+    }
+    let totalSources = textResults.length;
+
+    const profileIds = await fetchProfileIdsMatchingAdminQueueSearch(supabase, qRaw);
+    if (profileIds.length > 0) {
+      totalSources += 1;
+      const profRes = await qb().in("owner_user_id", profileIds).order("updated_at", { ascending: false }).limit(limit);
+      track(profRes);
+      if (profRes.error) failedSources += 1;
+      else collected = collected.concat((profRes.data ?? []) as ServiciosPublicListingAdminDbRow[]);
+    }
+
+    if (collected.length === 0 && failedSources > 0 && failedSources === totalSources) {
+      const message = firstError ?? "";
+      return {
+        rows: [],
+        fullSchema: !columnMissing(message),
+        unavailable: true,
+        readError: columnMissing(message) ? "Column missing on servicios_public_listings." : "Service role read failed.",
+      };
+    }
+    const merged = mergeServiciosAdminRows(
+      [...collected].sort((a, b) => serviciosUpdatedMs(b) - serviciosUpdatedMs(a)),
+      limit,
+    );
+    return {
+      rows: merged,
+      fullSchema: true,
+      unavailable: false,
+      readWarning: failedSources > 0 ? `${failedSources} of ${totalSources} sources` : null,
+    };
   } catch {
     return { rows: [], fullSchema: false, unavailable: true, readError: "Service role read failed." };
   }

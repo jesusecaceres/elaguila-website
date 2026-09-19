@@ -44,10 +44,10 @@ async function main() {
     const genericSrc = readSource(GENERIC_ROUTE);
 
     for (const [label, src] of [["autos", autosSrc], ["generic", genericSrc]] as const) {
-      const authIdx = src.indexOf("requireAdminCookie(jar)");
+      const authIdx = Math.max(src.indexOf("isVerifiedAdminSession(jar)"), src.indexOf("requireAdminCookie(jar)")); // final closeout: identity-verified session
       const guardIdx = src.indexOf(label === "autos" ? "assertAutosDealerActionAllowed(" : "assertBrNegocioActionAllowed(");
       const updateIdx = src.indexOf(".update(patch)");
-      assert.ok(authIdx > -1, `${label} route must call requireAdminCookie`);
+      assert.ok(authIdx > -1, `${label} route must call an admin session check (isVerifiedAdminSession)`);
       assert.ok(guardIdx > -1, `${label} route must call the new inventory action guard`);
       assert.ok(updateIdx > -1, `${label} route must still perform its real update`);
       // Order matters: unauthenticated/non-staff requests must never reach role validation, and

@@ -98,6 +98,11 @@ export async function GET(req: NextRequest) {
     .not("published_at", "is", null)
     .not("expires_at", "is", null)
     .gt("expires_at", new Date().toISOString())
+    // Gate 9 (2026-09 parity): push the asset gate into SQL too (JS `isOfertaLocalPublicOfferRowEligible`
+    // stays the exact rule) so rows that fail it can never consume the MAX_OFFERS window and push a real
+    // public offer out of the list. Same superset as Admin Live (`applyOfertasLiveSqlSuperset`).
+    .not("public_source_asset_id", "is", null)
+    .or("asset_lifecycle_status.is.null,asset_lifecycle_status.eq.current")
     .order("updated_at", { ascending: false })
     .limit(MAX_OFFERS);
 

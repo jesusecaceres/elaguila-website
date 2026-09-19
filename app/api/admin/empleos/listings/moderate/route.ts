@@ -1,18 +1,25 @@
-import { revalidatePath } from "next/cache";
-import { NextRequest, NextResponse } from "next/server";
+import { isVerifiedAdminSession } from "@/app/admin/_lib/adminVerifiedSession";
+import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 
-import type { EmpleosListingLifecycleDb } from "@/app/clasificados/empleos/lib/empleosPublicListingsDbServer";
-import { updateEmpleosListingLifecycleAdmin } from "@/app/clasificados/empleos/lib/empleosPublicListingsDbServer";
-import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { legacyEmpleosStatusToAction } from "@/app/admin/_lib/adminEmpleosStaffActions";
+import { runEmpleosStaffAction } from "@/app/admin/_lib/adminEmpleosStaffActionsServer";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-export async function POST(req: NextRequest): Promise<NextResponse> {
-  if (req.cookies.get("leonix_admin")?.value !== "1") {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-  }
-  if (!isSupabaseAdminConfigured()) {
-    return NextResponse.json({ ok: false, error: "supabase_not_configured" }, { status: 503 });
+/**
+ * DEPRECATED compatibility shim — NOT a second lifecycle system. The Empleos admin page no longer
+ * calls it. It maps the old `{ id, lifecycle_status, moderation_reason? }` body onto the canonical
+ * staff action and runs the SAME shared server function as `PATCH /api/admin/empleos/listings/[id]`
+ * (status/payment preconditions, moderation markers, audit log). `published` therefore means
+ * Restore: it can no longer publish a never-paid paid-lane row, and it no longer rewrites
+ * `published_at`. Use the canonical PATCH route for new callers.
+ */
+export async function POST(req: Request): Promise<NextResponse> {
+  const jar = await cookies();
+  if (!(await isVerifiedAdminSession(jar))) {
+    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
   let body: unknown;
@@ -21,29 +28,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   } catch {
     return NextResponse.json({ ok: false, error: "invalid_json" }, { status: 400 });
   }
-  const b = body as Record<string, unknown>;
+  const b = (body ?? {}) as Record<string, unknown>;
   const id = String(b.id ?? "").trim();
-  const lifecycle_status = String(b.lifecycle_status ?? "").trim() as EmpleosListingLifecycleDb;
-  if (!id || !lifecycle_status) {
+  const lifecycleStatus = String(b.lifecycle_status ?? "").trim();
+  if (!id || !lifecycleStatus) {
     return NextResponse.json({ ok: false, error: "missing_fields" }, { status: 400 });
   }
+  const action = legacyEmpleosStatusToAction(lifecycleStatus);
+  if (!action) {
+    return NextResponse.json({ ok: false, error: "invalid_status" }, { status: 400 });
+  }
 
-  const res = await updateEmpleosListingLifecycleAdmin({
-    id,
-    lifecycle_status,
-    moderation_reason: typeof b.moderation_reason === "string" ? b.moderation_reason : null,
-    review_notes: typeof b.review_notes === "string" ? b.review_notes : null,
-  });
-  if (!res.ok) {
-    return NextResponse.json({ ok: false, error: res.error ?? "update_failed" }, { status: 500 });
-  }
-  const supabase = getAdminSupabase();
-  const { data: slugRow } = await supabase.from("empleos_public_listings").select("slug").eq("id", id).maybeSingle();
-  const slug = (slugRow as { slug?: string } | null)?.slug;
-  if (slug) {
-    revalidatePath(`/clasificados/empleos/${slug}`);
-  }
-  revalidatePath("/clasificados/empleos/resultados");
-  revalidatePath("/clasificados/empleos");
-  return NextResponse.json({ ok: true });
+  const res = await runEmpleosStaffAction({ id, action, reason: b.moderation_reason });
+  return NextResponse.json(res.body, { status: res.status });
 }

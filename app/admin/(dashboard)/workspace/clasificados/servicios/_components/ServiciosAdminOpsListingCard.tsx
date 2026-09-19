@@ -16,6 +16,12 @@ import type {
   ServiciosOpsField,
 } from "@/app/admin/_lib/serviciosCommercialOps";
 import { isPubliclyVisible, isValidLifecycleStatus } from "@/app/lib/clasificados/listingLifecycleDomain";
+import type { AdminLang } from "@/app/admin/_lib/adminI18nCookie";
+import type { PublicationTruth } from "@/app/admin/_lib/publicationSemantics";
+import {
+  AdminListingCardSections,
+  AdminListingTruthSection,
+} from "../../_components/normalized/AdminListingCardSections";
 import { ServiciosAdminMonetizationPanel } from "./ServiciosAdminMonetizationPanel";
 
 function formatWhen(iso: string | null | undefined, fallback?: string | null): string {
@@ -92,8 +98,17 @@ export function ServiciosAdminOpsListingCard({
   canonicalLeads = 0,
   commercial,
   highlighted,
+  listingTruth,
+  lang = "en",
 }: {
   row: ServiciosPublicAdminRow;
+  /**
+   * Closeout 2 round 2 — shared LISTING TRUTH (publicationSemantics) shown above the category's own
+   * commercial / analytics blocks. Plain serializable data computed by the server page; `null` /
+   * omitted = section omitted (nothing is claimed).
+   */
+  listingTruth?: PublicationTruth | null;
+  lang?: AdminLang;
   /**
    * Gate SERVICIOS-3 (D-4) — read-only commercial truth. `undefined` means the projection was
    * not run for this render, which is itself an honest state and renders as NEEDS_PROOF rather
@@ -132,6 +147,14 @@ export function ServiciosAdminOpsListingCard({
               {row.listing_status ?? "—"}
             </span>
           </div>
+
+          {listingTruth ? (
+            <AdminListingCardSections
+              lang={lang}
+              testId="servicios-admin-card-listing-truth"
+              listingTruth={<AdminListingTruthSection lang={lang} status={row.listing_status} truth={listingTruth} compact />}
+            />
+          ) : null}
 
           {/*
             Gate SERVICIOS-3 (D-4) — commercial truth, read-only.

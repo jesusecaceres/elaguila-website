@@ -40,6 +40,13 @@ import {
   publicResultsLabel,
   analyticsLabel,
 } from "../lib/dashboardMisAnunciosCategoryTools";
+import {
+  dashboardCompletePaymentLabel,
+  dashboardNotLiveNote,
+  dashboardStartingPaymentLabel,
+  isRestauranteAwaitingPayment,
+} from "../lib/dashboardPendingPayment";
+import { prepareRestauranteResumePayment } from "../lib/restaurantesDashboardResumePayment";
 import type { ActionItem } from "../components/DashboardListingActionBar";
 import { getOwnerEntityCapabilities } from "../lib/ownerEntityCapabilityRegistry";
 import { ownerBusinessToolsSpecializedGroup } from "../lib/ownerBusinessToolsSpecializedGroup";
@@ -156,6 +163,8 @@ function DashboardRestaurantesPageContent() {
   const [hydrateErr, setHydrateErr] = useState<string | null>(null);
   const [couponEditBusyId, setCouponEditBusyId] = useState<string | null>(null);
   const [couponErr, setCouponErr] = useState<string | null>(null);
+  /** CLOSEOUT 2 — pending_payment resume ("Completar pago" / draft preview) in flight for this row id. */
+  const [resumeBusyId, setResumeBusyId] = useState<string | null>(null);
   const [entitlementBadges, setEntitlementBadges] = useState<
     Record<string, DashboardEntitlementBadgePayload>
   >({});
@@ -359,6 +368,26 @@ function DashboardRestaurantesPageContent() {
     [lang, router],
   );
 
+  /**
+   * CLOSEOUT 2 — a hidden `pending_payment` restaurant resumes into the draft-preview checkout checkpoint
+   * (the Restaurantes base plan is a subscription: recurring consent is collected there, then the existing
+   * RESTAURANTES_BASE_CHECKOUT Revenue OS payload is started). The public page does not exist yet.
+   */
+  const resumePayment = useCallback(
+    async (row: DashboardRestaurantRow, target: "preview" | "checkout") => {
+      setHydrateErr(null);
+      setResumeBusyId(row.id);
+      const result = await prepareRestauranteResumePayment({ listingId: row.id, lang, target });
+      if (!result.ok) {
+        setHydrateErr(result.userMessage);
+        setResumeBusyId(null);
+        return;
+      }
+      router.push(result.href);
+    },
+    [lang, router],
+  );
+
   const publishHref = appendLangToPath("/publicar/restaurantes", lang);
   const categoryResultsHref = `/clasificados/restaurantes/resultados?${q}`;
   const frameError = fetchErr || hydrateErr || couponErr || null;
@@ -473,8 +502,24 @@ function DashboardRestaurantesPageContent() {
                 // cluster entirely. CREATE/PUBLISH is workspace-level: the page-level
                 // "Publicar un restaurante" button above already covers this job once, not once
                 // per listing.
+                // CLOSEOUT 2 — public "View" only while the row is live; a pending_payment listing shows the
+                // draft preview + "Completar pago" instead (its public page does not exist yet).
+                const awaitingPayment = isRestauranteAwaitingPayment(r.status);
                 const quickActions: ActionItem[] = [
-                  { href: publicHref, label: publicViewLabel(lang), tone: "secondary" },
+                  ...(awaitingPayment
+                    ? ([
+                        {
+                          label:
+                            resumeBusyId === r.id ? dashboardStartingPaymentLabel(lang) : dashboardCompletePaymentLabel(lang),
+                          onClick: () => void resumePayment(r, "checkout"),
+                          disabled: resumeBusyId === r.id,
+                          tone: "warning",
+                        },
+                      ] as ActionItem[])
+                    : []),
+                  ...(r.status === "published"
+                    ? ([{ href: publicHref, label: publicViewLabel(lang), tone: "secondary" }] as ActionItem[])
+                    : []),
                   { href: resultsHref, label: publicResultsListingLabel(lang), tone: "subtle" },
                   { href: `/dashboard/analytics?${q}`, label: analyticsLabel(lang), tone: "subtle" },
                 ];
@@ -548,10 +593,10 @@ function DashboardRestaurantesPageContent() {
                         r.leonix_verified ? (lang === "es" ? "Verificado" : "Verified") : "",
                       ].filter(Boolean),
                     }}
-                    note={lifecycleNote}
+                    note={awaitingPayment ? { text: dashboardNotLiveNote(lang), tone: "warning" } : lifecycleNote}
                     detailItems={[
                       { label: t.cardSlug, value: r.slug },
-                      { label: t.cardPublished, value: fmt(r.published_at, lang) },
+                      ...(awaitingPayment ? [] : [{ label: t.cardPublished, value: fmt(r.published_at, lang) }]),
                       { label: t.cardUpdated, value: fmt(r.updated_at, lang) },
                     ]}
                     communityTrust={

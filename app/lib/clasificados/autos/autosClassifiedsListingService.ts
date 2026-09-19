@@ -34,6 +34,13 @@ import { mapInheritedDealerPreviewListing } from "./autosInventoryInheritedPrevi
 import { triggerAutosSavedSearchMatchBestEffort } from "@/app/lib/saved-search/autos/autosSavedSearchMatchOrchestrator";
 import { computeFixedDayRenewalExpiresAt } from "@/app/lib/listingLifecycle/resolveListingLifecycle";
 import { AUTOS_PRIVADO_LIFECYCLE_DURATION_DAYS } from "@/app/lib/listingLifecycle/listingLifecycleConfig";
+import {
+  collectAutosChildParentIds,
+  isAutosRowPubliclyLive,
+  type AutosPublicParentCandidate,
+} from "@/app/admin/_lib/adminAutosLivePredicate";
+import { scanPagedRows } from "@/app/admin/_lib/adminPagedScan";
+import { adminQueueNormalizeLeonixAdId } from "@/app/admin/_lib/adminAdSearch";
 
 function rowFromDb(r: Record<string, unknown>): AutosClassifiedsListingRow {
   return {
@@ -250,7 +257,10 @@ export async function updateAutosClassifiedsListingDraft(
   }
 
   const recoverableStatus = row.status === "draft" || row.status === "payment_failed" || row.status === "pending_payment";
-  const negociosActiveEditable = row.lane === "negocios" && row.status === "active";
+  // An ACTIVE listing (either lane) may have its content edited in place: this update writes only
+  // listing_payload / lang / updated_at — never status, expires_at or payment fields. (Privado used to
+  // be refused here, so a dashboard edit of a live private listing could never persist.)
+  const negociosActiveEditable = (row.lane === "negocios" || row.lane === "privado") && row.status === "active";
   if (!recoverableStatus && !negociosActiveEditable) {
     return { row: null, persistWarnings: [], errorCode: "AUTOS_LISTING_STATUS_NOT_EDITABLE" };
   }
@@ -518,30 +528,112 @@ export async function listActiveAutosClassifiedsRows(): Promise<AutosClassifieds
 /**
  * Admin workspace: paid Autos rows (any status), newest first. `lane` filters at the SQL level
  * (so the row cap applies within the lane, not before it) using the canonical `lane` column.
+ *
+ * 2026-09 closeout 2 — `scope: "live"` is the PUBLIC pool rule, applied BEFORE the row cap:
+ * status active, a Privado row whose `expires_at` is past is excluded (SQL), and a dealer
+ * `inventory_vehicle` child needs an active same-owner `negocios` main parent (parents resolved in
+ * batches, same `isAutosChildParentGateSatisfied` the public pool uses). `rowFilter` lets a caller push an
+ * arbitrary keep-only predicate (e.g. the Admin search) in front of the cap as well; it is applied to rows
+ * of BOTH scopes. Queue scope (no `scope`) still returns operational / non-public rows.
+ *
+ * 2026-09 final normalization (Gate 3): `status`, a full-UUID `ownerUserId` and `leonixAdId` are SQL predicates
+ * (AND-ed with lane / scope), so they narrow BEFORE the row cap; only free-text search / a partial owner fragment
+ * (`rowFilter`) still needs the bounded scan. `onMeta` reports what the array return cannot: a read `error`
+ * (the array is then [] — callers must render an error, not an empty list), `scanCapped` and `scanned`.
  */
 export async function listAllAutosClassifiedsRowsForAdmin(
   limit = 100,
-  opts?: { scope?: "live"; lane?: AutosClassifiedsLane },
+  opts?: {
+    scope?: "live";
+    lane?: AutosClassifiedsLane;
+    rowFilter?: (row: AutosClassifiedsListingRow) => boolean;
+    status?: string;
+    ownerUserId?: string;
+    leonixAdId?: string;
+    onMeta?: (meta: { error: string | null; scanCapped: boolean; scanned: number }) => void;
+  },
 ): Promise<AutosClassifiedsListingRow[]> {
-  if (!isSupabaseAdminConfigured()) return [];
+  if (!isSupabaseAdminConfigured()) {
+    opts?.onMeta?.({ error: "supabase_admin_not_configured", scanCapped: false, scanned: 0 });
+    return [];
+  }
   const supabase = getAdminSupabase();
   const cap = Math.min(Math.max(Math.floor(limit), 1), 500);
-  let q = supabase
-    .from("autos_classifieds_listings")
-    .select(
-      "id, leonix_ad_id, lane, status, featured, leonix_verified, owner_user_id, published_at, updated_at, listing_payload, stripe_checkout_session_id, stripe_payment_intent_id, republish_override, dealer_inventory_parent_listing_id, dealer_inventory_group_id, inventory_role, lang",
-    )
-    .order("updated_at", { ascending: false })
-    .limit(cap);
-  if (opts?.scope === "live") {
-    q = q.eq("status", "active");
+  const isLive = opts?.scope === "live";
+  const nowMs = Date.now();
+  const nowIso = new Date(nowMs).toISOString();
+  const rowFilter = opts?.rowFilter;
+
+  const fetchPage = async (from: number, to: number) => {
+    let q = supabase
+      .from("autos_classifieds_listings")
+      .select(
+        "id, leonix_ad_id, lane, status, featured, leonix_verified, owner_user_id, published_at, expires_at, updated_at, listing_payload, stripe_checkout_session_id, stripe_payment_intent_id, republish_override, dealer_inventory_parent_listing_id, dealer_inventory_group_id, inventory_role, lang",
+      )
+      .order("updated_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(from, to);
+    if (isLive) {
+      // A lifecycle-expired Privado row keeps status "active" but is not public (Gate 20).
+      q = q.eq("status", "active").or(`lane.is.null,lane.neq.privado,expires_at.is.null,expires_at.gt.${nowIso}`);
+    }
+    if (opts?.lane) {
+      q = q.eq("lane", opts.lane);
+    }
+    if (opts?.status?.trim()) {
+      q = q.eq("status", opts.status.trim().toLowerCase());
+    }
+    if (opts?.ownerUserId?.trim()) {
+      q = q.eq("owner_user_id", opts.ownerUserId.trim());
+    }
+    if (opts?.leonixAdId?.trim()) {
+      // Complete id -> case-insensitive exact (no wildcards); fragment -> contains. SQL, before the cap.
+      const raw = opts.leonixAdId.trim();
+      const norm = adminQueueNormalizeLeonixAdId(raw);
+      const esc = (v: string) => v.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+      q = q.ilike("leonix_ad_id", norm ? esc(norm) : `%${esc(raw)}%`);
+    }
+    const { data, error } = await q;
+    return {
+      data: data ? data.map((r) => rowFromDb(r as Record<string, unknown>)) : null,
+      error: error ? { message: error.message } : null,
+    };
+  };
+
+  const acceptRows = async (rows: AutosClassifiedsListingRow[]): Promise<AutosClassifiedsListingRow[]> => {
+    let out = rows;
+    if (rowFilter) out = out.filter(rowFilter);
+    if (isLive) {
+      const parentIds = collectAutosChildParentIds(out);
+      const parentsById = new Map<string, AutosPublicParentCandidate>();
+      for (let i = 0; i < parentIds.length; i += 100) {
+        const { data: parentRows, error: parentError } = await supabase
+          .from("autos_classifieds_listings")
+          .select("id, lane, inventory_role, owner_user_id, status")
+          .in("id", parentIds.slice(i, i + 100));
+        // A parent read failure must not silently list (or hide) children.
+        if (parentError) throw new Error(parentError.message);
+        for (const p of (parentRows ?? []) as unknown as AutosPublicParentCandidate[]) {
+          if (p?.id) parentsById.set(p.id, p);
+        }
+      }
+      out = out.filter((r) => isAutosRowPubliclyLive(r, parentsById, nowMs));
+    }
+    return out;
+  };
+
+  const res = await scanPagedRows<AutosClassifiedsListingRow>({
+    limit: cap,
+    fetchPage,
+    accept: isLive || rowFilter ? acceptRows : undefined,
+    getId: (r) => r.id,
+  });
+  opts?.onMeta?.({ error: res.error, scanCapped: res.capped, scanned: res.scanned });
+  if (res.error) {
+    console.error("listAllAutosClassifiedsRowsForAdmin: query failed", res.error);
+    return [];
   }
-  if (opts?.lane) {
-    q = q.eq("lane", opts.lane);
-  }
-  const { data, error } = await q;
-  if (error || !data?.length) return [];
-  return data.map((r) => rowFromDb(r as Record<string, unknown>));
+  return res.rows;
 }
 
 export async function updateAutosListingStatus(

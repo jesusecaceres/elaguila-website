@@ -5,6 +5,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { listingRepublishVisibilityWindowEndIso } from "@/app/(site)/dashboard/lib/dashboardListingMeta";
 import { fetchDashboardAnalyticsSummary } from "@/app/(site)/dashboard/lib/fetchDashboardAnalyticsApi";
+import { dashboardLiveListingRows } from "@/app/(site)/dashboard/lib/dashboardListingStateMachine";
 import { DASHBOARD_INTERNAL_INBOX_READY } from "@/app/(site)/dashboard/lib/dashboardProductTruth";
 import {
   fetchOwnerRestaurantListings,
@@ -70,6 +71,8 @@ type ListingFeedRow = {
   republished_at?: string | null;
   expires_at?: string | null;
   category?: string | null;
+  seller_type?: string | null;
+  detail_pairs?: unknown;
 };
 
 export async function fetchDerivedDashboardFeed(
@@ -106,7 +109,7 @@ export async function fetchDerivedDashboardFeed(
   try {
     const res = await sb
       .from("listings")
-      .select("id, title, status, is_published, republished_at, expires_at, category")
+      .select("id, title, status, is_published, republished_at, expires_at, category, seller_type, detail_pairs")
       .eq("owner_id", userId);
     if (!res.error && res.data) listings = res.data as ListingFeedRow[];
   } catch {
@@ -192,9 +195,9 @@ export async function fetchDerivedDashboardFeed(
     }
   }
 
-  const activeIds = listings
-    .filter((r) => String(r.status ?? "").toLowerCase() === "active" && r.is_published !== false)
-    .map((r) => r.id);
+  // Gate 2: "No views yet" is a nudge for a LIVE listing - a term-elapsed Rentas / FSBO / Clases row still says
+  // `status = active` but is not public, so it must not be nudged as if it were.
+  const activeIds = dashboardLiveListingRows(listings as unknown as Array<Record<string, unknown> & { id: string }>, userId).map((r) => r.id);
 
   if (activeIds.length > 0 && activeIds.length <= 40 && accessToken?.trim()) {
     const summary = await fetchDashboardAnalyticsSummary(accessToken.trim());

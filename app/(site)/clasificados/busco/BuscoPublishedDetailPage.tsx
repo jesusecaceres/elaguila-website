@@ -85,7 +85,7 @@ export function BuscoPublishedDetailPage({
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [reportDone, setReportDone] = useState(false);
   const [publishSuccessVisible, setPublishSuccessVisible] = useState(false);
-  const leonixAdId = formatLeonixAdId(listing.id);
+  const leonixAdId = formatLeonixAdId(listing.id, listing.leonix_ad_id);
 
   useEffect(() => {
     if (skipAnalytics) return;
@@ -176,6 +176,7 @@ export function BuscoPublishedDetailPage({
             mode="published"
             organizerName={lang === "es" ? "Solicitante" : "Requester"}
             listingId={listing.id}
+            leonixAdId={listing.leonix_ad_id ?? null}
           />
         }
       />

@@ -95,6 +95,8 @@ function OfertasLocalesOwnerDashboardPageContent() {
   const [authLoading, setAuthLoading] = useState(true);
   const [offers, setOffers] = useState<OfertaLocalOwnerListItem[]>([]);
   const [ownerId, setOwnerId] = useState<string | null>(null);
+  /** Gate 2: a FAILED owner read is an error, never the "you have not submitted any deals" empty state. */
+  const [readFailed, setReadFailed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -110,7 +112,10 @@ function OfertasLocalesOwnerDashboardPageContent() {
       const { data: sess } = await sb.auth.getSession();
       const token = sess.session?.access_token ?? "";
       if (!token) {
-        if (!cancelled) setAuthLoading(false);
+        if (!cancelled) {
+          setReadFailed(true);
+          setAuthLoading(false);
+        }
         return;
       }
       try {
@@ -119,9 +124,12 @@ function OfertasLocalesOwnerDashboardPageContent() {
           cache: "no-store",
         });
         const j = (await res.json()) as { ok?: boolean; offers?: OfertaLocalOwnerListItem[] };
-        if (!cancelled && j.ok && Array.isArray(j.offers)) setOffers(j.offers);
+        if (!cancelled) {
+          if (res.ok && j.ok && Array.isArray(j.offers)) setOffers(j.offers);
+          else setReadFailed(true);
+        }
       } catch {
-        /* ignore */
+        if (!cancelled) setReadFailed(true);
       }
       if (!cancelled) setAuthLoading(false);
     })();
@@ -149,7 +157,14 @@ function OfertasLocalesOwnerDashboardPageContent() {
         secondaryAction={{ href: appendLangToPath("/clasificados/ofertas-locales/results", lang), label: publicResultsLabel(lang) }}
         loading={authLoading}
         loadingLabel={t.loading}
-        empty={!authLoading && offers.length === 0}
+        error={
+          !authLoading && readFailed && offers.length === 0
+            ? lang === "es"
+              ? "No pudimos cargar tus ofertas. Actualiza la página e inténtalo de nuevo."
+              : "We could not load your local deals. Refresh the page and try again."
+            : null
+        }
+        empty={!authLoading && !readFailed && offers.length === 0}
         emptyLabel={t.empty}
       >
         {offers.map((item) => {

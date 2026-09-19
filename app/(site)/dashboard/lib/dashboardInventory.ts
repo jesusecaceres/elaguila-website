@@ -24,6 +24,13 @@ import {
 } from "./restaurantesDashboardCouponAddonCheckout";
 import type { AddonLifecycleStatus } from "@/app/lib/listingPlans/addonLifecycle";
 import { resolveOwnerDashboardStatusDisplay, type OwnerDashboardStatusDisplay } from "./dashboardOwnerStatusDisplay";
+import {
+  dashboardAwaitingPaymentLabel,
+  dashboardInventoryRowIsPubliclyLive,
+  isAutosPrivadoAwaitingPayment,
+  isEmpleosDraftAwaitingPayment,
+  isRestauranteAwaitingPayment,
+} from "./dashboardPendingPayment";
 
 export type DashboardInventoryItem = {
   id: string;
@@ -68,6 +75,17 @@ export type DashboardInventoryItem = {
    * populated for Empleos and Viajes, the two dedicated-table categories whose raw
    * `lifecycle_status` was previously shown untranslated with a hardcoded color. */
   statusDisplay?: OwnerDashboardStatusDisplay;
+  /** CLOSEOUT 2 — false when the row is NOT on the public site (pending payment, draft, paused, changes
+   * requested, not-yet-approved ...). Owner dashboards must never show a public "View listing" CTA then.
+   * `undefined` = no claim (categories this helper has no evidence about keep their existing links). */
+  isPublicLive?: boolean;
+  /** CLOSEOUT 2 — the row is an UNPAID pre-publication listing whose base checkout is legitimately
+   * startable/resumable (mirrors the server pre-payment guard). Drives "Completar pago". */
+  awaitingPayment?: boolean;
+  /** Empleos lane (quick | premium | feria) — Feria is free and never awaits payment. */
+  empleosLane?: string | null;
+  /** Empleos: staff marker (`moderation_reason`). Non-empty = a staff hold the owner cannot self-resume (Gate 2 item 9). */
+  moderationReason?: string | null;
   source:
     | "listings"
     | "restaurantes_public_listings"
@@ -103,6 +121,10 @@ export type DashboardEmpleosRow = {
   lane: string;
   updated_at: string;
   leonix_ad_id?: string | null;
+  /** Set when the row was ever live: gates the owner's reopen of an archived post (`resolveEmpleosOwnerTransition`). */
+  published_at?: string | null;
+  /** Staff marker: a non-empty value means staff holds / decided this row. */
+  moderation_reason?: string | null;
 };
 
 export type DashboardViajesRow = {
@@ -128,6 +150,8 @@ export type DashboardAutosClassifiedsRow = {
   lang: string;
   listing_payload: Record<string, unknown>;
   published_at: string | null;
+  /** Autos Privado fixed term end: a row whose term elapsed is not public even while `status = active`. */
+  expires_at?: string | null;
   updated_at: string;
   leonix_ad_id?: string | null;
   inventory_role?: string | null;
@@ -160,10 +184,18 @@ function extractDetailPairValue(detailPairs: unknown, key: string): string | nul
   return null;
 }
 
-export async function fetchOwnerRestaurantListings(
+/**
+ * Gate 2 (2026-09 dashboard state machine) - a FAILED owner read must never be indistinguishable from "no listings".
+ * The `read*` functions return the outcome; the legacy `fetch*` functions below keep their `[]`-on-failure shape for the
+ * callers that only need a best-effort list (business-tools concierge, derived feed). Mis-anuncios uses the `read*`
+ * variants so a failed read shows an error (and is retried) instead of the "you have no listings" empty state.
+ */
+export type DashboardOwnerReadResult<T> = { ok: true; rows: T[] } | { ok: false; rows: T[]; error: string };
+
+export async function readOwnerRestaurantListings(
   sb: SupabaseClient,
   ownerId: string,
-): Promise<DashboardRestaurantRow[]> {
+): Promise<DashboardOwnerReadResult<DashboardRestaurantRow>> {
   const { data, error } = await sb
     .from("restaurantes_public_listings")
     .select(
@@ -171,54 +203,86 @@ export async function fetchOwnerRestaurantListings(
     )
     .eq("owner_user_id", ownerId)
     .order("updated_at", { ascending: false });
-  if (error || !data) return [];
-  return data as DashboardRestaurantRow[];
+  if (error || !data) return { ok: false, rows: [], error: error?.message ?? "no_data" };
+  return { ok: true, rows: data as DashboardRestaurantRow[] };
+}
+
+export async function fetchOwnerRestaurantListings(
+  sb: SupabaseClient,
+  ownerId: string,
+): Promise<DashboardRestaurantRow[]> {
+  return (await readOwnerRestaurantListings(sb, ownerId)).rows;
+}
+
+export async function readOwnerEmpleosListings(
+  sb: SupabaseClient,
+  ownerId: string,
+): Promise<DashboardOwnerReadResult<DashboardEmpleosRow>> {
+  const { data, error } = await sb
+    .from("empleos_public_listings")
+    .select(
+      "id, slug, title, company_name, lifecycle_status, lane, updated_at, leonix_ad_id, published_at, moderation_reason",
+    )
+    .eq("owner_user_id", ownerId)
+    .order("updated_at", { ascending: false });
+  if (error || !data) return { ok: false, rows: [], error: error?.message ?? "no_data" };
+  return { ok: true, rows: data as DashboardEmpleosRow[] };
 }
 
 export async function fetchOwnerEmpleosListings(
   sb: SupabaseClient,
   ownerId: string,
 ): Promise<DashboardEmpleosRow[]> {
+  return (await readOwnerEmpleosListings(sb, ownerId)).rows;
+}
+
+export async function readOwnerViajesListings(
+  sb: SupabaseClient,
+  ownerId: string,
+): Promise<DashboardOwnerReadResult<DashboardViajesRow>> {
   const { data, error } = await sb
-    .from("empleos_public_listings")
+    .from("viajes_staged_listings")
     .select(
-      "id, slug, title, company_name, lifecycle_status, lane, updated_at, leonix_ad_id",
+      "id, slug, title, category, lane, owner_user_id, lifecycle_status, is_public, hero_image_url, published_at, updated_at, listing_json, leonix_ad_id",
     )
+    // CLOSEOUT 2 — the owner sees ALL of their staged rows (draft / submitted / in_review /
+    // changes_requested / approved ...) with a truthful status. This used to add `.eq("is_public", true)`,
+    // which hid every not-yet-approved submission from the list while the tab count
+    // (dashboardMisAnunciosCategoryLoadPlan.fetchDedicatedCategoryCounts) and /dashboard/viajes counted
+    // them. Public links are gated per row by `isPublicLive` (approved AND is_public) instead.
     .eq("owner_user_id", ownerId)
     .order("updated_at", { ascending: false });
-  if (error || !data) return [];
-  return data as DashboardEmpleosRow[];
+  if (error || !data) return { ok: false, rows: [], error: error?.message ?? "no_data" };
+  return { ok: true, rows: data as DashboardViajesRow[] };
 }
 
 export async function fetchOwnerViajesListings(
   sb: SupabaseClient,
   ownerId: string,
 ): Promise<DashboardViajesRow[]> {
+  return (await readOwnerViajesListings(sb, ownerId)).rows;
+}
+
+export async function readOwnerAutosClassifiedsListings(
+  sb: SupabaseClient,
+  ownerId: string,
+): Promise<DashboardOwnerReadResult<DashboardAutosClassifiedsRow>> {
   const { data, error } = await sb
-    .from("viajes_staged_listings")
+    .from("autos_classifieds_listings")
     .select(
-      "id, slug, title, category, lane, owner_user_id, lifecycle_status, is_public, hero_image_url, published_at, updated_at, listing_json, leonix_ad_id",
+      "id, status, lane, lang, listing_payload, published_at, expires_at, updated_at, leonix_ad_id, inventory_role, dealer_inventory_parent_listing_id",
     )
     .eq("owner_user_id", ownerId)
-    .eq("is_public", true)
     .order("updated_at", { ascending: false });
-  if (error || !data) return [];
-  return data as DashboardViajesRow[];
+  if (error || !data) return { ok: false, rows: [], error: error?.message ?? "no_data" };
+  return { ok: true, rows: data as DashboardAutosClassifiedsRow[] };
 }
 
 export async function fetchOwnerAutosClassifiedsListings(
   sb: SupabaseClient,
   ownerId: string,
 ): Promise<DashboardAutosClassifiedsRow[]> {
-  const { data, error } = await sb
-    .from("autos_classifieds_listings")
-    .select(
-      "id, status, lane, lang, listing_payload, published_at, updated_at, leonix_ad_id, inventory_role, dealer_inventory_parent_listing_id",
-    )
-    .eq("owner_user_id", ownerId)
-    .order("updated_at", { ascending: false });
-  if (error || !data) return [];
-  return data as DashboardAutosClassifiedsRow[];
+  return (await readOwnerAutosClassifiedsListings(sb, ownerId)).rows;
 }
 
 /** Mirrors `autosClassifiedsRowToDashboardRow` (admin) — prefer the stored/edited
@@ -281,6 +345,13 @@ export function buildAutosClassifiedsInventoryItems(
       category: "autos_paid",
       title: autosClassifiedsTitleFromPayload(row.listing_payload, lang),
       status: row.status,
+      isPublicLive: dashboardInventoryRowIsPubliclyLive({
+        category: "autos_paid",
+        status: row.status,
+        lane: row.lane,
+        expiresAt: row.expires_at ?? null,
+      }),
+      awaitingPayment: isAutosPrivadoAwaitingPayment({ lane: row.lane, status: row.status }),
       publicHref: `/clasificados/autos/vehiculo/${encodeURIComponent(row.id)}?${q}`,
       editHref,
       previewHref,
@@ -322,6 +393,7 @@ export function buildServiciosInventoryItems(rows: ServiciosMyListingApiRow[], l
       title: row.business_name?.trim() || row.slug,
       status: row.listing_status,
       statusDisplay: resolveOwnerDashboardStatusDisplay("servicios", row.listing_status),
+      isPublicLive: dashboardInventoryRowIsPubliclyLive({ category: "servicios", status: row.listing_status }),
       publicHref: actionContract.publicUrl ?? `/clasificados/servicios/${encodeURIComponent(row.slug)}?${q}`,
       editHref:
         serviciosListingEditHref({
@@ -358,17 +430,20 @@ export function buildServiciosInventoryItems(rows: ServiciosMyListingApiRow[], l
  * Loads owner Servicios rows from the authenticated API (same source as `/dashboard/servicios` cloud path).
  * Call from client components only (uses `window.location.origin` + `fetch`).
  */
-export async function fetchOwnerServiciosListings(accessToken: string | null): Promise<ServiciosMyListingApiRow[]> {
-  if (!accessToken?.trim()) return [];
-  if (typeof window === "undefined") return [];
+export async function readOwnerServiciosListings(
+  accessToken: string | null,
+): Promise<DashboardOwnerReadResult<ServiciosMyListingApiRow>> {
+  if (typeof window === "undefined") return { ok: true, rows: [] };
+  // A signed-in owner with no bearer token cannot read this API: that is a failed read, not an empty inventory.
+  if (!accessToken?.trim()) return { ok: false, rows: [], error: "no_session" };
   try {
     const res = await fetch(`${window.location.origin}/api/clasificados/servicios/my-listings`, {
       headers: { Authorization: `Bearer ${accessToken.trim()}` },
       cache: "no-store",
     });
-    if (!res.ok) return [];
+    if (!res.ok) return { ok: false, rows: [], error: `http_${res.status}` };
     const json = (await res.json()) as { ok?: boolean; listings?: unknown };
-    if (!json?.ok || !Array.isArray(json.listings)) return [];
+    if (!json?.ok || !Array.isArray(json.listings)) return { ok: false, rows: [], error: "bad_payload" };
     const out: ServiciosMyListingApiRow[] = [];
     for (const raw of json.listings) {
       if (!raw || typeof raw !== "object") continue;
@@ -387,16 +462,25 @@ export async function fetchOwnerServiciosListings(accessToken: string | null): P
         offers_addon_active: o.offers_addon_active === true,
       });
     }
-    return out;
+    return { ok: true, rows: out };
   } catch {
-    return [];
+    return { ok: false, rows: [], error: "network" };
   }
+}
+
+export async function fetchOwnerServiciosListings(accessToken: string | null): Promise<ServiciosMyListingApiRow[]> {
+  return (await readOwnerServiciosListings(accessToken)).rows;
 }
 
 function viajesStagedPreviewPath(lane: string): string {
   const raw = String(lane ?? "").trim().toLowerCase();
   if (raw === "private") return "/clasificados/viajes/preview/privado";
   return "/clasificados/viajes/preview/negocios";
+}
+
+/** Owner staged-submission preview href: lane page + the row's own `stagedId` (never a stage-less preview). */
+export function viajesStagedPreviewHref(row: { id: string; lane: string }, lang: Lang): string {
+  return appendLangToPath(`${viajesStagedPreviewPath(row.lane)}?stagedId=${encodeURIComponent(row.id)}`, lang);
 }
 
 /** Dashboard Mis anuncios preview for saved Restaurante listings — live public detail with identity. */
@@ -424,12 +508,18 @@ export function buildRestaurantInventoryItems(
   const q = `lang=${lang}`;
   return rows.map((row) => {
   const addonStatus: AddonLifecycleStatus = addonStatusByListingId?.get(row.id) ?? "not_purchased";
+  // CLOSEOUT 2 — the public slug page only ever renders a `published` row, so a pending_payment listing's
+  // "Vista previa" (which targets that page) would 404: it is dropped until the row is live, and the owner is
+  // offered the draft preview / "Completar pago" resume flow instead (see dashboardMisAnunciosCategoryTools).
+  const restaurantLive = dashboardInventoryRowIsPubliclyLive({ category: "restaurantes", status: row.status });
   return {
     id: row.id,
     category: "restaurantes",
     title: row.business_name,
     status: row.status,
     statusDisplay: resolveOwnerDashboardStatusDisplay("restaurantes", row.status),
+    isPublicLive: restaurantLive,
+    awaitingPayment: isRestauranteAwaitingPayment(row.status),
     publicHref: `/clasificados/restaurantes/${encodeURIComponent(row.slug)}?${q}`,
     editHref: restauranteListingEditHref({
       lang,
@@ -437,12 +527,14 @@ export function buildRestaurantInventoryItems(
       leonixAdId: row.leonix_ad_id,
       returnPanel: "restaurantes",
     }),
-    previewHref: restauranteDashboardListingPreviewHref({
-      lang,
-      slug: row.slug,
-      listingId: row.id,
-      leonixAdId: row.leonix_ad_id,
-    }),
+    previewHref: restaurantLive
+      ? restauranteDashboardListingPreviewHref({
+          lang,
+          slug: row.slug,
+          listingId: row.id,
+          leonixAdId: row.leonix_ad_id,
+        })
+      : null,
     resultsHref: `/clasificados/restaurantes/resultados?${q}&q=${encodeURIComponent(row.business_name)}`,
     analyticsHref: `/dashboard/analytics?${q}`,
     publishedAt: row.published_at,
@@ -470,12 +562,30 @@ export function buildEmpleosInventoryItems(
 ): DashboardInventoryItem[] {
   const q = `lang=${lang}`;
   const L = lang as Lang;
-  return rows.map((row) => ({
+  return rows.map((row) => {
+  // CLOSEOUT 2 — a paid-lane (quick / premium) `draft` is an UNPAID application, not a draft the owner can
+  // just "resume": show it as awaiting payment (truthful) and offer Revenue OS checkout for that row.
+  const awaitingPayment = isEmpleosDraftAwaitingPayment({ lane: row.lane, lifecycle_status: row.lifecycle_status });
+  const empleoLive = dashboardInventoryRowIsPubliclyLive({ category: "empleos", status: row.lifecycle_status });
+  return {
     id: row.id,
     category: "empleos",
     title: row.title,
     status: row.lifecycle_status,
-    statusDisplay: resolveOwnerDashboardStatusDisplay("empleos", row.lifecycle_status),
+    statusDisplay: awaitingPayment
+      ? {
+          displayKey: "pending_payment" as const,
+          labelEs: dashboardAwaitingPaymentLabel("es"),
+          labelEn: dashboardAwaitingPaymentLabel("en"),
+          tone: "warn" as const,
+          rawStatus: row.lifecycle_status,
+          category: "empleos",
+        }
+      : resolveOwnerDashboardStatusDisplay("empleos", row.lifecycle_status),
+    isPublicLive: empleoLive,
+    awaitingPayment,
+    empleosLane: row.lane,
+    moderationReason: typeof row.moderation_reason === "string" && row.moderation_reason.trim() ? row.moderation_reason.trim() : null,
     publicHref: appendLangToPath(`/clasificados/empleos/${encodeURIComponent(row.slug)}`, L),
     /** Manage applications + lifecycle — route param is listing id, not slug. */
     editHref: `/dashboard/empleos/${encodeURIComponent(row.id)}?${q}`,
@@ -488,10 +598,10 @@ export function buildEmpleosInventoryItems(
        already used for Restaurantes/Bienes Raíces Privado: an existing, identified listing's
        "Vista previa" opens its own real public page (always the true published truth, and
        structurally has no checkout widget) instead of the draft-based application preview. */
-    previewHref: appendLangToPath(`/clasificados/empleos/${encodeURIComponent(row.slug)}`, L),
+    previewHref: empleoLive ? appendLangToPath(`/clasificados/empleos/${encodeURIComponent(row.slug)}`, L) : null,
     resultsHref: `/clasificados/empleos/resultados?${q}`,
     analyticsHref: `/dashboard/empleos?${q}`,
-    publishedAt: null,
+    publishedAt: row.published_at ?? null,
     updatedAt: row.updated_at,
     image: null,
     leonixAdId: typeof row.leonix_ad_id === "string" && row.leonix_ad_id.trim() ? row.leonix_ad_id.trim() : null,
@@ -501,7 +611,8 @@ export function buildEmpleosInventoryItems(
     verified: false,
     draftListingId: null,
     source: "empleos_public_listings",
-  }));
+  };
+  });
 }
 
 export function buildViajesInventoryItems(
@@ -516,9 +627,16 @@ export function buildViajesInventoryItems(
     title: row.title,
     status: row.lifecycle_status,
     statusDisplay: resolveOwnerDashboardStatusDisplay("viajes", row.lifecycle_status),
+    isPublicLive: dashboardInventoryRowIsPubliclyLive({
+      category: "viajes",
+      status: row.lifecycle_status,
+      isPublic: row.is_public,
+    }),
     publicHref: appendLangToPath(`/clasificados/viajes/oferta/${encodeURIComponent(row.slug)}`, L),
     editHref: `/dashboard/viajes?${q}&stagedId=${encodeURIComponent(row.id)}`,
-    previewHref: appendLangToPath(viajesStagedPreviewPath(row.lane), L),
+    // Gate 2 (item 4): the staged preview renders the OWNER'S submission by `stagedId`; without it the page had
+    // nothing to load and showed an empty / generic draft. Same id the dashboard/viajes page passes.
+    previewHref: viajesStagedPreviewHref(row, L),
     resultsHref: `/clasificados/viajes/resultados?${q}`,
     analyticsHref: `/dashboard/viajes?${q}`,
     publishedAt: row.published_at,

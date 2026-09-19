@@ -36,6 +36,14 @@ import { resolveListingLifecycle } from "@/app/lib/listingLifecycle/resolveListi
 import { AdminListingFlagTruthBlock } from "./_components/AdminListingFlagTruthBlock";
 import type { ListingFlagReportContext } from "@/app/admin/_lib/adminReviewFlagContext";
 import type { ListingModerationReviewSummary } from "@/app/admin/_lib/listingModerationReviewTypes";
+import type { AdminListingCommercialTruthMap } from "@/app/admin/_lib/adminListingCommercialTruth";
+import {
+  AdminCommercialTruthSection,
+  AdminListingCardSections,
+  AdminListingTruthSection,
+  AdminRowChips,
+} from "./_components/normalized/AdminListingCardSections";
+import { adminListingTruthForListingsRow } from "./_lib/adminNormalizedShell";
 
 type Row = {
   id: string;
@@ -169,9 +177,10 @@ function clasificadosLeonixAdminLine(row: Row, detailPairsAvailable: boolean): s
 
 function adminDisplayLeonixAdId(row: Row): string {
   const cat = (row.category ?? "").toLowerCase();
-  if (cat === "clases" || cat === "comunidad" || cat === "busco") return formatLeonixAdId(row.id) ?? "—";
+  // Stored Leonix Ad ID first (what search / payments / support use); derived LNX- only as a fallback.
   const stored = row.leonix_ad_id?.trim();
   if (stored) return stored;
+  if (cat === "clases" || cat === "comunidad" || cat === "busco") return formatLeonixAdId(row.id) ?? "—";
   return "—";
 }
 
@@ -229,6 +238,7 @@ export default function AdminListingsTable({
   flagReportByListingId = {},
   ownerEmailByUserId = {},
   aiReviewByListingId = {},
+  commercialTruthByListingId,
 }: {
   listings: Row[];
   /** When false, DB has no `listings.detail_pairs` — En Venta visibility column is degraded. */
@@ -242,6 +252,12 @@ export default function AdminListingsTable({
   flagReportByListingId?: Record<string, ListingFlagReportContext>;
   ownerEmailByUserId?: Record<string, string>;
   aiReviewByListingId?: Record<string, ListingModerationReviewSummary>;
+  /**
+   * COMMERCIAL TRUTH (read-only) per listing id, from `loadAdminListingCommercialTruth`. When the
+   * page did not load it the row says so ("not loaded") — it never falls back to plan-config
+   * monetization as if that were paid truth.
+   */
+  commercialTruthByListingId?: AdminListingCommercialTruthMap;
 }) {
   const pathname = usePathname() ?? "";
   const searchParams = useSearchParams();
@@ -345,6 +361,11 @@ export default function AdminListingsTable({
     setError(null);
     try {
       const result = await bulkSoftDeleteListingsAction(rows.map((r) => r.id));
+      // Whole-batch refusal is RETURNED (production redacts thrown server-action messages): show the safe reason.
+      if (result.error) {
+        setError(result.error.message);
+        return;
+      }
       clearSelection();
       redirectAfterBulkAction(rows, "bulk_soft_delete", result, "Deleted");
     } catch (e) {
@@ -366,6 +387,10 @@ export default function AdminListingsTable({
     setError(null);
     try {
       const result = await permanentlyDeleteListingsAction(rows.map((r) => r.id));
+      if (result.error) {
+        setError(result.error.message);
+        return;
+      }
       clearSelection();
       redirectAfterBulkAction(rows, "bulk_permanent_delete", result, "Permanently deleted");
     } catch (e) {
@@ -471,7 +496,13 @@ export default function AdminListingsTable({
     setError(null);
     const scrollY = window.scrollY;
     try {
-      await deleteListingAction(row.id);
+      const result = await deleteListingAction(row.id);
+      if (!result.ok) {
+        // The guard refusal is RETURNED (production Next redacts a thrown server-action Error message):
+        // render the safe, useful reason instead of a generic failure.
+        redirectAfterStaffAction(row, "delete", "error", result.message);
+        return;
+      }
       const meta = rowProofMeta(row);
       const url = buildAdminActionReturnUrl({
         returnTo,
@@ -498,7 +529,11 @@ export default function AdminListingsTable({
     setError(null);
     const action = published ? "show_public" : "hide_public";
     try {
-      await setListingPublishedAction(row.id, published);
+      const result = await setListingPublishedAction(row.id, published);
+      if (!result.ok) {
+        redirectAfterStaffAction(row, action, "error", result.message);
+        return;
+      }
       redirectAfterStaffAction(row, action, "success");
     } catch (e) {
       const errMsg = e instanceof Error ? e.message : t("listings.errPublish");
@@ -591,8 +626,8 @@ export default function AdminListingsTable({
             flagged filter active
           </span>
         ) : null}
-        <span>
-          pending {listings.filter((r) => r.status === "pending").length} · flagged{" "}
+        <span title="Counts over the rows loaded in this view only — the operating summary above has the category totals.">
+          in this view: pending {listings.filter((r) => r.status === "pending").length} · flagged{" "}
           {listings.filter((r) => r.status === "flagged").length} · removed{" "}
           {listings.filter((r) => r.status === "removed").length}
         </span>
@@ -620,7 +655,7 @@ export default function AdminListingsTable({
 
     <div className={`${adminTableWrap} ${adminDesktopTableOnly}`} data-testid="clasificados-desktop-table">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] text-left text-sm">
+        <table className={`w-full ${staffQueueMode ? "min-w-[1040px]" : "min-w-[720px]"} text-left text-sm`}>
           <thead>
             <tr className="border-b border-[#E8DFD0] bg-[#FAF7F2]/90">
               {staffQueueMode ? (
@@ -630,7 +665,12 @@ export default function AdminListingsTable({
                   </th>
                   <th className="min-w-[220px] p-3 font-semibold text-[#5C4E2E]">{t("listings.col.title")}</th>
                   <th className="p-3 font-semibold text-[#5C4E2E]">{t("listings.col.category")}</th>
-                  <th className="p-3 font-semibold text-[#5C4E2E]">{t("listings.col.status")}</th>
+                  <th className="min-w-[13rem] p-3 font-semibold text-[#5C4E2E]" data-testid="clasificados-col-listing-truth">
+                    {t("catShell.section.listing")} / {t("catShell.section.moderation")}
+                  </th>
+                  <th className="min-w-[13rem] p-3 font-semibold text-[#5C4E2E]" data-testid="clasificados-col-commercial-truth">
+                    {t("catShell.section.commercial")}
+                  </th>
                   <th className="p-3 font-semibold text-[#5C4E2E]">{t("listings.col.owner")}</th>
                   <th className="p-3 font-semibold text-[#5C4E2E]">{t("listings.col.date")}</th>
                   <th className="min-w-[18rem] border-l-2 border-[#C9B46A]/40 bg-[#FFFCF7]/95 p-3 font-semibold text-[#5C4E2E]">
@@ -716,6 +756,9 @@ export default function AdminListingsTable({
                           {row.leonix_verified ? t("autosQueue.yes") : t("autosQueue.no")} verified
                         </span>
                       </div>
+                      <div className="mt-1.5">
+                        <AdminRowChips row={row} lang={lang} />
+                      </div>
                     </td>
                     <td className="p-3 align-top">
                       <span className="rounded-md bg-[#FBF7EF] px-2 py-0.5 text-xs font-semibold text-[#5C4E2E]">
@@ -723,17 +766,15 @@ export default function AdminListingsTable({
                       </span>
                     </td>
                     <td className="p-3 align-top">
-                      <span
-                        className={
-                          row.status === "removed"
-                            ? "font-bold text-red-700"
-                            : row.status === "pending" || row.status === "flagged"
-                              ? "font-bold text-amber-800"
-                              : "font-semibold text-[#5C5346]"
-                        }
-                      >
-                        {row.status ?? "active"}
-                      </span>
+                      <AdminListingTruthSection
+                        lang={lang}
+                        status={row.status ?? "active"}
+                        truth={adminListingTruthForListingsRow(
+                          row as unknown as Record<string, unknown>,
+                          commercialTruthByListingId?.[row.id],
+                        )}
+                        compact
+                      />
                       <AdminListingFlagTruthBlock
                         listingId={row.id}
                         leonixAdId={adminDisplayLeonixAdId(row)}
@@ -743,6 +784,9 @@ export default function AdminListingsTable({
                         aiReview={aiReviewByListingId[row.id]}
                         compact
                       />
+                    </td>
+                    <td className="p-3 align-top" data-testid="clasificados-row-commercial-truth">
+                      <AdminCommercialTruthSection lang={lang} truth={commercialTruthByListingId?.[row.id]} compact />
                     </td>
                     <td className="p-3 align-top">
                       {row.owner_id ? (
@@ -928,27 +972,73 @@ export default function AdminListingsTable({
                   </span>
                 ) : null}
               </div>
-              <AdminListingFlagTruthBlock
-                listingId={row.id}
-                leonixAdId={displayLeonixAdId}
-                listingTitle={row.title}
-                status={row.status}
-                report={flagReportByListingId[row.id]}
-                aiReview={aiReviewByListingId[row.id]}
-              />
-              <div className="mt-4 border-t border-[#E8DFD0]/80 pt-3">
-                <ClassifiedAdminQueueRowActionsPanel
-                  row={row}
-                  displayLeonixAdId={displayLeonixAdId}
-                  layout="card"
-                  staffQueueMode={staffQueueMode}
-                  publishBusyId={publishBusyId}
-                  deletingId={deletingId}
-                  onSetPublished={handleSetPublished}
-                  onDelete={handleDelete}
-                  ownerEmail={row.owner_id ? ownerEmailByUserId[row.owner_id] ?? null : null}
+              {staffQueueMode ? (
+                <AdminListingCardSections
+                  lang={lang}
+                  className="mt-3 border-t border-[#E8DFD0]/80 pt-3"
+                  header={<AdminRowChips row={row} lang={lang} />}
+                  listingTruth={
+                    <AdminListingTruthSection
+                      lang={lang}
+                      status={row.status ?? "active"}
+                      truth={adminListingTruthForListingsRow(
+                        row as unknown as Record<string, unknown>,
+                        commercialTruthByListingId?.[row.id],
+                      )}
+                    />
+                  }
+                  commercialTruth={<AdminCommercialTruthSection lang={lang} truth={commercialTruthByListingId?.[row.id]} />}
+                  moderation={
+                    (row.status ?? "").toLowerCase() === "flagged" || (row.status ?? "").toLowerCase() === "pending" ? (
+                      <AdminListingFlagTruthBlock
+                        listingId={row.id}
+                        leonixAdId={displayLeonixAdId}
+                        listingTitle={row.title}
+                        status={row.status}
+                        report={flagReportByListingId[row.id]}
+                        aiReview={aiReviewByListingId[row.id]}
+                      />
+                    ) : undefined
+                  }
+                  actions={
+                    <ClassifiedAdminQueueRowActionsPanel
+                      row={row}
+                      displayLeonixAdId={displayLeonixAdId}
+                      layout="card"
+                      staffQueueMode={staffQueueMode}
+                      publishBusyId={publishBusyId}
+                      deletingId={deletingId}
+                      onSetPublished={handleSetPublished}
+                      onDelete={handleDelete}
+                      ownerEmail={row.owner_id ? ownerEmailByUserId[row.owner_id] ?? null : null}
+                    />
+                  }
                 />
-              </div>
+              ) : (
+                <>
+                  <AdminListingFlagTruthBlock
+                    listingId={row.id}
+                    leonixAdId={displayLeonixAdId}
+                    listingTitle={row.title}
+                    status={row.status}
+                    report={flagReportByListingId[row.id]}
+                    aiReview={aiReviewByListingId[row.id]}
+                  />
+                  <div className="mt-4 border-t border-[#E8DFD0]/80 pt-3">
+                    <ClassifiedAdminQueueRowActionsPanel
+                      row={row}
+                      displayLeonixAdId={displayLeonixAdId}
+                      layout="card"
+                      staffQueueMode={staffQueueMode}
+                      publishBusyId={publishBusyId}
+                      deletingId={deletingId}
+                      onSetPublished={handleSetPublished}
+                      onDelete={handleDelete}
+                      ownerEmail={row.owner_id ? ownerEmailByUserId[row.owner_id] ?? null : null}
+                    />
+                  </div>
+                </>
+              )}
             </article>
           );
         })

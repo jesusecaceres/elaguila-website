@@ -3,6 +3,7 @@
  */
 
 import { canOfertaLocalItemBePubliclyEligible } from "./ofertasLocalesAiDbMapper";
+import { OFERTAS_LOCALES_COUPON_PROMOTION_OFFER_TYPES } from "./ofertasLocalesConstants";
 import { normalizeOfertaLocalSourceBbox } from "./ofertasLocalesBoundingBoxes";
 import {
   formatOfertaLocalItemPriceDisplay,
@@ -10,6 +11,7 @@ import {
   getSafeOfertaLocalSourceAssetHref,
 } from "./ofertasLocalesClickableItemPreviewHelpers";
 import {
+  isOfertaLocalActiveByDates,
   isOfertaLocalExpired,
   isOfertaLocalPublicTermActive,
   normalizeOfertaLocalSearchText,
@@ -217,6 +219,18 @@ export function isOfertaLocalPublicSearchRowEligible(
   const parent = row.ofertas_locales;
   if (!PUBLIC_PARENT_STATUSES.has(parent.status)) return false;
   if (!isOfertaLocalPublicTermActive(parent.published_at, parent.expires_at, now)) return false;
+  // Gate 9 (2026-09 parity): an item is publicly searchable ONLY when its parent offer is itself publicly
+  // eligible (list `isOfertaLocalPublicOfferRowEligible` + detail). Previously a parent with no
+  // `public_source_asset_id`, a non-`current` asset lifecycle, or a coupon lane outside its valid dates
+  // stayed searchable here while its list card and detail page were hidden (search result -> 404).
+  if (!String(parent.public_source_asset_id ?? "").trim()) return false;
+  if ((parent.asset_lifecycle_status ?? "current") !== "current") return false;
+  if (
+    (OFERTAS_LOCALES_COUPON_PROMOTION_OFFER_TYPES as ReadonlySet<string>).has(parent.offer_type) &&
+    !isOfertaLocalActiveByDates(parent.valid_from, parent.valid_until, now)
+  ) {
+    return false;
+  }
   if (row.review_status !== "approved") return false;
   if (!row.is_active) return false;
   if ((row.source_lifecycle_status ?? "active") !== "active") return false;

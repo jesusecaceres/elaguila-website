@@ -157,6 +157,8 @@ function DashboardServiciosPageContent() {
   const [plan, setPlan] = useState<Plan>("free");
   const [userId, setUserId] = useState<string | null>(null);
   const [rows, setRows] = useState<MergedRow[]>([]);
+  /** Gate 2: the owner's cloud Servicios read FAILED - shown as an error, never as "no listings". */
+  const [cloudReadFailed, setCloudReadFailed] = useState(false);
   const [leads, setLeads] = useState<
     { id: string; listing_slug: string; sender_name: string; sender_email: string; message: string; request_kind: string; created_at: string }[]
   >([]);
@@ -266,6 +268,9 @@ function DashboardServiciosPageContent() {
               yelp_review_url?: string | null;
             }[];
           };
+          if (!res.ok || !j.ok || !Array.isArray(j.listings)) {
+            if (mounted) setCloudReadFailed(true);
+          }
           if (j.ok && Array.isArray(j.listings)) {
             for (const r of j.listings) {
               bySlug.set(r.slug, {
@@ -285,7 +290,7 @@ function DashboardServiciosPageContent() {
             }
           }
         } catch {
-          /* ignore */
+          if (mounted) setCloudReadFailed(true);
         }
         try {
           const lr = await fetch("/api/clasificados/servicios/my-leads", {
@@ -475,9 +480,23 @@ function DashboardServiciosPageContent() {
         secondaryAction={{ href: `/clasificados/servicios/resultados?${q}`, label: publicResultsLabel(lang) }}
         loading={loading}
         loadingLabel={t.loading}
-        empty={!loading && rows.length === 0}
+        error={
+          !loading && rows.length === 0 && cloudReadFailed
+            ? lang === "es"
+              ? "No pudimos cargar tus servicios. Actualiza la página e inténtalo de nuevo."
+              : "We could not load your services. Refresh the page and try again."
+            : null
+        }
+        empty={!loading && !cloudReadFailed && rows.length === 0}
         emptyLabel={t.empty}
       >
+        {cloudReadFailed && rows.length > 0 ? (
+          <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
+            {lang === "es"
+              ? "No pudimos cargar todos tus servicios; puede que falten algunos. Actualiza la página."
+              : "We could not load all of your services; some may be missing. Refresh the page."}
+          </p>
+        ) : null}
         {manageNotice ? (
           <p role="alert" className="mb-4 rounded-xl border border-[#C9A84A]/50 bg-[#FFFCF7] px-4 py-3 text-sm text-[#3D3428]">
             {manageNotice}

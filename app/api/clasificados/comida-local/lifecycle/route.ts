@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
   const supabase = getAdminSupabase();
   const { data: existing, error: readError } = await supabase
     .from("comida_local_public_listings")
-    .select("id, owner_user_id, status")
+    .select("id, owner_user_id, status, suspended_reason")
     .eq("id", listingId)
     .maybeSingle();
   if (readError) {
@@ -62,6 +62,11 @@ export async function POST(request: NextRequest) {
   const currentStatus = String(existing.status ?? "");
   const expectedFrom = action === "pause" ? "published" : "paused";
   const nextStatus = action === "pause" ? "paused" : "published";
+  // A paused row carrying a suspended_reason was paused by STAFF (archive) or the payment engine - the owner cannot resume it.
+  const heldReason = typeof (existing as { suspended_reason?: unknown }).suspended_reason === "string" ? String((existing as { suspended_reason?: unknown }).suspended_reason).trim() : "";
+  if (action === "resume" && heldReason) {
+    return NextResponse.json({ ok: false, error: "staff_hold" }, { status: 403 });
+  }
   if (currentStatus !== expectedFrom) {
     return NextResponse.json(
       { ok: false, error: "invalid_status_transition", status: currentStatus },
@@ -75,6 +80,7 @@ export async function POST(request: NextRequest) {
     .eq("id", listingId)
     .eq("owner_user_id", ownerUserId)
     .eq("status", expectedFrom)
+    .is("suspended_reason", null)
     .select("id");
   if (updateError) {
     return NextResponse.json({ ok: false, error: "update_failed" }, { status: 500 });

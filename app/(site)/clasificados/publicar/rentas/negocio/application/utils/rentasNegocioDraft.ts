@@ -7,6 +7,7 @@ import {
   inlineRentasNegocioHeavyMediaFromIdb,
   offloadRentasNegocioHeavyMediaToIdb,
 } from "./rentasNegocioDraftMedia";
+import { clearRealEstateDraftLifecycleForLaneInBrowser } from "@/app/(site)/clasificados/lib/realEstateDraftKey";
 import { rentasCategoriaPropiedadForTipo } from "@/app/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
 
 export const RENTAS_NEGOCIO_DRAFT_STORAGE_KEY = "rentas-negocio-draft-v1";
@@ -96,6 +97,9 @@ export async function saveRentasNegocioDraft(state: RentasNegocioFormState): Pro
 
 export async function clearRentasNegocioDraft(): Promise<void> {
   if (typeof window === "undefined") return;
+  // The application's draft key lives exactly as long as this draft (checkout hand-off, delete/reset): a
+  // NEW application in this tab must not inherit it and overwrite the abandoned pending row.
+  clearRealEstateDraftLifecycleForLaneInBrowser({ category: "rentas", sellerType: "business" }, "application_draft_cleared");
   try {
     sessionStorage.removeItem(RENTAS_NEGOCIO_DRAFT_STORAGE_KEY);
     localStorage.removeItem(RENTAS_NEGOCIO_DRAFT_LS_FALLBACK_KEY);

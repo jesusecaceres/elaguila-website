@@ -1,29 +1,47 @@
-import Link from "next/link";
 import { Suspense } from "react";
 
 import {
   ADMIN_QUEUE_DEFAULT_LIMIT,
   normalizeAdminQueueLimit,
 } from "@/app/admin/_lib/adminQueueActionFlow";
-import { adminBtnSecondary, adminCardBase } from "@/app/admin/_components/adminTheme";
 import { ClasificadosQueueActionChrome } from "../_components/ClasificadosQueueActionChrome";
 import { ClasificadosQueueHeader } from "../_components/ClasificadosQueueHeader";
-import { ClasificadosScopeNav } from "../_components/ClasificadosScopeNav";
+import { AdminCategoryFilterBar } from "../_components/normalized/AdminCategoryFilterBar";
+import { AdminListTruncationNotice } from "../_components/normalized/AdminListTruncationNotice";
+import { adminAnyFilterActive } from "@/app/admin/_lib/adminFilterTruth";
+import { AdminCategorySummaryPanel } from "../_components/normalized/AdminCategorySummaryPanel";
 import { clasificadosQueueSurfaceForSlug } from "../_lib/clasificadosQueueSurfaceMeta";
 import {
   appendPreservedSearchParams,
   parseAdminScope,
 } from "../_lib/clasificadosAdminScopeUrls";
+import { fetchAdminCategorySummary, type AdminCategorySummary } from "@/app/admin/_lib/adminCategorySummary";
 import { getAdminLang } from "@/app/admin/_lib/adminI18n";
-import { adminMessages } from "@/app/admin/_lib/adminStrings";
+import {
+  loadAdminListingCommercialTruth,
+  type AdminListingCommercialTruthMap,
+} from "@/app/admin/_lib/adminListingCommercialTruth";
+import type { PublicationTruth } from "@/app/admin/_lib/publicationSemantics";
+import { adminCardBase } from "@/app/admin/_components/adminTheme";
+import { adminTr } from "@/app/admin/_lib/adminStrings";
 import { ComidaLocalAdminListings } from "@/app/lib/clasificados/comida-local/ComidaLocalAdminListings";
-import { listAdminComidaLocalListings } from "@/app/lib/clasificados/comida-local/comidaLocalAdminQueries";
+import {
+  listAdminComidaLocalListingsDetailed,
+  type ComidaLocalAdminListResult,
+} from "@/app/lib/clasificados/comida-local/comidaLocalAdminQueries";
 import { mapComidaLocalRowsToAdminVms } from "@/app/lib/clasificados/comida-local/mapComidaLocalAdminListing";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
-import { updateComidaLocalPublicListingStatusAction } from "./actions";
+import {
+  COMIDA_LOCAL_STATUS_FILTER_OPTIONS,
+  comidaListingTruth,
+  comidaPublishedPaymentAnomaly,
+  comidaRowLifecycleActions,
+} from "./comidaAdminView";
 
 export const dynamic = "force-dynamic";
+
+const BASE_PATH = "/admin/workspace/clasificados/comida-local";
 
 function firstParam(v: string | string[] | undefined): string | undefined {
   if (typeof v === "string") return v;
@@ -35,141 +53,150 @@ type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
+const FIELD = "rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs text-[#1E1810] min-h-[40px] font-mono";
+
 export default async function AdminComidaLocalPublicListingsPage(props: PageProps) {
   const lang = await getAdminLang();
-  const m = adminMessages(lang);
   const configured = isSupabaseAdminConfigured();
   const sp = props.searchParams ? await props.searchParams : {};
   const scope = parseAdminScope(sp);
-  const basePath = "/admin/workspace/clasificados/comida-local";
-  const queueHref = appendPreservedSearchParams(basePath, sp, null);
-  const liveHref = appendPreservedSearchParams(basePath, sp, "live");
-  const hasFilters = !!(
-    firstParam(sp.q) ||
-    firstParam(sp.slug) ||
-    firstParam(sp.id) ||
-    firstParam(sp.leonix_ad_id) ||
-    firstParam(sp.owner_user_id)
-  );
-  const queueLimit = normalizeAdminQueueLimit(firstParam(sp.limit), ADMIN_QUEUE_DEFAULT_LIMIT);
-  const inspectId = firstParam(sp.id) ?? null;
+  const queueHref = appendPreservedSearchParams(BASE_PATH, sp, null);
+  const liveHref = appendPreservedSearchParams(BASE_PATH, sp, "live");
 
-  const rowsRaw = configured
-    ? await listAdminComidaLocalListings(getAdminSupabase(), {
+  const q = (firstParam(sp.q) ?? "").trim();
+  const slug = (firstParam(sp.slug) ?? "").trim();
+  const id = (firstParam(sp.id) ?? "").trim();
+  const leonixAdId = (firstParam(sp.leonix_ad_id) ?? "").trim();
+  // The filter bar's Owner field is `owner`; the old page used `owner_user_id` (still honoured).
+  const owner = (firstParam(sp.owner) ?? firstParam(sp.owner_user_id) ?? "").trim();
+  const status = (firstParam(sp.status) ?? "").trim().toLowerCase();
+  const queueLimit = normalizeAdminQueueLimit(firstParam(sp.limit), ADMIN_QUEUE_DEFAULT_LIMIT);
+  const inspectId = id || null;
+  const hasFilters = Boolean(q || slug || id || leonixAdId || owner || status);
+
+  // Every filter (status, owner, Leonix Ad ID, q, slug, id) runs in SQL BEFORE the row limit.
+  const list: ComidaLocalAdminListResult = configured
+    ? await listAdminComidaLocalListingsDetailed(getAdminSupabase(), {
         limit: queueLimit,
         scope: scope === "live" ? "live" : "queue",
-        q: firstParam(sp.q),
-        slug: firstParam(sp.slug),
-        id: firstParam(sp.id),
-        leonix_ad_id: firstParam(sp.leonix_ad_id),
-        owner_user_id: firstParam(sp.owner_user_id),
+        q: q || undefined,
+        slug: slug || undefined,
+        id: id || undefined,
+        leonix_ad_id: leonixAdId || undefined,
+        owner_user_id: owner || undefined,
+        status: status || undefined,
       })
-    : [];
+    : { rows: [], error: null };
+  const rowsRaw = list.rows;
 
   const items = mapComidaLocalRowsToAdminVms(rowsRaw, lang === "en" ? "en" : "es");
 
+  // Listing truth + read-only commercial truth + the canonical payment-aware action set, per row.
+  const rowRecords = Object.fromEntries(rowsRaw.map((r) => [r.id, r as unknown as Record<string, unknown>]));
+  const listingTruthById: Record<string, PublicationTruth> = {};
+  const actionsById: Record<string, ReturnType<typeof comidaRowLifecycleActions>> = {};
+  const paymentAnomalyById: Record<string, string | null> = {};
+  const suspendedReasonById: Record<string, string | null> = {};
+  for (const r of rowsRaw) {
+    const rec = rowRecords[r.id];
+    listingTruthById[r.id] = comidaListingTruth(rec);
+    actionsById[r.id] = comidaRowLifecycleActions(r);
+    paymentAnomalyById[r.id] = comidaPublishedPaymentAnomaly(rec);
+    suspendedReasonById[r.id] = r.suspended_reason ?? null;
+  }
+  const commercialTruthByListingId: AdminListingCommercialTruthMap =
+    configured && rowsRaw.length > 0
+      ? await loadAdminListingCommercialTruth({
+          category: "comida-local",
+          listingIds: rowsRaw.map((r) => r.id),
+          listingRowsById: rowRecords,
+        })
+      : {};
+
   const surface = clasificadosQueueSurfaceForSlug("comida-local");
-  const pageTitle =
-    scope === "live"
-      ? m("listingsCategoryOps.titleLive", { slug: "comida-local" })
-      : m("listingsCategoryOps.titleQueue", { slug: "comida-local" });
-  const pageSubtitle =
-    scope === "live" ? m("listingsCategoryOps.subLive") : m("listingsCategoryOps.subQueue");
+  let summary: AdminCategorySummary;
+  try {
+    summary = await fetchAdminCategorySummary("comida-local");
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "summary query failed";
+    summary = {
+      slug: "comida-local",
+      total: null,
+      live: null,
+      needsAttention: null,
+      paymentIssue: null,
+      expired: null,
+      sourceHealth: { ok: false, source: surface.sourceTable, note: msg },
+      queryError: msg,
+    };
+  }
 
   return (
     <div className="max-w-[1200px] space-y-6">
       <ClasificadosQueueHeader
-        title={pageTitle}
+        lang={lang}
+        categoryName="Comida Local"
+        scope={scope === "live" ? "live" : "queue"}
         sourceTable={surface.sourceTable}
-        subtitle={pageSubtitle}
+        subtitle={adminTr(lang, scope === "live" ? "comidaAdmin.subLive" : "comidaAdmin.subQueue")}
         publicHref={surface.publicHref}
         publishHref={surface.publishHref}
-        rightSlot={
-          <ClasificadosScopeNav
-            lang={lang}
-            queueHref={queueHref}
-            liveHref={liveHref}
-            active={scope === "live" ? "live" : "queue"}
-          />
-        }
+        queueHref={queueHref}
+        liveHref={liveHref}
       />
 
       <Suspense fallback={null}>
         <ClasificadosQueueActionChrome />
       </Suspense>
 
+      <AdminCategorySummaryPanel
+        summary={summary}
+        lang={lang}
+        filtersActive={adminAnyFilterActive(sp, ["q", "status", "owner", "owner_user_id", "leonix_ad_id", "slug", "id"])}
+        technicalDetails={[["Table", surface.sourceTable]]}
+      />
+
       {configured ? (
-        <div className={`${adminCardBase} mb-4 space-y-3 p-4 text-sm text-[#5C5346]`}>
-          <p className="font-bold text-[#1E1810]">{m("listingsCategoryOps.searchTitle")}</p>
-          <form className="flex flex-col flex-wrap gap-2 sm:flex-row sm:items-end" method="get" action={basePath}>
-            {scope === "live" ? <input type="hidden" name="scope" value="live" /> : null}
-            <label className="flex min-w-[10rem] flex-1 flex-col gap-1 text-xs">
-              <span className="font-semibold text-[#5C5346]">
-                q (Leonix ID, UUID, owner, slug, negocio, ciudad)
-              </span>
-              <input
-                name="q"
-                defaultValue={firstParam(sp.q) ?? ""}
-                className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 font-mono text-xs text-[#1E1810]"
-                placeholder="COMIDA-2026-000001 o tacos-el-chuy"
-                autoComplete="off"
-              />
-            </label>
-            <label className="flex min-w-[8rem] flex-col gap-1 text-xs">
-              <span className="font-semibold text-[#5C5346]">slug</span>
-              <input
-                name="slug"
-                defaultValue={firstParam(sp.slug) ?? ""}
-                className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 font-mono text-xs"
-                autoComplete="off"
-              />
-            </label>
-            <label className="flex min-w-[8rem] flex-col gap-1 text-xs">
-              <span className="font-semibold text-[#5C5346]">id (UUID)</span>
-              <input
-                name="id"
-                defaultValue={firstParam(sp.id) ?? ""}
-                className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 font-mono text-xs"
-                autoComplete="off"
-              />
-            </label>
-            <label className="flex min-w-[8rem] flex-col gap-1 text-xs">
-              <span className="font-semibold text-[#5C5346]">leonix_ad_id</span>
-              <input
-                name="leonix_ad_id"
-                defaultValue={firstParam(sp.leonix_ad_id) ?? ""}
-                className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 font-mono text-xs"
-                autoComplete="off"
-              />
-            </label>
-            <label className="flex min-w-[8rem] flex-col gap-1 text-xs">
-              <span className="font-semibold text-[#5C5346]">owner_user_id</span>
-              <input
-                name="owner_user_id"
-                defaultValue={firstParam(sp.owner_user_id) ?? ""}
-                className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 font-mono text-xs"
-                autoComplete="off"
-              />
-            </label>
-            <button type="submit" className={adminBtnSecondary}>
-              {m("listingsCategoryOps.searchSubmit")}
-            </button>
-            {hasFilters ? (
-              <Link href={scope === "live" ? liveHref : queueHref} className={adminBtnSecondary}>
-                {m("listingsCategoryOps.clearFilters")}
-              </Link>
-            ) : null}
-          </form>
-        </div>
+        <AdminCategoryFilterBar
+          lang={lang}
+          action={BASE_PATH}
+          searchParams={{ ...sp, owner: owner || undefined }}
+          statusOptions={[...COMIDA_LOCAL_STATUS_FILTER_OPTIONS]}
+          clearHref={appendPreservedSearchParams(BASE_PATH, {}, scope)}
+          extraFieldNames={["slug", "id", "owner_user_id"]}
+          searchPlaceholder="COMIDA-2026-000001 o tacos-el-chuy"
+        >
+          <label className="flex min-w-[8rem] flex-col gap-1 text-xs">
+            <span className="font-semibold text-[#5C5346]">{adminTr(lang, "comidaAdmin.filter.slug")}</span>
+            <input name="slug" defaultValue={slug} className={FIELD} autoComplete="off" />
+          </label>
+          <label className="flex min-w-[8rem] flex-col gap-1 text-xs">
+            <span className="font-semibold text-[#5C5346]">{adminTr(lang, "comidaAdmin.filter.id")}</span>
+            <input name="id" defaultValue={id} className={FIELD} autoComplete="off" />
+          </label>
+        </AdminCategoryFilterBar>
       ) : (
         <p className="text-sm text-amber-900">Supabase admin no configurado.</p>
       )}
+
+      {list.error ? (
+        <div className={`${adminCardBase} border-red-200 p-3 text-sm text-red-900`} role="alert" data-testid="comida-query-error">
+          {adminTr(lang, "comidaAdmin.queryError", { error: list.error })}
+        </div>
+      ) : null}
+
+      {configured && !list.error ? <AdminListTruncationNotice lang={lang} shown={items.length} limit={queueLimit} /> : null}
 
       <ComidaLocalAdminListings
         lang={lang === "en" ? "en" : "es"}
         items={items}
         inspectId={inspectId}
-        statusUpdateAction={configured ? updateComidaLocalPublicListingStatusAction : undefined}
+        listingTruthById={listingTruthById}
+        commercialTruthByListingId={commercialTruthByListingId}
+        actionsById={configured ? actionsById : undefined}
+        paymentAnomalyById={paymentAnomalyById}
+        suspendedReasonById={suspendedReasonById}
+        emptyMessage={list.error ? undefined : hasFilters ? adminTr(lang, "comidaAdmin.empty") : undefined}
       />
     </div>
   );

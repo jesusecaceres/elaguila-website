@@ -57,6 +57,14 @@ import { AUTOS_PRIVADO_LISTING_LIFECYCLE_CONFIG } from "@/app/lib/listingLifecyc
 import { startListingRenewalCheckout } from "@/app/lib/listingLifecycle/listingRenewalCheckout";
 import { ListingLifecycleStatusCard } from "@/app/(site)/dashboard/components/ListingLifecycleStatusCard";
 import { ListingRenewalAction } from "@/app/(site)/dashboard/components/ListingRenewalAction";
+import {
+  dashboardCompletePaymentLabel,
+  dashboardNotLiveNote,
+  dashboardStartingPaymentLabel,
+  isAutosPrivadoAwaitingPayment,
+} from "@/app/(site)/dashboard/lib/dashboardPendingPayment";
+import { startDashboardResumePayment } from "@/app/(site)/dashboard/lib/dashboardResumePaymentClient";
+import { dashboardViewPublicAllowed } from "@/app/(site)/dashboard/lib/dashboardListingStateMachine";
 
 type Lang = "es" | "en";
 
@@ -158,6 +166,12 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [renewalBusyId, setRenewalBusyId] = useState<string | null>(null);
+  /** CLOSEOUT 2 — Autos Privado "Completar pago": row whose Revenue OS checkout is starting, and the last
+   * server/client message for it (the checkout client's own owner-safe copy, incl. the no-recharge codes). */
+  const [payBusyId, setPayBusyId] = useState<string | null>(null);
+  const [payError, setPayError] = useState<{ id: string; message: string } | null>(null);
+  /** Gate 2: the owner read FAILED - shown as an error, never as "you have no Autos listings". */
+  const [loadFailed, setLoadFailed] = useState(false);
   /** Gate D.3 — page-level authenticated owner id, sourced from the same session fetch already
    * used for the API bearer token (no duplicate auth call, no new Supabase client). */
   const [ownerUserId, setOwnerUserId] = useState<string | null>(null);
@@ -179,15 +193,27 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
       setLoading(false);
       return;
     }
-    const r = await fetch("/api/clasificados/autos/listings", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const j = (await r.json()) as {
+    let r: Response;
+    let j: {
       ok?: boolean;
       listings?: AutosClassifiedsDashboardRow[];
       dealerInventory?: AutosDealerInventoryCount;
     };
+    try {
+      r = await fetch("/api/clasificados/autos/listings", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      j = (await r.json()) as typeof j;
+    } catch {
+      setRows([]);
+      setDealerInventory(null);
+      setSubscriptionStates({});
+      setLoadFailed(true);
+      setLoading(false);
+      return;
+    }
     if (r.ok && j.ok && Array.isArray(j.listings)) {
+      setLoadFailed(false);
       setRows(j.listings);
       setDealerInventory(j.dealerInventory ?? null);
       const parentRows = j.listings.filter((row) => row.lane === "negocios" && row.inventory_role === "main");
@@ -209,6 +235,7 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
       setRows([]);
       setDealerInventory(null);
       setSubscriptionStates({});
+      setLoadFailed(true);
     }
     setLoading(false);
   }, []);
@@ -359,9 +386,56 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
     window.location.href = result.checkoutUrl;
   }
 
+  /** CLOSEOUT 2 — resume the base payment of an unpaid Autos Privado row (draft / pending_payment /
+   * payment_failed — exactly what the server pre-flight accepts). Revenue OS AUTOS_PRIVADO_CHECKOUT with
+   * listingId = this row, the same payload AutosPrivadoPreviewClient sends after its pre-checkout save. */
+  async function startAutosPrivadoBasePayment(id: string, leonixAdId: string | null) {
+    setPayBusyId(id);
+    setPayError(null);
+    try {
+      const result = await startDashboardResumePayment({ lane: "autos-privado", listingId: id, leonixAdId, lang });
+      if (!result.ok) {
+        setPayError({ id, message: result.userMessage });
+        setPayBusyId(null);
+      }
+    } catch {
+      setPayError({
+        id,
+        message:
+          lang === "es"
+            ? "No pudimos iniciar el pago seguro. Intenta de nuevo o contacta a Leonix."
+            : "We could not start secure payment. Please try again or contact Leonix.",
+      });
+      setPayBusyId(null);
+    }
+  }
+
   if (loading) {
     return (
       <div className="mt-6 rounded-3xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-6 text-sm text-[#5C5346]">{t.loading}</div>
+    );
+  }
+
+  if (loadFailed && rows.length === 0) {
+    return (
+      <div className="mt-6 rounded-3xl border border-red-200 bg-red-50/90 p-5 text-sm text-red-900" role="alert" data-testid="autos-read-failed">
+        <p className="font-semibold">{lang === "es" ? "No pudimos cargar tus anuncios de Autos." : "We could not load your Autos listings."}</p>
+        <p className="mt-1 opacity-90">
+          {lang === "es"
+            ? "Es un error de lectura: no significa que no tengas anuncios. Inténtalo de nuevo."
+            : "This is a read error, not an empty account. Please try again."}
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            setLoading(true);
+            void load();
+          }}
+          className="mt-3 rounded-xl border border-red-300/70 bg-white px-4 py-2 text-sm font-semibold text-red-800"
+        >
+          {lang === "es" ? "Reintentar" : "Retry"}
+        </button>
+      </div>
     );
   }
 
@@ -421,8 +495,20 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
           AUTOS_PRIVADO_LISTING_LIFECYCLE_CONFIG,
         );
         const renewalBusy = renewalBusyId === row.id;
+        const awaitingPayment = isAutosPrivadoAwaitingPayment({ lane: row.lane, status: row.status });
+        const rowPayError = payError && payError.id === row.id ? payError.message : null;
         const quickActions: ActionItem[] = [];
-        if (row.status === "active" && isLiveCapability(privadoCaps.identity.publicView)) {
+        if (awaitingPayment) {
+          quickActions.push({
+            label: payBusyId === row.id ? dashboardStartingPaymentLabel(lang) : dashboardCompletePaymentLabel(lang),
+            onClick: () => void startAutosPrivadoBasePayment(row.id, row.leonix_ad_id ?? null),
+            disabled: payBusyId === row.id,
+            tone: "warning",
+          });
+        }
+        // Gate 2 (item 11): "View public" needs the row to be LIVE by the public predicate - a Privado row past its
+        // fixed term keeps `status = active` but its public page is gone (`isAutosRowPubliclyLive`).
+        if (dashboardViewPublicAllowed("autos", row) && isLiveCapability(privadoCaps.identity.publicView)) {
           quickActions.push({ href: liveHref, label: publicViewLabel(lang), tone: "secondary" });
         }
         if (isLiveCapability(privadoCaps.identity.preview)) {
@@ -467,6 +553,13 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
               statusChipClass: autosListingStatusChipClass(row.status as AutosClassifiedsListingStatus),
               leonixId: row.leonix_ad_id,
             }}
+            note={
+              rowPayError
+                ? { text: rowPayError, tone: "urgent" }
+                : awaitingPayment
+                  ? { text: dashboardNotLiveNote(lang), tone: "warning" }
+                  : null
+            }
             detailItems={vehicleDetailItems(row)}
             primaryAction={{ href: autosPrivadoEditHref(row.id), label: editListingLabel(lang) }}
             quickActions={quickActions}
@@ -659,11 +752,30 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
                           });
                         }
                         if (row.status === "active") {
-                          childActions.push({
-                            href: rowCanonical.get("viewPublic")?.href ?? `${autosLiveVehiclePath(row.id)}?lang=${row.lang}`,
-                            label: publicViewLabel(lang),
-                            tone: "secondary",
-                          });
+                          // Gate 2 (item 11): a dealer inventory vehicle is public only while its canonical main parent is
+                          // active + same-owner (`isAutosChildParentGateSatisfied`); an active child under a paused /
+                          // removed dealer has no public page.
+                          // Every row of this list is the signed-in owner's own (the API is owner-scoped), so the owner id
+                          // is stamped on both sides of the same-owner comparison.
+                          const childPublicOk = dashboardViewPublicAllowed(
+                            "autos",
+                            { ...row, owner_user_id: ownerUserId },
+                            {
+                              autosParents: (pid) => {
+                                const p = group.rows.find((g) => g.id === pid);
+                                return p
+                                  ? { id: p.id, lane: p.lane, inventory_role: p.inventory_role, owner_user_id: ownerUserId, status: p.status }
+                                  : null;
+                              },
+                            },
+                          );
+                          if (childPublicOk) {
+                            childActions.push({
+                              href: rowCanonical.get("viewPublic")?.href ?? `${autosLiveVehiclePath(row.id)}?lang=${row.lang}`,
+                              label: publicViewLabel(lang),
+                              tone: "secondary",
+                            });
+                          }
                           childActions.push({
                             href:
                               rowCanonical.get("preview")?.href ??

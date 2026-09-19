@@ -7,11 +7,15 @@ import {
   fetchListingFlagContextMaps,
   type ListingFlagContextMaps,
 } from "@/app/admin/_lib/adminReviewFlagContext";
+import {
+  loadAdminListingCommercialTruth,
+  type AdminListingCommercialTruthMap,
+} from "@/app/admin/_lib/adminListingCommercialTruth";
+import { planAdminGlobalCommercialLoad } from "@/app/admin/_lib/adminCategoryShellAdoption";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 import {
   fetchListingsForAdminWorkspaceFiltered,
   fetchListingCategoriesDistinct,
-  isUuidString,
   LISTINGS_NEEDS_REVIEW_STATUS_TOKEN,
 } from "@/app/admin/_lib/listingsAdminSelect";
 import {
@@ -20,8 +24,8 @@ import {
 } from "@/app/admin/(dashboard)/workspace/clasificados/_lib/clasificadosAdminScopeUrls";
 import { getClasificadosCategoryRegistryMerged } from "@/app/lib/clasificados/clasificadosCategoryRegistry";
 import { mergeAdminCategoriesHubEntries } from "@/app/admin/_lib/adminCategoriesHubEntries";
-import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import AdminListingsTable from "./AdminListingsTable";
+import { AdminListTruncationNotice } from "./_components/normalized/AdminListTruncationNotice";
 import { ClasificadosCategoryCommandCenter } from "./ClasificadosCategoryCommandCenter";
 import { ClasificadosCategoryOpsAuditLazy } from "./_components/ClasificadosCategoryOpsAuditLazy";
 import { ClasificadosCategoryUtilitiesCollapsible } from "./_components/ClasificadosCategoryUtilitiesCollapsible";
@@ -107,19 +111,28 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
   const queueLimit = normalizeAdminQueueLimit(spStr(sp.limit), ADMIN_QUEUE_DEFAULT_LIMIT);
   const showOverviewSections = !catFilter && !qInput && !statusFilter && !ownerFrag && !lxBranch && !lxOp && !lxProp;
 
-  const [{ data: listings, error, detailPairsAvailable, republishColsAvailable }, cats, registryRaw] = await Promise.all([
+  const [fetchRes, cats, registryRaw] = await Promise.all([
     showOverviewSections
       ? Promise.resolve({
           data: [] as Row[],
           error: null,
           detailPairsAvailable: true,
           republishColsAvailable: true,
+          scanCapped: false,
+          scanned: 0,
+          partialSources: undefined as string[] | undefined,
         })
       : fetchListingsForAdminWorkspaceFiltered(supabase, {
           q: qInput || undefined,
           category: catFilter,
           status: statusFilter || undefined,
-          ownerFrag: ownerFrag && isUuidString(ownerFrag) ? ownerFrag : undefined,
+          // Owner fragment and the Leonix machine filters run in the data layer BEFORE the row limit
+          // (SQL for a full owner UUID / detail_pairs containment, the bounded windowed scan otherwise).
+          ownerFrag: ownerFrag || undefined,
+          leonix:
+            lxBranch || lxOp || lxProp
+              ? { branch: lxBranch || undefined, operation: lxOp || undefined, propiedad: lxProp || undefined }
+              : undefined,
           limit: queueLimit,
           ...(scopeParam === "live" ? { scope: "live" as const } : {}),
         }),
@@ -128,19 +141,9 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
   ]);
   const registry = showOverviewSections ? mergeAdminCategoriesHubEntries(registryRaw) : [];
 
-  let rows = (listings ?? []) as Row[];
-  if (ownerFrag && !isUuidString(ownerFrag)) {
-    rows = rows.filter((r) => (r.owner_id ?? "").toLowerCase().includes(ownerFrag));
-  }
-  if (detailPairsAvailable && (lxBranch || lxOp || lxProp)) {
-    rows = rows.filter((r) => {
-      const lx = parseLeonixListingContract(r.detail_pairs);
-      if (lxBranch && lx.branch !== lxBranch) return false;
-      if (lxOp && lx.operation !== lxOp) return false;
-      if (lxProp && (lx.categoriaPropiedad ?? "").toLowerCase() !== lxProp) return false;
-      return true;
-    });
-  }
+  const { data: listings, error, detailPairsAvailable, republishColsAvailable } = fetchRes;
+  // No post-fetch filtering: every filter above already ran before the limit.
+  const rows = (listings ?? []) as Row[];
 
   const workspaceBase = "/admin/workspace/clasificados";
   const queueNavHref = appendPreservedSearchParams(workspaceBase, sp, null);
@@ -157,6 +160,25 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
       rows.map((r) => r.id),
       rows.map((r) => r.owner_id ?? "").filter(Boolean),
     );
+  }
+
+  // Commercial truth (READ-ONLY): payment / entitlement / subscription records for the VISIBLE
+  // listings only, loaded per category present so each row's circuit is classified against the
+  // right lifecycle table. Never sweeps the table, never writes; an unreadable source becomes
+  // "unknown" for the affected rows (never "unpaid"). The generic category shell does the same.
+  const commercialTruthByListingId: AdminListingCommercialTruthMap = {};
+  if (rows.length > 0) {
+    const rowsById = new Map(rows.map((r) => [r.id, r as unknown as Record<string, unknown>]));
+    for (const group of planAdminGlobalCommercialLoad(rows)) {
+      const truthForGroup = await loadAdminListingCommercialTruth({
+        category: group.category,
+        listingIds: group.listingIds,
+        ...(group.includeRows
+          ? { listingRowsById: Object.fromEntries(group.listingIds.map((id) => [id, rowsById.get(id)])) }
+          : {}),
+      });
+      Object.assign(commercialTruthByListingId, truthForGroup);
+    }
   }
 
   return (
@@ -393,11 +415,22 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
             </div>
 
             {error ? (
-              <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+              <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">
                 Could not load listings right now. This is a database connection issue, not a data problem — try
                 refreshing the page. If it keeps happening, check System Health.
+                {error.message ? <span className="mt-1 block font-mono text-[11px] text-red-700">{error.message}</span> : null}
               </div>
             ) : (
+              <>
+              <AdminListTruncationNotice
+                lang={lang}
+                className="mb-3"
+                shown={rows.length}
+                limit={queueLimit}
+                scanCapped={Boolean(fetchRes.scanCapped)}
+                scanned={fetchRes.scanned ?? null}
+                partialSources={fetchRes.partialSources ?? null}
+              />
               <Suspense fallback={<div className="min-h-[200px]" aria-busy="true" />}>
                 <AdminListingsTable
                   listings={rows}
@@ -408,8 +441,10 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
                   flagReportByListingId={flagContext.reportsByListingId}
                   ownerEmailByUserId={flagContext.ownerEmailByUserId}
                   aiReviewByListingId={flagContext.aiReviewByListingId}
+                  commercialTruthByListingId={commercialTruthByListingId}
                 />
               </Suspense>
+              </>
             )}
           </div>
         </>
