@@ -4,6 +4,8 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { adminQueueNormalizeLeonixAdId } from "@/app/admin/_lib/adminAdSearch";
+import { pgrstQuote } from "@/app/admin/_lib/adminFilterTruth";
 import { applyOfertasLiveSqlSuperset, isOfertaPubliclyLive } from "@/app/admin/_lib/adminOfertasLivePredicate";
 import { scanPagedRows } from "@/app/admin/_lib/adminPagedScan";
 import { getSafeOfertaLocalSourceAssetHref } from "./ofertasLocalesClickableItemPreviewHelpers";
@@ -249,6 +251,13 @@ export type OfertasLocalesAdminListFilters = {
   scan_review?: string;
   /** Page param `term`: "active" | "expired" | "expiring" | "renewal". */
   term?: string;
+  /**
+   * Raw `ofertas_locales.status` (filter bar Status). SQL predicate, AND-ed with the scope's status set and `q`,
+   * applied BEFORE the row limit (2026-09 final normalization, Gate 3 — it used to narrow in memory after a 200 cap).
+   */
+  status?: string;
+  /** Leonix Ad ID filter: complete id -> case-insensitive exact, fragment -> contains. SQL, before the limit. */
+  leonix_ad_id?: string;
 };
 
 /** The five derived-status filters the Admin page used to apply AFTER the row limit. */
@@ -268,6 +277,13 @@ export type OfertasLocalesAdminListResult = {
 };
 
 const ADMIN_SEARCH_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Ceiling of one Admin page of offers (matches the largest Rows choice, 500). */
+export const OFERTAS_ADMIN_LIST_MAX = 500;
+
+function ofertasEscapeLike(s: string): string {
+  return s.replace(/[\\%_]/g, (c) => "\\" + c);
+}
 
 function parseAssetArray(raw: unknown): OfertaLocalPublishedAssetMetadata[] {
   if (!Array.isArray(raw)) return [];
@@ -604,7 +620,7 @@ export async function listOfertasLocalesAdminRowsDetailed(
   sb: SupabaseClient,
   filters: OfertasLocalesAdminListFilters = {}
 ): Promise<OfertasLocalesAdminListResult> {
-  const limit = Math.min(Math.max(filters.limit ?? 80, 1), 200);
+  const limit = Math.min(Math.max(filters.limit ?? 80, 1), OFERTAS_ADMIN_LIST_MAX);
   const scope: OfertasLocalesAdminScope = filters.scope === "live" || filters.scope === "history" ? filters.scope : "queue";
   const now = new Date();
   const nowMs = now.getTime();
@@ -612,6 +628,8 @@ export async function listOfertasLocalesAdminRowsDetailed(
   const id = filters.id?.trim();
   const owner = filters.owner_id?.trim();
   const search = filters.q?.trim();
+  const rawStatus = filters.status?.trim().toLowerCase();
+  const leonixFilter = filters.leonix_ad_id?.trim();
   const derived: OfertasLocalesAdminDerivedFilters = {
     status_group: filters.status_group?.trim() || undefined,
     lane: filters.lane?.trim() || undefined,
@@ -640,8 +658,14 @@ export async function listOfertasLocalesAdminRowsDetailed(
 
     if (id) query = query.eq("id", id);
     if (owner) query = query.eq("owner_id", owner);
+    if (rawStatus) query = query.eq("status", rawStatus);
+    if (leonixFilter) {
+      const normLeonix = adminQueueNormalizeLeonixAdId(leonixFilter);
+      query = query.ilike("leonix_ad_id", normLeonix ? ofertasEscapeLike(normLeonix) : `%${ofertasEscapeLike(leonixFilter)}%`);
+    }
     if (search) {
-      const like = `%${search}%`;
+      // Quoted so a comma / parenthesis in the search term cannot break the or() grammar; LIKE wildcards escaped.
+      const like = pgrstQuote(`%${ofertasEscapeLike(search)}%`);
       query = query.or(
         [
           `business_name.ilike.${like}`,

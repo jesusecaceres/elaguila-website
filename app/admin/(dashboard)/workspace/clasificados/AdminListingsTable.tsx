@@ -361,6 +361,11 @@ export default function AdminListingsTable({
     setError(null);
     try {
       const result = await bulkSoftDeleteListingsAction(rows.map((r) => r.id));
+      // Whole-batch refusal is RETURNED (production redacts thrown server-action messages): show the safe reason.
+      if (result.error) {
+        setError(result.error.message);
+        return;
+      }
       clearSelection();
       redirectAfterBulkAction(rows, "bulk_soft_delete", result, "Deleted");
     } catch (e) {
@@ -382,6 +387,10 @@ export default function AdminListingsTable({
     setError(null);
     try {
       const result = await permanentlyDeleteListingsAction(rows.map((r) => r.id));
+      if (result.error) {
+        setError(result.error.message);
+        return;
+      }
       clearSelection();
       redirectAfterBulkAction(rows, "bulk_permanent_delete", result, "Permanently deleted");
     } catch (e) {
@@ -487,7 +496,13 @@ export default function AdminListingsTable({
     setError(null);
     const scrollY = window.scrollY;
     try {
-      await deleteListingAction(row.id);
+      const result = await deleteListingAction(row.id);
+      if (!result.ok) {
+        // The guard refusal is RETURNED (production Next redacts a thrown server-action Error message):
+        // render the safe, useful reason instead of a generic failure.
+        redirectAfterStaffAction(row, "delete", "error", result.message);
+        return;
+      }
       const meta = rowProofMeta(row);
       const url = buildAdminActionReturnUrl({
         returnTo,
@@ -514,7 +529,11 @@ export default function AdminListingsTable({
     setError(null);
     const action = published ? "show_public" : "hide_public";
     try {
-      await setListingPublishedAction(row.id, published);
+      const result = await setListingPublishedAction(row.id, published);
+      if (!result.ok) {
+        redirectAfterStaffAction(row, action, "error", result.message);
+        return;
+      }
       redirectAfterStaffAction(row, action, "success");
     } catch (e) {
       const errMsg = e instanceof Error ? e.message : t("listings.errPublish");

@@ -67,7 +67,7 @@ import { fetchOwnerListingsForDashboard, mapOwnerListingRow } from "../lib/owner
 import {
   DEFERRED_DEDICATED_CATEGORIES,
   EMPTY_DEDICATED_CATEGORY_COUNTS,
-  fetchDedicatedCategoryCounts,
+  fetchDedicatedCategoryCountsChecked,
   resolveMisAnunciosLoadPlan,
   type DedicatedCategoryCounts,
 } from "../lib/dashboardMisAnunciosCategoryLoadPlan";
@@ -84,8 +84,21 @@ import {
   fetchOwnerEmpleosListings,
   fetchOwnerServiciosListings,
   fetchOwnerViajesListings,
+  readOwnerAutosClassifiedsListings,
+  readOwnerEmpleosListings,
+  readOwnerRestaurantListings,
+  readOwnerServiciosListings,
+  readOwnerViajesListings,
   type DashboardInventoryItem,
 } from "../lib/dashboardInventory";
+import {
+  dashboardEmpleosTransitionErrorMessage,
+  dashboardListingsRowBucket,
+  dashboardOwnerActionPlan,
+  dashboardOwnerReasonNote,
+  dashboardViewPublicAllowed,
+  type DashboardStateCategory,
+} from "../lib/dashboardListingStateMachine";
 import {
   countOwnerActiveListingsAcrossSources,
   countOwnerInventoryListings,
@@ -144,7 +157,10 @@ import type { BrFsboOwnerStatusAction } from "@/app/lib/clasificados/bienes-raic
 import { isBrFsboRow } from "@/app/lib/listingLifecycle/bienesFsboLifecycle";
 import { startListingRenewalCheckout } from "@/app/lib/listingLifecycle/listingRenewalCheckout";
 import { ComidaLocalDashboardListings } from "@/app/lib/clasificados/comida-local/ComidaLocalDashboardListings";
-import { fetchOwnerComidaLocalListings } from "@/app/lib/clasificados/comida-local/comidaLocalDashboardQueries";
+import {
+  fetchOwnerComidaLocalListings,
+  fetchOwnerComidaLocalListingsResult,
+} from "@/app/lib/clasificados/comida-local/comidaLocalDashboardQueries";
 import { mapComidaLocalRowToDashboardVm } from "@/app/lib/clasificados/comida-local/mapComidaLocalDashboardListing";
 import { misAnunciosListCopy } from "../lib/dashboardI18n";
 import type { Lang } from "../lib/dashboardI18n";
@@ -331,12 +347,23 @@ function brLifecycleErrorMessage(code: string, lang: Lang): string {
   return table[code] ?? (lang === "es" ? "No se pudo completar la acción." : "Could not complete the action.");
 }
 
-function passesTab(row: ListingRow, tab: Tab): boolean {
+function passesTab(row: ListingRow, tab: Tab, ownerId?: string | null): boolean {
   const st = normalizeStatus(row.status);
   /** Keep removed rows in "All" so sellers see failed publish / admin removals; other tabs stay discovery-focused. */
   if (st === "removed") return tab === "all";
   const isDraft = row.is_published === false || st === "draft";
   if (tab === "all") return true;
+  // Gate 2 (2026-09 dashboard state machine, items 5-7): a Rentas / FSBO / Clases row whose paid or fixed term ELAPSED still
+  // says `status = active` (the term is never written back), so the plain status test counted it under "Active" and hid it
+  // from "Expired". The bucket comes from the shared state machine (same term predicates as the public readers).
+  const catKey = listingRowCategoryKey(row);
+  if (catKey !== "other") {
+    const bucket = dashboardListingsRowBucket(catKey as DashboardStateCategory, row, { ownerId });
+    if (tab === "active") return bucket === "active";
+    if (tab === "expired") return bucket === "expired";
+    if (tab === "moderation") return bucket === "moderation";
+    return true;
+  }
   if (tab === "active") return st === "active" && !isDraft;
   if (tab === "expired") return st === "sold" || st === "expired";
   if (tab === "moderation") return st === "pending" || st === "flagged" || st === "paused";
@@ -684,6 +711,12 @@ function MyListingsPageContent() {
   }
 
   const [error, setError] = useState<string | null>(null);
+  /** Gate 2: a FAILED read is an error state, never the "you have no listings" empty state. */
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [countsFailed, setCountsFailed] = useState(false);
+  const [serviciosReadFailed, setServiciosReadFailed] = useState(false);
+  const [categoryLoadError, setCategoryLoadError] = useState<MisAnunciosCategoryKey | null>(null);
+  const [retryNonce, setRetryNonce] = useState(0);
   const [republishColsAvailable, setRepublishColsAvailable] = useState(true);
   const [analyticsByListing, setAnalyticsByListing] = useState<Record<string, ListingAnalyticsBucket>>({});
   const [listingAnalyticsDegraded, setListingAnalyticsDegraded] = useState(false);
@@ -767,10 +800,12 @@ function MyListingsPageContent() {
         console.error("[mis-anuncios]", qErr.message);
         setError(dashboardSafeMutationErrorCopy(lang));
         setListings([]);
+        setLoadFailed(true);
         setListingsLoading(false);
         return;
       }
 
+      setLoadFailed(false);
       setRepublishColsAvailable(meta?.republishColsAvailable !== false);
       const list = ((rows ?? []) as Record<string, unknown>[]).map((r) => mapOwnerListingRow(r)) as ListingRow[];
       setListings(list);
@@ -781,18 +816,20 @@ function MyListingsPageContent() {
       // see the Gate I.4.2 report §3/§6; re-confirmed still true under Gate 2A — see Task 2A-6
       // note below). Every other dedicated category's full content loads on demand only once
       // actually selected, via the separate effect below.
-      const [dedCounts, activeAcross, serviciosRows, managedTotal] = await Promise.all([
-        fetchDedicatedCategoryCounts(supabase, u.id),
+      const [dedCountsChecked, activeAcross, serviciosRead, managedTotal] = await Promise.all([
+        fetchDedicatedCategoryCountsChecked(supabase, u.id),
         countOwnerActiveListingsAcrossSources(supabase, u.id),
-        fetchOwnerServiciosListings(token),
+        readOwnerServiciosListings(token),
         countOwnerInventoryListings(supabase, u.id),
       ]);
 
       if (!mounted) return;
-      setDedicatedCounts(dedCounts);
+      setDedicatedCounts(dedCountsChecked.counts);
+      setCountsFailed(dedCountsChecked.failed);
       setUnifiedActiveCount(activeAcross);
       setTotalManagedCount(managedTotal);
-      setServiciosRawRows(serviciosRows);
+      setServiciosReadFailed(!serviciosRead.ok);
+      setServiciosRawRows(serviciosRead.rows);
 
       // Gate 2A — selected-category content no longer waits on Ofertas Locales: this fetch has
       // no bearing on what the owner is looking at (a separate, isolated dashboard surface), so
@@ -865,34 +902,46 @@ function MyListingsPageContent() {
 
     (async () => {
       setCategoryInventoryLoading(true);
+      setCategoryLoadError((prev) => (prev === categoryFilter ? null : prev));
       try {
+        // Gate 2: a failed read is NOT marked as loaded (so it is retried) and shows an error - never the empty state.
+        let readOk = true;
         if (categoryFilter === "restaurantes") {
-          const fetched = await fetchOwnerRestaurantListings(supabase, userId);
+          const fetched = await readOwnerRestaurantListings(supabase, userId);
           if (cancelled) return;
-          setRestaurantRawRows(fetched);
+          readOk = fetched.ok;
+          if (fetched.ok) setRestaurantRawRows(fetched.rows);
         } else if (categoryFilter === "empleos") {
-          const fetched = await fetchOwnerEmpleosListings(supabase, userId);
+          const fetched = await readOwnerEmpleosListings(supabase, userId);
           if (cancelled) return;
-          setEmpleosRawRows(fetched);
+          readOk = fetched.ok;
+          if (fetched.ok) setEmpleosRawRows(fetched.rows);
         } else if (categoryFilter === "viajes") {
-          const fetched = await fetchOwnerViajesListings(supabase, userId);
+          const fetched = await readOwnerViajesListings(supabase, userId);
           if (cancelled) return;
-          setViajesRawRows(fetched);
+          readOk = fetched.ok;
+          if (fetched.ok) setViajesRawRows(fetched.rows);
         } else if (categoryFilter === "autos") {
-          const fetched = await fetchOwnerAutosClassifiedsListings(supabase, userId);
+          const fetched = await readOwnerAutosClassifiedsListings(supabase, userId);
           if (cancelled) return;
-          setAutosPaidRawRows(fetched);
+          readOk = fetched.ok;
+          if (fetched.ok) setAutosPaidRawRows(fetched.rows);
         } else if (categoryFilter === "comida-local") {
-          const fetched = await fetchOwnerComidaLocalListings(supabase, userId);
+          const fetched = await fetchOwnerComidaLocalListingsResult(supabase, userId);
           if (cancelled) return;
-          setComidaLocalRawRows(fetched);
+          readOk = fetched.ok;
+          if (fetched.ok) setComidaLocalRawRows(fetched.rows);
         }
         if (!cancelled) {
-          setLoadedDedicatedCategories((prev) => {
-            const next = new Set(prev);
-            next.add(categoryFilter);
-            return next;
-          });
+          if (readOk) {
+            setLoadedDedicatedCategories((prev) => {
+              const next = new Set(prev);
+              next.add(categoryFilter);
+              return next;
+            });
+          } else {
+            setCategoryLoadError(categoryFilter);
+          }
         }
       } finally {
         if (!cancelled) setCategoryInventoryLoading(false);
@@ -902,7 +951,7 @@ function MyListingsPageContent() {
     return () => {
       cancelled = true;
     };
-  }, [inventoryReady, userId, categoryFilter, loadedDedicatedCategories]);
+  }, [inventoryReady, userId, categoryFilter, loadedDedicatedCategories, retryNonce]);
 
   // Gate I.4.2 — entitlement lookup scoped to only the currently selected category's currently
   // loaded rows, never the owner's entire cross-category catalog. Depends only on raw, lang-
@@ -1185,7 +1234,9 @@ function MyListingsPageContent() {
         body: JSON.stringify({ lifecycle_status }),
       });
       if (!res.ok) {
-        setError(dashboardSafeMutationErrorCopy(lang));
+        // Gate 2: say WHY (payment_required / staff_hold / forbidden_transition) instead of a generic failure.
+        const refusal = (await res.json().catch(() => null)) as { error?: string } | null;
+        setError(dashboardEmpleosTransitionErrorMessage(refusal?.error, lang));
         return;
       }
       const supabase = createSupabaseBrowserClient();
@@ -1553,8 +1604,8 @@ function MyListingsPageContent() {
 
   const needle = search.trim().toLowerCase();
   const filteredByTab = useMemo(
-    () => listings.filter((x) => passesTab(x, tab)),
-    [listings, tab]
+    () => listings.filter((x) => passesTab(x, tab, userId)),
+    [listings, tab, userId]
   );
 
   const categoryFilteredListings = useMemo(() => {
@@ -1784,6 +1835,33 @@ function MyListingsPageContent() {
     !loadedDedicatedCategories.has(categoryFilter);
 
   const accountRef = userId ? accountRefFromId(userId) : null;
+
+  // Gate 2: shown INSTEAD of a "you have no listings" empty state when the read itself failed.
+  const selectedCategoryReadFailed =
+    (categoryFilter === "servicios" && serviciosReadFailed) || categoryLoadError === categoryFilter;
+  const readFailureCard = (onRetry: () => void) => (
+    <div
+      className="mt-4 rounded-xl border border-red-200 bg-red-50/90 p-4 text-sm text-red-900"
+      role="alert"
+      data-testid="mis-anuncios-read-failed"
+    >
+      <p className="font-semibold">
+        {lang === "es" ? "No pudimos cargar tus anuncios." : "We could not load your listings."}
+      </p>
+      <p className="mt-1 opacity-90">
+        {lang === "es"
+          ? "Es un error de lectura: no significa que no tengas anuncios. Inténtalo de nuevo."
+          : "This is a read error, not an empty account. Please try again."}
+      </p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="mt-3 rounded-xl border border-red-300/70 bg-white px-4 py-2 text-sm font-semibold text-red-800"
+      >
+        {lang === "es" ? "Reintentar" : "Retry"}
+      </button>
+    </div>
+  );
 
   const tabBtn = (id: Tab, label: string) => (
     <button
@@ -2019,7 +2097,9 @@ function MyListingsPageContent() {
               </div>
             ) : null}
 
-            {!hasAnyInventory ? (
+            {!hasAnyInventory && (loadFailed || countsFailed) ? (
+              readFailureCard(() => window.location.reload())
+            ) : !hasAnyInventory ? (
               <div className="mt-4 rounded-xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-4 text-center sm:p-5">
                 <p className="font-semibold text-[#1E1810]">{t.emptyAll}</p>
                 <Link href={`/publicar?${q}`} className={`mt-4 inline-flex ${LX_DASH.btnPrimary}`}>
@@ -2030,6 +2110,10 @@ function MyListingsPageContent() {
               <div className="mt-4 rounded-xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-4 text-center text-sm text-[#5C5346] sm:p-5">
                 {t.loading}
               </div>
+            ) : !hasSelectedCategoryListings && selectedCategoryReadFailed ? (
+              readFailureCard(() =>
+                categoryFilter === "servicios" ? window.location.reload() : setRetryNonce((n) => n + 1),
+              )
             ) : !hasSelectedCategoryListings ? (
               <div className="mt-4 rounded-xl border border-[#E8DFD0] bg-[#FAF7F2]/80 p-4 text-center sm:p-5">
                 <p className="font-semibold text-[#1E1810]">
@@ -2205,8 +2289,9 @@ function MyListingsPageContent() {
               onLifecycleChanged={async () => {
                 if (!userId) return;
                 const supabase = createSupabaseBrowserClient();
-                const fetched = await fetchOwnerComidaLocalListings(supabase, userId);
-                setComidaLocalRawRows(fetched);
+                const fetched = await fetchOwnerComidaLocalListingsResult(supabase, userId);
+                if (fetched.ok) setComidaLocalRawRows(fetched.rows);
+                else setError(dashboardSafeMutationErrorCopy(lang));
               }}
             />
           ) : null}
@@ -2371,6 +2456,7 @@ function MyListingsPageContent() {
                         created_at: x.created_at,
                       }}
                       uiStatus={autosUiStatus}
+                      publicViewAllowed={listingsRowIsPublicLive(x as unknown as Record<string, unknown>)}
                       lang={lang}
                       priceText={priceText}
                       dateText={dateText}
@@ -2456,13 +2542,16 @@ function MyListingsPageContent() {
                   const isBrNegocioRepublishEligible =
                     !isBrNegocioRepublishRow ||
                     (String(x.status ?? "").toLowerCase() === "active" && x.is_published !== false);
-                  const repKind =
+                  const repKindRaw =
                     catKey !== "rentas" &&
                     republishColsAvailable &&
                     dashboardCanRepublishListingsRow(rowRec, catKey) &&
                     isBrNegocioRepublishEligible
                       ? dashboardRepublishPrimaryKind(rowRec, catKey)
                       : null;
+                  // Gate 2: `renewListingsTableRepublish` only bumps a listing that is ALREADY live and refuses every other
+                  // row, so a non-live "Republish" button here was a dead action - only "Move to top" is offered.
+                  const repKind = repKindRaw === "move_to_top" ? repKindRaw : null;
                   const repLabel = repKind ? dashboardRepublishPrimaryLabel(lang, repKind) : null;
                   const brRentasClassification = classifyOwnerDashboardRow({
                     category: catKey,
@@ -2634,6 +2723,7 @@ function MyListingsPageContent() {
                         ])?.grantsDestacado ?? false
                       }
                       uiStatus={uiSt}
+                      publicViewAllowed={dashboardViewPublicAllowed("en-venta", x, { ownerId: userId })}
                       listingRefShort={shortListingRef(x.id)}
                       expiresIso={
                         renewalVm?.republishWindowEndsAt != null
@@ -2698,7 +2788,22 @@ function MyListingsPageContent() {
                   catLower === "busco"
                     ? buscoOwnerDashboardLocationLine(x.city, x.detail_pairs)
                     : (x.city || "").trim();
-                const uiStGeneric = normalizeUiStatus(resolveListingUiStatus(x), x);
+                // Gate 2: "View public" only when the public DETAIL page would actually resolve (the same predicates the
+                // public readers / Admin Live use). A paused / expired / term-elapsed / removed / flagged / rented row has no
+                // public page, so it must not offer a link that 404s; a term-elapsed row reads "Expired", not "Active".
+                const genericCatKey = listingRowCategoryKey(x);
+                const genericPlan =
+                  genericCatKey === "other"
+                    ? null
+                    : dashboardOwnerActionPlan(genericCatKey as DashboardStateCategory, x, { ownerId: userId });
+                const genericPublicLinkOk = genericPlan ? genericPlan.viewPublic : !isSharedListingsRowNotLive(x);
+                const genericReasonNote =
+                  genericPlan && genericPlan.reason !== "live" && genericPlan.reason !== "payment_pending"
+                    ? dashboardOwnerReasonNote(genericPlan.reason, lang)
+                    : null;
+                const uiStGeneric: ListingUiStatus = genericPlan?.termElapsed
+                  ? "expired"
+                  : normalizeUiStatus(resolveListingUiStatus(x), x);
                 // CLOSEOUT 2 — an unpaid paid-Clases row (pending, not published) is "payment pending", never
                 // "in review", and no row that is not live shows a public "View listing" link.
                 const genericPayLane = resolveSharedListingPaymentLane({
@@ -2707,7 +2812,6 @@ function MyListingsPageContent() {
                   is_published: x.is_published,
                   detail_pairs: x.detail_pairs,
                 });
-                const genericNotLive = isSharedListingsRowNotLive(x);
                 const genericClassification = classifyOwnerDashboardRow({
                   category: x.category ?? "",
                   brRentasBranch: lx.branch,
@@ -2753,6 +2857,11 @@ function MyListingsPageContent() {
                             {dashboardNotLiveNote(lang)}
                           </p>
                         ) : null}
+                        {genericReasonNote ? (
+                          <p className="mt-1 text-xs font-semibold text-amber-800" data-testid="dashboard-listing-reason-note">
+                            {genericReasonNote}
+                          </p>
+                        ) : null}
                         <p className="mt-2 text-[11px] leading-snug text-[#7A7164]">
                           <span className="font-semibold text-[#5C5346]">{listingPlanFieldLabel(lang)}:</span> {genericAdPlan}
                         </p>
@@ -2791,7 +2900,7 @@ function MyListingsPageContent() {
                               : dashboardCompletePaymentLabel(lang)}
                           </button>
                         ) : null}
-                        {genericNotLive ? null : (
+                        {!genericPublicLinkOk ? null : (
                           <Link
                             href={
                               (x.category ?? "").toLowerCase() === "rentas"

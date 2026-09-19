@@ -18,6 +18,7 @@
  * PURE: no I/O.
  */
 import { isBrFsboRow } from "@/app/lib/listingLifecycle/bienesFsboLifecycle";
+import { isPaymentOwnedSuspendedReason } from "@/app/admin/_lib/adminPaymentSuspensionPolicy";
 
 export type BrFsboRestoreRow = {
   category?: string | null;
@@ -26,11 +27,13 @@ export type BrFsboRestoreRow = {
   status?: string | null;
   published_at?: string | null;
   expires_at?: string | null;
+  /** `public.listings.suspended_reason` - `'payment'` = payment engine hold. Optional: absent = not read. */
+  suspended_reason?: string | null;
 };
 
 export type BrFsboRestoreDecision =
   | { fsbo: false }
-  | { fsbo: true; blocked: true; code: "payment_required" | "renewal_required"; message: string }
+  | { fsbo: true; blocked: true; code: "payment_required" | "renewal_required" | "payment_suspended"; message: string }
   | { fsbo: true; blocked: false; expectedStatus: string; patch: { status: "active"; is_published: true } };
 
 function norm(v: unknown): string {
@@ -56,6 +59,18 @@ export function decideBrFsboAdminRestore(row: BrFsboRestoreRow, nowMs: number = 
   const publishedMs = validIso(row.published_at);
   const expiresMs = validIso(row.expires_at);
 
+  // Payment / term suspension WINS (Gate 5): the payment engine writes status `suspended` (+ suspended_reason
+  // 'payment') when a chargeback or lapse suspends the listing. Restore must never flip it back; the payment
+  // system lifts it by compare-and-swap when the payment is cured.
+  if (status === "suspended" || isPaymentOwnedSuspendedReason(row.suspended_reason)) {
+    return {
+      fsbo: true,
+      blocked: true,
+      code: "payment_suspended",
+      message:
+        "This private-seller listing is suspended by the payment system (chargeback or lapsed payment). Restore cannot override it - it returns only when the payment is cured or renewed through Revenue OS.",
+    };
+  }
   if (status === "pending" || status === "pending_payment" || status === "draft" || (publishedMs === null && expiresMs === null)) {
     return {
       fsbo: true,

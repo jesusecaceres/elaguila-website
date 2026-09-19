@@ -1,3 +1,4 @@
+import { isVerifiedAdminSession } from "@/app/admin/_lib/adminVerifiedSession";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
@@ -5,7 +6,7 @@ import { NextResponse } from "next/server";
 import { appendAdminAuditLog } from "@/app/admin/_lib/adminAuditLogServer";
 import { isComidaLocalAdminAction } from "@/app/lib/clasificados/comida-local/comidaLocalAdminModeration";
 import { applyAdminComidaLocalAction } from "@/app/lib/clasificados/comida-local/comidaLocalAdminQueries";
-import { getAdminSupabase, isSupabaseAdminConfigured, requireAdminCookie } from "@/app/lib/supabase/server";
+import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ export const dynamic = "force-dynamic";
  */
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const jar = await cookies();
-  if (!requireAdminCookie(jar)) {
+  if (!(await isVerifiedAdminSession(jar))) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
   if (!isSupabaseAdminConfigured()) {

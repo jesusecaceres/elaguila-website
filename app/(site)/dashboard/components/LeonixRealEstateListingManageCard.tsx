@@ -65,6 +65,11 @@ import {
   isSharedListingsRowNotLive,
   resolveSharedListingPaymentLane,
 } from "../lib/dashboardPendingPayment";
+import {
+  dashboardBrParentsFromOwnerRows,
+  dashboardLiveState,
+  type DashboardStateCategory,
+} from "../lib/dashboardListingStateMachine";
 
 type Row = {
   id: string;
@@ -287,7 +292,14 @@ export function LeonixRealEstateListingManageCard({
   const planFoot = listingPlanFootnote(lang);
   const republishWindowActive = isListingRepublishWindowActive(row.republished_at);
   const st = String(row.status ?? "active").toLowerCase();
-  const canPause = st === "active" && row.is_published !== false;
+  // Gate 2 (2026-09 dashboard state machine): the REAL public state, from the same predicates the public readers and Admin
+  // Live use (Rentas future `expires_at` + not rentado; FSBO 45-day term; BR inventory-child needs an active published
+  // same-owner main parent). `status = active` alone is NOT public: a term-elapsed / rented / orphaned-child row would
+  // otherwise read "Active" and offer a "View public" link that 404s.
+  const stateCategory: DashboardStateCategory = isBr ? "bienes-raices" : "rentas";
+  const brParentsById = isBr ? dashboardBrParentsFromOwnerRows(brNegocioInventoryRows ?? [], ownerUserId) : undefined;
+  const liveState = dashboardLiveState(stateCategory, row, { ownerId: ownerUserId, brParentsById });
+  const canPause = st === "active" && row.is_published !== false && liveState.live;
   const canResume = st === "paused" || st === "unpublished";
   // CLOSEOUT 2 — an unpaid / pre-publication row is NOT live: truthful status, no public "View listing".
   const notLive = isSharedListingsRowNotLive(row);
@@ -435,9 +447,23 @@ export function LeonixRealEstateListingManageCard({
                     ? "Pendiente — no publicado"
                     : "Pending — not published"}
               </span>
+            ) : liveState.termElapsed ? (
+              <span
+                className="rounded-full bg-red-100 px-2.5 py-0.5 text-[11px] font-bold text-red-900"
+                data-testid="listing-expired-status"
+              >
+                {lang === "es" ? "Vencido" : "Expired"}
+              </span>
             ) : canPause ? (
               <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-900">
                 {lang === "es" ? "Activo" : "Active"}
+              </span>
+            ) : st === "active" && !liveState.live ? (
+              <span
+                className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-bold text-amber-950"
+                data-testid="listing-active-not-public-status"
+              >
+                {lang === "es" ? "Activo, no público" : "Active, not public"}
               </span>
             ) : canResume ? (
               <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-bold text-amber-950">
@@ -627,7 +653,7 @@ export function LeonixRealEstateListingManageCard({
           >
             {openPanelLabel(lang)}
           </Link>
-          {notLive ? null : (
+          {!liveState.linkResolves ? null : (
             <Link
               href={publicViewHref}
               prefetch={false}
@@ -648,7 +674,7 @@ export function LeonixRealEstateListingManageCard({
           {/* CLOSEOUT 2 — the FSBO "Preview" target is the PUBLIC live page, which does not exist until the
               listing is live; an unpaid FSBO row previews through Edit instead. (BR Negocio's Preview is a
               listing-bound dashboard preview and stays.) */}
-          {brDashboardPreviewHref && !(notLive && effectiveBranch === "bienes_raices_privado") ? (
+          {brDashboardPreviewHref && !((notLive || !liveState.linkResolves) && effectiveBranch === "bienes_raices_privado") ? (
             <Link
               href={brDashboardPreviewHref}
               prefetch={false}

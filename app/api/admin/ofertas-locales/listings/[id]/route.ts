@@ -1,3 +1,4 @@
+import { isVerifiedAdminSession } from "@/app/admin/_lib/adminVerifiedSession";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
@@ -7,7 +8,7 @@ import {
   ofertaReviewErrorMessage,
 } from "@/app/lib/ofertas-locales/ofertasLocalesAdminReviewMessages";
 import { runOfertaLocalAdminReview } from "@/app/lib/ofertas-locales/ofertasLocalesAdminReviewService";
-import { getAdminSupabase, isSupabaseAdminConfigured, requireAdminCookie } from "@/app/lib/supabase/server";
+import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -24,7 +25,7 @@ export const runtime = "nodejs";
  */
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const jar = await cookies();
-  if (!requireAdminCookie(jar)) {
+  if (!(await isVerifiedAdminSession(jar))) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
   if (!isSupabaseAdminConfigured()) {

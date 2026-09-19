@@ -4,51 +4,38 @@ import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/
 import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { prepareAutosListingForApiTransport } from "@/app/(site)/publicar/autos/shared/lib/autosMuxPublishPrepare";
-
-const NEGOCIOS_PUBLISH_LISTING_SESSION_KEY = "lx-autos-publish-listing-negocios";
+import { resolveAutosNegociosDraftNamespace } from "@/app/clasificados/autos/negocios/lib/autosNegociosDraftNamespace";
+import {
+  autosCanonicalSaveMessage,
+  getBrowserAutosIdentityStorages,
+  saveAutosListingToCanonicalRow,
+} from "@/app/lib/clasificados/autos/autosCanonicalListingIdentity";
 
 export type AutosNegociosDraftListingForBoostResult =
   | { ok: true; listingId: string; leonixAdId: string | null }
   | { ok: false; userMessage: string };
 
-async function syncDraftListing(
-  listingId: string,
-  listing: AutoDealerListing,
-  lang: AutosNegociosLang,
-  token: string,
-): Promise<AutosNegociosDraftListingForBoostResult> {
-  const res = await fetch(`/api/clasificados/autos/listings/${listingId}`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      listing: prepareAutosListingForApiTransport(listing),
-      lang,
-    }),
-  });
-  const j = (await res.json().catch(() => ({}))) as { ok?: boolean; message?: string };
-  if (!res.ok) {
-    return {
-      ok: false,
-      userMessage:
-        j.message?.trim() ||
-        (lang === "es"
-          ? "No pudimos guardar tu solicitud antes de Inventory Boost."
-          : "We could not save your application before Inventory Boost."),
-    };
-  }
-  return { ok: true, listingId, leonixAdId: null };
-}
-
 /**
- * Persist Autos Negocios draft as a server listing row before Inventory Boost checkout.
- * Reuses the same session key as publish confirm so draft data survives return.
+ * Persist the Autos Negocios (dealer PARENT) application as its ONE canonical server row before Inventory
+ * Boost checkout.
+ *
+ * Final identity closeout (gate 1): this used to honour only the legacy session key
+ * (`lx-autos-publish-listing-negocios`); every failure branch (failed GET, non-editable status, failed PATCH,
+ * a brand-new tab) erased it and fell through to `POST`, which ALWAYS inserts - a second dealer parent row
+ * with a second Leonix Ad ID (and a second base charge). It now goes through the SAME draft-bound canonical
+ * identity helper as the Autos confirm flow and the Negocios preview:
+ *  - a declared identity (explicit parent id, or the draft-bound identity in session + local storage, with the
+ *    legacy key honoured as a fallback) can only end in PATCH-the-same-row or a FAIL-CLOSED error - never POST;
+ *  - only a genuinely new application (no declared identity, or one confirmed absent for this owner) POSTs;
+ *  - lane is always `negocios` and the identity scope is the plain lane scope: an inventory child id
+ *    (`negocios:inv:<parent>`) is never read, written or mixed with the parent id here, and no parent is
+ *    ever created when an explicit parent id is supplied.
  */
 export async function ensureAutosNegociosDraftListingForBoost(args: {
   listing: AutoDealerListing;
   lang: AutosNegociosLang;
+  /** Dealer parent row when it already exists (explicit identity; PATCH-only, never POST). */
+  parentListingId?: string | null;
 }): Promise<AutosNegociosDraftListingForBoostResult> {
   const lang = args.lang === "en" ? "en" : "es";
   const sb = createSupabaseBrowserClient();
@@ -64,71 +51,34 @@ export async function ensureAutosNegociosDraftListingForBoost(args: {
     };
   }
 
-  const cached =
-    typeof window !== "undefined" ? window.sessionStorage.getItem(NEGOCIOS_PUBLISH_LISTING_SESSION_KEY) : null;
-
-  if (cached?.trim()) {
-    const getRes = await fetch(`/api/clasificados/autos/listings/${cached.trim()}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (getRes.ok) {
-      const row = (await getRes.json()) as { status?: string; leonixAdId?: string | null };
-      const status = String(row.status ?? "").trim().toLowerCase();
-      if (status === "draft" || status === "pending_payment" || status === "payment_failed") {
-        const synced = await syncDraftListing(cached.trim(), args.listing, lang, token);
-        if (!synced.ok) return synced;
-        return {
-          ok: true,
-          listingId: cached.trim(),
-          leonixAdId: row.leonixAdId?.trim() || null,
-        };
-      }
-    }
-    if (typeof window !== "undefined") {
-      window.sessionStorage.removeItem(NEGOCIOS_PUBLISH_LISTING_SESSION_KEY);
-    }
+  let namespace: string | null = null;
+  try {
+    namespace = await resolveAutosNegociosDraftNamespace();
+  } catch {
+    namespace = null;
   }
 
-  try {
-    const res = await fetch("/api/clasificados/autos/listings", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        listing: prepareAutosListingForApiTransport(args.listing),
-        lane: "negocios",
-        lang,
-      }),
-    });
-    const j = (await res.json().catch(() => ({}))) as {
-      ok?: boolean;
-      id?: string;
-      leonixAdId?: string | null;
-      message?: string;
-    };
-    if (!res.ok || !j.id?.trim()) {
-      return {
-        ok: false,
-        userMessage:
-          j.message?.trim() ||
-          (lang === "es"
-            ? "No pudimos guardar tu solicitud antes de Inventory Boost."
-            : "We could not save your application before Inventory Boost."),
-      };
-    }
-    if (typeof window !== "undefined") {
-      window.sessionStorage.setItem(NEGOCIOS_PUBLISH_LISTING_SESSION_KEY, j.id.trim());
-    }
-    return { ok: true, listingId: j.id.trim(), leonixAdId: j.leonixAdId?.trim() || null };
-  } catch {
+  const saved = await saveAutosListingToCanonicalRow({
+    lane: "negocios",
+    lang,
+    token,
+    listingPayload: prepareAutosListingForApiTransport(args.listing),
+    explicitListingId: args.parentListingId?.trim() || null,
+    namespace,
+    fetchFn: (input, init) => fetch(input, init),
+    storages: getBrowserAutosIdentityStorages(),
+  });
+  if (!saved.ok) {
+    const helperDefault = autosCanonicalSaveMessage("create_failed", lang);
     return {
       ok: false,
       userMessage:
-        lang === "es"
-          ? "No pudimos guardar tu solicitud antes de Inventory Boost."
-          : "We could not save your application before Inventory Boost.",
+        saved.code === "create_failed" && saved.message === helperDefault
+          ? lang === "es"
+            ? "No pudimos guardar tu solicitud antes de Inventory Boost."
+            : "We could not save your application before Inventory Boost."
+          : saved.message,
     };
   }
+  return { ok: true, listingId: saved.listingId, leonixAdId: saved.leonixAdId };
 }

@@ -1,7 +1,9 @@
 import { lookupRevenuePaymentProof } from "@/app/lib/listingPlans/revenuePaymentLookup";
 import { resolveRevenueOsSuccessReturnPath } from "@/app/lib/listingPlans/revenueOsReturnPath";
+import { isVerifiedPaidReturn } from "@/app/lib/listingIdentity/paidReturnIdentityPolicy";
 import { RevenueOsPagoResultView } from "../_components/RevenueOsPagoResultView";
 import { AutosPaidReturnIdentityCleanup } from "../_components/AutosPaidReturnIdentityCleanup";
+import { ListingIdentityPaidReturnCleanup } from "../_components/ListingIdentityPaidReturnCleanup";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +38,12 @@ export default async function RevenueOsPagoExitoPage({
       {category === "autos" ? (
         <AutosPaidReturnIdentityCleanup paidListingId={proof.listingId} packageKey={proof.packageKey ?? (packageKey || null)} />
       ) : null}
+      {/* Rentas / Bienes Raices / Empleos: release the application's client identity memo only on a VERIFIED paid return. */}
+      <ListingIdentityPaidReturnCleanup
+        category={proof.category ?? (category || null)}
+        paidListingId={proof.listingId}
+        verified={isVerifiedPaidReturn(proof)}
+      />
       <RevenueOsPagoResultView
         proof={proof}
         lang={lang}

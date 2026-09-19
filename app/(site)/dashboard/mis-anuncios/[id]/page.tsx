@@ -79,6 +79,12 @@ import {
   resolveSharedListingPaymentLane,
 } from "../../lib/dashboardPendingPayment";
 import { startDashboardResumePayment } from "../../lib/dashboardResumePaymentClient";
+import {
+  dashboardBrParentsFromOwnerRows,
+  dashboardListingsCategoryKey,
+  dashboardOwnerReasonNote,
+  dashboardOwnerActionPlan,
+} from "../../lib/dashboardListingStateMachine";
 
 export const dynamic = "force-dynamic";
 
@@ -192,6 +198,15 @@ function ListingWorkspacePageContent() {
 
   const [loading, setLoading] = useState(true);
   const [row, setRow] = useState<ListingRow | null>(null);
+  /** Gate 2 (item 3): the canonical parent of a BR inventory child, read once, so the public link honours the parent gate. */
+  const [brParent, setBrParent] = useState<{
+    id: string;
+    category: string | null;
+    seller_type: string | null;
+    inventory_role: string | null;
+    status: string | null;
+    is_published: boolean | null;
+  } | null>(null);
   const [accountPlan, setAccountPlan] = useState<Plan>("free");
   const [userId, setUserId] = useState<string | null>(null);
   const [name, setName] = useState<string | null>(null);
@@ -279,6 +294,16 @@ function ListingWorkspacePageContent() {
     const listing = ownerRow as ListingRow;
     setRow(listing);
     setAccess("ok");
+    if (String(listing.inventory_role ?? "") === "inventory_property" && String(listing.br_inventory_parent_listing_id ?? "").trim()) {
+      const { data: parentRow } = await sb
+        .from("listings")
+        .select("id, category, seller_type, inventory_role, status, is_published")
+        .eq("id", String(listing.br_inventory_parent_listing_id).trim())
+        .maybeSingle();
+      setBrParent((parentRow ?? null) as typeof brParent);
+    } else {
+      setBrParent(null);
+    }
 
     const listingUuid = String(listing.id ?? "").trim();
     const leonixAdId = String(listing.leonix_ad_id ?? "").trim();
@@ -371,6 +396,19 @@ function ListingWorkspacePageContent() {
   // CLOSEOUT 2 — an unpaid / pre-publication row is NOT live: truthful status, payment action where a
   // Revenue OS package exists (Rentas / BR FSBO / paid Clases), and no public "View listing" link.
   const rowNotLive = row ? isSharedListingsRowNotLive(row) : false;
+  // Gate 2: "View public" only when the public detail page would resolve (same predicates as the public readers / Admin
+  // Live: Rentas term, FSBO term, Clases term, BR child needs an active published same-owner parent). A paused / expired /
+  // removed / flagged row has no public page.
+  const wsCategoryKey = row ? dashboardListingsCategoryKey(row) : null;
+  const wsPlan =
+    row && wsCategoryKey
+      ? dashboardOwnerActionPlan(wsCategoryKey, row, {
+          ownerId: row.owner_id ?? userId,
+          brParentsById: brParent ? dashboardBrParentsFromOwnerRows([brParent], row.owner_id ?? userId) : undefined,
+        })
+      : null;
+  const wsViewPublic = row ? (wsPlan ? wsPlan.viewPublic : !rowNotLive) : false;
+  const wsReasonNote = wsPlan && wsPlan.reason !== "live" && wsPlan.reason !== "payment_pending" ? dashboardOwnerReasonNote(wsPlan.reason, lang) : null;
   const unpaidPayLane = row
     ? resolveSharedListingPaymentLane({
         category: row.category,
@@ -822,7 +860,7 @@ function ListingWorkspacePageContent() {
         ? `/clasificados/anuncio/${row.id}?${q}`
         : "#";
 
-  const quickActions: ActionItem[] = row && !rowNotLive ? [{ href: publicListingHref, label: t.publicLink, tone: "secondary" }] : [];
+  const quickActions: ActionItem[] = row && wsViewPublic ? [{ href: publicListingHref, label: t.publicLink, tone: "secondary" }] : [];
   if (row && unpaidPayLane) {
     quickActions.unshift({
       label: busy ? dashboardStartingPaymentLabel(lang) : dashboardCompletePaymentLabel(lang),
@@ -969,8 +1007,8 @@ function ListingWorkspacePageContent() {
             header={{
               eyebrow: genericCategoryEyebrow(row.category, lang),
               title: row.title?.trim() || "—",
-              statusLabel: unpaidPayLane ? dashboardAwaitingPaymentLabel(lang) : listingUiStatusLabel(uiStatus, lang),
-              statusChipClass: unpaidPayLane ? getStatusChipClass("pending_payment") : listingUiStatusChipClass(uiStatus),
+              statusLabel: unpaidPayLane ? dashboardAwaitingPaymentLabel(lang) : listingUiStatusLabel(wsPlan?.termElapsed ? "expired" : uiStatus, lang),
+              statusChipClass: unpaidPayLane ? getStatusChipClass("pending_payment") : listingUiStatusChipClass(wsPlan?.termElapsed ? "expired" : uiStatus),
               plan: listingPlan.toUpperCase(),
               leonixId: displayLeonixAdId || `${t.listingRef}: ${shortListingRef(row.id)}`,
             }}
@@ -979,7 +1017,9 @@ function ListingWorkspacePageContent() {
                 ? { text: resumeError, tone: "urgent" }
                 : unpaidPayLane
                   ? { text: dashboardNotLiveNote(lang), tone: "warning" }
-                  : null
+                  : wsReasonNote
+                    ? { text: wsReasonNote, tone: "warning" }
+                    : null
             }
             detailItems={detailItems}
             performance={{ title: t.performanceTitle, metrics: performanceMetrics }}

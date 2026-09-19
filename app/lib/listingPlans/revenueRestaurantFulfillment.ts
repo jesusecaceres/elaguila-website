@@ -12,11 +12,13 @@ export const RESTAURANTE_PENDING_CHECKOUT_STATUS = "pending_payment" as const;
 export const RESTAURANTES_BASE_MONTHLY_PACKAGE_KEY = "restaurantes_base_monthly" as const;
 export const RESTAURANTES_OFFERS_ADDON_PACKAGE_KEY = "restaurantes_offers_addon" as const;
 
-/** Statuses webhook may activate to published after successful payment. */
-export const RESTAURANTE_ACTIVATABLE_PRE_PUBLISH_STATUSES = [
-  "archived",
-  RESTAURANTE_PENDING_CHECKOUT_STATUS,
-] as const;
+/**
+ * Statuses webhook may activate to published after successful payment.
+ * D9 (2026-09 final paid/free circuit audit): `archived` is NOT activatable - fulfilment cannot tell an owner archive
+ * from a staff moderation archive, so a new payment must never re-publish an archived row. Only the hidden pre-checkout
+ * `pending_payment` row is activated by payment; the checkout pre-flight uses this SAME set.
+ */
+export const RESTAURANTE_ACTIVATABLE_PRE_PUBLISH_STATUSES = [RESTAURANTE_PENDING_CHECKOUT_STATUS] as const;
 
 const ACTIVATABLE_FROM_STATUSES = new Set<string>(RESTAURANTE_ACTIVATABLE_PRE_PUBLISH_STATUSES);
 
@@ -90,11 +92,13 @@ export async function activatePaidRestauranteListingFromRevenueOs(input: {
     return { ok: true, outcome: "already_published", listingId };
   }
 
-  if (status === "suspended") {
+  if (status === "suspended" || status === "archived") {
+    // Terminal, non-retried outcome (the webhook records revenue_webhook_ignored): the payment is recorded and the
+    // row stays hidden for staff. Returning ok:false here would make Stripe redeliver forever after the charge.
     return {
       ok: true,
       outcome: "unsafe_status",
-      message: "Suspended restaurant listings are not auto-activated by webhook.",
+      message: `${status === "archived" ? "Archived" : "Suspended"} restaurant listings are not auto-activated by webhook (payment recorded; needs staff action).`,
       listingId,
     };
   }

@@ -1,3 +1,4 @@
+import { isVerifiedAdminSession } from "@/app/admin/_lib/adminVerifiedSession";
 import { NextRequest, NextResponse } from "next/server";
 import { unstable_noStore as noStore } from "next/cache";
 
@@ -9,7 +10,7 @@ import { empleosRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCap
 import { classifyPublication } from "@/app/admin/_lib/publicationSemantics";
 import { adminRowMatchesLeonixAdIdFilter, adminRowMatchesOwnerFilter } from "@/app/admin/(dashboard)/workspace/clasificados/_lib/adminNormalizedShell";
 import {
-  fetchAllEmpleosListingsForAdmin,
+  fetchAllEmpleosListingsForAdminDetailed,
   fetchEmpleosApplicationHealthByListingIds,
   type EmpleosPublicListingRow,
 } from "@/app/clasificados/empleos/lib/empleosPublicListingsDbServer";
@@ -41,7 +42,7 @@ async function fetchEmpleosLifecycleExtras(ids: string[]): Promise<Map<string, {
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   noStore();
-  if (req.cookies.get("leonix_admin")?.value !== "1") {
+  if (!(await isVerifiedAdminSession(req.cookies))) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
   if (!isSupabaseAdminConfigured()) {
@@ -94,7 +95,21 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       );
     };
   }
-  let rows = await fetchAllEmpleosListingsForAdmin({ limit, scope, rowFilter });
+  // Detailed form: a read failure is an ERROR (never an empty list) and a capped scan is disclosed to the client.
+  const fullOwnerUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ownerFilter);
+  const listed = await fetchAllEmpleosListingsForAdminDetailed({
+    limit,
+    scope,
+    rowFilter,
+    ...(statusFilter ? { status: statusFilter } : {}),
+    ...(laneFilter ? { lane: laneFilter } : {}),
+    ...(leonixAdIdFilter ? { leonix_ad_id: leonixAdIdFilter } : {}),
+    ...(fullOwnerUuid ? { owner_user_id: ownerFilter } : {}),
+  });
+  if (listed.error) {
+    return NextResponse.json({ ok: false, error: listed.error === "supabase_not_configured" ? "supabase_not_configured" : "read_failed", detail: listed.error }, { status: listed.error === "supabase_not_configured" ? 503 : 500 });
+  }
+  let rows = listed.rows;
   if (scope === "live") {
     rows = rows.filter((r) => empleosRowIsPublicLive(r as unknown as Record<string, unknown>));
   }
@@ -149,5 +164,5 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     },
   };
   });
-  return NextResponse.json({ ok: true, rows: enriched, commercial });
+  return NextResponse.json({ ok: true, rows: enriched, commercial, scan_capped: listed.scanCapped, limit });
 }

@@ -13,6 +13,40 @@
  */
 export const ADMIN_PRE_PUBLISH_STATUSES: ReadonlySet<string> = new Set(["draft", "pending", "pending_payment", "payment_failed"]);
 
+/**
+ * Legacy Servicios "listing_status" form (ServiciosAdminOpsListingCard). It is a free status setter, so it gets the same
+ * doctrine as the lifecycle route (Gate 5): a row that is NOT yet a paid / once-published listing (any pre-payment
+ * status) cannot be moved by it at all - not to `published`, and not to `suspended` / `rejected` (which would turn a
+ * never-paid row into a "restorable" one) - and a change TO `published` from any other status is a REACTIVATION that
+ * the caller must clear through the payment hold (suspended_reason / entitlement) before writing.
+ */
+export const SERVICIOS_FORM_PRE_PAYMENT_STATUSES: ReadonlySet<string> = new Set([
+  ...ADMIN_PRE_PUBLISH_STATUSES,
+  "preview_ready",
+  "publish_ready",
+]);
+
+export type ServiciosStatusFormDecision =
+  | { allowed: true; reactivates: boolean }
+  | { allowed: false; code: "pre_publish_row" | "unchanged"; message: string };
+
+export function decideServiciosStatusFormChange(input: {
+  current: string | null | undefined;
+  requested: string | null | undefined;
+}): ServiciosStatusFormDecision {
+  const current = String(input.current ?? "").trim().toLowerCase();
+  const requested = String(input.requested ?? "").trim().toLowerCase();
+  if (current === requested) return { allowed: false, code: "unchanged", message: "The listing already has that status." };
+  if (SERVICIOS_FORM_PRE_PAYMENT_STATUSES.has(current)) {
+    return {
+      allowed: false,
+      code: "pre_publish_row",
+      message: "This listing has not been published (awaiting payment). Its status is commercial truth - it changes only through a verified payment.",
+    };
+  }
+  return { allowed: true, reactivates: requested === "published" };
+}
+
 export type AdminPrePublishDecision =
   | { blocked: false }
   | { blocked: true; code: "payment_required" | "not_published"; message: string };

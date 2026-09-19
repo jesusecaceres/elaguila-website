@@ -1,3 +1,4 @@
+import { isVerifiedAdminSession } from "@/app/admin/_lib/adminVerifiedSession";
 import { decideAdminPrePublishAction } from "@/app/admin/_lib/adminPrePublishActionPolicy";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
@@ -10,7 +11,8 @@ import {
 } from "@/app/admin/_lib/classifiedsRepublishCapability";
 import { insertServiciosAnalyticsEvent } from "@/app/clasificados/servicios/lib/serviciosOpsTablesServer";
 import { SERVICIOS_LISTING_STATUS_PUBLISHED } from "@/app/clasificados/servicios/lib/serviciosListingLifecycle";
-import { getAdminSupabase, requireAdminCookie } from "@/app/lib/supabase/server";
+import { getAdminSupabase } from "@/app/lib/supabase/server";
+import { evaluateAdminReactivationHold } from "@/app/admin/_lib/adminPaymentSuspensionPolicyServer";
 
 type ServiciosStaffAction =
   | "suspend"
@@ -39,7 +41,7 @@ export const dynamic = "force-dynamic";
 
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const jar = await cookies();
-  if (!requireAdminCookie(jar)) {
+  if (!(await isVerifiedAdminSession(jar))) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
@@ -83,6 +85,19 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     if (gate.blocked) return NextResponse.json({ ok: false, error: gate.code, message: gate.message }, { status: 409 });
   }
 
+  // Gate 5 - a payment suspension (suspended_reason 'payment') or a lapsed / canceled base entitlement wins over
+  // Admin Restore / Republish (read-only evidence, fails closed). Free / legacy rows with no entitlement on record
+  // are not blocked here.
+  if ((action === "unsuspend" || action === "republish") && !serviciosRowIsPublicLive(rowRec)) {
+    const hold = await evaluateAdminReactivationHold(supabase, {
+      table: "servicios_public_listings",
+      id,
+      status: String(rowRec.listing_status ?? ""),
+      requireEntitlement: true,
+    });
+    if (hold.blocked) return NextResponse.json({ ok: false, error: hold.code, message: hold.message }, { status: hold.httpStatus });
+  }
+
   if (action === "republish") {
     if (!canRepublishListing(rowRec, "servicios")) {
       return NextResponse.json({ ok: false, error: "republish_not_eligible" }, { status: 400 });
@@ -97,7 +112,10 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     if (!serviciosRowIsPublicLive(rowRec)) {
       patch.listing_status = SERVICIOS_LISTING_STATUS_PUBLISHED;
     }
-    const { error } = await supabase.from("servicios_public_listings").update(patch).eq("id", id);
+    let republishQuery = supabase.from("servicios_public_listings").update(patch).eq("id", id);
+    // A payment suspension that lands after the hold check wins (compare-and-set).
+    if (patch.listing_status) republishQuery = republishQuery.or("suspended_reason.is.null,suspended_reason.neq.payment");
+    const { error } = await republishQuery;
     if (error) {
       return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     }
@@ -146,7 +164,9 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       return NextResponse.json({ ok: false, error: "invalid_action" }, { status: 400 });
   }
 
-  const { error } = await supabase.from("servicios_public_listings").update(patch).eq("id", id);
+  let staffQuery = supabase.from("servicios_public_listings").update(patch).eq("id", id);
+  if (action === "unsuspend") staffQuery = staffQuery.or("suspended_reason.is.null,suspended_reason.neq.payment");
+  const { error } = await staffQuery;
   if (error) {
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }

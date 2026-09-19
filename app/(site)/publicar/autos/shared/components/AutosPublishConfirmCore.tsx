@@ -37,6 +37,8 @@ import {
 import { getRevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
 import { autosConfirmErrorMessage } from "@/app/lib/clasificados/autos/autosPublishApiContract";
 import {
+  autosIdentityScope,
+  clearAutosDraftListingIdentity,
   getBrowserAutosIdentityStorages,
   readAutosExplicitListingIdFromSearch,
   saveAutosListingToCanonicalRow,
@@ -698,6 +700,14 @@ export function AutosPublishConfirmCore({
         window.sessionStorage.setItem(AUTOS_BUNDLE_PUBLISH_RESULT_SESSION_KEY, JSON.stringify(sessionResult));
       }
       if (inventoryCtx) {
+        // Verified success of THIS inventory add: its identity scope (`<lane>:inv:<parent>`) is spent, so the
+        // next vehicle added under the same parent starts its own row instead of hitting "not editable".
+        // (Failure / cancel / retry never reach this branch, so they keep the identity and reuse the row.)
+        clearAutosDraftListingIdentity(
+          getBrowserAutosIdentityStorages(),
+          autosIdentityScope(lane, inventoryCtx.parentListingId),
+          lane,
+        );
         clearInventoryAddContextFromSession();
         const returnHref = resolveInventoryAddReturnHref({
           returnToListingId: inventoryCtx.returnToListingId,

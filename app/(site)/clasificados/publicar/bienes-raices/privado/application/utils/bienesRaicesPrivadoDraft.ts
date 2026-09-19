@@ -9,6 +9,7 @@ import {
   inlineBienesRaicesPrivadoHeavyMediaFromIdb,
   offloadBienesRaicesPrivadoHeavyMediaToIdb,
 } from "./bienesRaicesPrivadoDraftMedia";
+import { clearRealEstateDraftLifecycleForLaneInBrowser } from "@/app/(site)/clasificados/lib/realEstateDraftKey";
 
 export const BR_PRIVADO_DRAFT_STORAGE_KEY = "br-privado-draft-v1";
 
@@ -135,6 +136,10 @@ export async function saveBienesRaicesPrivadoDraft(state: BienesRaicesPrivadoFor
 
 export async function clearBienesRaicesPrivadoDraft(): Promise<void> {
   if (typeof window === "undefined") return;
+  // FSBO: the draft key AND the cached pending-row id live exactly as long as this draft (checkout hand-off,
+  // reiniciar, leaving the flow): a NEW application in this tab must not inherit either and overwrite the
+  // abandoned pending row. Never called on back / edit / retry / cancel.
+  clearRealEstateDraftLifecycleForLaneInBrowser({ category: "bienes-raices", sellerType: "personal" }, "application_draft_cleared");
   try {
     sessionStorage.removeItem(BR_PRIVADO_DRAFT_STORAGE_KEY);
     localStorage.removeItem(BR_PRIVADO_DRAFT_STORAGE_KEY);

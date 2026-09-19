@@ -78,16 +78,33 @@ export function isPrePublicationStatus(status: string | null | undefined): boole
  * Is the dedicated-table inventory row actually on the public site right now?
  * `isPublic` only matters for Viajes (approved AND is_public). Unknown category => true (never hides a
  * link this helper has no evidence about).
+ *
+ * Gate 2 (2026-09 dashboard state machine) - agrees with the Admin Live predicates
+ * (`app/admin/_lib/adminLivePredicates.ts`): an Autos Privado row whose fixed term (`expiresAt`) has elapsed is
+ * not live even though its status stays `active`. (The Comida Local dashboard has its own owner plan in
+ * `comidaLocalPaymentResume.ts`; this helper is deliberately not consulted for it.)
  */
 export function dashboardInventoryRowIsPubliclyLive(input: {
   category: string;
   status: string | null | undefined;
   isPublic?: boolean | null;
+  /** Autos Privado fixed term end (`expires_at`); ignored for every other category. */
+  expiresAt?: string | null;
+  /** Autos lane (`privado` | `negocios`); the term only applies to `privado`. */
+  lane?: string | null;
+  nowMs?: number;
 }): boolean {
   const cat = String(input.category ?? "").trim().toLowerCase();
   const st = String(input.status ?? "").trim().toLowerCase();
   if (cat === "restaurantes" || cat === "servicios" || cat === "empleos") return st === "published";
-  if (cat === "autos_paid" || cat === "autos") return st === "active";
+  if (cat === "autos_paid" || cat === "autos") {
+    if (st !== "active") return false;
+    if (String(input.lane ?? "").trim().toLowerCase() === "privado" && typeof input.expiresAt === "string" && input.expiresAt.trim()) {
+      const ms = new Date(input.expiresAt).getTime();
+      if (Number.isFinite(ms) && ms <= (input.nowMs ?? Date.now())) return false;
+    }
+    return true;
+  }
   if (cat === "viajes") return st === "approved" && input.isPublic === true;
   return true;
 }

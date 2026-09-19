@@ -22,7 +22,9 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
   const sp = (await props.searchParams) ?? {};
   const lang = sp.lang === "en" ? "en" : "es";
   const row = await getServiciosPublicListingBySlugForDiscovery(slug);
-  if (!row || row.listing_status === "rejected" || row.listing_status === "suspended") {
+  // Gate 9 (2026-09 parity): only a `published` profile gets a business title/description in <head>; every
+  // other slug-page state (pending_review / paused_unpublished / rejected / suspended) is noindex + generic.
+  if (!row || row.listing_status !== "published") {
     return {
       ...PREVIEW_NOINDEX_METADATA,
       title: lang === "en" ? "Service not found · Leonix" : "Servicio no encontrado · Leonix",

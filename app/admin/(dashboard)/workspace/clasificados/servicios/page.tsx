@@ -25,6 +25,9 @@ import { serviciosRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishC
 import { ClasificadosQueueHeader } from "../_components/ClasificadosQueueHeader";
 import { AdminCategorySummaryPanel } from "../_components/normalized/AdminCategorySummaryPanel";
 import { AdminCategoryFilterBar } from "../_components/normalized/AdminCategoryFilterBar";
+import { AdminListTruncationNotice } from "../_components/normalized/AdminListTruncationNotice";
+import { ADMIN_CATEGORIES_ADVANCED_REGISTRY_HREF } from "@/app/admin/_lib/adminGlobalNav";
+import { adminAnyFilterActive } from "@/app/admin/_lib/adminFilterTruth";
 import { clasificadosQueueSurfaceForSlug } from "../_lib/clasificadosQueueSurfaceMeta";
 import {
   appendPreservedSearchParams,
@@ -177,7 +180,7 @@ export default async function AdminServiciosWorkspacePage(props: {
     status: filters.status || undefined,
   };
   const queueRes = await listServiciosPublicListingsAdminQueueFromDb(queueFilters);
-  const { unavailable, fullSchema, readError } = queueRes;
+  const { unavailable, fullSchema, readError, readWarning } = queueRes;
   const fetchedRowCount = queueRes.rows.length;
   const queueRowsNarrowed = ownerNeedsMemory
     ? queueRes.rows.filter((r) => adminRowMatchesOwnerFilter({ owner_user_id: r.owner_user_id }, filters.owner)).slice(0, queueLimit)
@@ -286,7 +289,7 @@ export default async function AdminServiciosWorkspacePage(props: {
         />
       </div>
 
-      <AdminCategorySummaryPanel summary={summary} lang={lang} technicalDetails={[["Table", surface.sourceTable]]} />
+      <AdminCategorySummaryPanel summary={summary} lang={lang} filtersActive={adminAnyFilterActive(sp)} technicalDetails={[["Table", surface.sourceTable]]} />
 
       <AdminPagePurposeCard
         title="Servicios admin ops"
@@ -331,9 +334,18 @@ export default async function AdminServiciosWorkspacePage(props: {
           Columns used: {SERVICIOS_ADMIN_COLUMNS.join(", ")}. Engagement uses user_liked_listings / saved_listings when
           readable.
         </p>
+        <p className="mt-3">
+          <Link
+            href={ADMIN_CATEGORIES_ADVANCED_REGISTRY_HREF}
+            className={`${adminCtaChipSecondary} inline-flex justify-center text-xs`}
+            data-testid="servicios-admin-advanced-registry-link"
+          >
+            Advanced registry →
+          </Link>
+        </p>
       </details>
 
-      {!unavailable ? (
+      {(
         <div data-testid="servicios-admin-filter-panel">
           <AdminCategoryFilterBar
             lang={lang}
@@ -359,8 +371,17 @@ export default async function AdminServiciosWorkspacePage(props: {
               {windowNote}
             </p>
           ) : null}
+          {!unavailable ? (
+            <AdminListTruncationNotice
+              lang={lang}
+              className="mt-2"
+              shown={rowsFiltered.length}
+              limit={queueLimit}
+              partialSources={readWarning ? [readWarning] : null}
+            />
+          ) : null}
         </div>
-      ) : null}
+      )}
 
       {!unavailable ? (
         <section className="min-w-0 space-y-4" data-testid="servicios-admin-listing-cards">

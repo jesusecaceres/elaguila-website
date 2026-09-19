@@ -19,7 +19,17 @@
  * `suspended_reason` ownership: the payment engine writes 'payment' (grace expired / chargeback) and its
  * restore is a CAS on that value. Staff writes 'moderation'. Staff restore must NEVER overwrite a
  * 'payment' suspension — that row comes back only when the payment is cured.
+ *
+ * Gate 5 (2026-09): the reason is now REQUIRED input, never guessed. A row whose reason could not be read is
+ * refused (`suspension_reason_unreadable`, no write); any payment-engine reason (payment / chargeback / ...) blocks
+ * Restore AND Republish; a lapsed / canceled base entitlement (read-only evidence supplied by the caller) blocks
+ * Restore AND Republish. Staff never creates payment truth.
  */
+import {
+  ADMIN_PAYMENT_HOLD_MESSAGES,
+  isPaymentOwnedSuspendedReason,
+  type AdminEntitlementEvidence,
+} from "@/app/admin/_lib/adminPaymentSuspensionPolicy";
 
 export type ComidaLocalAdminAction = "suspend" | "unsuspend" | "archive" | "republish";
 
@@ -37,6 +47,8 @@ export function isComidaLocalAdminAction(x: unknown): x is ComidaLocalAdminActio
 /** Value staff suspensions write to `suspended_reason` (the payment engine writes 'payment'). */
 export const COMIDA_LOCAL_STAFF_SUSPENSION_REASON = "moderation" as const;
 export const COMIDA_LOCAL_PAYMENT_SUSPENSION_REASON = "payment" as const;
+/** Staff archive (`paused` + this marker): the owner lifecycle route must not resume a staff-archived row. */
+export const COMIDA_LOCAL_STAFF_ARCHIVE_REASON = "staff_archived" as const;
 
 /** The status vocabulary the table CHECK accepts — nothing else is ever written by staff. */
 export const COMIDA_LOCAL_STATUS_VOCAB = ["published", "pending_payment", "draft", "paused", "suspended"] as const;
@@ -49,6 +61,10 @@ export type ComidaLocalAdminActionRow = {
   payment_status?: string | null;
   published_at?: string | null;
   suspended_reason?: string | null;
+  /** `false` when the reason column was not returned by the read (fail closed for reactivations). Default: read. */
+  suspended_reason_read?: boolean;
+  /** Read-only base-package entitlement evidence for Restore / Republish. undefined = not supplied (UI hints). */
+  entitlement?: AdminEntitlementEvidence | null;
 };
 
 function s(v: unknown): string {
@@ -85,14 +101,21 @@ export type ComidaLocalAdminActionDecision =
        */
       requireNonPaymentReason: boolean;
     }
-  | { ok: false; httpStatus: 400 | 409; error: string; message: string };
+  | { ok: false; httpStatus: 400 | 409 | 500; error: string; message: string };
 
-const refuse = (httpStatus: 400 | 409, error: string, message: string): ComidaLocalAdminActionDecision => ({
+const refuse = (httpStatus: 400 | 409 | 500, error: string, message: string): ComidaLocalAdminActionDecision => ({
   ok: false,
   httpStatus,
   error,
   message,
 });
+
+/** Entitlement evidence -> refusal (lapsed = 409, unreadable = 500 fail closed). Lanes without evidence pass. */
+function entitlementRefusal(evidence: AdminEntitlementEvidence | null | undefined): ComidaLocalAdminActionDecision | null {
+  if (evidence === "lapsed") return refuse(409, "entitlement_lapsed", ADMIN_PAYMENT_HOLD_MESSAGES.entitlement_lapsed);
+  if (evidence === "unreadable") return refuse(500, "entitlement_state_unreadable", ADMIN_PAYMENT_HOLD_MESSAGES.entitlement_state_unreadable);
+  return null;
+}
 
 /** The ONE decision function for a staff action on a Comida Local row. */
 export function decideComidaLocalAdminAction(
@@ -123,7 +146,7 @@ export function decideComidaLocalAdminAction(
         ok: true,
         action,
         expectStatus: "published",
-        patch: { status: "paused" },
+        patch: { status: "paused", suspended_reason: COMIDA_LOCAL_STAFF_ARCHIVE_REASON },
         requireNonPaymentReason: false,
       };
 
@@ -131,7 +154,10 @@ export function decideComidaLocalAdminAction(
       if (status !== "suspended") {
         return refuse(409, "invalid_status_transition", `Only a suspended listing can be restored (this one is "${status || "unknown"}").`);
       }
-      if (reason === COMIDA_LOCAL_PAYMENT_SUSPENSION_REASON) {
+      if (row.suspended_reason_read === false) {
+        return refuse(500, "suspension_reason_unreadable", ADMIN_PAYMENT_HOLD_MESSAGES.suspension_state_unreadable);
+      }
+      if (reason === COMIDA_LOCAL_PAYMENT_SUSPENSION_REASON || isPaymentOwnedSuspendedReason(reason)) {
         return refuse(
           409,
           "payment_suspended",
@@ -144,6 +170,10 @@ export function decideComidaLocalAdminAction(
           "payment_required",
           "This listing has no verified payment (payment_status is not paid / waived). Staff cannot make it public — it goes live through a verified payment or a cleared manual payment.",
         );
+      }
+      {
+        const lapsed = entitlementRefusal(row.entitlement);
+        if (lapsed) return lapsed;
       }
       return {
         ok: true,
@@ -170,12 +200,23 @@ export function decideComidaLocalAdminAction(
           "This listing has no verified payment (payment_status is not paid / waived). Staff cannot make it public.",
         );
       }
+      if (row.suspended_reason_read === false) {
+        return refuse(500, "suspension_reason_unreadable", ADMIN_PAYMENT_HOLD_MESSAGES.suspension_state_unreadable);
+      }
+      if (isPaymentOwnedSuspendedReason(reason)) {
+        return refuse(409, "payment_suspended", ADMIN_PAYMENT_HOLD_MESSAGES.payment_suspension_active);
+      }
+      {
+        const lapsed = entitlementRefusal(row.entitlement);
+        if (lapsed) return lapsed;
+      }
       return {
         ok: true,
         action,
         expectStatus: "paused",
-        patch: { status: "published" },
-        requireNonPaymentReason: false,
+        patch: { status: "published", suspended_reason: null },
+        // CAS: a payment suspension that lands after the read is never overwritten.
+        requireNonPaymentReason: true,
       };
   }
 }

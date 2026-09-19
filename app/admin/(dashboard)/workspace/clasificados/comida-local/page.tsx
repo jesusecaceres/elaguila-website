@@ -7,6 +7,8 @@ import {
 import { ClasificadosQueueActionChrome } from "../_components/ClasificadosQueueActionChrome";
 import { ClasificadosQueueHeader } from "../_components/ClasificadosQueueHeader";
 import { AdminCategoryFilterBar } from "../_components/normalized/AdminCategoryFilterBar";
+import { AdminListTruncationNotice } from "../_components/normalized/AdminListTruncationNotice";
+import { adminAnyFilterActive } from "@/app/admin/_lib/adminFilterTruth";
 import { AdminCategorySummaryPanel } from "../_components/normalized/AdminCategorySummaryPanel";
 import { clasificadosQueueSurfaceForSlug } from "../_lib/clasificadosQueueSurfaceMeta";
 import {
@@ -150,6 +152,7 @@ export default async function AdminComidaLocalPublicListingsPage(props: PageProp
       <AdminCategorySummaryPanel
         summary={summary}
         lang={lang}
+        filtersActive={adminAnyFilterActive(sp, ["q", "status", "owner", "owner_user_id", "leonix_ad_id", "slug", "id"])}
         technicalDetails={[["Table", surface.sourceTable]]}
       />
 
@@ -182,6 +185,8 @@ export default async function AdminComidaLocalPublicListingsPage(props: PageProp
         </div>
       ) : null}
 
+      {configured && !list.error ? <AdminListTruncationNotice lang={lang} shown={items.length} limit={queueLimit} /> : null}
+
       <ComidaLocalAdminListings
         lang={lang === "en" ? "en" : "es"}
         items={items}
@@ -191,7 +196,7 @@ export default async function AdminComidaLocalPublicListingsPage(props: PageProp
         actionsById={configured ? actionsById : undefined}
         paymentAnomalyById={paymentAnomalyById}
         suspendedReasonById={suspendedReasonById}
-        emptyMessage={hasFilters ? adminTr(lang, "comidaAdmin.empty") : undefined}
+        emptyMessage={list.error ? undefined : hasFilters ? adminTr(lang, "comidaAdmin.empty") : undefined}
       />
     </div>
   );

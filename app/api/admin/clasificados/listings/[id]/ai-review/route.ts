@@ -1,16 +1,16 @@
+import { isVerifiedAdminSession } from "@/app/admin/_lib/adminVerifiedSession";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { runListingAiReviewForId } from "@/app/admin/_lib/listingAiModerationService";
-import { requireAdminCookie } from "@/app/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 /** Admin-only: run AI moderation review for one generic listing. Does not change listing status. */
 export async function POST(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const jar = await cookies();
-  if (!requireAdminCookie(jar)) {
+  if (!(await isVerifiedAdminSession(jar))) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 

@@ -52,6 +52,11 @@ export type AdminCategorySummary = {
   expired: number | null;
   sourceHealth: { ok: boolean; source: string; note: string | null };
   queryError: string | null;
+  /**
+   * Metrics whose value is a LOWER BOUND because a bounded scan hit its cap before reading every row
+   * (never a claim about the whole dataset). The UI prefixes them with "≥". Absent / empty = every value exact.
+   */
+  lowerBound?: Array<"total" | "live" | "needsAttention" | "paymentIssue" | "expired">;
 };
 
 export const ADMIN_CATEGORY_SUMMARY_SLUGS = [
@@ -84,7 +89,7 @@ function escapeIlikeExact(s: string): string {
   return s.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
 }
 
-type Collector = { errors: string[]; notes: string[] };
+type Collector = { errors: string[]; notes: string[]; lowerBound: string[] };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- PostgREST builder chain is wider than a narrow helper type.
 type QueryTweak = (q: any) => any;
@@ -120,6 +125,7 @@ async function scanCount<T>(c: Collector, label: string, run: () => Promise<Admi
     }
     if (res.capped) {
       c.notes.push(`${label}: scan cap (${SUMMARY_SCAN_MAX} rows) reached — value is a lower bound`);
+      if (!c.lowerBound.includes(label)) c.lowerBound.push(label);
     }
     return res.rows.length;
   } catch (e) {
@@ -137,7 +143,13 @@ function finish(
 ): AdminCategorySummary {
   const note = [baseNote, ...c.notes].filter((x): x is string => Boolean(x)).join(" | ") || null;
   const queryError = c.errors.length ? c.errors.join(" | ") : null;
-  return { slug, ...m, sourceHealth: { ok: c.errors.length === 0, source, note }, queryError };
+  return {
+    slug,
+    ...m,
+    sourceHealth: { ok: c.errors.length === 0, source, note },
+    queryError,
+    ...(c.lowerBound.length ? { lowerBound: c.lowerBound as NonNullable<AdminCategorySummary["lowerBound"]> } : {}),
+  };
 }
 
 function emptySummary(slug: string, source: string, error: string): AdminCategorySummary {
@@ -184,7 +196,7 @@ const SIMPLE_LANES: Record<string, SimpleLane> = {
       table: "empleos_public_listings",
       live: (q) => q.eq("lifecycle_status", "published"),
       attention: (q) => q.in("lifecycle_status", ["pending_review"]),
-      note: "SQL counts; live = lifecycle_status published; no payment status column",
+      note: "SQL counts; live = lifecycle_status published; no payment status column (paymentIssue is derived from payment-record evidence, see below)",
     },
     "comida-local": {
       table: "comida_local_public_listings",
@@ -202,7 +214,7 @@ const SIMPLE_LANES: Record<string, SimpleLane> = {
 };
 
 async function summarizeSimple(sb: SupabaseClient, slug: string, lane: SimpleLane): Promise<AdminCategorySummary> {
-  const c: Collector = { errors: [], notes: [] };
+  const c: Collector = { errors: [], notes: [], lowerBound: [] };
   const [total, live, needsAttention, paymentIssue, expired] = await Promise.all([
     headCount(sb, c, lane.table, "total"),
     headCount(sb, c, lane.table, "live", lane.live),
@@ -211,6 +223,116 @@ async function summarizeSimple(sb: SupabaseClient, slug: string, lane: SimpleLan
     lane.expired ? headCount(sb, c, lane.table, "expired", lane.expired) : Promise.resolve(null),
   ]);
   return finish(slug, lane.table, c, { total, live, needsAttention, paymentIssue, expired }, lane.note);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────────
+// Empleos — payment issue derived from EVIDENCE (no payment status column exists on the row)
+// ─────────────────────────────────────────────────────────────────────────────────────────────────
+
+/** Empleos lanes sold through checkout (`feria` is free; a null / unknown lane is legacy and never inferred). */
+export const EMPLEOS_PAID_LANES = ["quick", "premium"] as const;
+
+/** Payment-record statuses that mean money cleared (same set the Empleos Restore gate treats as cleared). */
+export const EMPLEOS_PAYMENT_CLEARED_STATUSES: ReadonlySet<string> = new Set(["paid", "succeeded", "cleared", "payment_cleared"]);
+
+export type EmpleosDraftEvidence = { id: string; lane?: string | null; lifecycle_status?: string | null; published_at?: string | null };
+export type EmpleosPaymentEvidence = { listing_id: string | null; payment_status: string | null };
+
+/**
+ * PURE. Empleos "payment issue" = Quick / Premium (paid lane) rows that are still `draft`, were NEVER published
+ * (`published_at` null) and have NO cleared payment record — i.e. the payment failed, was abandoned, or never
+ * happened. NOT counted (never inferred): Feria (free), rows of an unknown / null lane (legacy — no evidence),
+ * rows that were ever live, rows in any status other than draft, and drafts that DO have a cleared payment
+ * (money is in — that is an activation follow-up, not a payment issue).
+ */
+export function countEmpleosPaymentIssues(
+  rows: readonly EmpleosDraftEvidence[],
+  payments: readonly EmpleosPaymentEvidence[],
+): number {
+  const clearedListingIds = new Set<string>();
+  for (const p of payments) {
+    if (p.listing_id && EMPLEOS_PAYMENT_CLEARED_STATUSES.has(String(p.payment_status ?? "").trim().toLowerCase())) {
+      clearedListingIds.add(String(p.listing_id));
+    }
+  }
+  const paid = new Set<string>(EMPLEOS_PAID_LANES);
+  let n = 0;
+  for (const r of rows) {
+    if (String(r.lifecycle_status ?? "").trim().toLowerCase() !== "draft") continue;
+    if (!paid.has(String(r.lane ?? "").trim().toLowerCase())) continue;
+    if (r.published_at) continue;
+    if (clearedListingIds.has(r.id)) continue;
+    n += 1;
+  }
+  return n;
+}
+
+async function deriveEmpleosPaymentIssue(sb: SupabaseClient, c: Collector): Promise<number | null> {
+  try {
+    const drafts = await scanPagedRows<EmpleosDraftEvidence>({
+      limit: SUMMARY_SCAN_MAX,
+      pageSize: SUMMARY_PAGE,
+      maxScan: SUMMARY_SCAN_MAX,
+      fetchPage: (from, to) =>
+        sb
+          .from("empleos_public_listings")
+          .select("id, lane, lifecycle_status, published_at")
+          .eq("lifecycle_status", "draft")
+          .in("lane", [...EMPLEOS_PAID_LANES])
+          .is("published_at", null)
+          .order("id", { ascending: true })
+          .range(from, to) as unknown as PromiseLike<{ data: EmpleosDraftEvidence[] | null; error: { message: string } | null }>,
+      accept: (rows) => rows,
+    });
+    if (drafts.error) {
+      c.errors.push(`paymentIssue: ${drafts.error}`);
+      return null;
+    }
+    if (drafts.capped) {
+      c.notes.push(`paymentIssue: draft scan cap (${SUMMARY_SCAN_MAX} rows) reached — value is a lower bound`);
+      if (!c.lowerBound.includes("paymentIssue")) c.lowerBound.push("paymentIssue");
+    }
+    const ids = drafts.rows.map((r) => r.id);
+    const payments: EmpleosPaymentEvidence[] = [];
+    for (let i = 0; i < ids.length; i += 100) {
+      const { data, error } = await sb
+        .from("leonix_payment_records")
+        .select("listing_id, payment_status")
+        .in("listing_id", ids.slice(i, i + 100));
+      if (error) {
+        // Evidence unreadable: never guess a number.
+        c.errors.push(`paymentIssue: payment records unreadable (${error.message})`);
+        return null;
+      }
+      for (const p of (data ?? []) as EmpleosPaymentEvidence[]) payments.push(p);
+    }
+    return countEmpleosPaymentIssues(drafts.rows, payments);
+  } catch (e) {
+    c.errors.push(`paymentIssue: ${e instanceof Error ? e.message : String(e)}`);
+    return null;
+  }
+}
+
+async function summarizeEmpleos(sb: SupabaseClient, slug: string, lane: SimpleLane): Promise<AdminCategorySummary> {
+  const base = await summarizeSimple(sb, slug, lane);
+  const c: Collector = { errors: [], notes: [], lowerBound: [] };
+  const paymentIssue = await deriveEmpleosPaymentIssue(sb, c);
+  const note = [
+    base.sourceHealth.note,
+    "paymentIssue = Quick/Premium drafts never published with no cleared payment record (failed, abandoned or absent); Feria (free), legacy rows without a lane, ever-live rows and already-paid drafts are never counted",
+    ...c.notes,
+  ]
+    .filter((x): x is string => Boolean(x))
+    .join(" | ");
+  const errors = [base.queryError, ...c.errors].filter((x): x is string => Boolean(x));
+  const lowerBound = [...(base.lowerBound ?? []), ...(c.lowerBound as NonNullable<AdminCategorySummary["lowerBound"]>)];
+  return {
+    ...base,
+    paymentIssue,
+    sourceHealth: { ok: errors.length === 0, source: base.sourceHealth.source, note: note || null },
+    queryError: errors.length ? errors.join(" | ") : null,
+    ...(lowerBound.length ? { lowerBound } : {}),
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────────
@@ -236,12 +358,18 @@ async function resolveBrParentsForSummary(
   return map;
 }
 
-async function summarizeGenericListing(sb: SupabaseClient, slug: string): Promise<AdminCategorySummary> {
-  const c: Collector = { errors: [], notes: [] };
+/** Bienes Raices lane predicate (same `seller_type` discriminator as the Admin lane chips / `isBrFsboRow`). */
+function brLaneTweak(lane: "negocio" | "privado"): QueryTweak {
+  return (q) => (lane === "privado" ? q.eq("seller_type", "personal") : q.or("seller_type.is.null,seller_type.neq.personal"));
+}
+
+async function summarizeGenericListing(sb: SupabaseClient, slug: string, brLane?: "negocio" | "privado"): Promise<AdminCategorySummary> {
+  const c: Collector = { errors: [], notes: [], lowerBound: [] };
   const nowMs = Date.now();
   const nowIso = new Date(nowMs).toISOString();
   const cat = escapeIlikeExact(slug);
-  const inCategory: QueryTweak = (q) => q.ilike("category", cat);
+  const laneOnly: QueryTweak | null = slug === "bienes-raices" && brLane ? brLaneTweak(brLane) : null;
+  const inCategory: QueryTweak = (q) => (laneOnly ? laneOnly(q.ilike("category", cat)) : q.ilike("category", cat));
   const plan = genericLiveSqlPlan(slug);
   const isPaidLane = PAID_LANE_LISTINGS.has(slug);
 
@@ -318,6 +446,7 @@ async function summarizeGenericListing(sb: SupabaseClient, slug: string): Promis
 
   const notes = [
     liveNote,
+    laneOnly ? `lane=${brLane} (seller_type ${brLane === "privado" ? "= personal" : "is not personal"}); every count below is lane-scoped` : null,
     slug === "bienes-raices" ? "expired = FSBO (seller_type personal) active rows past expires_at" : null,
     isPaidLane ? "paymentIssue = status pending / pending_payment (saved, never paid); it overlaps needsAttention (pending/flagged), matching the Categories hub" : null,
   ]
@@ -332,7 +461,7 @@ async function summarizeGenericListing(sb: SupabaseClient, slug: string): Promis
 
 const AUTOS_TABLE = "autos_classifieds_listings";
 
-async function fetchAutosParents(sb: SupabaseClient, ids: string[]): Promise<Map<string, AutosPublicParentCandidate>> {
+export async function fetchAutosParents(sb: SupabaseClient, ids: string[]): Promise<Map<string, AutosPublicParentCandidate>> {
   const map = new Map<string, AutosPublicParentCandidate>();
   for (let i = 0; i < ids.length; i += 100) {
     const { data, error } = await sb
@@ -346,7 +475,7 @@ async function fetchAutosParents(sb: SupabaseClient, ids: string[]): Promise<Map
 }
 
 async function summarizeAutos(sb: SupabaseClient, opts?: { lane?: string }): Promise<AdminCategorySummary> {
-  const c: Collector = { errors: [], notes: [] };
+  const c: Collector = { errors: [], notes: [], lowerBound: [] };
   const nowMs = Date.now();
   const nowIso = new Date(nowMs).toISOString();
   const lane = opts?.lane === "negocios" || opts?.lane === "privado" ? opts.lane : null;
@@ -401,7 +530,7 @@ async function summarizeAutos(sb: SupabaseClient, opts?: { lane?: string }): Pro
 const OFERTAS_PAYMENT_INCOMPLETE = ["checkout_pending", "pending", "payment_pending", "processing", "failed", "payment_failed"];
 
 async function summarizeOfertas(sb: SupabaseClient): Promise<AdminCategorySummary> {
-  const c: Collector = { errors: [], notes: [] };
+  const c: Collector = { errors: [], notes: [], lowerBound: [] };
   const nowMs = Date.now();
   const nowIso = new Date(nowMs).toISOString();
   const T = "ofertas_locales";
@@ -452,11 +581,12 @@ export async function fetchAdminCategorySummaryWithClient(
   const slug = String(slugRaw ?? "").trim().toLowerCase();
   try {
     const simple = SIMPLE_LANES[slug];
+    if (simple && slug === "empleos") return await summarizeEmpleos(sb, slug, simple);
     if (simple) return await summarizeSimple(sb, slug, simple);
     if (slug === "autos") return await summarizeAutos(sb, opts);
     if (slug === "ofertas-locales") return await summarizeOfertas(sb);
     if (slug === "rentas" || slug === "bienes-raices" || slug === "en-venta" || slug === "clases" || slug === "comunidad" || slug === "mascotas-y-perdidos" || slug === "busco") {
-      return await summarizeGenericListing(sb, slug);
+      return await summarizeGenericListing(sb, slug, opts?.lane === "negocio" || opts?.lane === "privado" ? opts.lane : undefined);
     }
     return emptySummary(slug, "unknown", `unknown category slug: ${slug}`);
   } catch (e) {

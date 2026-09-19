@@ -2,6 +2,7 @@ import type { AdminLang } from "@/app/admin/_lib/adminI18nCookie";
 import type { AdminCategorySummary } from "@/app/admin/_lib/adminCategorySummary";
 import { adminTr } from "@/app/admin/_lib/adminStrings";
 import { adminCardBase } from "@/app/admin/_components/adminTheme";
+import { adminSummaryLowerBoundText, adminSummaryScopeText } from "@/app/admin/_lib/adminFilterTruth";
 import { buildAdminCategorySummaryCells, type AdminSummaryCell } from "../../_lib/adminNormalizedShell";
 
 export type AdminCategorySummaryPanelProps = {
@@ -10,6 +11,12 @@ export type AdminCategorySummaryPanelProps = {
   lang?: AdminLang;
   /** When the counts are scoped to a lane (Autos lanes, BR Negocio/Privado), say which. */
   laneLabel?: string | null;
+  /**
+   * True when the page has an active list filter (search / status / owner / Leonix Ad ID / lane …). The summary
+   * ALWAYS covers the whole category (or the lane when `laneLabel` is set); this flag only strengthens the
+   * caption so nobody reads a whole-category count as the size of the filtered list.
+   */
+  filtersActive?: boolean;
   /** Extra technical rows tucked under "Advanced / details" (e.g. `[["Table", "public.listings"]]`). */
   technicalDetails?: ReadonlyArray<readonly [label: string, value: string]>;
   className?: string;
@@ -27,7 +34,7 @@ const TONE_CLASS: Record<AdminSummaryCell["tone"], string> = {
  * payment issue, expired (only when the category has expiry), source health. Technical source
  * detail lives under "Advanced / details". Server-component friendly (no hooks).
  */
-export function AdminCategorySummaryPanel({ summary, lang = "en", laneLabel, technicalDetails, className }: AdminCategorySummaryPanelProps) {
+export function AdminCategorySummaryPanel({ summary, lang = "en", laneLabel, filtersActive = false, technicalDetails, className }: AdminCategorySummaryPanelProps) {
   const cells = buildAdminCategorySummaryCells(summary, lang);
   return (
     <section
@@ -57,6 +64,16 @@ export function AdminCategorySummaryPanel({ summary, lang = "en", laneLabel, tec
           </div>
         ))}
       </dl>
+
+      <p className="text-[11px] leading-snug text-[#7A7164]" data-testid="admin-category-summary-scope">
+        {adminSummaryScopeText(lang, filtersActive, laneLabel)}
+        {summary.lowerBound && summary.lowerBound.length > 0 ? (
+          <>
+            {" "}
+            <span data-testid="admin-category-summary-lower-bound">{adminSummaryLowerBoundText(lang)}</span>
+          </>
+        ) : null}
+      </p>
 
       {summary.queryError ? (
         <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800" role="alert" data-testid="admin-category-summary-error">

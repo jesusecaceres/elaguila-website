@@ -1,3 +1,4 @@
+import { isVerifiedAdminSession } from "@/app/admin/_lib/adminVerifiedSession";
 import { decideAdminReactivation } from "@/app/admin/_lib/adminReactivationPolicy";
 import { decideBrFsboAdminRestore } from "@/app/admin/_lib/adminBrFsboRestorePolicy";
 import { cookies } from "next/headers";
@@ -9,11 +10,14 @@ import {
   canRepublishListing,
   listingsRowIsPublicLive,
 } from "@/app/admin/_lib/classifiedsRepublishCapability";
-import { getAdminSupabase, requireAdminCookie } from "@/app/lib/supabase/server";
+import { getAdminSupabase } from "@/app/lib/supabase/server";
 import {
   ADMIN_INVENTORY_ACTION_FORBIDDEN_CODE,
+  adminInventoryActionForbiddenMessage,
   assertBrNegocioActionAllowed,
 } from "@/app/admin/_lib/adminInventoryActionGuard";
+import { decideAdminSuspendOverPaymentHold } from "@/app/admin/_lib/adminPaymentSuspensionPolicy";
+import { evaluateAdminReactivationHold } from "@/app/admin/_lib/adminPaymentSuspensionPolicyServer";
 import { activateBrNegocioListingAtomic } from "@/app/lib/listingPlans/capacityActivationRpc";
 
 type ListingsStaffAction =
@@ -46,7 +50,7 @@ export const dynamic = "force-dynamic";
  */
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const jar = await cookies();
-  if (!requireAdminCookie(jar)) {
+  if (!(await isVerifiedAdminSession(jar))) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
@@ -115,7 +119,35 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       action,
     );
     if (!roleCheck.ok) {
-      return NextResponse.json({ ok: false, error: ADMIN_INVENTORY_ACTION_FORBIDDEN_CODE }, { status: 403 });
+      return NextResponse.json(
+        { ok: false, error: ADMIN_INVENTORY_ACTION_FORBIDDEN_CODE, message: adminInventoryActionForbiddenMessage() },
+        { status: 403 },
+      );
+    }
+  }
+
+  // Gate 5 - PAYMENT HOLD WINS. Admin is not a payment authority: a row the payment engine suspended
+  // (status `suspended` / suspended_reason `payment`), or a Bienes Negocio row whose base entitlement has lapsed,
+  // cannot be flipped live by Restore / Republish (which would launder the suspension). The reads are read-only and
+  // fail CLOSED (503) when they error. Staff `suspend` over an engine-suspended row would strand the engine's
+  // compare-and-swap lift, so it is refused too (the row is already non-public).
+  const reactivatingAction = action === "unsuspend" || (action === "republish" && !listingsRowIsPublicLive(rowRec));
+  if (reactivatingAction) {
+    const hold = await evaluateAdminReactivationHold(supabase, {
+      table: "listings",
+      id,
+      status: String(rowRec.status ?? ""),
+      paymentEngineStatus: "suspended",
+      requireEntitlement: category.toLowerCase() === "bienes-raices" && !isFsboRow,
+    });
+    if (hold.blocked) {
+      return NextResponse.json({ ok: false, error: hold.code, message: hold.message }, { status: hold.httpStatus });
+    }
+  }
+  if (action === "suspend") {
+    const suspendGate = decideAdminSuspendOverPaymentHold({ status: String(rowRec.status ?? ""), paymentEngineStatus: "suspended" });
+    if (suspendGate.blocked) {
+      return NextResponse.json({ ok: false, error: suspendGate.code, message: suspendGate.message }, { status: suspendGate.httpStatus });
     }
   }
 
@@ -140,6 +172,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
         status: String(rowRec.status ?? ""),
         published_at: rowRec.published_at as string | null | undefined,
         expires_at: rowRec.expires_at as string | null | undefined,
+        is_free: rowRec.is_free as boolean | null | undefined,
       });
       if (gate.blocked) return NextResponse.json({ ok: false, error: gate.code, message: gate.message }, { status: 409 });
     }
@@ -174,6 +207,10 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     let republishQuery = supabase.from("listings").update(patch).eq("id", id);
     if (republishReactivates && fsboRestore.fsbo && !fsboRestore.blocked) {
       republishQuery = republishQuery.eq("status", String(rowRec.status ?? ""));
+    }
+    if (republishReactivates) {
+      // A payment suspension that lands between the read above and this write wins (compare-and-set).
+      republishQuery = republishQuery.or("suspended_reason.is.null,suspended_reason.neq.payment");
     }
     const { error } = await republishQuery;
     if (error) {
@@ -232,6 +269,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
         status: String(rowRec.status ?? ""),
         published_at: rowRec.published_at as string | null | undefined,
         expires_at: rowRec.expires_at as string | null | undefined,
+        is_free: rowRec.is_free as boolean | null | undefined,
       });
     if (gate.blocked) return NextResponse.json({ ok: false, error: gate.code, message: gate.message }, { status: 409 });
   }
@@ -303,6 +341,10 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     // FSBO restore: status/is_published only (patch above) - `expires_at` is never touched - and only
     // from the status the decision was made against.
     updateQuery = updateQuery.eq("status", fsboRestore.expectedStatus);
+  }
+  if (action === "unsuspend") {
+    // Payment hold wins a race: a payment suspension written after the hold check above is never overwritten.
+    updateQuery = updateQuery.or("suspended_reason.is.null,suspended_reason.neq.payment");
   }
   const { error } = await updateQuery;
   if (error) {

@@ -5,6 +5,7 @@ import { fetchAdminCategorySummary, type AdminCategorySummary } from "@/app/admi
 import { ClasificadosQueueHeader } from "../_components/ClasificadosQueueHeader";
 import { AdminCategoryFilterBar } from "../_components/normalized/AdminCategoryFilterBar";
 import { AdminCategorySummaryPanel } from "../_components/normalized/AdminCategorySummaryPanel";
+import { adminAnyFilterActive } from "@/app/admin/_lib/adminFilterTruth";
 import { adminStatusOptionsForCategory } from "../_lib/adminNormalizedShell";
 import { clasificadosQueueSurfaceForSlug } from "../_lib/clasificadosQueueSurfaceMeta";
 import { appendPreservedSearchParams, parseAdminScope } from "../_lib/clasificadosAdminScopeUrls";
@@ -71,7 +72,12 @@ export default async function AdminEmpleosListingsPage(props: PageProps) {
         liveHref={appendPreservedSearchParams(EMPLEOS_BASE, sp, "live", ["lane"])}
       />
 
-      <AdminCategorySummaryPanel summary={summary} lang={lang} technicalDetails={[["Table", surface.sourceTable]]} />
+      <AdminCategorySummaryPanel
+        summary={summary}
+        lang={lang}
+        filtersActive={adminAnyFilterActive(sp)}
+        technicalDetails={[["Table", surface.sourceTable]]}
+      />
 
       <AdminCategoryFilterBar
         lang={lang}

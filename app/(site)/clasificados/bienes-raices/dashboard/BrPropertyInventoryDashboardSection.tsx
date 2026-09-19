@@ -34,6 +34,7 @@ import {
   type DashboardSubscriptionStateEntry,
 } from "@/app/(site)/dashboard/lib/dashboardPackageEntitlementBadges";
 import { BR_INVENTORY_PACK_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
+import { dashboardViewPublicAllowed } from "@/app/(site)/dashboard/lib/dashboardListingStateMachine";
 import type { AddonLifecycleStatus } from "@/app/lib/listingPlans/addonLifecycle";
 import { resolveCommercialStateBadges, commercialStateBadgesToLifecycleNote } from "@/app/lib/listingPlans/commercialStateBadges";
 
@@ -199,6 +200,10 @@ export function BrPropertyInventoryDashboardSection({ lang, rows }: Props) {
               brInventoryGroupId: isSyntheticGroupKey ? null : group.groupKey,
             }
           : null;
+        // Gate 2 (item 3): "View main listing" only when that main row's public page resolves (active + published). A group
+        // is listed when ANY of its rows is active, which does not make the MAIN row public.
+        const mainRow = mainId ? group.rows.find((r) => r.id === mainId) : null;
+        const mainPublicOk = Boolean(mainRow) && !isBrInventoryProperty(mainRow as BrPropertyInventoryRowLike) && dashboardViewPublicAllowed("bienes-raices", mainRow as BrPropertyInventoryRowLike);
 
         return (
           <div
@@ -242,7 +247,7 @@ export function BrPropertyInventoryDashboardSection({ lang, rows }: Props) {
                   className="flex-1 sm:flex-none"
                 />
               ) : null}
-              {mainId ? (
+              {mainId && mainPublicOk ? (
                 <Link
                   href={`${leonixLiveAnuncioPath(mainId)}?lang=${lang}`}
                   prefetch={false}

@@ -101,9 +101,12 @@ export function AutosNegociosInventoryBoostPanel({
           );
           return;
         }
+        // Canonical identity (draft-bound, fail-closed): an explicit dealer parent id is PATCH-only, and the
+        // helper never creates a second parent or mixes an inventory child id with the parent id.
         const ensured = await ensureAutosNegociosDraftListingForBoost({
           listing: parentListing,
           lang,
+          parentListingId: parentListingId?.trim() || null,
         });
         if (!ensured.ok) {
           setError(ensured.userMessage);

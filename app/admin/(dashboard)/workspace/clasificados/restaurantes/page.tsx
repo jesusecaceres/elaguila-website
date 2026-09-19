@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { listRestaurantesPublicListingsAdminFromDb } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingsServer";
+import { tryListRestaurantesPublicListingsAdminFromDb } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingsServer";
 import { restauranteRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCapability";
 import {
   adminQueueRowAnchorId,
@@ -17,6 +17,8 @@ import { AdminListingMonetizationSummary } from "../_components/AdminListingMone
 import { ClasificadosQueueHeader } from "../_components/ClasificadosQueueHeader";
 import { AdminCategorySummaryPanel } from "../_components/normalized/AdminCategorySummaryPanel";
 import { AdminCategoryFilterBar } from "../_components/normalized/AdminCategoryFilterBar";
+import { AdminListTruncationNotice } from "../_components/normalized/AdminListTruncationNotice";
+import { adminAnyFilterActive } from "@/app/admin/_lib/adminFilterTruth";
 import {
   AdminCommercialTruthSection,
   AdminListingTruthSection,
@@ -98,8 +100,8 @@ export default async function AdminRestaurantesPublicListingsPage(props: PagePro
   // in memory, and the requested limit is applied last.
   const ownerNeedsMemory = Boolean(filters.owner && !filters.ownerIsUuid);
   const scan = planAdminQueueScan({ limit: queueLimit, memoryFiltered: ownerNeedsMemory, cap: RESTAURANTES_ADMIN_SCAN_CAP });
-  const rowsRaw = configured
-    ? await listRestaurantesPublicListingsAdminFromDb({
+  const listOutcome = configured
+    ? await tryListRestaurantesPublicListingsAdminFromDb({
         limit: scan.fetchLimit,
         ...(scope === "live" ? { scope: "live" as const } : {}),
         q: filters.q || undefined,
@@ -109,7 +111,11 @@ export default async function AdminRestaurantesPublicListingsPage(props: PagePro
         owner_user_id: filters.owner && filters.ownerIsUuid ? filters.owner : undefined,
         status: filters.status || undefined,
       })
-    : [];
+    : null;
+  // A failed read is an ERROR (rendered below), never an empty list.
+  const listError = listOutcome && !listOutcome.ok ? listOutcome.error : null;
+  const listWarning = listOutcome && listOutcome.ok ? listOutcome.warning : null;
+  const rowsRaw = listOutcome && listOutcome.ok ? listOutcome.rows : [];
   const windowNote = adminScanWindowNote(lang, { widened: scan.widened, fetched: rowsRaw.length, fetchLimit: scan.fetchLimit });
   const rowsScoped =
     scope === "live"
@@ -118,7 +124,7 @@ export default async function AdminRestaurantesPublicListingsPage(props: PagePro
   const rowsOwnerNarrowed = ownerNeedsMemory
     ? rowsScoped.filter((r) => adminRowMatchesOwnerFilter({ owner_user_id: r.owner_user_id }, filters.owner))
     : rowsScoped;
-  // The requested limit is applied LAST (the `q` search path of the data function caps at 100 on its own).
+  // The requested limit is applied LAST (every search source of the data function reads up to `limit` rows).
   const rows = rowsOwnerNarrowed.slice(0, queueLimit);
 
   const surface = clasificadosQueueSurfaceForSlug("restaurantes");
@@ -177,7 +183,7 @@ export default async function AdminRestaurantesPublicListingsPage(props: PagePro
         liveHref={liveHref}
       />
 
-      <AdminCategorySummaryPanel summary={summary} lang={lang} technicalDetails={[["Table", surface.sourceTable]]} />
+      <AdminCategorySummaryPanel summary={summary} lang={lang} filtersActive={adminAnyFilterActive(sp)} technicalDetails={[["Table", surface.sourceTable]]} />
 
       <AdminPagePurposeCard
         title="Restaurantes admin ops"
@@ -215,6 +221,15 @@ export default async function AdminRestaurantesPublicListingsPage(props: PagePro
               {windowNote}
             </p>
           ) : null}
+          {!listError ? (
+            <AdminListTruncationNotice
+              lang={lang}
+              className="mt-2"
+              shown={rows.length}
+              limit={queueLimit}
+              partialSources={listWarning ? [listWarning] : null}
+            />
+          ) : null}
         </div>
       ) : null}
 
@@ -223,6 +238,11 @@ export default async function AdminRestaurantesPublicListingsPage(props: PagePro
           Supabase admin is not configured in this environment (<code className="rounded bg-[#FBF7EF] px-1">SUPABASE_SERVICE_ROLE_KEY</code>
           ). No rows to show.
         </p>
+      ) : listError ? (
+        <div className={`${adminCardBase} border-red-200 bg-red-50 p-4 text-sm text-red-900`} role="alert" data-testid="restaurantes-admin-read-error">
+          <p className="font-bold">Restaurantes data could not be read</p>
+          <p className="mt-1 font-mono text-xs">{listError}</p>
+        </div>
       ) : rows.length === 0 ? (
         <p className={`${adminCardBase} p-4 text-sm text-[#5C5346]`}>
           {hasFilters ? "No results for these filters." : "Table exists but has no rows yet."}

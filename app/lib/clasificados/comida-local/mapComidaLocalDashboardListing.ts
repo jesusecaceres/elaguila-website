@@ -5,6 +5,7 @@ import {
   getComidaLocalCurrentSalePriceLabel,
 } from "./comidaLocalPackages";
 import { getComidaLocalPaymentStatusLabel } from "./comidaLocalPaymentStatus";
+import { comidaLocalOwnerActionPlan } from "./comidaLocalPaymentResume";
 import { resolveComidaLocalImageUrl } from "./comidaLocalImageValidation";
 import type { ComidaLocalDashboardListingRow } from "./comidaLocalDashboardQueries";
 
@@ -38,6 +39,8 @@ export type ComidaLocalDashboardListingVm = {
   packageTier: string;
   paymentStatus: string;
   publishedAt: string | null;
+  /** Marker column: `payment` = payment engine; any other value = staff hold (Gate 2 archive marker). */
+  suspendedReason: string | null;
 };
 
 function formatDashboardDate(iso: string | null | undefined, lang: "es" | "en"): string | null {
@@ -114,6 +117,7 @@ export function mapComidaLocalRowToDashboardVm(
     packageTier: row.package_tier,
     paymentStatus: row.payment_status,
     publishedAt: row.published_at ?? null,
+    suspendedReason: typeof row.suspended_reason === "string" && row.suspended_reason.trim() ? row.suspended_reason.trim() : null,
   };
 }
 
@@ -125,13 +129,18 @@ export function buildComidaLocalDashboardInventoryItems(
   const q = `lang=${lang}`;
   return rows.map((row) => {
     const vm = mapComidaLocalRowToDashboardVm(row, lang);
+    const plan = comidaLocalOwnerActionPlan({ status: row.status, suspendedReason: vm.suspendedReason });
     return {
       id: row.id,
       category: "comida-local",
       title: vm.title,
       status: row.status,
+      // Gate 2: the public link is only real for a `published` row; the edit href is the listing-bound editor of THIS
+      // row (the old `/publicar/comida-local?lang` opened a NEW application - a duplicate listing).
+      isPublicLive: plan.publicLive,
+      awaitingPayment: plan.completePayment,
       publicHref: `${vm.publicPath}?${q}`,
-      editHref: `/publicar/comida-local?${q}`,
+      editHref: `/publicar/comida-local?edit=1&listingId=${encodeURIComponent(row.id)}&source=dashboard&${q}`,
       previewHref: null,
       resultsHref: `/clasificados/comida-local?${q}`,
       analyticsHref: null,

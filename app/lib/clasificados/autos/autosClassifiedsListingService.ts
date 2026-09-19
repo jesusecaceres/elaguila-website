@@ -40,6 +40,7 @@ import {
   type AutosPublicParentCandidate,
 } from "@/app/admin/_lib/adminAutosLivePredicate";
 import { scanPagedRows } from "@/app/admin/_lib/adminPagedScan";
+import { adminQueueNormalizeLeonixAdId } from "@/app/admin/_lib/adminAdSearch";
 
 function rowFromDb(r: Record<string, unknown>): AutosClassifiedsListingRow {
   return {
@@ -534,6 +535,11 @@ export async function listActiveAutosClassifiedsRows(): Promise<AutosClassifieds
  * batches, same `isAutosChildParentGateSatisfied` the public pool uses). `rowFilter` lets a caller push an
  * arbitrary keep-only predicate (e.g. the Admin search) in front of the cap as well; it is applied to rows
  * of BOTH scopes. Queue scope (no `scope`) still returns operational / non-public rows.
+ *
+ * 2026-09 final normalization (Gate 3): `status`, a full-UUID `ownerUserId` and `leonixAdId` are SQL predicates
+ * (AND-ed with lane / scope), so they narrow BEFORE the row cap; only free-text search / a partial owner fragment
+ * (`rowFilter`) still needs the bounded scan. `onMeta` reports what the array return cannot: a read `error`
+ * (the array is then [] — callers must render an error, not an empty list), `scanCapped` and `scanned`.
  */
 export async function listAllAutosClassifiedsRowsForAdmin(
   limit = 100,
@@ -541,9 +547,16 @@ export async function listAllAutosClassifiedsRowsForAdmin(
     scope?: "live";
     lane?: AutosClassifiedsLane;
     rowFilter?: (row: AutosClassifiedsListingRow) => boolean;
+    status?: string;
+    ownerUserId?: string;
+    leonixAdId?: string;
+    onMeta?: (meta: { error: string | null; scanCapped: boolean; scanned: number }) => void;
   },
 ): Promise<AutosClassifiedsListingRow[]> {
-  if (!isSupabaseAdminConfigured()) return [];
+  if (!isSupabaseAdminConfigured()) {
+    opts?.onMeta?.({ error: "supabase_admin_not_configured", scanCapped: false, scanned: 0 });
+    return [];
+  }
   const supabase = getAdminSupabase();
   const cap = Math.min(Math.max(Math.floor(limit), 1), 500);
   const isLive = opts?.scope === "live";
@@ -566,6 +579,19 @@ export async function listAllAutosClassifiedsRowsForAdmin(
     }
     if (opts?.lane) {
       q = q.eq("lane", opts.lane);
+    }
+    if (opts?.status?.trim()) {
+      q = q.eq("status", opts.status.trim().toLowerCase());
+    }
+    if (opts?.ownerUserId?.trim()) {
+      q = q.eq("owner_user_id", opts.ownerUserId.trim());
+    }
+    if (opts?.leonixAdId?.trim()) {
+      // Complete id -> case-insensitive exact (no wildcards); fragment -> contains. SQL, before the cap.
+      const raw = opts.leonixAdId.trim();
+      const norm = adminQueueNormalizeLeonixAdId(raw);
+      const esc = (v: string) => v.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+      q = q.ilike("leonix_ad_id", norm ? esc(norm) : `%${esc(raw)}%`);
     }
     const { data, error } = await q;
     return {
@@ -602,6 +628,7 @@ export async function listAllAutosClassifiedsRowsForAdmin(
     accept: isLive || rowFilter ? acceptRows : undefined,
     getId: (r) => r.id,
   });
+  opts?.onMeta?.({ error: res.error, scanCapped: res.capped, scanned: res.scanned });
   if (res.error) {
     console.error("listAllAutosClassifiedsRowsForAdmin: query failed", res.error);
     return [];

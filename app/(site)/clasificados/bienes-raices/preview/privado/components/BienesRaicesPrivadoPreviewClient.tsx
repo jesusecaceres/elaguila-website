@@ -40,6 +40,7 @@ import {
 } from "@/app/clasificados/publicar/bienes-raices/privado/application/utils/bienesRaicesPrivadoDraft";
 import type { BienesRaicesPrivadoFormState } from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
 import { LeonixPreviewPageShell } from "@/app/clasificados/lib/preview/LeonixPreviewPageShell";
+import { BR_FSBO_PENDING_CHECKOUT_SESSION_KEY } from "@/app/(site)/clasificados/lib/realEstateDraftKey";
 import { BienesRaicesPrivadoPreviewView } from "../BienesRaicesPrivadoPreviewView";
 import {
   applyBienesRaicesFsboPreviewPromoCode,
@@ -51,7 +52,13 @@ import {
 
 type Phase = "loading" | "ready" | "recovery";
 
-const BR_FSBO_PENDING_CHECKOUT_KEY = "br-fsbo-pending-checkout-listing-v1";
+/**
+ * sessionStorage is only a CONVENIENCE hint here (shared constant, so the draft-key lifecycle can clear it in
+ * the same events). Canonical identity is the server row: the core adopts a hinted id only when the row
+ * carries this application's draft key (or none), so a stale hint from an earlier application in this tab can
+ * never overwrite that application's abandoned pending row.
+ */
+const BR_FSBO_PENDING_CHECKOUT_KEY = BR_FSBO_PENDING_CHECKOUT_SESSION_KEY;
 
 function readCachedPendingListingId(): string | null {
   if (typeof window === "undefined") return null;
@@ -151,14 +158,18 @@ export default function BienesRaicesPrivadoPreviewClient() {
     if (!listingId) return null;
     try {
       const supabase = createSupabaseBrowserClient();
+      const { data: authData } = await supabase.auth.getUser();
+      const authUserId = authData.user?.id?.trim() || "";
+      if (!authUserId) return null;
       const { data: row } = await supabase
         .from("listings")
-        .select("id, category, status, is_published, leonix_ad_id, listing_json")
+        .select("id, owner_id, category, status, is_published, leonix_ad_id, listing_json")
         .eq("id", listingId)
         .maybeSingle();
       const rec = row as
         | {
             id?: string | null;
+            owner_id?: string | null;
             category?: string | null;
             status?: string | null;
             is_published?: boolean | null;
@@ -173,6 +184,8 @@ export default function BienesRaicesPrivadoPreviewClient() {
         return null;
       }
       const valid =
+        // Ownership first: a hinted id that is not THIS user's row is never adopted.
+        String(rec.owner_id ?? "") === authUserId &&
         String(rec.category ?? "").toLowerCase() === BIENES_RAICES_FSBO_CHECKOUT.category &&
         String(rec.status ?? "").toLowerCase() === "pending" &&
         rec.is_published === false &&

@@ -529,6 +529,14 @@ export async function POST(req: Request) {
         );
       }
     } else {
+      // D1 / F2 (2026-09 final paid/free circuit audit): Restaurantes is an always-paid product (no free package), so a
+      // NEW row may only be created as the pre-checkout `pending_payment` row. Without this guard a fresh
+      // `draftListingId` with no `activation_mode` inserted `status:"published"` — a public listing with no payment,
+      // entitlement or subscription. Same authority as Comida Local's publish route. Existing-row edits (branch above)
+      // are unaffected: `resolveRestauranteOwnerEditTargetStatus` keeps protecting their status.
+      if (!pendingPayment) {
+        return NextResponse.json({ ok: false, error: "payment_required" }, { status: 402 });
+      }
       const requested = typeof b.slug === "string" ? b.slug.trim() : "";
       const base = requested || slugifyRestauranteBusinessName(draft.businessName);
       slugOut = await allocateSlug(base);

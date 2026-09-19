@@ -14,6 +14,7 @@ import { loadAdminListingCommercialTruth } from "@/app/admin/_lib/adminListingCo
 import {
   decideEmpleosStaffAction,
   empleosStaffActionNeedsPaymentCheck,
+  empleosStaffActionNeedsReversalCheck,
   isEmpleosStaffAction,
   type EmpleosStaffAction,
 } from "@/app/admin/_lib/adminEmpleosStaffActions";
@@ -30,6 +31,8 @@ export type RunEmpleosStaffActionDeps = {
   revalidate?: (path: string) => void;
   /** Override the verified-payment read (tests). Default: read-only commercial truth loader. */
   paymentCleared?: (listingId: string, supabase: SupabaseClient) => Promise<boolean>;
+  /** Override the dispute read (tests). Default: read-only commercial truth loader. Unreadable => NOT reversed (never-live rows stay gated by paymentCleared). */
+  paymentReversed?: (listingId: string, supabase: SupabaseClient) => Promise<boolean>;
 };
 
 /** Read-only: a `paid` payment record exists for the listing. Anything unreadable / absent => not cleared. */
@@ -38,6 +41,17 @@ async function defaultPaymentCleared(listingId: string, supabase: SupabaseClient
     const map = await loadAdminListingCommercialTruth({ category: "empleos", listingIds: [listingId], supabase });
     const t = map[listingId];
     return Boolean(t && t.state === "known" && ["paid", "succeeded", "cleared", "payment_cleared"].includes(String(t.paymentStatus ?? "").trim().toLowerCase()));
+  } catch {
+    return false;
+  }
+}
+
+/** Read-only: the newest money-final payment record is DISPUTED (chargeback). Anything unreadable => false (no claim). */
+async function defaultPaymentReversed(listingId: string, supabase: SupabaseClient): Promise<boolean> {
+  try {
+    const map = await loadAdminListingCommercialTruth({ category: "empleos", listingIds: [listingId], supabase });
+    const t = map[listingId];
+    return Boolean(t && t.state === "known" && String(t.paymentStatus ?? "").trim().toLowerCase() === "disputed");
   } catch {
     return false;
   }
@@ -74,7 +88,11 @@ export async function runEmpleosStaffAction(
     ? await (deps.paymentCleared ?? defaultPaymentCleared)(id, supabase)
     : null;
 
-  const decision = decideEmpleosStaffAction({ action, row: rowState, reason: input.reason, now: new Date().toISOString(), paymentCleared });
+  const paymentReversed = empleosStaffActionNeedsReversalCheck(action, rowState)
+    ? await (deps.paymentReversed ?? defaultPaymentReversed)(id, supabase)
+    : null;
+
+  const decision = decideEmpleosStaffAction({ action, row: rowState, reason: input.reason, now: new Date().toISOString(), paymentCleared, paymentReversed });
   if (!decision.ok) {
     return { status: decision.status, body: { ok: false, error: decision.error, message: decision.message } };
   }

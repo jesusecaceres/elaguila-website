@@ -16,12 +16,24 @@ import { buildDashboardResumePaymentPayload, type DashboardPendingPaymentLane } 
 
 export type DashboardResumePaymentResult = { ok: true } | { ok: false; userMessage: string };
 
+/** Owner-safe copy when a resume-payment is attempted without the listing's own id (never starts a listing-less checkout). */
+export function dashboardResumePaymentMissingListingMessage(lang: "es" | "en"): string {
+  return lang === "es"
+    ? "No pudimos identificar este anuncio para completar el pago. Actualiza la p\u00e1gina e int\u00e9ntalo de nuevo."
+    : "We could not identify this listing to complete payment. Refresh the page and try again.";
+}
+
 export async function startDashboardResumePayment(input: {
   lane: DashboardPendingPaymentLane;
   listingId: string;
   leonixAdId?: string | null;
   lang: "es" | "en";
 }): Promise<DashboardResumePaymentResult> {
+  // Gate 2 (item 12): a resume-payment ALWAYS carries the listing row's own id. A blank id would post a checkout with
+  // no `listingId`, which the server treats as a fresh base purchase - never a resume - so it is refused here.
+  if (!String(input.listingId ?? "").trim()) {
+    return { ok: false, userMessage: dashboardResumePaymentMissingListingMessage(input.lang) };
+  }
   const checkout = await startRevenueCategoryCheckout(buildDashboardResumePaymentPayload(input));
   if (!checkout.ok) return { ok: false, userMessage: checkout.userMessage };
   redirectToRevenueCategoryCheckout(checkout.checkoutUrl);

@@ -9,6 +9,8 @@ import { ClasificadosQueueActionChrome } from "../_components/ClasificadosQueueA
 import { ClasificadosQueueHeader } from "../_components/ClasificadosQueueHeader";
 import { ClasificadosScopeNav } from "../_components/ClasificadosScopeNav";
 import { AdminCategoryFilterBar } from "../_components/normalized/AdminCategoryFilterBar";
+import { AdminListTruncationNotice } from "../_components/normalized/AdminListTruncationNotice";
+import { adminAnyFilterActive } from "@/app/admin/_lib/adminFilterTruth";
 import { AdminCategorySummaryPanel } from "../_components/normalized/AdminCategorySummaryPanel";
 import { adminRowMatchesLeonixAdIdFilter } from "../_lib/adminNormalizedShell";
 import { clasificadosQueueSurfaceForSlug } from "../_lib/clasificadosQueueSurfaceMeta";
@@ -21,6 +23,7 @@ import {
 import type { PublicationTruth } from "@/app/admin/_lib/publicationSemantics";
 import { adminTr } from "@/app/admin/_lib/adminStrings";
 import {
+  OFERTAS_ADMIN_LIST_MAX,
   OFERTAS_LOCALES_ADMIN_SELECT,
   listOfertasLocalesAdminRowsDetailed,
   mapOfertaLocalAdminRowToDetailVm,
@@ -45,8 +48,8 @@ export const dynamic = "force-dynamic";
 
 const BASE_PATH = "/admin/workspace/clasificados/ofertas-locales";
 const CATEGORY_NAME = "Ofertas Locales";
-/** The data layer caps a single page of rows at 200. */
-const OFERTAS_LIST_CAP = 200;
+/** The data layer's ceiling for one page of rows (matches the largest Rows choice). */
+const OFERTAS_LIST_CAP = OFERTAS_ADMIN_LIST_MAX;
 
 function firstParam(v: string | string[] | undefined): string | undefined {
   if (typeof v === "string") return v;
@@ -120,9 +123,8 @@ export default async function AdminOfertasLocalesReviewPage(props: PageProps) {
   const term = (firstParam(sp.term) ?? "").trim();
   const queueLimit = normalizeAdminQueueLimit(firstParam(sp.limit), ADMIN_QUEUE_DEFAULT_LIMIT);
 
-  // Raw status / Ad ID narrow in memory (the data layer applies scope, q, id, owner and the derived filters
-  // BEFORE its row limit), so they widen the read to the layer's cap before narrowing.
-  const memoryFiltered = Boolean(statusFilter || leonixAdId);
+  // Raw status and the Leonix Ad ID are SQL predicates in the data layer now (AND-ed with scope, q, id, owner and
+  // the derived filters, all BEFORE its row limit). The in-memory checks below are a defensive exactness guard only.
 
   let filterError: string | null = null;
   if (ownerRaw && !OFERTAS_ADMIN_UUID_RE.test(ownerRaw)) filterError = "owner must be a full user UUID";
@@ -134,9 +136,11 @@ export default async function AdminOfertasLocalesReviewPage(props: PageProps) {
   let scanned = 0;
   if (configured && !filterError) {
     const res = await listOfertasLocalesAdminRowsDetailed(getAdminSupabase(), {
-      limit: memoryFiltered ? OFERTAS_LIST_CAP : Math.min(queueLimit, OFERTAS_LIST_CAP),
+      limit: Math.min(queueLimit, OFERTAS_LIST_CAP),
       scope,
       q: ofertasServerSearchTerm(q, leonixAdId),
+      status: statusFilter || undefined,
+      leonix_ad_id: leonixAdId || undefined,
       id: inspectId || undefined,
       owner_id: ownerRaw || undefined,
       status_group: statusGroup || undefined,
@@ -152,7 +156,6 @@ export default async function AdminOfertasLocalesReviewPage(props: PageProps) {
   }
   if (statusFilter) rows = rows.filter((r) => String(r.status).toLowerCase() === statusFilter);
   if (leonixAdId) rows = rows.filter((r) => adminRowMatchesLeonixAdIdFilter(r, leonixAdId));
-  if (memoryFiltered) rows = rows.slice(0, queueLimit);
 
   // Inspect any offer by id — even one that is no longer in this scope (an archived offer leaves the Queue but
   // must stay inspectable right after the action).
@@ -233,6 +236,7 @@ export default async function AdminOfertasLocalesReviewPage(props: PageProps) {
       <AdminCategorySummaryPanel
         summary={summary}
         lang={lang}
+        filtersActive={adminAnyFilterActive(sp, ["q", "status", "owner", "owner_id", "leonix_ad_id", "id", "status_group", "lane", "commercial", "scan_review", "term"])}
         technicalDetails={[["Table", surface.sourceTable]]}
       />
 
@@ -293,6 +297,15 @@ export default async function AdminOfertasLocalesReviewPage(props: PageProps) {
         <p className="text-xs text-amber-900" data-testid="ofertas-capped">
           {adminTr(lang, "ofertasAdmin.capped", { scanned })}
         </p>
+      ) : null}
+      {configured && !filterError && !listError ? (
+        <AdminListTruncationNotice
+          lang={lang}
+          shown={rows.length}
+          limit={queueLimit}
+          // `ofertas-capped` above already discloses a capped scan; this adds the "list is as long as the limit" notice.
+          scanCapped={false}
+        />
       ) : null}
 
       <OfertasLocalesAdminReviewList

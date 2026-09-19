@@ -179,14 +179,31 @@ export async function getRestaurantePublicListingBySlugFromDb(slug: string): Pro
   }
 }
 
+export type RestaurantesAdminListOutcome =
+  | { ok: true; rows: RestaurantesPublicListingDbRow[]; /** Some search sources failed (rows may be incomplete). */ warning: string | null }
+  | { ok: false; rows: []; error: string };
+
+function restauranteUpdatedMs(r: RestaurantesPublicListingDbRow): number {
+  const t = r.updated_at ? new Date(r.updated_at).getTime() : NaN;
+  return Number.isFinite(t) ? t : 0;
+}
+
 /**
- * Admin workspace (service role): all statuses, optional queue filters.
- * Supports `q`, `slug`, `id`, `leonix_ad_id`, `owner_user_id` (combined as AND when multiple set).
+ * Admin workspace (service role): all statuses, optional queue filters. Reports a read failure as an ERROR
+ * (never an empty list).
+ *
+ * FILTER SEMANTICS (2026-09 final normalization, Gate 3): `slug`, `id`, `leonix_ad_id`, `owner_user_id`,
+ * `status` and `scope` are AND-ed into EVERY query (the shared `qb()` builder), and `q` is a free-text
+ * search on top of them — so q + an exact filter is an INTERSECTION, never "the exact filter silently wins".
+ * Every predicate runs in SQL BEFORE `.limit(limit)`; each search source reads up to `limit` rows, the merge is
+ * ordered newest-first and cut at `limit`.
  */
-export async function listRestaurantesPublicListingsAdminFromDb(
+export async function tryListRestaurantesPublicListingsAdminFromDb(
   opts: RestaurantesAdminQueueFilters = {},
-): Promise<RestaurantesPublicListingDbRow[]> {
-  if (!isSupabaseAdminConfigured()) return [];
+): Promise<RestaurantesAdminListOutcome> {
+  if (!isSupabaseAdminConfigured()) {
+    return { ok: false, rows: [], error: "Supabase admin client is not configured (missing URL or service role key)." };
+  }
   const limit = Math.min(Math.max(opts.limit ?? 400, 1), 800);
   const slug = opts.slug?.trim();
   const id = opts.id?.trim();
@@ -194,99 +211,120 @@ export async function listRestaurantesPublicListingsAdminFromDb(
   const owner = opts.owner_user_id?.trim();
   const qRaw = opts.q?.trim();
   const statusFilter = opts.status?.trim().toLowerCase() ?? "";
+  // id / owner_user_id are uuid columns: an .eq on free text makes the WHOLE query error. Say so.
+  if (id && !UUID_RE.test(id)) return { ok: false, rows: [], error: "id must be a full UUID" };
+  if (owner && !UUID_RE.test(owner)) return { ok: false, rows: [], error: "owner must be a full user UUID" };
 
   try {
     const supabase = getAdminSupabase();
+    /** scope + status + EVERY exact filter — so every path below intersects with them. */
     const qb = () => {
       let q = supabase.from("restaurantes_public_listings").select(LIST_SELECT);
       if (opts.scope === "live") q = q.eq("status", "published");
       if (statusFilter) q = q.eq("status", statusFilter);
+      if (slug) q = q.eq("slug", slug);
+      if (id) q = q.eq("id", id);
+      if (owner) q = q.eq("owner_user_id", owner);
+      if (leonixAd) {
+        // A complete Leonix Ad ID is an exact (normalized) match; a fragment is a contains match.
+        const normLeonixAd = adminQueueNormalizeLeonixAdId(leonixAd);
+        q = normLeonixAd
+          ? q.eq("leonix_ad_id", normLeonixAd)
+          : q.ilike("leonix_ad_id", `%${escapeIlike(leonixAd)}%`);
+      }
       return q;
     };
 
-    if (slug || id || leonixAd || owner) {
-      let rowQuery = qb();
-      if (slug) rowQuery = rowQuery.eq("slug", slug);
-      if (id) rowQuery = rowQuery.eq("id", id);
-      if (leonixAd) {
-        // A complete Leonix Ad ID is an exact (normalized) match; a fragment is a contains match —
-        // both in SQL, so the row limit is applied after the filter.
-        const normLeonixAd = adminQueueNormalizeLeonixAdId(leonixAd);
-        rowQuery = normLeonixAd
-          ? rowQuery.eq("leonix_ad_id", normLeonixAd)
-          : rowQuery.ilike("leonix_ad_id", `%${escapeIlike(leonixAd)}%`);
-      }
-      if (owner) rowQuery = rowQuery.eq("owner_user_id", owner);
-      const { data, error } = await rowQuery.order("updated_at", { ascending: false }).limit(limit);
-      if (error || !data) return [];
-      return data as RestaurantesPublicListingDbRow[];
+    if (!qRaw) {
+      const { data, error } = await qb().order("updated_at", { ascending: false }).limit(limit);
+      if (error || !data) return { ok: false, rows: [], error: error?.message || "read failed" };
+      return { ok: true, rows: data as RestaurantesPublicListingDbRow[], warning: null };
     }
 
-    if (qRaw) {
-      const q = qRaw;
-      const qLower = q.toLowerCase();
+    const q = qRaw;
+    const qLower = q.toLowerCase();
+    let firstError: string | null = null;
+    const track = (res: { error?: { message: string } | null }) => {
+      if (res.error && !firstError) firstError = res.error.message;
+    };
+    const hit = (res: { data: unknown; error?: { message: string } | null }): RestaurantesPublicListingDbRow[] | null => {
+      track(res);
+      const rows = res.data as RestaurantesPublicListingDbRow[] | null;
+      return !res.error && rows?.length ? rows : null;
+    };
 
-      if (/^REST-\d{4}-\d{6}$/i.test(q)) {
-        const { data, error } = await qb().eq("leonix_ad_id", q.toUpperCase()).limit(20);
-        if (!error && data?.length) return data as RestaurantesPublicListingDbRow[];
-      }
-
-      if (UUID_RE.test(q)) {
-        const { data, error } = await qb().or(`id.eq.${q},owner_user_id.eq.${q}`).limit(50);
-        if (!error && data?.length) return data as RestaurantesPublicListingDbRow[];
-      }
-
-      const fromUrl = slugFromRestaurantPublicUrl(q);
-      if (fromUrl) {
-        const { data, error } = await qb().eq("slug", fromUrl).limit(20);
-        if (!error && data?.length) return data as RestaurantesPublicListingDbRow[];
-      }
-
-      const { data: bySlug, error: slugErr } = await qb().eq("slug", qLower).limit(20);
-      if (!slugErr && bySlug?.length) return bySlug as RestaurantesPublicListingDbRow[];
-
-      const term = `%${escapeIlike(qLower)}%`;
-      const [nameRes, slugRes, summaryRes, cityRes, primCuisineRes, secCuisineRes, leonixRes] = await Promise.all([
-        qb().ilike("business_name", term).order("updated_at", { ascending: false }).limit(80),
-        qb().ilike("slug", term).order("updated_at", { ascending: false }).limit(80),
-        qb().ilike("summary_short", term).order("updated_at", { ascending: false }).limit(80),
-        qb().ilike("city_canonical", term).order("updated_at", { ascending: false }).limit(80),
-        qb().ilike("primary_cuisine", term).order("updated_at", { ascending: false }).limit(80),
-        qb().ilike("secondary_cuisine", term).order("updated_at", { ascending: false }).limit(80),
-        qb().ilike("leonix_ad_id", term).order("updated_at", { ascending: false }).limit(80),
-      ]);
-      const merged = mergeRestaurantRowsById(
-        [
-          ...((nameRes.data ?? []) as RestaurantesPublicListingDbRow[]),
-          ...((slugRes.data ?? []) as RestaurantesPublicListingDbRow[]),
-          ...((summaryRes.data ?? []) as RestaurantesPublicListingDbRow[]),
-          ...((cityRes.data ?? []) as RestaurantesPublicListingDbRow[]),
-          ...((primCuisineRes.data ?? []) as RestaurantesPublicListingDbRow[]),
-          ...((secCuisineRes.data ?? []) as RestaurantesPublicListingDbRow[]),
-          ...((leonixRes.data ?? []) as RestaurantesPublicListingDbRow[]),
-        ],
-        100,
-      );
-      if (merged.length) return merged;
-
-      const profileIds = await fetchProfileIdsMatchingAdminQueueSearch(supabase, qRaw);
-      if (profileIds.length > 0) {
-        const { data: byProf, error: pErr } = await qb()
-          .in("owner_user_id", profileIds)
-          .order("updated_at", { ascending: false })
-          .limit(limit);
-        if (!pErr && byProf?.length) return byProf as RestaurantesPublicListingDbRow[];
-      }
-
-      return [];
+    // Identity shortcuts (a pasted Ad ID / UUID / slug / URL resolves that row). qb() carries the exact
+    // filters, so a shortcut hit is still INTERSECTED with them.
+    if (/^REST-\d{4}-\d{6}$/i.test(q)) {
+      const rows = hit(await qb().eq("leonix_ad_id", q.toUpperCase()).limit(20));
+      if (rows) return { ok: true, rows, warning: null };
+    }
+    if (UUID_RE.test(q)) {
+      const rows = hit(await qb().or(`id.eq.${q},owner_user_id.eq.${q}`).limit(50));
+      if (rows) return { ok: true, rows, warning: null };
+    }
+    const fromUrl = slugFromRestaurantPublicUrl(q);
+    if (fromUrl) {
+      const rows = hit(await qb().eq("slug", fromUrl).limit(20));
+      if (rows) return { ok: true, rows, warning: null };
+    }
+    {
+      const rows = hit(await qb().eq("slug", qLower).limit(20));
+      if (rows) return { ok: true, rows, warning: null };
     }
 
-    const { data, error } = await qb().order("updated_at", { ascending: false }).limit(limit);
-    if (error || !data) return [];
-    return data as RestaurantesPublicListingDbRow[];
-  } catch {
-    return [];
+    const term = `%${escapeIlike(qLower)}%`;
+    const textResults = await Promise.all([
+      qb().ilike("business_name", term).order("updated_at", { ascending: false }).limit(limit),
+      qb().ilike("slug", term).order("updated_at", { ascending: false }).limit(limit),
+      qb().ilike("summary_short", term).order("updated_at", { ascending: false }).limit(limit),
+      qb().ilike("city_canonical", term).order("updated_at", { ascending: false }).limit(limit),
+      qb().ilike("primary_cuisine", term).order("updated_at", { ascending: false }).limit(limit),
+      qb().ilike("secondary_cuisine", term).order("updated_at", { ascending: false }).limit(limit),
+      qb().ilike("leonix_ad_id", term).order("updated_at", { ascending: false }).limit(limit),
+    ]);
+    let failedSources = 0;
+    let collected: RestaurantesPublicListingDbRow[] = [];
+    for (const res of textResults) {
+      track(res);
+      if (res.error) failedSources += 1;
+      else collected = collected.concat((res.data ?? []) as RestaurantesPublicListingDbRow[]);
+    }
+    let totalSources = textResults.length;
+
+    // Owner-profile search (name / e-mail) merges with the text hits (it used to run only when nothing else matched).
+    const profileIds = await fetchProfileIdsMatchingAdminQueueSearch(supabase, qRaw);
+    if (profileIds.length > 0) {
+      totalSources += 1;
+      const byProf = await qb().in("owner_user_id", profileIds).order("updated_at", { ascending: false }).limit(limit);
+      track(byProf);
+      if (byProf.error) failedSources += 1;
+      else collected = collected.concat((byProf.data ?? []) as RestaurantesPublicListingDbRow[]);
+    }
+
+    if (collected.length === 0 && failedSources > 0 && failedSources === totalSources) {
+      return { ok: false, rows: [], error: firstError ?? "read failed" };
+    }
+    const merged = mergeRestaurantRowsById(
+      [...collected].sort((a, b) => restauranteUpdatedMs(b) - restauranteUpdatedMs(a)),
+      limit,
+    );
+    return {
+      ok: true,
+      rows: merged,
+      warning: failedSources > 0 ? `${failedSources} of ${totalSources} sources` : null,
+    };
+  } catch (e) {
+    return { ok: false, rows: [], error: e instanceof Error ? e.message : String(e) };
   }
+}
+
+/** Array form (errors swallowed -> []) kept for the global search / audit callers. The Admin page uses the outcome form. */
+export async function listRestaurantesPublicListingsAdminFromDb(
+  opts: RestaurantesAdminQueueFilters = {},
+): Promise<RestaurantesPublicListingDbRow[]> {
+  const out = await tryListRestaurantesPublicListingsAdminFromDb(opts);
+  return out.ok ? out.rows : [];
 }
 
 /** Service role: rows for a specific owner (admin diagnostics). */

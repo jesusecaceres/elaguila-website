@@ -14,6 +14,14 @@
 
 export const EMPLEOS_PENDING_CHECKOUT_LISTING_KEY = "leonix.empleos.pending_checkout_listing.v1";
 
+/**
+ * F7 (2026-09 final free-circuit audit): the FREE job-fair lane has no checkout, but the same defect exists -
+ * Publish -> Back -> Publish re-mounted the form (React state lost) and INSERTed a SECOND feria row. The feria
+ * client remembers its row under its OWN slot (so a feria memo never clobbers a paid job post's checkout memo).
+ * Unlike the paid slot it is NOT cleared on success: a re-publish must update the same row.
+ */
+export const EMPLEOS_FERIA_LISTING_KEY = "leonix.empleos.feria_listing.v1";
+
 type MinimalStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
 type Stored = { lane: string; titleKey: string; listingId: string };
@@ -32,10 +40,11 @@ export function normalizeEmpleosTitleKey(title: string | null | undefined): stri
 export function readEmpleosPendingCheckoutListingId(
   storage: MinimalStorage | null | undefined,
   key: { lane: string; title: string },
+  storageKey: string = EMPLEOS_PENDING_CHECKOUT_LISTING_KEY,
 ): string | null {
   if (!storage) return null;
   try {
-    const raw = storage.getItem(EMPLEOS_PENDING_CHECKOUT_LISTING_KEY);
+    const raw = storage.getItem(storageKey);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<Stored> | null;
     if (!parsed || typeof parsed !== "object") return null;
@@ -51,6 +60,7 @@ export function readEmpleosPendingCheckoutListingId(
 export function rememberEmpleosPendingCheckoutListingId(
   storage: MinimalStorage | null | undefined,
   input: { lane: string; title: string; listingId: string },
+  storageKey: string = EMPLEOS_PENDING_CHECKOUT_LISTING_KEY,
 ): void {
   if (!storage || !UUID_RE.test(input.listingId.trim())) return;
   try {
@@ -59,17 +69,46 @@ export function rememberEmpleosPendingCheckoutListingId(
       titleKey: normalizeEmpleosTitleKey(input.title),
       listingId: input.listingId.trim(),
     };
-    storage.setItem(EMPLEOS_PENDING_CHECKOUT_LISTING_KEY, JSON.stringify(value));
+    storage.setItem(storageKey, JSON.stringify(value));
   } catch {
     /* storage unavailable — falls back to the pre-fix behaviour (a new row), never blocks checkout */
   }
 }
 
-export function clearEmpleosPendingCheckoutListingId(storage: MinimalStorage | null | undefined): void {
+export function clearEmpleosPendingCheckoutListingId(
+  storage: MinimalStorage | null | undefined,
+  storageKey: string = EMPLEOS_PENDING_CHECKOUT_LISTING_KEY,
+): void {
   if (!storage) return;
   try {
-    storage.removeItem(EMPLEOS_PENDING_CHECKOUT_LISTING_KEY);
+    storage.removeItem(storageKey);
   } catch {
     /* ignore */
+  }
+}
+
+/**
+ * Verified terminal success (Revenue OS success return for THIS row): the checkout memo's application is over,
+ * so the NEXT job application must not inherit its row. Clears only when the remembered id IS the paid row -
+ * an unrelated in-progress application's memo is left alone. NEVER call on cancel / retry / back: those must
+ * keep reusing the same row (no duplicate draft, no second charge).
+ */
+export function clearEmpleosPendingCheckoutListingIdIfPaid(
+  storage: MinimalStorage | null | undefined,
+  paidListingId: string | null | undefined,
+): boolean {
+  if (!storage) return false;
+  const paid = String(paidListingId ?? "").trim().toLowerCase();
+  if (!paid) return false;
+  try {
+    const raw = storage.getItem(EMPLEOS_PENDING_CHECKOUT_LISTING_KEY);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw) as Partial<Stored> | null;
+    const stored = String(parsed?.listingId ?? "").trim().toLowerCase();
+    if (!stored || stored !== paid) return false;
+    storage.removeItem(EMPLEOS_PENDING_CHECKOUT_LISTING_KEY);
+    return true;
+  } catch {
+    return false;
   }
 }

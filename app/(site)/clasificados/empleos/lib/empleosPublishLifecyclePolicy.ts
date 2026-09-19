@@ -28,6 +28,52 @@ export function isEmpleosFreeLane(lane: string | null | undefined): boolean {
   return FREE_LANES.has(String(lane ?? "").trim().toLowerCase());
 }
 
+const EMPLEOS_PUBLISH_LANES = new Set(["quick", "premium", "feria"]);
+
+export type EmpleosEnvelopeLaneDecision =
+  | { ok: true; lane: "quick" | "premium" | "feria" }
+  | { ok: false; error: "invalid_envelope" | "invalid_lane" | "lane_payload_mismatch" | "invalid_feria_payload" };
+
+function nonEmptyString(v: unknown): boolean {
+  return typeof v === "string" && v.trim().length > 0;
+}
+
+/**
+ * D13 / F1 (2026-09 final paid/free circuit audit): the ONE authoritative lane of a publish envelope.
+ *
+ * The payment decision (`resolveEmpleosUpsertLifecycle`) used to read the TOP-LEVEL `envelope.lane` while the job
+ * record / listing content is built from `envelope.payload.lane`, so a logged-in user could send
+ * `lane:"feria"` (free) with a quick / premium payload and publish a paid job post with no payment.
+ * The lane is now derived from `payload.lane` ONLY (the field the content is built from); a declared
+ * `envelope.lane` that disagrees is refused (`lane_payload_mismatch`), and a free (feria) publish must carry a
+ * real feria payload (title, date, venue, organizer + the arrays the mapper reads), never a paid-lane one.
+ */
+export function resolveEmpleosEnvelopeLane(
+  envelope: { lane?: unknown; payload?: unknown } | null | undefined,
+  mode: "draft" | "publish",
+): EmpleosEnvelopeLaneDecision {
+  const payload = envelope?.payload as { lane?: unknown; data?: unknown } | null | undefined;
+  if (!payload || typeof payload !== "object") return { ok: false, error: "invalid_envelope" };
+  const payloadLane = String(payload.lane ?? "").trim().toLowerCase();
+  if (!EMPLEOS_PUBLISH_LANES.has(payloadLane)) return { ok: false, error: "invalid_lane" };
+  const declared = String(envelope?.lane ?? "").trim().toLowerCase();
+  if (declared !== payloadLane) return { ok: false, error: "lane_payload_mismatch" };
+  const data = payload.data as Record<string, unknown> | null | undefined;
+  if (!data || typeof data !== "object" || !nonEmptyString(data.title)) return { ok: false, error: "invalid_envelope" };
+  if (payloadLane === "feria") {
+    const shapeOk =
+      Array.isArray(data.detailsBullets) &&
+      Array.isArray(data.secondaryDetails) &&
+      typeof data.venue === "string" &&
+      typeof data.dateLine === "string";
+    if (!shapeOk) return { ok: false, error: "invalid_feria_payload" };
+    if (mode === "publish" && !(nonEmptyString(data.dateLine) && nonEmptyString(data.venue) && nonEmptyString(data.organizer))) {
+      return { ok: false, error: "invalid_feria_payload" };
+    }
+  }
+  return { ok: true, lane: payloadLane as "quick" | "premium" | "feria" };
+}
+
 export type EmpleosUpsertDecision =
   | { ok: true; lifecycle: EmpleosPolicyLifecycle }
   | { ok: false; error: "payment_required" | "not_publishable" };
@@ -91,7 +137,7 @@ export function resolveEmpleosOwnerTransition(input: {
   const next = String(input.next ?? "").trim().toLowerCase();
   if (current === next) return { ok: true };
 
-  if (input.hasStaffReason && (current === "paused" || current === "pending_review" || current === "rejected")) {
+  if (input.hasStaffReason && (current === "paused" || current === "pending_review" || current === "rejected" || current === "archived")) {
     return next === "archived" ? { ok: true } : { ok: false, error: "staff_hold" };
   }
 

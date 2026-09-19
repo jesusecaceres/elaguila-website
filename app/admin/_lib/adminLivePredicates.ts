@@ -106,7 +106,8 @@ export function genericLiveSqlPlan(categoryRaw: unknown): GenericLiveSqlPlan {
       return { category, statuses: ["active"], publishedMode: "true", expiresMode: "null_or_future", exact: false };
     case "en-venta":
       // Public En Venta: active + is_published !== false (sold is direct-URL only, NOT live in results).
-      return { category, statuses: ["active"], publishedMode: "not_false", expiresMode: "null_or_future", exact: true };
+      // En Venta has no term: no writer sets expires_at and the public reader does not select it (parity table 4.1).
+      return { category, statuses: ["active"], publishedMode: "not_false", expiresMode: "none", exact: true };
     case "clases":
       // Public Clases: is_published = true AND status IN (active, sold) + paid-term read predicate.
       return { category, statuses: ["active", "sold"], publishedMode: "true", expiresMode: "null_or_future", exact: true };
@@ -242,7 +243,7 @@ export function isGenericListingPubliclyLive(
           status: row.status as string | null | undefined,
           is_published: row.is_published as boolean | null | undefined,
           expires_at: null,
-        }) && notExpiredAt(row.expires_at, nowMs)
+        }) && (cat === "en-venta" || notExpiredAt(row.expires_at, nowMs))
       );
   }
 }

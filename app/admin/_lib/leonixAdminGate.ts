@@ -21,16 +21,17 @@
  *
  * Not yet gated by roster (cookie only): many section editors, tienda actions, home marketing, etc. — extend here when needed.
  */
+import { isVerifiedAdminSession } from "@/app/admin/_lib/adminVerifiedSession";
 import "server-only";
 
 import { cookies } from "next/headers";
-import { requireAdminCookie, getAdminSupabase } from "@/app/lib/supabase/server";
+import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { getAdminOperatorEmailFromCookies } from "@/app/lib/supabase/adminSession";
 import type { AdminPermissionKey } from "@/app/admin/_lib/teamTypes";
 
 export async function requireLeonixAdminCookie(): Promise<void> {
   const c = await cookies();
-  if (!requireAdminCookie(c)) {
+  if (!(await isVerifiedAdminSession(c))) {
     throw new Error("Unauthorized");
   }
 }

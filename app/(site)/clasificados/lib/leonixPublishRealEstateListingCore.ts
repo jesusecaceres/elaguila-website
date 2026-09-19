@@ -40,9 +40,12 @@ import { rentasPublishStepTracePatch } from "@/app/(site)/clasificados/rentas/li
 import {
   REAL_ESTATE_DRAFT_KEY_FILTER_COLUMN,
   getOrCreateRealEstateDraftKey,
+  pickAdoptableRealEstatePendingRow,
   realEstatePendingLookupOrder,
+  rotateRealEstateDraftKeyIfSpent,
   sanitizeRealEstateDraftKey,
   withRealEstateDraftKeyInListingJson,
+  type RealEstatePendingRowLite,
 } from "@/app/(site)/clasificados/lib/realEstateDraftKey";
 
 const DEV = process.env.NODE_ENV === "development";
@@ -470,14 +473,39 @@ export async function publishLeonixRealEstateListingCore(
   const userId = auth.user.id;
 
   // Closeout 2 - one stable draft key per application (per user + category + seller type, per tab).
-  const draftKey =
+  const keyScope = { userId, category, sellerType };
+  const keyStorage = typeof window !== "undefined" ? safeSessionStorage() : null;
+  const callerDraftKey = sanitizeRealEstateDraftKey(params.draftKey);
+  let draftKey =
     params.activationMode === "pending_payment" && params.brInventoryRole !== "inventory_property"
-      ? sanitizeRealEstateDraftKey(params.draftKey) ??
-        getOrCreateRealEstateDraftKey(
-          typeof window !== "undefined" ? safeSessionStorage() : null,
-          { userId, category, sellerType },
-        )
+      ? callerDraftKey ?? getOrCreateRealEstateDraftKey(keyStorage, keyScope)
       : null;
+
+  // Final identity closeout - CANONICAL SERVER IDENTITY WINS over the client's sessionStorage copy. If every
+  // row that carries this key is already paid / active / removed, that application is OVER: rotate the key so
+  // the next application in this tab starts its own row instead of sharing (and later matching) the old key.
+  // A probe error is ignored on purpose - the fail-closed reuse lookup below is the hard stop.
+  if (draftKey && (category === "rentas" || category === "bienes-raices")) {
+    const probe = (await supabase
+      .from("listings")
+      .select("id, status, is_published")
+      .eq("owner_id", userId)
+      .eq("category", category)
+      .eq("seller_type", sellerType)
+      .eq(REAL_ESTATE_DRAFT_KEY_FILTER_COLUMN, draftKey)
+      .limit(5)) as unknown as { data: RealEstatePendingRowLite[] | null; error: { message: string } | null };
+    if (!probe.error) {
+      const rotation = rotateRealEstateDraftKeyIfSpent({
+        storage: keyStorage,
+        scope: keyScope,
+        currentKey: draftKey,
+        callerSuppliedKey: Boolean(callerDraftKey),
+        rows: probe.data,
+      });
+      if (rotation.rotated) devLog("draft key spent by server truth - rotated");
+      draftKey = rotation.key;
+    }
+  }
   paramsForRow.draftKey = draftKey;
 
   const insertPayload = buildListingsInsertRowForLeonixPublish(userId, paramsForRow, {
@@ -560,14 +588,18 @@ export async function publishLeonixRealEstateListingCore(
   const pendingBase = () =>
     supabase
       .from("listings")
-      .select("id, leonix_ad_id, status")
+      .select("id, leonix_ad_id, status, listing_json")
       .eq("owner_id", userId)
       .eq("category", category)
       .eq("seller_type", sellerType)
       .eq("status", "pending")
       .eq("is_published", false);
   type PendingLookup = {
-    data: { id?: string; leonix_ad_id?: string | null; status?: string } | null;
+    data: RealEstatePendingRowLite | null;
+    error: { message: string } | null;
+  };
+  type PendingRows = {
+    data: RealEstatePendingRowLite[] | null;
     error: { message: string } | null;
   };
   let reusableRealEstatePending: PendingLookup = { data: null, error: null };
@@ -579,10 +611,21 @@ export async function publishLeonixRealEstateListingCore(
       else if (tier === "existing_id" && explicitId) q = q.eq("id", explicitId);
       else if (tier === "title") q = q.eq("title", titlePrep.titleForDb);
       else continue;
-      const res = (await q.order("created_at", { ascending: false }).limit(1).maybeSingle()) as unknown as PendingLookup;
-      reusableRealEstatePending = res;
-      // A failed lookup is a HARD STOP (below); a hit ends the search.
-      if (res.error || typeof res.data?.id === "string") break;
+      // Title matches several candidate rows (newest first); the others resolve to at most one.
+      const res = (await q
+        .order("created_at", { ascending: false })
+        .limit(tier === "title" ? 10 : 1)) as unknown as PendingRows;
+      // A failed lookup is a HARD STOP (below); an ADOPTABLE hit ends the search. A row bound to ANOTHER
+      // application's draft key is never adopted (canonical identity wins over a stale cached id / same title).
+      if (res.error) {
+        reusableRealEstatePending = { data: null, error: res.error };
+        break;
+      }
+      const hit = pickAdoptableRealEstatePendingRow(tier, res.data, draftKey);
+      if (hit) {
+        reusableRealEstatePending = { data: hit, error: null };
+        break;
+      }
     }
   }
 

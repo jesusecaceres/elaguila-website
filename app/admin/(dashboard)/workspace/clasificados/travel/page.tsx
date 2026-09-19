@@ -12,6 +12,8 @@ import { AdminListingMonetizationSummary } from "../_components/AdminListingMone
 import { ClasificadosQueueHeader } from "../_components/ClasificadosQueueHeader";
 import { AdminCategorySummaryPanel } from "../_components/normalized/AdminCategorySummaryPanel";
 import { AdminCategoryFilterBar } from "../_components/normalized/AdminCategoryFilterBar";
+import { AdminListTruncationNotice } from "../_components/normalized/AdminListTruncationNotice";
+import { adminAnyFilterActive } from "@/app/admin/_lib/adminFilterTruth";
 import { AdminListingTruthSection } from "../_components/normalized/AdminListingCardSections";
 import { clasificadosQueueSurfaceForSlug } from "../_lib/clasificadosQueueSurfaceMeta";
 import { appendPreservedSearchParams, parseAdminScope } from "../_lib/clasificadosAdminScopeUrls";
@@ -21,8 +23,10 @@ import {
   adminStatusOptionsForCategory,
 } from "../_lib/adminNormalizedShell";
 import { adminCardBase } from "@/app/admin/_components/adminTheme";
-import { fetchViajesStagedAdminQueue } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingsDbServer";
-import type { ViajesStagedListingRow } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingTypes";
+import {
+  fetchViajesStagedAdminQueueDetailed,
+  type ViajesAdminQueueResult,
+} from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingsDbServer";
 import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { getAdminLang } from "@/app/admin/_lib/adminI18n";
 import { adminMessages, adminTr } from "@/app/admin/_lib/adminStrings";
@@ -42,7 +46,7 @@ import { ViajesCommercialTruthCell } from "./_components/ViajesCommercialTruthCe
 
 export const dynamic = "force-dynamic";
 
-/** Ceiling of `fetchViajesStagedAdminQueue` (its own `Math.min(limit, 500)`). */
+/** Ceiling of `fetchViajesStagedAdminQueueDetailed` (its own `Math.min(limit, 500)`). */
 const VIAJES_ADMIN_SCAN_CAP = 500;
 
 function fmt(ts: string | null | undefined) {
@@ -70,21 +74,24 @@ export default async function AdminTravelViajesQueuePage(props: {
 
   const configured = isSupabaseAdminConfigured();
 
-  // FILTERS BEFORE THE LIMIT. The search (`q`) is pushed INTO `fetchViajesStagedAdminQueue` (its
-  // windowed scan applies the row cap AFTER matching). A Leonix Ad ID typed on its own is searched
-  // through that same `q` path and narrowed exactly below. Status / owner (and q + Leonix Ad ID
-  // together) cannot be expressed by the data function, so they widen the window to its ceiling,
-  // narrow in memory, and the requested limit is applied LAST.
-  const sqlSearch = filters.q || filters.leonixAdId;
-  const memoryFiltered = Boolean(filters.status || filters.owner || (filters.q && filters.leonixAdId));
+  // FILTERS BEFORE THE LIMIT (2026-09 final normalization, Gate 3). Status, a full owner UUID and the Leonix Ad ID
+  // are SQL predicates in `fetchViajesStagedAdminQueueDetailed` (AND-ed with scope and `q`); the free-text search
+  // (`q`) runs in its bounded windowed scan (row cap applied AFTER matching, cap disclosed via `scanCapped`). Only a
+  // PARTIAL owner fragment (not a UUID) cannot be expressed in SQL — then the window is widened to the ceiling, narrowed
+  // in memory, and the requested limit is applied LAST. A read failure is an ERROR, never an empty list.
+  const memoryFiltered = Boolean(filters.owner && !filters.ownerIsUuid);
   const scan = planAdminQueueScan({ limit: queueLimit, memoryFiltered, cap: VIAJES_ADMIN_SCAN_CAP });
-  const fetched: ViajesStagedListingRow[] = configured
-    ? await fetchViajesStagedAdminQueue({
+  const fetchedRes: ViajesAdminQueueResult = configured
+    ? await fetchViajesStagedAdminQueueDetailed({
         limit: scan.fetchLimit,
         ...(scope === "live" ? { scope: "live" as const } : {}),
-        ...(sqlSearch ? { q: sqlSearch } : {}),
+        q: filters.q || undefined,
+        status: filters.status || undefined,
+        owner_user_id: filters.owner && filters.ownerIsUuid ? filters.owner : undefined,
+        leonix_ad_id: filters.leonixAdId || undefined,
       })
-    : [];
+    : { rows: [], error: null, scanCapped: false, scanned: 0 };
+  const fetched = fetchedRes.rows;
   const windowNote = adminScanWindowNote(lang, { widened: scan.widened, fetched: fetched.length, fetchLimit: scan.fetchLimit });
   const displayRows = fetched
     .filter((r) => !filters.status || String(r.lifecycle_status ?? "").toLowerCase() === filters.status)
@@ -132,7 +139,7 @@ export default async function AdminTravelViajesQueuePage(props: {
         liveHref={liveHref}
       />
 
-      <AdminCategorySummaryPanel summary={summary} lang={lang} technicalDetails={[["Table", surface.sourceTable]]} />
+      <AdminCategorySummaryPanel summary={summary} lang={lang} filtersActive={adminAnyFilterActive(sp)} technicalDetails={[["Table", surface.sourceTable]]} />
 
       {configured ? (
         <div data-testid="travel-admin-filter-panel">
@@ -149,11 +156,26 @@ export default async function AdminTravelViajesQueuePage(props: {
               {windowNote}
             </p>
           ) : null}
+          {!fetchedRes.error ? (
+            <AdminListTruncationNotice
+              lang={lang}
+              className="mt-2"
+              shown={displayRows.length}
+              limit={queueLimit}
+              scanCapped={fetchedRes.scanCapped}
+              scanned={fetchedRes.scanned}
+            />
+          ) : null}
         </div>
       ) : null}
 
       {!configured ? (
         <p className={`${adminCardBase} p-4 text-sm text-[#5C5346]`}>Supabase admin not configured.</p>
+      ) : fetchedRes.error ? (
+        <div className={`${adminCardBase} border-red-200 bg-red-50 p-4 text-sm text-red-900`} role="alert" data-testid="travel-admin-read-error">
+          <p className="font-bold">Viajes data could not be read</p>
+          <p className="mt-1 font-mono text-xs">{fetchedRes.error}</p>
+        </div>
       ) : displayRows.length === 0 ? (
         <p className={`${adminCardBase} p-4 text-sm text-[#5C5346]`}>
           {hasFilters ? `No results for these filters${qRaw ? ` ("${qRaw}")` : ""}.` : "No rows in viajes_staged_listings."}

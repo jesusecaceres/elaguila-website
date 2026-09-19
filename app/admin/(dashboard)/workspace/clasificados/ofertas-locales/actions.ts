@@ -1,5 +1,6 @@
 "use server";
 
+import { isVerifiedAdminSession } from "@/app/admin/_lib/adminVerifiedSession";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -10,7 +11,7 @@ import {
 } from "@/app/lib/ofertas-locales/ofertasLocalesAdminReviewMessages";
 import { runOfertaLocalAdminReview } from "@/app/lib/ofertas-locales/ofertasLocalesAdminReviewService";
 import { buildAdminActionReturnUrl } from "@/app/admin/_lib/adminQueueActionFlow";
-import { getAdminSupabase, requireAdminCookie } from "@/app/lib/supabase/server";
+import { getAdminSupabase } from "@/app/lib/supabase/server";
 
 function redirectWithReviewResult(params: {
   returnTo: string;
@@ -35,7 +36,7 @@ function redirectWithReviewResult(params: {
 
 export async function reviewOfertaLocalAdminAction(formData: FormData): Promise<void> {
   const c = await cookies();
-  if (!requireAdminCookie(c)) throw new Error("Unauthorized");
+  if (!(await isVerifiedAdminSession(c))) throw new Error("Unauthorized");
 
   const id = String(formData.get("offer_id") ?? "").trim();
   const action = String(formData.get("action") ?? "").trim() as OfertaLocalAdminReviewAction;

@@ -39,6 +39,7 @@ export function isEmpleosStaffAction(x: unknown): x is EmpleosStaffAction {
 export const EMPLEOS_STAFF_SUSPENDED_MARKER = "staff_suspended";
 export const EMPLEOS_STAFF_REJECTED_MARKER = "staff_rejected";
 export const EMPLEOS_STAFF_REVIEW_MARKER = "staff_review";
+export const EMPLEOS_STAFF_ARCHIVED_MARKER = "staff_archived";
 
 export const EMPLEOS_PAYMENT_REQUIRED_MESSAGE =
   "This paid-lane job post has never been live and no verified payment is on record. It goes live only through a verified payment or a cleared manual payment — Restore / Republish cannot publish it.";
@@ -87,6 +88,22 @@ export function empleosStaffRestoreBlockedReason(row: EmpleosStaffRowState, paym
   return null;
 }
 
+/**
+ * Gate 5: a once-live PAID-lane post whose newest money-final payment is DISPUTED (chargeback) must not be revived by
+ * Admin Restore / Republish (Empleos has no payment-suspension engine lane, so nothing else holds it). A refund is
+ * deliberately NOT treated as a hold: refunds set payment_status 'refunded' for partial refunds too and the entitlement
+ * adjustment is a separate audited admin decision (refundDisputeFoundations.ts). Only a reactivating action on a
+ * paid-lane row that WAS live needs the read (never-live rows are covered by the payment-cleared gate above).
+ */
+export function empleosStaffActionNeedsReversalCheck(action: EmpleosStaffAction, row: EmpleosStaffRowState): boolean {
+  if (action !== "unsuspend" && action !== "republish") return false;
+  if (empleosRowIsPublicLive(row as Record<string, unknown>)) return false;
+  return !isEmpleosFreeLane(row.lane) && Boolean(String(row.published_at ?? "").trim());
+}
+
+export const EMPLEOS_PAYMENT_REVERSED_MESSAGE =
+  "This paid job post's payment is under dispute (chargeback). Restore / Republish cannot revive it until the dispute is resolved.";
+
 export function normalizeEmpleosStaffReason(reason: unknown): string | null {
   if (typeof reason !== "string") return null;
   const t = reason.replace(/\s+/g, " ").trim();
@@ -124,6 +141,8 @@ export function decideEmpleosStaffAction(input: {
   reason?: unknown;
   now: string;
   paymentCleared?: boolean | null;
+  /** true = the newest money-final payment for this once-live paid-lane row is disputed (chargeback). */
+  paymentReversed?: boolean | null;
 }): EmpleosStaffDecision {
   const { action, row, now } = input;
   const status = lc(row.lifecycle_status);
@@ -136,6 +155,9 @@ export function decideEmpleosStaffAction(input: {
 
   const gate = (): EmpleosStaffDecision | null => {
     if (empleosRowIsPublicLive(row as Record<string, unknown>)) return null;
+    if (input.paymentReversed === true) {
+      return { ok: false, status: 409, error: "payment_reversed", message: EMPLEOS_PAYMENT_REVERSED_MESSAGE };
+    }
     if (empleosRowAwaitsPayment(row) && input.paymentCleared !== true) {
       return { ok: false, status: 409, error: "payment_required", message: EMPLEOS_PAYMENT_REQUIRED_MESSAGE };
     }
@@ -194,6 +216,8 @@ export function decideEmpleosStaffAction(input: {
       return { ok: true, patch, auditAction: "empleos_admin_send_to_review", lifecycle: true };
     case "archive":
       patch.lifecycle_status = "archived";
+      // Marker so the owner-side policy cannot reopen a STAFF archive; Restore (publishPatch) clears it.
+      patch.moderation_reason = reason ?? EMPLEOS_STAFF_ARCHIVED_MARKER;
       return { ok: true, patch, auditAction: "empleos_admin_archive", lifecycle: true };
     case "promote_on":
       patch.admin_promoted = true;

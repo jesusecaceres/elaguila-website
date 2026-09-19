@@ -1,8 +1,9 @@
+import { isVerifiedAdminSession } from "@/app/admin/_lib/adminVerifiedSession";
 import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { queueOfertaLocalNotificationEvent } from "@/app/lib/ofertas-locales/ofertasLocalesNotificationEvents";
-import { getAdminSupabase, isSupabaseAdminConfigured, requireAdminCookie } from "@/app/lib/supabase/server";
+import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
 
@@ -16,7 +17,7 @@ const ALLOWED_ACTIONS = new Set([
 
 async function assertAdmin() {
   const cookieStore = await cookies();
-  return requireAdminCookie(cookieStore);
+  return isVerifiedAdminSession(cookieStore);
 }
 export async function GET(
   _req: NextRequest,

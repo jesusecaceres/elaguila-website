@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Suspense } from "react";
+import { Fragment, Suspense } from "react";
 import { autosRowMatchesAdminQueueSearch } from "@/app/admin/_lib/adminAdSearch";
 import {
   ADMIN_QUEUE_DEFAULT_LIMIT,
@@ -35,13 +35,25 @@ import { fetchAdminCategorySummary, type AdminCategorySummary } from "@/app/admi
 import { loadAdminListingCommercialTruth, type AdminListingCommercialTruthMap } from "@/app/admin/_lib/adminListingCommercialTruth";
 import {
   autosDealerGroupKey,
+  describeDealerGroupCapacity,
   fetchAutosDealerCapacityForRows,
-  describeDealerCapacity,
+  fetchAutosDealerInventoryPackProof,
+  resolveDealerGroupCapacity,
   type AutosDealerCapacityView,
+  type AutosInventoryPackProof,
 } from "@/app/admin/_lib/adminAutosDealerCapacity";
+import {
+  autosChildParentGateState,
+  dealerGroupMainIds,
+  groupAutosRowsForAdmin,
+} from "@/app/admin/_lib/adminAutosDealerGroups";
+import { fetchAutosParents } from "@/app/admin/_lib/adminCategorySummary";
+import { adminAnyFilterActive } from "@/app/admin/_lib/adminFilterTruth";
+import type { AutosPublicParentCandidate } from "@/app/lib/clasificados/autos/autosPublicChildParentVisibility";
 import { STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
 import { AdminCategorySummaryPanel } from "../_components/normalized/AdminCategorySummaryPanel";
 import { AdminCategoryFilterBar } from "../_components/normalized/AdminCategoryFilterBar";
+import { AdminListTruncationNotice } from "../_components/normalized/AdminListTruncationNotice";
 import { AdminCommercialTruthSection } from "../_components/normalized/AdminListingCardSections";
 import {
   adminRowMatchesLeonixAdIdFilter,
@@ -122,9 +134,10 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
   const statusFilter = typeof sp.status === "string" ? sp.status.trim().toLowerCase() : "";
   const ownerFilter = typeof sp.owner === "string" ? sp.owner.trim() : "";
   const leonixAdIdFilter = typeof sp.leonix_ad_id === "string" ? sp.leonix_ad_id.trim() : "";
-  // Status / owner / Leonix Ad ID are matched in memory (the Autos service filters only by scope +
-  // lane in SQL), so any of them widens the scan to the 500-row service cap before narrowing.
-  const memoryFiltered = Boolean(qRaw || statusFilter || ownerFilter || leonixAdIdFilter);
+  // Status, a full owner UUID and the Leonix Ad ID are SQL predicates in the Autos service (AND-ed with lane /
+  // scope, BEFORE the row cap). Only free-text search and a PARTIAL owner fragment need the bounded scan.
+  const ownerIsUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ownerFilter);
+  const memoryFiltered = Boolean(qRaw || (ownerFilter && !ownerIsUuid));
   const autosBase = ADMIN_AUTOS_WORKSPACE_PATH;
   // Dealers vs Privados — one engine, one table; `lane` is the canonical `row.lane` value and is
   // applied in the SQL query (not as a cosmetic client filter over the same rows).
@@ -180,11 +193,20 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
         );
       }
     : undefined;
+  let listMeta: { error: string | null; scanCapped: boolean; scanned: number } = { error: null, scanCapped: false, scanned: 0 };
   const rows = await listAllAutosClassifiedsRowsForAdmin(queueLimit, {
     ...(scope === "live" ? { scope: "live" as const } : {}),
     ...(lane !== "all" ? { lane } : {}),
     ...(rowFilter ? { rowFilter } : {}),
+    ...(statusFilter ? { status: statusFilter } : {}),
+    ...(ownerIsUuid ? { ownerUserId: ownerFilter } : {}),
+    ...(leonixAdIdFilter ? { leonixAdId: leonixAdIdFilter } : {}),
+    onMeta: (meta) => {
+      listMeta = meta;
+    },
   });
+  // (the lane is a scope, not a filter: the summary is lane-scoped and says so through `laneLabel`)
+  const filtersActive = adminAnyFilterActive(sp, ["q", "status", "owner", "leonix_ad_id"]);
 
   // Dealer capacity (closeout 2): the active count per dealer inventory GROUP comes from the canonical
   // grouped count (adminCategorySummary.fetchAutosDealerCapacityTruth, scoped to the owners visible
@@ -193,6 +215,29 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
   // raises it, so a group above the standard limit is flagged for entitlement review instead of being
   // shown as a bare "n/10". If the read fails the page prints "—".
   const capacity: AutosDealerCapacityView = await fetchAutosDealerCapacityForRows(rows);
+
+  // DEALER GROUPS (Gate 4): a parent (main) listing with its inventory children together, the child -> parent
+  // public gate, and the inventory-pack ENTITLEMENT proof for each group's main listing. The entitled capacity is
+  // shown ONLY when an active entitlement proves it (never fabricated from row data).
+  const grouping = groupAutosRowsForAdmin(rows);
+  const orderedRows = grouping.ordered;
+  const mainIds = dealerGroupMainIds(grouping.groups);
+  const packProof: AutosInventoryPackProof = isSupabaseAdminConfigured()
+    ? await fetchAutosDealerInventoryPackProof(mainIds)
+    : { available: false, error: "supabase_admin_not_configured", provenByMainId: {} };
+  // Parents of the visible children: rows on the page first, the rest read (batched) — the gate reads the parent's
+  // status / owner / role exactly like the public reader.
+  const parentsById = new Map<string, AutosPublicParentCandidate>();
+  for (const r of rows) parentsById.set(r.id, r);
+  let parentLookupError: string | null = null;
+  const missingParentIds = mainIds.filter((id) => !parentsById.has(id));
+  if (missingParentIds.length > 0 && isSupabaseAdminConfigured()) {
+    try {
+      for (const [id, p] of await fetchAutosParents(getAdminSupabase(), missingParentIds)) parentsById.set(id, p);
+    } catch (e) {
+      parentLookupError = e instanceof Error ? e.message : String(e);
+    }
+  }
 
   // Commercial truth (READ-ONLY): payment / entitlement / subscription records for THESE rows.
   const commercialTruthByListingId: AdminListingCommercialTruthMap = isSupabaseAdminConfigured() && rows.length > 0
@@ -263,6 +308,7 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
           summary={summary}
           lang={lang}
           laneLabel={laneLabel}
+          filtersActive={filtersActive}
           technicalDetails={[["Table", surface.sourceTable]]}
         />
       </div>
@@ -288,7 +334,23 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
         />
       </div>
 
-      {rows.length === 0 ? (
+      {listMeta.error ? (
+        <div className={`${adminCardBase} border-red-200 bg-red-50 p-6 text-sm text-red-900`} role="alert" data-testid="autos-admin-read-error">
+          <p className="font-bold">Autos data could not be read</p>
+          <p className="mt-1 font-mono text-xs">{listMeta.error}</p>
+        </div>
+      ) : (
+        <AdminListTruncationNotice
+          lang={lang}
+          className="mb-3"
+          shown={rows.length}
+          limit={queueLimit}
+          scanCapped={listMeta.scanCapped}
+          scanned={listMeta.scanned}
+        />
+      )}
+
+      {listMeta.error ? null : rows.length === 0 ? (
         <div className={`${adminCardBase} p-6 text-sm text-[#5C5346]`}>
           {m("autosQueue.emptyTable")}
         </div>
@@ -320,7 +382,7 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => {
+              {orderedRows.map((r) => {
                 const dash = autosClassifiedsRowToDashboardRow(r);
                 const bucket = autosListingAdminVisibilityBucket(r.status);
                 const vis = visLabel(bucket, m);
@@ -346,10 +408,21 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                 const dealerActiveCount = isDealerRow && capacity.available
                   ? capacity.activeByGroupKey[autosDealerGroupKey(r)] ?? 0
                   : null;
-                const capacityInfo = describeDealerCapacity(dealerActiveCount, {
-                  standard: capacity.standardLimit,
-                  boosted: capacity.boostedLimit,
+                const groupKey = grouping.groupKeyByRowId.get(r.id) ?? null;
+                const group = groupKey ? grouping.groups.get(groupKey) ?? null : null;
+                const groupActiveCount =
+                  group && capacity.available ? capacity.activeByGroupKey[group.key] ?? 0 : null;
+                const groupCapacityState = resolveDealerGroupCapacity({
+                  active: groupActiveCount,
+                  mainId: group?.mainId ?? null,
+                  proof: packProof,
+                  standardLimit: STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT,
+                  boostedLimit: capacity.boostedLimit,
                 });
+                const groupCapacityText = describeDealerGroupCapacity(lang, groupCapacityState);
+                const childGate = isDealerRow ? autosChildParentGateState(r, parentsById) : "not_child";
+                const isGroupChild = isDealerRow && r.inventory_role === "inventory_vehicle";
+                const groupMainRow = group?.mainId ? parentsById.get(group.mainId) ?? null : null;
                 const listingTruth = classifyPublication("autos_classifieds_listings", r as unknown as Record<string, unknown>);
                 const liveHref =
                   r.status === "active"
@@ -357,8 +430,35 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                     : null;
                 const highlighted = actionProof?.target === r.id;
                 return (
-                  <tr key={r.id} id={adminQueueRowAnchorId(r.id)} className={adminQueueRowClass(highlighted)}>
+                  <Fragment key={r.id}>
+                  {group && grouping.groupStartRowIds.has(r.id) ? (
+                    <tr className="bg-[#F4F1EA]" data-testid="autos-dealer-group-header">
+                      <td colSpan={15} className="px-3 py-2 text-[11px] leading-snug text-[#3D3428]">
+                        <p className="font-bold text-[#1E1810]">
+                          Dealer group <span className="font-mono">{group.key.slice(0, 8)}…</span> · {group.rowIds.length} row(s) on this page
+                          {group.mainOnPage ? "" : " · main listing not on this page"}
+                        </p>
+                        <p data-testid="autos-dealer-group-capacity">
+                          {groupCapacityText.text}
+                          {groupCapacityText.warning ? <span className="font-semibold text-amber-900"> · {groupCapacityText.warning}</span> : null}
+                        </p>
+                        <p data-testid="autos-dealer-group-parent-gate" className="text-[#5C5346]">
+                          {group.mainId
+                            ? groupMainRow
+                              ? `Parent (main) listing ${group.mainId.slice(0, 8)}…: status ${String(groupMainRow.status ?? "unknown")} — inventory children ${
+                                  groupMainRow.status === "active" ? "can be public" : "are NOT public (parent gate)"
+                                }.`
+                              : parentLookupError
+                                ? `Parent (main) listing ${group.mainId.slice(0, 8)}…: could not be read (${parentLookupError}) — child visibility not asserted.`
+                                : `Parent (main) listing ${group.mainId.slice(0, 8)}…: not found — inventory children are NOT public (parent gate).`
+                            : "Parent (main) listing not identified for this group."}
+                        </p>
+                      </td>
+                    </tr>
+                  ) : null}
+                  <tr id={adminQueueRowAnchorId(r.id)} className={adminQueueRowClass(highlighted)}>
                     <td className="max-w-[7rem] truncate px-3 py-2 font-mono text-[10px]" title={r.id}>
+                      {isGroupChild ? <span className="mr-1 text-[#7A7164]" aria-hidden="true">↳</span> : null}
                       {r.id.slice(0, 8)}…
                     </td>
                     <td className="max-w-[9rem] truncate px-3 py-2 font-mono text-[10px]" title={r.leonix_ad_id ?? ""}>
@@ -385,17 +485,9 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                             >
                               {" · "}
                               {dealerActiveCount == null
-                                ? `capacity ${capacityInfo.text}`
-                                : adminTr(lang, "catShell.autos.capacityActive", {
-                                    n: dealerActiveCount,
-                                    limit: STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT,
-                                  })}
-                              {capacityInfo.overStandard
-                                ? ` · ${adminTr(lang, "catShell.autos.capacityOverStandard", {
-                                    n: dealerActiveCount ?? 0,
-                                    limit: STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT,
-                                  })}`
-                                : ""}
+                                ? `capacity — (${adminTr(lang, "catShell.autos.capacityUnavailable")})`
+                                : groupCapacityText.text}
+                              {groupCapacityText.warning ? ` · ${groupCapacityText.warning}` : ""}
                             </span>
                           ) : null}
                           {r.lane === "negocios" && r.inventory_role ? ` · role ${r.inventory_role}` : ""}
@@ -418,6 +510,22 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                       <p className="mt-1 max-w-[14rem] text-[10px] font-normal leading-snug text-[#5C5346]" data-testid="autos-listing-truth-reason">
                         {listingTruth.reason}
                       </p>
+                      {r.lane === "privado" && r.expires_at ? (
+                        <p className="mt-1 max-w-[14rem] text-[10px] font-normal leading-snug text-[#5C5346]" data-testid="autos-privado-term">
+                          Term ends {formatTs(r.expires_at, locale)}
+                        </p>
+                      ) : null}
+                      {isGroupChild ? (
+                        <p className="mt-1 max-w-[14rem] text-[10px] font-normal leading-snug text-[#5C5346]" data-testid="autos-child-parent-gate">
+                          {childGate === "satisfied"
+                            ? "Parent gate: OK (active same-owner main)"
+                            : childGate === "parent_not_live"
+                              ? "Parent gate: parent is not an active same-owner main — NOT public"
+                              : parentLookupError
+                                ? "Parent gate: parent could not be read — not asserted"
+                                : "Parent gate: parent not found — NOT public"}
+                        </p>
+                      ) : null}
                     </td>
                     <td className="whitespace-nowrap px-3 py-2 text-[10px] text-[#5C5346]">{pub}</td>
                     <td
@@ -476,6 +584,7 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                       />
                     </td>
                   </tr>
+                  </Fragment>
                 );
               })}
             </tbody>

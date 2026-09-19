@@ -3,6 +3,20 @@
  * spanning `listings` and category-specific public tables.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { dashboardCountLiveListingRows } from "@/app/(site)/dashboard/lib/dashboardListingStateMachine";
+import { isAutosRowLiveRowLevel } from "@/app/admin/_lib/adminAutosLivePredicate";
+
+/**
+ * Gate 2 (2026-09 dashboard state machine, items 5-7): the shared-`listings` "active" count reads the rows (tiered so an
+ * older schema without `expires_at` / the BR inventory columns still counts) and applies the per-category public
+ * predicate, instead of `status = active` alone - which counted a Rentas / FSBO / Clases row whose paid term had ELAPSED
+ * (the term is never written back to `status`) as an active listing.
+ */
+const OWNER_ACTIVE_LISTINGS_ROW_TIERS = [
+  "id, status, category, seller_type, is_published, published_at, expires_at, detail_pairs, inventory_role, br_inventory_parent_listing_id",
+  "id, status, category, seller_type, is_published, published_at, detail_pairs, inventory_role, br_inventory_parent_listing_id",
+  "id, status, category, seller_type, is_published, detail_pairs",
+];
 
 export async function collectOwnerListingKeysForAnalytics(sb: SupabaseClient, ownerId: string): Promise<string[]> {
   const keys = new Set<string>();
@@ -123,6 +137,13 @@ export async function countOwnerInventoryListings(sb: SupabaseClient, ownerId: s
 export async function countOwnerActiveListingsAcrossSources(sb: SupabaseClient, ownerId: string): Promise<number> {
   const countListings = async (): Promise<number> => {
     try {
+      for (const cols of OWNER_ACTIVE_LISTINGS_ROW_TIERS) {
+        const rowsQ = await sb.from("listings").select(cols).eq("owner_id", ownerId).eq("status", "active");
+        if (!rowsQ.error && Array.isArray(rowsQ.data)) {
+          return dashboardCountLiveListingRows(rowsQ.data as unknown as Record<string, unknown>[], ownerId);
+        }
+      }
+      // Last resort (no readable row tier): the status-only count, an upper bound.
       const q = await sb.from("listings").select("id", { count: "exact", head: true }).eq("owner_id", ownerId).eq("status", "active");
       if (!q.error && typeof q.count === "number") return q.count;
     } catch {
@@ -163,6 +184,17 @@ export async function countOwnerActiveListingsAcrossSources(sb: SupabaseClient, 
 
   const countAutos = async (): Promise<number> => {
     try {
+      // Gate 2: an Autos Privado row past its fixed term keeps `status = active` but is not public - count only live rows.
+      const rowsQ = await sb
+        .from("autos_classifieds_listings")
+        .select("id, status, lane, expires_at")
+        .eq("owner_user_id", ownerId)
+        .eq("status", "active");
+      if (!rowsQ.error && Array.isArray(rowsQ.data)) {
+        return (rowsQ.data as Array<{ status?: string | null; lane?: string | null; expires_at?: string | null }>).filter((r) =>
+          isAutosRowLiveRowLevel(r),
+        ).length;
+      }
       const q = await sb
         .from("autos_classifieds_listings")
         .select("id", { count: "exact", head: true })

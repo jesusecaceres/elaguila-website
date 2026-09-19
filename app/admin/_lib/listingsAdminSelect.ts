@@ -12,7 +12,13 @@ import {
   type BrPublicParentCandidate,
 } from "@/app/admin/_lib/adminLivePredicates";
 import { scanPagedRows } from "@/app/admin/_lib/adminPagedScan";
-import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import { detailPairContainsLiteral, pgrstQuote } from "@/app/admin/_lib/adminFilterTruth";
+import {
+  LEONIX_DP_BRANCH,
+  LEONIX_DP_CATEGORIA_PROPIEDAD,
+  LEONIX_DP_OPERATION,
+  parseLeonixListingContract,
+} from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import { fetchProfileIdsMatchingAdminQueueSearch } from "@/app/lib/supabase/adminQueueProfileSearch";
 
 /** Queue table columns — omit heavy `description` / `images` payloads (still searchable server-side). */
@@ -61,7 +67,19 @@ export type ListingsAdminFetchResult<T> = {
    * cap before finding `limit` matching rows — the list may then be missing older matches. UI should say so.
    */
   scanCapped?: boolean;
+  /** Raw rows the bounded scan read (sum over every source scan) — for the cap disclosure. */
+  scanned?: number;
+  /**
+   * Secondary search sources (exact Leonix Ad ID, owner-profile name) that could not be read. The primary
+   * search still ran, so rows are returned, but the list may be missing matches — the UI says so.
+   */
+  partialSources?: string[];
 };
+
+/** Raw-row ceiling of one bounded application-level scan (`scanPagedRows` default) — disclosed when hit. */
+export const LISTINGS_ADMIN_SCAN_CAP = 3000;
+/** Bound for the Rentas Bienes-Raices rent-merge fallback scan (only used if the SQL containment filter errors). */
+const RENTAS_BR_MERGE_FALLBACK_SCAN = 1000;
 
 const ADMIN_LISTING_SELECT_TIERS: Array<{
   cols: string;
@@ -136,6 +154,17 @@ export type ListingsAdminWorkspaceFilters = {
   status?: string;
   /** Owner id fragment — full UUID uses SQL eq; partial matched in memory after fetch. */
   ownerFrag?: string;
+  /**
+   * Leonix Ad ID filter (case-insensitive: a complete id matches exactly, a fragment matches as "contains").
+   * Pushed into SQL and AND-ed with `q` / status / owner / category — it never rides on `q`.
+   */
+  leonixAdId?: string;
+  /**
+   * Bienes Raices lane (`negocio` = business / parent + inventory children, `privado` = FSBO `seller_type = personal`).
+   * SQL predicate before the limit, ONLY applied to the `bienes-raices` category (the same `seller_type` discriminator the
+   * Admin lane chips / `isBrFsboRow` read). Ignored for every other category.
+   */
+  brLane?: "negocio" | "privado";
   limit?: number;
   /**
    * `live` — only rows the REAL public reader of the category considers live (see
@@ -192,6 +221,7 @@ export async function fetchListingsForAdminWorkspaceFiltered(
   const qInput = (filters.q ?? "").trim();
   const qLower = qInput.toLowerCase();
   const safeQ = escapeIlike(qLower);
+  const leonixAdIdFilter = (filters.leonixAdId ?? "").trim();
   const isNeedsReview = status.toLowerCase() === LISTINGS_NEEDS_REVIEW_STATUS_TOKEN;
 
   // Same bounded pending-report lookup as computeAdminAttentionReviewTruth
@@ -248,6 +278,11 @@ export async function fetchListingsForAdminWorkspaceFiltered(
     if (ownerFrag && isUuid(ownerFrag)) {
       q = q.eq("owner_id", ownerFrag);
     }
+    if (leonixAdIdFilter) {
+      // Complete id -> case-insensitive exact (no wildcards); fragment -> contains. In SQL, BEFORE the limit.
+      const norm = adminQueueNormalizeLeonixAdId(leonixAdIdFilter);
+      q = q.ilike("leonix_ad_id", norm ? escapeIlike(norm) : `%${escapeIlike(leonixAdIdFilter)}%`);
+    }
     return q;
   };
 
@@ -259,10 +294,32 @@ export async function fetchListingsForAdminWorkspaceFiltered(
   const applyListingFilters = (qb: any): any => {
     let q = qb;
     if (cat) q = q.ilike("category", escapeIlike(cat));
+    if (filters.brLane && cat.toLowerCase() === "bienes-raices") {
+      q = filters.brLane === "privado" ? q.eq("seller_type", "personal") : q.or("seller_type.is.null,seller_type.neq.personal");
+    }
     return applyNonCategoryListingFilters(q);
   };
 
-  const buildQuery = (cols: string, qMode: "none" | "text_uuid" | "owner_like", from: number, to: number) => {
+  /**
+   * Bienes Raices / Rentas machine filters as a jsonb containment PREFILTER on `detail_pairs` (the publisher
+   * writes canonical lowercase enum values). The exact in-memory check in `acceptRows` still runs afterwards.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const applyLxSql = (qb: any): any => {
+    let q = qb;
+    if (lxBranch) q = q.contains("detail_pairs", detailPairContainsLiteral(LEONIX_DP_BRANCH, lxBranch));
+    if (lxOp) q = q.contains("detail_pairs", detailPairContainsLiteral(LEONIX_DP_OPERATION, lxOp));
+    if (lxProp) q = q.contains("detail_pairs", detailPairContainsLiteral(LEONIX_DP_CATEGORIA_PROPIEDAD, lxProp));
+    return q;
+  };
+
+  const buildQuery = (
+    cols: string,
+    qMode: "none" | "text_uuid" | "owner_like",
+    from: number,
+    to: number,
+    lxSql: boolean,
+  ) => {
     let qb = applyListingFilters(
       supabase
         .from("listings")
@@ -271,12 +328,15 @@ export async function fetchListingsForAdminWorkspaceFiltered(
         .order("id", { ascending: false })
         .range(from, to),
     );
+    if (lxSql) qb = applyLxSql(qb);
     if (qLower) {
       if (qMode === "text_uuid") {
-        const parts = [`title.ilike.%${safeQ}%`, `city.ilike.%${safeQ}%`];
+        // Values are double-quoted so a comma / parenthesis in the search term cannot break the or() grammar.
+        const like = pgrstQuote(`%${safeQ}%`);
+        const parts = [`title.ilike.${like}`, `city.ilike.${like}`];
         if (!isUuid(qInput)) {
-          parts.push(`description.ilike.%${safeQ}%`);
-          parts.push(`leonix_ad_id.ilike.%${safeQ}%`);
+          parts.push(`description.ilike.${like}`);
+          parts.push(`leonix_ad_id.ilike.${like}`);
         }
         if (isUuid(qInput)) {
           parts.push(`id.eq.${qInput}`);
@@ -343,6 +403,8 @@ export async function fetchListingsForAdminWorkspaceFiltered(
   };
 
   let anyCapped = false;
+  let totalScanned = 0;
+  let partialSources: string[] = [];
 
   const run = async (
     cols: string,
@@ -350,14 +412,19 @@ export async function fetchListingsForAdminWorkspaceFiltered(
   ): Promise<{ data: Record<string, unknown>[] | null; error: { message: string } | null }> => {
     let merged: Record<string, unknown>[] = [];
     anyCapped = false;
+    totalScanned = 0;
+    partialSources = [];
+    const lxSql = lxActive && detailPairsAvailable;
 
     const scanSource = async (
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       mk: (from: number, to: number) => any,
       extraAccept?: (rows: Record<string, unknown>[]) => Record<string, unknown>[],
+      scanOpts?: { maxScan?: number },
     ) => {
       const res = await scanPagedRows<Record<string, unknown>>({
         limit,
+        ...(scanOpts?.maxScan ? { maxScan: scanOpts.maxScan } : {}),
         fetchPage: (from, to) => mk(from, to),
         accept:
           needsMemoryStep || extraAccept
@@ -366,26 +433,29 @@ export async function fetchListingsForAdminWorkspaceFiltered(
         getId: (r) => String((r as { id?: string }).id ?? ""),
       });
       if (res.capped) anyCapped = true;
+      totalScanned += res.scanned;
       return res;
     };
 
     if (!qLower) {
-      const res = await scanSource((from, to) => buildQuery(cols, "none", from, to));
+      const res = await scanSource((from, to) => buildQuery(cols, "none", from, to, lxSql));
       if (res.error) return { data: null, error: { message: res.error } };
       merged = res.rows;
     } else if (isUuid(qInput)) {
-      const res = await scanSource((from, to) => buildQuery(cols, "text_uuid", from, to));
+      const res = await scanSource((from, to) => buildQuery(cols, "text_uuid", from, to, lxSql));
       if (res.error) return { data: null, error: { message: res.error } };
       merged = res.rows;
     } else {
       const [a, b] = await Promise.all([
-        scanSource((from, to) => buildQuery(cols, "text_uuid", from, to)),
-        scanSource((from, to) => buildQuery(cols, "owner_like", from, to)),
+        scanSource((from, to) => buildQuery(cols, "text_uuid", from, to, lxSql)),
+        scanSource((from, to) => buildQuery(cols, "owner_like", from, to, lxSql)),
       ]);
-      if (a.error && b.error) {
+      // The text search is the PRIMARY source: if it failed the list is an ERROR, never a (partial / empty) result.
+      // (The owner-substring source is best-effort: owner_id may not support `ilike`.)
+      if (a.error) {
         return { data: null, error: { message: a.error } };
       }
-      if (!a.error && a.rows.length) merged = merged.concat(a.rows);
+      if (a.rows.length) merged = merged.concat(a.rows);
       if (!b.error && b.rows.length) merged = merged.concat(b.rows);
       merged.sort((x, y) => {
         const tx = new Date(String((x as { created_at?: string }).created_at ?? 0)).getTime();
@@ -407,7 +477,8 @@ export async function fetchListingsForAdminWorkspaceFiltered(
             .range(from, to),
         ),
       );
-      if (!lx.error && lx.rows.length) merged = merged.concat(lx.rows);
+      if (lx.error) partialSources.push("leonix_ad_id");
+      else if (lx.rows.length) merged = merged.concat(lx.rows);
     }
 
     if (qInput.length >= 2) {
@@ -424,7 +495,8 @@ export async function fetchListingsForAdminWorkspaceFiltered(
               .range(from, to),
           ),
         );
-        if (!pr.error && pr.rows.length) merged = merged.concat(pr.rows);
+        if (pr.error) partialSources.push("owner profile");
+        else if (pr.rows.length) merged = merged.concat(pr.rows);
       }
     }
 
@@ -436,20 +508,31 @@ export async function fetchListingsForAdminWorkspaceFiltered(
      * list a Bienes Raices row as a Rentas listing.
      */
     if (cat.toLowerCase() === "rentas" && !qLower && detailPairsAvailable && !isLive) {
-      const br = await scanSource(
-        (from, to) =>
-          applyNonCategoryListingFilters(
-            supabase
-              .from("listings")
-              .select(cols)
-              .ilike("category", escapeIlike("bienes-raices"))
-              .order("created_at", { ascending: false })
-              .order("id", { ascending: false })
-              .range(from, to),
-          ),
-        (rows) => rows.filter((r) => parseLeonixListingContract((r as { detail_pairs?: unknown }).detail_pairs).operation === "rent"),
+      const onlyRentOperation = (rows: Record<string, unknown>[]) =>
+        rows.filter((r) => parseLeonixListingContract((r as { detail_pairs?: unknown }).detail_pairs).operation === "rent");
+      const brBase = (from: number, to: number) =>
+        applyNonCategoryListingFilters(
+          supabase
+            .from("listings")
+            .select(cols)
+            .ilike("category", escapeIlike("bienes-raices"))
+            .order("created_at", { ascending: false })
+            .order("id", { ascending: false })
+            .range(from, to),
+        );
+      // Selective SQL first: jsonb containment on detail_pairs (Leonix:operation = rent) so an ordinary page
+      // load reads ~limit rows instead of walking up to the scan cap over every Bienes Raices row.
+      let br = await scanSource(
+        (from, to) => applyLxSql(brBase(from, to)).contains("detail_pairs", detailPairContainsLiteral(LEONIX_DP_OPERATION, "rent")),
+        onlyRentOperation,
       );
-      if (!br.error && br.rows.length) merged = merged.concat(br.rows);
+      if (br.error) {
+        // The containment operator was refused: fall back to the in-memory rent filter over a SMALLER bounded scan
+        // (disclosed through scanCapped when it does not reach `limit` matches).
+        br = await scanSource((from, to) => brBase(from, to), onlyRentOperation, { maxScan: RENTAS_BR_MERGE_FALLBACK_SCAN });
+      }
+      if (br.error) partialSources.push("bienes-raices rent operation");
+      else if (br.rows.length) merged = merged.concat(br.rows);
     }
 
     merged.sort((x, y) => {
@@ -472,6 +555,8 @@ export async function fetchListingsForAdminWorkspaceFiltered(
         detailPairsAvailable: tier.detailPairsAvailable,
         republishColsAvailable: tier.republishColsAvailable,
         scanCapped: anyCapped,
+        scanned: totalScanned,
+        ...(partialSources.length ? { partialSources: [...partialSources] } : {}),
       };
     }
     lastErr = result.error;

@@ -16,7 +16,10 @@ import { EmpleosImageGalleryEditor } from "@/app/publicar/empleos/shared/media/E
 import { EmpleosSingleImageField } from "@/app/publicar/empleos/shared/media/EmpleosSingleImageField";
 import { EmpleosVideoDraftField } from "@/app/publicar/empleos/shared/media/EmpleosVideoDraftField";
 import { buildEmpleosPublishEnvelopeFromQuick } from "@/app/publicar/empleos/shared/publish/buildEmpleosPublishEnvelope";
-import { rememberEmpleosPendingCheckoutListingId } from "@/app/publicar/empleos/shared/publish/empleosPendingCheckoutIdentity";
+import {
+  clearEmpleosPendingCheckoutListingId,
+  rememberEmpleosPendingCheckoutListingId,
+} from "@/app/publicar/empleos/shared/publish/empleosPendingCheckoutIdentity";
 import type { EmpleosPublishEnvelope } from "@/app/publicar/empleos/shared/publish/empleosPublishSnapshots";
 import { clearEmpleosStagedPublish } from "@/app/publicar/empleos/shared/publish/empleosPublishStaging";
 import { replaceRouteForEmpleosResumeEdit } from "@/app/publicar/empleos/shared/lib/empleosEditLaneRedirect";
@@ -138,6 +141,14 @@ export default function EmpleoQuickApplicationClient() {
     reset();
     setStagedNotice(false);
     clearEmpleosStagedPublish();
+    // Explicit discard: the NEXT application must not inherit this one's row (in-memory id or the
+    // sessionStorage checkout memo). Never cleared on cancel / retry / back - those reuse the same row.
+    setServerListingId(null);
+    try {
+      clearEmpleosPendingCheckoutListingId(window.sessionStorage);
+    } catch {
+      /* storage unavailable */
+    }
   }, [reset]);
 
   const revokeIfBlob = useCallback((url: string | null) => {

@@ -56,6 +56,7 @@ import { BienesRaicesPrivadoLiveDetailShell } from "@/app/clasificados/bienes-ra
 import { resolveBrListingLane } from "@/app/clasificados/bienes-raices/listing/brListingLane";
 import { isBrFsboRowWithinTerm, type BrFsboRowLike } from "@/app/lib/listingLifecycle/bienesFsboLifecycle";
 import { isListingRowWithinEnforcedTerm, type EnforcedTermRowLike } from "@/app/lib/listingLifecycle/enforcedTermReadPredicate";
+import { isListingRowPublicDetailEligible } from "../../lib/listingPublicDetailEligibility";
 import { useRentasAnuncioDerived } from "../../rentas/listing/hooks/useRentasAnuncioDerived";
 import { RentasAnuncioHeroMonthlyRent } from "../../rentas/listing/components/RentasAnuncioHeroMonthlyRent";
 import { RentasAnuncioMetaFactChips } from "../../rentas/listing/components/RentasAnuncioMetaFactChips";
@@ -480,7 +481,7 @@ function AnuncioDetallePageContent() {
 
         guardTitle: "Seguridad",
         guardBody:
-          "Los anuncios se publican al instante, pero el sistema puede ocultarlos automáticamente si detecta spam o contenido inapropiado.",
+          "Leonix revisa los reportes y puede retirar los anuncios que incumplan sus políticas. Ningún anuncio se oculta automáticamente por una detección del sistema.",
         report: "Reportar anuncio",
         reportReasonPlaceholder: "Motivo del reporte (obligatorio)",
         reportSubmit: "Enviar reporte",
@@ -520,7 +521,7 @@ function AnuncioDetallePageContent() {
 
         guardTitle: "Safety",
         guardBody:
-          "Listings appear immediately, but the system may auto-hide them if it detects spam or inappropriate content.",
+          "Leonix reviews reports and may remove listings that break its policies. No listing is hidden automatically by a system detection.",
         report: "Report listing",
         reportReasonPlaceholder: "Reason for report (required)",
         reportSubmit: "Submit report",
@@ -629,6 +630,16 @@ function AnuncioDetallePageContent() {
           return;
         }
         if (st !== "active" && st !== "sold") {
+          setFetchedListing(undefined);
+          setRemoteState("ready");
+          return;
+        }
+
+        // Gate 9 (2026-09 parity) — per-category row rule shared with the results readers: a Rentas row
+        // needs status active + a live 30-day term + not rentado/bajo_contrato (results hide it otherwise),
+        // and Bienes Raíces / Clases / Comunidad / Mascotas / Busco need `is_published = true`. `sold`
+        // stays a direct-URL state for En Venta / Bienes Raíces only.
+        if (!isListingRowPublicDetailEligible(row)) {
           setFetchedListing(undefined);
           setRemoteState("ready");
           return;

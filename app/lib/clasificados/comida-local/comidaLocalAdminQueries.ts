@@ -7,13 +7,12 @@ import {
   type ComidaLocalAdminActionDecision,
 } from "./comidaLocalAdminModeration";
 import type { ComidaLocalPublicListingRow } from "./comidaLocalPublicTypes";
+import { pgrstQuote } from "@/app/admin/_lib/adminFilterTruth";
+import { readAdminBaseEntitlementEvidence } from "@/app/admin/_lib/adminPaymentSuspensionPolicyServer";
 
 /** Admin moderation read — all columns needed for queue + inspect. Server/admin only. */
 export const COMIDA_LOCAL_ADMIN_LISTING_SELECT =
   "id, owner_user_id, leonix_ad_id, slug, status, package_tier, payment_status, published_at, expires_at, created_at, updated_at, business_name, food_type, food_type_custom, city_display, city_canonical, phone, whatsapp, instagram_url, facebook_url, tiktok_url, main_photo, listing_json, suspended_reason";
-
-/** Same select without the optional `suspended_reason` column (fallback when that column is not deployed). */
-const COMIDA_LOCAL_ADMIN_LISTING_SELECT_NO_REASON = COMIDA_LOCAL_ADMIN_LISTING_SELECT.replace(", suspended_reason", "");
 
 export type ComidaLocalAdminListingRow = Pick<
   ComidaLocalPublicListingRow,
@@ -66,6 +65,9 @@ export type ComidaLocalAdminListResult = {
 
 const ADMIN_SEARCH_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/** Ceiling of one Admin page of Comida Local rows (matches the largest Rows choice, 500). */
+export const COMIDA_LOCAL_ADMIN_LIST_MAX = 500;
+
 function normalizeAdminRow(raw: Record<string, unknown>): ComidaLocalAdminListingRow {
   return raw as ComidaLocalAdminListingRow;
 }
@@ -86,7 +88,9 @@ export async function listAdminComidaLocalListingsDetailed(
   sb: SupabaseClient,
   filters: ComidaLocalAdminListFilters = {}
 ): Promise<ComidaLocalAdminListResult> {
-  const limit = Math.min(Math.max(filters.limit ?? 80, 1), 200);
+  // Ceiling = the largest Rows choice in the Admin filter bar (500). It used to clamp to 200 silently, so a
+  // "500 rows" request returned at most 200 with no notice.
+  const limit = Math.min(Math.max(filters.limit ?? 80, 1), COMIDA_LOCAL_ADMIN_LIST_MAX);
 
   const id = filters.id?.trim();
   const owner = filters.owner_user_id?.trim();
@@ -119,7 +123,9 @@ export async function listAdminComidaLocalListingsDetailed(
     if (leonix) query = query.ilike("leonix_ad_id", likeContains(leonix));
     if (owner) query = query.eq("owner_user_id", owner);
     if (search) {
-      const like = "%" + search + "%";
+      // LIKE wildcards escaped and the value double-quoted, so a comma / parenthesis in the search term cannot
+      // break the or() grammar (it used to turn the whole search into an error).
+      const like = pgrstQuote(likeContains(search));
       // id / owner_user_id are uuid columns: an .eq. on free text made the WHOLE query error, and the
       // error was swallowed into an empty list (a Leonix Ad ID search silently returned nothing).
       const isUuidSearch = ADMIN_SEARCH_UUID_RE.test(search);
@@ -137,12 +143,10 @@ export async function listAdminComidaLocalListingsDetailed(
     return query;
   };
 
-  let { data, error } = await buildQuery(COMIDA_LOCAL_ADMIN_LISTING_SELECT);
-  if (error && /suspended_reason/i.test(error.message)) {
-    // A missing optional column must never turn the whole queue "unavailable": re-read without it (the
-    // suspension reason then simply is not shown — it is never guessed).
-    ({ data, error } = await buildQuery(COMIDA_LOCAL_ADMIN_LISTING_SELECT_NO_REASON));
-  }
+  // `suspended_reason` is a deployed column (migration 20260909120000). There is deliberately NO fallback select
+  // without it: a queue row that silently lost its reason could not tell a payment suspension from a staff one.
+  // If the read fails the queue reports the error instead of guessing.
+  const { data, error } = await buildQuery(COMIDA_LOCAL_ADMIN_LISTING_SELECT);
   if (error) return { rows: [], error: error.message };
   return { rows: ((data ?? []) as unknown as Record<string, unknown>[]).map(normalizeAdminRow), error: null };
 }
@@ -208,15 +212,26 @@ export async function applyAdminComidaLocalAction(
     .select("id, slug, leonix_ad_id, status, payment_status, published_at, suspended_reason")
     .eq("id", rowId)
     .maybeSingle();
-  if (readError) return { ok: false, httpStatus: 500, error: "lookup_failed", message: "Could not read the listing." };
+  // FAIL SAFELY: any error reading the row (including its `suspended_reason`) is a clear 500 and NOTHING is written.
+  if (readError) {
+    return { ok: false, httpStatus: 500, error: "lookup_failed", message: "Could not read the listing or its suspension state; nothing was changed." };
+  }
   if (!row) return { ok: false, httpStatus: 404, error: "not_found", message: "Listing not found." };
 
   const rec = row as Record<string, unknown>;
+  // The reason is REQUIRED input, never guessed: a row object without the key (column not selected / not returned) is
+  // treated as unreadable by the policy for every reactivating action.
+  const reasonPresent = Object.prototype.hasOwnProperty.call(rec, "suspended_reason");
+  // Base-package entitlement evidence (read-only) - only Restore / Republish depend on it.
+  const needsEntitlement = action === "unsuspend" || action === "republish";
+  const entitlement = needsEntitlement ? await readAdminBaseEntitlementEvidence(sb, rowId) : undefined;
   const decision: ComidaLocalAdminActionDecision = decideComidaLocalAdminAction(action, {
     status: rec.status as string | null,
     payment_status: rec.payment_status as string | null,
     published_at: rec.published_at as string | null,
-    suspended_reason: rec.suspended_reason as string | null,
+    suspended_reason: reasonPresent ? (rec.suspended_reason as string | null) : null,
+    suspended_reason_read: reasonPresent,
+    entitlement,
   });
   if (!decision.ok) {
     return { ok: false, httpStatus: decision.httpStatus, error: decision.error, message: decision.message };
@@ -233,7 +248,10 @@ export async function applyAdminComidaLocalAction(
     update = update.or("suspended_reason.is.null,suspended_reason.eq.moderation");
   }
   const { data: updated, error: updateError } = await update.select("id");
-  if (updateError) return { ok: false, httpStatus: 500, error: "update_failed", message: updateError.message };
+  // Single-statement update: an error means nothing was written. The raw database message is never returned.
+  if (updateError) {
+    return { ok: false, httpStatus: 500, error: "update_failed", message: "Could not apply the change; nothing was changed. Reload and try again." };
+  }
   // Zero-row detection: a silent no-op (the row moved under us) is reported, never claimed as success.
   if (!updated?.length) {
     return {

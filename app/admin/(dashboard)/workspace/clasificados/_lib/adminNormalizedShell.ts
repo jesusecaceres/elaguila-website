@@ -11,6 +11,7 @@ import {
 import type { AdminLang } from "@/app/admin/_lib/adminI18nCookie";
 import type { AdminCategorySummary } from "@/app/admin/_lib/adminCategorySummary";
 import { adminTr } from "@/app/admin/_lib/adminStrings";
+import { adminLowerBoundTitle } from "@/app/admin/_lib/adminFilterTruth";
 import { ADMIN_QUEUE_DEFAULT_LIMIT, normalizeAdminQueueLimit } from "@/app/admin/_lib/adminQueueActionFlow";
 import type { AdminListingCommercialTruth } from "@/app/admin/_lib/adminListingCommercialTruth";
 import {
@@ -60,13 +61,15 @@ export type AdminSummaryCell = {
 /** Pure: the cells the operating summary shows. `expired` appears only when the category has one (non-null). */
 export function buildAdminCategorySummaryCells(summary: AdminCategorySummary, lang: AdminLang = "en"): AdminSummaryCell[] {
   const unavailable = adminTr(lang, "catShell.summary.unavailable");
+  const lowerBound = new Set<string>(summary.lowerBound ?? []);
   const count = (key: string, labelKey: string, n: number | null, tone: AdminSummaryCell["tone"]): AdminSummaryCell => ({
     key,
     label: adminTr(lang, labelKey),
-    value: adminCountText(n),
+    // A scan-capped metric is a LOWER BOUND ("≥ n"), never presented as the whole-dataset number.
+    value: n != null && lowerBound.has(key) ? `≥ ${adminCountText(n)}` : adminCountText(n),
     // A null count is unavailable — neutral, with the honest reason as a tooltip. Never a fake 0.
     tone: n == null ? "neutral" : tone,
-    title: n == null ? unavailable : undefined,
+    title: n == null ? unavailable : lowerBound.has(key) ? adminLowerBoundTitle(lang) : undefined,
   });
 
   const cells: AdminSummaryCell[] = [
@@ -125,6 +128,22 @@ export function adminStatusOptionsWithCurrent(options: AdminStatusOption[], curr
   const c = String(current ?? "").trim();
   if (!c || options.some((o) => o.value.toLowerCase() === c.toLowerCase())) return options;
   return [...options, { value: c, label: `${c} (custom)` }];
+}
+
+// ── Bienes Raices lane selector (Negocio / Privado FSBO) ─────────────────────────────────────
+export type AdminBrLane = "negocio" | "privado";
+
+export const ADMIN_BR_LANE_OPTIONS: ReadonlyArray<{ value: AdminBrLane | "all"; label: string; hint: string }> = [
+  { value: "all", label: "All Bienes Raíces", hint: "Negocio and Privado (FSBO) together" },
+  { value: "negocio", label: "Negocio", hint: "Business lane: parent listing + inventory children (subscription, capacity)" },
+  { value: "privado", label: "Privado (FSBO)", hint: "Private-seller lane: independent, fixed 45-day term (seller_type = personal)" },
+];
+
+/** Unknown / missing lane values fall back to `all` — a bad URL never hides rows. */
+export function parseAdminBrLane(sp: Record<string, string | string[] | undefined> | undefined): AdminBrLane | "all" {
+  const v = sp?.lane;
+  const raw = (typeof v === "string" ? v : Array.isArray(v) ? v[0] : "")?.trim().toLowerCase();
+  return raw === "negocio" || raw === "privado" ? raw : "all";
 }
 
 // ── Row chips (BR lane + inventory role) ──────────────────────────────────────────────────────

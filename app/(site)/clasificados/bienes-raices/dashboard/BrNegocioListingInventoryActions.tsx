@@ -38,6 +38,10 @@ import {
   fetchDashboardListingPackageEntitlementBadges,
 } from "@/app/(site)/dashboard/lib/dashboardPackageEntitlementBadges";
 import { BR_INVENTORY_PACK_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
+import {
+  dashboardBrParentsFromOwnerRows,
+  dashboardViewPublicAllowed,
+} from "@/app/(site)/dashboard/lib/dashboardListingStateMachine";
 
 type Lang = "es" | "en";
 
@@ -198,6 +202,13 @@ export function BrNegocioListingInventoryActions({
       leonixAdId: parentLeonix || null,
     })}&openChildDraftId=${encodeURIComponent(`br-db-child-${row.id}`)}`;
     const childPublicHref = appendLangToPath(`/clasificados/anuncio/${row.id}`, lang);
+    // Gate 2 (item 3): the child's public page only resolves while the child itself is active + published AND its canonical
+    // main parent is active, published and same-owner (`isBrChildParentGateSatisfied`, the public reader's own gate). A
+    // paused / removed / orphaned child (or one under a paused parent) has no public page, so no dead "View public".
+    const childPublicOk = dashboardViewPublicAllowed("bienes-raices", row, {
+      ownerId: ownerUserId,
+      brParentsById: dashboardBrParentsFromOwnerRows(inventoryRows ?? [], ownerUserId),
+    });
     return (
       <div className="mt-4 rounded-xl border border-[#E8DFD0]/90 bg-[#FFFCF7] p-3 sm:p-4">
         <p className="text-xs font-bold uppercase tracking-wide text-[#B8954A]">{t.section}</p>
@@ -216,13 +227,19 @@ export function BrNegocioListingInventoryActions({
           >
             {lang === "es" ? "Editar propiedad" : "Edit property"}
           </Link>
-          <Link
-            href={childPublicHref}
-            prefetch={false}
-            className="inline-flex min-h-[36px] items-center rounded-lg border border-[#E8DFD0] bg-white px-3 text-xs font-semibold text-[#2C2416] hover:border-[#C9B46A]/60"
-          >
-            {lang === "es" ? "Ver pública" : "View public"}
-          </Link>
+          {childPublicOk ? (
+            <Link
+              href={childPublicHref}
+              prefetch={false}
+              className="inline-flex min-h-[36px] items-center rounded-lg border border-[#E8DFD0] bg-white px-3 text-xs font-semibold text-[#2C2416] hover:border-[#C9B46A]/60"
+            >
+              {lang === "es" ? "Ver pública" : "View public"}
+            </Link>
+          ) : (
+            <span className="inline-flex min-h-[36px] items-center px-1 text-xs font-medium text-[#7A7164]" data-testid="br-child-not-public">
+              {lang === "es" ? "No público ahora mismo" : "Not public right now"}
+            </span>
+          )}
         </div>
       </div>
     );

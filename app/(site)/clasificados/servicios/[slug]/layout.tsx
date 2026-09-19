@@ -58,7 +58,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
         alternates: { canonical },
       };
     }
-    if (row.listing_status === "rejected" || row.listing_status === "suspended") {
+    // Gate 9 (2026-09 parity) — a paused / lapsed profile renders the unavailable placeholder (see page.tsx),
+    // so its <head> must carry no business title / description and must be noindex.
+    if (
+      row.listing_status === "rejected" ||
+      row.listing_status === "suspended" ||
+      row.listing_status === "paused_unpublished"
+    ) {
       return {
         ...PREVIEW_NOINDEX_METADATA,
         title: {

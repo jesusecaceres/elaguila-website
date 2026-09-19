@@ -9,9 +9,17 @@ import { auditAdminWrite } from "@/app/admin/_lib/auditAdminWrite";
 import { requireLeonixAdminPermission } from "@/app/admin/_lib/leonixAdminGate";
 import { isSelfEngagement } from "@/app/lib/analytics/selfEngagementGuard";
 import { guardStaffCoreFieldLifecycle } from "@/app/admin/_lib/adminStaffCoreFieldGuard";
+import { decideAdminShowPublic } from "@/app/admin/_lib/adminReactivationPolicy";
 import { evaluateAdminListingDeletes, muxAssetsSafeToDelete } from "@/app/admin/_lib/adminListingDeleteServer";
 
 export type ListingReportStatus = "pending" | "reviewed" | "dismissed";
+
+/**
+ * Structured outcome for the listing lifecycle server actions the Admin table calls from the browser.
+ * Production Next REDACTS the message of an Error thrown from a server action, so a refusal (delete guard, hold, ...)
+ * is RETURNED as { ok: false, code, message } - a safe, useful reason with no internals - and rendered by the UI.
+ */
+export type AdminListingActionResult = { ok: true } | { ok: false; code: string; message: string };
 
 export async function submitListingReportAction(listingId: string, reason: string, reporterId: string | null) {
   const supabase = getAdminSupabase();
@@ -51,11 +59,24 @@ export async function updateListingReportStatusAction(reportId: string, status: 
  * Hide a listing from public browse (`is_published=false`) without deleting the row.
  * Results use `isEnVentaListingPubliclyVisible`; detail loader treats `is_published=false` as not found for browse.
  */
-export async function setListingPublishedAction(listingId: string, published: boolean) {
+export async function setListingPublishedAction(listingId: string, published: boolean): Promise<AdminListingActionResult> {
   await requireLeonixAdminPermission("can_manage_ads");
   const supabase = getAdminSupabase();
-  const { error } = await supabase.from("listings").update({ is_published: published }).eq("id", listingId);
-  if (error) throw new Error(error.message);
+  if (published) {
+    // Show-public is NOT an activation authority: it may only re-show a row that is already active (writing
+    // is_published=true on a pending / suspended / removed row would launder it, and on a pending row it would defeat
+    // the fulfilment compare-and-set that requires is_published=false). Payment suspensions are never overridden.
+    const { data: cur, error: curErr } = await supabase.from("listings").select("status, suspended_reason").eq("id", listingId).maybeSingle();
+    if (curErr || !cur) {
+      return { ok: false, code: "listing_not_found", message: "Could not read this listing; nothing was changed." };
+    }
+    const gate = decideAdminShowPublic({ status: cur.status as string | null, suspended_reason: cur.suspended_reason as string | null });
+    if (gate.blocked) return { ok: false, code: gate.code, message: gate.message };
+  }
+  let update = supabase.from("listings").update({ is_published: published }).eq("id", listingId);
+  if (published) update = update.eq("status", "active");
+  const { error } = await update;
+  if (error) return { ok: false, code: "update_failed", message: "Could not update the listing; nothing was changed. Try again." };
   auditAdminWrite(
     published ? "listing_republished_by_admin" : "listing_unpublished_by_admin",
     "listings",
@@ -65,20 +86,22 @@ export async function setListingPublishedAction(listingId: string, published: bo
   return { ok: true };
 }
 
-export async function deleteListingAction(listingId: string) {
+export async function deleteListingAction(listingId: string): Promise<AdminListingActionResult> {
   await requireLeonixAdminPermission("can_manage_ads");
   const supabase = getAdminSupabase();
   // Closeout 2 - inventory guard: a Bienes Raices Negocio PARENT with public children (or any row whose
   // inventory role cannot be confirmed) cannot be removed; fails closed if the lookup errors.
   const verdict = (await evaluateAdminListingDeletes(supabase, [listingId], "soft")).get(listingId.trim());
-  if (verdict && !verdict.ok) throw new Error(`${verdict.code}: ${verdict.message}`);
+  // Returned (not thrown): production Next redacts a thrown server-action message. The message is the safe, fixed
+  // text from adminDeleteGuardMessage - no row data, no database internals.
+  if (verdict && !verdict.ok) return { ok: false, code: verdict.code, message: verdict.message };
   // SOFT delete is reversible (status -> removed): it must NEVER destroy video assets. Mux assets are
   // released only by the explicit permanent delete, after its guards, and only when unreferenced.
   const { error } = await supabase
     .from("listings")
     .update({ status: "removed" })
     .eq("id", listingId);
-  if (error) throw new Error(error.message);
+  if (error) return { ok: false, code: "delete_failed", message: "Could not remove the listing; nothing was changed. Try again." };
   auditAdminWrite("listing_removed_by_admin", "listings", listingId, {});
   return { ok: true };
 }
@@ -88,6 +111,8 @@ export type BulkListingCleanupResult = {
   failed: number;
   errors: string[];
   sampleIds: string[];
+  /** Whole-batch refusal (bad input / lookup failure): nothing was deleted; safe, structured reason. */
+  error?: { code: string; message: string };
 };
 
 function normalizeBulkListingIds(listingIds: string[]): string[] {
@@ -98,8 +123,10 @@ function normalizeBulkListingIds(listingIds: string[]): string[] {
 export async function bulkSoftDeleteListingsAction(listingIds: string[]): Promise<BulkListingCleanupResult> {
   await requireLeonixAdminPermission("can_manage_ads");
   const ids = normalizeBulkListingIds(listingIds);
-  if (ids.length === 0) throw new Error("no_ids");
-  if (ids.length > 500) throw new Error("max_500_per_batch");
+  if (ids.length === 0) return { deleted: 0, failed: 0, errors: [], sampleIds: [], error: { code: "no_ids", message: "No listings were selected." } };
+  if (ids.length > 500) {
+    return { deleted: 0, failed: ids.length, errors: [], sampleIds: [], error: { code: "max_500_per_batch", message: "Select at most 500 listings per batch." } };
+  }
 
   let deleted = 0;
   let failed = 0;
@@ -108,7 +135,12 @@ export async function bulkSoftDeleteListingsAction(listingIds: string[]): Promis
 
   for (const id of ids) {
     try {
-      await deleteListingAction(id);
+      const res = await deleteListingAction(id);
+      if (!res.ok) {
+        failed += 1;
+        errors.push(`${id.slice(0, 8)}…: ${res.code}: ${res.message}`);
+        continue;
+      }
       deleted += 1;
       if (sampleIds.length < 5) sampleIds.push(id);
     } catch (e) {
@@ -126,14 +158,18 @@ export async function permanentlyDeleteListingsAction(listingIds: string[]): Pro
   await requireLeonixAdminPermission("can_manage_ads");
   const supabase = getAdminSupabase();
   const ids = normalizeBulkListingIds(listingIds);
-  if (ids.length === 0) throw new Error("no_ids");
-  if (ids.length > 500) throw new Error("max_500_per_batch");
+  if (ids.length === 0) return { deleted: 0, failed: 0, errors: [], sampleIds: [], error: { code: "no_ids", message: "No listings were selected." } };
+  if (ids.length > 500) {
+    return { deleted: 0, failed: ids.length, errors: [], sampleIds: [], error: { code: "max_500_per_batch", message: "Select at most 500 listings per batch." } };
+  }
 
   const { data: rows, error: fetchErr } = await supabase
     .from("listings")
     .select("id, mux_asset_id, mux_asset_id_2")
     .in("id", ids);
-  if (fetchErr) throw new Error(fetchErr.message);
+  if (fetchErr) {
+    return { deleted: 0, failed: ids.length, errors: [], sampleIds: [], error: { code: "lookup_failed", message: "Could not read the selected listings; nothing was deleted." } };
+  }
 
   const found = rows ?? [];
   const foundIds = new Set(found.map((r) => r.id));
@@ -153,7 +189,7 @@ export async function permanentlyDeleteListingsAction(listingIds: string[]): Pro
       deletable.push(row);
     } else {
       failed += 1;
-      if (errors.length < 10) errors.push(`${row.id.slice(0, 8)}…: ${v && !v.ok ? v.code : "guard_lookup_failed"}`);
+      if (errors.length < 10) errors.push(`${row.id.slice(0, 8)}…: ${v && !v.ok ? `${v.code}: ${v.message}` : "guard_lookup_failed"}`);
     }
   }
 
@@ -165,7 +201,9 @@ export async function permanentlyDeleteListingsAction(listingIds: string[]): Pro
     "id",
     deletable.map((r) => r.id),
   );
-  if (delErr) throw new Error(delErr.message);
+  if (delErr) {
+    return { deleted: 0, failed: ids.length, errors, sampleIds: [], error: { code: "delete_failed", message: "Could not delete the selected listings; nothing was changed. Try again." } };
+  }
 
   const deleted = count ?? deletable.length;
   const sampleIds = deletable.slice(0, 5).map((r) => r.id);
@@ -203,7 +241,7 @@ export async function updateListingCoreFieldsStaffAdminAction(formData: FormData
   const supabase = getAdminSupabase();
   const { data: currentRow, error: currentErr } = await supabase
     .from("listings")
-    .select("category, status, is_published, published_at, expires_at, seller_type, listing_json")
+    .select("category, status, is_published, published_at, expires_at, seller_type, listing_json, suspended_reason, is_free")
     .eq("id", listingId)
     .maybeSingle();
   if (currentErr || !currentRow) throw new Error("listing_not_found");

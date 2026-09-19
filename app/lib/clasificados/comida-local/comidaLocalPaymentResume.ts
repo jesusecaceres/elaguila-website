@@ -47,8 +47,117 @@ export function comidaLocalResumePaymentLabel(lang: "es" | "en"): string {
   return lang === "es" ? "Completar pago" : "Complete payment";
 }
 
-/** Public detail must not be offered for a row that is not yet public. */
+/** The ONLY status the public reader shows (`comida_local_public_listings.status = 'published'`). */
+export const COMIDA_LOCAL_PUBLIC_STATUS = "published" as const;
+
+/**
+ * Public detail must not be offered for a row that is not public.
+ *
+ * Gate 2 (2026-09 dashboard state machine): this used to be a DENY-list (`!== pending_payment && !== draft`), so a
+ * `paused`, `suspended` or unknown-status row still showed "View public" and the link 404'd. It is now an
+ * ALLOW-list that matches the public reader and Admin Live (`isComidaLocalRowPubliclyLive`): only `published`.
+ */
 export function comidaLocalRowHasPublicPage(status: string | null | undefined): boolean {
-  const s = String(status ?? "").trim().toLowerCase();
-  return s !== COMIDA_LOCAL_PENDING_PAYMENT_STATUS && s !== "draft";
+  return String(status ?? "").trim().toLowerCase() === COMIDA_LOCAL_PUBLIC_STATUS;
+}
+
+/** Value the payment engine writes to `suspended_reason` (grace expired / chargeback). */
+export const COMIDA_LOCAL_PAYMENT_SUSPENSION_REASON_VALUE = "payment" as const;
+
+export type ComidaLocalOwnerReason =
+  | "published"
+  | "payment_pending"
+  | "draft"
+  | "paused_by_owner"
+  | "paused_staff_hold"
+  | "suspended_moderation"
+  | "suspended_payment"
+  | "unknown";
+
+export type ComidaLocalOwnerActionPlan = {
+  /** The row is on the public site right now (status `published`). */
+  publicLive: boolean;
+  /** "View public" may be shown - identical to `publicLive` (never a dead link). */
+  viewPublic: boolean;
+  /** The listing-bound editor may be opened (an unknown / empty status fails closed, like the owner edit route). */
+  edit: boolean;
+  /** "Complete payment": only a `pending_payment` row, resumed into the SAME row's checkout checkpoint. */
+  completePayment: boolean;
+  /** Owner Pause: only a `published` row. */
+  pause: boolean;
+  /** Owner Resume: only a `paused` row that carries NO staff hold marker. Suspended rows are never owner-resumable. */
+  resume: boolean;
+  reason: ComidaLocalOwnerReason;
+};
+
+/**
+ * Owner state machine for one Comida Local row (pure). Vocabulary is the table's own status CHECK:
+ * draft, published, paused, suspended, pending_payment - there is no `archived` / `rejected` / `expired`.
+ *
+ * ARCHIVE MARKER (Gate 2 item 8): staff `archive` writes `paused` (the table has no `archived` status), which is
+ * indistinguishable from an owner pause. `suspended_reason` is the only marker column: `paused` + a non-empty
+ * `suspended_reason` is a STAFF HOLD (the owner may edit but never self-resume it); `paused` with no reason is an
+ * owner pause (or a legacy staff archive written before the marker existed - see the state-machine doc, residual).
+ */
+export function comidaLocalOwnerActionPlan(input: {
+  status: string | null | undefined;
+  suspendedReason?: string | null;
+}): ComidaLocalOwnerActionPlan {
+  const status = String(input.status ?? "").trim().toLowerCase();
+  const reason = String(input.suspendedReason ?? "").trim().toLowerCase();
+  const base = { publicLive: false, viewPublic: false, edit: true, completePayment: false, pause: false, resume: false };
+  switch (status) {
+    case "published":
+      return { ...base, publicLive: true, viewPublic: true, pause: true, reason: "published" };
+    case "pending_payment":
+      return { ...base, completePayment: true, reason: "payment_pending" };
+    case "draft":
+      return { ...base, reason: "draft" };
+    case "paused":
+      return reason
+        ? { ...base, reason: "paused_staff_hold" }
+        : { ...base, resume: true, reason: "paused_by_owner" };
+    case "suspended":
+      return {
+        ...base,
+        reason: reason === COMIDA_LOCAL_PAYMENT_SUSPENSION_REASON_VALUE ? "suspended_payment" : "suspended_moderation",
+      };
+    default:
+      return { ...base, edit: false, reason: "unknown" };
+  }
+}
+
+/** Owner-facing reason line for a non-live Comida Local row (null when nothing needs saying). */
+export function comidaLocalOwnerReasonNote(reason: ComidaLocalOwnerReason, lang: "es" | "en"): string | null {
+  const es = lang === "es";
+  switch (reason) {
+    case "payment_pending":
+      return es
+        ? "Tu ficha está guardada pero aún no está publicada. Completa el pago para publicarla; se usa este mismo anuncio."
+        : "Your listing is saved but not published yet. Complete payment to publish it; this same listing is used.";
+    case "draft":
+      return es ? "Borrador: aún no está publicado." : "Draft: not published yet.";
+    case "paused_by_owner":
+      return es
+        ? "Pausado: no es visible al público. Puedes reactivarlo cuando quieras."
+        : "Paused: not visible to the public. You can reactivate it any time.";
+    case "paused_staff_hold":
+      return es
+        ? "Leonix archivó o retiró este anuncio del público. Puedes editarlo, pero solo Leonix puede reactivarlo."
+        : "Leonix archived or removed this listing from public view. You can edit it, but only Leonix can reactivate it.";
+    case "suspended_moderation":
+      return es
+        ? "Suspendido por Leonix (moderación): no es visible al público. Contacta a Leonix para revisarlo."
+        : "Suspended by Leonix (moderation): not visible to the public. Contact Leonix to review it.";
+    case "suspended_payment":
+      return es
+        ? "Suspendido por un problema de pago: se restaura automáticamente cuando el pago se regulariza. Contacta a Leonix si ya lo resolviste."
+        : "Suspended for a payment problem: it is restored automatically once the payment is resolved. Contact Leonix if you already fixed it.";
+    case "unknown":
+      return es
+        ? "Este anuncio tiene un estado que no reconocemos. Contacta a Leonix."
+        : "This listing has a status we do not recognize. Contact Leonix.";
+    default:
+      return null;
+  }
 }

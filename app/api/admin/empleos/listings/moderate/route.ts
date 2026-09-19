@@ -1,9 +1,9 @@
+import { isVerifiedAdminSession } from "@/app/admin/_lib/adminVerifiedSession";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 import { legacyEmpleosStatusToAction } from "@/app/admin/_lib/adminEmpleosStaffActions";
 import { runEmpleosStaffAction } from "@/app/admin/_lib/adminEmpleosStaffActionsServer";
-import { requireAdminCookie } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
  */
 export async function POST(req: Request): Promise<NextResponse> {
   const jar = await cookies();
-  if (!requireAdminCookie(jar)) {
+  if (!(await isVerifiedAdminSession(jar))) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 

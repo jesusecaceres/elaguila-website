@@ -177,10 +177,12 @@ export function ofertaRowActions(input: {
 }
 
 /**
- * Leonix Ad ID search: the data layer's `q` already ilike-matches `leonix_ad_id`, so the dedicated Ad ID field
- * rides on `q` when no free-text search is given (it runs BEFORE the row limit). When both are given, `q` is
- * used server-side and the Ad ID narrows the returned rows in memory (`adminRowMatchesLeonixAdIdFilter`).
+ * The free-text search term sent to the data layer. 2026-09 final normalization (Gate 3): the dedicated Leonix Ad ID
+ * field is its OWN SQL predicate (`leonix_ad_id` on the list filters, AND-ed with `q`), so it no longer rides on
+ * `q` — q + Leonix Ad ID is an INTERSECTION, and both run BEFORE the row limit. The second parameter is accepted
+ * for call-site compatibility and intentionally ignored.
  */
-export function ofertasServerSearchTerm(q: string, leonixAdId: string): string | undefined {
-  return (q || leonixAdId || "").trim() || undefined;
+export function ofertasServerSearchTerm(q: string, _leonixAdId?: string): string | undefined {
+  void _leonixAdId;
+  return (q || "").trim() || undefined;
 }

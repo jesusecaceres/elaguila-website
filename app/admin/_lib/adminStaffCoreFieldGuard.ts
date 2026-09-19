@@ -14,6 +14,7 @@
  */
 import { decideAdminReactivation } from "@/app/admin/_lib/adminReactivationPolicy";
 import { decideBrFsboAdminRestore, isAdminBrFsboRow } from "@/app/admin/_lib/adminBrFsboRestorePolicy";
+import { isPaymentOwnedSuspendedReason } from "@/app/admin/_lib/adminPaymentSuspensionPolicy";
 
 export type StaffCoreCurrentRow = {
   category?: string | null;
@@ -22,7 +23,11 @@ export type StaffCoreCurrentRow = {
   published_at?: string | null;
   expires_at?: string | null;
   seller_type?: string | null;
+  /** `listings.is_free` (a free Clases row is exempt from the never-live evidence rule - F6). */
+  is_free?: boolean | null;
   listing_json?: unknown;
+  /** `listings.suspended_reason` ('payment' = payment engine hold). */
+  suspended_reason?: string | null;
 };
 
 export type StaffCoreRequested = { category: string; status: string; isPublished: boolean };
@@ -58,6 +63,14 @@ export function guardStaffCoreFieldLifecycle(
   const unchanged = reqStatus === curStatus && requested.isPublished === curPublished;
   if (unchanged) return { category, lifecyclePatch: { status: requested.status, is_published: requested.isPublished }, ignored };
 
+  // A payment-engine suspension (status `suspended` / suspended_reason 'payment') is owned by the payment system:
+  // the free-text status / is_published fields must not rewrite it (that would launder it live, or strand the
+  // engine's compare-and-swap lift).
+  if (curStatus === "suspended" || isPaymentOwnedSuspendedReason(current.suspended_reason)) {
+    ignored.push("lifecycle_change_ignored_payment_suspension");
+    return { category, lifecyclePatch: null, ignored };
+  }
+
   const currentLiveFlags = curPublished && curStatus === "active";
   const requestsLive = requested.isPublished || reqStatus === "active";
   if (!requestsLive || currentLiveFlags) {
@@ -71,6 +84,7 @@ export function guardStaffCoreFieldLifecycle(
     status: current.status,
     published_at: current.published_at,
     expires_at: current.expires_at,
+    is_free: current.is_free,
   });
   if (reactivation.blocked) {
     ignored.push("activation_ignored_payment_required");

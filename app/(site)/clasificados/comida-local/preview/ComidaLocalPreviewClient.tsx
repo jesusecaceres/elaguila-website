@@ -21,8 +21,10 @@ import {
   saveComidaLocalDraftToStorage,
 } from "@/app/lib/clasificados/comida-local/comidaLocalDraftPersistence";
 import {
+  clearComidaLocalEditContext,
   fetchOwnerComidaLocalListingForEdit,
   readComidaLocalEditContext,
+  resolveComidaLocalPreviewEditTarget,
   writeComidaLocalEditContext,
 } from "@/app/lib/clasificados/comida-local/comidaLocalListingEditContext";
 import {
@@ -73,9 +75,19 @@ export function ComidaLocalPreviewClient() {
     let cancelled = false;
     void (async () => {
       const marker = readComidaLocalEditContext();
-      // URL param wins; the marker only backs up a hard refresh that lost the query string AND
-      // only when it matches an existing edit workspace.
-      const resolvedEditId = editListingIdParam || (marker ? marker.listingId : "");
+      let sessionUserId = "";
+      try {
+        const { data: sess0 } = await createSupabaseBrowserClient().auth.getSession();
+        sessionUserId = sess0.session?.user?.id ?? "";
+      } catch {
+        sessionUserId = "";
+      }
+      // Gate 2 (edit-context marker): URL param wins; the marker (one browser-global localStorage key) only backs up a
+      // payment-resume that lost its query string, and ONLY for the signed-in owner's own `pending_payment` row. A stale
+      // marker from an abandoned edit or another account never turns a NEW application preview into an old listing.
+      const target = resolveComidaLocalPreviewEditTarget({ urlListingId: editListingIdParam, marker, sessionUserId });
+      let resolvedEditId = target.listingId;
+      if (!resolvedEditId && marker) clearComidaLocalEditContext();
       const editStorageKey = resolvedEditId ? comidaLocalEditWorkspaceStorageKey(resolvedEditId) : undefined;
       let editWorkspace = editStorageKey ? loadComidaLocalDraftFromStorage(editStorageKey) : null;
       let rowStatus: string | null = null;
@@ -106,6 +118,13 @@ export function ComidaLocalPreviewClient() {
         }
       }
       if (cancelled) return;
+      // A marker fallback is only valid while the row is still awaiting payment: once it was paid / changed, the
+      // preview is a fresh application again (and the stale marker is dropped).
+      if (target.source === "marker" && !isComidaLocalAwaitingPayment(rowStatus)) {
+        clearComidaLocalEditContext();
+        resolvedEditId = "";
+        editWorkspace = null;
+      }
       if (resolvedEditId && editWorkspace) {
         setEditListingId(resolvedEditId);
         setEditRowStatus(rowStatus);
@@ -237,6 +256,18 @@ export function ComidaLocalPreviewClient() {
 
         if (!pending.ok) {
           setCheckoutError(pending.userMessage);
+          setCheckoutBusy(false);
+          return;
+        }
+
+        // Gate 2 (item 12): a payment RESUME must pay the SAME listing row. The pending save is keyed on the row's own
+        // draft_listing_id; if it ever resolved to a different row we stop BEFORE opening a checkout for it.
+        if (editListingId && pending.listingId !== editListingId) {
+          setCheckoutError(
+            es
+              ? "No pudimos confirmar que el pago corresponde a este mismo anuncio. Actualiza la página e inténtalo de nuevo."
+              : "We could not confirm the payment belongs to this same listing. Refresh the page and try again.",
+          );
           setCheckoutBusy(false);
           return;
         }

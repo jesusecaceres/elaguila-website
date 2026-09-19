@@ -32,6 +32,8 @@ export function ofertaReviewErrorMessage(error: string): string {
       return "Approval needs a paid, active entitlement (or an eligible partner courtesy). Staff cannot mark an offer paid from here.";
     case "leonix_ad_id_required":
       return "Approval needs a valid Leonix Ad ID (LNX-XXXXXXXX).";
+    case "term_elapsed_renewal_required":
+      return "This offer's paid term has ended. Approval never grants a new term - the owner must renew through checkout.";
     case "public_source_asset_required":
     case "source_parent_lookup_failed":
     case "source_item_lookup_failed":
@@ -58,6 +60,7 @@ export function ofertaReviewErrorHttpStatus(error: string): number {
       return 400;
     case "rejection_reason_required":
     case "unresolved_review_items":
+    case "term_elapsed_renewal_required":
     case "commercial_entitlement_required":
     case "leonix_ad_id_required":
     case "public_source_asset_required":

@@ -21,6 +21,71 @@ export function revenueCategoryCheckoutErrorMessage(lang: "es" | "en"): string {
     : "We could not start secure payment. Please try again or contact Leonix.";
 }
 
+/**
+ * D10 (2026-09 final paid/free circuit audit): user-facing copy for the SERVER refusal codes of
+ * `POST /api/revenue-os/checkout`. A refusal is never the generic "could not start secure payment" when the server
+ * gave a precise reason, and NO copy claims "your changes are saved" - this client cannot know whether anything was
+ * saved (a payment-in-progress or already-published refusal saves nothing), so it states only what the server proved:
+ * what happened to the payment (no new charge was started, or the earlier one is still being confirmed).
+ * Returns null for an unknown / transient code (the caller falls back to the generic message).
+ */
+export function revenueCheckoutRefusalMessage(code: string | null | undefined, lang: "es" | "en"): string | null {
+  const es = lang === "es";
+  switch (String(code ?? "")) {
+    case "auth_required":
+      return es ? "Inicia sesión para continuar al pago." : "Sign in to continue to payment.";
+    // Already live / already entitled: no second base charge, no new payment was started.
+    case "active_entitlement_no_recharge":
+    case "already_published_no_recharge":
+    case "entitlement_already_active":
+      return es
+        ? "Este anuncio ya está publicado o tiene un paquete activo, así que no se requiere otro pago. No se inició ningún cobro."
+        : "This listing is already published or has an active package, so no additional payment is needed. No charge was started.";
+    // The earlier checkout was paid and the webhook has not landed yet, or a checkout is being prepared right now.
+    case "payment_in_progress":
+      return es
+        ? "Tu pago se está confirmando. Tu anuncio se activará automáticamente en unos momentos; no pagues de nuevo."
+        : "Your payment is being confirmed. Your listing will activate automatically in a moment; do not pay again.";
+    case "checkout_attempt_in_progress":
+      return es
+        ? "Ya estamos preparando el pago de esta compra. Espera un momento e intenta de nuevo."
+        : "A checkout for this purchase is already being prepared. Wait a moment and try again.";
+    case "checkout_state_unverifiable":
+      return es
+        ? "No pudimos verificar tu intento de pago anterior. Espera un momento e intenta de nuevo; no se inició ningún cobro nuevo."
+        : "We could not verify your previous checkout attempt. Wait a moment and try again; no new charge was started.";
+    // The listing is not in a status that can start a base payment (published, in review, paused, removed, ...).
+    case "autos_listing_not_payable":
+    case "listing_not_checkout_eligible":
+    case "child_listing_not_eligible":
+    case "listing_not_eligible":
+      return es
+        ? "Este anuncio no está en un estado que permita iniciar un pago (por ejemplo, ya está publicado, en revisión o pausado). No se inició ningún cobro."
+        : "This listing is not in a state that can start a payment (for example, it is already published, in review or paused). No charge was started.";
+    // The package does not belong to this listing's lane / vehicle type.
+    case "autos_listing_package_mismatch":
+    case "listing_package_mismatch":
+    case "package_listing_mismatch":
+      return es
+        ? "Este paquete no corresponde a este tipo de anuncio. No se inició ningún cobro. Si crees que es un error, contacta a Leonix."
+        : "This package does not apply to this type of listing. No charge was started. If you think this is a mistake, contact Leonix.";
+    case "autos_listing_owner_mismatch":
+    case "empleos_listing_owner_mismatch":
+    case "listing_owner_mismatch":
+      return es
+        ? "Este anuncio pertenece a otra cuenta. Inicia sesión con la cuenta correcta. No se inició ningún cobro."
+        : "This listing belongs to a different account. Sign in with the correct account. No charge was started.";
+    case "autos_listing_not_found":
+    case "empleos_listing_not_found":
+    case "listing_not_found":
+      return es
+        ? "No encontramos este anuncio. Guárdalo de nuevo e intenta otra vez. No se inició ningún cobro."
+        : "We could not find this listing. Save it again and try once more. No charge was started.";
+    default:
+      return null;
+  }
+}
+
 export function revenueCategoryCheckoutLoadingMessage(lang: "es" | "en"): string {
   return lang === "es" ? "Creando pago seguro…" : "Creating secure checkout…";
 }
@@ -64,16 +129,12 @@ export async function startRevenueCategoryCheckout(
       };
     }
 
-    // The server refuses a second base payment for a listing that is already live / entitled.
-    // That is a success for the owner (their edit is saved), not a "checkout error".
-    if (!res.ok && (j.code === "active_entitlement_no_recharge" || j.code === "already_published_no_recharge")) {
-      return {
-        ok: false,
-        userMessage:
-          lang === "es"
-            ? "Tus cambios se guardaron. Este anuncio ya tiene un paquete activo, así que no se requiere otro pago."
-            : "Your changes are saved. This listing already has an active package, so no additional payment is needed.",
-      };
+    // A precise server refusal (no second base charge for a live / entitled listing, payment already in progress,
+    // status / lane / owner mismatch, ...) gets its own accurate copy instead of the generic "could not start payment".
+    // None of it claims that changes were saved (D10) - see `revenueCheckoutRefusalMessage`.
+    if (!res.ok) {
+      const refusal = revenueCheckoutRefusalMessage(j.code, lang);
+      if (refusal) return { ok: false, userMessage: refusal };
     }
 
     return { ok: false, userMessage: revenueCategoryCheckoutErrorMessage(lang) };

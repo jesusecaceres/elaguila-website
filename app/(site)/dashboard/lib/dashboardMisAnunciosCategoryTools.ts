@@ -2,6 +2,7 @@ import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { buildListingIdentity, resolveDashboardActions, type DashboardAction } from "@/app/lib/listingIdentity";
 import type { DashboardInventoryItem } from "./dashboardInventory";
 import { dashboardCompletePaymentLabel, dashboardStartingPaymentLabel } from "./dashboardPendingPayment";
+import { dashboardEmpleosOwnerTransitions } from "./dashboardListingStateMachine";
 import {
   type MisAnunciosCategoryDef,
   type MisAnunciosCategoryKey,
@@ -592,7 +593,16 @@ export function buildInventoryListingActions(
 
   if (category === "empleos" && opts?.onEmpleosLifecycle) {
     const busyLabel = lang === "es" ? "Actualizando…" : "Updating…";
-    if (item.status === "published" && listingToolIsReady(category, "pause")) {
+    // Gate 2 (item 9): offer exactly what the server transition policy will accept (`resolveEmpleosOwnerTransition`):
+    // no Reactivate on a STAFF-held pause / archive or a never-live archive (a dead 402 / 409), and an owner-archived
+    // post that WAS live can be reopened from here as well.
+    const empleosTransitions = dashboardEmpleosOwnerTransitions({
+      lane: item.empleosLane,
+      lifecycle_status: item.status,
+      published_at: item.publishedAt,
+      moderation_reason: item.moderationReason,
+    });
+    if (empleosTransitions.pause && listingToolIsReady(category, "pause")) {
       actions.push({
         label: opts.empleosLifecycleBusy ? busyLabel : pauseListingLabel(lang),
         onClick: () => opts.onEmpleosLifecycle!("paused"),
@@ -600,7 +610,7 @@ export function buildInventoryListingActions(
         tone: "warning",
       });
     }
-    if (item.status === "paused" && listingToolIsReady(category, "reactivate")) {
+    if (empleosTransitions.resume && listingToolIsReady(category, "reactivate")) {
       actions.push({
         label: opts.empleosLifecycleBusy ? busyLabel : resumeListingLabel(lang),
         onClick: () => opts.onEmpleosLifecycle!("published"),
@@ -608,7 +618,7 @@ export function buildInventoryListingActions(
         tone: "positive",
       });
     }
-    if ((item.status === "published" || item.status === "paused") && listingToolIsReady(category, "archive")) {
+    if (empleosTransitions.archive && listingToolIsReady(category, "archive")) {
       actions.push({
         label: opts.empleosLifecycleBusy ? busyLabel : archiveListingLabel(lang),
         onClick: () => opts.onEmpleosLifecycle!("archived"),

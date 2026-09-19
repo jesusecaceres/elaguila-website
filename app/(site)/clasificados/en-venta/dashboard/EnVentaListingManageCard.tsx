@@ -87,6 +87,7 @@ export function EnVentaListingManageCard({
   leonixAdId = null,
   leonixPromoted = false,
   uiStatus,
+  publicViewAllowed = true,
   listingRefShort,
   expiresIso,
   updatedLine,
@@ -134,6 +135,9 @@ export function EnVentaListingManageCard({
   leonixPromoted?: boolean;
   /** Richer lifecycle chip when provided (dashboard command center). */
   uiStatus?: ListingUiStatus;
+  /** Gate 2: false hides "View public" (the public detail page would not resolve: paused / removed / flagged / expired ...).
+   * Optional and defaulting to true so any other caller keeps its previous behavior. */
+  publicViewAllowed?: boolean;
   /** Short public reference (e.g. first 8 hex). */
   listingRefShort?: string | null;
   /** End of post-republish visibility window (ISO) — shows “expires in X days” when parseable. */
@@ -518,13 +522,15 @@ export function EnVentaListingManageCard({
                 {L.manage}
               </Link>
             ) : null}
-            <Link
-              href={`/clasificados/anuncio/${row.id}?lang=${lang}`}
-              prefetch={false}
-              className="inline-flex rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416] hover:bg-[#FAF7F2]"
-            >
-              {L.publicView}
-            </Link>
+            {publicViewAllowed ? (
+              <Link
+                href={`/clasificados/anuncio/${row.id}?lang=${lang}`}
+                prefetch={false}
+                className="inline-flex rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416] hover:bg-[#FAF7F2]"
+              >
+                {L.publicView}
+              </Link>
+            ) : null}
             {canEdit && isActiveLifecycle ? (
               <Link href={editHref} prefetch={false} className="inline-flex rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]">
                 {L.edit}

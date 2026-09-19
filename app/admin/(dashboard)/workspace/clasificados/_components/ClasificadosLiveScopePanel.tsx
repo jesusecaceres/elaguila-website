@@ -22,6 +22,8 @@ type Props = {
   rowCount: number;
   configured: boolean;
   fetchError: string | null;
+  /** True when the bounded Live scan hit its cap — an empty list is then NOT proof that nothing is live. */
+  scanCapped?: boolean;
 };
 
 function stripLiveScope(href: string): string {
@@ -36,12 +38,14 @@ export function ClasificadosLiveScopePanel({
   rowCount,
   configured,
   fetchError,
+  scanCapped = false,
 }: Props) {
   const m = adminMessages(lang);
   const surface = clasificadosQueueSurfaceForSlug(categorySlug);
   const wired = adminCategoryLiveListingsWiredBySlug(categorySlug);
   const compact = "!min-h-[44px] sm:!min-h-[42px]";
-  const isEmpty = configured && !fetchError && rowCount === 0;
+  // An empty list from a CAPPED scan must never read as "nothing is live" (the scan notice explains it instead).
+  const isEmpty = configured && !fetchError && rowCount === 0 && !scanCapped;
   const queueBase = stripLiveScope(queueHref) || adminCategoryWorkspaceQueueHref(categorySlug);
 
   return (

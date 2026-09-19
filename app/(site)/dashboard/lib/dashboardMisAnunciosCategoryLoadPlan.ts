@@ -103,10 +103,10 @@ export const EMPTY_DEDICATED_CATEGORY_COUNTS: DedicatedCategoryCounts = {
  * approved AND is_public). Adding a filter to only one of the two re-creates the "tab says 3, list
  * shows 1" mismatch. `scripts/verify-closeout2-dashboard.ts` fails if they diverge.
  */
-export async function fetchDedicatedCategoryCounts(
+export async function fetchDedicatedCategoryCountsChecked(
   sb: SupabaseClient,
   ownerId: string,
-): Promise<DedicatedCategoryCounts> {
+): Promise<{ counts: DedicatedCategoryCounts; failed: boolean }> {
   const [rest, emp, via, autos, comida] = await Promise.all([
     sb.from("restaurantes_public_listings").select("id", { count: "exact", head: true }).eq("owner_user_id", ownerId),
     sb.from("empleos_public_listings").select("id", { count: "exact", head: true }).eq("owner_user_id", ownerId),
@@ -115,10 +115,22 @@ export async function fetchDedicatedCategoryCounts(
     sb.from("comida_local_public_listings").select("id", { count: "exact", head: true }).eq("owner_user_id", ownerId),
   ]);
   return {
-    restaurantes: rest.count ?? 0,
-    empleos: emp.count ?? 0,
-    viajes: via.count ?? 0,
-    autosPaid: autos.count ?? 0,
-    comidaLocal: comida.count ?? 0,
+    counts: {
+      restaurantes: rest.count ?? 0,
+      empleos: emp.count ?? 0,
+      viajes: via.count ?? 0,
+      autosPaid: autos.count ?? 0,
+      comidaLocal: comida.count ?? 0,
+    },
+    // Gate 2 (2026-09 dashboard state machine): a count query that ERRORED reads as `0` above, which made a failed read
+    // indistinguishable from "no listings" (and could trigger the empty state). `failed` lets the page say so.
+    failed: [rest, emp, via, autos, comida].some((r) => Boolean(r.error)),
   };
+}
+
+export async function fetchDedicatedCategoryCounts(
+  sb: SupabaseClient,
+  ownerId: string,
+): Promise<DedicatedCategoryCounts> {
+  return (await fetchDedicatedCategoryCountsChecked(sb, ownerId)).counts;
 }

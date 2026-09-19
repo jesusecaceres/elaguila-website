@@ -55,6 +55,9 @@ export function AutosClassifiedListingManageCard({
    * Optional so this stays backward compatible; when omitted, falls back to the previous
    * sold-vs-active-only display so no other caller of this shared component breaks. */
   uiStatus,
+  /** Gate 2: pre-computed by the caller from the public predicate (`listingsRowIsPublicLive`). false hides "View public".
+   * Optional and defaulting to true so any other caller keeps its previous behavior. */
+  publicViewAllowed = true,
   /** Package E Build E2, Gate 4 — real Autos Privado edit route (confirmed live:
    * `/publicar/autos/privado?edit=1&source=dashboard&listingId={id}`), sourced by the caller
    * from the same registry-backed href every other pipeline's edit action already uses.
@@ -71,6 +74,7 @@ export function AutosClassifiedListingManageCard({
   };
   lang: Lang;
   uiStatus?: ListingUiStatus;
+  publicViewAllowed?: boolean;
   priceText: string;
   dateText: string;
   busy: boolean;
@@ -141,7 +145,7 @@ export function AutosClassifiedListingManageCard({
   // CLOSEOUT 2 — legacy `listings` autos row that was never published (pending / draft ...): its public
   // page does not exist, so no "View public" CTA. (Paid Autos Privado rows live in autos_classifieds_listings
   // and are managed by AutosDealerInventoryDashboardSection, which owns the Revenue OS "Completar pago".)
-  const notLive = isPrePublicationStatus(row.status);
+  const notLive = isPrePublicationStatus(row.status) || !publicViewAllowed;
   const v = analytics.views;
   // Work Package I.8B — previously ANY non-"sold" status (paused, removed, expired, flagged,
   // pending, ...) rendered as green "Active", regardless of the real status. When the caller

@@ -7,8 +7,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useAdminLang } from "@/app/admin/_components/AdminI18nProvider";
 import { adminCardBase } from "@/app/admin/_components/adminTheme";
 import {
+  ADMIN_QUEUE_DEFAULT_LIMIT,
   adminQueueRowAnchorId,
   adminQueueRowHighlightClass,
+  normalizeAdminQueueLimit,
   parseAdminActionResultParams,
 } from "@/app/admin/_lib/adminQueueActionFlow";
 import type { AdminListingCommercialTruthMap } from "@/app/admin/_lib/adminListingCommercialTruth";
@@ -17,6 +19,7 @@ import { appendLangToPath, type Lang } from "@/app/clasificados/lib/hubUrl";
 import { AdminListingMonetizationSummary } from "../_components/AdminListingMonetizationSummary";
 import { ClasificadosQueueActionChrome } from "../_components/ClasificadosQueueActionChrome";
 import { ClassifiedAdminRowActions } from "../_components/ClassifiedAdminRowActions";
+import { AdminListTruncationNotice } from "../_components/normalized/AdminListTruncationNotice";
 import {
   AdminCommercialTruthSection,
   AdminListingCardSections,
@@ -82,6 +85,9 @@ export function EmpleosAdminListClient() {
   const [commercial, setCommercial] = useState<AdminListingCommercialTruthMap>({});
   const [err, setErr] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  /** Forward-compatible: the list API may report that its bounded scan hit the cap (`scan_capped`). */
+  const [scanCapped, setScanCapped] = useState(false);
+  const requestedLimit = normalizeAdminQueueLimit(sp?.get("limit") ?? undefined, ADMIN_QUEUE_DEFAULT_LIMIT);
 
   const apiQuery = useMemo(() => {
     const u = new URLSearchParams();
@@ -104,7 +110,13 @@ export function EmpleosAdminListClient() {
           signal: ac.signal,
           cache: "no-store",
         });
-        const json = (await res.json()) as { ok?: boolean; rows?: Row[]; commercial?: AdminListingCommercialTruthMap; error?: string };
+        const json = (await res.json()) as {
+          ok?: boolean;
+          rows?: Row[];
+          commercial?: AdminListingCommercialTruthMap;
+          error?: string;
+          scan_capped?: boolean;
+        };
         if (ac.signal.aborted) return;
         if (!res.ok || !json.ok) {
           setErr(json.error ?? "load_failed");
@@ -113,6 +125,7 @@ export function EmpleosAdminListClient() {
         } else {
           setRows(json.rows ?? []);
           setCommercial(json.commercial ?? {});
+          setScanCapped(json.scan_capped === true);
         }
         setLoaded(true);
       } catch (e) {
@@ -134,6 +147,10 @@ export function EmpleosAdminListClient() {
         <div className={`${adminCardBase} p-4 text-sm text-red-900`} role="alert">
           {err === "supabase_not_configured" ? "Supabase not configured in this environment." : err}
         </div>
+      ) : null}
+
+      {!err && loaded ? (
+        <AdminListTruncationNotice lang={adminLang} shown={displayRows.length} limit={requestedLimit} scanCapped={scanCapped} />
       ) : null}
 
       {!err && loaded && displayRows.length === 0 ? (
