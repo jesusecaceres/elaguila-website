@@ -27,7 +27,8 @@ connection string into a document, a commit, a chat or a recorded terminal.
 
 | Step | What | File | Status |
 |---|---|---|---|
-| **I-1A** | **Live content repairs only — Parts B + C.** 75 guarded Spanish accent repairs + 5 guarded English grammar repairs of text that is *already public*. **80 `UPDATE` in total** · 0 `INSERT` · 0 `DELETE` · 0 DDL. | `supabase/reviewed-seeds/learning-center/20260918_content_batch_i1a_repairs.sql` | Authorized by Coach (Gate I-1A) |
+| **I-1A** | **Live content repairs only — Parts B + C.** 75 guarded Spanish accent repairs + 5 guarded English grammar repairs of text that is *already public*. **80 `UPDATE` in total** · 0 `INSERT` · 0 `DELETE` · 0 DDL. | `supabase/reviewed-seeds/learning-center/20260918_content_batch_i1a_repairs.sql` | **EXECUTED 2026-09-18** on `xuieateniufcrsfdomwl` from commit `d2b67411` — one committed transaction. The file is immutable history: never edited, never regenerated. |
+| **I-1A.1** | **Supplemental accent cleanup.** Two Spanish accents D3 had no rule for (`consistent_business_information.summary_es`: “Por que tu nombre” → “Por qué tu nombre”; `healthy_boundaries_and_capacity.body_es`: “y tu terminas agotado” → “y tú terminas agotado”). 2 guarded `UPDATE` · 0 `INSERT` · 0 `DELETE` · 0 DDL. | `supabase/reviewed-seeds/learning-center/20260918_content_batch_i1a1_accent_cleanup.sql` | Authorized by Coach (Gate I-1A.1) |
 | **I-1B** | **New-lesson insert / publish — Part A.** The 3 new lessons (`what_problem_do_you_solve`, `customer_conversations`, `know_your_competition`). | Part A of `supabase/reviewed-seeds/learning-center/20260918_content_batch_i1.sql` | **NOT authorized.** Needs its own Coach gate. |
 
 **Why split:** production does not yet run this branch's lesson engine (packages, guided activity, journey
@@ -110,6 +111,30 @@ memory". Restore only the affected column from the before-snapshot with a guarde
 No `DELETE`. No schema rollback. Never touch learner progress. Every rollback gets an evidence report.
 
 ## 8. Stop. Return to Coach.
+
+---
+
+# I-1A.1 — supplemental accent cleanup
+
+**History is 80 + 2, in two transactions.** I-1A executed its 80 repairs first. While that artifact was being
+applied, two meaning-dependent accents were noticed that D3 had no phrase rule for. They were left untouched,
+reported, approved by the owner as exact pairs, and are applied here by their own artifact — never by editing
+the executed one.
+
+- Same rules as I-1A: explicit project id `xuieateniufcrsfdomwl`, one transaction, assertion block before
+  `COMMIT`, no `supabase db push`, no `apply_migration`, no Part A, no flag change.
+- Guards: each `UPDATE` matches the md5 of the exact value **I-1A left behind**. If the text has drifted the
+  statement matches nothing and the assertion block aborts the transaction.
+- Pre-write (read-only): the two target values are fetched; each old phrase occurs exactly once and the
+  corrected form is not already present; counts 6 · 16 (8 / 8) · 25; I-1 keys 0; flag unchanged.
+- Post-write (read-only): both corrected forms present, both old forms gone, counts and flag unchanged,
+  both guards match 0 rows.
+- Rollback: restore the single affected column from the I-1A **after** value (in the generator / ledger) with
+  a guarded `UPDATE`. No `DELETE`.
+
+Also part of Gate I-1A.1, but **code, not database, and not deployed by that gate**: the Learning sign-in prompt
+reads “Inicia sesión para guardar tu progreso.” in `app/(site)/aprender/learningCopy.ts`. Production still shows
+the unaccented string until this branch ships.
 
 ---
 

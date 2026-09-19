@@ -48,6 +48,8 @@ export const SEED_I1_LEDGER = "docs/learning-center-seed-i1-accent-ledger.md";
 /** I-1A — Parts B + C only, derived from the seed above. Reviewed, NOT auto-applied. */
 export const SEED_I1A_REPAIRS_SQL = "supabase/reviewed-seeds/learning-center/20260918_content_batch_i1a_repairs.sql";
 export const SEED_I1_RUNBOOK = "docs/learning-center-i1-canonical-apply-runbook.md";
+/** I-1A.1 — two supplemental Spanish accent repairs, applied separately AFTER I-1A. Reviewed, NOT auto-applied. */
+export const SEED_I1A1_CLEANUP_SQL = "supabase/reviewed-seeds/learning-center/20260918_content_batch_i1a1_accent_cleanup.sql";
 export const CANONICAL_PROJECT = { name: "Leonix Media", ref: "xuieateniufcrsfdomwl" } as const;
 
 /* ---------------------------------------------------------------------------------------------- */
@@ -460,6 +462,14 @@ export function buildLedger(foundationSql: string): string {
     "|---|---|---|---|---|---|---|",
     ...buildEnglishRepairs(foundationSql).map((r, i) => `| C${i + 1} | ${r.table} | \`${r.key}\` | ${r.column} | ${r.from} | ${r.to} | grammar-only repair |`),
     "",
+    "## 4. I-1A.1 — supplemental accent cleanup (separate, later transaction)",
+    "",
+    "Sections 1–3 are the 80 repairs of **I-1A**, executed on the canonical database as one transaction. The two repairs below were **not** part of it: D3 had no phrase rule for these meaning-dependent words. They were approved afterwards and are applied by their own artifact (`20260918_content_batch_i1a1_accent_cleanup.sql`), each guarded by the md5 of the value I-1A left behind. 80 + 2 — never \"82 in one transaction\".",
+    "",
+    "| # | Table | Row | Column | Exact before | Exact after | Reason |",
+    "|---|---|---|---|---|---|---|",
+    ...SUPPLEMENTAL_ACCENT_REPAIRS.map((r, i) => `| S${i + 1} | business_learning_lessons | \`${r.key}\` | ${r.column} | ${r.from} | ${r.to} | accent-only repair (missed by D3) |`),
+    "",
   );
   return out.join("\n");
 }
@@ -547,11 +557,96 @@ export function buildRepairSql(foundationSql: string): string {
   ].join("\n");
 }
 
+/* ---------------------------------------------------------------------------------------------- */
+/* 5. I-1A.1 — supplemental accent cleanup (two repairs D3 missed)                                 */
+/* ---------------------------------------------------------------------------------------------- */
+
+/**
+ * Two meaning-dependent accents that the D3 phrase rules did not cover. They were found while the I-1A
+ * artifact was being applied and were approved by the owner as exact before → after pairs. They are NOT
+ * added to PHRASE_RULES: Part B and the I-1A artifact are an executed production transaction and must stay
+ * byte-identical. Each repair starts from the value I-1A left in the database (the D3 `after`).
+ */
+export const SUPPLEMENTAL_ACCENT_REPAIRS: readonly { key: string; column: "summary_es" | "body_es"; from: string; to: string }[] = [
+  { key: "consistent_business_information", column: "summary_es", from: "Por que tu nombre", to: "Por qué tu nombre" },
+  { key: "healthy_boundaries_and_capacity", column: "body_es", from: "y tu terminas agotado", to: "y tú terminas agotado" },
+];
+
+export function buildSupplementalRepairs(foundationSql: string): AccentRepair[] {
+  const d3 = buildAccentRepairs(foundationSql);
+  return SUPPLEMENTAL_ACCENT_REPAIRS.map((r) => {
+    const base = d3.find((x) => x.table === "business_learning_lessons" && x.key === r.key && x.column === r.column);
+    if (!base) throw new Error(`I-1A.1: ${r.key}.${r.column} was not repaired by D3 — cannot chain from it`);
+    const before = base.after;
+    if (before.split(r.from).length !== 2) throw new Error(`I-1A.1: expected exactly one "${r.from}" in ${r.key}.${r.column}`);
+    if (before.includes(r.to)) throw new Error(`I-1A.1: "${r.to}" is already present in ${r.key}.${r.column}`);
+    const after = before.replace(r.from, r.to);
+    if (stripMarks(after) !== stripMarks(before) || after.length !== before.length) throw new Error(`I-1A.1: more than an accent changed in ${r.key}.${r.column}`);
+    return { table: "business_learning_lessons", keyColumn: "lesson_key", key: r.key, column: r.column, before, after };
+  });
+}
+
+/** Exactly two guarded UPDATEs in one asserting transaction. Contains none of the 80 I-1A repairs. */
+export function buildSupplementalSql(foundationSql: string): string {
+  const repairs = buildSupplementalRepairs(foundationSql);
+  return [
+    "-- =============================================================================",
+    "-- Leonix Learning Center — I-1A.1 SUPPLEMENTAL ACCENT CLEANUP",
+    "-- =============================================================================",
+    "-- GENERATED FILE. Do not edit by hand:",
+    "--   npx tsx scripts/generate-learning-content-seed-i1.ts --write",
+    "--",
+    "-- Two Spanish accents that the I-1A repair (D3) did not cover. Applied AFTER, and separately from,",
+    "-- I-1A — that artifact (20260918_content_batch_i1a_repairs.sql) is an executed production transaction",
+    "-- and is never edited. This file contains none of its 80 repairs.",
+    "--",
+    `-- TARGET: the canonical project ${CANONICAL_PROJECT.name} (ref ${CANONICAL_PROJECT.ref}) and no other.`,
+    "-- REVIEWED SEED — NOT A MIGRATION. DO NOT move it into supabase/migrations/. DO NOT use a blind",
+    `-- \`supabase db push\`. Apply explicitly, following ${SEED_I1_RUNBOOK}.`,
+    "--",
+    "-- 2 guarded UPDATEs · 0 INSERT · 0 DELETE · 0 DDL. Each guard is the md5 of the exact value I-1A left",
+    "-- behind, so a drifted row is skipped, never overwritten. One transaction; the closing assertion block",
+    "-- aborts it unless both final values are exactly the reviewed text, lessons are still 16 and no I-1",
+    "-- lesson key exists. Idempotent: after a successful apply both guards match nothing.",
+    "-- =============================================================================",
+    "",
+    "BEGIN;",
+    "",
+    ...repairs.flatMap((r, i) => [
+      `-- S${i + 1}. ${r.table}.${r.key}.${r.column}: "${SUPPLEMENTAL_ACCENT_REPAIRS[i].from}" -> "${SUPPLEMENTAL_ACCENT_REPAIRS[i].to}"`,
+      `UPDATE public.${r.table} SET ${r.column} = ${q(r.after)}`,
+      `WHERE ${r.keyColumn} = ${q(r.key)} AND md5(replace(${r.column}, chr(13), '')) = ${q(md5(r.before))};`,
+      "",
+    ]),
+    "DO $i1a1$",
+    "DECLARE",
+    "  n integer;",
+    "BEGIN",
+    "  SELECT count(*) INTO n FROM (VALUES",
+    repairs.map((r) => `      (${q(r.key)}, ${q(r.column)}, ${q(md5(r.after))})`).join(",\n"),
+    "    ) AS g(k, col, h) LEFT JOIN public.business_learning_lessons t ON t.lesson_key = g.k WHERE (CASE g.col WHEN 'summary_es' THEN md5(replace(t.summary_es, chr(13), '')) WHEN 'body_es' THEN md5(replace(t.body_es, chr(13), '')) END) IS DISTINCT FROM g.h;",
+    "  IF n <> 0 THEN RAISE EXCEPTION 'I-1A.1: % value(s) are not the reviewed text — rolling back', n; END IF;",
+    "  SELECT count(*) INTO n FROM public.business_learning_lessons;",
+    "  IF n <> 16 THEN RAISE EXCEPTION 'I-1A.1: expected 16 lessons, found % — rolling back', n; END IF;",
+    `  SELECT count(*) INTO n FROM public.business_learning_lessons WHERE lesson_key IN (${SEED_I1_LESSONS.map((l) => q(l.pkg.lessonKey)).join(", ")});`,
+    "  IF n <> 0 THEN RAISE EXCEPTION 'I-1A.1: % I-1 lesson row(s) exist — Part A is not part of this apply', n; END IF;",
+    "END",
+    "$i1a1$;",
+    "",
+    "COMMIT;",
+    "",
+  ].join("\n");
+}
+
 if (process.argv.includes("--write")) {
   const foundation = fs.readFileSync(path.join(ROOT, FOUNDATION_MIGRATION), "utf8");
   fs.mkdirSync(path.dirname(path.join(ROOT, SEED_I1_SQL)), { recursive: true });
   fs.writeFileSync(path.join(ROOT, SEED_I1_SQL), buildSeedSql(foundation));
-  fs.writeFileSync(path.join(ROOT, SEED_I1A_REPAIRS_SQL), buildRepairSql(foundation));
+  // The I-1A artifact is an EXECUTED production transaction: it is never rewritten. If the generator ever
+  // stops reproducing it, that is an error to look at, not something to overwrite.
+  const executed = fs.readFileSync(path.join(ROOT, SEED_I1A_REPAIRS_SQL), "utf8").replace(/\r\n/g, "\n");
+  if (executed !== buildRepairSql(foundation)) throw new Error(`${SEED_I1A_REPAIRS_SQL} no longer matches the generator — it is immutable history; fix the generator`);
+  fs.writeFileSync(path.join(ROOT, SEED_I1A1_CLEANUP_SQL), buildSupplementalSql(foundation));
   fs.writeFileSync(path.join(ROOT, SEED_I1_LEDGER), buildLedger(foundation));
-  console.log(`wrote ${SEED_I1_SQL}\nwrote ${SEED_I1A_REPAIRS_SQL}\nwrote ${SEED_I1_LEDGER}`);
+  console.log(`wrote ${SEED_I1_SQL}\nkept  ${SEED_I1A_REPAIRS_SQL} (executed — immutable)\nwrote ${SEED_I1A1_CLEANUP_SQL}\nwrote ${SEED_I1_LEDGER}`);
 }

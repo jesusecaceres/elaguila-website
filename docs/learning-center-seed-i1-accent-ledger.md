@@ -243,3 +243,12 @@ Exactly five, each an owner-approved before → after pair. **Reason for every r
 | C3 | business_learning_lessons | `reviews_and_customer_response` | body_en | many people decisions | many people's decisions | grammar-only repair |
 | C4 | business_learning_lessons | `reviews_and_customer_response` | body_en | customers experience | customers' experience | grammar-only repair |
 | C5 | business_learning_lessons | `reviews_and_customer_response` | body_en | customers opinions | customers' opinions | grammar-only repair |
+
+## 4. I-1A.1 — supplemental accent cleanup (separate, later transaction)
+
+Sections 1–3 are the 80 repairs of **I-1A**, executed on the canonical database as one transaction. The two repairs below were **not** part of it: D3 had no phrase rule for these meaning-dependent words. They were approved afterwards and are applied by their own artifact (`20260918_content_batch_i1a1_accent_cleanup.sql`), each guarded by the md5 of the value I-1A left behind. 80 + 2 — never "82 in one transaction".
+
+| # | Table | Row | Column | Exact before | Exact after | Reason |
+|---|---|---|---|---|---|---|
+| S1 | business_learning_lessons | `consistent_business_information` | summary_es | Por que tu nombre | Por qué tu nombre | accent-only repair (missed by D3) |
+| S2 | business_learning_lessons | `healthy_boundaries_and_capacity` | body_es | y tu terminas agotado | y tú terminas agotado | accent-only repair (missed by D3) |

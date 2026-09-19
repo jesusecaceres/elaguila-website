@@ -1,5 +1,5 @@
 /**
- * TODAY-1 + G1 + G2 + G2.1 + G3 + G4-I1 (+ I1.1 quarantine, I1.2/I1.3 Part C, I-1A repair artifact) — Public Business Learning Center (foundation, checkpoint landing, pathway
+ * TODAY-1 + G1 + G2 + G2.1 + G3 + G4-I1 (+ I1.1 quarantine, I1.2/I1.3 Part C, I-1A repair artifact, I-1A.1 supplemental cleanup) — Public Business Learning Center (foundation, checkpoint landing, pathway
  * pages, canonical lesson engine)
  * + Idea Builder foundation verification. Hand-rolled
  * node:assert script, matching this repo's testing convention (no jest/vitest). Run via `npx tsx
@@ -1044,7 +1044,7 @@ import { resolveNextLesson } from "../app/(site)/aprender/learningJourneys";
 import { createHash } from "node:crypto";
 import { buildGuidedResult, cleanGuidedAnswer } from "../app/lib/business/learning/lessonPackage/guidedResult";
 import { packageToPlainText } from "../app/lib/business/learning/lessonPackage/plainText";
-import { CANONICAL_PROJECT, ENGLISH_GRAMMAR_REPAIRS, SEED_I1A_REPAIRS_SQL, SEED_I1_LEDGER, SEED_I1_RUNBOOK, buildRepairSql, expectedRepairedValues, SEED_I1_LESSONS, SEED_I1_SQL, buildAccentRepairs, buildEnglishRepairs, buildLedger, buildSeedSql, changedWords, repairSpanishAccents, stripMarks } from "./generate-learning-content-seed-i1";
+import { CANONICAL_PROJECT, ENGLISH_GRAMMAR_REPAIRS, SEED_I1A1_CLEANUP_SQL, SEED_I1A_REPAIRS_SQL, SUPPLEMENTAL_ACCENT_REPAIRS, buildSupplementalRepairs, buildSupplementalSql, SEED_I1_LEDGER, SEED_I1_RUNBOOK, buildRepairSql, expectedRepairedValues, SEED_I1_LESSONS, SEED_I1_SQL, buildAccentRepairs, buildEnglishRepairs, buildLedger, buildSeedSql, changedWords, repairSpanishAccents, stripMarks } from "./generate-learning-content-seed-i1";
 
 const LESSON_LIB_DIR = "app/lib/business/learning/lessonPackage";
 const LESSON_UI_DIR = `${APRENDER_DIR}/_components/lesson`;
@@ -2023,7 +2023,7 @@ check("G4-I1 seed: ONE additive, data-only file — exactly three new published 
     const sql = read(`supabase/migrations/${f}`);
     for (const key of BATCH_I1_KEYS) assert.ok(!sql.includes(`'${key}'`), `${f} seeds ${key} — I-1 content must not be applied through a migration`);
   }
-  assert.deepStrictEqual(fs.readdirSync(path.join(ROOT, "supabase/reviewed-seeds/learning-center")), [path.basename(SEED_I1_SQL), path.basename(SEED_I1A_REPAIRS_SQL)].sort(), "the reviewed I-1 seed and its derived I-1A repair artifact — nothing else");
+  assert.deepStrictEqual(fs.readdirSync(path.join(ROOT, "supabase/reviewed-seeds/learning-center")), [path.basename(SEED_I1_SQL), path.basename(SEED_I1A_REPAIRS_SQL), path.basename(SEED_I1A1_CLEANUP_SQL)].sort(), "the reviewed I-1 seed, its derived I-1A repair artifact and the I-1A.1 supplemental cleanup — nothing else");
   assert.ok(SEED_SQL.includes("REVIEWED SEED — NOT A MIGRATION") && SEED_SQL.includes("DO NOT move it into supabase/migrations/") && SEED_SQL.includes("blind `supabase db push`"), "the file itself says how it may and may not be applied");
   assert.strictEqual(buildSeedSql(MIGRATION), buildSeedSql(MIGRATION), "generation is deterministic");
   assert.ok(!/now\(\)|random|uuid/i.test(SEED_SQL.replace(/'published', now\(\)/g, "")), "the only non-literal value is published_at = now() on the three inserts");
@@ -2212,6 +2212,69 @@ check("I-1A repair artifact: Parts B + C ONLY, derived byte-for-byte from the re
   assert.ok(runbook.includes("# I-1A — live content repairs (Parts B + C)") && runbook.includes("# I-1B — new-lesson insert / publish (Part A) — NOT AUTHORIZED"));
   assert.ok(!/apply (it )?to staging|staging first|STAGING ONLY/i.test(runbook), "no instruction may treat staging as a target");
   assert.ok(artifact.includes("ref xuieateniufcrsfdomwl") && !artifact.includes("cgeehvnfyrdoperdotdh") && !SEED_SQL.includes("staging first"));
+});
+
+check("I-1A.1 supplemental cleanup: exactly two guarded accent repairs in their own artifact; the executed I-1A artifact, Part B and the seed stay byte-identical; sign-in prompt is accented", () => {
+  // The executed I-1A artifact is immutable history.
+  assert.strictEqual(sha256(lf(read(SEED_I1A_REPAIRS_SQL))), "286f99aacfd60bf39e4dd928b44982cf42c36c70b0e87ff418fcfd3a470fb6c9", "the executed I-1A artifact must never change");
+  assert.strictEqual(lf(read(SEED_I1A_REPAIRS_SQL)), buildRepairSql(MIGRATION), "…and the generator still reproduces it exactly");
+  const generator = read("scripts/generate-learning-content-seed-i1.ts");
+  assert.ok(!generator.includes("writeFileSync(path.join(ROOT, SEED_I1A_REPAIRS_SQL)"), "--write must never rewrite the executed I-1A artifact");
+
+  assert.deepStrictEqual(
+    SUPPLEMENTAL_ACCENT_REPAIRS.map((r) => [r.key, r.column, r.from, r.to]),
+    [
+      ["consistent_business_information", "summary_es", "Por que tu nombre", "Por qué tu nombre"],
+      ["healthy_boundaries_and_capacity", "body_es", "y tu terminas agotado", "y tú terminas agotado"],
+    ],
+    "only the two approved pairs",
+  );
+  const d3 = buildAccentRepairs(MIGRATION);
+  const fixes = buildSupplementalRepairs(MIGRATION);
+  assert.strictEqual(fixes.length, 2);
+  fixes.forEach((r, i) => {
+    const pair = SUPPLEMENTAL_ACCENT_REPAIRS[i];
+    const left = d3.find((x) => x.table === r.table && x.key === r.key && x.column === r.column)!;
+    assert.strictEqual(r.before, left.after, `${r.key}.${r.column}: guarded by the exact value I-1A left behind`);
+    assert.strictEqual(r.before.split(pair.from).length, 2, "the phrase occurs exactly once");
+    assert.ok(!r.before.includes(pair.to), "the corrected form is not already present");
+    assert.strictEqual(r.after, r.before.replace(pair.from, pair.to));
+    assert.strictEqual(stripMarks(r.after), stripMarks(r.before), "an accent — nothing else");
+    assert.strictEqual(r.after.length, r.before.length);
+    assert.strictEqual(r.table, "business_learning_lessons");
+  });
+
+  const artifact = lf(read(SEED_I1A1_CLEANUP_SQL));
+  assert.strictEqual(artifact, buildSupplementalSql(MIGRATION), "the I-1A.1 artifact must equal the generator output");
+  assert.ok(SEED_I1A1_CLEANUP_SQL.startsWith("supabase/reviewed-seeds/learning-center/"), "reviewed seed, never a migration");
+  const statements = artifact.split("\n").filter((l) => !l.startsWith("--")).join("\n");
+  const bare = statements.replace(/'(?:[^']|'')*'/g, "''");
+  assert.deepStrictEqual(statements.match(/^UPDATE public\.[a-z_]+ SET [a-z_]+ = /gm), ["UPDATE public.business_learning_lessons SET summary_es = ", "UPDATE public.business_learning_lessons SET body_es = "], "exactly two UPDATEs, on the two approved columns");
+  assert.strictEqual((statements.match(/^WHERE lesson_key = '[a-z_]+' AND md5\(replace\((summary_es|body_es), chr\(13\), ''\)\) = '[0-9a-f]{32}';$/gm) ?? []).length, 2, "each targets one row by key and is md5-guarded");
+  assert.ok(!/\b(INSERT|DELETE|CREATE|ALTER|DROP|TRUNCATE|GRANT|REVOKE|POLICY|TRIGGER|FUNCTION|INDEX|COPY|EXECUTE)\b/i.test(bare), "no insert, no delete, no DDL");
+  assert.deepStrictEqual([...new Set([...bare.matchAll(/public\.([a-z_]+)/g)].map((m) => m[1]))], ["business_learning_lessons"]);
+  assert.strictEqual((statements.match(/^BEGIN;$/gm) ?? []).length + (statements.match(/^COMMIT;$/gm) ?? []).length, 2);
+  assert.strictEqual((statements.match(/RAISE EXCEPTION/g) ?? []).length, 3, "final values · lesson count · I-1 keys");
+  const literals = sqlLiterals(artifact);
+  for (const r of fixes) {
+    assert.ok(literals.includes(r.after) && literals.includes(createHash("md5").update(r.before, "utf8").digest("hex")) && literals.includes(createHash("md5").update(r.after, "utf8").digest("hex")));
+    assert.notStrictEqual(createHash("md5").update(r.after, "utf8").digest("hex"), createHash("md5").update(r.before, "utf8").digest("hex"), "after the apply the guard matches nothing");
+  }
+  // None of the 80 I-1A repairs is repeated here.
+  const i1aGuards = new Set([...lf(read(SEED_I1A_REPAIRS_SQL)).matchAll(/chr\(13\), ''\)\) = '([0-9a-f]{32})';/g)].map((m) => m[1]));
+  for (const m of artifact.matchAll(/chr\(13\), ''\)\) = '([0-9a-f]{32})';/g)) assert.ok(!i1aGuards.has(m[1]), "an I-1A guard must not reappear in the supplemental artifact");
+  assert.ok(!artifact.includes("_en = ") && !artifact.includes("cgeehvnfyrdoperdotdh") && artifact.includes("ref xuieateniufcrsfdomwl"));
+
+  // History is recorded as 80 + 2, never as one transaction of 82.
+  const runbook = read(SEED_I1_RUNBOOK);
+  assert.ok(runbook.includes("# I-1A.1 — supplemental accent cleanup") && runbook.includes("80 + 2") && !/\b82 (guarded )?(UPDATE|repairs)/i.test(runbook));
+  const ledger = lf(read(SEED_I1_LEDGER));
+  assert.ok(ledger.includes("## 4. I-1A.1 — supplemental accent cleanup") && ledger.includes("| S1 |") && ledger.includes("| S2 |"));
+
+  // UI chrome: the sign-in prompt is accented in the canonical Learning copy; EN untouched.
+  assert.strictEqual(learningCopy("es").signInPrompt, "Inicia sesión para guardar tu progreso.");
+  assert.strictEqual(learningCopy("en").signInPrompt, "Sign in to save your progress.");
+  assert.ok(!/Inicia sesion/.test(read(`${APRENDER_DIR}/learningCopy.ts`)), "no unaccented “Inicia sesion” remains in the Learning copy");
 });
 
 check("G4-I1 doctrine: no provider names, no sponsor, no guarantees, no asserted legal requirements in the new lessons", () => {
