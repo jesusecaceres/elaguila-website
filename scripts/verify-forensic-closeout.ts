@@ -28,6 +28,7 @@ async function main() {
   const emp = await import("../app/admin/_lib/adminEmpleosStaffActions");
   const guard = await import("../app/admin/_lib/adminInventoryActionGuard");
   const relist = await import("../app/(site)/dashboard/lib/dashboardOwnerRelistPolicy");
+  const pre = await import("../app/admin/_lib/adminPrePublishActionPolicy");
 
   // ── generic admin reactivation: suspend/archive can no longer launder an unpaid row ─────────────
   await check("paid-lane row that was NEVER live stays blocked after suspend/archive (flagged/removed)", () => {
@@ -143,6 +144,26 @@ async function main() {
       "app/(site)/dashboard/mis-anuncios/page.tsx",
     ]) {
       assert.match(raw(rel), /dashboardOwnerMayActivateFromStatus\(/, rel);
+    }
+  });
+
+  // ── Servicios / Restaurantes admin: pending_payment -> suspended -> published laundering ──────────
+  await check("dedicated lanes: a pre-publish row cannot be suspended / archived / restored / republished by Admin", () => {
+    for (const status of ["pending_payment", "draft", "pending", "payment_failed"]) {
+      assert.deepEqual(pre.decideAdminPrePublishAction({ action: "suspend", status }), { blocked: true, code: "not_published", message: (pre.decideAdminPrePublishAction({ action: "suspend", status }) as { message: string }).message });
+      assert.equal(pre.decideAdminPrePublishAction({ action: "archive", status }).blocked, true);
+      const un = pre.decideAdminPrePublishAction({ action: "unsuspend", status });
+      assert.equal(un.blocked && un.code, "payment_required");
+      assert.equal(pre.decideAdminPrePublishAction({ action: "republish", status, reactivates: true }).blocked, true);
+      assert.equal(pre.decideAdminPrePublishAction({ action: "promote_on", status }).blocked, false, "trust toggles are not publication");
+    }
+    for (const status of ["published", "suspended", "archived", "rejected"]) {
+      for (const action of ["suspend", "unsuspend", "archive", "republish"]) {
+        assert.equal(pre.decideAdminPrePublishAction({ action, status, reactivates: true }).blocked, false, `${action} ${status}`);
+      }
+    }
+    for (const rel of ["app/api/admin/servicios/listings/[id]/route.ts", "app/api/admin/restaurantes/listings/[id]/route.ts"]) {
+      assert.match(raw(rel), /decideAdminPrePublishAction\(/, rel);
     }
   });
 

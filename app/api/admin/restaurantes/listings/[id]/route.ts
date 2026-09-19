@@ -1,3 +1,4 @@
+import { decideAdminPrePublishAction } from "@/app/admin/_lib/adminPrePublishActionPolicy";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
@@ -72,6 +73,15 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   const rowRec = row as Record<string, unknown>;
   const now = new Date().toISOString();
   const patch: Record<string, unknown> = { updated_at: now };
+
+  {
+    const gate = decideAdminPrePublishAction({
+      action,
+      status: String(rowRec.status ?? ""),
+      reactivates: !restauranteRowIsPublicLive(rowRec),
+    });
+    if (gate.blocked) return NextResponse.json({ ok: false, error: gate.code, message: gate.message }, { status: 409 });
+  }
 
   if (action === "republish") {
     if (String(rowRec.status ?? "").toLowerCase() === "archived") {

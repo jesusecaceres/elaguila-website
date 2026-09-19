@@ -131,6 +131,8 @@ source defects. All are fixed here; each has an executable check in `scripts/ver
 | 13 | Empleos "payment cleared" accepted only `paid`. | Same cleared set as the ledger (`paid` / `succeeded` / `cleared` / `payment_cleared`). |
 | 14 | Permanent delete: a Negocio parent with paused / pending / removed children (FK is `ON DELETE SET NULL`) orphaned them; an active subscription was ignored once the row was soft-removed. | `has_linked_children`; an active subscription always blocks a permanent delete. |
 
+| 15 | Servicios / Restaurantes Admin: `pending_payment` → `suspend`/`archive` → `unsuspend` (or a reactivating `republish`) published an unpaid listing with no payment record. | `adminPrePublishActionPolicy.ts`: a pre-publish row (draft / pending / pending_payment / payment_failed) cannot be suspended or archived (`not_published`) nor restored / republished (`payment_required`); wired into both routes. |
+
 ### Verified NOT defects (source-proven)
 * Restaurantes `POST /publish` without `activation_mode` publishes the FREE application; the paid path always sends `pending_payment`.
 * Servicios / Restaurantes / Viajes Admin routes are unchanged from `main`; Viajes has no payment product (checkout refused server-side).
