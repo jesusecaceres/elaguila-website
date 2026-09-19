@@ -1,83 +1,91 @@
-import Link from "next/link";
+import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { PublicPillarJsonLd } from "@/app/components/PublicPillarJsonLd";
 import { resolveLearningCenterFlagTier } from "@/app/lib/business/learning/featureFlag";
-import { listActiveCategories, listPublishedLessons } from "@/app/lib/business/learning/repository";
-import { groupLessonsByCategory } from "@/app/lib/business/learning/logic";
-import { langFromSearchParams, learningCopy } from "./learningCopy";
-import { LearningSearch } from "./_components/LearningSearch";
+import { listAllPublishedResources, listPublishedLessons } from "@/app/lib/business/learning/repository";
+import { normalizeLang } from "@/app/lib/language";
+import { buildPublicPillarMetadata } from "@/app/lib/leonix/publicPillarSeo";
+import { contentLangFromRouteLang, learningCopy, learningLandingCopy } from "./learningCopy";
+import { buildJourneyHref, journeyFromSearchParams, resolveAllJourneys } from "./learningJourneys";
+import { LearningAccessClose } from "./_components/LearningAccessClose";
+import { LearningHero } from "./_components/LearningHero";
+import { LearningJourneyCards } from "./_components/LearningJourneyCards";
+import { LearningStartHelper } from "./_components/LearningStartHelper";
+import { LearningToolsRow } from "./_components/LearningToolsRow";
+import { LearningTrustStrip } from "./_components/LearningTrustStrip";
 
 export const dynamic = "force-dynamic";
 
+type SearchParams = Record<string, string | string[] | undefined>;
+
+export async function generateMetadata(props: { searchParams: Promise<SearchParams> }): Promise<Metadata> {
+  const sp = await props.searchParams;
+  const raw = Array.isArray(sp.lang) ? sp.lang[0] : sp.lang;
+  return buildPublicPillarMetadata("aprender", normalizeLang(raw));
+}
+
 /**
- * TODAY-1 — public Learning Center home. Server component: reads categories/lessons directly
- * through the service-role repository (never an anon table grant). Gated on the
- * business_learning_center flag being fully "global" -- while disabled, a truthful coming-soon
- * state renders instead (no crash, no unpublished content).
+ * Gate G1 — the Learning Center front door. A short checkpoint, not the whole school:
+ * hero → "¿Dónde estás hoy?" three doors → trust strip → "No sé por dónde empezar" helper →
+ * compact tools row → access close. The curriculum itself lives on the pathway pages
+ * (`/aprender/ruta/{journey}`). Legacy Phase-1 links (`/aprender?journey=idea`) redirect there.
+ *
+ * Truth rules (locked): only published lessons count; the journey mapping is code-owned and
+ * validated against the published catalog at render; a journey with no published lesson renders
+ * "En preparación". Server component: reads the catalog through the service-role repository
+ * (never an anon grant) and keeps the `business_learning_center` flag gate with its truthful
+ * coming-soon state. Content strings from the database render exactly as stored.
  */
-export default async function LearningCenterHomePage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
+export default async function LearningCenterHomePage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const sp = await searchParams;
-  const lang = langFromSearchParams(sp);
-  const t = learningCopy(lang);
-  const q = `lang=${lang}`;
+  const rawLang = Array.isArray(sp.lang) ? sp.lang[0] : sp.lang;
+  const routeLang = normalizeLang(rawLang);
+
+  const legacyJourney = journeyFromSearchParams(sp);
+  if (legacyJourney) redirect(buildJourneyHref(legacyJourney, routeLang));
+
+  const lang = contentLangFromRouteLang(routeLang);
+  const chrome = learningCopy(lang);
+  const copy = learningLandingCopy(lang);
 
   const tier = await resolveLearningCenterFlagTier(null);
   if (tier !== "global") {
     return (
       <main className="mx-auto w-full max-w-2xl min-w-0 space-y-4 px-4 py-10 sm:px-6">
-        <h1 className="text-xl font-bold text-[#1E1810]">{t.comingSoonTitle}</h1>
-        <p className="text-sm text-[#5C5346]">{t.comingSoonBody}</p>
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#7A1E2C]">{chrome.siteEyebrow}</p>
+        <h1 className="font-serif text-2xl font-bold text-[#2A4536]">{chrome.comingSoonTitle}</h1>
+        <p className="text-sm text-[#5C5346]">{chrome.comingSoonBody}</p>
       </main>
     );
   }
 
-  const [categories, lessons] = await Promise.all([listActiveCategories(), listPublishedLessons()]);
-  const grouped = groupLessonsByCategory(lessons);
+  const [lessons, resources] = await Promise.all([listPublishedLessons(), listAllPublishedResources()]);
+
+  const journeys = resolveAllJourneys(lessons);
+  const glossaryCount = resources.filter((r) => r.resourceType === "glossary_term").length;
+  const resourceCount = resources.filter((r) => r.resourceType === "checklist" || r.resourceType === "template").length;
 
   return (
-    <main className="mx-auto w-full max-w-2xl min-w-0 space-y-6 px-4 py-6 sm:px-6">
-      <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[#9A9184]">{t.siteEyebrow}</p>
-        <div className="flex items-start justify-between gap-2">
-          <h1 className="text-2xl font-bold tracking-tight text-[#1E1810]">{t.homeTitle}</h1>
-          <div className="flex shrink-0 gap-1">
-            <Link href="/aprender?lang=es" className={`inline-flex min-h-11 items-center rounded-lg px-2.5 text-xs font-semibold ${lang === "es" ? "bg-[#7A1E2C] text-white" : "border border-[#E8DFD0] text-[#3D3428]"}`}>{t.langToggleEs}</Link>
-            <Link href="/aprender?lang=en" className={`inline-flex min-h-11 items-center rounded-lg px-2.5 text-xs font-semibold ${lang === "en" ? "bg-[#7A1E2C] text-white" : "border border-[#E8DFD0] text-[#3D3428]"}`}>{t.langToggleEn}</Link>
-          </div>
+    <>
+      <PublicPillarJsonLd id="aprender" lang={routeLang} />
+      <main className="relative w-full overflow-x-hidden bg-[#FAF6EE] text-[#1F241C]">
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            backgroundImage:
+              "radial-gradient(ellipse 110% 65% at 50% -5%, rgba(201, 168, 74, 0.12), transparent 52%), radial-gradient(ellipse 45% 35% at 100% 15%, rgba(255, 255, 255, 0.4), transparent 48%)",
+          }}
+          aria-hidden
+        />
+        <div className="relative z-10">
+          <LearningHero copy={copy} />
+          <LearningJourneyCards copy={copy} chrome={chrome} routeLang={routeLang} journeys={journeys} />
+          <LearningTrustStrip copy={copy} />
+          <LearningStartHelper copy={copy} chrome={chrome} lang={lang} routeLang={routeLang} firstLesson={journeys.idea[0] ?? null} />
+          <LearningToolsRow copy={copy} routeLang={routeLang} glossaryCount={glossaryCount} resourceCount={resourceCount} />
+          <LearningAccessClose copy={copy} />
         </div>
-        <p className="text-sm leading-relaxed text-[#5C5346]">{t.homeSubtitle}</p>
-      </header>
-
-      <LearningSearch lang={lang} />
-
-      <div className="flex flex-wrap gap-2">
-        <Link href={`/aprender/glosario?${q}`} className="inline-flex min-h-11 items-center rounded-xl border border-[#E8DFD0] bg-white px-4 text-sm font-semibold text-[#3D3428]">{t.glossaryLink}</Link>
-        <Link href={`/aprender/recursos?${q}`} className="inline-flex min-h-11 items-center rounded-xl border border-[#E8DFD0] bg-white px-4 text-sm font-semibold text-[#3D3428]">{t.resourcesLink}</Link>
-        <Link href={`/dashboard/business-tools/idea-builder?${q}`} className="inline-flex min-h-11 items-center rounded-xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-4 text-sm font-semibold text-[#1E1810]">{t.ideaBuilderLink}</Link>
-      </div>
-
-      <section className="space-y-3">
-        <h2 className="text-sm font-bold text-[#1E1810]">{t.categoriesTitle}</h2>
-        <ul className="space-y-3">
-          {categories.map((c) => {
-            const count = (grouped.get(c.id) ?? []).length;
-            return (
-              <li key={c.id}>
-                <Link
-                  href={`/aprender/${c.categoryKey}?${q}`}
-                  className="block min-h-11 rounded-2xl border border-[#E8DFD0] bg-white p-4 shadow-[0_6px_20px_-12px_rgba(42,36,22,0.15)]"
-                >
-                  <p className="break-words text-sm font-semibold text-[#1E1810]">{lang === "es" ? c.titleEs : c.titleEn}</p>
-                  <p className="mt-1 break-words text-xs text-[#5C5346]">{lang === "es" ? c.summaryEs : c.summaryEn}</p>
-                  <p className="mt-2 text-[11px] text-[#9A9184]">{count} {lang === "es" ? "leccion(es)" : "lesson(s)"}</p>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
-    </main>
+      </main>
+    </>
   );
 }

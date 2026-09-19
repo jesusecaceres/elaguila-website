@@ -1,5 +1,11 @@
 # Business Learning Center — Content Batch 02
 
+> **SUPERSEDED (2026-09-18).** The canonical curriculum control plane is now
+> [docs/learning-center-curriculum-matrix.md](learning-center-curriculum-matrix.md). All eight planned
+> lessons below are carried there with their `lesson_key` and `capability_key` unchanged. The
+> "1,200 characters + same structure" recipe is replaced by structured LessonPackages and
+> `validateLessonPackage`. This file is kept as the historical record of what TODAY-1 left planned.
+
 **Status:** Not started. This document is the locked record of what TODAY-1 deliberately left as
 `planned` (unpublished) curriculum, per the owner's correction: *"For the initial seed, require 8
 fully written bilingual lessons... Represent the remaining required learning domains as planned
