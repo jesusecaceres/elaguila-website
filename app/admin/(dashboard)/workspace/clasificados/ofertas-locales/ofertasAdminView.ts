@@ -33,7 +33,11 @@ export function parseOfertasAdminScope(sp: SearchParams | undefined): OfertasAdm
  * different per scope, so a stale value would silently show zero rows. Every other filter is preserved.
  */
 export function ofertasScopeHref(basePath: string, sp: SearchParams | undefined, scope: OfertasAdminScope): string {
-  const cleaned: SearchParams = { ...(sp ?? {}), status: undefined, status_group: undefined };
+  // `term` has a per-scope vocabulary too (e.g. Expiring exists only in Live, Expired only in History): keep it
+  // only when the target scope offers that value, otherwise the switch would land on an empty list.
+  const term = first(sp?.term);
+  const termKept = term !== "" && OFERTAS_ADMIN_TERM_OPTIONS[scope].some((o) => o.value === term);
+  const cleaned: SearchParams = { ...(sp ?? {}), status: undefined, status_group: undefined, ...(termKept ? {} : { term: undefined }) };
   if (scope === "live") return appendPreservedSearchParams(basePath, cleaned, "live");
   const queueHref = appendPreservedSearchParams(basePath, cleaned, null);
   if (scope === "queue") return queueHref;

@@ -135,7 +135,12 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     };
     const republishReactivates = !listingsRowIsPublicLive(rowRec);
     if (republishReactivates) {
-      const gate = decideAdminReactivation({ category, status: String(rowRec.status ?? "") });
+      const gate = decideAdminReactivation({
+        category,
+        status: String(rowRec.status ?? ""),
+        published_at: rowRec.published_at as string | null | undefined,
+        expires_at: rowRec.expires_at as string | null | undefined,
+      });
       if (gate.blocked) return NextResponse.json({ ok: false, error: gate.code, message: gate.message }, { status: 409 });
     }
     if (republishReactivates && fsboRestore.fsbo && fsboRestore.blocked) {
@@ -222,7 +227,12 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       rowRec.inventory_role === undefined);
 
   if (action === "unsuspend") {
-    const gate = decideAdminReactivation({ category, status: String(rowRec.status ?? "") });
+    const gate = decideAdminReactivation({
+        category,
+        status: String(rowRec.status ?? ""),
+        published_at: rowRec.published_at as string | null | undefined,
+        expires_at: rowRec.expires_at as string | null | undefined,
+      });
     if (gate.blocked) return NextResponse.json({ ok: false, error: gate.code, message: gate.message }, { status: 409 });
   }
 

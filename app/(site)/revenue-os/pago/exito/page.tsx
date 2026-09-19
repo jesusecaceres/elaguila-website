@@ -33,7 +33,9 @@ export default async function RevenueOsPagoExitoPage({
 
   return (
     <>
-      {category === "autos" ? <AutosPaidReturnIdentityCleanup /> : null}
+      {category === "autos" ? (
+        <AutosPaidReturnIdentityCleanup paidListingId={proof.listingId} packageKey={proof.packageKey ?? (packageKey || null)} />
+      ) : null}
       <RevenueOsPagoResultView
         proof={proof}
         lang={lang}

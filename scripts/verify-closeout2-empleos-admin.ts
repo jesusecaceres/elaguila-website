@@ -392,7 +392,11 @@ async function main() {
     const h = harness(listingRow({ lifecycle_status: "draft", lane: "quick" }));
     let reads = 0;
     const deps = { ...h.deps, paymentCleared: async () => (reads++, true) };
-    for (const action of ["promote_on", "verify_on", "suspend", "reject", "archive"]) {
+    // Forensic closeout: suspending an UNPAID paid-lane draft would strand it (checkout accepts only `draft`), so it is refused.
+    const stranded = await S.runEmpleosStaffAction({ id: UUID(1), action: "suspend" }, deps);
+    assert.equal(stranded.status, 409);
+    assert.equal((stranded.body as { error?: string }).error, "unpaid_draft");
+    for (const action of ["promote_on", "verify_on", "reject", "archive"]) {
       const res = await S.runEmpleosStaffAction({ id: UUID(1), action }, deps);
       assert.equal(res.status, 200, action);
     }

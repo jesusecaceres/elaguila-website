@@ -166,7 +166,7 @@ export function EmpleosAdminListClient() {
               const health = r.application_health;
               const live = r.lifecycle_status === "published";
               const extraActions = [
-                ...(r.lifecycle_status !== "pending_review" && r.lifecycle_status !== "archived"
+                ...(r.lifecycle_status !== "pending_review" && r.lifecycle_status !== "archived" && r.lifecycle_status !== "draft"
                   ? [
                       {
                         action: "send_to_review",

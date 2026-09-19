@@ -8,6 +8,7 @@ import { appendAdminAuditLog } from "@/app/admin/_lib/adminAuditLogServer";
 import { auditAdminWrite } from "@/app/admin/_lib/auditAdminWrite";
 import { requireLeonixAdminPermission } from "@/app/admin/_lib/leonixAdminGate";
 import { isSelfEngagement } from "@/app/lib/analytics/selfEngagementGuard";
+import { guardStaffCoreFieldLifecycle } from "@/app/admin/_lib/adminStaffCoreFieldGuard";
 import { evaluateAdminListingDeletes, muxAssetsSafeToDelete } from "@/app/admin/_lib/adminListingDeleteServer";
 
 export type ListingReportStatus = "pending" | "reviewed" | "dismissed";
@@ -199,15 +200,32 @@ export async function updateListingCoreFieldsStaffAdminAction(formData: FormData
   const isPublished = formData.get("is_published") === "on";
   const detailPairsRaw = String(formData.get("detail_pairs_json") ?? "").trim();
 
+  const supabase = getAdminSupabase();
+  const { data: currentRow, error: currentErr } = await supabase
+    .from("listings")
+    .select("category, status, is_published, published_at, expires_at, seller_type, listing_json")
+    .eq("id", listingId)
+    .maybeSingle();
+  if (currentErr || !currentRow) throw new Error("listing_not_found");
+  // Staff Edit is not a publication authority: category never moves lanes and status / is_published cannot
+  // activate a row that is not already live (Restore / Republish own the payment, term and capacity gates).
+  const lifecycle = guardStaffCoreFieldLifecycle(currentRow as Record<string, unknown>, {
+    category,
+    status: status.slice(0, 64),
+    isPublished,
+  });
+
   const patch: Record<string, unknown> = {
     title: title.slice(0, 500) || "(sin título)",
     description,
     city: city.slice(0, 200),
-    category: category.slice(0, 120),
-    status: status.slice(0, 64) || "active",
+    category: lifecycle.category.slice(0, 120),
     is_free: isFree,
-    is_published: isPublished,
   };
+  if (lifecycle.lifecyclePatch) {
+    patch.status = lifecycle.lifecyclePatch.status.slice(0, 64) || "active";
+    patch.is_published = lifecycle.lifecyclePatch.is_published;
+  }
 
   if (detailPairsRaw !== "") {
     try {
@@ -224,12 +242,12 @@ export async function updateListingCoreFieldsStaffAdminAction(formData: FormData
     patch.price = Number.isFinite(n) ? n : null;
   }
 
-  const supabase = getAdminSupabase();
   const { error } = await supabase.from("listings").update(patch).eq("id", listingId);
   if (error) throw new Error(error.message);
 
   auditAdminWrite("listing_staff_core_fields_updated", "listings", listingId, {
     keys: Object.keys(patch),
+    ignored: lifecycle.ignored,
   });
 
   revalidatePath("/admin/workspace/clasificados");

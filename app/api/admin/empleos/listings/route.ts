@@ -110,7 +110,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const job = rowToJobRecord(r);
     const ex = extras.get(r.id);
     const ct = commercial[r.id];
-    const paymentCleared = ct ? ct.state === "known" && String(ct.paymentStatus ?? "").trim().toLowerCase() === "paid" : false;
+    const paymentCleared = ct ? ct.state === "known" && ["paid", "succeeded", "cleared", "payment_cleared"].includes(String(ct.paymentStatus ?? "").trim().toLowerCase()) : false;
     const rowState = {
       lifecycle_status: r.lifecycle_status,
       lane: r.lane,

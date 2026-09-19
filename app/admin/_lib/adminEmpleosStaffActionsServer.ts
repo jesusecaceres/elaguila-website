@@ -37,7 +37,7 @@ async function defaultPaymentCleared(listingId: string, supabase: SupabaseClient
   try {
     const map = await loadAdminListingCommercialTruth({ category: "empleos", listingIds: [listingId], supabase });
     const t = map[listingId];
-    return Boolean(t && t.state === "known" && String(t.paymentStatus ?? "").trim().toLowerCase() === "paid");
+    return Boolean(t && t.state === "known" && ["paid", "succeeded", "cleared", "payment_cleared"].includes(String(t.paymentStatus ?? "").trim().toLowerCase()));
   } catch {
     return false;
   }

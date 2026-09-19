@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { isBrFsboRow } from "@/app/lib/listingLifecycle/bienesFsboLifecycle";
 import { getBearerUserId } from "@/app/api/clasificados/_lib/bearerUser";
 import {
   buildCheckoutCancelUrl,
@@ -617,6 +618,15 @@ export async function POST(request: NextRequest) {
         { status: 403 },
       );
     }
+    // The package must match the row's lane, and an inventory vehicle rides its parent's subscription - a
+    // dealer child (or a Privado row sent through the dealer package, and vice versa) never starts its own base charge.
+    const expectedAutosLane = packageDef.packageKey === AUTOS_PRIVADO_30D_PACKAGE_KEY ? "privado" : "negocios";
+    if (autosRow.lane !== expectedAutosLane || autosRow.inventory_role === "inventory_vehicle") {
+      return NextResponse.json(
+        { ok: false, code: "autos_listing_package_mismatch", message: "This package does not apply to this vehicle listing." },
+        { status: 409 },
+      );
+    }
     if (!isAutosListingPayableStatus(autosRow.status)) {
       return NextResponse.json(
         {
@@ -674,12 +684,25 @@ export async function POST(request: NextRequest) {
   if (expectedListingsCategory && operationEarly !== "renew_listing" && listingRef) {
     const { data: listingsRow } = await getAdminSupabase()
       .from("listings")
-      .select("owner_id, category, status, is_published")
+      .select("owner_id, category, status, is_published, seller_type, listing_json")
       .eq("id", listingRef)
       .maybeSingle();
-    const lr = listingsRow as { owner_id: string | null; category: string | null; status: string | null; is_published: boolean | null } | null;
+    const lr = listingsRow as {
+      owner_id: string | null;
+      category: string | null;
+      status: string | null;
+      is_published: boolean | null;
+      seller_type: string | null;
+      listing_json: unknown;
+    } | null;
     if (!lr || String(lr.category ?? "").trim().toLowerCase() !== expectedListingsCategory) {
       return NextResponse.json({ ok: false, code: "listing_not_found", message: "Listing not found for this package." }, { status: 404 });
+    }
+    if (packageDef.packageKey === "br_fsbo_45d" && !isBrFsboRow({ category: lr.category, seller_type: lr.seller_type, listing_json: lr.listing_json })) {
+      return NextResponse.json(
+        { ok: false, code: "listing_not_found", message: "Private-seller listing not found for this package." },
+        { status: 404 },
+      );
     }
     if (bearerUserId && lr.owner_id !== bearerUserId) {
       return NextResponse.json({ ok: false, code: "listing_owner_mismatch", message: "This listing belongs to a different account." }, { status: 403 });
@@ -817,6 +840,27 @@ export async function POST(request: NextRequest) {
           reusedSession: true,
           activeDiscountSource: existingDiscountSource,
         });
+      }
+    }
+    // Never open a second Stripe session while the first may already be paid: a `complete` session whose webhook
+    // has not landed yet (or a session Stripe could not be asked about) is an in-flight payment, not a stale one.
+    if (priorSessionId) {
+      const priorState = await retrieveRevenueCheckoutSessionState(priorSessionId);
+      if (priorState.status === "complete") {
+        return NextResponse.json(
+          {
+            ok: false,
+            code: "payment_in_progress",
+            message: "Your payment is being confirmed. Your listing will activate automatically in a moment — do not pay again.",
+          },
+          { status: 409 },
+        );
+      }
+      if (priorState.status === "unknown") {
+        return NextResponse.json(
+          { ok: false, code: "checkout_state_unverifiable", message: "We could not verify your previous checkout. Please try again in a moment." },
+          { status: 503 },
+        );
       }
     }
     // Stale (expired/completed-elsewhere/no session) OR a discount-source mismatch: release the

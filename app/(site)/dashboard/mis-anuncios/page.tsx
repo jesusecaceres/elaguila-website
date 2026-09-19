@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { dashboardOwnerMayActivateFromStatus } from "../lib/dashboardOwnerRelistPolicy";
 import Link from "next/link";
 import {useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
@@ -1258,7 +1259,7 @@ function MyListingsPageContent() {
     const currentRow = listings.find((x) => x.id === id);
     if (status === "active") {
       const cur = String(currentRow?.status ?? "").toLowerCase();
-      if (cur !== "paused" && cur !== "sold" && cur !== "active") {
+      if (!dashboardOwnerMayActivateFromStatus(cur)) {
         setError(dashboardSafeMutationErrorCopy(lang));
         return;
       }

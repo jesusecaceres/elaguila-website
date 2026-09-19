@@ -1,3 +1,4 @@
+import { AUTOS_PRE_PUBLISH_STATUSES, decideAutosAdminReactivation } from "@/app/admin/_lib/adminAutosReactivationPolicy";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
@@ -114,6 +115,10 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     // atomic RPC instead of folding status/published_at into the generic patch below.
     const republishReactivates =
       !autosRowIsPublicLive(rec) && (rec.status === "removed" || rec.status === "cancelled");
+    if (republishReactivates) {
+      const gate = decideAutosAdminReactivation({ status: String(rec.status ?? ""), published_at: row.published_at });
+      if (gate.blocked) return NextResponse.json({ ok: false, error: gate.code, message: gate.message }, { status: 409 });
+    }
     if (republishReactivates && String(rec.lane) === "negocios") {
       const rpcResult = await activateAutosDealerListingAtomic({
         listingId: id,
@@ -167,6 +172,10 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     if (row.status !== "removed" && row.status !== "cancelled") {
       return NextResponse.json({ ok: false, error: "not_removed_or_cancelled" }, { status: 400 });
     }
+    {
+      const gate = decideAutosAdminReactivation({ status: row.status, published_at: row.published_at });
+      if (gate.blocked) return NextResponse.json({ ok: false, error: gate.code, message: gate.message }, { status: 409 });
+    }
     // Package C Build 4 (C7, Gate 4) — capacity-increasing admin reactivation of a negocios row
     // now routes through the atomic RPC (previously: role-guarded only, zero capacity check).
     if (row.lane === "negocios") {
@@ -214,7 +223,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   } else if (action === "verify_off") {
     patch.leonix_verified = false;
   } else if (action === "archive") {
-    if (row.status === "draft" || row.status === "pending_payment") {
+    if (AUTOS_PRE_PUBLISH_STATUSES.has(String(row.status ?? ""))) {
       return NextResponse.json({ ok: false, error: "cannot_archive_pre_publish" }, { status: 400 });
     }
     patch.status = "cancelled" satisfies AutosClassifiedsListingStatus;

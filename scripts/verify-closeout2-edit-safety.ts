@@ -378,7 +378,9 @@ async function main() {
     assert.deepEqual(guard.assertAdminListingDeleteAllowed({ row: paused, evidence: { hasActiveSubscription: true }, mode: "permanent" }), { ok: false, code: "active_subscription" });
     assert.deepEqual(guard.assertAdminListingDeleteAllowed({ row: paused, evidence: { hasLiveEntitlement: true }, mode: "permanent" }), { ok: false, code: "live_entitlement" });
     const removed = { id: "x", category: "en-venta", status: "removed", is_published: false };
-    assert.deepEqual(guard.assertAdminListingDeleteAllowed({ row: removed, evidence: { hasPaidRecord: true, hasActiveSubscription: true, hasLiveEntitlement: true }, mode: "permanent" }), { ok: true }, "explicitly removed rows may be permanently deleted");
+    assert.deepEqual(guard.assertAdminListingDeleteAllowed({ row: removed, evidence: { hasPaidRecord: true, hasLiveEntitlement: true }, mode: "permanent" }), { ok: true }, "explicitly removed rows with paid history may be permanently deleted");
+    // Forensic closeout: a live subscription keeps billing the customer, so it blocks even an explicitly removed row.
+    assert.deepEqual(guard.assertAdminListingDeleteAllowed({ row: removed, evidence: { hasActiveSubscription: true }, mode: "permanent" }), { ok: false, code: "active_subscription" });
     assert.deepEqual(guard.assertAdminListingDeleteAllowed({ row: { id: "n", category: "en-venta", status: "pending", is_published: false }, mode: "permanent" }), { ok: true }, "never-paid junk is deletable");
     assert.deepEqual(guard.assertAdminListingDeleteAllowed({ row: live, evidence: { hasPaidRecord: true }, mode: "soft" }), { ok: true }, "soft delete only needs the inventory guard");
   });

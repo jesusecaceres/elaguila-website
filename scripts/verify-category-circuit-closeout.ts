@@ -54,14 +54,19 @@ async function main() {
       const d = react.decideAdminReactivation({ category: c, status: "pending" });
       assert.equal(d.blocked, true, c);
     }
+    // Forensic closeout: a row that WAS live (published_at / expires_at stamped by the first paid activation) restores;
+    // one that never was live stays blocked even after staff suspended / archived it (flagged / removed).
     for (const st of ["flagged", "paused", "removed", "sold", "active"]) {
-      assert.equal(react.decideAdminReactivation({ category: "rentas", status: st }).blocked, false, st);
+      assert.equal(react.decideAdminReactivation({ category: "rentas", status: st, published_at: "2026-09-01T00:00:00Z" }).blocked, false, st);
+    }
+    for (const st of ["flagged", "removed"]) {
+      assert.equal(react.decideAdminReactivation({ category: "rentas", status: st }).blocked, true, `never-live ${st}`);
     }
     for (const c of ["en-venta", "busco", "comunidad", "mascotas-y-perdidos"]) {
       assert.equal(react.decideAdminReactivation({ category: c, status: "pending" }).blocked, false, c);
     }
     const route = raw("app/api/admin/clasificados/listings/[id]/route.ts");
-    assert.match(route, /decideAdminReactivation\(\{ category, status: String\(rowRec\.status/);
+    assert.match(route, /decideAdminReactivation\(\{\s*category,\s*status: String\(rowRec\.status/);
     assert.ok((route.match(/decideAdminReactivation\(/g) ?? []).length >= 2, "wired into unsuspend AND republish");
   });
 
@@ -116,7 +121,7 @@ async function main() {
     const rentasBlock = fn.slice(0, fn.indexOf("async function startRentasRenewal") > 0 ? fn.indexOf("async function startRentasRenewal") : 6000);
     assert.match(rentasBlock, /if \(!live\) \{\s*\/\/ 2026-09 category closeout — Republish only bumps/);
     assert.ok(!/if \(!live\) \{\s*patch\.is_published = true;\s*patch\.status = "active";/.test(rentasBlock), "Rentas/BR block must not set active client-side");
-    assert.match(p, /cur !== "paused" && cur !== "sold" && cur !== "active"/);
+    assert.match(p, /!dashboardOwnerMayActivateFromStatus\(cur\)/);
     assert.match(p, /if \(soldEnVenta\) delete patch\.is_published;/);
     assert.match(p, /rowStatusForRepublish !== "paused" && rowStatusForRepublish !== "sold"/);
     assert.ok(p.includes('if (status === "sold") patch.is_published = false;'), "literal pinned by verify-bienes-final-launch-golden-stack-01");

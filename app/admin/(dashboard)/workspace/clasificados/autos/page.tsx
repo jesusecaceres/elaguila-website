@@ -10,7 +10,6 @@ import {
 } from "@/app/admin/_lib/adminQueueActionFlow";
 import { ClasificadosQueueActionChrome } from "../_components/ClasificadosQueueActionChrome";
 import { getAdminLang, adminMessages } from "@/app/admin/_lib/adminI18n";
-import { autosRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCapability";
 import {
   autosClassifiedsRowToDashboardRow,
   listAllAutosClassifiedsRowsForAdmin,
@@ -134,58 +133,58 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
   const liveNavHref = appendPreservedSearchParams(autosBase, sp, "live", ["lane"]);
   const laneHref = (target: (typeof ADMIN_AUTOS_LANE_OPTIONS)[number]["value"]) =>
     appendPreservedSearchParams(autosBase, { ...sp, lane: target === "all" ? undefined : target }, scope, ["lane"]);
-  let rows = await listAllAutosClassifiedsRowsForAdmin(memoryFiltered ? 500 : queueLimit, {
+  // q needs the matching profile ids BEFORE the scan (owner name / e-mail search).
+  const profileSet = new Set<string>();
+  if (qRaw && isSupabaseAdminConfigured() && qRaw.length >= 2) {
+    const supabase = getAdminSupabase();
+    const pids = await fetchProfileIdsMatchingAdminQueueSearch(supabase, qRaw);
+    for (const id of pids) profileSet.add(id);
+  }
+  // Search / status / owner / Leonix Ad ID are applied INSIDE the paged scan (before the row limit), so a
+  // match older than the newest page is still found and `limit` counts matching rows, not scanned rows.
+  type AutosAdminRow = Awaited<ReturnType<typeof listAllAutosClassifiedsRowsForAdmin>>[number];
+  const rowFilter = memoryFiltered
+    ? (r: AutosAdminRow) => {
+        if (statusFilter && String(r.status).toLowerCase() !== statusFilter) return false;
+        if (ownerFilter && !adminRowMatchesOwnerFilter(r, ownerFilter)) return false;
+        if (leonixAdIdFilter && !adminRowMatchesLeonixAdIdFilter(r, leonixAdIdFilter)) return false;
+        if (!qRaw) return true;
+        const dash = autosClassifiedsRowToDashboardRow(r);
+        const L = r.listing_payload;
+        const blob = [
+          L.year,
+          L.make,
+          L.model,
+          L.trim,
+          L.vin,
+          L.stockNumber,
+          L.state,
+          L.zip,
+          L.dealerName,
+          (L.description ?? "").slice(0, 500),
+        ]
+          .filter((x) => x != null && String(x).trim() !== "")
+          .join(" ")
+          .toLowerCase();
+        return autosRowMatchesAdminQueueSearch(
+          {
+            id: r.id,
+            owner_user_id: r.owner_user_id,
+            title: dash.title,
+            city: dash.city,
+            leonix_ad_id: r.leonix_ad_id ?? null,
+            vehicleTextBlob: blob,
+          },
+          qRaw,
+          profileSet,
+        );
+      }
+    : undefined;
+  const rows = await listAllAutosClassifiedsRowsForAdmin(queueLimit, {
     ...(scope === "live" ? { scope: "live" as const } : {}),
     ...(lane !== "all" ? { lane } : {}),
+    ...(rowFilter ? { rowFilter } : {}),
   });
-  if (qRaw) {
-    const profileSet = new Set<string>();
-    if (isSupabaseAdminConfigured() && qRaw.length >= 2) {
-      const supabase = getAdminSupabase();
-      const pids = await fetchProfileIdsMatchingAdminQueueSearch(supabase, qRaw);
-      for (const id of pids) profileSet.add(id);
-    }
-    rows = rows.filter((r) => {
-      const dash = autosClassifiedsRowToDashboardRow(r);
-      const L = r.listing_payload;
-      const blob = [
-        L.year,
-        L.make,
-        L.model,
-        L.trim,
-        L.vin,
-        L.stockNumber,
-        L.state,
-        L.zip,
-        L.dealerName,
-        (L.description ?? "").slice(0, 500),
-      ]
-        .filter((x) => x != null && String(x).trim() !== "")
-        .join(" ")
-        .toLowerCase();
-      const lx = r.leonix_ad_id ?? null;
-      return autosRowMatchesAdminQueueSearch(
-        {
-          id: r.id,
-          owner_user_id: r.owner_user_id,
-          title: dash.title,
-          city: dash.city,
-          leonix_ad_id: lx,
-          vehicleTextBlob: blob,
-        },
-        qRaw,
-        profileSet,
-      );
-    });
-  }
-
-  if (scope === "live") {
-    rows = rows.filter((r) => autosRowIsPublicLive(r as unknown as Record<string, unknown>));
-  }
-  if (statusFilter) rows = rows.filter((r) => String(r.status).toLowerCase() === statusFilter);
-  if (ownerFilter) rows = rows.filter((r) => adminRowMatchesOwnerFilter(r, ownerFilter));
-  if (leonixAdIdFilter) rows = rows.filter((r) => adminRowMatchesLeonixAdIdFilter(r, leonixAdIdFilter));
-  if (memoryFiltered) rows = rows.slice(0, queueLimit);
 
   // Dealer capacity (closeout 2): the active count per dealer inventory GROUP comes from the canonical
   // grouped count (adminCategorySummary.fetchAutosDealerCapacityTruth, scoped to the owners visible

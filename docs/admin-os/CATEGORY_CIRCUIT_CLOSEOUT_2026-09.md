@@ -107,3 +107,38 @@ raw status dropdown), Ofertas (canonical actions + reachable History view), Trav
 Still open after Closeout 2 (source): see the return summary in the thread. Legacy verifiers that diff the working tree for "forbidden file
 changed" fail on any multi-lane branch (they fail identically on any change to those files); every content-pin verifier was either passing
 or updated to the new structure.
+
+## 6. Release-candidate forensic closeout (same branch)
+
+A control-flow review of the full delta (six read-only audit passes: dedicated-table lanes, Autos + generic lanes, admin authority + delete,
+queue/live/public predicates + limits, shared-helper consumers + shell capability diff, dashboard state machine) found the following genuine
+source defects. All are fixed here; each has an executable check in `scripts/verify-forensic-closeout.ts`.
+
+| # | Defect | Fix |
+|---|---|---|
+| 1 | Generic Admin route: `suspend` / `archive` on a never-paid `pending` Rentas / Bienes / Clases row wrote `flagged` / `removed`, after which `unsuspend` / `republish` passed the payment gate and switched it live. | `decideAdminReactivation` now also blocks a paid-lane row with no `published_at` / `expires_at` (the first paid activation stamps both; a pending-payment insert stamps neither). |
+| 2 | Staff "Edit listing" wrote free-text `status`, `is_published` and `category` verbatim — a second publication authority (activate unpaid, skip FSBO term / Negocio capacity, move a row between lanes). | `adminStaffCoreFieldGuard.ts`: category never changes; status / published cannot activate a non-live row (Restore / Republish own the gates). Ignored fields are recorded in the audit meta. |
+| 3 | Autos Admin: `archive` refused only `draft` / `pending_payment`, so `payment_failed` → `cancelled` → Restore went live with no payment (and Restore stamped `published_at`). | `adminAutosReactivationPolicy.ts` — archive refuses every pre-publish status; Restore + Republish require a row that was ever published. |
+| 4 | Empleos: staff `send_to_review` / `suspend` on an unpaid paid-lane draft stranded it (checkout accepts only `draft`, Restore stays payment-gated). | Refused with `unpaid_draft`; the button is hidden for drafts. `reject` / `archive` remain. |
+| 5 | Comida Local checkout never forwarded the recurring-billing consent the checkpoint collects (subscription package → server 422). | `recurringConsent: ctx.recurringConsent` forwarded. |
+| 6 | Checkout could open a SECOND Stripe session while the first was `complete` (webhook not landed yet) or unverifiable. | `payment_in_progress` (409) / `checkout_state_unverifiable` (503) before the stale-attempt release. |
+| 7 | Checkout pre-flights: Autos package not bound to the row's lane / inventory child; FSBO package accepted any Bienes row. | `autos_listing_package_mismatch`; FSBO requires `isBrFsboRow`. |
+| 8 | Owner workspace "Refrescar" (En Venta) and the editor's "Activar" wrote `status='active'` from ANY status (pending, flagged by staff, removed). | Shared `dashboardOwnerMayActivateFromStatus` (paused / sold / active only) on the list, workspace and editor. |
+| 9 | Autos success return cleared BOTH lanes' draft identity for any Autos payment (boost, renewal, pack). | Cleared only when the stored identity IS the paid listing (or a base package with an unknown listing id). |
+| 10 | Admin Autos queue filtered search / status / owner / Ad ID after a 500-row window. | Filters run inside the paged scan (`rowFilter`), so the limit counts matching rows. |
+| 11 | Listing-truth chip said PUBLIC for a Rentas row with no paid term and PAUSED for a public sold Busco / Comunidad / Clases row. | Chip agrees with `isGenericListingPubliclyLive` (Bienes keeps the base semantic — it needs the parent map). |
+| 12 | Ofertas scope switch kept a `term` that does not exist in the target scope (empty list). | `term` kept only when the target scope offers it. |
+| 13 | Empleos "payment cleared" accepted only `paid`. | Same cleared set as the ledger (`paid` / `succeeded` / `cleared` / `payment_cleared`). |
+| 14 | Permanent delete: a Negocio parent with paused / pending / removed children (FK is `ON DELETE SET NULL`) orphaned them; an active subscription was ignored once the row was soft-removed. | `has_linked_children`; an active subscription always blocks a permanent delete. |
+
+### Verified NOT defects (source-proven)
+* Restaurantes `POST /publish` without `activation_mode` publishes the FREE application; the paid path always sends `pending_payment`.
+* Servicios / Restaurantes / Viajes Admin routes are unchanged from `main`; Viajes has no payment product (checkout refused server-side).
+* `br_agent_monthly` is covered by the base-entitlement guard; Negocio pending-child Restore stays blocked on purpose (capacity RPC does not check the subscription).
+* Delete removes only the `listings` row: `leonix_payment_records.listing_id` is text (no FK) so payment truth survives; `listing_audit_events` is
+  `ON DELETE CASCADE` (intentionally removed with the row — the admin audit log keeps `listing_permanently_deleted_by_admin`).
+
+### Residual (documented, not source-fixable here)
+* DB: `public.listings` owner UPDATE policy still allows an owner to write `status` directly (proposed guard trigger, `PROPOSED_DB_HARDENING_2026-09.md` §1);
+  `br_negocio_activate_listing` / `autos_dealer_activate_listing` do not verify a live subscription; `restaurantes_public_listings.draft_listing_id` has no unique index.
+* Product: Comida Local / Empleos payment-aware owner marker on archive → resume; inventory-add identity scope is never cleared (fails closed, not a duplicate).

@@ -1,5 +1,6 @@
 "use client";
 
+import { dashboardOwnerMayActivateFromStatus } from "../../../lib/dashboardOwnerRelistPolicy";
 import Link from "next/link";
 import {useEffect, useMemo, useState, Suspense } from "react";
 import { useParams, useRouter, useSearchParams, usePathname } from "next/navigation";
@@ -629,6 +630,13 @@ async function removeSellerPhoto() {
         status: result.status,
         is_published: result.isPublished,
       }));
+      setBusyAction(null);
+      return;
+    }
+
+    // Relist only what the owner took offline; pending / flagged / expired / removed rows are never activated here.
+    if (status === "active" && !dashboardOwnerMayActivateFromStatus((listing as { status?: unknown } | null)?.status)) {
+      setError(dashboardSafeMutationErrorCopy(lang));
       setBusyAction(null);
       return;
     }

@@ -394,6 +394,8 @@ async function main() {
     const live = new URL(v.ofertasScopeHref(base, sp, "live"), "https://x.test");
     assert.equal(live.searchParams.get("scope"), "live");
     assert.equal(live.searchParams.get("status_group"), null);
+    // `term` has a per-scope vocabulary: Expired exists only in History, so a switch to Live drops it.
+    assert.equal(live.searchParams.get("term"), null);
     const queue = new URL(v.ofertasScopeHref(base, sp, "queue"), "https://x.test");
     assert.equal(queue.searchParams.get("scope"), null);
     assert.equal(queue.searchParams.get("lane"), "flyer");

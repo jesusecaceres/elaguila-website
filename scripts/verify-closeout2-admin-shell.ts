@@ -749,7 +749,9 @@ async function main() {
     assert.match(src, /<AdminCommercialTruthSection/);
     assert.match(src, /<AdminCategoryFilterBar/);
     assert.match(src, /adminStatusOptionsForCategory\("autos"\)/);
-    assert.match(src, /listAllAutosClassifiedsRowsForAdmin\(memoryFiltered \? 500 : queueLimit/);
+    // Forensic closeout: filters run inside the paged scan (rowFilter), so the limit counts MATCHING rows.
+    assert.match(src, /listAllAutosClassifiedsRowsForAdmin\(queueLimit, \{/);
+    assert.match(src, /rowFilter/);
   });
 
   await check("autos lane work from d3ed73ab is intact (lane module, hub lane panel, lane param preserved on scope links)", () => {

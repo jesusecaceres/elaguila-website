@@ -162,6 +162,7 @@ export type AdminDeleteGuardCode =
   | "forbidden_role_for_action"
   | "ambiguous_or_unknown_role"
   | "has_public_children"
+  | "has_linked_children"
   | "child_role_unconfirmed"
   | "public_live_requires_removal"
   | "active_subscription"
@@ -212,13 +213,17 @@ export function assertAdminListingDeleteAllowed(input: {
       if (child.inventory_role !== "inventory_property") return { ok: false, code: "child_role_unconfirmed" };
       return { ok: false, code: "has_public_children" };
     }
+    // The parent FK is ON DELETE SET NULL: permanently deleting a parent would orphan every linked child
+    // (paused / pending / removed included) into an unresolved-role row. Children go first.
+    if (mode === "permanent" && linked.length > 0) return { ok: false, code: "has_linked_children" };
   }
 
   if (mode === "permanent") {
     if (adminDeleteRowLooksPublicLive(row)) return { ok: false, code: "public_live_requires_removal" };
     // Commercial state blocks a permanent delete until staff has explicitly REMOVED the row (soft delete).
+    // A live subscription keeps billing the customer whether or not the row was soft-removed first.
+    if (evidence.hasActiveSubscription) return { ok: false, code: "active_subscription" };
     if (!isAdminDeleteRowRemoved(row)) {
-      if (evidence.hasActiveSubscription) return { ok: false, code: "active_subscription" };
       if (evidence.hasLiveEntitlement) return { ok: false, code: "live_entitlement" };
       if (evidence.hasPaidRecord) return { ok: false, code: "paid_record_requires_removal" };
     }
@@ -230,6 +235,8 @@ export function adminDeleteGuardMessage(code: AdminDeleteGuardCode): string {
   switch (code) {
     case "has_public_children":
       return "This parent still has public child listings. Remove or pause the children first.";
+    case "has_linked_children":
+      return "This parent still has linked child listings. Permanently delete or resolve the children first.";
     case "child_role_unconfirmed":
       return "A linked listing's inventory role cannot be confirmed. Resolve the group before deleting.";
     case "public_live_requires_removal":

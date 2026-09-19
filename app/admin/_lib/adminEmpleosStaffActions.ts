@@ -93,6 +93,18 @@ export function normalizeEmpleosStaffReason(reason: unknown): string | null {
   return t ? t.slice(0, 300) : null;
 }
 
+/**
+ * A never-paid paid-lane `draft` is the ONLY state the Revenue OS checkout pre-flight accepts (owned `draft`).
+ * Moving it to `paused` / `pending_review` would strand it: the owner could no longer pay and Restore stays
+ * payment-gated. Staff may still `reject` or `archive` it (terminal, honest decisions).
+ */
+export const EMPLEOS_UNPAID_DRAFT_MESSAGE =
+  "This paid-lane job post is an unpaid draft — nothing is live to suspend or review, and moving it would leave the owner unable to pay. Reject or archive it instead.";
+
+export function empleosActionStrandsUnpaidDraft(action: EmpleosStaffAction, row: EmpleosStaffRowState): boolean {
+  return (action === "suspend" || action === "send_to_review") && lc(row.lifecycle_status) === "draft" && empleosRowAwaitsPayment(row);
+}
+
 function invalidTransition(action: string, status: string): EmpleosStaffDecision {
   return {
     ok: false,
@@ -117,6 +129,10 @@ export function decideEmpleosStaffAction(input: {
   const status = lc(row.lifecycle_status);
   const reason = normalizeEmpleosStaffReason(input.reason);
   const patch: Record<string, unknown> = { updated_at: now };
+
+  if (empleosActionStrandsUnpaidDraft(action, row)) {
+    return { ok: false, status: 409, error: "unpaid_draft", message: EMPLEOS_UNPAID_DRAFT_MESSAGE };
+  }
 
   const gate = (): EmpleosStaffDecision | null => {
     if (empleosRowIsPublicLive(row as Record<string, unknown>)) return null;

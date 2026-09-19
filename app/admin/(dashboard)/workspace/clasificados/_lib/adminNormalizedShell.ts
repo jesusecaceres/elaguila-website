@@ -3,6 +3,7 @@
  * listing-card sections). No React, no I/O — importable from server pages, client tables and the
  * tsx verifier alike.
  */
+import { isGenericListingPubliclyLive } from "@/app/admin/_lib/adminLivePredicates";
 import {
   BIENES_FSBO_LIFECYCLE_CATEGORY,
   isBrFsboRow,
@@ -206,7 +207,28 @@ export function adminListingTruthForListingsRow(
     commercial && commercial.state === "known"
       ? ["paid", "succeeded"].includes(String(commercial.paymentStatus ?? "").trim().toLowerCase())
       : undefined;
-  return classifyPublication("listings", row, { now, paymentCleared: cleared });
+  const truth = classifyPublication("listings", row, { now, paymentCleared: cleared });
+  // The chip must agree with the Live scope and the row action (Live = the public reader's predicate). The
+  // category-agnostic semantic says PUBLIC for a Rentas row with no paid term and PAUSED for a sold Busco /
+  // Comunidad / Clases row that the public reader still shows. Bienes Raices needs the parent map, so it keeps
+  // the base semantic.
+  if (String(row.category ?? "").trim().toLowerCase() === "bienes-raices") return truth;
+  const nowMs = (now ?? new Date()).getTime();
+  const live = isGenericListingPubliclyLive(null, row, nowMs);
+  if (live && truth.semantic !== "PUBLIC") {
+    return { ...truth, semantic: "PUBLIC", reason: "Publicly visible (matches the public reader)." };
+  }
+  if (!live && truth.semantic === "PUBLIC") {
+    const exp = typeof row.expires_at === "string" ? new Date(row.expires_at).getTime() : NaN;
+    if (Number.isFinite(exp) && exp <= nowMs) {
+      return { ...truth, semantic: "EXPIRED", reason: "Term elapsed - not in the public read set." };
+    }
+    if (!Number.isFinite(exp)) {
+      return { ...truth, semantic: "NOT_PUBLIC_PAYMENT", reason: "No paid term on record - not in the public read set." };
+    }
+    return { ...truth, semantic: "PAUSED", reason: "Not in the public read set." };
+  }
+  return truth;
 }
 
 // ── Commercial truth → presentation ───────────────────────────────────────────────────────────

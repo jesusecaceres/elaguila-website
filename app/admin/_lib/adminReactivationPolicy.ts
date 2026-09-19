@@ -12,10 +12,20 @@ const PAID_LANE_CATEGORIES: ReadonlySet<string> = new Set(["rentas", "bienes-rai
 
 export type AdminReactivationDecision = { blocked: false } | { blocked: true; code: "payment_required"; message: string };
 
-export function decideAdminReactivation(input: { category: string | null | undefined; status: string | null | undefined }): AdminReactivationDecision {
+export function decideAdminReactivation(input: {
+  category: string | null | undefined;
+  status: string | null | undefined;
+  published_at?: string | null;
+  expires_at?: string | null;
+}): AdminReactivationDecision {
   const category = String(input.category ?? "").trim().toLowerCase();
   const status = String(input.status ?? "").trim().toLowerCase();
-  if (PAID_LANE_CATEGORIES.has(category) && status === "pending") {
+  // A pending-payment insert stamps neither `published_at` nor `expires_at`; the first paid activation stamps
+  // both. A never-paid row that staff suspended / archived (flagged / removed) must therefore stay blocked,
+  // otherwise suspend -> unsuspend launders it live without payment.
+  const everLive = Boolean(String(input.published_at ?? "").trim() || String(input.expires_at ?? "").trim());
+  const provenNeverLive = status !== "" && !everLive;
+  if (PAID_LANE_CATEGORIES.has(category) && (status === "pending" || provenNeverLive)) {
     return {
       blocked: true,
       code: "payment_required",
