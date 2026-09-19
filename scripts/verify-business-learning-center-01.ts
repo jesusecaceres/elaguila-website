@@ -1480,7 +1480,7 @@ check("G2 legacy adapter: the 7 other published lessons become an honest reduced
     assert.deepStrictEqual(r.errors, [], `${key}: ${r.errors.join(" | ")}`);
 
     // Every emitted sentence is a verbatim slice of the stored body (labels are the only added words).
-    const labelTexts = new Set(Object.values(LEGACY_SECTION_LABELS).flatMap((l) => [l.es, l.en]));
+    const labelTexts = new Set<string>(Object.values(LEGACY_SECTION_LABELS).flatMap((l) => [l.es, l.en]));
     const emitted: [string, string][] = [];
     for (const b of pkg.blocks) {
       if (b.type === "explain") for (const c of b.chunks) emitted.push([c.body.es, c.body.en]);
