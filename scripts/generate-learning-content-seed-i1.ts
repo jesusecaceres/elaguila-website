@@ -20,7 +20,12 @@
  * QUARANTINE (Gate G4-I1.1): the seed is written to `supabase/reviewed-seeds/`, which no Supabase
  * command reads. It must NEVER live in `supabase/migrations/`, where an ordinary `supabase db push`
  * would apply it (and publish three lessons) without review. Applying it is an explicit,
- * project-verified step: docs/learning-center-i1-staging-apply-runbook.md.
+ * project-verified step: docs/learning-center-i1-canonical-apply-runbook.md.
+ *
+ * I-1A / I-1B (owner decision, exposure option C): the canonical database is LIVE, so the seed is applied in
+ * two separately authorized steps. `--write` therefore also emits the I-1A artifact — Parts B + C ONLY (the
+ * 80 guarded repairs of text that is already public), sliced from the very same generated seed so it cannot
+ * drift, wrapped in one transaction with an assertion block. Part A (the three new lessons) is I-1B.
  *
  * This script never talks to a database. Generating the file does not apply it.
  */
@@ -40,6 +45,10 @@ export const FOUNDATION_MIGRATION = "supabase/migrations/20260807120000_business
 /** Reviewed, NOT auto-applied. Never move this under supabase/migrations/. */
 export const SEED_I1_SQL = "supabase/reviewed-seeds/learning-center/20260918_content_batch_i1.sql";
 export const SEED_I1_LEDGER = "docs/learning-center-seed-i1-accent-ledger.md";
+/** I-1A — Parts B + C only, derived from the seed above. Reviewed, NOT auto-applied. */
+export const SEED_I1A_REPAIRS_SQL = "supabase/reviewed-seeds/learning-center/20260918_content_batch_i1a_repairs.sql";
+export const SEED_I1_RUNBOOK = "docs/learning-center-i1-canonical-apply-runbook.md";
+export const CANONICAL_PROJECT = { name: "Leonix Media", ref: "xuieateniufcrsfdomwl" } as const;
 
 /* ---------------------------------------------------------------------------------------------- */
 /* 1. New lesson rows                                                                              */
@@ -327,9 +336,12 @@ export function buildSeedSql(foundationSql: string): string {
     "-- REVIEWED SEED — NOT A MIGRATION. This file lives in supabase/reviewed-seeds/ on purpose:",
     "-- nothing applies it automatically. DO NOT move it into supabase/migrations/ and DO NOT use a",
     "-- blind `supabase db push` for it. Apply it explicitly, to a project you have verified, following",
-    "-- docs/learning-center-i1-staging-apply-runbook.md.",
+    "-- docs/learning-center-i1-canonical-apply-runbook.md.",
     "--",
-    "-- REVIEW BEFORE APPLYING (owner decision OD-2): staging first, never straight to production.",
+    "-- REVIEW BEFORE APPLYING (owner decision OD-2). There is no staging database: the only target is the",
+    "-- canonical project Leonix Media (ref xuieateniufcrsfdomwl). Parts B + C are applied first, on their own,",
+    "-- through the derived I-1A artifact (20260918_content_batch_i1a_repairs.sql). Part A is I-1B and needs",
+    "-- its own authorization.",
     "-- Authoring this file did NOT apply it. Applying it PUBLISHES three lessons.",
     "--",
     "-- Part A — three new published lessons (additive; ON CONFLICT DO NOTHING):",
@@ -452,10 +464,94 @@ export function buildLedger(foundationSql: string): string {
   return out.join("\n");
 }
 
+/* ---------------------------------------------------------------------------------------------- */
+/* 4. I-1A — the live-text repair artifact (Parts B + C only)                                      */
+/* ---------------------------------------------------------------------------------------------- */
+
+const PART_B_MARK = "-- Part B — D3 Spanish accent repair";
+
+/** Final expected value of every column the repairs touch (the C3 → C4 → C5 chain collapses to its last value). */
+export function expectedRepairedValues(foundationSql: string): { table: string; keyColumn: string; key: string; column: string; after: string }[] {
+  const finals = new Map<string, { table: string; keyColumn: string; key: string; column: string; after: string }>();
+  for (const r of [...buildAccentRepairs(foundationSql), ...buildEnglishRepairs(foundationSql)]) {
+    finals.set(`${r.table}.${r.key}.${r.column}`, { table: r.table, keyColumn: r.keyColumn, key: r.key, column: r.column, after: r.after });
+  }
+  return [...finals.values()];
+}
+
+/**
+ * Parts B + C of the reviewed seed, byte-for-byte (sliced from `buildSeedSql`, never re-authored), inside ONE
+ * transaction that ends with an assertion block: if any repaired value is not exactly the reviewed text, if a
+ * lesson was added, or if an I-1 lesson key exists, the block raises, the batch aborts before COMMIT and
+ * nothing is kept. Contains no INSERT, no DELETE and no DDL.
+ */
+export function buildRepairSql(foundationSql: string): string {
+  const seed = buildSeedSql(foundationSql);
+  const start = seed.lastIndexOf("-- -----", seed.indexOf(PART_B_MARK));
+  if (start < 0) throw new Error("Part B not found in the generated seed");
+  const repairs = seed.slice(start).trimEnd();
+  const finals = expectedRepairedValues(foundationSql);
+  const tables = [...new Set(finals.map((r) => r.table))];
+  const checks = tables.map((table) => {
+    const list = finals.filter((r) => r.table === table);
+    const cols = [...new Set(list.map((r) => r.column))];
+    const actual = "CASE g.col " + cols.map((c) => `WHEN '${c}' THEN md5(replace(t.${c}, chr(13), ''))`).join(" ") + " END";
+    const values = list.map((r) => `(${q(r.key)}, ${q(r.column)}, ${q(md5(r.after))})`).join(",\n      ");
+    return `  SELECT count(*) INTO n FROM (VALUES\n      ${values}\n    ) AS g(k, col, h) LEFT JOIN public.${table} t ON t.${list[0].keyColumn} = g.k WHERE (${actual}) IS DISTINCT FROM g.h;\n  bad := bad + n;`;
+  });
+  return [
+    "-- =============================================================================",
+    "-- Leonix Learning Center — I-1A LIVE TEXT REPAIRS (Parts B + C of content batch I-1)",
+    "-- =============================================================================",
+    "-- GENERATED FILE. Do not edit by hand:",
+    "--   npx tsx scripts/generate-learning-content-seed-i1.ts --write",
+    "--",
+    "-- DERIVED, NOT FORKED: the statements below are Parts B and C of",
+    "--   supabase/reviewed-seeds/learning-center/20260918_content_batch_i1.sql, byte for byte.",
+    "-- Part A (the three new lessons) is deliberately ABSENT. It is I-1B and is not authorized here.",
+    "--",
+    `-- TARGET: the canonical project ${CANONICAL_PROJECT.name} (ref ${CANONICAL_PROJECT.ref}) and no other.`,
+    "-- REVIEWED SEED — NOT A MIGRATION. DO NOT move it into supabase/migrations/. DO NOT use a blind",
+    `-- \`supabase db push\`. Apply explicitly, following ${SEED_I1_RUNBOOK}.`,
+    "--",
+    "-- 80 guarded UPDATEs (75 Spanish accent repairs + 5 English grammar repairs) of text that is already",
+    "-- public. 0 INSERT · 0 DELETE · 0 DDL. One transaction; the closing assertion block aborts it (nothing is",
+    "-- committed) unless every repaired value is exactly the reviewed text, the lesson count is unchanged and",
+    "-- no I-1 lesson key exists. Idempotent: after a successful apply every guard matches nothing.",
+    "-- =============================================================================",
+    "",
+    "BEGIN;",
+    "",
+    repairs,
+    "",
+    "-- ---------------------------------------------------------------------------",
+    "-- Assertions — raise (and therefore roll back) on any mismatch",
+    "-- ---------------------------------------------------------------------------",
+    "",
+    "DO $i1a$",
+    "DECLARE",
+    "  n integer;",
+    "  bad integer := 0;",
+    "BEGIN",
+    ...checks,
+    `  IF bad <> 0 THEN RAISE EXCEPTION 'I-1A: % repaired value(s) are not the reviewed text — rolling back', bad; END IF;`,
+    "  SELECT count(*) INTO n FROM public.business_learning_lessons;",
+    "  IF n <> 16 THEN RAISE EXCEPTION 'I-1A: expected 16 lessons, found % — rolling back', n; END IF;",
+    `  SELECT count(*) INTO n FROM public.business_learning_lessons WHERE lesson_key IN (${SEED_I1_LESSONS.map((l) => q(l.pkg.lessonKey)).join(", ")});`,
+    "  IF n <> 0 THEN RAISE EXCEPTION 'I-1A: % I-1 lesson row(s) exist — Part A is not part of this apply', n; END IF;",
+    "END",
+    "$i1a$;",
+    "",
+    "COMMIT;",
+    "",
+  ].join("\n");
+}
+
 if (process.argv.includes("--write")) {
   const foundation = fs.readFileSync(path.join(ROOT, FOUNDATION_MIGRATION), "utf8");
   fs.mkdirSync(path.dirname(path.join(ROOT, SEED_I1_SQL)), { recursive: true });
   fs.writeFileSync(path.join(ROOT, SEED_I1_SQL), buildSeedSql(foundation));
+  fs.writeFileSync(path.join(ROOT, SEED_I1A_REPAIRS_SQL), buildRepairSql(foundation));
   fs.writeFileSync(path.join(ROOT, SEED_I1_LEDGER), buildLedger(foundation));
-  console.log(`wrote ${SEED_I1_SQL}\nwrote ${SEED_I1_LEDGER}`);
+  console.log(`wrote ${SEED_I1_SQL}\nwrote ${SEED_I1A_REPAIRS_SQL}\nwrote ${SEED_I1_LEDGER}`);
 }

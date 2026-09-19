@@ -1,5 +1,5 @@
 /**
- * TODAY-1 + G1 + G2 + G2.1 + G3 + G4-I1 (+ I1.1 quarantine, I1.2/I1.3 Part C) — Public Business Learning Center (foundation, checkpoint landing, pathway
+ * TODAY-1 + G1 + G2 + G2.1 + G3 + G4-I1 (+ I1.1 quarantine, I1.2/I1.3 Part C, I-1A repair artifact) — Public Business Learning Center (foundation, checkpoint landing, pathway
  * pages, canonical lesson engine)
  * + Idea Builder foundation verification. Hand-rolled
  * node:assert script, matching this repo's testing convention (no jest/vitest). Run via `npx tsx
@@ -1044,7 +1044,7 @@ import { resolveNextLesson } from "../app/(site)/aprender/learningJourneys";
 import { createHash } from "node:crypto";
 import { buildGuidedResult, cleanGuidedAnswer } from "../app/lib/business/learning/lessonPackage/guidedResult";
 import { packageToPlainText } from "../app/lib/business/learning/lessonPackage/plainText";
-import { ENGLISH_GRAMMAR_REPAIRS, SEED_I1_LEDGER, SEED_I1_LESSONS, SEED_I1_SQL, buildAccentRepairs, buildEnglishRepairs, buildLedger, buildSeedSql, changedWords, repairSpanishAccents, stripMarks } from "./generate-learning-content-seed-i1";
+import { CANONICAL_PROJECT, ENGLISH_GRAMMAR_REPAIRS, SEED_I1A_REPAIRS_SQL, SEED_I1_LEDGER, SEED_I1_RUNBOOK, buildRepairSql, expectedRepairedValues, SEED_I1_LESSONS, SEED_I1_SQL, buildAccentRepairs, buildEnglishRepairs, buildLedger, buildSeedSql, changedWords, repairSpanishAccents, stripMarks } from "./generate-learning-content-seed-i1";
 
 const LESSON_LIB_DIR = "app/lib/business/learning/lessonPackage";
 const LESSON_UI_DIR = `${APRENDER_DIR}/_components/lesson`;
@@ -2023,11 +2023,11 @@ check("G4-I1 seed: ONE additive, data-only file — exactly three new published 
     const sql = read(`supabase/migrations/${f}`);
     for (const key of BATCH_I1_KEYS) assert.ok(!sql.includes(`'${key}'`), `${f} seeds ${key} — I-1 content must not be applied through a migration`);
   }
-  assert.deepStrictEqual(fs.readdirSync(path.join(ROOT, "supabase/reviewed-seeds/learning-center")), [path.basename(SEED_I1_SQL)], "one reviewed seed file per batch");
+  assert.deepStrictEqual(fs.readdirSync(path.join(ROOT, "supabase/reviewed-seeds/learning-center")), [path.basename(SEED_I1_SQL), path.basename(SEED_I1A_REPAIRS_SQL)].sort(), "the reviewed I-1 seed and its derived I-1A repair artifact — nothing else");
   assert.ok(SEED_SQL.includes("REVIEWED SEED — NOT A MIGRATION") && SEED_SQL.includes("DO NOT move it into supabase/migrations/") && SEED_SQL.includes("blind `supabase db push`"), "the file itself says how it may and may not be applied");
   assert.strictEqual(buildSeedSql(MIGRATION), buildSeedSql(MIGRATION), "generation is deterministic");
   assert.ok(!/now\(\)|random|uuid/i.test(SEED_SQL.replace(/'published', now\(\)/g, "")), "the only non-literal value is published_at = now() on the three inserts");
-  assert.ok(exists("docs/learning-center-i1-staging-apply-runbook.md"), "staging runbook missing");
+  assert.ok(exists(SEED_I1_RUNBOOK), "apply runbook missing");
 
   const code = SEED_SQL.split("\n").filter((l) => !l.startsWith("--")).join("\n");
   assert.ok(!/\b(CREATE|ALTER|DROP|TRUNCATE|DELETE|GRANT|REVOKE|POLICY|TRIGGER|FUNCTION|INDEX)\b/.test(code.replace(/'(?:[^']|'')*'/g, "''")), "data only: no DDL, no deletes");
@@ -2158,8 +2158,60 @@ check("G4-I1.2/I1.3 Part C: exactly five owner-approved English grammar repairs 
   const ledger = lf(read(SEED_I1_LEDGER));
   assert.ok(ledger.includes("## 3. Part C — reviewed English grammar repairs"));
   for (const [i, r] of fixes.entries()) assert.ok(ledger.includes(`| C${i + 1} | ${r.table} | \`${r.key}\` | ${r.column} | ${r.from} | ${r.to} | grammar-only repair |`), `ledger is missing C${i + 1}`);
-  const runbook = read("docs/learning-center-i1-staging-apply-runbook.md");
-  assert.ok(runbook.includes("DO NOT use a blind `supabase db push`") && runbook.includes("customers'' information") && runbook.includes("many people''s decisions") && runbook.includes("customers'' opinions") && runbook.includes("80 `UPDATE` in total") && runbook.includes("Return to Coach before production"), "the runbook verifies the five English repairs and keeps the no-blind-push rule");
+  const runbook = read(SEED_I1_RUNBOOK);
+  assert.ok(runbook.includes("DO NOT use a blind `supabase db push`") && runbook.includes("customers'' information") && runbook.includes("many people''s decisions") && runbook.includes("customers'' opinions") && runbook.includes("80 `UPDATE` in total") && runbook.includes("Stop. Return to Coach."), "the runbook verifies the five English repairs and keeps the no-blind-push rule");
+});
+
+check("I-1A repair artifact: Parts B + C ONLY, derived byte-for-byte from the reviewed seed — 80 guarded UPDATEs in one asserting transaction; no Part A, no insert, no delete, no DDL", () => {
+  assert.ok(exists(SEED_I1A_REPAIRS_SQL), "I-1A artifact missing");
+  const artifact = lf(read(SEED_I1A_REPAIRS_SQL));
+  assert.strictEqual(artifact, buildRepairSql(MIGRATION), "the I-1A artifact must equal the generator output (never hand-edit)");
+  assert.strictEqual(buildRepairSql(MIGRATION), buildRepairSql(MIGRATION), "generation is deterministic");
+  assert.ok(SEED_I1A_REPAIRS_SQL.startsWith("supabase/reviewed-seeds/learning-center/") && !SEED_I1A_REPAIRS_SQL.includes("/migrations/"), "reviewed seed, never a migration");
+  assert.deepStrictEqual(CANONICAL_PROJECT, { name: "Leonix Media", ref: "xuieateniufcrsfdomwl" });
+
+  // 1. Exactly Parts B + C of the canonical seed — sliced, not re-authored.
+  const seedRepairs = SEED_SQL.slice(SEED_SQL.lastIndexOf("-- -----", SEED_SQL.indexOf(PART_B_BANNER))).trimEnd();
+  assert.ok(artifact.includes("BEGIN;\n\n" + seedRepairs + "\n\n-- ----"), "the repair statements are Parts B and C of the reviewed seed, byte for byte");
+  const statements = artifact.split("\n").filter((l) => !l.startsWith("--")).join("\n");
+  const bare = statements.replace(/'(?:[^']|'')*'/g, "''");
+  assert.strictEqual((statements.match(/^UPDATE public\./gm) ?? []).length, 80);
+  assert.strictEqual((statements.match(/^UPDATE public\.[a-z_]+ SET [a-z_]*_es = /gm) ?? []).length, 75, "Part B: 75 Spanish repairs");
+  assert.strictEqual((statements.match(/^UPDATE public\.[a-z_]+ SET [a-z_]*_en = /gm) ?? []).length, 5, "Part C: 5 English repairs");
+  assert.strictEqual((statements.match(/^WHERE [a-z_]+ = '[a-z_]+' AND md5\(replace\([a-z_]+, chr\(13\), ''\)\) = '[0-9a-f]{32}';$/gm) ?? []).length, 80, "every UPDATE targets one row by key and is md5-guarded");
+
+  // 2–3. Part A is absent: no INSERT, and the I-1 keys appear only inside the assertion that they do NOT exist.
+  assert.ok(!/\bINSERT\b/i.test(bare) && !artifact.includes("Part A — new lessons") && !artifact.includes("ON CONFLICT"), "no lesson insert");
+  for (const key of BATCH_I1_KEYS) {
+    assert.strictEqual(artifact.split(`'${key}'`).length - 1, 1, `${key} appears once — in the must-not-exist assertion`);
+  }
+  assert.ok(/WHERE lesson_key IN \('what_problem_do_you_solve', 'customer_conversations', 'know_your_competition'\);\n {2}IF n <> 0 THEN RAISE EXCEPTION/.test(artifact));
+
+  // 4–5. No schema mutation, nothing destructive.
+  assert.ok(!/\b(CREATE|ALTER|DROP|TRUNCATE|DELETE|GRANT|REVOKE|POLICY|TRIGGER|FUNCTION|INDEX|COPY|EXECUTE)\b/i.test(bare), "no DDL, no delete, nothing dynamic");
+
+  // 6. Only the intended tables and columns.
+  assert.deepStrictEqual([...new Set([...bare.matchAll(/public\.([a-z_]+)/g)].map((m) => m[1]))].sort(), ["business_learning_categories", "business_learning_lessons", "business_learning_resources"]);
+  assert.deepStrictEqual([...new Set([...statements.matchAll(/^UPDATE public\.[a-z_]+ SET ([a-z_]+) = /gm)].map((m) => m[1]))].sort(), ["body_en", "body_es", "summary_en", "summary_es", "title_es"], "text columns only — never status, sort_order, flags or keys");
+  assert.ok(!/business_identity_flags|business_learning_progress|business_capability_records/.test(artifact));
+
+  // One transaction that cannot commit a partial or unexpected result.
+  assert.strictEqual((statements.match(/^BEGIN;$/gm) ?? []).length, 1);
+  assert.strictEqual((statements.match(/^COMMIT;$/gm) ?? []).length, 1);
+  assert.ok(statements.indexOf("BEGIN;") < statements.indexOf("UPDATE public.") && statements.lastIndexOf("UPDATE public.") < statements.indexOf("DO $i1a$") && statements.indexOf("$i1a$;") < statements.indexOf("COMMIT;"), "BEGIN → repairs → assertions → COMMIT");
+  assert.strictEqual((statements.match(/RAISE EXCEPTION/g) ?? []).length, 3, "value mismatch · lesson count · I-1 keys");
+  const finals = expectedRepairedValues(MIGRATION);
+  assert.strictEqual(finals.length, 78, "80 repairs land on 78 columns (C3 → C4 → C5 end in one value)");
+  for (const r of finals) assert.ok(artifact.includes(`('${r.key}', '${r.column}', '${createHash("md5").update(r.after, "utf8").digest("hex")}')`), `assertion block is missing ${r.key}.${r.column}`);
+
+  // The runbook is scoped to the canonical project and keeps I-1A and I-1B apart.
+  assert.ok(!exists("docs/learning-center-i1-staging-apply-runbook.md"), "the staging-named runbook must be gone");
+  const runbook = read(SEED_I1_RUNBOOK);
+  assert.ok(runbook.includes("xuieateniufcrsfdomwl") && runbook.includes("Leonix Media") && runbook.includes("There is no staging database"));
+  assert.ok(/PROHIBITED: `cgeehvnfyrdoperdotdh`/.test(runbook) && runbook.includes("not a fallback"), "the retiring project is explicitly prohibited");
+  assert.ok(runbook.includes("# I-1A — live content repairs (Parts B + C)") && runbook.includes("# I-1B — new-lesson insert / publish (Part A) — NOT AUTHORIZED"));
+  assert.ok(!/apply (it )?to staging|staging first|STAGING ONLY/i.test(runbook), "no instruction may treat staging as a target");
+  assert.ok(artifact.includes("ref xuieateniufcrsfdomwl") && !artifact.includes("cgeehvnfyrdoperdotdh") && !SEED_SQL.includes("staging first"));
 });
 
 check("G4-I1 doctrine: no provider names, no sponsor, no guarantees, no asserted legal requirements in the new lessons", () => {
