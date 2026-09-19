@@ -7,8 +7,9 @@
  *   1. supabase/reviewed-seeds/learning-center/20260918_content_batch_i1.sql   (DATA ONLY — no DDL)
  *        a. three new `published` lesson rows whose body is the plain-text rendition of the SAME
  *           validated LessonPackage the page renders (one source, no hand-written second copy);
- *        b. D3 — repair of the Spanish accents missing from the TODAY-1 foundation seed.
- *   2. docs/learning-center-seed-i1-accent-ledger.md                              (before → after ledger)
+ *        b. D3 — repair of the Spanish accents missing from the TODAY-1 foundation seed;
+ *        c. four owner-reviewed English grammar repairs (missing possessive apostrophes) in that same seed.
+ *   2. docs/learning-center-seed-i1-accent-ledger.md                              (before → after ledger, Spanish + English)
  *
  * D3 is deliberately mechanical and provable. Only diacritics and the opening marks ¿ ¡ may change:
  * for every repaired string, `stripMarks(after) === before` is asserted here and again by
@@ -262,6 +263,47 @@ export function changedWords(r: AccentRepair): [string, string][] {
 }
 
 /* ---------------------------------------------------------------------------------------------- */
+/* 2b. Part C — reviewed English grammar repairs (Gate G4-I1.2)                                     */
+/* ---------------------------------------------------------------------------------------------- */
+
+/**
+ * The ONLY English changes this seed makes: four possessive apostrophes missing from the TODAY-1
+ * seed, each approved by the owner as an exact before → after pair. Grammar only — no rewording, no
+ * style edits, no other English string. The historical migration file is never modified; this
+ * reviewed seed is the correction vehicle.
+ */
+export const ENGLISH_GRAMMAR_REPAIRS: readonly { table: string; keyColumn: string; key: string; column: "summary_en" | "body_en"; from: string; to: string }[] = [
+  { table: "business_learning_categories", keyColumn: "category_key", key: "proteccion_y_datos", column: "summary_en", from: "customers information", to: "customers' information" },
+  { table: "business_learning_lessons", keyColumn: "lesson_key", key: "customer_data_protection", column: "summary_en", from: "customers information", to: "customers' information" },
+  { table: "business_learning_lessons", keyColumn: "lesson_key", key: "reviews_and_customer_response", column: "body_en", from: "many people decisions", to: "many people's decisions" },
+  { table: "business_learning_lessons", keyColumn: "lesson_key", key: "reviews_and_customer_response", column: "body_en", from: "customers experience", to: "customers' experience" },
+];
+
+export type EnglishRepair = { table: string; keyColumn: string; key: string; column: string; from: string; to: string; before: string; after: string };
+
+/**
+ * Resolves each approved pair against the seeded value. Two repairs on the same column are CHAINED:
+ * the second one's `before` is the first one's `after`, so every UPDATE is guarded by the exact value
+ * it expects to find and a drifted row is skipped entirely.
+ */
+export function buildEnglishRepairs(foundationSql: string): EnglishRepair[] {
+  const L = sqlLiterals(foundationSql.replace(/\r\n/g, "\n"));
+  const current = new Map<string, string>();
+  return ENGLISH_GRAMMAR_REPAIRS.map((r) => {
+    const i = L.indexOf(r.key);
+    if (i < 0) throw new Error(`foundation seed is missing ${r.key}`);
+    const id = `${r.table}.${r.key}.${r.column}`;
+    // categories: key, title_es, title_en, summary_es, summary_en · lessons: …, summary_en (+4), body_es, body_en (+6)
+    const before = current.get(id) ?? L[i + (r.column === "summary_en" ? 4 : 6)];
+    if (before.split(r.from).length !== 2) throw new Error(`${id}: expected exactly one "${r.from}"`);
+    const after = before.replace(r.from, r.to);
+    if (after.replace(r.to, r.from) !== before || after.length - before.length !== r.to.length - r.from.length) throw new Error(`${id}: more than the approved phrase changed`);
+    current.set(id, after);
+    return { ...r, before, after };
+  });
+}
+
+/* ---------------------------------------------------------------------------------------------- */
 /* 3. Emit                                                                                         */
 /* ---------------------------------------------------------------------------------------------- */
 
@@ -298,6 +340,12 @@ export function buildSeedSql(foundationSql: string): string {
     "--   the opening marks ¿ ¡ change; wording, meaning and English are untouched. Every UPDATE is",
     "--   guarded by the md5 of the ORIGINAL value (CR-stripped), so an edited row is left alone and",
     "--   re-running is a no-op. Before → after ledger: docs/learning-center-seed-i1-accent-ledger.md",
+    "--",
+    "-- Part C — four owner-reviewed ENGLISH grammar repairs in the TODAY-1 seed (missing possessive",
+    "--   apostrophes). Grammar only; no other English text changes. Same guard as Part B: each UPDATE",
+    "--   matches the md5 of the exact value it expects, so a drifted row is skipped, never overwritten.",
+    "--",
+    "-- The historical TODAY-1 migration file is not modified; this reviewed seed is the correction vehicle.",
     "--",
     "-- Idempotent. Safe to re-run.",
     "-- =============================================================================",
@@ -337,6 +385,20 @@ export function buildSeedSql(foundationSql: string): string {
       "",
     );
   }
+  lines.push(
+    "-- ---------------------------------------------------------------------------",
+    "-- PART C — REVIEWED ENGLISH GRAMMAR REPAIRS (exactly four; guarded; apostrophes only)",
+    "-- ---------------------------------------------------------------------------",
+    "",
+  );
+  buildEnglishRepairs(foundationSql).forEach((r, i) => {
+    lines.push(
+      `-- C${i + 1}. ${r.table}.${r.key}.${r.column}: "${r.from}" -> "${r.to}"`,
+      `UPDATE public.${r.table} SET ${r.column} = ${q(r.after)}`,
+      `WHERE ${r.keyColumn} = ${q(r.key)} AND md5(replace(${r.column}, chr(13), '')) = ${q(md5(r.before))};`,
+      "",
+    );
+  });
   return lines.join("\n");
 }
 
@@ -345,7 +407,7 @@ export function buildLedger(foundationSql: string): string {
   const totals = new Map<string, number>();
   for (const r of repairs) for (const [a, b] of changedWords(r)) totals.set(`${a} → ${b}`, (totals.get(`${a} → ${b}`) ?? 0) + 1);
   const out: string[] = [
-    "# Learning Center seed I-1 — Spanish accent repair ledger (D3)",
+    "# Learning Center seed I-1 — content repair ledger (D3 Spanish accents + reviewed English grammar)",
     "",
     "> GENERATED by `scripts/generate-learning-content-seed-i1.ts`. Do not edit by hand.",
     "",
@@ -353,7 +415,7 @@ export function buildLedger(foundationSql: string): string {
     "",
     "**Rule of the repair:** only diacritics (á é í ó ú ñ ü) and the opening marks ¿ ¡ may change. For every string below, removing those marks from *after* gives back *before* exactly — asserted by the generator and by `npm run verify:business-learning-center`. No wording, meaning, punctuation or English text changes.",
     "",
-    "**Known, out of scope:** four *English* strings of the TODAY-1 foundation seed are missing a possessive apostrophe — `proteccion_y_datos.summary_en` and `customer_data_protection.summary_en` (“your customers information”), and `reviews_and_customer_response.body_en` (“many people decisions”, “your customers experience”). They are TODAY-1 content, not I-1 content; D3 covers Spanish accents only, and this seed deliberately updates no English column. They need their own small reviewed correction.",
+    "**English:** D3 touches no English text. The only English changes in this seed are the four reviewed grammar repairs of Part C, listed in section 3.",
     "",
     `**Scope:** ${repairs.length} strings · ${[...totals.values()].reduce((n, x) => n + x, 0)} word repairs · ${totals.size} distinct before → after pairs.`,
     "",
@@ -375,7 +437,17 @@ export function buildLedger(foundationSql: string): string {
     const detail = short ? `${r.before} → **${r.after}**` : changedWords(r).map(([a, b]) => `${a} → ${b}`).join(" · ");
     out.push(`| ${r.table.replace("business_learning_", "")} | \`${r.key}\` | ${r.column} | ${detail.replace(/\|/g, "\\|")} |`);
   }
-  out.push("");
+  out.push(
+    "",
+    "## 3. Part C — reviewed English grammar repairs",
+    "",
+    "Exactly four, each an owner-approved before → after pair. **Reason for every row: grammar-only repair** (missing possessive apostrophe). No rewording, no style edits, no other English string is touched. Each UPDATE is guarded by the md5 of the exact value it expects (the two repairs of the same body are chained), so a drifted row is skipped.",
+    "",
+    "| # | Table | Row | Column | Exact before | Exact after | Reason |",
+    "|---|---|---|---|---|---|---|",
+    ...buildEnglishRepairs(foundationSql).map((r, i) => `| C${i + 1} | ${r.table} | \`${r.key}\` | ${r.column} | ${r.from} | ${r.to} | grammar-only repair |`),
+    "",
+  );
   return out.join("\n");
 }
 

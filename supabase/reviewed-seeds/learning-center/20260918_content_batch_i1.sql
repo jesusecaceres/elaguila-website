@@ -28,6 +28,12 @@
 --   guarded by the md5 of the ORIGINAL value (CR-stripped), so an edited row is left alone and
 --   re-running is a no-op. Before → after ledger: docs/learning-center-seed-i1-accent-ledger.md
 --
+-- Part C — four owner-reviewed ENGLISH grammar repairs in the TODAY-1 seed (missing possessive
+--   apostrophes). Grammar only; no other English text changes. Same guard as Part B: each UPDATE
+--   matches the md5 of the exact value it expects, so a drifted row is skipped, never overwritten.
+--
+-- The historical TODAY-1 migration file is not modified; this reviewed seed is the correction vehicle.
+--
 -- Idempotent. Safe to re-run.
 -- =============================================================================
 
@@ -832,3 +838,45 @@ WHERE resource_key = 'template_referral_ask_script' AND md5(replace(title_es, ch
 
 UPDATE public.business_learning_resources SET body_es = 'Ejemplo de mensaje: Hola [nombre], me alegra mucho que hayas quedado contento con [producto o servicio]. Si conoces a alguien que pueda necesitar algo similar, se lo agradecería mucho si le compartes mi contacto.'
 WHERE resource_key = 'template_referral_ask_script' AND md5(replace(body_es, chr(13), '')) = '1087110c154c05f300c01544990ec982';
+
+-- ---------------------------------------------------------------------------
+-- PART C — REVIEWED ENGLISH GRAMMAR REPAIRS (exactly four; guarded; apostrophes only)
+-- ---------------------------------------------------------------------------
+
+-- C1. business_learning_categories.proteccion_y_datos.summary_en: "customers information" -> "customers' information"
+UPDATE public.business_learning_categories SET summary_en = 'How to handle your customers'' information responsibly.'
+WHERE category_key = 'proteccion_y_datos' AND md5(replace(summary_en, chr(13), '')) = '61153ca6ae17df64237779105644c441';
+
+-- C2. business_learning_lessons.customer_data_protection.summary_en: "customers information" -> "customers' information"
+UPDATE public.business_learning_lessons SET summary_en = 'Coming soon: how to carefully handle your customers'' information.'
+WHERE lesson_key = 'customer_data_protection' AND md5(replace(summary_en, chr(13), '')) = '7fd2ec686bc8596c285ab8613d17d8d0';
+
+-- C3. business_learning_lessons.reviews_and_customer_response.body_en: "many people decisions" -> "many people's decisions"
+UPDATE public.business_learning_lessons SET body_en = 'Online reviews influence many people''s decisions before they choose a business. How you respond to those reviews, both the good ones and the difficult ones, says a lot about how you treat your customers in general.
+
+Why it matters: a negative review with no response can make it look like the business does not care about its customers opinions. A thoughtful response, even to a difficult criticism, shows that you take your customers experience seriously and that you are willing to improve.
+
+Practical steps:
+1. Review the feedback you already have on your Google Business profile and any other platforms where your business appears, and note which ones still have no response.
+2. For positive reviews, respond with a brief and personal thank you, mentioning something specific from what the person wrote if possible.
+3. For difficult reviews, wait a moment before responding if you feel upset, then write a calm reply that acknowledges the concern without becoming defensive.
+4. Never share private customer information in your public response, and if the issue needs more detail, invite the person to contact you directly by phone or WhatsApp.
+5. Ask satisfied customers for reviews in a natural way after a good experience, for example by sending a direct link to your Google Business profile.
+
+An important note: responding well to reviews does not guarantee that you will stop receiving criticism, or that you will rank higher in search results. What it does is show future customers how you treat people when something does not go perfectly.'
+WHERE lesson_key = 'reviews_and_customer_response' AND md5(replace(body_en, chr(13), '')) = '6ced81b086210c27545f9c82f68939f6';
+
+-- C4. business_learning_lessons.reviews_and_customer_response.body_en: "customers experience" -> "customers' experience"
+UPDATE public.business_learning_lessons SET body_en = 'Online reviews influence many people''s decisions before they choose a business. How you respond to those reviews, both the good ones and the difficult ones, says a lot about how you treat your customers in general.
+
+Why it matters: a negative review with no response can make it look like the business does not care about its customers opinions. A thoughtful response, even to a difficult criticism, shows that you take your customers'' experience seriously and that you are willing to improve.
+
+Practical steps:
+1. Review the feedback you already have on your Google Business profile and any other platforms where your business appears, and note which ones still have no response.
+2. For positive reviews, respond with a brief and personal thank you, mentioning something specific from what the person wrote if possible.
+3. For difficult reviews, wait a moment before responding if you feel upset, then write a calm reply that acknowledges the concern without becoming defensive.
+4. Never share private customer information in your public response, and if the issue needs more detail, invite the person to contact you directly by phone or WhatsApp.
+5. Ask satisfied customers for reviews in a natural way after a good experience, for example by sending a direct link to your Google Business profile.
+
+An important note: responding well to reviews does not guarantee that you will stop receiving criticism, or that you will rank higher in search results. What it does is show future customers how you treat people when something does not go perfectly.'
+WHERE lesson_key = 'reviews_and_customer_response' AND md5(replace(body_en, chr(13), '')) = 'd108b933d2b64baf0de7abbf9e96f0ba';
