@@ -29,7 +29,7 @@ connection string into a document, a commit, a chat or a recorded terminal.
 |---|---|---|---|
 | **I-1A** | **Live content repairs only — Parts B + C.** 75 guarded Spanish accent repairs + 5 guarded English grammar repairs of text that is *already public*. **80 `UPDATE` in total** · 0 `INSERT` · 0 `DELETE` · 0 DDL. | `supabase/reviewed-seeds/learning-center/20260918_content_batch_i1a_repairs.sql` | **EXECUTED 2026-09-18** on `xuieateniufcrsfdomwl` from commit `d2b67411` — one committed transaction. The file is immutable history: never edited, never regenerated. |
 | **I-1A.1** | **Supplemental accent cleanup.** Two Spanish accents D3 had no rule for (`consistent_business_information.summary_es`: “Por que tu nombre” → “Por qué tu nombre”; `healthy_boundaries_and_capacity.body_es`: “y tu terminas agotado” → “y tú terminas agotado”). 2 guarded `UPDATE` · 0 `INSERT` · 0 `DELETE` · 0 DDL. | `supabase/reviewed-seeds/learning-center/20260918_content_batch_i1a1_accent_cleanup.sql` | **EXECUTED 2026-09-18** on `xuieateniufcrsfdomwl` from commit `89aba6c7` — its own committed transaction, after I-1A. Immutable history. |
-| **I-1B** | **New-lesson insert / publish — Part A.** The 3 new lessons (`what_problem_do_you_solve`, `customer_conversations`, `know_your_competition`). | Part A of `supabase/reviewed-seeds/learning-center/20260918_content_batch_i1.sql` | **NOT authorized.** Needs its own Coach gate. |
+| **I-1B** | **New-lesson publication — Part A.** The 3 new lessons (`what_problem_do_you_solve`, `customer_conversations`, `know_your_competition`). 3 `INSERT` · 0 `UPDATE` · 0 `DELETE` · 0 DDL. | `supabase/reviewed-seeds/learning-center/20260918_content_batch_i1b_lessons.sql` | Authorized by Coach (I-1 release program) — **only after** the Learning engine is live in production. |
 
 **Why split:** production does not yet run this branch's lesson engine (packages, guided activity, journey
 map). Inserting the three rows now would expose brand-new lessons to the public through the *legacy*
@@ -138,9 +138,35 @@ the unaccented string until this branch ships.
 
 ---
 
-# I-1B — new-lesson insert / publish (Part A) — NOT AUTHORIZED
+# I-1B — new-lesson publication (Part A)
 
-Nothing in this section may be executed until Coach opens a gate for it. Open questions that gate must settle:
+**Release order: code first, data second.** The three packages are registered in code, but a lesson is public
+only when its database row is `published`: `/aprender/leccion/<key>` 404s without the row, pathway pages and
+counts are built from the published catalog, and NEXT skips unpublished keys. So the Learning engine is merged,
+deployed and proven on the 8 existing lessons first — with the three keys still returning 404 — and only then
+is this artifact applied. Applying it earlier would show the new lessons through the old plain-body renderer.
+
+**Artifact:** `20260918_content_batch_i1b_lessons.sql` — Part A of the reviewed seed, byte for byte, in one
+transaction (`BEGIN` → 3 `INSERT … ON CONFLICT (lesson_key) DO NOTHING` → assertion block → `COMMIT`). The
+assertions require: categories **6**, lessons **19**, published **11**, planned **8**, resources **25**; the 8
+previously published lessons still published; and each new row exactly the reviewed content (md5 over title,
+summary and both bodies = `packageToPlainText(pkg)`), `published`, in `clientes_y_demanda` at sort **3 / 4 / 5**,
+`capability_key` = `lesson_key`, bodies > 1,200 characters. Any mismatch raises and nothing is committed. It
+repeats none of the 82 executed repairs.
+
+**Apply:** same rules as I-1A — explicit project id `xuieateniufcrsfdomwl`, identity and read-only precheck
+(6 · 16 · 8 / 8 · 25 · the three keys absent · flag unchanged) immediately before the write, compact
+before-snapshot (counts, existing lesson key/status/sort, flag — never learner content), one execution. Not
+`supabase db push`. Not `apply_migration`. Never the retired project.
+
+**After:** lessons 19 / published 11; the three routes return 200 in ES and EN; pathway counts become
+Idea **6** · Starting **11** · Business **10**; production QA of the three lessons at 390 · 768 · 1440.
+
+**Withdrawal, never deletion.** A defective live lesson is withdrawn with a guarded
+`UPDATE … SET status = 'draft' WHERE lesson_key = '<key>' AND status = 'published'` — it 404s again at once.
+`business_learning_progress` may reference lessons; rows are never deleted on the canonical database.
+
+Original planning notes (kept for history):
 
 1. **Exposure.** With the flag ON, a `published` row is public instantly, and until this branch is deployed
    production renders it through the legacy adapter (readable plain-text body; visible in category browse,

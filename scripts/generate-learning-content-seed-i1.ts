@@ -50,6 +50,8 @@ export const SEED_I1A_REPAIRS_SQL = "supabase/reviewed-seeds/learning-center/202
 export const SEED_I1_RUNBOOK = "docs/learning-center-i1-canonical-apply-runbook.md";
 /** I-1A.1 — two supplemental Spanish accent repairs, applied separately AFTER I-1A. Reviewed, NOT auto-applied. */
 export const SEED_I1A1_CLEANUP_SQL = "supabase/reviewed-seeds/learning-center/20260918_content_batch_i1a1_accent_cleanup.sql";
+/** I-1B — Part A only: the three new published lessons, derived from the seed above. Reviewed, NOT auto-applied. */
+export const SEED_I1B_LESSONS_SQL = "supabase/reviewed-seeds/learning-center/20260918_content_batch_i1b_lessons.sql";
 export const CANONICAL_PROJECT = { name: "Leonix Media", ref: "xuieateniufcrsfdomwl" } as const;
 
 /* ---------------------------------------------------------------------------------------------- */
@@ -638,6 +640,102 @@ export function buildSupplementalSql(foundationSql: string): string {
   ].join("\n");
 }
 
+/* ---------------------------------------------------------------------------------------------- */
+/* 6. I-1B — new-lesson publication (Part A only)                                                  */
+/* ---------------------------------------------------------------------------------------------- */
+
+const PART_A_MARK = "-- Part A — new lessons";
+
+/**
+ * Part A of the reviewed seed, byte for byte (sliced from `buildSeedSql`, never re-authored): the three additive
+ * lesson INSERTs whose bodies are `packageToPlainText(pkg)`. One transaction ending in an assertion block — if
+ * the catalog is not exactly 6 / 19 (11 published, 8 planned) / 25, or any of the three rows is not exactly the
+ * reviewed content, published, in its category at sort 3 / 4 / 5, the block raises and nothing is committed.
+ * Contains none of the 82 executed repairs. No UPDATE, no DELETE, no DDL.
+ */
+export function buildLessonsSql(foundationSql: string): string {
+  const seed = buildSeedSql(foundationSql);
+  const start = seed.lastIndexOf("-- -----", seed.indexOf(PART_A_MARK));
+  const end = seed.lastIndexOf("-- -----", seed.indexOf(PART_B_MARK));
+  if (start < 0 || end <= start) throw new Error("Part A not found in the generated seed");
+  const inserts = seed.slice(start, end).trimEnd();
+  const expected = SEED_I1_LESSONS.map((l) => {
+    const result = validateLessonPackage(l.pkg, { prompts: LEARNING_PROMPTS });
+    if (!result.ok) throw new Error(`refusing to publish ${l.pkg.lessonKey}: ${result.errors.join(" | ")}`);
+    const content = [l.pkg.meta.title.es, l.pkg.meta.title.en, l.summary.es, l.summary.en, packageToPlainText(l.pkg, "es"), packageToPlainText(l.pkg, "en")];
+    return `      (${q(l.pkg.lessonKey)}, ${q(l.categoryKey)}, ${l.sortOrder}, ${q(l.capabilityKey)}, ${l.pkg.meta.readMinutes}, ${q(md5(content.join("\u0001")))})`;
+  });
+  const keys = SEED_I1_LESSONS.map((l) => q(l.pkg.lessonKey)).join(", ");
+  return [
+    "-- =============================================================================",
+    "-- Leonix Learning Center — I-1B LESSON PUBLICATION (Part A of content batch I-1)",
+    "-- =============================================================================",
+    "-- GENERATED FILE. Do not edit by hand:",
+    "--   npx tsx scripts/generate-learning-content-seed-i1.ts --write",
+    "--",
+    "-- DERIVED, NOT FORKED: the three INSERTs below are Part A of",
+    "--   supabase/reviewed-seeds/learning-center/20260918_content_batch_i1.sql, byte for byte. Each body is the",
+    "--   plain-text rendition of the validated LessonPackage the page renders — no second copy of lesson text.",
+    "-- The 82 executed repairs (I-1A, I-1A.1) are NOT repeated here.",
+    "--",
+    `-- TARGET: the canonical project ${CANONICAL_PROJECT.name} (ref ${CANONICAL_PROJECT.ref}) and no other.`,
+    "-- REVIEWED SEED — NOT A MIGRATION. DO NOT move it into supabase/migrations/. DO NOT use a blind",
+    `-- \`supabase db push\`. Apply explicitly, following ${SEED_I1_RUNBOOK}.`,
+    "--",
+    "-- APPLYING THIS FILE PUBLISHES THREE LESSONS. Apply it only AFTER the Learning engine that renders",
+    "-- these packages is live in production (code first, data second).",
+    "--",
+    "-- 3 INSERT · 0 UPDATE · 0 DELETE · 0 DDL. One transaction; the closing assertion block aborts it unless the",
+    "-- catalog is exactly 6 categories / 19 lessons (11 published, 8 planned) / 25 resources and each new row is",
+    "-- exactly the reviewed content. Idempotent: ON CONFLICT (lesson_key) DO NOTHING.",
+    "--",
+    "-- WITHDRAWAL (never DELETE — learner progress may reference a lesson):",
+    "--   UPDATE public.business_learning_lessons SET status = 'draft'",
+    "--   WHERE lesson_key = '<key>' AND status = 'published';",
+    "-- =============================================================================",
+    "",
+    "BEGIN;",
+    "",
+    inserts,
+    "",
+    "-- ---------------------------------------------------------------------------",
+    "-- Assertions — raise (and therefore roll back) on any mismatch",
+    "-- ---------------------------------------------------------------------------",
+    "",
+    "DO $i1b$",
+    "DECLARE",
+    "  n integer;",
+    "BEGIN",
+    "  SELECT count(*) INTO n FROM public.business_learning_categories;",
+    "  IF n <> 6 THEN RAISE EXCEPTION 'I-1B: expected 6 categories, found %', n; END IF;",
+    "  SELECT count(*) INTO n FROM public.business_learning_resources;",
+    "  IF n <> 25 THEN RAISE EXCEPTION 'I-1B: expected 25 resources, found %', n; END IF;",
+    "  SELECT count(*) INTO n FROM public.business_learning_lessons;",
+    "  IF n <> 19 THEN RAISE EXCEPTION 'I-1B: expected 19 lessons, found %', n; END IF;",
+    "  SELECT count(*) INTO n FROM public.business_learning_lessons WHERE status = 'published';",
+    "  IF n <> 11 THEN RAISE EXCEPTION 'I-1B: expected 11 published lessons, found %', n; END IF;",
+    "  SELECT count(*) INTO n FROM public.business_learning_lessons WHERE status = 'planned';",
+    "  IF n <> 8 THEN RAISE EXCEPTION 'I-1B: expected 8 planned lessons, found %', n; END IF;",
+    `  SELECT count(*) INTO n FROM public.business_learning_lessons WHERE lesson_key NOT IN (${keys}) AND status = 'published';`,
+    "  IF n <> 8 THEN RAISE EXCEPTION 'I-1B: the 8 previously published lessons changed (found %)', n; END IF;",
+    "  SELECT count(*) INTO n FROM (VALUES",
+    expected.join(",\n"),
+    "    ) AS g(k, cat, sort, cap, mins, h)",
+    "    JOIN public.business_learning_lessons l ON l.lesson_key = g.k",
+    "    JOIN public.business_learning_categories c ON c.id = l.category_id AND c.category_key = g.cat",
+    "    WHERE l.status = 'published' AND l.published_at IS NOT NULL AND l.sort_order = g.sort AND l.capability_key = g.cap",
+    "      AND l.estimated_minutes = g.mins AND l.level = 'foundation'",
+    "      AND char_length(l.body_es) > 1200 AND char_length(l.body_en) > 1200",
+    "      AND md5(concat_ws(chr(1), l.title_es, l.title_en, l.summary_es, l.summary_en, replace(l.body_es, chr(13), ''), replace(l.body_en, chr(13), ''))) = g.h;",
+    "  IF n <> 3 THEN RAISE EXCEPTION 'I-1B: % of 3 new lessons are exactly the reviewed content — rolling back', n; END IF;",
+    "END",
+    "$i1b$;",
+    "",
+    "COMMIT;",
+    "",
+  ].join("\n");
+}
+
 if (process.argv.includes("--write")) {
   const foundation = fs.readFileSync(path.join(ROOT, FOUNDATION_MIGRATION), "utf8");
   fs.mkdirSync(path.dirname(path.join(ROOT, SEED_I1_SQL)), { recursive: true });
@@ -646,7 +744,10 @@ if (process.argv.includes("--write")) {
   // stops reproducing it, that is an error to look at, not something to overwrite.
   const executed = fs.readFileSync(path.join(ROOT, SEED_I1A_REPAIRS_SQL), "utf8").replace(/\r\n/g, "\n");
   if (executed !== buildRepairSql(foundation)) throw new Error(`${SEED_I1A_REPAIRS_SQL} no longer matches the generator — it is immutable history; fix the generator`);
-  fs.writeFileSync(path.join(ROOT, SEED_I1A1_CLEANUP_SQL), buildSupplementalSql(foundation));
+  // I-1A.1 is an EXECUTED production transaction too: immutable, never rewritten.
+  const executedCleanup = fs.readFileSync(path.join(ROOT, SEED_I1A1_CLEANUP_SQL), "utf8").replace(/\r\n/g, "\n");
+  if (executedCleanup !== buildSupplementalSql(foundation)) throw new Error(`${SEED_I1A1_CLEANUP_SQL} no longer matches the generator — it is immutable history; fix the generator`);
+  fs.writeFileSync(path.join(ROOT, SEED_I1B_LESSONS_SQL), buildLessonsSql(foundation));
   fs.writeFileSync(path.join(ROOT, SEED_I1_LEDGER), buildLedger(foundation));
-  console.log(`wrote ${SEED_I1_SQL}\nkept  ${SEED_I1A_REPAIRS_SQL} (executed — immutable)\nwrote ${SEED_I1A1_CLEANUP_SQL}\nwrote ${SEED_I1_LEDGER}`);
+  console.log(`wrote ${SEED_I1_SQL}\nkept  ${SEED_I1A_REPAIRS_SQL} (executed — immutable)\nkept  ${SEED_I1A1_CLEANUP_SQL} (executed — immutable)\nwrote ${SEED_I1B_LESSONS_SQL}\nwrote ${SEED_I1_LEDGER}`);
 }
