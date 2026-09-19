@@ -26,9 +26,9 @@ string into a document, a commit, a chat or a terminal that is being recorded.
 - **Part B (D3)** — 75 guarded `UPDATE`s that add Spanish accents (and one `¿`) to the TODAY-1 seed text in
   `business_learning_categories`, `business_learning_lessons`, `business_learning_resources`. Each is guarded by the
   md5 of the original value: a row someone has edited is skipped; re-running is a no-op.
-- **Part C** — exactly **4** guarded `UPDATE`s: owner-reviewed English grammar repairs (missing possessive
-  apostrophes) in the TODAY-1 seed. Same md5 guard; the two repairs of the same lesson body are chained
-  (C4 expects the value C3 leaves). No other English text changes.
+- **Part C** — exactly **5** guarded `UPDATE`s: owner-reviewed English grammar repairs (missing possessive
+  apostrophes) in the TODAY-1 seed. Same md5 guard; the three repairs of the same lesson body are chained
+  (C4 expects the value C3 leaves, C5 the value C4 leaves). No other English text changes.
 - No DDL. No deletes. No other table. The historical TODAY-1 migration file is not modified.
 
 ## Preconditions (all must be true before step 1)
@@ -62,22 +62,24 @@ against that project's connection string):
   from public.business_learning_lessons;                       -- expected before: 16 / 8
   select lesson_key from public.business_learning_lessons
   where lesson_key in ('what_problem_do_you_solve','customer_conversations','know_your_competition'); -- expected: 0 rows
-  -- Part C pre-check: the four English defects are still present, each exactly once (expected: 1 · 1 · 1 · 1)
+  -- Part C pre-check: the five English defects are still present, each exactly once (expected: 1 · 1 · 1 · 1 · 1)
   select
     (select count(*) from public.business_learning_categories where category_key = 'proteccion_y_datos' and summary_en like '%your customers information%') as c1,
     (select count(*) from public.business_learning_lessons where lesson_key = 'customer_data_protection' and summary_en like '%your customers information%') as c2,
     (select count(*) from public.business_learning_lessons where lesson_key = 'reviews_and_customer_response' and body_en like '%many people decisions%') as c3,
-    (select count(*) from public.business_learning_lessons where lesson_key = 'reviews_and_customer_response' and body_en like '%your customers experience%') as c4;
+    (select count(*) from public.business_learning_lessons where lesson_key = 'reviews_and_customer_response' and body_en like '%your customers experience%') as c4,
+    (select count(*) from public.business_learning_lessons where lesson_key = 'reviews_and_customer_response' and body_en like '%its customers opinions%') as c5;
   ```
 If the counts are not 16 / 8, or any of the three keys already exists, **stop and report** — the environment is not
 in the state this seed was written for. A `0` in the Part C pre-check means that text was already edited on this
-environment: the guard will skip it; note it in the report and do not force it.
+environment: the guard will skip it (and, for the chained C3 → C4 → C5 body, everything after it in the chain);
+note it in the report and do not force it.
 
 ### 3. Review the seed content and fingerprint
 - Regenerate and confirm nothing drifts: `npx tsx scripts/generate-learning-content-seed-i1.ts --write` → `git status` clean.
 - Record the file's SHA-256 (LF line endings) and the git commit in the gate notes:
   `git rev-parse HEAD` and `git hash-object supabase/reviewed-seeds/learning-center/20260918_content_batch_i1.sql`.
-- Read the file. Read the ledger. Confirm: 3 `INSERT` (Part A), 75 `UPDATE` (Part B, Spanish accents), 4 `UPDATE` (Part C, English grammar) — 79 `UPDATE` in total, no DDL.
+- Read the file. Read the ledger. Confirm: 3 `INSERT` (Part A), 75 `UPDATE` (Part B, Spanish accents), 5 `UPDATE` (Part C, English grammar) — 80 `UPDATE` in total, no DDL.
 
 ### 4. Take a before-snapshot (read-only)
 ```sql
@@ -122,7 +124,7 @@ select count(*) from public.business_learning_lessons where body_es like '%Por q
 ```
 If fewer rows changed than the ledger lists, a guard skipped an edited row: list which, and report — do not force it.
 
-### 7b. Verify the four English grammar repairs (Part C)
+### 7b. Verify the five English grammar repairs (Part C)
 ```sql
 select summary_en from public.business_learning_categories where category_key = 'proteccion_y_datos';
   -- How to handle your customers' information responsibly.
@@ -130,14 +132,16 @@ select summary_en from public.business_learning_lessons where lesson_key = 'cust
   -- Coming soon: how to carefully handle your customers' information.
 select body_en like '%many people''s decisions%'      as c3_fixed,
        body_en like '%your customers'' experience%'   as c4_fixed,
+       body_en like '%its customers'' opinions%'      as c5_fixed,
        body_en like '%many people decisions%'         as c3_old,
-       body_en like '%your customers experience%'     as c4_old
+       body_en like '%your customers experience%'     as c4_old,
+       body_en like '%its customers opinions%'        as c5_old
 from public.business_learning_lessons where lesson_key = 'reviews_and_customer_response';
-  -- expected: true · true · false · false
+  -- expected: true · true · true · false · false · false
 ```
 Exact pairs applied: `customers information` → `customers'' information` (×2, shown here SQL-escaped;
 the stored text has one apostrophe), `many people decisions` → `many people''s decisions`,
-`customers experience` → `customers'' experience`. Nothing else in any English column may differ from the
+`customers experience` → `customers'' experience`, `customers opinions` → `customers'' opinions`. Nothing else in any English column may differ from the
 step-4 export.
 
 ### 8. Start exactly ONE Learning runtime against staging
@@ -183,8 +187,8 @@ A normal browser print of the page is unaffected.
 ### 14. Confirm no unrelated rows changed
 Re-run the step-4 snapshot. Expected: `lessons` +3 rows and a new hash; `categories` and `resources` same counts,
 new hashes; `progress` and `capability_records` **unchanged counts**. Compare every `*_en` column with the export
-taken in step 4: the **only** differences allowed are the four Part C repairs (one category summary, one lesson
-summary, one lesson body with two apostrophes). No other table was named by the seed.
+taken in step 4: the **only** differences allowed are the five Part C repairs (one category summary, one lesson
+summary, one lesson body with three apostrophes). No other table was named by the seed.
 
 ### 15. Stop. Return to Coach before production.
 Report: project ref used, seed commit + hash, before/after counts, any guard that skipped a row, QA findings with
@@ -204,5 +208,5 @@ commit;
 Deleting is acceptable on staging only. On production a lesson is withdrawn by status, never deleted.
 
 ## Known, not part of this batch
-The same TODAY-1 review body also reads "its customers opinions" (another missing possessive apostrophe). It was
-noticed while preparing Part C and is **not** one of the four approved repairs, so this seed leaves it alone.
+Nothing open. The fifth possessive defect found while preparing Part C ("its customers opinions") was approved in
+Gate G4-I1.3 and is repair C5.

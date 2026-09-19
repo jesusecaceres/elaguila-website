@@ -1,5 +1,5 @@
 /**
- * TODAY-1 + G1 + G2 + G2.1 + G3 + G4-I1 (+ I1.1 quarantine, I1.2 Part C) — Public Business Learning Center (foundation, checkpoint landing, pathway
+ * TODAY-1 + G1 + G2 + G2.1 + G3 + G4-I1 (+ I1.1 quarantine, I1.2/I1.3 Part C) — Public Business Learning Center (foundation, checkpoint landing, pathway
  * pages, canonical lesson engine)
  * + Idea Builder foundation verification. Hand-rolled
  * node:assert script, matching this repo's testing convention (no jest/vitest). Run via `npx tsx
@@ -2099,7 +2099,7 @@ check("G4-I1 D3: the accent repair changes ONLY diacritics and ¿ ¡ — provabl
   for (const r of repairs) assert.ok(ledger.includes(`\`${r.key}\` | ${r.column} |`), `ledger is missing ${r.key}.${r.column}`);
 });
 
-check("G4-I1.2 Part C: exactly four owner-approved English grammar repairs — guarded, chained, idempotent; no other English text and no historical migration is touched", () => {
+check("G4-I1.2/I1.3 Part C: exactly five owner-approved English grammar repairs — guarded, chained, idempotent; no other English text and no historical migration is touched", () => {
   assert.deepStrictEqual(
     ENGLISH_GRAMMAR_REPAIRS.map((r) => [r.table, r.key, r.column, r.from, r.to]),
     [
@@ -2107,11 +2107,12 @@ check("G4-I1.2 Part C: exactly four owner-approved English grammar repairs — g
       ["business_learning_lessons", "customer_data_protection", "summary_en", "customers information", "customers' information"],
       ["business_learning_lessons", "reviews_and_customer_response", "body_en", "many people decisions", "many people's decisions"],
       ["business_learning_lessons", "reviews_and_customer_response", "body_en", "customers experience", "customers' experience"],
+      ["business_learning_lessons", "reviews_and_customer_response", "body_en", "customers opinions", "customers' opinions"],
     ],
-    "only the four approved before → after pairs",
+    "only the five approved before → after pairs",
   );
   const fixes = buildEnglishRepairs(MIGRATION);
-  assert.strictEqual(fixes.length, 4);
+  assert.strictEqual(fixes.length, 5);
   for (const r of fixes) {
     assert.strictEqual(r.before.split(r.from).length, 2, `${r.key}.${r.column}: the phrase occurs exactly once`);
     assert.strictEqual(r.after, r.before.replace(r.from, r.to), "nothing but the approved phrase changes");
@@ -2121,39 +2122,44 @@ check("G4-I1.2 Part C: exactly four owner-approved English grammar repairs — g
   // The first repair of each column starts from the value TODAY-1 seeded; the second repair of the same body is chained to the first.
   for (const r of [fixes[0], fixes[1], fixes[2]]) assert.ok(SEED_LF_LITERALS.has(r.before), `${r.key}.${r.column}: 'before' is not the seeded value`);
   assert.strictEqual(fixes[3].before, fixes[2].after, "C4 is guarded by the value C3 leaves behind");
-  assert.ok(!SEED_LF_LITERALS.has(fixes[3].before));
+  assert.strictEqual(fixes[4].before, fixes[3].after, "C5 is guarded by the value C3 and C4 leave behind");
+  assert.ok(!SEED_LF_LITERALS.has(fixes[3].before) && !SEED_LF_LITERALS.has(fixes[4].before));
+  assert.deepStrictEqual([fixes[2], fixes[3], fixes[4]].map((r) => `${r.table}.${r.key}.${r.column}`), Array(3).fill("business_learning_lessons.reviews_and_customer_response.body_en"), "C3 → C4 → C5 are one chain on one column");
+  const chainEnd = fixes[4].after;
+  assert.strictEqual(chainEnd, fixes[2].before.replace("many people decisions", "many people's decisions").replace("customers experience", "customers' experience").replace("customers opinions", "customers' opinions"), "the chain ends at the seeded body with exactly the three approved phrases repaired");
+  assert.strictEqual((chainEnd.match(/'/g) ?? []).length - (fixes[2].before.match(/'/g) ?? []).length, 3, "three apostrophes — nothing else — were added to that body");
 
-  // Part C of the file: exactly these four UPDATEs, each guarded by the md5 of the value it expects.
+  // Part C of the file: exactly these five UPDATEs, each guarded by the md5 of the value it expects.
   assert.ok(SEED_SQL.indexOf(PART_B_BANNER) > 0 && SEED_SQL.indexOf(PART_C_BANNER) > SEED_SQL.indexOf(PART_B_BANNER), "Part C is a clearly separated final section");
   const updates = SEED_PART_C.match(/^UPDATE public\.[a-z_]+ SET [a-z_]+ = /gm) ?? [];
   assert.deepStrictEqual(updates, fixes.map((r) => `UPDATE public.${r.table} SET ${r.column} = `));
-  assert.strictEqual((SEED_PART_C.match(/^WHERE (category_key|lesson_key) = '[a-z_]+' AND md5\(replace\((summary_en|body_en), chr\(13\), ''\)\) = '[0-9a-f]{32}';$/gm) ?? []).length, 4, "every Part C UPDATE targets one row by key and is md5-guarded");
+  assert.strictEqual((SEED_PART_C.match(/^WHERE (category_key|lesson_key) = '[a-z_]+' AND md5\(replace\((summary_en|body_en), chr\(13\), ''\)\) = '[0-9a-f]{32}';$/gm) ?? []).length, 5, "every Part C UPDATE targets one row by key and is md5-guarded");
   const literals = sqlLiterals(SEED_PART_C);
   for (const r of fixes) {
     assert.ok(literals.includes(r.after), `${r.key}.${r.column}: the SET value is the repaired text`);
     assert.ok(literals.includes(createHash("md5").update(r.before, "utf8").digest("hex")), `${r.key}.${r.column}: guarded by the expected value`);
   }
-  // Idempotent: the FINAL value of each repaired column matches no guard (C3's result is, by design, C4's guard — C4's result is nobody's).
+  // Idempotent: the FINAL value of each repaired column matches no guard (C3's result is, by design, C4's guard, and C4's is C5's — C5's result is nobody's).
   const finals = new Map(fixes.map((r) => [`${r.table}.${r.key}.${r.column}`, r.after]));
-  assert.strictEqual(finals.size, 3, "four repairs land on three columns");
+  assert.strictEqual(finals.size, 3, "five repairs land on three columns");
   for (const value of finals.values()) assert.ok(!literals.includes(createHash("md5").update(value, "utf8").digest("hex")), "a fully repaired row matches no guard → re-running is a no-op");
-  assert.ok(!/INSERT|_es = /.test(SEED_PART_C.split("\n").filter((l) => !l.startsWith("--")).join("\n").replace(/'(?:[^']|'')*'/g, "''")), "Part C contains nothing but its four English UPDATEs");
+  assert.ok(!/INSERT|_es = /.test(SEED_PART_C.split("\n").filter((l) => !l.startsWith("--")).join("\n").replace(/'(?:[^']|'')*'/g, "''")), "Part C contains nothing but its five English UPDATEs");
 
-  // Whole file: 3 inserts + 75 D3 repairs + 4 English repairs — and no other English column anywhere.
+  // Whole file: 3 inserts + 75 D3 repairs + 5 English repairs = 80 UPDATEs — and no other English column anywhere.
   assert.strictEqual((SEED_SQL.match(/^INSERT INTO /gm) ?? []).length, 3);
-  assert.strictEqual((SEED_SQL.match(/^UPDATE public\./gm) ?? []).length, 75 + 4);
-  assert.strictEqual((SEED_SQL.match(/^UPDATE public\.[a-z_]+ SET [a-z_]*_en = /gm) ?? []).length, 4, "no other English column is modified");
+  assert.strictEqual((SEED_SQL.match(/^UPDATE public\./gm) ?? []).length, 80);
+  assert.strictEqual((SEED_SQL.match(/^UPDATE public\.[a-z_]+ SET [a-z_]*_en = /gm) ?? []).length, 5, "no other English column is modified");
   assert.strictEqual(SEED_SQL.indexOf("_en = "), SEED_PART_C.indexOf("_en = ") + SEED_SQL.indexOf(PART_C_BANNER), "English updates exist only inside Part C");
 
   // The historical TODAY-1 migration is never the correction vehicle.
   assert.strictEqual(sha256(lf(MIGRATION)), "c9db46631b5ebb96d35a14836f553d84d9dd5796a8c8c0083e8315e0d60eee50", "the TODAY-1 foundation migration must remain byte-identical");
-  assert.ok(MIGRATION.includes("your customers information") && MIGRATION.includes("many people decisions"), "the defects are repaired by the reviewed seed, not by rewriting history");
+  assert.ok(MIGRATION.includes("your customers information") && MIGRATION.includes("many people decisions") && MIGRATION.includes("its customers opinions"), "the defects are repaired by the reviewed seed, not by rewriting history");
 
   const ledger = lf(read(SEED_I1_LEDGER));
   assert.ok(ledger.includes("## 3. Part C — reviewed English grammar repairs"));
   for (const [i, r] of fixes.entries()) assert.ok(ledger.includes(`| C${i + 1} | ${r.table} | \`${r.key}\` | ${r.column} | ${r.from} | ${r.to} | grammar-only repair |`), `ledger is missing C${i + 1}`);
   const runbook = read("docs/learning-center-i1-staging-apply-runbook.md");
-  assert.ok(runbook.includes("DO NOT use a blind `supabase db push`") && runbook.includes("customers'' information") && runbook.includes("many people''s decisions"), "the runbook verifies the four English repairs and keeps the no-blind-push rule");
+  assert.ok(runbook.includes("DO NOT use a blind `supabase db push`") && runbook.includes("customers'' information") && runbook.includes("many people''s decisions") && runbook.includes("customers'' opinions") && runbook.includes("80 `UPDATE` in total") && runbook.includes("Return to Coach before production"), "the runbook verifies the five English repairs and keeps the no-blind-push rule");
 });
 
 check("G4-I1 doctrine: no provider names, no sponsor, no guarantees, no asserted legal requirements in the new lessons", () => {

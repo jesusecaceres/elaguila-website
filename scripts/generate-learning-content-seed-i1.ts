@@ -8,7 +8,7 @@
  *        a. three new `published` lesson rows whose body is the plain-text rendition of the SAME
  *           validated LessonPackage the page renders (one source, no hand-written second copy);
  *        b. D3 — repair of the Spanish accents missing from the TODAY-1 foundation seed;
- *        c. four owner-reviewed English grammar repairs (missing possessive apostrophes) in that same seed.
+ *        c. five owner-reviewed English grammar repairs (missing possessive apostrophes) in that same seed.
  *   2. docs/learning-center-seed-i1-accent-ledger.md                              (before → after ledger, Spanish + English)
  *
  * D3 is deliberately mechanical and provable. Only diacritics and the opening marks ¿ ¡ may change:
@@ -267,7 +267,7 @@ export function changedWords(r: AccentRepair): [string, string][] {
 /* ---------------------------------------------------------------------------------------------- */
 
 /**
- * The ONLY English changes this seed makes: four possessive apostrophes missing from the TODAY-1
+ * The ONLY English changes this seed makes: five possessive apostrophes missing from the TODAY-1
  * seed, each approved by the owner as an exact before → after pair. Grammar only — no rewording, no
  * style edits, no other English string. The historical migration file is never modified; this
  * reviewed seed is the correction vehicle.
@@ -277,13 +277,14 @@ export const ENGLISH_GRAMMAR_REPAIRS: readonly { table: string; keyColumn: strin
   { table: "business_learning_lessons", keyColumn: "lesson_key", key: "customer_data_protection", column: "summary_en", from: "customers information", to: "customers' information" },
   { table: "business_learning_lessons", keyColumn: "lesson_key", key: "reviews_and_customer_response", column: "body_en", from: "many people decisions", to: "many people's decisions" },
   { table: "business_learning_lessons", keyColumn: "lesson_key", key: "reviews_and_customer_response", column: "body_en", from: "customers experience", to: "customers' experience" },
+  { table: "business_learning_lessons", keyColumn: "lesson_key", key: "reviews_and_customer_response", column: "body_en", from: "customers opinions", to: "customers' opinions" },
 ];
 
 export type EnglishRepair = { table: string; keyColumn: string; key: string; column: string; from: string; to: string; before: string; after: string };
 
 /**
- * Resolves each approved pair against the seeded value. Two repairs on the same column are CHAINED:
- * the second one's `before` is the first one's `after`, so every UPDATE is guarded by the exact value
+ * Resolves each approved pair against the seeded value. Repairs on the same column are CHAINED
+ * (C3 → C4 → C5 on the reviews body): each one's `before` is the previous one's `after`, so every UPDATE is guarded by the exact value
  * it expects to find and a drifted row is skipped entirely.
  */
 export function buildEnglishRepairs(foundationSql: string): EnglishRepair[] {
@@ -341,7 +342,7 @@ export function buildSeedSql(foundationSql: string): string {
     "--   guarded by the md5 of the ORIGINAL value (CR-stripped), so an edited row is left alone and",
     "--   re-running is a no-op. Before → after ledger: docs/learning-center-seed-i1-accent-ledger.md",
     "--",
-    "-- Part C — four owner-reviewed ENGLISH grammar repairs in the TODAY-1 seed (missing possessive",
+    "-- Part C — five owner-reviewed ENGLISH grammar repairs in the TODAY-1 seed (missing possessive",
     "--   apostrophes). Grammar only; no other English text changes. Same guard as Part B: each UPDATE",
     "--   matches the md5 of the exact value it expects, so a drifted row is skipped, never overwritten.",
     "--",
@@ -387,7 +388,7 @@ export function buildSeedSql(foundationSql: string): string {
   }
   lines.push(
     "-- ---------------------------------------------------------------------------",
-    "-- PART C — REVIEWED ENGLISH GRAMMAR REPAIRS (exactly four; guarded; apostrophes only)",
+    "-- PART C — REVIEWED ENGLISH GRAMMAR REPAIRS (exactly five; guarded; apostrophes only)",
     "-- ---------------------------------------------------------------------------",
     "",
   );
@@ -415,7 +416,7 @@ export function buildLedger(foundationSql: string): string {
     "",
     "**Rule of the repair:** only diacritics (á é í ó ú ñ ü) and the opening marks ¿ ¡ may change. For every string below, removing those marks from *after* gives back *before* exactly — asserted by the generator and by `npm run verify:business-learning-center`. No wording, meaning, punctuation or English text changes.",
     "",
-    "**English:** D3 touches no English text. The only English changes in this seed are the four reviewed grammar repairs of Part C, listed in section 3.",
+    "**English:** D3 touches no English text. The only English changes in this seed are the five reviewed grammar repairs of Part C, listed in section 3.",
     "",
     `**Scope:** ${repairs.length} strings · ${[...totals.values()].reduce((n, x) => n + x, 0)} word repairs · ${totals.size} distinct before → after pairs.`,
     "",
@@ -441,7 +442,7 @@ export function buildLedger(foundationSql: string): string {
     "",
     "## 3. Part C — reviewed English grammar repairs",
     "",
-    "Exactly four, each an owner-approved before → after pair. **Reason for every row: grammar-only repair** (missing possessive apostrophe). No rewording, no style edits, no other English string is touched. Each UPDATE is guarded by the md5 of the exact value it expects (the two repairs of the same body are chained), so a drifted row is skipped.",
+    "Exactly five, each an owner-approved before → after pair. **Reason for every row: grammar-only repair** (missing possessive apostrophe). No rewording, no style edits, no other English string is touched. Each UPDATE is guarded by the md5 of the exact value it expects (the three repairs of the same body are chained: C3 → C4 → C5), so a drifted row is skipped.",
     "",
     "| # | Table | Row | Column | Exact before | Exact after | Reason |",
     "|---|---|---|---|---|---|---|",

@@ -6,7 +6,7 @@ Owner decision **D3**: the Spanish text seeded by TODAY-1 (`20260807120000_busin
 
 **Rule of the repair:** only diacritics (á é í ó ú ñ ü) and the opening marks ¿ ¡ may change. For every string below, removing those marks from *after* gives back *before* exactly — asserted by the generator and by `npm run verify:business-learning-center`. No wording, meaning, punctuation or English text changes.
 
-**English:** D3 touches no English text. The only English changes in this seed are the four reviewed grammar repairs of Part C, listed in section 3.
+**English:** D3 touches no English text. The only English changes in this seed are the five reviewed grammar repairs of Part C, listed in section 3.
 
 **Scope:** 75 strings · 357 word repairs · 135 distinct before → after pairs.
 
@@ -234,7 +234,7 @@ Short strings are shown whole. Lesson and resource bodies list their repaired wo
 
 ## 3. Part C — reviewed English grammar repairs
 
-Exactly four, each an owner-approved before → after pair. **Reason for every row: grammar-only repair** (missing possessive apostrophe). No rewording, no style edits, no other English string is touched. Each UPDATE is guarded by the md5 of the exact value it expects (the two repairs of the same body are chained), so a drifted row is skipped.
+Exactly five, each an owner-approved before → after pair. **Reason for every row: grammar-only repair** (missing possessive apostrophe). No rewording, no style edits, no other English string is touched. Each UPDATE is guarded by the md5 of the exact value it expects (the three repairs of the same body are chained: C3 → C4 → C5), so a drifted row is skipped.
 
 | # | Table | Row | Column | Exact before | Exact after | Reason |
 |---|---|---|---|---|---|---|
@@ -242,3 +242,4 @@ Exactly four, each an owner-approved before → after pair. **Reason for every r
 | C2 | business_learning_lessons | `customer_data_protection` | summary_en | customers information | customers' information | grammar-only repair |
 | C3 | business_learning_lessons | `reviews_and_customer_response` | body_en | many people decisions | many people's decisions | grammar-only repair |
 | C4 | business_learning_lessons | `reviews_and_customer_response` | body_en | customers experience | customers' experience | grammar-only repair |
+| C5 | business_learning_lessons | `reviews_and_customer_response` | body_en | customers opinions | customers' opinions | grammar-only repair |
