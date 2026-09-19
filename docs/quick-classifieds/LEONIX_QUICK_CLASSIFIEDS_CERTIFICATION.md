@@ -50,7 +50,7 @@ Companion documents: `LEONIX_QUICK_CLASSIFIEDS_EXECUTION_BLUEPRINT.md`, `LEONIX_
 | `gate-pkgA-checkpoints-selftest`, `verify-checkpoint-first-routes.mjs`, `verify-paid-publish-entry-checkpoints.mjs` | FAIL — reproduced identically on pristine `origin/main` (pre-existing drift, not introduced here) |
 | `npm run build` (prebuild dup-guard + `next build`, placeholder public Supabase env) | **✓ Compiled successfully in 3.2 min, exit 0**; routes `/publicar/rapido`, `/publicar/rapido/[category]`, `/publicar/rapido/mi-anuncio` present as dynamic routes |
 | `tsc --noEmit` (full, before `next-env.d.ts` existed) | 12 errors, all `Cannot find module '…logo.png'` — environmental (image-module declarations live in the gitignored `next-env.d.ts`), none in new code |
-| `tsc --noEmit` (full, after build generated `next-env.d.ts`) | re-run in progress at the time of this commit — final result recorded in the follow-up commit |
+| `tsc --noEmit` (full, after build generated `next-env.d.ts`) | **0 errors, exit 0** |
 
 Runtime QA: the container has no `.env.local` (Supabase / Stripe / Blob), so real-browser flows were not exercised
 here. Owner's first-run checklist is in §5.
