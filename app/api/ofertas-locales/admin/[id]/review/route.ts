@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 import { revalidatePath } from "next/cache";
 
+import { appendAdminAuditLog } from "@/app/admin/_lib/adminAuditLogServer";
 import {
   mutateOfertaLocalAdminReview,
   type OfertaLocalAdminReviewAction,
@@ -14,6 +15,8 @@ const ALLOWED_ACTIONS: ReadonlySet<OfertaLocalAdminReviewAction> = new Set([
   "approve",
   "reject",
   "archive",
+  // closeout 2: rejected / archived offers go back to pending_review (never straight to approved).
+  "restore",
 ]);
 
 type ReviewBody = {
@@ -63,6 +66,19 @@ export async function POST(
             : 500;
     return NextResponse.json({ ok: false, error: result.error }, { status });
   }
+
+  // closeout 2: this route used to mutate with no audit row.
+  await appendAdminAuditLog({
+    action: `ofertas_locales_admin_${action}`,
+    targetType: "ofertas_locales",
+    targetId: result.id,
+    meta: {
+      from_status: result.previousStatus,
+      to_status: result.newStatus,
+      note: note && note.trim() ? note.trim().slice(0, 500) : null,
+      via: "api/ofertas-locales/admin/[id]/review",
+    },
+  });
 
   revalidatePath("/clasificados/ofertas-locales");
   revalidatePath("/clasificados/ofertas-locales/results");

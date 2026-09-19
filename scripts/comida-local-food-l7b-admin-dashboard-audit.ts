@@ -89,7 +89,9 @@ function run() {
   assert.ok(queries.includes("comida_local_public_listings"));
   assert.ok(queries.includes("listAdminComidaLocalListings"));
   assert.ok(queries.includes("leonix_ad_id"));
-  assert.ok(queries.includes("updateAdminComidaLocalListingStatus"));
+  // Closeout 2: the raw status writer was replaced by the guarded canonical action route (payment-aware, audited).
+  assert.ok(read("app/lib/clasificados/comida-local/comidaLocalAdminModeration.ts").includes("payment_required"));
+  assert.ok(read("app/api/admin/comida-local/listings/[id]/route.ts").includes("appendAdminAuditLog"));
 
   const mapper = read("app/lib/clasificados/comida-local/mapComidaLocalAdminListing.ts");
   assert.ok(mapper.includes("leonixAdId"));

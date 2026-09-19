@@ -410,6 +410,11 @@ export type ServiciosAdminQueueFilters = {
   id?: string;
   leonix_ad_id?: string;
   owner_user_id?: string;
+  /**
+   * Exact `listing_status` (closeout 2 round 2). Applied in SQL through the shared query builder, so it
+   * narrows BEFORE the row limit on every search path (default, q, and the exact-field path).
+   */
+  status?: string;
   /** `live` — only publicly published rows (listing_status=published). */
   scope?: "live";
 };
@@ -429,10 +434,12 @@ export async function listServiciosPublicListingsAdminQueueFromDb(
   const owner = opts.owner_user_id?.trim();
   const leonixParam = opts.leonix_ad_id?.trim();
   const qRaw = opts.q?.trim() ?? "";
+  const statusFilter = opts.status?.trim().toLowerCase() ?? "";
   const supabase = getAdminSupabase();
   const qb = () => {
     let q = supabase.from("servicios_public_listings").select(SERVICIOS_ADMIN_QUEUE_SELECT);
     if (opts.scope === "live") q = q.eq("listing_status", "published");
+    if (statusFilter) q = q.eq("listing_status", statusFilter);
     return q;
   };
 
@@ -442,7 +449,14 @@ export async function listServiciosPublicListingsAdminQueueFromDb(
       if (slug) rowQuery = rowQuery.eq("slug", slug);
       if (id) rowQuery = rowQuery.eq("id", id);
       if (owner) rowQuery = rowQuery.eq("owner_user_id", owner);
-      if (leonixParam) rowQuery = rowQuery.eq("leonix_ad_id", leonixParam);
+      if (leonixParam) {
+        // A complete Leonix Ad ID is an exact (normalized) match; a fragment is a contains match —
+        // both in SQL, so the row limit is applied after the filter.
+        const normLeonixParam = adminQueueNormalizeLeonixAdId(leonixParam);
+        rowQuery = normLeonixParam
+          ? rowQuery.eq("leonix_ad_id", normLeonixParam)
+          : rowQuery.ilike("leonix_ad_id", `%${escapeIlikeServicios(leonixParam)}%`);
+      }
       const { data, error } = await rowQuery.order("updated_at", { ascending: false }).limit(limit);
       if (error) {
         if (/column|does not exist|schema cache/i.test(error.message)) {
@@ -510,6 +524,8 @@ export async function listServiciosPublicListingsAdminQueueFromDb(
     const { data, error } = await qb().order("updated_at", { ascending: false }).limit(limit);
     if (error) {
       if (/column|does not exist|schema cache/i.test(error.message)) {
+        // Reduced-schema mode has no listing_status to filter on — never return unfiltered rows for a status filter.
+        if (statusFilter) return { rows: [], fullSchema: false, unavailable: false };
         const leg = await supabase
           .from("servicios_public_listings")
           .select("id, slug, business_name, city, published_at, leonix_verified")

@@ -13,7 +13,7 @@ const assertNotIncludes = (label, text, needle) => {
 
 const page = read("app/admin/(dashboard)/workspace/clasificados/ofertas-locales/page.tsx");
 const list = read("app/admin/(dashboard)/workspace/clasificados/ofertas-locales/OfertasLocalesAdminReviewList.tsx");
-const actions = read("app/admin/(dashboard)/workspace/clasificados/ofertas-locales/actions.ts");
+const actions = read("app/admin/(dashboard)/workspace/clasificados/ofertas-locales/actions.ts") + " " + read("app/lib/ofertas-locales/ofertasLocalesAdminReviewService.ts") + " " + read("app/lib/ofertas-locales/ofertasLocalesAdminReviewMutations.ts") + " " + read("app/lib/ofertas-locales/ofertasLocalesAdminReviewMessages.ts");
 const helpers = read("app/lib/ofertas-locales/ofertasLocalesAdminHelpers.ts");
 
 for (const marker of [

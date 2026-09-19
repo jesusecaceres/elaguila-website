@@ -1,6 +1,7 @@
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { buildListingIdentity, resolveDashboardActions, type DashboardAction } from "@/app/lib/listingIdentity";
 import type { DashboardInventoryItem } from "./dashboardInventory";
+import { dashboardCompletePaymentLabel, dashboardStartingPaymentLabel } from "./dashboardPendingPayment";
 import {
   type MisAnunciosCategoryDef,
   type MisAnunciosCategoryKey,
@@ -396,6 +397,13 @@ export function buildInventoryListingActions(
      * /api/clasificados/empleos/listings/{id}. */
     onEmpleosLifecycle?: (next: "published" | "paused" | "archived") => void;
     empleosLifecycleBusy?: boolean;
+    /** CLOSEOUT 2 — "Completar pago" for an unpaid pre-publication row (`item.awaitingPayment`).
+     * Empleos: starts Revenue OS checkout directly. Restaurantes: resumes into the draft-preview checkout
+     * checkpoint (subscription consent). Only rendered when the caller supplies it AND the row is awaiting payment. */
+    onCompletePayment?: () => void;
+    completePaymentBusy?: boolean;
+    /** CLOSEOUT 2 — Restaurantes pending_payment: open the draft preview (no public page exists yet). */
+    onDraftPreview?: () => void;
   },
 ): ListingPanelAction[] {
   const actions: ListingPanelAction[] = [];
@@ -451,7 +459,29 @@ export function buildInventoryListingActions(
     });
   }
 
-  if (listingToolIsReady(category, "publicView")) {
+  if (item.awaitingPayment && opts?.onCompletePayment && (category === "restaurantes" || category === "empleos")) {
+    // CLOSEOUT 2 — an unpaid, not-live listing's most urgent action is finishing payment (the row is
+    // NOT public until then, so no "view listing" CTA is offered below).
+    actions.push({
+      label: opts.completePaymentBusy ? dashboardStartingPaymentLabel(lang) : dashboardCompletePaymentLabel(lang),
+      onClick: opts.onCompletePayment,
+      disabled: opts.completePaymentBusy,
+      tone: "warning",
+    });
+  }
+
+  if (category === "restaurantes" && item.awaitingPayment && opts?.onDraftPreview) {
+    actions.push({
+      label: previewLabel(lang),
+      onClick: opts.onDraftPreview,
+      disabled: opts.completePaymentBusy,
+      tone: "subtle",
+    });
+  }
+
+  // CLOSEOUT 2 — the public "View listing" CTA only exists while the row is actually live
+  // (`isPublicLive === false` => pending payment / draft / paused / not yet approved).
+  if (listingToolIsReady(category, "publicView") && item.isPublicLive !== false) {
     // Gate 2C — view-tier action for every category (previously "primary" for
     // non-Servicios categories, which competed visually with the real manage doorway).
     actions.push({

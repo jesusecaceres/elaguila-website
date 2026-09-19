@@ -4,6 +4,8 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { applyOfertasLiveSqlSuperset, isOfertaPubliclyLive } from "@/app/admin/_lib/adminOfertasLivePredicate";
+import { scanPagedRows } from "@/app/admin/_lib/adminPagedScan";
 import { getSafeOfertaLocalSourceAssetHref } from "./ofertasLocalesClickableItemPreviewHelpers";
 import {
   getOfertaLocalPublicTermDaysRemaining,
@@ -215,12 +217,54 @@ export const OFERTAS_LOCALES_QUEUE_STATUSES: readonly OfertaLocalPublishStatus[]
 
 export const OFERTAS_LOCALES_LIVE_STATUS: OfertaLocalPublishStatus = "approved";
 
+/** Statuses that are never public and never in the review queue — reachable through `scope: "history"`. */
+export const OFERTAS_LOCALES_HISTORY_STATUSES: readonly OfertaLocalPublishStatus[] = [
+  "rejected",
+  "archived",
+  "expired",
+] as const;
+
+/**
+ * `queue`   draft / submitted / pending_review (operational review queue; default).
+ * `live`    ONLY offers the public reader shows: approved + published_at + expires_at in the future + a current
+ *           public source asset (+ coupon date window, non-empty name/title) — `isOfertaPubliclyLive`.
+ * `history` rejected / archived / expired offers PLUS approved offers that are NOT publicly live
+ *           (term ended, asset missing, ...), so nothing that left the queue becomes unreachable.
+ */
+export type OfertasLocalesAdminScope = "queue" | "live" | "history";
+
 export type OfertasLocalesAdminListFilters = {
   limit?: number;
-  scope?: "queue" | "live";
+  scope?: OfertasLocalesAdminScope;
   q?: string;
   id?: string;
   owner_id?: string;
+  /** Page param `status_group`: an `OfertaLocalOperationalStatus.adminKey` value (e.g. "scan_unresolved", "expiring"). */
+  status_group?: string;
+  /** Page param `lane`: "flyer" (weekly_flyer) | "coupon" (every other offer type). */
+  lane?: string;
+  /** Page param `commercial`: "ready" | "blocked" (commercially_ineligible). */
+  commercial?: string;
+  /** Page param `scan_review`: "blocked" | "ready" (scan_unresolved / review_unresolved / operational_recovery). */
+  scan_review?: string;
+  /** Page param `term`: "active" | "expired" | "expiring" | "renewal". */
+  term?: string;
+};
+
+/** The five derived-status filters the Admin page used to apply AFTER the row limit. */
+export type OfertasLocalesAdminDerivedFilters = Pick<
+  OfertasLocalesAdminListFilters,
+  "status_group" | "lane" | "commercial" | "scan_review" | "term"
+>;
+
+export type OfertasLocalesAdminListResult = {
+  rows: OfertaLocalAdminRow[];
+  /** Query error message (the plain `listOfertasLocalesAdminRows` swallows it and returns []). */
+  error: string | null;
+  /** Raw rows read before the derived filters. */
+  scanned: number;
+  /** True when the safety cap stopped the scan before `limit` matches / exhaustion — older matches may be missing. */
+  capped: boolean;
 };
 
 const ADMIN_SEARCH_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -523,48 +567,124 @@ export function mapOfertaLocalAdminRowToDetailVm(row: OfertaLocalAdminRow): Ofer
   };
 }
 
+/**
+ * The derived-status filters (`status_group`, `lane`, `commercial`, `scan_review`, `term`) — same rules the
+ * Admin page applied in memory after the limit, now shared so they run BEFORE the limit.
+ */
+export function ofertaListVmMatchesAdminDerivedFilters(
+  item: OfertaLocalAdminListVm,
+  f: OfertasLocalesAdminDerivedFilters,
+): boolean {
+  const statusGroup = f.status_group ?? "";
+  const lane = f.lane ?? "";
+  const commercial = f.commercial ?? "";
+  const scanReview = f.scan_review ?? "";
+  const term = f.term ?? "";
+  if (statusGroup && item.operationalStatus.adminKey !== statusGroup) return false;
+  if (lane === "flyer" && item.offerType !== "weekly_flyer") return false;
+  if (lane === "coupon" && item.offerType === "weekly_flyer") return false;
+  if (commercial === "ready" && !item.operationalStatus.adminApprovalAllowed && item.operationalStatus.adminKey === "commercially_ineligible") return false;
+  if (commercial === "blocked" && item.operationalStatus.adminKey !== "commercially_ineligible") return false;
+  const scanBlockedKeys = ["scan_unresolved", "review_unresolved", "operational_recovery"];
+  if (scanReview === "blocked" && !scanBlockedKeys.includes(item.operationalStatus.adminKey)) return false;
+  if (scanReview === "ready" && scanBlockedKeys.includes(item.operationalStatus.adminKey)) return false;
+  if (term === "active" && item.publicTermStatus !== "active") return false;
+  if (term === "expired" && item.publicTermStatus !== "expired") return false;
+  if (term === "expiring" && item.operationalStatus.adminKey !== "expiring") return false;
+  if (term === "renewal" && !["renewal_review", "renewal_scheduled"].includes(item.operationalStatus.adminKey)) return false;
+  return true;
+}
+
+/**
+ * Admin list with the scope predicate AND the derived filters applied BEFORE the row limit (windowed
+ * scan; see `scanPagedRows`). `scope`: "queue" | "live" | "history" (see `OfertasLocalesAdminScope`).
+ * Returns the query error and cap flag instead of swallowing them.
+ */
+export async function listOfertasLocalesAdminRowsDetailed(
+  sb: SupabaseClient,
+  filters: OfertasLocalesAdminListFilters = {}
+): Promise<OfertasLocalesAdminListResult> {
+  const limit = Math.min(Math.max(filters.limit ?? 80, 1), 200);
+  const scope: OfertasLocalesAdminScope = filters.scope === "live" || filters.scope === "history" ? filters.scope : "queue";
+  const now = new Date();
+  const nowMs = now.getTime();
+  const nowIso = now.toISOString();
+  const id = filters.id?.trim();
+  const owner = filters.owner_id?.trim();
+  const search = filters.q?.trim();
+  const derived: OfertasLocalesAdminDerivedFilters = {
+    status_group: filters.status_group?.trim() || undefined,
+    lane: filters.lane?.trim() || undefined,
+    commercial: filters.commercial?.trim() || undefined,
+    scan_review: filters.scan_review?.trim() || undefined,
+    term: filters.term?.trim() || undefined,
+  };
+  const hasDerived = Boolean(derived.status_group || derived.lane || derived.commercial || derived.scan_review || derived.term);
+
+  const fetchPage = async (from: number, to: number) => {
+    let query = sb
+      .from("ofertas_locales")
+      .select(OFERTAS_LOCALES_ADMIN_SELECT)
+      .order("submitted_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(from, to);
+
+    if (scope === "live") {
+      // SQL superset of the public reader; `isOfertaPubliclyLive` is the exact rule (below).
+      query = applyOfertasLiveSqlSuperset(query, nowIso);
+    } else if (scope === "history") {
+      query = query.in("status", [...OFERTAS_LOCALES_HISTORY_STATUSES, OFERTAS_LOCALES_LIVE_STATUS]);
+    } else {
+      query = query.in("status", [...OFERTAS_LOCALES_QUEUE_STATUSES]);
+    }
+
+    if (id) query = query.eq("id", id);
+    if (owner) query = query.eq("owner_id", owner);
+    if (search) {
+      const like = `%${search}%`;
+      query = query.or(
+        [
+          `business_name.ilike.${like}`,
+          `title.ilike.${like}`,
+          `city.ilike.${like}`,
+          `zip_code.ilike.${like}`,
+          `leonix_ad_id.ilike.${like}`,
+          ...(ADMIN_SEARCH_UUID_RE.test(search) ? [`id.eq.${search}`] : []),
+        ].join(",")
+      );
+    }
+    const { data, error } = await query;
+    return {
+      data: (data as unknown as OfertaLocalAdminRow[] | null) ?? null,
+      error: error ? { message: error.message } : null,
+    };
+  };
+
+  const needsAccept = scope !== "queue" || hasDerived;
+  const res = await scanPagedRows<OfertaLocalAdminRow>({
+    limit,
+    fetchPage,
+    accept: needsAccept
+      ? (rows) =>
+          rows.filter((row) => {
+            const asRecord = row as unknown as Record<string, unknown>;
+            if (scope === "live" && !isOfertaPubliclyLive(asRecord, nowMs)) return false;
+            if (scope === "history" && row.status === "approved" && isOfertaPubliclyLive(asRecord, nowMs)) return false;
+            return hasDerived ? ofertaListVmMatchesAdminDerivedFilters(mapRowToListVm(row), derived) : true;
+          })
+      : undefined,
+    getId: (r) => r.id,
+  });
+  return { rows: res.rows, error: res.error, scanned: res.scanned, capped: res.capped };
+}
+
+/** Back-compat array form of `listOfertasLocalesAdminRowsDetailed` (errors swallowed → []). */
 export async function listOfertasLocalesAdminRows(
   sb: SupabaseClient,
   filters: OfertasLocalesAdminListFilters = {}
 ): Promise<OfertaLocalAdminRow[]> {
-  const limit = Math.min(Math.max(filters.limit ?? 80, 1), 200);
-
-  let query = sb
-    .from("ofertas_locales")
-    .select(OFERTAS_LOCALES_ADMIN_SELECT)
-    .order("submitted_at", { ascending: false })
-    .limit(limit);
-
-  if (filters.scope === "live") {
-    query = query.eq("status", OFERTAS_LOCALES_LIVE_STATUS);
-  } else {
-    query = query.in("status", [...OFERTAS_LOCALES_QUEUE_STATUSES]);
-  }
-
-  const id = filters.id?.trim();
-  if (id) query = query.eq("id", id);
-
-  const owner = filters.owner_id?.trim();
-  if (owner) query = query.eq("owner_id", owner);
-
-  const search = filters.q?.trim();
-  if (search) {
-    const like = `%${search}%`;
-    query = query.or(
-      [
-        `business_name.ilike.${like}`,
-        `title.ilike.${like}`,
-        `city.ilike.${like}`,
-        `zip_code.ilike.${like}`,
-        `leonix_ad_id.ilike.${like}`,
-        ...(ADMIN_SEARCH_UUID_RE.test(search) ? [`id.eq.${search}`] : []),
-      ].join(",")
-    );
-  }
-
-  const { data, error } = await query;
-  if (error || !data) return [];
-  return data as OfertaLocalAdminRow[];
+  const res = await listOfertasLocalesAdminRowsDetailed(sb, filters);
+  return res.error ? [] : res.rows;
 }
 
 export function mapOfertasLocalesAdminRowsToListVms(rows: OfertaLocalAdminRow[]): OfertaLocalAdminListVm[] {

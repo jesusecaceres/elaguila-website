@@ -21,6 +21,15 @@ import {
   archiveListingLabel,
 } from "../../lib/dashboardMisAnunciosCategoryTools";
 import { ownerToolsTitle, ownerApplicationsModuleTitle } from "../../lib/dashboardI18n";
+import { getStatusChipClass } from "@/app/lib/clasificados/listingLifecycleDomain";
+import {
+  dashboardAwaitingPaymentLabel,
+  dashboardCompletePaymentLabel,
+  dashboardNotLiveNote,
+  dashboardStartingPaymentLabel,
+  isEmpleosDraftAwaitingPayment,
+} from "../../lib/dashboardPendingPayment";
+import { startDashboardResumePayment } from "../../lib/dashboardResumePaymentClient";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +42,7 @@ type ListingRow = {
   company_name: string;
   lifecycle_status: string;
   lane: string;
+  leonix_ad_id?: string | null;
   moderation_reason: string | null;
   apply_count?: number | null;
   view_count?: number | null;
@@ -128,6 +138,9 @@ function EmpleosEmployerManagePageContent() {
   const [appsLoaded, setAppsLoaded] = useState(false);
   const [ownerId, setOwnerId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  /** CLOSEOUT 2 — paid-lane draft "Completar pago": in-flight flag + last checkout-client message. */
+  const [payBusy, setPayBusy] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
 
   const refreshListing = useCallback(async () => {
     const supabase = createSupabaseBrowserClient();
@@ -196,6 +209,32 @@ function EmpleosEmployerManagePageContent() {
     if (json.ok) void refreshApplications();
   }
 
+  /** CLOSEOUT 2 — Revenue OS EMPLEOS_PAID_JOB_CHECKOUT for this owned `draft` row (server accepts only draft). */
+  async function completePayment() {
+    if (!row) return;
+    setPayBusy(true);
+    setPayError(null);
+    try {
+      const result = await startDashboardResumePayment({
+        lane: "empleos",
+        listingId: row.id,
+        leonixAdId: row.leonix_ad_id ?? null,
+        lang,
+      });
+      if (!result.ok) {
+        setPayError(result.userMessage);
+        setPayBusy(false);
+      }
+    } catch {
+      setPayError(
+        lang === "es"
+          ? "No pudimos iniciar el pago seguro. Intenta de nuevo o contacta a Leonix."
+          : "We could not start secure payment. Please try again or contact Leonix.",
+      );
+      setPayBusy(false);
+    }
+  }
+
   async function patchStatus(next: "published" | "paused" | "archived") {
     const supabase = createSupabaseBrowserClient();
     const { data } = await supabase.auth.getSession();
@@ -235,6 +274,8 @@ function EmpleosEmployerManagePageContent() {
   }
 
   const uiStatus = resolveListingUiStatus({ status: row.lifecycle_status });
+  // CLOSEOUT 2 — a paid-lane (quick / premium) draft is an UNPAID application, not a resumable draft.
+  const awaitingPayment = isEmpleosDraftAwaitingPayment(row);
   const editHref = empleosEditHref(row.lane, row.id, q);
   const supportsApplications = row.lane !== "feria" && isLiveCapability(capabilities.specialized.applications);
 
@@ -252,6 +293,14 @@ function EmpleosEmployerManagePageContent() {
   ].filter((x): x is { key: string; label: string; value: number } => x !== null);
 
   const quickActions: ActionItem[] = [];
+  if (awaitingPayment) {
+    quickActions.push({
+      label: payBusy ? dashboardStartingPaymentLabel(lang) : dashboardCompletePaymentLabel(lang),
+      onClick: () => void completePayment(),
+      disabled: payBusy,
+      tone: "warning",
+    });
+  }
   if (row.lifecycle_status === "published" && isLiveCapability(capabilities.identity.publicView)) {
     quickActions.push({
       href: appendLangToPath(`/clasificados/empleos/${row.slug}`, lang),
@@ -334,11 +383,19 @@ function EmpleosEmployerManagePageContent() {
           eyebrow: t.eyebrow,
           title: row.title,
           subtitle: row.company_name,
-          statusLabel: listingUiStatusLabel(uiStatus, lang),
-          statusChipClass: listingUiStatusChipClass(uiStatus),
+          statusLabel: awaitingPayment ? dashboardAwaitingPaymentLabel(lang) : listingUiStatusLabel(uiStatus, lang),
+          statusChipClass: awaitingPayment ? getStatusChipClass("pending_payment") : listingUiStatusChipClass(uiStatus),
           badges: [laneLabel(row.lane, lang)],
         }}
-        note={row.moderation_reason ? { text: `${t.moderation}: ${row.moderation_reason}`, tone: "warning" } : null}
+        note={
+          payError
+            ? { text: payError, tone: "urgent" }
+            : awaitingPayment
+              ? { text: dashboardNotLiveNote(lang), tone: "warning" }
+              : row.moderation_reason
+                ? { text: `${t.moderation}: ${row.moderation_reason}`, tone: "warning" }
+                : null
+        }
         detailItems={detailItems}
         performance={performanceMetrics.length > 0 ? { title: t.performanceTitle, metrics: performanceMetrics } : undefined}
         primaryAction={{ href: editHref ?? `/dashboard/empleos/${row.id}?${q}`, label: editListingLabel(lang) }}

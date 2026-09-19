@@ -127,7 +127,10 @@ async function main() {
     const svc = raw("app/lib/clasificados/autos/autosClassifiedsListingService.ts");
     assert.match(svc, /\(row\.lane === "negocios" \|\| row\.lane === "privado"\) && row\.status === "active"/);
     const fa = raw("app/(site)/publicar/autos/shared/components/AutosApplicationFinalActions.tsx");
-    assert.match(fa, /const showSecondaryContinueButton = !onSaveEdit &&/);
+    assert.match(fa, /if \(onSaveEdit\) \{\s*return \(/, "dashboard edit renders its own tree (Preview + Save only)");
+    assert.ok(fa.includes('const showSecondaryContinueButton = publishLane !== "negocios" || inventoryAddMode;'), "publish-flow gating literal untouched");
+    const editTree = fa.slice(fa.indexOf("if (onSaveEdit) {"), fa.indexOf("showSecondaryContinueButton ? ("));
+    assert.ok(!editTree.includes("router.push(publishConfirmHref)"), "the edit tree never navigates to the publish/confirm flow");
     assert.match(fa, /data-testid="autos-dashboard-edit-save"/);
     const app = raw("app/(site)/publicar/autos/privado/components/AutosPrivadoApplication.tsx");
     assert.match(app, /isDashboardListingEditMode\s*\?\s*async \(\) =>/);
@@ -146,11 +149,12 @@ async function main() {
     }
   });
   await check("empleos admin: staff suspend leaves a moderation marker; legacy moderate route whitelists statuses", () => {
-    const a = raw("app/api/admin/empleos/listings/[id]/route.ts");
-    assert.match(a, /patch\.moderation_reason = "staff_suspended"/);
+    // Closeout 2 consolidated both routes onto one shared function (adminEmpleosStaffActions.ts).
+    const shared = raw("app/admin/_lib/adminEmpleosStaffActions.ts");
+    assert.match(shared, /EMPLEOS_STAFF_SUSPENDED_MARKER = "staff_suspended"/);
+    assert.match(shared, /patch\.moderation_reason = reason \?\? EMPLEOS_STAFF_SUSPENDED_MARKER/);
     const m = raw("app/api/admin/empleos/listings/moderate/route.ts");
-    assert.match(m, /ALLOWED_STATUSES\.has\(lifecycle_status\)/);
-    assert.match(m, /staff_paused/);
+    assert.match(m, /legacyEmpleosStatusToAction\(/, "legacy route maps only known statuses onto the canonical action");
   });
 
   // ── BR activate_pending ─────────────────────────────────────────────────────────────────────

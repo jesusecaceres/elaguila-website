@@ -8,6 +8,7 @@ import { appendAdminAuditLog } from "@/app/admin/_lib/adminAuditLogServer";
 import { auditAdminWrite } from "@/app/admin/_lib/auditAdminWrite";
 import { requireLeonixAdminPermission } from "@/app/admin/_lib/leonixAdminGate";
 import { isSelfEngagement } from "@/app/lib/analytics/selfEngagementGuard";
+import { evaluateAdminListingDeletes, muxAssetsSafeToDelete } from "@/app/admin/_lib/adminListingDeleteServer";
 
 export type ListingReportStatus = "pending" | "reviewed" | "dismissed";
 
@@ -66,15 +67,12 @@ export async function setListingPublishedAction(listingId: string, published: bo
 export async function deleteListingAction(listingId: string) {
   await requireLeonixAdminPermission("can_manage_ads");
   const supabase = getAdminSupabase();
-  const { data: row } = await supabase
-    .from("listings")
-    .select("mux_asset_id, mux_asset_id_2")
-    .eq("id", listingId)
-    .maybeSingle();
-  const muxIds = [row?.mux_asset_id, row?.mux_asset_id_2].filter(Boolean) as string[];
-  if (muxIds.length) {
-    await deleteMuxAssetsBestEffort(muxIds);
-  }
+  // Closeout 2 - inventory guard: a Bienes Raices Negocio PARENT with public children (or any row whose
+  // inventory role cannot be confirmed) cannot be removed; fails closed if the lookup errors.
+  const verdict = (await evaluateAdminListingDeletes(supabase, [listingId], "soft")).get(listingId.trim());
+  if (verdict && !verdict.ok) throw new Error(`${verdict.code}: ${verdict.message}`);
+  // SOFT delete is reversible (status -> removed): it must NEVER destroy video assets. Mux assets are
+  // released only by the explicit permanent delete, after its guards, and only when unreferenced.
   const { error } = await supabase
     .from("listings")
     .update({ status: "removed" })
@@ -95,7 +93,7 @@ function normalizeBulkListingIds(listingIds: string[]): string[] {
   return [...new Set(listingIds.map((id) => id.trim()).filter(Boolean))];
 }
 
-/** Soft delete selected `public.listings` rows (status → removed). Not permanent. */
+/** Soft delete selected `public.listings` rows (status → removed). Not permanent; never touches video assets. */
 export async function bulkSoftDeleteListingsAction(listingIds: string[]): Promise<BulkListingCleanupResult> {
   await requireLeonixAdminPermission("can_manage_ads");
   const ids = normalizeBulkListingIds(listingIds);
@@ -144,27 +142,42 @@ export async function permanentlyDeleteListingsAction(listingIds: string[]): Pro
     .slice(0, 5)
     .map((id) => `${id.slice(0, 8)}…: not_found`);
 
+  // Closeout 2 - guards: inventory role / public children, public-live, paid / subscribed / entitled rows
+  // (unless already removed). Refused rows are counted as failed and never deleted; the lookup fails closed.
+  const verdicts = await evaluateAdminListingDeletes(supabase, found.map((r) => r.id), "permanent");
+  const deletable: typeof found = [];
   for (const row of found) {
-    const muxIds = [row.mux_asset_id, row.mux_asset_id_2].filter(Boolean) as string[];
-    if (muxIds.length) {
-      await deleteMuxAssetsBestEffort(muxIds);
+    const v = verdicts.get(row.id);
+    if (v && v.ok) {
+      deletable.push(row);
+    } else {
+      failed += 1;
+      if (errors.length < 10) errors.push(`${row.id.slice(0, 8)}…: ${v && !v.ok ? v.code : "guard_lookup_failed"}`);
     }
   }
 
-  if (found.length === 0) {
+  if (deletable.length === 0) {
     return { deleted: 0, failed: ids.length, errors, sampleIds: [] };
   }
 
   const { error: delErr, count } = await supabase.from("listings").delete({ count: "exact" }).in(
     "id",
-    found.map((r) => r.id),
+    deletable.map((r) => r.id),
   );
   if (delErr) throw new Error(delErr.message);
 
-  const deleted = count ?? found.length;
-  const sampleIds = found.slice(0, 5).map((r) => r.id);
-  for (const row of found) {
+  const deleted = count ?? deletable.length;
+  const sampleIds = deletable.slice(0, 5).map((r) => r.id);
+  for (const row of deletable) {
     auditAdminWrite("listing_permanently_deleted_by_admin", "listings", row.id, {});
+  }
+
+  // Video assets are released only AFTER the rows are gone, and only when no other listing row still
+  // references the same asset (explicit permanent delete is the only path that may destroy them).
+  const candidateMux = deletable.flatMap((r) => [r.mux_asset_id, r.mux_asset_id_2].filter(Boolean) as string[]);
+  if (candidateMux.length) {
+    const safe = await muxAssetsSafeToDelete(supabase, candidateMux, deletable.map((r) => r.id));
+    if (safe.length) await deleteMuxAssetsBestEffort(safe);
   }
 
   return { deleted, failed, errors, sampleIds };

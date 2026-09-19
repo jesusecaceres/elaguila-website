@@ -80,3 +80,30 @@ Target grammar: header · Queue/Live/Public/Publish · summary · filter bar · 
 
 New: `scripts/verify-category-circuit-closeout.ts` (executable predicates + source guards). Full typecheck, production build and scoped lint
 (identical 14 pre-existing errors on the same files at `origin/main`) run on the branch tip.
+
+## 5. Closeout 2 (same branch) — what changed after the audit was accepted
+
+Admin Live now matches the public readers (`app/admin/_lib/adminLivePredicates.ts`; Queue keeps operational rows): Rentas (future `expires_at`
+required, not rentado/bajo_contrato, category=rentas only), Bienes Raíces (FSBO term + active/published parent for inventory children), Busco /
+Mascotas / Comunidad / Clases (`sold` is live; Clases paid term), En Venta (`sold` is not live), Autos (Privado expiry + child-parent gate),
+Ofertas (the public-offer eligibility predicate). Filters (search/status/owner/Leonix Ad ID/lane/limit) run before the row limit on generic,
+Autos, Empleos, Travel, Servicios, Restaurantes, Ofertas and Comida Local; `fetchAdminCategorySummary` provides shared total/live/needs-attention/
+payment-issue/expired/source-health counts.
+
+Owner dashboards: pending paid listings show a truthful "payment pending" state, Edit, and Complete payment through Revenue OS only
+(Empleos quick/premium drafts, Rentas, Bienes FSBO, Clases paid, Autos Privado, Comida Local; Restaurantes resumes into its existing consent
+checkpoint) with no public CTA until live; Viajes list and count agree.
+
+Edit/republish: Autos confirm/preview saves bind the canonical id to the draft and fail closed instead of POSTing a duplicate; Bienes/Rentas
+pending-row reuse is draft-key first (then explicit id, title last) and FSBO is included; FSBO Admin Restore no longer uses the Negocio
+activation RPC (never grants a new term); Comida Local pending listings resume payment on the same row; Restaurantes first-save reconciles a
+race by archiving the losing row; Admin soft delete never destroys video assets and permanent delete refuses BR parents with public children,
+public-live rows and paid/entitled rows.
+
+Admin shell: one grammar (scope-aware header, summary, filter bar, listing/commercial/performance/moderation/actions sections) on the generic
+shell, Autos (truthful capacity), Empleos (ONE lifecycle action system + payment precondition), Comida Local (guarded canonical actions replace the
+raw status dropdown), Ofertas (canonical actions + reachable History view), Travel, Servicios (intelligence preserved) and Restaurantes.
+
+Still open after Closeout 2 (source): see the return summary in the thread. Legacy verifiers that diff the working tree for "forbidden file
+changed" fail on any multi-lane branch (they fail identically on any change to those files); every content-pin verifier was either passing
+or updated to the new structure.

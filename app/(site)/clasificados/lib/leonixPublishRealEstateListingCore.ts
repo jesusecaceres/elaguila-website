@@ -37,6 +37,13 @@ import {
   rentasPublishGalleryUrlsPreflight,
 } from "@/app/(site)/clasificados/rentas/lib/rentasPublishFinalPayloadDebug";
 import { rentasPublishStepTracePatch } from "@/app/(site)/clasificados/rentas/lib/rentasPublishStepTrace";
+import {
+  REAL_ESTATE_DRAFT_KEY_FILTER_COLUMN,
+  getOrCreateRealEstateDraftKey,
+  realEstatePendingLookupOrder,
+  sanitizeRealEstateDraftKey,
+  withRealEstateDraftKeyInListingJson,
+} from "@/app/(site)/clasificados/lib/realEstateDraftKey";
 
 const DEV = process.env.NODE_ENV === "development";
 
@@ -73,6 +80,14 @@ async function fetchAsBlob(src: string): Promise<Blob> {
   const res = await fetch(s);
   if (!res.ok) throw new Error("fetch blob failed");
   return res.blob();
+}
+
+function safeSessionStorage(): Storage | null {
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
 }
 
 function digitsOnly(raw: string): string {
@@ -235,6 +250,16 @@ export function buildListingsInsertRowForLeonixPublish(
   } else if (listingJsonBase) {
     insertPayload.listing_json = listingJsonBase;
   }
+  // Closeout 2 - stable per-application draft key (top-level `listing_json` field; survives the
+  // br_publish / rentas_publish payment-meta rebuilds). Pending rows only; inventory children excluded.
+  if (
+    params.activationMode === "pending_payment" &&
+    (category === "bienes-raices" || category === "rentas") &&
+    params.brInventoryRole !== "inventory_property"
+  ) {
+    const withKey = withRealEstateDraftKeyInListingJson(insertPayload.listing_json, params.draftKey);
+    if (withKey) insertPayload.listing_json = withKey;
+  }
 
   const profileJson =
     compactLeonixJsonRecord(params.profileJson ?? {}) ??
@@ -351,6 +376,16 @@ export type PublishLeonixRealEstateListingCoreParams = {
   /** BR publish: immediate live row vs pending until Stripe (negocio/privado paid lane). */
   activationMode?: "immediate" | "pending_payment";
   brPaymentLane?: "negocio" | "privado";
+  /**
+   * Closeout 2 - stable per-application key written onto the pending row (`listing_json.leonix_draft_key`).
+   * When omitted on a `pending_payment` publish the core derives/persists one in sessionStorage.
+   */
+  draftKey?: string | null;
+  /**
+   * Closeout 2 - canonical pending row the caller already knows (e.g. FSBO's cached id). Verified
+   * (owner + category + seller type + pending + unpublished) and reused; never trusted blindly.
+   */
+  existingListingId?: string | null;
   /** Rentas publish: privado vs negocio lane metadata for pending checkout. */
   rentasPaymentLane?: "negocio" | "privado";
   /**
@@ -434,6 +469,17 @@ export async function publishLeonixRealEstateListingCore(
   }
   const userId = auth.user.id;
 
+  // Closeout 2 - one stable draft key per application (per user + category + seller type, per tab).
+  const draftKey =
+    params.activationMode === "pending_payment" && params.brInventoryRole !== "inventory_property"
+      ? sanitizeRealEstateDraftKey(params.draftKey) ??
+        getOrCreateRealEstateDraftKey(
+          typeof window !== "undefined" ? safeSessionStorage() : null,
+          { userId, category, sellerType },
+        )
+      : null;
+  paramsForRow.draftKey = draftKey;
+
   const insertPayload = buildListingsInsertRowForLeonixPublish(userId, paramsForRow, {
     listingDescriptionForDb: descriptionForDb,
   });
@@ -495,32 +541,50 @@ export async function publishLeonixRealEstateListingCore(
     rentasPublishStepTracePatch({ publicListingInsertStarted: true });
   }
 
-  const reusableRealEstatePending =
-    params.activationMode === "pending_payment" &&
-    (category === "rentas" || (category === "bienes-raices" && sellerType === "business"))
-      ? await supabase
-          .from("listings")
-          .select("id, leonix_ad_id, status")
-          .eq("owner_id", userId)
-          .eq("category", category)
-          .eq("seller_type", sellerType)
-          .eq("status", "pending")
-          .eq("is_published", false)
-          .eq("title", titlePrep.titleForDb)
-          .match(
-            category === "bienes-raices" && sellerType === "business"
-              ? {
-                  inventory_role: params.brInventoryRole ?? "main",
-                  ...(params.brInventoryParentListingId?.trim()
-                    ? { br_inventory_parent_listing_id: params.brInventoryParentListingId.trim() }
-                    : {}),
-                }
-              : {},
-          )
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle()
-      : { data: null, error: null };
+  // Closeout 2 - pending-row reuse no longer depends only on the title. Lookup order (each tier verifies
+  // owner + category + seller type + status pending + not published): 1) the per-application DRAFT KEY,
+  // 2) an explicit existing id the caller declared, 3) the title (LAST fallback, the previous behaviour).
+  // FSBO (bienes-raices / personal) is now in the reuse set alongside Rentas and BR Negocio.
+  const reuseEligible =
+    params.activationMode === "pending_payment" && (category === "rentas" || category === "bienes-raices");
+  const isInventoryChild = params.brInventoryRole === "inventory_property";
+  const roleMatch =
+    category === "bienes-raices" && sellerType === "business"
+      ? {
+          inventory_role: params.brInventoryRole ?? "main",
+          ...(params.brInventoryParentListingId?.trim()
+            ? { br_inventory_parent_listing_id: params.brInventoryParentListingId.trim() }
+            : {}),
+        }
+      : {};
+  const pendingBase = () =>
+    supabase
+      .from("listings")
+      .select("id, leonix_ad_id, status")
+      .eq("owner_id", userId)
+      .eq("category", category)
+      .eq("seller_type", sellerType)
+      .eq("status", "pending")
+      .eq("is_published", false);
+  type PendingLookup = {
+    data: { id?: string; leonix_ad_id?: string | null; status?: string } | null;
+    error: { message: string } | null;
+  };
+  let reusableRealEstatePending: PendingLookup = { data: null, error: null };
+  if (reuseEligible) {
+    const explicitId = params.existingListingId?.trim() || null;
+    for (const tier of realEstatePendingLookupOrder({ draftKey, existingListingId: explicitId, isInventoryChild })) {
+      let q = pendingBase().match(roleMatch);
+      if (tier === "draft_key" && draftKey) q = q.eq(REAL_ESTATE_DRAFT_KEY_FILTER_COLUMN, draftKey);
+      else if (tier === "existing_id" && explicitId) q = q.eq("id", explicitId);
+      else if (tier === "title") q = q.eq("title", titlePrep.titleForDb);
+      else continue;
+      const res = (await q.order("created_at", { ascending: false }).limit(1).maybeSingle()) as unknown as PendingLookup;
+      reusableRealEstatePending = res;
+      // A failed lookup is a HARD STOP (below); a hit ends the search.
+      if (res.error || typeof res.data?.id === "string") break;
+    }
+  }
 
   // Globalization Package A Gate 3 — a failed reuse lookup is a HARD STOP, never a silent
   // fall-through to INSERT. This closes the ledger's long-open "Rentas duplicate-row

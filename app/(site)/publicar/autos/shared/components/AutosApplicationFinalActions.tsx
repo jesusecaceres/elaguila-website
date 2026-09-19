@@ -111,7 +111,82 @@ export function AutosApplicationFinalActions({
   // exclusively from Preview → Checkout Checkpoint → Revenue OS → Stripe → verified webhook.
   // Privado keeps its existing proven "continue to publish" path, and the child-draft
   // "Agregar al inventario" action is NOT public publication, so it stays for both lanes.
-  const showSecondaryContinueButton = !onSaveEdit && (publishLane !== "negocios" || inventoryAddMode);
+  const showSecondaryContinueButton = publishLane !== "negocios" || inventoryAddMode;
+
+  // Dashboard edit of an EXISTING listing: Preview + Save only. "Continue to publish" is deliberately
+  // not offered here — it would POST a NEW listing and start a new charge (2026-09 closeout). Rendered
+  // as its own tree so the publish-flow JSX below (and its pinned gating) stays untouched.
+  if (onSaveEdit) {
+    return (
+      <div className="mt-6 border-t border-[color:var(--lx-nav-border)] pt-6">
+        <p className="text-sm leading-relaxed text-[color:var(--lx-text-2)]">{shell.finalStepActionsIntro}</p>
+        <div
+          className="mt-6 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-stretch"
+          role="group"
+          aria-label={lang === "es" ? "Vista previa y guardar" : "Preview and save"}
+        >
+          <button
+            type="button"
+            className={BTN_PRIMARY}
+            onClick={() => {
+              if (issues.length > 0) {
+                navigateToFirstBlockingStep();
+                setBlockedTap("preview");
+                return;
+              }
+              void Promise.resolve(onPreview());
+            }}
+          >
+            {h.openPreview}
+          </button>
+          <button
+            type="button"
+            className={BTN_SECONDARY}
+            disabled={saveBusy}
+            data-testid="autos-dashboard-edit-save"
+            onClick={() => {
+              if (issues.length > 0) {
+                navigateToFirstBlockingStep();
+                setBlockedTap("preview");
+                return;
+              }
+              setSaveBusy(true);
+              setSaveNote(null);
+              void (async () => {
+                try {
+                  const r = await onSaveEdit();
+                  setSaveNote({
+                    ok: r.ok,
+                    text: r.message ?? (r.ok ? (lang === "es" ? "Cambios guardados." : "Changes saved.") : lang === "es" ? "No se pudo guardar." : "Could not save."),
+                  });
+                } finally {
+                  setSaveBusy(false);
+                }
+              })();
+            }}
+          >
+            {lang === "es" ? "Guardar cambios" : "Save changes"}
+          </button>
+        </div>
+        {saveNote ? (
+          <p
+            className={`mt-3 rounded-[12px] border px-3 py-2 text-[13px] font-medium ${saveNote.ok ? "border-emerald-300/60 bg-emerald-50/90 text-emerald-950" : "border-red-300/60 bg-red-50/90 text-red-950"}`}
+            role="status"
+          >
+            {saveNote.text}
+          </p>
+        ) : null}
+        {blockedMessage ? (
+          <p
+            className="mt-3 rounded-[12px] border border-amber-300/60 bg-amber-50/90 px-3 py-2 text-[13px] font-medium text-amber-950"
+            role="status"
+          >
+            {blockedMessage}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className="mt-6 border-t border-[color:var(--lx-nav-border)] pt-6">
@@ -182,36 +257,6 @@ export function AutosApplicationFinalActions({
         >
           {h.openPreview}
         </button>
-        {onSaveEdit ? (
-          <button
-            type="button"
-            className={BTN_SECONDARY}
-            disabled={saveBusy}
-            data-testid="autos-dashboard-edit-save"
-            onClick={() => {
-              if (issues.length > 0) {
-                navigateToFirstBlockingStep();
-                setBlockedTap("preview");
-                return;
-              }
-              setSaveBusy(true);
-              setSaveNote(null);
-              void (async () => {
-                try {
-                  const r = await onSaveEdit();
-                  setSaveNote({
-                    ok: r.ok,
-                    text: r.message ?? (r.ok ? (lang === "es" ? "Cambios guardados." : "Changes saved.") : lang === "es" ? "No se pudo guardar." : "Could not save."),
-                  });
-                } finally {
-                  setSaveBusy(false);
-                }
-              })();
-            }}
-          >
-            {lang === "es" ? "Guardar cambios" : "Save changes"}
-          </button>
-        ) : null}
         {showSecondaryContinueButton ? (
           <button
             type="button"
@@ -242,14 +287,6 @@ export function AutosApplicationFinalActions({
           </button>
         ) : null}
       </div>
-      {saveNote ? (
-        <p
-          className={`mt-3 rounded-[12px] border px-3 py-2 text-[13px] font-medium ${saveNote.ok ? "border-emerald-300/60 bg-emerald-50/90 text-emerald-950" : "border-red-300/60 bg-red-50/90 text-red-950"}`}
-          role="status"
-        >
-          {saveNote.text}
-        </p>
-      ) : null}
       {blockedMessage ? (
         <p
           className="mt-3 rounded-[12px] border border-amber-300/60 bg-amber-50/90 px-3 py-2 text-[13px] font-medium text-amber-950"

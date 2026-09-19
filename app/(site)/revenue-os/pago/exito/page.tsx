@@ -1,6 +1,7 @@
 import { lookupRevenuePaymentProof } from "@/app/lib/listingPlans/revenuePaymentLookup";
 import { resolveRevenueOsSuccessReturnPath } from "@/app/lib/listingPlans/revenueOsReturnPath";
 import { RevenueOsPagoResultView } from "../_components/RevenueOsPagoResultView";
+import { AutosPaidReturnIdentityCleanup } from "../_components/AutosPaidReturnIdentityCleanup";
 
 export const dynamic = "force-dynamic";
 
@@ -31,13 +32,16 @@ export default async function RevenueOsPagoExitoPage({
   });
 
   return (
-    <RevenueOsPagoResultView
-      proof={proof}
-      lang={lang}
-      returnTo={returnTo}
-      category={category}
-      boostSource={boostSource}
-      showRefreshHint
-    />
+    <>
+      {category === "autos" ? <AutosPaidReturnIdentityCleanup /> : null}
+      <RevenueOsPagoResultView
+        proof={proof}
+        lang={lang}
+        returnTo={returnTo}
+        category={category}
+        boostSource={boostSource}
+        showRefreshHint
+      />
+    </>
   );
 }

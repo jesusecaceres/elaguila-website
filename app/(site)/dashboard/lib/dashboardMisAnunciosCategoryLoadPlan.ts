@@ -96,6 +96,12 @@ export const EMPTY_DEDICATED_CATEGORY_COUNTS: DedicatedCategoryCounts = {
  * Lightweight, count-only, owner-scoped query per dedicated table — same tables and owner column
  * (`owner_user_id`) already used by `dashboardInventory.ts`'s full-row fetchers, just `head: true`
  * instead of full columns. Parallelized; never blocks on any single table.
+ *
+ * CLOSEOUT 2 — COUNT/LIST PARITY: neither this count nor `fetchOwnerViajesListings` filters
+ * `is_public` (the owner sees ALL of their staged Viajes rows — draft / submitted / in_review /
+ * changes_requested / approved — with a truthful status; the public link is gated per row by
+ * approved AND is_public). Adding a filter to only one of the two re-creates the "tab says 3, list
+ * shows 1" mismatch. `scripts/verify-closeout2-dashboard.ts` fails if they diverge.
  */
 export async function fetchDedicatedCategoryCounts(
   sb: SupabaseClient,

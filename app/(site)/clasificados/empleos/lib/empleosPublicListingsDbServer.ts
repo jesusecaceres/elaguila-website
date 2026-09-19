@@ -2,6 +2,7 @@ import "server-only";
 
 import type { EmpleosPublishEnvelope } from "@/app/publicar/empleos/shared/publish/empleosPublishSnapshots";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { scanPagedRows } from "@/app/admin/_lib/adminPagedScan";
 import { QUICK_LISTING_EXISTING_IDENTITY_INVALID_CODE } from "@/app/(site)/clasificados/lib/quickListingIdempotency";
 
 import { getEmpleoJobBySlug } from "../data/empleosSampleCatalog";
@@ -376,20 +377,47 @@ export async function fetchEmpleosListingsForOwner(ownerUserId: string): Promise
 const EMPLEOS_ADMIN_QUEUE_SELECT =
   "id, slug, leonix_ad_id, title, company_name, lifecycle_status, lane, owner_user_id, moderation_reason, leonix_verified, admin_promoted, apply_count, view_count, republish_override, city, state, postal_code, listing_snapshot";
 
+/**
+ * Admin Empleos list. 2026-09 closeout 2 — `rowFilter` (the Admin search / any keep-only predicate) runs
+ * BEFORE the row cap: rows are read in windows until `limit` rows PASS the filter (or the table is
+ * exhausted / the safety cap is hit), so an older matching listing is not hidden behind a page of
+ * non-matching newer ones. `scope: "live"` stays a SQL filter (`lifecycle_status = published`).
+ */
 export async function fetchAllEmpleosListingsForAdmin(opts?: {
   limit?: number;
   scope?: "live";
+  rowFilter?: (row: EmpleosPublicListingRow) => boolean;
 }): Promise<EmpleosPublicListingRow[]> {
   if (!isSupabaseAdminConfigured()) return [];
   const supabase = getAdminSupabase();
   const cap = Math.min(Math.max(Math.floor(opts?.limit ?? 100), 1), 500);
+  const rowFilter = opts?.rowFilter;
 
-  let q = supabase.from("empleos_public_listings").select(EMPLEOS_ADMIN_QUEUE_SELECT).order("republish_sort_at", { ascending: false, nullsFirst: true }).limit(cap);
-  if (opts?.scope === "live") {
-    q = q.eq("lifecycle_status", "published");
-  }
-  const { data, error } = await q;
-  if (!error && data) return data as unknown as EmpleosPublicListingRow[];
+  const scan = (orderColumn: "republish_sort_at" | "updated_at") =>
+    scanPagedRows<EmpleosPublicListingRow>({
+      limit: cap,
+      fetchPage: async (from, to) => {
+        let q = supabase
+          .from("empleos_public_listings")
+          .select(EMPLEOS_ADMIN_QUEUE_SELECT)
+          .order(orderColumn, orderColumn === "republish_sort_at" ? { ascending: false, nullsFirst: true } : { ascending: false })
+          .order("id", { ascending: false })
+          .range(from, to);
+        if (opts?.scope === "live") {
+          q = q.eq("lifecycle_status", "published");
+        }
+        const { data, error } = await q;
+        return {
+          data: (data as unknown as EmpleosPublicListingRow[] | null) ?? null,
+          error: error ? { message: error.message } : null,
+        };
+      },
+      accept: rowFilter ? (rows) => rows.filter(rowFilter) : undefined,
+      getId: (r) => r.id,
+    });
+
+  const first = await scan("republish_sort_at");
+  if (!first.error) return first.rows;
 
   // CMD-004 / DATA-QUERY-001 schema-drift fallback (same pattern as
   // viajesStagedListingsDbServer.ts): `republish_sort_at` is defined by
@@ -399,20 +427,16 @@ export async function fetchAllEmpleosListingsForAdmin(opts?: {
   // failure (network, RLS/permission, invalid query, etc). Those must stay
   // visible, not silently become "no rows" — log them so they are observable
   // server-side.
-  if (!error?.message?.includes("republish_sort_at")) {
-    if (error) console.error("fetchAllEmpleosListingsForAdmin: unexpected query error (not the known schema-drift column)", error.message);
+  if (!first.error.includes("republish_sort_at")) {
+    console.error("fetchAllEmpleosListingsForAdmin: unexpected query error (not the known schema-drift column)", first.error);
     return [];
   }
-  let fallbackQ = supabase.from("empleos_public_listings").select(EMPLEOS_ADMIN_QUEUE_SELECT).order("updated_at", { ascending: false }).limit(cap);
-  if (opts?.scope === "live") {
-    fallbackQ = fallbackQ.eq("lifecycle_status", "published");
-  }
-  const fallback = await fallbackQ;
+  const fallback = await scan("updated_at");
   if (fallback.error) {
-    console.error("fetchAllEmpleosListingsForAdmin: schema-drift fallback query itself failed", fallback.error.message);
+    console.error("fetchAllEmpleosListingsForAdmin: schema-drift fallback query itself failed", fallback.error);
     return [];
   }
-  return (fallback.data ?? []) as unknown as EmpleosPublicListingRow[];
+  return fallback.rows;
 }
 
 export async function updateEmpleosListingLifecycleAdmin(input: {

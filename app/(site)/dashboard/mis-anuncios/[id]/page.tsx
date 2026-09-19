@@ -67,6 +67,16 @@ import {
   bienesListingPreviewHref,
 } from "../../lib/bienesDashboardInventoryAddonCheckout";
 import { manageInventoryLabel, previewLabel } from "../../lib/dashboardMisAnunciosCategoryTools";
+import { getStatusChipClass } from "@/app/lib/clasificados/listingLifecycleDomain";
+import {
+  dashboardAwaitingPaymentLabel,
+  dashboardCompletePaymentLabel,
+  dashboardNotLiveNote,
+  dashboardStartingPaymentLabel,
+  isSharedListingsRowNotLive,
+  resolveSharedListingPaymentLane,
+} from "../../lib/dashboardPendingPayment";
+import { startDashboardResumePayment } from "../../lib/dashboardResumePaymentClient";
 
 export const dynamic = "force-dynamic";
 
@@ -356,6 +366,17 @@ function ListingWorkspacePageContent() {
   const listingPlan = row ? listingPlanFromDetailPairs(row.detail_pairs) : "free";
   const visibilityWindowActive = row ? isListingRepublishWindowActive(row.republished_at) : false;
   const uiStatus = row ? resolveListingUiStatus(row) : "unknown";
+  // CLOSEOUT 2 — an unpaid / pre-publication row is NOT live: truthful status, payment action where a
+  // Revenue OS package exists (Rentas / BR FSBO / paid Clases), and no public "View listing" link.
+  const rowNotLive = row ? isSharedListingsRowNotLive(row) : false;
+  const unpaidPayLane = row
+    ? resolveSharedListingPaymentLane({
+        category: row.category,
+        status: row.status,
+        is_published: row.is_published,
+        detail_pairs: row.detail_pairs,
+      })
+    : null;
   const priceLine = row ? formatPrice(row.price, lang) : "—";
   const cityLine = (row?.city ?? "").trim() || "—";
   const visibilityWindowEndIso = row ? listingRepublishVisibilityWindowEndIso(row.republished_at) : null;
@@ -524,6 +545,32 @@ function ListingWorkspacePageContent() {
     const { error } = await applyOwnerListingPatch(sb, row.id, userId, patch);
     if (!error) setRow((r) => (r ? { ...r, status, ...(status === "active" ? { is_published: true } : {}) } : r));
     setBusy(false);
+  }
+
+  /** CLOSEOUT 2 — Revenue OS base payment for an unpaid `pending` Rentas / BR FSBO / paid-Clases row. */
+  async function completeUnpaidListingPayment() {
+    if (!row || !unpaidPayLane) return;
+    setBusy(true);
+    setResumeError(null);
+    try {
+      const result = await startDashboardResumePayment({
+        lane: unpaidPayLane,
+        listingId: row.id,
+        leonixAdId: row.leonix_ad_id,
+        lang,
+      });
+      if (!result.ok) {
+        setResumeError(result.userMessage);
+        setBusy(false);
+      }
+    } catch {
+      setResumeError(
+        lang === "es"
+          ? "No pudimos iniciar el pago seguro. Intenta de nuevo o contacta a Leonix."
+          : "We could not start secure payment. Please try again or contact Leonix.",
+      );
+      setBusy(false);
+    }
   }
 
   async function startFsboRenewal() {
@@ -761,7 +808,15 @@ function ListingWorkspacePageContent() {
         ? `/clasificados/anuncio/${row.id}?${q}`
         : "#";
 
-  const quickActions: ActionItem[] = row ? [{ href: publicListingHref, label: t.publicLink, tone: "secondary" }] : [];
+  const quickActions: ActionItem[] = row && !rowNotLive ? [{ href: publicListingHref, label: t.publicLink, tone: "secondary" }] : [];
+  if (row && unpaidPayLane) {
+    quickActions.unshift({
+      label: busy ? dashboardStartingPaymentLabel(lang) : dashboardCompletePaymentLabel(lang),
+      onClick: () => void completeUnpaidListingPayment(),
+      disabled: busy,
+      tone: "warning",
+    });
+  }
   if (row && isBrNegocio && isBrInventoryMainListing(row)) {
     quickActions.push({
       href: bienesListingPreviewHref({ lang, listingId: row.id, leonixAdId: row.leonix_ad_id }),
@@ -900,12 +955,18 @@ function ListingWorkspacePageContent() {
             header={{
               eyebrow: genericCategoryEyebrow(row.category, lang),
               title: row.title?.trim() || "—",
-              statusLabel: listingUiStatusLabel(uiStatus, lang),
-              statusChipClass: listingUiStatusChipClass(uiStatus),
+              statusLabel: unpaidPayLane ? dashboardAwaitingPaymentLabel(lang) : listingUiStatusLabel(uiStatus, lang),
+              statusChipClass: unpaidPayLane ? getStatusChipClass("pending_payment") : listingUiStatusChipClass(uiStatus),
               plan: listingPlan.toUpperCase(),
               leonixId: displayLeonixAdId || `${t.listingRef}: ${shortListingRef(row.id)}`,
             }}
-            note={resumeError ? { text: resumeError, tone: "urgent" } : null}
+            note={
+              resumeError
+                ? { text: resumeError, tone: "urgent" }
+                : unpaidPayLane
+                  ? { text: dashboardNotLiveNote(lang), tone: "warning" }
+                  : null
+            }
             detailItems={detailItems}
             performance={{ title: t.performanceTitle, metrics: performanceMetrics }}
             primaryAction={{

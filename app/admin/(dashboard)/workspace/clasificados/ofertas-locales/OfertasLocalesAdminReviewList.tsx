@@ -1,5 +1,9 @@
 import Link from "next/link";
 
+import type { AdminLang } from "@/app/admin/_lib/adminI18nCookie";
+import { adminTr } from "@/app/admin/_lib/adminStrings";
+import type { AdminListingCommercialTruthMap } from "@/app/admin/_lib/adminListingCommercialTruth";
+import type { PublicationTruth } from "@/app/admin/_lib/publicationSemantics";
 import { getSafeOfertaLocalSourceAssetHref } from "@/app/lib/ofertas-locales/ofertasLocalesClickableItemPreviewHelpers";
 import type {
   OfertaLocalAdminDetailVm,
@@ -7,16 +11,55 @@ import type {
 } from "@/app/lib/ofertas-locales/ofertasLocalesAdminHelpers";
 import type { OfertaLocalPublishedAssetMetadata } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 
+import { ofertaLocalAdminActionsForStatus } from "@/app/lib/ofertas-locales/ofertasLocalesAdminReviewMutations";
+
+import { ClassifiedAdminRowActions } from "../_components/ClassifiedAdminRowActions";
+import {
+  AdminCommercialTruthSection,
+  AdminListingTruthSection,
+} from "../_components/normalized/AdminListingCardSections";
 import { OfertasLocalesAdminAiItemReviewSection } from "./OfertasLocalesAdminAiItemReviewSection";
 import { reviewOfertaLocalAdminAction } from "./actions";
+import { ofertaRowActions, type OfertasAdminScope } from "./ofertasAdminView";
 
 type Props = {
   items: OfertaLocalAdminListVm[];
   inspectItem: OfertaLocalAdminDetailVm | null;
   basePath: string;
-  scope: "queue" | "live";
+  scope: OfertasAdminScope;
   reviewEnabled: boolean;
+  lang?: AdminLang;
+  /** Listing truth per offer id (classifyPublication("ofertas_locales", row) + the live-reader correction). */
+  listingTruthById?: Record<string, PublicationTruth>;
+  /** Read-only commercial truth per offer id (payment / entitlement / subscription records). */
+  commercialTruthByListingId?: AdminListingCommercialTruthMap;
 };
+
+function scopeQuery(scope: OfertasAdminScope): string {
+  return scope === "queue" ? "" : `&scope=${scope}`;
+}
+
+/** Row-level commercial facts straight from the offer row (payment / entitlement / term end). Read-only. */
+function RowCommercialFacts({ item }: { item: OfertaLocalAdminListVm }) {
+  const termEnd = item.expiresAt ? item.expiresAt.slice(0, 10) : item.entitlementEndsAt ? item.entitlementEndsAt.slice(0, 10) : null;
+  return (
+    <div className="text-[10px]" data-testid="ofertas-row-commercial-facts">
+      <div className="font-semibold">{item.commercialProductKey || "sin paquete"}</div>
+      <div>{item.commercialAmount || "sin pago"}</div>
+      <div>
+        payment {item.paymentStatus} · entitlement {item.entitlementStatus}
+      </div>
+      <div>term end {termEnd ?? "—"}</div>
+      <div className="text-[#7A7164]">{item.commercialEligibilitySource}</div>
+      {item.partnerAssignmentId ? (
+        <div className="font-mono text-[10px] text-[#7A7164]">partner {item.partnerAssignmentId.slice(0, 8)}</div>
+      ) : null}
+      {item.commercialDiscrepancyWarning ? (
+        <div className="mt-1 rounded bg-rose-50 px-1 py-0.5 font-semibold text-rose-900">{item.commercialDiscrepancyWarning}</div>
+      ) : null}
+    </div>
+  );
+}
 
 function statusBadgeClass(status: string): string {
   switch (status) {
@@ -112,15 +155,22 @@ function InspectDetail({
   basePath,
   scope,
   reviewEnabled,
+  lang,
+  listingTruth,
+  commercialTruth,
 }: {
   item: OfertaLocalAdminDetailVm;
   basePath: string;
-  scope: "queue" | "live";
+  scope: OfertasAdminScope;
   reviewEnabled: boolean;
+  lang: AdminLang;
+  listingTruth?: PublicationTruth;
+  commercialTruth?: AdminListingCommercialTruthMap[string];
 }) {
   const { socialLinks, wantsAiSearchableSpecials, featuredPlacementScope, userNote, adminReviewNotes } =
     item.metadata;
-  const returnTo = `${basePath}?id=${encodeURIComponent(item.id)}${scope === "live" ? "&scope=live" : ""}`;
+  const returnTo = `${basePath}?id=${encodeURIComponent(item.id)}${scopeQuery(scope)}`;
+  const reviewActions = new Set(ofertaLocalAdminActionsForStatus(item.status));
 
   return (
     <div className="space-y-4 rounded-2xl border border-[#C9B46A]/50 bg-[#FFFCF7] p-5">
@@ -132,6 +182,16 @@ function InspectDetail({
         <span className={`rounded-lg px-2 py-1 text-xs font-bold uppercase ${statusBadgeClass(item.status)}`}>
           {item.status}
         </span>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2" data-testid="ofertas-inspect-truth">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">{adminTr(lang, "catShell.section.listing")}</p>
+          <AdminListingTruthSection lang={lang} status={item.status} truth={listingTruth ?? null} />
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">{adminTr(lang, "catShell.section.commercial")}</p>
+          <AdminCommercialTruthSection lang={lang} truth={commercialTruth} />
+        </div>
       </div>
       <section className="rounded-xl border border-[#C9B46A]/50 bg-white p-3 text-sm">
         <div className="flex flex-wrap items-center gap-2">
@@ -390,8 +450,8 @@ function InspectDetail({
         <OfertasLocalesAdminAiItemReviewSection ofertaLocalId={item.id} />
       ) : null}
 
-      {reviewEnabled && item.status !== "approved" && item.status !== "archived" ? (
-        <div className="space-y-3 border-t border-[#E8DFD0] pt-4">
+      {reviewEnabled && reviewActions.size > 0 ? (
+        <div className="space-y-3 border-t border-[#E8DFD0] pt-4" data-testid="ofertas-inspect-moderation">
           <h4 className="text-sm font-bold text-[#1E1810]">Moderación</h4>
           <form action={reviewOfertaLocalAdminAction} className="space-y-2">
             <input type="hidden" name="offer_id" value={item.id} />
@@ -413,42 +473,53 @@ function InspectDetail({
               />
             </label>
             <div className="flex flex-wrap gap-2">
-              {(item.status === "pending_review" ||
-                item.status === "submitted" ||
-                item.status === "draft") && (
-                <>
-                  <button
-                    type="submit"
-                    name="action"
-                    value="approve"
-                    disabled={!item.operationalStatus.adminApprovalAllowed}
-                    title={
-                      item.operationalStatus.adminApprovalAllowed
-                        ? "Aprobación disponible"
-                        : `Aprobación bloqueada: ${item.operationalStatus.blockingReasons.join(", ")}`
-                    }
-                    className="rounded-xl border border-emerald-600/40 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-900 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Aprobar
-                  </button>
-                  <button
-                    type="submit"
-                    name="action"
-                    value="reject"
-                    className="rounded-xl border border-rose-600/40 bg-rose-50 px-4 py-2 text-sm font-bold text-rose-900"
-                  >
-                    Rechazar
-                  </button>
-                </>
-              )}
-              <button
-                type="submit"
-                name="action"
-                value="archive"
-                className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-bold text-[#5C5346]"
-              >
-                Archivar
-              </button>
+              {reviewActions.has("approve") ? (
+                <button
+                  type="submit"
+                  name="action"
+                  value="approve"
+                  disabled={!item.operationalStatus.adminApprovalAllowed}
+                  title={
+                    item.operationalStatus.adminApprovalAllowed
+                      ? "Aprobación disponible"
+                      : `Aprobación bloqueada: ${item.operationalStatus.blockingReasons.join(", ")}`
+                  }
+                  className="rounded-xl border border-emerald-600/40 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-900 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Aprobar
+                </button>
+              ) : null}
+              {reviewActions.has("reject") ? (
+                <button
+                  type="submit"
+                  name="action"
+                  value="reject"
+                  className="rounded-xl border border-rose-600/40 bg-rose-50 px-4 py-2 text-sm font-bold text-rose-900"
+                >
+                  Rechazar
+                </button>
+              ) : null}
+              {reviewActions.has("restore") ? (
+                <button
+                  type="submit"
+                  name="action"
+                  value="restore"
+                  title="Devuelve la oferta a revisión (pending_review). No se publica hasta aprobarla de nuevo."
+                  className="rounded-xl border border-emerald-600/40 bg-white px-4 py-2 text-sm font-bold text-emerald-900"
+                >
+                  Restaurar a revisión
+                </button>
+              ) : null}
+              {reviewActions.has("archive") ? (
+                <button
+                  type="submit"
+                  name="action"
+                  value="archive"
+                  className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-bold text-[#5C5346]"
+                >
+                  Archivar
+                </button>
+              ) : null}
             </div>
           </form>
         </div>
@@ -463,16 +534,30 @@ export function OfertasLocalesAdminReviewList({
   basePath,
   scope,
   reviewEnabled,
+  lang = "en",
+  listingTruthById = {},
+  commercialTruthByListingId = {},
 }: Props) {
+  const inspectBlock = inspectItem ? (
+    <InspectDetail
+      item={inspectItem}
+      basePath={basePath}
+      scope={scope}
+      reviewEnabled={reviewEnabled}
+      lang={lang}
+      listingTruth={listingTruthById[inspectItem.id]}
+      commercialTruth={commercialTruthByListingId[inspectItem.id]}
+    />
+  ) : null;
+
   if (items.length === 0) {
     return (
-      <div className="rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] p-6 text-sm text-[#5C5346]">
-        <h2 className="text-base font-bold text-[#1E1810]">Ofertas Locales</h2>
-        <p className="mt-2">
-          {scope === "live"
-            ? "No hay ofertas aprobadas en este momento."
-            : "No hay envíos pendientes de revisión."}
-        </p>
+      <div className="space-y-4">
+        {inspectBlock}
+        <div className="rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] p-6 text-sm text-[#5C5346]" data-testid="ofertas-empty">
+          <h2 className="text-base font-bold text-[#1E1810]">Ofertas Locales</h2>
+          <p className="mt-2">{adminTr(lang, `ofertasAdmin.empty.${scope}`)}</p>
+        </div>
       </div>
     );
   }
@@ -485,19 +570,14 @@ export function OfertasLocalesAdminReviewList({
         </h2>
         <p className="mt-1 text-xs text-[#7A7164]">
           {scope === "live"
-            ? "Ofertas aprobadas — elegibles para ruta pública."
-            : "Cola pending_review / submitted / draft — no visibles públicamente."}
+            ? "Ofertas aprobadas y visibles en la ruta pública."
+            : scope === "history"
+              ? "Historial: rechazadas, archivadas, expiradas y aprobadas que ya no están públicas — no visibles públicamente."
+              : "Cola pending_review / submitted / draft — no visibles públicamente."}
         </p>
       </div>
 
-      {inspectItem ? (
-        <InspectDetail
-          item={inspectItem}
-          basePath={basePath}
-          scope={scope}
-          reviewEnabled={reviewEnabled}
-        />
-      ) : null}
+      {inspectBlock}
 
       <div className="overflow-x-auto rounded-2xl border border-[#E8DFD0] bg-white">
         <table className="w-full min-w-[1100px] border-collapse text-left text-xs text-[#1E1810]">
@@ -505,19 +585,19 @@ export function OfertasLocalesAdminReviewList({
             <tr>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Negocio</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Oferta</th>
-              <th className="border-b border-[#E8DFD0] px-3 py-2">Comercial</th>
+              <th className="border-b border-[#E8DFD0] px-3 py-2">{adminTr(lang, "catShell.section.commercial")}</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Tipo</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Categoría</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Ciudad / ZIP</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Vigencia</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Término público</th>
-              <th className="border-b border-[#E8DFD0] px-3 py-2">Estado</th>
+              <th className="border-b border-[#E8DFD0] px-3 py-2">{adminTr(lang, "catShell.section.listing")}</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Assets</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">IA incluida</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Featured</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Owner</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Enviado</th>
-              <th className="border-b border-[#E8DFD0] px-3 py-2">Revisar</th>
+              <th className="border-b border-[#E8DFD0] px-3 py-2">{adminTr(lang, "catShell.section.actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -530,19 +610,11 @@ export function OfertasLocalesAdminReviewList({
                   </div>
                 </td>
                 <td className="max-w-[160px] px-3 py-2">{item.title}</td>
-                <td className="px-3 py-2 text-[10px]">
-                  <div className="font-semibold">{item.commercialProductKey || "sin paquete"}</div>
-                  <div>{item.commercialAmount || "sin pago"}</div>
-                  <div>{item.paymentStatus} · {item.entitlementStatus}</div>
-                  <div className="text-[#7A7164]">{item.commercialEligibilitySource}</div>
-                  {item.partnerAssignmentId ? (
-                    <div className="font-mono text-[10px] text-[#7A7164]">partner {item.partnerAssignmentId.slice(0, 8)}</div>
-                  ) : null}
-                  {item.commercialDiscrepancyWarning ? (
-                    <div className="mt-1 rounded bg-rose-50 px-1 py-0.5 font-semibold text-rose-900">
-                      {item.commercialDiscrepancyWarning}
-                    </div>
-                  ) : null}
+                <td className="min-w-[12rem] max-w-[16rem] px-3 py-2" data-testid="ofertas-row-commercial">
+                  <RowCommercialFacts item={item} />
+                  <div className="mt-1.5 border-t border-[#F0E8DA] pt-1.5">
+                    <AdminCommercialTruthSection lang={lang} truth={commercialTruthByListingId[item.id]} compact />
+                  </div>
                 </td>
                 <td className="px-3 py-2">{item.offerType}</td>
                 <td className="px-3 py-2">{item.businessCategory}</td>
@@ -559,8 +631,9 @@ export function OfertasLocalesAdminReviewList({
                   {item.publishedAt ? <div className="font-mono">{item.publishedAt.slice(0, 10)}</div> : null}
                   {item.expiresAt ? <div className="font-mono">→ {item.expiresAt.slice(0, 10)}</div> : null}
                 </td>
-                <td className="px-3 py-2">
-                  <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${operationalToneClass(item.operationalStatus.tone)}`}>
+                <td className="min-w-[11rem] px-3 py-2" data-testid="ofertas-row-listing-truth">
+                  <AdminListingTruthSection lang={lang} status={item.status} truth={listingTruthById[item.id] ?? null} compact />
+                  <span className={`mt-1 inline-block rounded px-1.5 py-0.5 text-[10px] font-bold ${operationalToneClass(item.operationalStatus.tone)}`}>
                     {item.operationalStatus.adminLabelEs}
                   </span>
                   {item.operationalStatus.blockingReasons.length > 0 ? (
@@ -584,13 +657,29 @@ export function OfertasLocalesAdminReviewList({
                 <td className="whitespace-nowrap px-3 py-2 font-mono text-[10px]">
                   {item.submittedAt.slice(0, 10)}
                 </td>
-                <td className="px-3 py-2">
+                <td className="min-w-[10rem] px-3 py-2" data-testid="ofertas-row-actions">
                   <Link
-                    href={`${basePath}?id=${encodeURIComponent(item.id)}${scope === "live" ? "&scope=live" : ""}`}
-                    className="font-semibold text-[#6B5B2E] underline"
+                    href={`${basePath}?id=${encodeURIComponent(item.id)}${scopeQuery(scope)}`}
+                    className="mb-2 block font-semibold text-[#6B5B2E] underline"
                   >
                     Revisar
                   </Link>
+                  {reviewEnabled ? (
+                    <ClassifiedAdminRowActions
+                      variant="ofertas"
+                      rowId={item.id}
+                      leonixAdId={item.leonixAdId}
+                      displayLabel={item.businessName}
+                      publicLive={scope === "live"}
+                      promoted={false}
+                      verified={false}
+                      lifecycleActions={ofertaRowActions({
+                        status: item.status,
+                        approvalAllowed: item.operationalStatus.adminApprovalAllowed,
+                        blockingReasons: item.operationalStatus.blockingReasons,
+                      })}
+                    />
+                  ) : null}
                 </td>
               </tr>
             ))}

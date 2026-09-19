@@ -1,5 +1,6 @@
 import "server-only";
 
+import { adminQueueNormalizeLeonixAdId } from "@/app/admin/_lib/adminAdSearch";
 import { fetchProfileIdsMatchingAdminQueueSearch } from "@/app/lib/supabase/adminQueueProfileSearch";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
@@ -81,6 +82,11 @@ export type RestaurantesAdminQueueFilters = {
   id?: string;
   leonix_ad_id?: string;
   owner_user_id?: string;
+  /**
+   * Exact `status` (closeout 2 round 2). Applied in SQL through the shared query builder, so it
+   * narrows BEFORE the row limit on every search path (default, q, and the exact-field path).
+   */
+  status?: string;
   /** `live` — only publicly published rows (status=published). */
   scope?: "live";
 };
@@ -187,12 +193,14 @@ export async function listRestaurantesPublicListingsAdminFromDb(
   const leonixAd = opts.leonix_ad_id?.trim();
   const owner = opts.owner_user_id?.trim();
   const qRaw = opts.q?.trim();
+  const statusFilter = opts.status?.trim().toLowerCase() ?? "";
 
   try {
     const supabase = getAdminSupabase();
     const qb = () => {
       let q = supabase.from("restaurantes_public_listings").select(LIST_SELECT);
       if (opts.scope === "live") q = q.eq("status", "published");
+      if (statusFilter) q = q.eq("status", statusFilter);
       return q;
     };
 
@@ -200,7 +208,14 @@ export async function listRestaurantesPublicListingsAdminFromDb(
       let rowQuery = qb();
       if (slug) rowQuery = rowQuery.eq("slug", slug);
       if (id) rowQuery = rowQuery.eq("id", id);
-      if (leonixAd) rowQuery = rowQuery.eq("leonix_ad_id", leonixAd.toUpperCase());
+      if (leonixAd) {
+        // A complete Leonix Ad ID is an exact (normalized) match; a fragment is a contains match —
+        // both in SQL, so the row limit is applied after the filter.
+        const normLeonixAd = adminQueueNormalizeLeonixAdId(leonixAd);
+        rowQuery = normLeonixAd
+          ? rowQuery.eq("leonix_ad_id", normLeonixAd)
+          : rowQuery.ilike("leonix_ad_id", `%${escapeIlike(leonixAd)}%`);
+      }
       if (owner) rowQuery = rowQuery.eq("owner_user_id", owner);
       const { data, error } = await rowQuery.order("updated_at", { ascending: false }).limit(limit);
       if (error || !data) return [];

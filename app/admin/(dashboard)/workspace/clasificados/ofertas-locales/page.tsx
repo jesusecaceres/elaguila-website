@@ -1,31 +1,52 @@
-import Link from "next/link";
 import { Suspense } from "react";
 
 import {
   ADMIN_QUEUE_DEFAULT_LIMIT,
   normalizeAdminQueueLimit,
 } from "@/app/admin/_lib/adminQueueActionFlow";
-import { adminBtnSecondary, adminCardBase } from "@/app/admin/_components/adminTheme";
+import { adminCardBase } from "@/app/admin/_components/adminTheme";
 import { ClasificadosQueueActionChrome } from "../_components/ClasificadosQueueActionChrome";
 import { ClasificadosQueueHeader } from "../_components/ClasificadosQueueHeader";
 import { ClasificadosScopeNav } from "../_components/ClasificadosScopeNav";
+import { AdminCategoryFilterBar } from "../_components/normalized/AdminCategoryFilterBar";
+import { AdminCategorySummaryPanel } from "../_components/normalized/AdminCategorySummaryPanel";
+import { adminRowMatchesLeonixAdIdFilter } from "../_lib/adminNormalizedShell";
 import { clasificadosQueueSurfaceForSlug } from "../_lib/clasificadosQueueSurfaceMeta";
-import {
-  appendPreservedSearchParams,
-  parseAdminScope,
-} from "../_lib/clasificadosAdminScopeUrls";
+import { fetchAdminCategorySummary, type AdminCategorySummary } from "@/app/admin/_lib/adminCategorySummary";
 import { getAdminLang } from "@/app/admin/_lib/adminI18n";
-import { adminMessages } from "@/app/admin/_lib/adminStrings";
 import {
-  listOfertasLocalesAdminRows,
+  loadAdminListingCommercialTruth,
+  type AdminListingCommercialTruthMap,
+} from "@/app/admin/_lib/adminListingCommercialTruth";
+import type { PublicationTruth } from "@/app/admin/_lib/publicationSemantics";
+import { adminTr } from "@/app/admin/_lib/adminStrings";
+import {
+  OFERTAS_LOCALES_ADMIN_SELECT,
+  listOfertasLocalesAdminRowsDetailed,
   mapOfertaLocalAdminRowToDetailVm,
   mapOfertasLocalesAdminRowsToListVms,
+  type OfertaLocalAdminRow,
 } from "@/app/lib/ofertas-locales/ofertasLocalesAdminHelpers";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
 import { OfertasLocalesAdminReviewList } from "./OfertasLocalesAdminReviewList";
+import {
+  OFERTAS_ADMIN_STATUS_GROUP_OPTIONS,
+  OFERTAS_ADMIN_STATUS_OPTIONS,
+  OFERTAS_ADMIN_TERM_OPTIONS,
+  OFERTAS_ADMIN_UUID_RE,
+  ofertaListingTruth,
+  ofertasScopeHref,
+  ofertasServerSearchTerm,
+  parseOfertasAdminScope,
+} from "./ofertasAdminView";
 
 export const dynamic = "force-dynamic";
+
+const BASE_PATH = "/admin/workspace/clasificados/ofertas-locales";
+const CATEGORY_NAME = "Ofertas Locales";
+/** The data layer caps a single page of rows at 200. */
+const OFERTAS_LIST_CAP = 200;
 
 function firstParam(v: string | string[] | undefined): string | undefined {
   if (typeof v === "string") return v;
@@ -37,87 +58,171 @@ type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
+const SELECT_FIELD = "rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs text-[#1E1810] min-h-[40px]";
+
+/** Keeps a URL value that is outside the scope's vocabulary visible (never silently dropped). */
+function withCurrent(options: readonly { value: string; label: string }[], current: string) {
+  return current && !options.some((o) => o.value === current) ? [...options, { value: current, label: `${current} (custom)` }] : options;
+}
+
+function FilterSelect({
+  name,
+  label,
+  current,
+  options,
+  allLabel,
+}: {
+  name: string;
+  label: string;
+  current: string;
+  options: readonly { value: string; label: string }[];
+  allLabel: string;
+}) {
+  return (
+    <label className="flex min-w-[8rem] flex-col gap-1 text-xs">
+      <span className="font-semibold text-[#5C5346]">{label}</span>
+      <select name={name} defaultValue={current} className={SELECT_FIELD}>
+        <option value="">{allLabel}</option>
+        {withCurrent(options, current).map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+const LANE_OPTIONS = [
+  { value: "flyer", label: "Flyer" },
+  { value: "coupon", label: "Coupon" },
+] as const;
+const READY_BLOCKED_OPTIONS = [
+  { value: "ready", label: "Ready" },
+  { value: "blocked", label: "Blocked" },
+] as const;
+
 export default async function AdminOfertasLocalesReviewPage(props: PageProps) {
   const lang = await getAdminLang();
-  const m = adminMessages(lang);
   const configured = isSupabaseAdminConfigured();
   const sp = props.searchParams ? await props.searchParams : {};
-  const scopeParam = parseAdminScope(sp);
-  const scope = scopeParam === "live" ? "live" : "queue";
-  const basePath = "/admin/workspace/clasificados/ofertas-locales";
-  const queueHref = appendPreservedSearchParams(basePath, sp, null);
-  const liveHref = appendPreservedSearchParams(basePath, sp, "live");
-  const statusGroup = firstParam(sp.status_group) ?? "";
-  const lane = firstParam(sp.lane) ?? "";
-  const commercial = firstParam(sp.commercial) ?? "";
-  const scanReview = firstParam(sp.scan_review) ?? "";
-  const term = firstParam(sp.term) ?? "";
-  const hasFilters = !!(
-    firstParam(sp.q) ||
-    firstParam(sp.id) ||
-    firstParam(sp.owner_id) ||
-    statusGroup ||
-    lane ||
-    commercial ||
-    scanReview ||
-    term
-  );
+  const scope = parseOfertasAdminScope(sp);
+
+  const q = (firstParam(sp.q) ?? "").trim();
+  const leonixAdId = (firstParam(sp.leonix_ad_id) ?? "").trim();
+  const statusFilter = (firstParam(sp.status) ?? "").trim().toLowerCase();
+  const ownerRaw = (firstParam(sp.owner) ?? firstParam(sp.owner_id) ?? "").trim();
+  const inspectId = (firstParam(sp.id) ?? "").trim();
+  const statusGroup = (firstParam(sp.status_group) ?? "").trim();
+  const laneFilter = (firstParam(sp.lane) ?? "").trim();
+  const commercial = (firstParam(sp.commercial) ?? "").trim();
+  const scanReview = (firstParam(sp.scan_review) ?? "").trim();
+  const term = (firstParam(sp.term) ?? "").trim();
   const queueLimit = normalizeAdminQueueLimit(firstParam(sp.limit), ADMIN_QUEUE_DEFAULT_LIMIT);
-  const inspectId = firstParam(sp.id) ?? null;
 
-  const rowsRaw = configured
-    ? await listOfertasLocalesAdminRows(getAdminSupabase(), {
-        limit: queueLimit,
-        scope,
-        q: firstParam(sp.q),
-        id: firstParam(sp.id),
-        owner_id: firstParam(sp.owner_id),
-      })
-    : [];
+  // Raw status / Ad ID narrow in memory (the data layer applies scope, q, id, owner and the derived filters
+  // BEFORE its row limit), so they widen the read to the layer's cap before narrowing.
+  const memoryFiltered = Boolean(statusFilter || leonixAdId);
 
-  const itemsUnfiltered = mapOfertasLocalesAdminRowsToListVms(rowsRaw);
-  const items = itemsUnfiltered.filter((item) => {
-    if (statusGroup && item.operationalStatus.adminKey !== statusGroup) return false;
-    if (lane === "flyer" && item.offerType !== "weekly_flyer") return false;
-    if (lane === "coupon" && item.offerType === "weekly_flyer") return false;
-    if (commercial === "ready" && !item.operationalStatus.adminApprovalAllowed && item.operationalStatus.adminKey === "commercially_ineligible") return false;
-    if (commercial === "blocked" && item.operationalStatus.adminKey !== "commercially_ineligible") return false;
-    if (scanReview === "blocked" && !["scan_unresolved", "review_unresolved", "operational_recovery"].includes(item.operationalStatus.adminKey)) return false;
-    if (scanReview === "ready" && ["scan_unresolved", "review_unresolved", "operational_recovery"].includes(item.operationalStatus.adminKey)) return false;
-    if (term === "active" && item.publicTermStatus !== "active") return false;
-    if (term === "expired" && item.publicTermStatus !== "expired") return false;
-    if (term === "expiring" && item.operationalStatus.adminKey !== "expiring") return false;
-    if (term === "renewal" && !["renewal_review", "renewal_scheduled"].includes(item.operationalStatus.adminKey)) return false;
-    return true;
-  });
-  const inspectRow = inspectId ? rowsRaw.find((r) => r.id === inspectId) ?? null : null;
+  let filterError: string | null = null;
+  if (ownerRaw && !OFERTAS_ADMIN_UUID_RE.test(ownerRaw)) filterError = "owner must be a full user UUID";
+  else if (inspectId && !OFERTAS_ADMIN_UUID_RE.test(inspectId)) filterError = "id must be a full UUID";
+
+  let rows: OfertaLocalAdminRow[] = [];
+  let listError: string | null = null;
+  let capped = false;
+  let scanned = 0;
+  if (configured && !filterError) {
+    const res = await listOfertasLocalesAdminRowsDetailed(getAdminSupabase(), {
+      limit: memoryFiltered ? OFERTAS_LIST_CAP : Math.min(queueLimit, OFERTAS_LIST_CAP),
+      scope,
+      q: ofertasServerSearchTerm(q, leonixAdId),
+      id: inspectId || undefined,
+      owner_id: ownerRaw || undefined,
+      status_group: statusGroup || undefined,
+      lane: laneFilter || undefined,
+      commercial: commercial || undefined,
+      scan_review: scanReview || undefined,
+      term: term || undefined,
+    });
+    rows = res.rows;
+    listError = res.error;
+    capped = res.capped;
+    scanned = res.scanned;
+  }
+  if (statusFilter) rows = rows.filter((r) => String(r.status).toLowerCase() === statusFilter);
+  if (leonixAdId) rows = rows.filter((r) => adminRowMatchesLeonixAdIdFilter(r, leonixAdId));
+  if (memoryFiltered) rows = rows.slice(0, queueLimit);
+
+  // Inspect any offer by id — even one that is no longer in this scope (an archived offer leaves the Queue but
+  // must stay inspectable right after the action).
+  let inspectRow: OfertaLocalAdminRow | null = inspectId ? rows.find((r) => r.id === inspectId) ?? null : null;
+  if (!inspectRow && configured && inspectId && OFERTAS_ADMIN_UUID_RE.test(inspectId)) {
+    const { data } = await getAdminSupabase()
+      .from("ofertas_locales")
+      .select(OFERTAS_LOCALES_ADMIN_SELECT)
+      .eq("id", inspectId)
+      .maybeSingle();
+    inspectRow = (data as unknown as OfertaLocalAdminRow | null) ?? null;
+  }
+
+  const items = mapOfertasLocalesAdminRowsToListVms(rows);
   const inspectItem = inspectRow ? mapOfertaLocalAdminRowToDetailVm(inspectRow) : null;
 
+  // Listing truth (publication semantics) + read-only commercial truth (payment / entitlement records).
+  const truthRows = inspectRow && !rows.some((r) => r.id === inspectRow!.id) ? [...rows, inspectRow] : rows;
+  const listingTruthById: Record<string, PublicationTruth> = Object.fromEntries(
+    truthRows.map((r) => [r.id, ofertaListingTruth(r as unknown as Record<string, unknown>)]),
+  );
+  const commercialTruthByListingId: AdminListingCommercialTruthMap =
+    configured && truthRows.length > 0
+      ? await loadAdminListingCommercialTruth({
+          category: "ofertas-locales",
+          listingIds: truthRows.map((r) => r.id),
+          listingRowsById: Object.fromEntries(truthRows.map((r) => [r.id, r as unknown as Record<string, unknown>])),
+        })
+      : {};
+
   const surface = clasificadosQueueSurfaceForSlug("ofertas-locales");
-  const pageTitle =
-    scope === "live"
-      ? m("listingsCategoryOps.titleLive", { slug: "ofertas-locales" })
-      : m("listingsCategoryOps.titleQueue", { slug: "ofertas-locales" });
-  const pageSubtitle =
-    scope === "live"
-      ? "Ofertas aprobadas — visibles en /clasificados/ofertas-locales"
-      : "Envíos pending_review — aprobación admin requerida antes de publicar";
+  let summary: AdminCategorySummary;
+  try {
+    summary = await fetchAdminCategorySummary("ofertas-locales");
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "summary query failed";
+    summary = {
+      slug: "ofertas-locales",
+      total: null,
+      live: null,
+      needsAttention: null,
+      paymentIssue: null,
+      expired: null,
+      sourceHealth: { ok: false, source: surface.sourceTable, note: msg },
+      queryError: msg,
+    };
+  }
+
+  const queueHref = ofertasScopeHref(BASE_PATH, sp, "queue");
+  const liveHref = ofertasScopeHref(BASE_PATH, sp, "live");
+  const historyHref = ofertasScopeHref(BASE_PATH, sp, "history");
+  const subtitle = adminTr(lang, scope === "live" ? "ofertasAdmin.subLive" : scope === "history" ? "ofertasAdmin.subHistory" : "ofertasAdmin.subQueue");
+  const allLabel = adminTr(lang, "catShell.filter.statusAll");
 
   return (
     <div className="max-w-[1200px] space-y-6">
       <ClasificadosQueueHeader
-        title={pageTitle}
+        lang={lang}
+        {...(scope === "history"
+          ? {
+              title: adminTr(lang, "catShell.titleHistory", { name: CATEGORY_NAME }),
+              scopeLabel: adminTr(lang, "catShell.scopeHistory"),
+            }
+          : { categoryName: CATEGORY_NAME, scope })}
         sourceTable={surface.sourceTable}
-        subtitle={pageSubtitle}
+        subtitle={subtitle}
         publicHref={surface.publicHref}
         publishHref={surface.publishHref}
         rightSlot={
-          <ClasificadosScopeNav
-            lang={lang}
-            queueHref={queueHref}
-            liveHref={liveHref}
-            active={scope === "live" ? "live" : "queue"}
-          />
+          <ClasificadosScopeNav lang={lang} queueHref={queueHref} liveHref={liveHref} historyHref={historyHref} active={scope} />
         }
       />
 
@@ -125,112 +230,80 @@ export default async function AdminOfertasLocalesReviewPage(props: PageProps) {
         <ClasificadosQueueActionChrome />
       </Suspense>
 
+      <AdminCategorySummaryPanel
+        summary={summary}
+        lang={lang}
+        technicalDetails={[["Table", surface.sourceTable]]}
+      />
+
       {configured ? (
-        <div className={`${adminCardBase} mb-4 space-y-3 p-4 text-sm text-[#5C5346]`}>
-          <p className="font-bold text-[#1E1810]">{m("listingsCategoryOps.searchTitle")}</p>
-          <form className="flex flex-col flex-wrap gap-2 sm:flex-row sm:items-end" method="get" action={basePath}>
-            {scope === "live" ? <input type="hidden" name="scope" value="live" /> : null}
-            <label className="flex min-w-[10rem] flex-1 flex-col gap-1 text-xs">
-              <span className="font-semibold text-[#5C5346]">q (negocio, oferta, ciudad, ZIP, UUID)</span>
-              <input
-                name="q"
-                defaultValue={firstParam(sp.q) ?? ""}
-                className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 font-mono text-xs text-[#1E1810]"
-                autoComplete="off"
-              />
-            </label>
-            <label className="flex min-w-[8rem] flex-col gap-1 text-xs">
-              <span className="font-semibold text-[#5C5346]">id (UUID)</span>
-              <input
-                name="id"
-                defaultValue={firstParam(sp.id) ?? ""}
-                className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 font-mono text-xs"
-                autoComplete="off"
-              />
-            </label>
-            <label className="flex min-w-[8rem] flex-col gap-1 text-xs">
-              <span className="font-semibold text-[#5C5346]">owner_id</span>
-              <input
-                name="owner_id"
-                defaultValue={firstParam(sp.owner_id) ?? ""}
-                className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 font-mono text-xs"
-                autoComplete="off"
-              />
-            </label>
-            <label className="flex min-w-[10rem] flex-col gap-1 text-xs">
-              <span className="font-semibold text-[#5C5346]">status group</span>
-              <select name="status_group" defaultValue={statusGroup} className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs">
-                <option value="">Todos</option>
-                <option value="approval_ready">Approval ready</option>
-                <option value="approval_blocked">Approval blocked</option>
-                <option value="commercially_ineligible">Commercial blocked</option>
-                <option value="source_missing">Source missing</option>
-                <option value="scan_unresolved">Scan unresolved</option>
-                <option value="review_unresolved">Review unresolved</option>
-                <option value="changes_requested">Changes requested</option>
-                <option value="resubmitted">Resubmitted</option>
-                <option value="active">Active</option>
-                <option value="expiring">Expiring</option>
-                <option value="expired">Expired</option>
-                <option value="renewal_review">Renewal review</option>
-                <option value="renewal_scheduled">Renewal scheduled</option>
-                <option value="operational_recovery">Operational recovery</option>
-              </select>
-            </label>
-            <label className="flex min-w-[8rem] flex-col gap-1 text-xs">
-              <span className="font-semibold text-[#5C5346]">lane</span>
-              <select name="lane" defaultValue={lane} className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs">
-                <option value="">Todos</option>
-                <option value="flyer">Flyer</option>
-                <option value="coupon">Coupon</option>
-              </select>
-            </label>
-            <label className="flex min-w-[8rem] flex-col gap-1 text-xs">
-              <span className="font-semibold text-[#5C5346]">commercial</span>
-              <select name="commercial" defaultValue={commercial} className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs">
-                <option value="">Todos</option>
-                <option value="ready">Ready</option>
-                <option value="blocked">Blocked</option>
-              </select>
-            </label>
-            <label className="flex min-w-[8rem] flex-col gap-1 text-xs">
-              <span className="font-semibold text-[#5C5346]">scan/review</span>
-              <select name="scan_review" defaultValue={scanReview} className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs">
-                <option value="">Todos</option>
-                <option value="ready">Ready</option>
-                <option value="blocked">Blocked</option>
-              </select>
-            </label>
-            <label className="flex min-w-[8rem] flex-col gap-1 text-xs">
-              <span className="font-semibold text-[#5C5346]">term</span>
-              <select name="term" defaultValue={term} className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs">
-                <option value="">Todos</option>
-                <option value="active">Active</option>
-                <option value="expiring">Expiring</option>
-                <option value="expired">Expired</option>
-                <option value="renewal">Renewal</option>
-              </select>
-            </label>
-            <button type="submit" className={adminBtnSecondary}>
-              {m("listingsCategoryOps.searchSubmit")}
-            </button>
-            {hasFilters ? (
-              <Link href={scope === "live" ? liveHref : queueHref} className={adminBtnSecondary}>
-                {m("listingsCategoryOps.clearFilters")}
-              </Link>
-            ) : null}
-          </form>
-        </div>
+        <AdminCategoryFilterBar
+          lang={lang}
+          action={BASE_PATH}
+          searchParams={{ ...sp, owner: ownerRaw || undefined }}
+          statusOptions={[...OFERTAS_ADMIN_STATUS_OPTIONS[scope]]}
+          clearHref={ofertasScopeHref(BASE_PATH, { scope: sp.scope }, scope)}
+          extraFieldNames={["id", "owner_id", "status_group", "lane", "commercial", "scan_review", "term"]}
+          searchPlaceholder="negocio, oferta, ciudad, ZIP, Leonix Ad ID, UUID"
+        >
+          <label className="flex min-w-[8rem] flex-col gap-1 text-xs">
+            <span className="font-semibold text-[#5C5346]">{adminTr(lang, "ofertasAdmin.filter.id")}</span>
+            <input name="id" defaultValue={inspectId} className={`${SELECT_FIELD} font-mono`} autoComplete="off" />
+          </label>
+          <FilterSelect
+            name="status_group"
+            label={adminTr(lang, "ofertasAdmin.filter.statusGroup")}
+            current={statusGroup}
+            options={OFERTAS_ADMIN_STATUS_GROUP_OPTIONS[scope]}
+            allLabel={allLabel}
+          />
+          <FilterSelect name="lane" label={adminTr(lang, "ofertasAdmin.filter.lane")} current={laneFilter} options={LANE_OPTIONS} allLabel={allLabel} />
+          <FilterSelect
+            name="commercial"
+            label={adminTr(lang, "ofertasAdmin.filter.commercial")}
+            current={commercial}
+            options={READY_BLOCKED_OPTIONS}
+            allLabel={allLabel}
+          />
+          <FilterSelect
+            name="scan_review"
+            label={adminTr(lang, "ofertasAdmin.filter.scanReview")}
+            current={scanReview}
+            options={READY_BLOCKED_OPTIONS}
+            allLabel={allLabel}
+          />
+          <FilterSelect
+            name="term"
+            label={adminTr(lang, "ofertasAdmin.filter.term")}
+            current={term}
+            options={OFERTAS_ADMIN_TERM_OPTIONS[scope]}
+            allLabel={allLabel}
+          />
+        </AdminCategoryFilterBar>
       ) : (
         <p className="text-sm text-amber-900">Supabase admin no configurado.</p>
       )}
 
+      {filterError || listError ? (
+        <div className={`${adminCardBase} border-red-200 p-3 text-sm text-red-900`} role="alert" data-testid="ofertas-query-error">
+          {adminTr(lang, "ofertasAdmin.queryError", { error: filterError ?? listError ?? "" })}
+        </div>
+      ) : null}
+      {capped ? (
+        <p className="text-xs text-amber-900" data-testid="ofertas-capped">
+          {adminTr(lang, "ofertasAdmin.capped", { scanned })}
+        </p>
+      ) : null}
+
       <OfertasLocalesAdminReviewList
         items={items}
         inspectItem={inspectItem}
-        basePath={basePath}
+        basePath={BASE_PATH}
         scope={scope}
         reviewEnabled={configured}
+        lang={lang}
+        listingTruthById={listingTruthById}
+        commercialTruthByListingId={commercialTruthByListingId}
       />
     </div>
   );

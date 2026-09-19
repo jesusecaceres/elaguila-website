@@ -44,7 +44,23 @@ import {
   listingAnalyticsIsProven,
 } from "../lib/dashboardMisAnunciosCategoryTools";
 import { ownerDashboardStatusLabel } from "../lib/dashboardOwnerStatusDisplay";
-import { resolveOwnerDashboardAttentionItems, countByAttentionSeverity, type OwnerAttentionItem } from "../lib/dashboardAttentionItems";
+import {
+  attachCompletePaymentAction,
+  resolveOwnerDashboardAttentionItems,
+  countByAttentionSeverity,
+  type OwnerAttentionItem,
+} from "../lib/dashboardAttentionItems";
+import {
+  dashboardAwaitingPaymentLabel,
+  dashboardCompletePaymentLabel,
+  dashboardNotLiveNote,
+  dashboardStartingPaymentLabel,
+  isSharedListingsRowNotLive,
+  resolveSharedListingPaymentLane,
+  type DashboardPendingPaymentLane,
+} from "../lib/dashboardPendingPayment";
+import { startDashboardResumePayment } from "../lib/dashboardResumePaymentClient";
+import { prepareRestauranteResumePayment } from "../lib/restaurantesDashboardResumePayment";
 import { classifyOwnerDashboardRow, type OwnerDashboardGroup } from "../lib/dashboardOwnerClassification";
 import { fetchOwnerListingsForDashboard, mapOwnerListingRow } from "../lib/ownerListingsQuery";
 import {
@@ -458,18 +474,22 @@ function MyListingsPageContent() {
   // status/lifecycle truth are covered here (Empleos, Viajes, and Rentas via the same
   // `resolveListingLifecycle` used by the Rentas card render path) — this intentionally does not
   // attempt to re-derive every category's own bespoke status logic a second time.
-  const attentionItems = useMemo<OwnerAttentionItem[]>(() => {
+  const coreAttentionItems = useMemo<OwnerAttentionItem[]>(() => {
     const out: OwnerAttentionItem[] = [];
 
     for (const item of empleosInventory) {
+      const empleoAttention = resolveOwnerDashboardAttentionItems({
+        id: item.id,
+        category: "empleos",
+        statusDisplayKey: item.statusDisplay?.displayKey ?? "unknown",
+        editHref: item.editHref,
+        publicHref: item.publicHref,
+      });
+      // CLOSEOUT 2 — a paid-lane draft is an unpaid application: offer the Revenue OS payment.
       out.push(
-        ...resolveOwnerDashboardAttentionItems({
-          id: item.id,
-          category: "empleos",
-          statusDisplayKey: item.statusDisplay?.displayKey ?? "unknown",
-          editHref: item.editHref,
-          publicHref: item.publicHref,
-        }),
+        ...(item.awaitingPayment
+          ? attachCompletePaymentAction(empleoAttention, { lane: "empleos", listingId: item.id, leonixAdId: item.leonixAdId })
+          : empleoAttention),
       );
     }
 
@@ -508,6 +528,28 @@ function MyListingsPageContent() {
       // resolveListingLifecycle truth the card render path already uses); Negocio rows are
       // excluded (their own certified brLifecycleContract descriptors are unaffected).
       const isBrFsbo = cat === "bienes-raices" && parseLeonixListingContract(row.detail_pairs).branch === "bienes_raices_privado";
+      // CLOSEOUT 2 — the lane (if any) whose base Revenue OS checkout the server will accept for this row
+      // (status pending + not published; Rentas / BR FSBO / Clases-pagada only — never Bienes Negocio).
+      const sharedPayLane = resolveSharedListingPaymentLane({
+        category: row.category,
+        status: row.status,
+        is_published: row.is_published,
+        detail_pairs: row.detail_pairs,
+      });
+      if (sharedPayLane === "clases") {
+        out.push(
+          ...attachCompletePaymentAction(
+            resolveOwnerDashboardAttentionItems({
+              id: row.id,
+              category: "clases",
+              statusDisplayKey: "pending_payment",
+              isPublished: row.is_published,
+            }),
+            { lane: "clases", listingId: row.id, leonixAdId: row.leonix_ad_id ?? null },
+          ),
+        );
+        continue;
+      }
       if (cat !== "rentas" && !isBrFsbo) continue;
       const lifecycle = resolveListingLifecycle(
         isBrFsbo
@@ -537,8 +579,7 @@ function MyListingsPageContent() {
             : lifecycle.lifecycleState === "suspended"
               ? "suspended"
               : "active";
-      out.push(
-        ...resolveOwnerDashboardAttentionItems({
+      const realEstateAttention = resolveOwnerDashboardAttentionItems({
           id: row.id,
           category: isBrFsbo ? "bienes-raices" : "rentas",
           statusDisplayKey,
@@ -548,7 +589,15 @@ function MyListingsPageContent() {
           // own render path; this attention pass only claims what it has actually verified.
           publicHref: isBrFsbo ? leonixLiveAnuncioPath(row.id) : rentasListingPublicPath(row.id),
           renewal: { isRenewalEligible: lifecycle.isRenewalEligible, hasRealAction: true },
-        }),
+        });
+      out.push(
+        ...(sharedPayLane === "rentas" || sharedPayLane === "bienes-raices-fsbo"
+          ? attachCompletePaymentAction(realEstateAttention, {
+              lane: sharedPayLane,
+              listingId: row.id,
+              leonixAdId: row.leonix_ad_id ?? null,
+            })
+          : realEstateAttention),
       );
     }
 
@@ -571,6 +620,41 @@ function MyListingsPageContent() {
 
     return out;
   }, [empleosInventory, viajesInventory, serviciosInventory, listings, q]);
+
+  // CLOSEOUT 2 — Restaurantes / Autos Privado pending-payment rows surface in the same panel, each with the
+  // resume-payment action that is valid for that lane (restaurant: consent checkpoint; autos: Revenue OS).
+  const attentionItems = useMemo<OwnerAttentionItem[]>(() => {
+    const out: OwnerAttentionItem[] = [...coreAttentionItems];
+    for (const item of restaurantInventory) {
+      if (!item.awaitingPayment) continue;
+      out.push(
+        ...attachCompletePaymentAction(
+          resolveOwnerDashboardAttentionItems({
+            id: item.id,
+            category: "restaurantes",
+            statusDisplayKey: "pending_payment",
+            editHref: item.editHref,
+          }),
+          { lane: "restaurantes", listingId: item.id, leonixAdId: item.leonixAdId },
+        ),
+      );
+    }
+    for (const item of autosPaidInventory) {
+      if (!item.awaitingPayment) continue;
+      out.push(
+        ...attachCompletePaymentAction(
+          resolveOwnerDashboardAttentionItems({
+            id: item.id,
+            category: "autos",
+            statusDisplayKey: "pending_payment",
+            editHref: item.editHref,
+          }),
+          { lane: "autos-privado", listingId: item.id, leonixAdId: item.leonixAdId },
+        ),
+      );
+    }
+    return out;
+  }, [coreAttentionItems, restaurantInventory, autosPaidInventory]);
 
   const attentionSeverityCounts = useMemo(() => countByAttentionSeverity(attentionItems), [attentionItems]);
 
@@ -606,6 +690,8 @@ function MyListingsPageContent() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [renewalCheckoutBusyId, setRenewalCheckoutBusyId] = useState<string | null>(null);
   const [couponEditBusyId, setCouponEditBusyId] = useState<string | null>(null);
+  /** CLOSEOUT 2 — row id whose "Completar pago" (Revenue OS checkout / restaurant resume) is in flight. */
+  const [pendingPaymentBusyId, setPendingPaymentBusyId] = useState<string | null>(null);
   const [serviciosManageBusySlug, setServiciosManageBusySlug] = useState<string | null>(null);
   const [empleosLifecycleBusyId, setEmpleosLifecycleBusyId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("all");
@@ -1017,6 +1103,43 @@ function MyListingsPageContent() {
       );
       setCouponEditBusyId(null);
     }
+  }
+
+  /**
+   * CLOSEOUT 2 — "Completar pago" for the ONE-TIME paid lanes (Empleos, Rentas, Bienes FSBO, Clases paid).
+   * Revenue OS only (dashboardResumePaymentClient -> startRevenueCategoryCheckout); the server re-validates
+   * ownership + pre-payment state and any 404/403/409 message is shown as returned by the checkout client.
+   */
+  async function startPendingPayment(
+    lane: DashboardPendingPaymentLane,
+    id: string,
+    leonixAdId: string | null | undefined,
+  ) {
+    setPendingPaymentBusyId(id);
+    setError(null);
+    try {
+      const result = await startDashboardResumePayment({ lane, listingId: id, leonixAdId, lang });
+      if (!result.ok) {
+        setError(result.userMessage);
+        setPendingPaymentBusyId(null);
+      }
+    } catch {
+      setError(dashboardSafeMutationErrorCopy(lang));
+      setPendingPaymentBusyId(null);
+    }
+  }
+
+  /** CLOSEOUT 2 — Restaurantes pending_payment: subscription consent lives in the draft-preview checkpoint. */
+  async function resumeRestaurantePayment(id: string, target: "preview" | "checkout") {
+    setPendingPaymentBusyId(id);
+    setError(null);
+    const result = await prepareRestauranteResumePayment({ listingId: id, lang, target });
+    if (!result.ok) {
+      setError(result.userMessage);
+      setPendingPaymentBusyId(null);
+      return;
+    }
+    router.push(result.href);
   }
 
   // Package E Build E2, Gate 4 — real pause/resume for Servicios, previously only wired on the
@@ -1743,6 +1866,27 @@ function MyListingsPageContent() {
                           </Link>
                         </>
                       ) : null}
+                      {it.completePayment ? (
+                        <>
+                          {" — "}
+                          <button
+                            type="button"
+                            className="font-semibold underline disabled:opacity-50"
+                            disabled={pendingPaymentBusyId === it.completePayment.listingId}
+                            data-testid="mis-anuncios-attention-complete-payment"
+                            onClick={() => {
+                              const cp = it.completePayment;
+                              if (!cp) return;
+                              if (cp.lane === "restaurantes") void resumeRestaurantePayment(cp.listingId, "checkout");
+                              else void startPendingPayment(cp.lane, cp.listingId, cp.leonixAdId);
+                            }}
+                          >
+                            {pendingPaymentBusyId === it.completePayment.listingId
+                              ? dashboardStartingPaymentLabel(lang)
+                              : dashboardCompletePaymentLabel(lang)}
+                          </button>
+                        </>
+                      ) : null}
                     </span>
                   </li>
                 ))}
@@ -1955,7 +2099,7 @@ function MyListingsPageContent() {
                         ? [{ label: lang === "es" ? "ID Leonix" : "Leonix Ad ID", value: item.leonixAdId.trim() }]
                         : []),
                     ]}
-                    lifecycleNote={(() => {
+                    lifecycleNote={item.awaitingPayment ? { text: dashboardNotLiveNote(lang), tone: "warning" as const } : (() => {
                       const subState = dashboardSubscriptionStateForKey(subscriptionStates, [
                         item.id,
                         item.slug ?? "",
@@ -1978,6 +2122,10 @@ function MyListingsPageContent() {
                       onCouponEdit: () => void openRestauranteCouponEdit(item),
                       couponEditBusy: couponEditBusyId === item.id,
                       ownerUserId: userId,
+                      // CLOSEOUT 2 — pending_payment: draft preview + "Completar pago" (consent checkpoint).
+                      onCompletePayment: () => void resumeRestaurantePayment(item.id, "checkout"),
+                      onDraftPreview: () => void resumeRestaurantePayment(item.id, "preview"),
+                      completePaymentBusy: pendingPaymentBusyId === item.id,
                     })}
                   />
                 ))
@@ -2004,9 +2152,13 @@ function MyListingsPageContent() {
                         ? [{ label: lang === "es" ? "ID Leonix" : "Leonix Ad ID", value: item.leonixAdId.trim() }]
                         : []),
                     ]}
+                    lifecycleNote={item.awaitingPayment ? { text: dashboardNotLiveNote(lang), tone: "warning" as const } : null}
                     actions={buildInventoryListingActions("empleos", item, lang, q, {
                       onEmpleosLifecycle: (next) => void updateEmpleosLifecycle(item.id, next),
                       empleosLifecycleBusy: empleosLifecycleBusyId === item.id,
+                      // CLOSEOUT 2 — paid-lane draft: Revenue OS EMPLEOS_PAID_JOB_CHECKOUT for this row.
+                      onCompletePayment: () => void startPendingPayment("empleos", item.id, item.leonixAdId),
+                      completePaymentBusy: pendingPaymentBusyId === item.id,
                     })}
                   />
                 ))
@@ -2281,6 +2433,18 @@ function MyListingsPageContent() {
                         )
                       : null;
                   const realEstateCardLifecycle = rentasLifecycle ?? brFsboLifecycle;
+                  // CLOSEOUT 2 — Rentas / BR FSBO unpaid `pending` rows get "Completar pago" (Revenue OS
+                  // rentas_30d / br_fsbo_45d). Bienes Negocio (subscription + consent) never does.
+                  const realEstatePayLaneRaw = resolveSharedListingPaymentLane({
+                    category: x.category,
+                    status: x.status,
+                    is_published: x.is_published,
+                    detail_pairs: x.detail_pairs,
+                  });
+                  const realEstatePayLane =
+                    realEstatePayLaneRaw === "rentas" || realEstatePayLaneRaw === "bienes-raices-fsbo"
+                      ? realEstatePayLaneRaw
+                      : null;
                   // Gate G.2.3.1 — BR-specific client eligibility, paired with the server-side
                   // fix in `applyBrRepublish`: Republish for a Bienes Raíces Negocio row must
                   // never appear enabled for pending/paused/flagged/sold/removed/unknown states,
@@ -2341,6 +2505,12 @@ function MyListingsPageContent() {
                       republishBusy={busy}
                       lifecycle={realEstateCardLifecycle}
                       renewalBusy={renewalCheckoutBusyId === x.id}
+                      onCompletePayment={
+                        realEstatePayLane
+                          ? () => void startPendingPayment(realEstatePayLane, x.id, x.leonix_ad_id)
+                          : undefined
+                      }
+                      completePaymentBusy={pendingPaymentBusyId === x.id}
                       onRenew={
                         rentasLifecycle?.isRenewalEligible
                           ? () => void startRentasRenewal(x)
@@ -2528,6 +2698,15 @@ function MyListingsPageContent() {
                     ? buscoOwnerDashboardLocationLine(x.city, x.detail_pairs)
                     : (x.city || "").trim();
                 const uiStGeneric = normalizeUiStatus(resolveListingUiStatus(x), x);
+                // CLOSEOUT 2 — an unpaid paid-Clases row (pending, not published) is "payment pending", never
+                // "in review", and no row that is not live shows a public "View listing" link.
+                const genericPayLane = resolveSharedListingPaymentLane({
+                  category: x.category,
+                  status: x.status,
+                  is_published: x.is_published,
+                  detail_pairs: x.detail_pairs,
+                });
+                const genericNotLive = isSharedListingsRowNotLive(x);
                 const genericClassification = classifyOwnerDashboardRow({
                   category: x.category ?? "",
                   brRentasBranch: lx.branch,
@@ -2558,7 +2737,9 @@ function MyListingsPageContent() {
                           <span
                             className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${listingUiStatusChipClass(uiStGeneric)}`}
                           >
-                            {listingUiStatusLabel(uiStGeneric, lang)}
+                            {genericPayLane === "clases"
+                              ? dashboardAwaitingPaymentLabel(lang)
+                              : listingUiStatusLabel(uiStGeneric, lang)}
                           </span>
                           <span className="text-sm font-semibold text-[#1E1810]">{priceText}</span>
                         </div>
@@ -2566,6 +2747,11 @@ function MyListingsPageContent() {
                           {locationLine}
                           {dateText ? ` · ${dateText}` : ""}
                         </p>
+                        {genericPayLane === "clases" ? (
+                          <p className="mt-1 text-xs font-semibold text-amber-800" data-testid="dashboard-listing-not-live-note">
+                            {dashboardNotLiveNote(lang)}
+                          </p>
+                        ) : null}
                         <p className="mt-2 text-[11px] leading-snug text-[#7A7164]">
                           <span className="font-semibold text-[#5C5346]">{listingPlanFieldLabel(lang)}:</span> {genericAdPlan}
                         </p>
@@ -2591,17 +2777,32 @@ function MyListingsPageContent() {
                         ) : null}
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <Link
-                          href={
-                            (x.category ?? "").toLowerCase() === "rentas"
-                              ? withRentasLandingLang(rentasListingPublicPath(x.id), lang)
-                              : `/clasificados/anuncio/${x.id}?${q}`
-                          }
-                          prefetch={false}
-                          className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
-                        >
-                          {t.viewPublic}
-                        </Link>
+                        {genericPayLane === "clases" ? (
+                          <button
+                            type="button"
+                            disabled={pendingPaymentBusyId === x.id}
+                            onClick={() => void startPendingPayment("clases", x.id, x.leonix_ad_id)}
+                            data-testid="dashboard-listing-complete-payment"
+                            className="rounded-xl bg-[#1E1810] px-4 py-2 text-sm font-bold text-[#F9F6F1] shadow-sm disabled:opacity-50"
+                          >
+                            {pendingPaymentBusyId === x.id
+                              ? dashboardStartingPaymentLabel(lang)
+                              : dashboardCompletePaymentLabel(lang)}
+                          </button>
+                        ) : null}
+                        {genericNotLive ? null : (
+                          <Link
+                            href={
+                              (x.category ?? "").toLowerCase() === "rentas"
+                                ? withRentasLandingLang(rentasListingPublicPath(x.id), lang)
+                                : `/clasificados/anuncio/${x.id}?${q}`
+                            }
+                            prefetch={false}
+                            className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
+                          >
+                            {t.viewPublic}
+                          </Link>
+                        )}
                         <Link
                           href={`/dashboard/mis-anuncios/${x.id}?${q}`}
                           prefetch={false}

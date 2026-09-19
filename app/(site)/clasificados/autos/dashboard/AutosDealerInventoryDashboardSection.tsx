@@ -57,6 +57,13 @@ import { AUTOS_PRIVADO_LISTING_LIFECYCLE_CONFIG } from "@/app/lib/listingLifecyc
 import { startListingRenewalCheckout } from "@/app/lib/listingLifecycle/listingRenewalCheckout";
 import { ListingLifecycleStatusCard } from "@/app/(site)/dashboard/components/ListingLifecycleStatusCard";
 import { ListingRenewalAction } from "@/app/(site)/dashboard/components/ListingRenewalAction";
+import {
+  dashboardCompletePaymentLabel,
+  dashboardNotLiveNote,
+  dashboardStartingPaymentLabel,
+  isAutosPrivadoAwaitingPayment,
+} from "@/app/(site)/dashboard/lib/dashboardPendingPayment";
+import { startDashboardResumePayment } from "@/app/(site)/dashboard/lib/dashboardResumePaymentClient";
 
 type Lang = "es" | "en";
 
@@ -158,6 +165,10 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [renewalBusyId, setRenewalBusyId] = useState<string | null>(null);
+  /** CLOSEOUT 2 — Autos Privado "Completar pago": row whose Revenue OS checkout is starting, and the last
+   * server/client message for it (the checkout client's own owner-safe copy, incl. the no-recharge codes). */
+  const [payBusyId, setPayBusyId] = useState<string | null>(null);
+  const [payError, setPayError] = useState<{ id: string; message: string } | null>(null);
   /** Gate D.3 — page-level authenticated owner id, sourced from the same session fetch already
    * used for the API bearer token (no duplicate auth call, no new Supabase client). */
   const [ownerUserId, setOwnerUserId] = useState<string | null>(null);
@@ -359,6 +370,30 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
     window.location.href = result.checkoutUrl;
   }
 
+  /** CLOSEOUT 2 — resume the base payment of an unpaid Autos Privado row (draft / pending_payment /
+   * payment_failed — exactly what the server pre-flight accepts). Revenue OS AUTOS_PRIVADO_CHECKOUT with
+   * listingId = this row, the same payload AutosPrivadoPreviewClient sends after its pre-checkout save. */
+  async function startAutosPrivadoBasePayment(id: string, leonixAdId: string | null) {
+    setPayBusyId(id);
+    setPayError(null);
+    try {
+      const result = await startDashboardResumePayment({ lane: "autos-privado", listingId: id, leonixAdId, lang });
+      if (!result.ok) {
+        setPayError({ id, message: result.userMessage });
+        setPayBusyId(null);
+      }
+    } catch {
+      setPayError({
+        id,
+        message:
+          lang === "es"
+            ? "No pudimos iniciar el pago seguro. Intenta de nuevo o contacta a Leonix."
+            : "We could not start secure payment. Please try again or contact Leonix.",
+      });
+      setPayBusyId(null);
+    }
+  }
+
   if (loading) {
     return (
       <div className="mt-6 rounded-3xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-6 text-sm text-[#5C5346]">{t.loading}</div>
@@ -421,7 +456,17 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
           AUTOS_PRIVADO_LISTING_LIFECYCLE_CONFIG,
         );
         const renewalBusy = renewalBusyId === row.id;
+        const awaitingPayment = isAutosPrivadoAwaitingPayment({ lane: row.lane, status: row.status });
+        const rowPayError = payError && payError.id === row.id ? payError.message : null;
         const quickActions: ActionItem[] = [];
+        if (awaitingPayment) {
+          quickActions.push({
+            label: payBusyId === row.id ? dashboardStartingPaymentLabel(lang) : dashboardCompletePaymentLabel(lang),
+            onClick: () => void startAutosPrivadoBasePayment(row.id, row.leonix_ad_id ?? null),
+            disabled: payBusyId === row.id,
+            tone: "warning",
+          });
+        }
         if (row.status === "active" && isLiveCapability(privadoCaps.identity.publicView)) {
           quickActions.push({ href: liveHref, label: publicViewLabel(lang), tone: "secondary" });
         }
@@ -467,6 +512,13 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
               statusChipClass: autosListingStatusChipClass(row.status as AutosClassifiedsListingStatus),
               leonixId: row.leonix_ad_id,
             }}
+            note={
+              rowPayError
+                ? { text: rowPayError, tone: "urgent" }
+                : awaitingPayment
+                  ? { text: dashboardNotLiveNote(lang), tone: "warning" }
+                  : null
+            }
             detailItems={vehicleDetailItems(row)}
             primaryAction={{ href: autosPrivadoEditHref(row.id), label: editListingLabel(lang) }}
             quickActions={quickActions}

@@ -1,4 +1,5 @@
 import { decideAdminReactivation } from "@/app/admin/_lib/adminReactivationPolicy";
+import { decideBrFsboAdminRestore } from "@/app/admin/_lib/adminBrFsboRestorePolicy";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
@@ -69,7 +70,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   const { data: row, error: rErr } = await supabase
     .from("listings")
     .select(
-      "id, category, leonix_ad_id, owner_id, detail_pairs, is_free, is_published, status, republish_count, republish_override, seller_type, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role",
+      "id, category, leonix_ad_id, owner_id, detail_pairs, is_free, is_published, status, republish_count, republish_override, seller_type, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role, expires_at, published_at, listing_json",
     )
     .eq("id", id)
     .maybeSingle();
@@ -81,6 +82,17 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   const rowRec = row as Record<string, unknown>;
   const category = String(rowRec.category ?? "").trim();
   const now = new Date().toISOString();
+  // Closeout 2 - FSBO (private-seller) Bienes Raices rows are a one-time fixed-term product and must NEVER
+  // be reactivated through the Negocio subscription RPC. Resolved strictly from the fetched row.
+  const fsboRestore = decideBrFsboAdminRestore({
+    category,
+    seller_type: rowRec.seller_type as string | null,
+    listing_json: rowRec.listing_json,
+    status: rowRec.status as string | null,
+    published_at: rowRec.published_at as string | null,
+    expires_at: rowRec.expires_at as string | null,
+  });
+  const isFsboRow = fsboRestore.fsbo;
 
   // Work Package I.9B — server-side parent/child role validation for Bienes Raíces Negocio,
   // resolved strictly from the freshly-fetched row (never trusts any client-supplied value).
@@ -126,7 +138,10 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       const gate = decideAdminReactivation({ category, status: String(rowRec.status ?? "") });
       if (gate.blocked) return NextResponse.json({ ok: false, error: gate.code, message: gate.message }, { status: 409 });
     }
-    const republishReactivatesBrNegocio = republishReactivates && category.toLowerCase() === "bienes-raices";
+    if (republishReactivates && fsboRestore.fsbo && fsboRestore.blocked) {
+      return NextResponse.json({ ok: false, error: fsboRestore.code, message: fsboRestore.message }, { status: 409 });
+    }
+    const republishReactivatesBrNegocio = republishReactivates && category.toLowerCase() === "bienes-raices" && !isFsboRow;
     if (republishReactivatesBrNegocio) {
       // Package C Build 4 (C7, Gate 4) — reactivating a bienes-raices row via republish is
       // capacity-increasing; route through the atomic RPC instead of folding status/is_published
@@ -149,7 +164,13 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       patch.is_published = true;
       patch.status = "active";
     }
-    const { error } = await supabase.from("listings").update(patch).eq("id", id);
+    // FSBO reactivation keeps its existing `expires_at` (never re-granted) and only flips a row that is
+    // still in the status the decision was made against.
+    let republishQuery = supabase.from("listings").update(patch).eq("id", id);
+    if (republishReactivates && fsboRestore.fsbo && !fsboRestore.blocked) {
+      republishQuery = republishQuery.eq("status", String(rowRec.status ?? ""));
+    }
+    const { error } = await republishQuery;
     if (error) {
       return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     }
@@ -194,6 +215,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   // the RPC's own `IS DISTINCT FROM 'inventory_property'` legacy-compatibility branch.
   const isBrNegocioCapacityRow =
     category.toLowerCase() === "bienes-raices" &&
+    !isFsboRow &&
     (rowRec.inventory_role === "main" ||
       rowRec.inventory_role === "inventory_property" ||
       rowRec.inventory_role === null ||
@@ -202,6 +224,10 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   if (action === "unsuspend") {
     const gate = decideAdminReactivation({ category, status: String(rowRec.status ?? "") });
     if (gate.blocked) return NextResponse.json({ ok: false, error: gate.code, message: gate.message }, { status: 409 });
+  }
+
+  if (action === "unsuspend" && fsboRestore.fsbo && fsboRestore.blocked) {
+    return NextResponse.json({ ok: false, error: fsboRestore.code, message: fsboRestore.message }, { status: 409 });
   }
 
   if (action === "unsuspend" && isBrNegocioCapacityRow) {
@@ -262,7 +288,13 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       return NextResponse.json({ ok: false, error: "invalid_action" }, { status: 400 });
   }
 
-  const { error } = await supabase.from("listings").update(patch).eq("id", id);
+  let updateQuery = supabase.from("listings").update(patch).eq("id", id);
+  if (action === "unsuspend" && fsboRestore.fsbo && !fsboRestore.blocked) {
+    // FSBO restore: status/is_published only (patch above) - `expires_at` is never touched - and only
+    // from the status the decision was made against.
+    updateQuery = updateQuery.eq("status", fsboRestore.expectedStatus);
+  }
+  const { error } = await updateQuery;
   if (error) {
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }

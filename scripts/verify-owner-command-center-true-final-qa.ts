@@ -35,7 +35,7 @@ const trust = read("app/(site)/dashboard/components/OwnerEntityCommunityTrust.ts
 const adminSurface = read("app/admin/(dashboard)/workspace/clasificados/_lib/clasificadosQueueSurfaceMeta.ts");
 const adminQueue = read("app/admin/(dashboard)/workspace/clasificados/_components/ClassifiedAdminQueueRowActionsPanel.tsx");
 const autosAdmin = read("app/admin/(dashboard)/workspace/clasificados/autos/page.tsx");
-const empleosAdmin = read("app/admin/(dashboard)/workspace/clasificados/empleos/page.tsx");
+const empleosAdmin = read("app/admin/(dashboard)/workspace/clasificados/empleos/EmpleosAdminListClient.tsx");
 
 check("True Final QA record exists", qa.length > 500);
 check("QA record states CONTROLLING BIBLE READ", /CONTROLLING BIBLE READ:\s*YES/.test(qa));

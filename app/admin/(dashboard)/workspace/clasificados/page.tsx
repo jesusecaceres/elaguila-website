@@ -7,6 +7,11 @@ import {
   fetchListingFlagContextMaps,
   type ListingFlagContextMaps,
 } from "@/app/admin/_lib/adminReviewFlagContext";
+import {
+  loadAdminListingCommercialTruth,
+  type AdminListingCommercialTruthMap,
+} from "@/app/admin/_lib/adminListingCommercialTruth";
+import { planAdminGlobalCommercialLoad } from "@/app/admin/_lib/adminCategoryShellAdoption";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 import {
   fetchListingsForAdminWorkspaceFiltered,
@@ -157,6 +162,25 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
       rows.map((r) => r.id),
       rows.map((r) => r.owner_id ?? "").filter(Boolean),
     );
+  }
+
+  // Commercial truth (READ-ONLY): payment / entitlement / subscription records for the VISIBLE
+  // listings only, loaded per category present so each row's circuit is classified against the
+  // right lifecycle table. Never sweeps the table, never writes; an unreadable source becomes
+  // "unknown" for the affected rows (never "unpaid"). The generic category shell does the same.
+  const commercialTruthByListingId: AdminListingCommercialTruthMap = {};
+  if (rows.length > 0) {
+    const rowsById = new Map(rows.map((r) => [r.id, r as unknown as Record<string, unknown>]));
+    for (const group of planAdminGlobalCommercialLoad(rows)) {
+      const truthForGroup = await loadAdminListingCommercialTruth({
+        category: group.category,
+        listingIds: group.listingIds,
+        ...(group.includeRows
+          ? { listingRowsById: Object.fromEntries(group.listingIds.map((id) => [id, rowsById.get(id)])) }
+          : {}),
+      });
+      Object.assign(commercialTruthByListingId, truthForGroup);
+    }
   }
 
   return (
@@ -408,6 +432,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
                   flagReportByListingId={flagContext.reportsByListingId}
                   ownerEmailByUserId={flagContext.ownerEmailByUserId}
                   aiReviewByListingId={flagContext.aiReviewByListingId}
+                  commercialTruthByListingId={commercialTruthByListingId}
                 />
               </Suspense>
             )}

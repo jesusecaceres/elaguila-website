@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { scanPagedRows } from "@/app/admin/_lib/adminPagedScan";
 
 import type { ViajesStagedLane, ViajesStagedListingRow, ViajesStagedLifecycleStatus } from "./viajesStagedListingTypes";
 import { slugifyViajesListingBase } from "./viajesSlugUtils";
@@ -56,22 +57,62 @@ const VIAJES_ADMIN_QUEUE_SELECT =
 export type ViajesAdminQueueFilters = {
   limit?: number;
   scope?: "live";
+  /**
+   * Admin search (Leonix Ad ID / title / slug / id substring, case-insensitive). 2026-09 closeout 2 — applied
+   * BEFORE the row limit (windowed scan), so an older match is not hidden behind newer non-matches.
+   */
+  q?: string;
 };
 
-/** Admin workspace queue — bounded select, optional live scope at SQL level. */
+/** Pure: same substring rule the Travel Admin page used to apply after the limit. */
+export function viajesStagedRowMatchesAdminSearch(
+  row: Pick<ViajesStagedListingRow, "id" | "slug" | "title" | "leonix_ad_id">,
+  qRaw: string,
+): boolean {
+  const n = qRaw.trim().toLowerCase();
+  if (!n) return true;
+  if ((row.leonix_ad_id ?? "").toLowerCase().includes(n)) return true;
+  if ((row.title ?? "").toLowerCase().includes(n)) return true;
+  if ((row.slug ?? "").toLowerCase().includes(n)) return true;
+  if ((row.id ?? "").toLowerCase().includes(n)) return true;
+  return false;
+}
+
+/** Admin workspace queue — bounded select, optional live scope at SQL level, optional search before the limit. */
 export async function fetchViajesStagedAdminQueue(
   opts: ViajesAdminQueueFilters = {},
 ): Promise<ViajesStagedListingRow[]> {
   if (!isSupabaseAdminConfigured()) return [];
   const supabase = getAdminSupabase();
   const cap = Math.min(Math.max(Math.floor(opts.limit ?? 100), 1), 500);
+  const search = opts.q?.trim() ?? "";
 
-  let q = supabase.from("viajes_staged_listings").select(VIAJES_ADMIN_QUEUE_SELECT).order("republish_sort_at", { ascending: false, nullsFirst: true }).limit(cap);
-  if (opts.scope === "live") {
-    q = q.eq("lifecycle_status", "approved").eq("is_public", true);
-  }
-  const { data, error } = await q;
-  if (!error && data) return data as unknown as ViajesStagedListingRow[];
+  const scan = (orderColumn: "republish_sort_at" | "updated_at") =>
+    scanPagedRows<ViajesStagedListingRow>({
+      limit: cap,
+      fetchPage: async (from, to) => {
+        let q = supabase
+          .from("viajes_staged_listings")
+          .select(VIAJES_ADMIN_QUEUE_SELECT)
+          .order(orderColumn, orderColumn === "republish_sort_at" ? { ascending: false, nullsFirst: true } : { ascending: false })
+          .order("id", { ascending: false })
+          .range(from, to);
+        if (opts.scope === "live") {
+          q = q.eq("lifecycle_status", "approved").eq("is_public", true);
+        }
+        const { data, error } = await q;
+        return {
+          data: (data as unknown as ViajesStagedListingRow[] | null) ?? null,
+          error: error ? { message: error.message } : null,
+        };
+      },
+      accept: search ? (rows) => rows.filter((r) => viajesStagedRowMatchesAdminSearch(r, search)) : undefined,
+      getId: (r) => r.id,
+    });
+
+  const first = await scan("republish_sort_at");
+  if (!first.error) return first.rows;
+  const error = { message: first.error };
 
   // CMD-004 / DATA-QUERY-001 schema-drift fallback: `republish_sort_at` is defined
   // by migrations/20260509120000_classifieds_republish_capability.sql, but that
@@ -81,20 +122,16 @@ export async function fetchViajesStagedAdminQueue(
   // RLS/permission, invalid query, etc). Those must stay visible, not silently
   // become "no rows to review": log them so they are observable server-side instead
   // of disappearing the way this same bug once did in the UI.
-  if (!error?.message?.includes("republish_sort_at")) {
-    if (error) console.error("fetchViajesStagedAdminQueue: unexpected query error (not the known schema-drift column)", error.message);
+  if (!error.message.includes("republish_sort_at")) {
+    console.error("fetchViajesStagedAdminQueue: unexpected query error (not the known schema-drift column)", error.message);
     return [];
   }
-  let fallbackQ = supabase.from("viajes_staged_listings").select(VIAJES_ADMIN_QUEUE_SELECT).order("updated_at", { ascending: false }).limit(cap);
-  if (opts.scope === "live") {
-    fallbackQ = fallbackQ.eq("lifecycle_status", "approved").eq("is_public", true);
-  }
-  const fallback = await fallbackQ;
+  const fallback = await scan("updated_at");
   if (fallback.error) {
-    console.error("fetchViajesStagedAdminQueue: schema-drift fallback query itself failed", fallback.error.message);
+    console.error("fetchViajesStagedAdminQueue: schema-drift fallback query itself failed", fallback.error);
     return [];
   }
-  return (fallback.data ?? []) as unknown as ViajesStagedListingRow[];
+  return fallback.rows;
 }
 
 export async function updateViajesStagedListingModeration(input: {

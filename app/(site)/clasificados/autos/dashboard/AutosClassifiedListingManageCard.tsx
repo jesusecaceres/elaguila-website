@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { listingPlanFieldLabel } from "@/app/lib/listingPlans/categoryAdPlans";
 import { listingUiStatusChipClass, listingUiStatusLabel, type ListingUiStatus } from "@/app/(site)/dashboard/lib/listingDisplayStatus";
+import { isPrePublicationStatus } from "@/app/(site)/dashboard/lib/dashboardPendingPayment";
 
 type Lang = "es" | "en";
 
@@ -137,6 +138,10 @@ export function AutosClassifiedListingManageCard({
 
   const isSold = (row.status || "active").toLowerCase() === "sold";
   const isRemoved = (row.status || "").toLowerCase() === "removed";
+  // CLOSEOUT 2 — legacy `listings` autos row that was never published (pending / draft ...): its public
+  // page does not exist, so no "View public" CTA. (Paid Autos Privado rows live in autos_classifieds_listings
+  // and are managed by AutosDealerInventoryDashboardSection, which owns the Revenue OS "Completar pago".)
+  const notLive = isPrePublicationStatus(row.status);
   const v = analytics.views;
   // Work Package I.8B — previously ANY non-"sold" status (paused, removed, expired, flagged,
   // pending, ...) rendered as green "Active", regardless of the real status. When the caller
@@ -217,13 +222,15 @@ export function AutosClassifiedListingManageCard({
                 {L.manage}
               </Link>
             ) : null}
-            <Link
-              href={`/clasificados/anuncio/${row.id}?lang=${lang}`}
-              prefetch={false}
-              className="inline-flex rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
-            >
-              {L.view}
-            </Link>
+            {notLive ? null : (
+              <Link
+                href={`/clasificados/anuncio/${row.id}?lang=${lang}`}
+                prefetch={false}
+                className="inline-flex rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
+              >
+                {L.view}
+              </Link>
+            )}
             {isRemoved && onReactivate ? (
               <button
                 type="button"

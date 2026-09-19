@@ -57,6 +57,14 @@ import type { Lang } from "@/app/(site)/dashboard/lib/dashboardI18n";
 import type { ListingLifecycleResolved } from "@/app/lib/listingLifecycle/listingLifecycleTypes";
 import { ListingLifecycleStatusCard } from "./ListingLifecycleStatusCard";
 import { ListingRenewalAction } from "./ListingRenewalAction";
+import {
+  dashboardAwaitingPaymentLabel,
+  dashboardCompletePaymentLabel,
+  dashboardNotLiveNote,
+  dashboardStartingPaymentLabel,
+  isSharedListingsRowNotLive,
+  resolveSharedListingPaymentLane,
+} from "../lib/dashboardPendingPayment";
 
 type Row = {
   id: string;
@@ -215,6 +223,8 @@ export function LeonixRealEstateListingManageCard({
   lifecycle = null,
   renewalBusy = false,
   onRenew,
+  onCompletePayment,
+  completePaymentBusy = false,
   ownerUserId = null,
 }: {
   row: Row;
@@ -244,6 +254,10 @@ export function LeonixRealEstateListingManageCard({
   lifecycle?: ListingLifecycleResolved | null;
   renewalBusy?: boolean;
   onRenew?: () => void;
+  /** CLOSEOUT 2 — Revenue OS "Completar pago" for an unpaid `pending` Rentas / BR FSBO row. The caller only
+   * supplies it for those lanes; the card additionally requires the row itself to be in that state. */
+  onCompletePayment?: () => void;
+  completePaymentBusy?: boolean;
   /** Gate D.2 — page-level authenticated owner id; required to source canonical resolver hrefs. */
   ownerUserId?: string | null;
 }) {
@@ -275,6 +289,14 @@ export function LeonixRealEstateListingManageCard({
   const st = String(row.status ?? "active").toLowerCase();
   const canPause = st === "active" && row.is_published !== false;
   const canResume = st === "paused" || st === "unpublished";
+  // CLOSEOUT 2 — an unpaid / pre-publication row is NOT live: truthful status, no public "View listing".
+  const notLive = isSharedListingsRowNotLive(row);
+  const awaitingPaymentLane = resolveSharedListingPaymentLane({
+    category: row.category,
+    status: row.status,
+    is_published: row.is_published,
+    detail_pairs: row.detail_pairs,
+  });
 
   // Gate D.2.2 / I.5.7A.1 — explicit parent/child detection for this Bienes Negocio row, mirroring
   // the established pattern in BrNegocioListingInventoryActions.tsx. Gates whether canonical
@@ -402,7 +424,18 @@ export function LeonixRealEstateListingManageCard({
             {lx.categoriaPropiedad ? (
               <span className="text-[11px] font-medium uppercase tracking-wide text-[#7A7164]">{lx.categoriaPropiedad}</span>
             ) : null}
-            {canPause ? (
+            {notLive ? (
+              <span
+                className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-bold text-amber-950"
+                data-testid="listing-not-live-status"
+              >
+                {awaitingPaymentLane
+                  ? dashboardAwaitingPaymentLabel(lang)
+                  : lang === "es"
+                    ? "Pendiente — no publicado"
+                    : "Pending — not published"}
+              </span>
+            ) : canPause ? (
               <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-900">
                 {lang === "es" ? "Activo" : "Active"}
               </span>
@@ -525,6 +558,11 @@ export function LeonixRealEstateListingManageCard({
             </p>
           ) : null}
           {lifecycle ? <ListingLifecycleStatusCard lifecycle={lifecycle} lang={lang} /> : null}
+          {notLive && awaitingPaymentLane ? (
+            <p className="mt-2 text-xs font-semibold text-amber-800" data-testid="listing-not-live-note">
+              {dashboardNotLiveNote(lang)}
+            </p>
+          ) : null}
           <p className="mt-2 text-[11px] leading-snug text-[#5C5346]/80">
             {lang === "es"
               ? "Ciclo: borrador local / listing_drafts → publicación → listado vivo en ruta canónica (no preview)."
@@ -553,6 +591,17 @@ export function LeonixRealEstateListingManageCard({
           {lifecycle ? (
             <ListingRenewalAction lifecycle={lifecycle} lang={lang} busy={renewalBusy} onRenew={onRenew} />
           ) : null}
+          {onCompletePayment && notLive && awaitingPaymentLane ? (
+            <button
+              type="button"
+              disabled={completePaymentBusy}
+              onClick={onCompletePayment}
+              data-testid="listing-complete-payment"
+              className="min-h-[44px] rounded-xl bg-[#1E1810] px-4 py-2 text-sm font-bold text-[#F9F6F1] shadow-sm disabled:opacity-50"
+            >
+              {completePaymentBusy ? dashboardStartingPaymentLabel(lang) : dashboardCompletePaymentLabel(lang)}
+            </button>
+          ) : null}
           {republishPrimaryLabel && onRepublish ? (
             <button
               type="button"
@@ -578,13 +627,15 @@ export function LeonixRealEstateListingManageCard({
           >
             {openPanelLabel(lang)}
           </Link>
-          <Link
-            href={publicViewHref}
-            prefetch={false}
-            className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
-          >
-            {publicViewLabel(lang)}
-          </Link>
+          {notLive ? null : (
+            <Link
+              href={publicViewHref}
+              prefetch={false}
+              className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
+            >
+              {publicViewLabel(lang)}
+            </Link>
+          )}
           {brDashboardEditHref ? (
             <Link
               href={brDashboardEditHref}
@@ -594,7 +645,10 @@ export function LeonixRealEstateListingManageCard({
               {editListingLabel(lang)}
             </Link>
           ) : null}
-          {brDashboardPreviewHref ? (
+          {/* CLOSEOUT 2 — the FSBO "Preview" target is the PUBLIC live page, which does not exist until the
+              listing is live; an unpaid FSBO row previews through Edit instead. (BR Negocio's Preview is a
+              listing-bound dashboard preview and stays.) */}
+          {brDashboardPreviewHref && !(notLive && effectiveBranch === "bienes_raices_privado") ? (
             <Link
               href={brDashboardPreviewHref}
               prefetch={false}

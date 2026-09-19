@@ -82,3 +82,33 @@ create unique index concurrently if not exists restaurantes_public_listings_draf
 Rollback: `drop index concurrently restaurantes_public_listings_draft_listing_id_uidx;`
 
 ## 4. `public.listing_lifecycle_reminder_events` (P2) — see PUBLICATION_CIRCUIT_REPAIR_2026-09-18.md §5.
+
+## 5. Legacy En Venta `sold` row (owner cleanup, not applied)
+
+One production row, `SALE-2026-000067` (`5f1b6eb5-da3e-43bc-9205-f4464b984e31`), is `status='sold'`, `is_published=false`, written by the old
+`markStatus("sold")` that hid sold listings. New code keeps `is_published` untouched for En Venta sold. Whether this specific row should be
+viewable is an owner decision (it cannot be told apart from a deliberate takedown). If the owner wants it viewable by direct URL:
+
+```sql
+update public.listings
+   set is_published = true, updated_at = now()
+ where id = '5f1b6eb5-da3e-43bc-9205-f4464b984e31' and category = 'en-venta' and status = 'sold';
+```
+
+## 6. Owner product decisions (no SQL until decided)
+
+- **Ofertas Locales coupons price**: catalog says free (`amountCents 0`, `ofertasLocalesConstants.ts`), pricing matrix says $199 `stripeEligible:true`
+  (`revenuePricingMatrix.ts:341-353`); checkout still accepts the coupons package. Decide: free during launch (set matrix `stripeEligible:false`)
+  or paid (build the coupons checkpoint copy).
+- **Viajes business $399**: advertised on `/publicar/viajes/checkpoint`, `stripeEligible:true`, no fulfilment. The server now refuses the checkout
+  (`viajes_checkout_not_available`). Decide: free during launch (hide price, `stripeEligible:false`) or build fulfilment.
+- **Iglesias**: prayer safety and church intake are AI+rules AUTHORITATIVE (auto-publish / auto-reject). Separate system, unchanged. Decide whether
+  that authority is acceptable or must become advisory + human approval.
+
+## 7. `comida_local_public_listings.suspended_reason` missing in production (P1 — migration drift, found 2026-09-19)
+
+Repo migration `20260909120000_comida_local_listing_suspended_reason.sql` (additive `add column if not exists suspended_reason text`) is **not
+applied**: the production table has `payment_status`, `published_at`, `expires_at` but no `suspended_reason`. Consequences until applied:
+the subscription payment-suspension engine cannot record `suspended_reason='payment'` for Comida Local rows, and the new Admin Comida Local
+suspend/restore route (which stamps `moderation`/reads `payment`) reports a clear "schema migration required" error instead of guessing.
+Comida Local currently has 0 rows. Safe to apply as written (idempotent, nullable, no backfill).

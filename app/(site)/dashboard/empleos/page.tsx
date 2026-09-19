@@ -22,6 +22,15 @@ import {
   archiveListingLabel,
 } from "../lib/dashboardMisAnunciosCategoryTools";
 import { ownerToolsTitle, ownerApplicationsModuleTitle } from "../lib/dashboardI18n";
+import { getStatusChipClass } from "@/app/lib/clasificados/listingLifecycleDomain";
+import {
+  dashboardAwaitingPaymentLabel,
+  dashboardCompletePaymentLabel,
+  dashboardNotLiveNote,
+  dashboardStartingPaymentLabel,
+  isEmpleosDraftAwaitingPayment,
+} from "../lib/dashboardPendingPayment";
+import { startDashboardResumePayment } from "../lib/dashboardResumePaymentClient";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +43,7 @@ type Row = {
   company_name: string;
   lifecycle_status: string;
   lane: string;
+  leonix_ad_id?: string | null;
   city?: string | null;
   state?: string | null;
   postal_code?: string | null;
@@ -106,6 +116,9 @@ function EmpleosEmployerDashboardPageContent() {
   const [rows, setRows] = useState<Row[]>([]);
   const [ownerId, setOwnerId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  /** CLOSEOUT 2 — paid-lane draft "Completar pago": row in flight + last checkout-client message. */
+  const [payBusyId, setPayBusyId] = useState<string | null>(null);
+  const [payError, setPayError] = useState<{ id: string; message: string } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -121,7 +134,7 @@ function EmpleosEmployerDashboardPageContent() {
         if (!cancelled) setOwnerId(userData.user.id);
         const { data, error } = await supabase
           .from("empleos_public_listings")
-          .select("id, slug, title, company_name, lifecycle_status, lane, city, state, postal_code, listing_snapshot, updated_at")
+          .select("id, slug, title, company_name, lifecycle_status, lane, leonix_ad_id, city, state, postal_code, listing_snapshot, updated_at")
           .eq("owner_user_id", userData.user.id)
           .order("updated_at", { ascending: false });
         if (!cancelled) {
@@ -156,6 +169,33 @@ function EmpleosEmployerDashboardPageContent() {
       }
     } finally {
       setBusyId(null);
+    }
+  }
+
+  /** CLOSEOUT 2 — Revenue OS EMPLEOS_PAID_JOB_CHECKOUT for this owned `draft` row (server accepts only draft). */
+  async function completePayment(r: Row) {
+    setPayBusyId(r.id);
+    setPayError(null);
+    try {
+      const result = await startDashboardResumePayment({
+        lane: "empleos",
+        listingId: r.id,
+        leonixAdId: r.leonix_ad_id ?? null,
+        lang,
+      });
+      if (!result.ok) {
+        setPayError({ id: r.id, message: result.userMessage });
+        setPayBusyId(null);
+      }
+    } catch {
+      setPayError({
+        id: r.id,
+        message:
+          lang === "es"
+            ? "No pudimos iniciar el pago seguro. Intenta de nuevo o contacta a Leonix."
+            : "We could not start secure payment. Please try again or contact Leonix.",
+      });
+      setPayBusyId(null);
     }
   }
 
@@ -196,6 +236,9 @@ function EmpleosEmployerDashboardPageContent() {
       >
         {rows.map((r) => {
           const uiStatus = resolveListingUiStatus({ status: r.lifecycle_status });
+          // CLOSEOUT 2 — a paid-lane (quick / premium) draft is an UNPAID application, not a resumable draft.
+          const awaitingPayment = isEmpleosDraftAwaitingPayment(r);
+          const rowPayError = payError && payError.id === r.id ? payError.message : null;
           const editHref = empleosEditHref(r.lane, r.id, q);
           const locationLine = rowLocationLine(r);
           const busy = busyId === r.id;
@@ -207,6 +250,14 @@ function EmpleosEmployerDashboardPageContent() {
           ].filter((x): x is { label: string; value: string; wide?: boolean } => x !== null);
 
           const quickActions: ActionItem[] = [];
+          if (awaitingPayment) {
+            quickActions.push({
+              label: payBusyId === r.id ? dashboardStartingPaymentLabel(lang) : dashboardCompletePaymentLabel(lang),
+              onClick: () => void completePayment(r),
+              disabled: payBusyId === r.id,
+              tone: "warning",
+            });
+          }
           if (r.lifecycle_status === "published" && isLiveCapability(capabilities.identity.publicView)) {
             quickActions.push({
               href: appendLangToPath(`/clasificados/empleos/${r.slug}`, lang),
@@ -271,10 +322,17 @@ function EmpleosEmployerDashboardPageContent() {
               header={{
                 eyebrow: t.eyebrow,
                 title: r.title,
-                statusLabel: listingUiStatusLabel(uiStatus, lang),
-                statusChipClass: listingUiStatusChipClass(uiStatus),
+                statusLabel: awaitingPayment ? dashboardAwaitingPaymentLabel(lang) : listingUiStatusLabel(uiStatus, lang),
+                statusChipClass: awaitingPayment ? getStatusChipClass("pending_payment") : listingUiStatusChipClass(uiStatus),
                 badges: [laneLabel(r.lane, lang)],
               }}
+              note={
+                rowPayError
+                  ? { text: rowPayError, tone: "urgent" }
+                  : awaitingPayment
+                    ? { text: dashboardNotLiveNote(lang), tone: "warning" }
+                    : null
+              }
               detailItems={detailItems}
               primaryAction={{ href: editHref ?? `/dashboard/empleos/${r.id}?${q}`, label: editListingLabel(lang) }}
               quickActions={quickActions}

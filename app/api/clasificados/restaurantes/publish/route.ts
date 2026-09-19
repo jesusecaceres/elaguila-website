@@ -34,6 +34,11 @@ import {
   validateProposedFinalMediaSet,
   warnDroppedUnpersistableMedia,
 } from "@/app/lib/media/listingMediaContract";
+import {
+  orderRestauranteDraftRows,
+  reconcileRestauranteFirstSave,
+  type RestauranteDraftRowLite,
+} from "@/app/lib/clasificados/restaurantes/restauranteFirstSaveReconcile";
 
 /** Gallery cap mirrors MAX_GALLERY in RestaurantePublishMediaStrip.tsx:29 (local, unexported). */
 const RESTAURANTE_GALLERY_MAX = 24;
@@ -131,6 +136,27 @@ async function allocateSlug(base: string): Promise<string> {
     candidate = i === 0 ? `${base}-2` : `${base}-${i + 2}`;
   }
   return `${base}-${Date.now()}`;
+}
+
+/** All rows for a draft, oldest first - the SAME (published_at, id) order the route's canonical-row lookup uses. */
+async function readRestauranteRowsForDraft(
+  supabase: ReturnType<typeof getAdminSupabase>,
+  draftListingId: string,
+): Promise<{ rows: Array<RestauranteDraftRowLite>; error: { message: string } | null }> {
+  const { data, error } = await supabase
+    .from("restaurantes_public_listings")
+    .select("id, slug, leonix_ad_id, status, published_at, owner_user_id")
+    .eq("draft_listing_id", draftListingId)
+    .order("published_at", { ascending: true, nullsFirst: false })
+    .order("id", { ascending: true });
+  return {
+    rows: orderRestauranteDraftRows((data ?? []) as Array<RestauranteDraftRowLite>),
+    error: error ? { message: error.message } : null,
+  };
+}
+
+function sleepMs(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export async function POST(req: Request) {
@@ -506,6 +532,24 @@ export async function POST(req: Request) {
       const requested = typeof b.slug === "string" ? b.slug.trim() : "";
       const base = requested || slugifyRestauranteBusinessName(draft.businessName);
       slugOut = await allocateSlug(base);
+      // Closeout 2 - narrow the first-save race: re-check for an existing row for this draft IMMEDIATELY
+      // before inserting. `allocateSlug` awaited a round trip since the first lookup, so a concurrent
+      // request may have inserted meanwhile; if so, converge on that canonical row instead of inserting.
+      const preInsert = await readRestauranteRowsForDraft(supabase, draft.draftListingId);
+      if (preInsert.error) {
+        return NextResponse.json({ ok: false, error: "db_read_failed", detail: preInsert.error.message }, { status: 500 });
+      }
+      const racedWinner = preInsert.rows[0] ?? null;
+      if (racedWinner?.id && racedWinner.slug) {
+        if (racedWinner.owner_user_id && verifiedOwnerId && racedWinner.owner_user_id !== verifiedOwnerId) {
+          return NextResponse.json({ ok: false, error: "ownership_mismatch" }, { status: 403 });
+        }
+        // Only a still-pending / already-published canonical row may be adopted; protected statuses are never
+        // escalated (the update branch on the next save owns edits).
+        listingIdOut = racedWinner.id;
+        leonixAdIdOut = racedWinner.leonix_ad_id ?? null;
+        slugOut = racedWinner.slug;
+      } else {
       const row = {
         ...draftToRestaurantePublicListingInsert(sanitizedDraft, slugOut, {
           ownerUserId,
@@ -546,6 +590,45 @@ export async function POST(req: Request) {
       }
       if (insertError) {
         return NextResponse.json({ ok: false, error: "insert_failed", detail: insertError.message }, { status: 500 });
+      }
+
+      // Closeout 2 - post-insert reconciliation. Re-read EVERY row for this draft (after a short settle so a
+      // request that started at the same instant has committed) ordered by (published_at, id). If our row
+      // is not the oldest, archive OUR row (status `archived` is allowed by the status check) and return
+      // the winner's id / slug / Leonix Ad ID - never two public (or payable) rows for one draft.
+      if (listingIdOut) {
+        await sleepMs(250);
+        const after = await readRestauranteRowsForDraft(supabase, draft.draftListingId);
+        if (after.error) {
+          console.error("[restaurantes publish api] post-insert reconciliation read failed", {
+            draftListingId: draft.draftListingId,
+            message: after.error.message,
+          });
+        } else {
+          const decision = reconcileRestauranteFirstSave(after.rows, listingIdOut);
+          if (decision.role === "loser") {
+            const loserId = listingIdOut;
+            let archived = false;
+            for (let attempt = 0; attempt < 2 && !archived; attempt++) {
+              const { error: archErr } = await supabase
+                .from("restaurantes_public_listings")
+                .update({ status: "archived", updated_at: new Date().toISOString() })
+                .eq("id", loserId);
+              if (!archErr) archived = true;
+            }
+            if (!archived) {
+              console.error("[restaurantes publish api] could not archive duplicate first-save row", {
+                draftListingId: draft.draftListingId,
+                loserId,
+                winnerId: decision.winner.id,
+              });
+            }
+            listingIdOut = decision.winner.id;
+            leonixAdIdOut = decision.winner.leonix_ad_id ?? leonixAdIdOut;
+            slugOut = decision.winner.slug ?? slugOut;
+          }
+        }
+      }
       }
     }
   } catch (e) {

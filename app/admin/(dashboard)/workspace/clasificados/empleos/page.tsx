@@ -1,335 +1,103 @@
-"use client";
+import { Suspense } from "react";
 
-import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import {useCallback, useEffect, useMemo, useState, Suspense } from "react";
-
-import { useAdminLang } from "@/app/admin/_components/AdminI18nProvider";
-import {
-  adminQueueRowAnchorId,
-  adminQueueRowClass,
-  parseAdminActionResultParams,
-} from "@/app/admin/_lib/adminQueueActionFlow";
-import { adminCardBase, adminInputClass } from "@/app/admin/_components/adminTheme";
-import { ClasificadosQueueActionChrome } from "../_components/ClasificadosQueueActionChrome";
-import { adminMessages } from "@/app/admin/_lib/adminStrings";
-import { appendLangToPath, type Lang } from "@/app/clasificados/lib/hubUrl";
-import { ClassifiedAdminRowActions } from "../_components/ClassifiedAdminRowActions";
-import { AdminListingMonetizationSummary } from "../_components/AdminListingMonetizationSummary";
+import { adminMessages, getAdminLang } from "@/app/admin/_lib/adminI18n";
+import { fetchAdminCategorySummary, type AdminCategorySummary } from "@/app/admin/_lib/adminCategorySummary";
 import { ClasificadosQueueHeader } from "../_components/ClasificadosQueueHeader";
-import { ClasificadosScopeNav } from "../_components/ClasificadosScopeNav";
+import { AdminCategoryFilterBar } from "../_components/normalized/AdminCategoryFilterBar";
+import { AdminCategorySummaryPanel } from "../_components/normalized/AdminCategorySummaryPanel";
+import { adminStatusOptionsForCategory } from "../_lib/adminNormalizedShell";
 import { clasificadosQueueSurfaceForSlug } from "../_lib/clasificadosQueueSurfaceMeta";
 import { appendPreservedSearchParams, parseAdminScope } from "../_lib/clasificadosAdminScopeUrls";
+import { EmpleosAdminListClient } from "./EmpleosAdminListClient";
 
-type ApplicationHealth = {
-  total: number;
-  submitted: number;
-  viewed: number;
-  shortlisted: number;
-  rejected: number;
-  hired: number;
+export const dynamic = "force-dynamic";
+
+const EMPLEOS_BASE = "/admin/workspace/clasificados/empleos";
+
+/** Empleos lanes (`empleos_public_listings.lane`): quick + premium are paid, feria is free. */
+const EMPLEOS_LANE_OPTIONS = [
+  { value: "quick", label: "Quick — Local job ad (paid)" },
+  { value: "premium", label: "Premium — preserved (paid)" },
+  { value: "feria", label: "Feria — Job fair (free)" },
+] as const;
+
+type PageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-type Row = {
-  id: string;
-  slug: string;
-  leonix_ad_id?: string | null;
-  title: string;
-  company_name: string;
-  lifecycle_status: string;
-  lane: string;
-  location_line?: string | null;
-  owner_user_id: string | null;
-  moderation_reason: string | null;
-  leonix_verified?: boolean;
-  admin_promoted?: boolean;
-  apply_count: number;
-  view_count: number;
-  application_health: ApplicationHealth;
-};
+const FIELD = "rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs text-[#1E1810] min-h-[40px]";
 
-function AdminEmpleosListingsPageContent() {
-  const sp = useSearchParams();
-  const actionProof = useMemo(() => (sp ? parseAdminActionResultParams(sp) : null), [sp]);
-  const adminLang = useAdminLang();
-  const m = adminMessages(adminLang);
-  const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
+/**
+ * Empleos admin — server shell (normalized Clasificados operating shell): scope-aware header,
+ * shared operating summary, shared filter bar with the Empleos lane filter, then the client list
+ * (rows + commercial truth come from /api/admin/empleos/listings; ONE lifecycle action system).
+ */
+export default async function AdminEmpleosListingsPage(props: PageProps) {
+  const lang = await getAdminLang();
+  const m = adminMessages(lang);
+  const sp = (props.searchParams ? await props.searchParams : {}) as Record<string, string | string[] | undefined>;
+  const scope = parseAdminScope(sp);
+  const laneRaw = typeof sp.lane === "string" ? sp.lane.trim().toLowerCase() : "";
+  const surface = clasificadosQueueSurfaceForSlug("empleos");
 
-  const spRecord = useMemo(() => {
-    const o: Record<string, string | string[] | undefined> = {};
-    sp?.forEach((v, k) => {
-      o[k] = v;
-    });
-    return o;
-  }, [sp]);
-
-  const scope = useMemo(() => parseAdminScope(spRecord), [spRecord]);
-  const queueHref = useMemo(
-    () => appendPreservedSearchParams("/admin/workspace/clasificados/empleos", spRecord, null),
-    [spRecord],
-  );
-  const liveHref = useMemo(
-    () => appendPreservedSearchParams("/admin/workspace/clasificados/empleos", spRecord, "live"),
-    [spRecord],
-  );
-
-  const [needle, setNeedle] = useState("");
-  const [rows, setRows] = useState<Row[]>([]);
-  const [err, setErr] = useState<string | null>(null);
-
-  useEffect(() => {
-    const q = sp?.get("q")?.trim();
-    if (q) setNeedle(q);
-  }, [sp]);
-
-  const load = useCallback(async (q: string, signal?: AbortSignal) => {
-    setErr(null);
-    const url = new URL("/api/admin/empleos/listings", window.location.origin);
-    const qt = q.trim();
-    if (qt) url.searchParams.set("q", qt);
-    if (scope === "live") url.searchParams.set("scope", "live");
-    const res = await fetch(url.toString(), { credentials: "same-origin", signal, cache: "no-store" });
-    const json = (await res.json()) as { ok?: boolean; rows?: Row[]; error?: string };
-    if (!res.ok || !json.ok) {
-      setErr(json.error ?? "load_failed");
-      setRows([]);
-      return;
-    }
-    setRows(json.rows ?? []);
-  }, [scope]);
-
-  const laneDisplay = useCallback((lane: string) => {
-    if (lane === "quick") return "Local job ad";
-    if (lane === "feria") return "Job fair";
-    if (lane === "premium") return "Preserved premium";
-    return lane;
-  }, []);
-
-  useEffect(() => {
-    const ac = new AbortController();
-    const t = window.setTimeout(() => {
-      void load(needle, ac.signal);
-    }, 300);
-    return () => {
-      window.clearTimeout(t);
-      ac.abort();
+  let summary: AdminCategorySummary;
+  try {
+    summary = await fetchAdminCategorySummary("empleos");
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "summary query failed";
+    summary = {
+      slug: "empleos",
+      total: null,
+      live: null,
+      needsAttention: null,
+      paymentIssue: null,
+      expired: null,
+      sourceHealth: { ok: false, source: surface.sourceTable, note: msg },
+      queryError: msg,
     };
-  }, [needle, load, scope]);
-
-  const displayRows = useMemo(() => {
-    if (scope === "live") return rows.filter((r) => r.lifecycle_status === "published");
-    return rows;
-  }, [rows, scope]);
-
-  async function moderate(id: string, lifecycle_status: string) {
-    const res = await fetch("/api/admin/empleos/listings/moderate", {
-      method: "POST",
-      credentials: "same-origin",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, lifecycle_status }),
-    });
-    const json = (await res.json()) as { ok?: boolean };
-    if (json.ok) void load(needle);
   }
-
-  const empleosSurface = clasificadosQueueSurfaceForSlug("empleos");
 
   return (
     <div className="max-w-6xl space-y-6 pb-12">
       <ClasificadosQueueHeader
-        title={
-          scope === "live" ? m("listingsCategoryOps.titleLive", { slug: "empleos" }) : m("listingsCategoryOps.titleQueue", { slug: "empleos" })
-        }
-        sourceTable={empleosSurface.sourceTable}
+        lang={lang}
+        categoryName="Empleos"
+        scope={scope === "live" ? "live" : "queue"}
+        sourceTable={surface.sourceTable}
         subtitle={scope === "live" ? m("listingsCategoryOps.subLive") : m("listingsCategoryOps.subQueue")}
-        publicHref={empleosSurface.publicHref}
-        publishHref={empleosSurface.publishHref}
-        rightSlot={
-          <ClasificadosScopeNav lang={adminLang} queueHref={queueHref} liveHref={liveHref} active={scope === "live" ? "live" : "queue"} />
-        }
+        publicHref={surface.publicHref}
+        publishHref={surface.publishHref}
+        queueHref={appendPreservedSearchParams(EMPLEOS_BASE, sp, null, ["lane"])}
+        liveHref={appendPreservedSearchParams(EMPLEOS_BASE, sp, "live", ["lane"])}
       />
 
-      {err ? (
-        <div className={`${adminCardBase} p-4 text-sm text-red-900`}>
-          {err === "supabase_not_configured" ? "Supabase not configured in this environment." : err}
-        </div>
-      ) : null}
+      <AdminCategorySummaryPanel summary={summary} lang={lang} technicalDetails={[["Table", surface.sourceTable]]} />
 
-      {!err && displayRows.length === 0 ? (
-        <div className={`${adminCardBase} border-amber-200/80 bg-amber-50/90 p-4 text-sm text-amber-950`} role="status">
-          <p className="font-semibold text-[#1E1810]">
-            {scope === "live" ? "No live (published) listings with current filters." : "No published listings found for this category."}
-          </p>
-          <p className="mt-2 text-xs leading-relaxed text-[#5C5346]">
-            {scope === "live" && rows.length > 0 ? (
-              <>
-                {rows.length} row(s) loaded; none are in <code className="rounded bg-white/80 px-1">published</code> status. Switch to
-                the full queue or check status in Staff.
-              </>
-            ) : (
-              <>
-                API <span className="font-mono">/api/admin/empleos/listings</span> returned no rows from{" "}
-                <span className="font-mono">empleos_public_listings</span>
-                {needle.trim() ? " for the current search term." : " (no search term)."}{" "}
-                If you expected listings, confirm migrations and data in Supabase.
-              </>
-            )}
-          </p>
-        </div>
-      ) : null}
+      <AdminCategoryFilterBar
+        lang={lang}
+        action={EMPLEOS_BASE}
+        searchParams={sp}
+        statusOptions={adminStatusOptionsForCategory("empleos")}
+        clearHref={appendPreservedSearchParams(EMPLEOS_BASE, { lang: sp.lang }, scope)}
+        extraFieldNames={["lane"]}
+        searchPlaceholder="Leonix Ad ID, UUID, slug or URL, owner, title, company, city…"
+      >
+        <label className="flex min-w-[9rem] flex-col gap-1 text-xs" data-testid="empleos-lane-filter">
+          <span className="font-semibold text-[#5C5346]">Lane</span>
+          <select name="lane" defaultValue={laneRaw} className={FIELD}>
+            <option value="">All lanes</option>
+            {EMPLEOS_LANE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </AdminCategoryFilterBar>
 
-      <div className={`${adminCardBase} p-4`}>
-        <label className="text-xs font-bold uppercase text-[#7A7164]">Search</label>
-        <p className="mt-1 max-w-3xl text-[10px] leading-snug text-[#7A7164]">
-          Leonix Ad ID (if column exists), internal UUID, slug or URL /clasificados/empleos/…, owner user ID, title or company,
-          city/state/region/postal/country, and match by profile name / email / phone.
-        </p>
-        <input className={`${adminInputClass} mt-1 max-w-md`} value={needle} onChange={(e) => setNeedle(e.target.value)} />
-      </div>
-
-      {!err && displayRows.length > 0 ? (
-      <div className={`${adminCardBase} overflow-x-auto p-0`}>
-        <div className="p-4 pb-0">
-          <ClasificadosQueueActionChrome />
-        </div>
-        <table className="min-w-full text-left text-sm">
-          <thead className="border-b border-[#E8DFD0] bg-[#FAF7F2] text-xs font-bold uppercase text-[#7A7164]">
-            <tr>
-              <th className="px-4 py-3">Title</th>
-              <th className="px-4 py-3">Leonix Ad ID</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Lane</th>
-              <th className="px-4 py-3">Owner</th>
-              <th className="px-4 py-3">Apps / health</th>
-              <th className="px-4 py-3">Metrics</th>
-              <th className="px-4 py-3">Actions</th>
-              <th className="px-4 py-3">Staff (Leonix)</th>
-              <th className="px-4 py-3">Monetization</th>
-              <th className="px-4 py-3">Links</th>
-            </tr>
-          </thead>
-          <tbody>
-            {displayRows.map((r) => {
-              const highlighted = actionProof?.target === r.id;
-              return (
-              <tr key={r.id} id={adminQueueRowAnchorId(r.id)} className={adminQueueRowClass(highlighted)}>
-                <td className="px-4 py-3">
-                  <div className="max-w-[200px] truncate font-semibold">{r.title}</div>
-                  <div className="text-xs text-[#7A7164]">{r.company_name}</div>
-                  {r.location_line ? <div className="mt-0.5 text-xs text-[#5C5346]">{r.location_line}</div> : null}
-                  <code className="text-[11px] text-[#9A9084]">{r.slug}</code>
-                  {r.moderation_reason ? (
-                    <div className="mt-1 max-w-[220px] text-[11px] text-amber-900">Moderation: {r.moderation_reason}</div>
-                  ) : null}
-                </td>
-                <td className="px-4 py-3 font-mono text-[10px] text-[#3D3428]">{r.leonix_ad_id ?? "—"}</td>
-                <td className="px-4 py-3 capitalize">{r.lifecycle_status}</td>
-                <td className="px-4 py-3">
-                  <span className="font-semibold">{laneDisplay(r.lane)}</span>
-                  <div className="text-[10px] text-[#7A7164]">{r.lane}</div>
-                </td>
-                <td className="px-4 py-3">
-                  <code className="break-all text-[10px] text-[#6B645C]">{r.owner_user_id ?? "—"}</code>
-                  {r.owner_user_id ? (
-                    <>
-                      <br />
-                      <Link href={`/admin/usuarios/${encodeURIComponent(r.owner_user_id)}`} className="text-[10px] font-semibold text-[#6B5B2E] underline">
-                        Admin profile
-                      </Link>
-                    </>
-                  ) : null}
-                </td>
-                <td className="px-4 py-3 text-[11px] leading-snug text-[#4A4744]">
-                  <div>Total: {r.application_health?.total ?? 0}</div>
-                  <div className="text-[#7A7164]">
-                    New {r.application_health?.submitted ?? 0} · Viewed {r.application_health?.viewed ?? 0} · Short{" "}
-                    {r.application_health?.shortlisted ?? 0} · Rej {r.application_health?.rejected ?? 0}
-                    {typeof r.application_health?.hired === "number" && r.application_health.hired > 0 ? (
-                      <> · Hired {r.application_health.hired}</>
-                    ) : null}
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-[11px]">
-                  <div>Applications (col): {r.apply_count ?? 0}</div>
-                  <div>Views: {r.view_count ?? 0}</div>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex max-w-[240px] flex-wrap gap-1">
-                    <button type="button" className="rounded border px-2 py-1 text-[11px] font-bold" onClick={() => void moderate(r.id, "published")}>
-                      Pub
-                    </button>
-                    <button type="button" className="rounded border px-2 py-1 text-[11px] font-bold" onClick={() => void moderate(r.id, "pending_review")}>
-                      Review
-                    </button>
-                    <button type="button" className="rounded border px-2 py-1 text-[11px] font-bold" onClick={() => void moderate(r.id, "paused")}>
-                      Pause
-                    </button>
-                    <button type="button" className="rounded border px-2 py-1 text-[11px] font-bold" onClick={() => void moderate(r.id, "archived")}>
-                      Arch
-                    </button>
-                    <button type="button" className="rounded border px-2 py-1 text-[11px] font-bold" onClick={() => void moderate(r.id, "rejected")}>
-                      Reject
-                    </button>
-                  </div>
-                </td>
-                <td className="px-4 py-3 align-top">
-                  <ClassifiedAdminRowActions
-                    variant="empleos"
-                    rowId={r.id}
-                    leonixAdId={r.leonix_ad_id}
-                    displayLabel={r.title}
-                    publicLive={r.lifecycle_status === "published"}
-                    promoted={Boolean(r.admin_promoted)}
-                    verified={Boolean(r.leonix_verified)}
-                    canArchive={r.lifecycle_status !== "archived"}
-                    staffEditBoardHref={`/admin/workspace/clasificados/empleos?q=${encodeURIComponent(r.leonix_ad_id ?? r.id)}`}
-                    republishCategory="empleos"
-                    republishRow={{
-                      lifecycle_status: r.lifecycle_status,
-                      republish_override: (r as { republish_override?: boolean | null }).republish_override,
-                    }}
-                  />
-                </td>
-                <td className="px-4 py-3 align-top">
-                  <AdminListingMonetizationSummary
-                    category="empleos"
-                    source="empleos_public_listings"
-                    listing={r as unknown as Record<string, unknown>}
-                    hints={{ analyticsCapability: "partial" }}
-                  />
-                </td>
-                <td className="px-4 py-3 text-xs font-semibold">
-                  <Link
-                    href={appendLangToPath(`/clasificados/empleos/${r.slug}`, lang)}
-                    className="text-[#6B5B2E] underline"
-                    title="Public job view"
-                  >
-                    View public
-                  </Link>
-                  <br />
-                  <Link
-                    href={`/dashboard/empleos/${r.id}?lang=${lang}`}
-                    className="text-[#6B5B2E] underline"
-                    title="Advertiser panel: API validates owner; staff session does not edit on their behalf"
-                  >
-                    Advertiser panel (their session)
-                  </Link>
-                </td>
-              </tr>
-            );
-            })}
-          </tbody>
-        </table>
-      </div>
-      ) : null}
+      <Suspense fallback={<div className="min-h-[8rem]" aria-busy="true" />}>
+        <EmpleosAdminListClient />
+      </Suspense>
     </div>
-  );
-}
-
-export default function AdminEmpleosListingsPage() {
-  return (
-    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
-      <AdminEmpleosListingsPageContent />
-    </Suspense>
   );
 }

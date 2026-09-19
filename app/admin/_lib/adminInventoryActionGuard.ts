@@ -127,4 +127,122 @@ export function assertBrNegocioActionAllowed(row: BrPropertyInventoryRowLike, ac
   return { ok: false, code: "ambiguous_or_unknown_role" };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+// Closeout 2 — Admin soft / permanent DELETE safety.
+//
+// `deleteListingAction` (soft) and `permanentlyDeleteListingsAction` (hard) previously acted on any
+// UUID with no inventory-role, parent/child or payment check. Deleting a Bienes Raices Negocio PARENT
+// while its child properties were still public orphaned them; hard-deleting a paid / subscribed /
+// public-live row destroyed commercial state. These pure predicates answer only "may this row be
+// deleted right now" from server-fetched rows — the caller supplies the linked rows / payment evidence.
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+
+export type AdminDeleteMode = "soft" | "permanent";
+
+export type AdminDeleteRowLike = BrPropertyInventoryRowLike;
+
+export type AdminDeleteLinkedRow = {
+  id: string;
+  status?: string | null;
+  is_published?: boolean | null;
+  inventory_role?: string | null;
+};
+
+/** Server-resolved commercial state of the row (never client supplied). */
+export type AdminDeletePaymentEvidence = {
+  /** A verified paid one-time payment record exists for this listing. */
+  hasPaidRecord?: boolean;
+  /** A recurring subscription (Stripe) that has not been canceled is attached to this listing. */
+  hasActiveSubscription?: boolean;
+  /** An admin/Revenue OS package entitlement that is active or scheduled and not yet expired. */
+  hasLiveEntitlement?: boolean;
+};
+
+export type AdminDeleteGuardCode =
+  | "forbidden_role_for_action"
+  | "ambiguous_or_unknown_role"
+  | "has_public_children"
+  | "child_role_unconfirmed"
+  | "public_live_requires_removal"
+  | "active_subscription"
+  | "live_entitlement"
+  | "paid_record_requires_removal";
+
+export type AdminDeleteGuardResult = { ok: true } | { ok: false; code: AdminDeleteGuardCode };
+
+function lcTrim(v: unknown): string {
+  return String(v ?? "").trim().toLowerCase();
+}
+
+/** Conservative "publicly visible" read: removed/archived is never live; unknown fails toward live. */
+export function adminDeleteRowLooksPublicLive(row: { status?: string | null; is_published?: boolean | null }): boolean {
+  const st = lcTrim(row.status);
+  if (st === "removed" || st === "archived") return false;
+  if (st === "active") return row.is_published !== false;
+  return row.is_published === true;
+}
+
+export function isAdminDeleteRowRemoved(row: { status?: string | null }): boolean {
+  return lcTrim(row.status) === "removed";
+}
+
+/**
+ * Deleting is a parent-level structural action (same doctrine as `archive`): a Bienes Raices Negocio
+ * PARENT with any active/public linked child — or a linked live row whose role cannot be confirmed as
+ * `inventory_property` — can never be deleted; a confirmed child or an unresolved-role Negocio row is
+ * refused (fails closed). FSBO / non-Bienes rows have no inventory concept and are unaffected here.
+ * `permanent` adds the payment / public-live rules.
+ */
+export function assertAdminListingDeleteAllowed(input: {
+  row: AdminDeleteRowLike;
+  /** Rows linked to this one by `br_inventory_parent_listing_id` / `br_inventory_group_id` (excluding itself). */
+  linkedRows?: readonly AdminDeleteLinkedRow[];
+  evidence?: AdminDeletePaymentEvidence;
+  mode: AdminDeleteMode;
+}): AdminDeleteGuardResult {
+  const { row, mode } = input;
+  const linked = (input.linkedRows ?? []).filter((r) => r.id !== row.id);
+  const evidence = input.evidence ?? {};
+
+  if (lcTrim(row.category) === "bienes-raices" && isBrNegocioListing(row)) {
+    const role = assertBrNegocioActionAllowed(row, "archive");
+    if (!role.ok) return { ok: false, code: role.code };
+    for (const child of linked) {
+      if (!adminDeleteRowLooksPublicLive(child)) continue;
+      if (child.inventory_role !== "inventory_property") return { ok: false, code: "child_role_unconfirmed" };
+      return { ok: false, code: "has_public_children" };
+    }
+  }
+
+  if (mode === "permanent") {
+    if (adminDeleteRowLooksPublicLive(row)) return { ok: false, code: "public_live_requires_removal" };
+    // Commercial state blocks a permanent delete until staff has explicitly REMOVED the row (soft delete).
+    if (!isAdminDeleteRowRemoved(row)) {
+      if (evidence.hasActiveSubscription) return { ok: false, code: "active_subscription" };
+      if (evidence.hasLiveEntitlement) return { ok: false, code: "live_entitlement" };
+      if (evidence.hasPaidRecord) return { ok: false, code: "paid_record_requires_removal" };
+    }
+  }
+  return { ok: true };
+}
+
+export function adminDeleteGuardMessage(code: AdminDeleteGuardCode): string {
+  switch (code) {
+    case "has_public_children":
+      return "This parent still has public child listings. Remove or pause the children first.";
+    case "child_role_unconfirmed":
+      return "A linked listing's inventory role cannot be confirmed. Resolve the group before deleting.";
+    case "public_live_requires_removal":
+      return "This listing is public. Remove it (soft delete) before permanently deleting it.";
+    case "active_subscription":
+      return "An active subscription is attached to this listing. Cancel it before permanently deleting.";
+    case "live_entitlement":
+      return "A live package entitlement is attached to this listing. Revoke it before permanently deleting.";
+    case "paid_record_requires_removal":
+      return "This listing has a verified payment. Remove it (soft delete) before permanently deleting.";
+    default:
+      return adminInventoryActionForbiddenMessage();
+  }
+}
+
 export { getDealerInventoryGroupId, getDealerInventoryParentListingId, getBrInventoryGroupId, getBrInventoryParentListingId };

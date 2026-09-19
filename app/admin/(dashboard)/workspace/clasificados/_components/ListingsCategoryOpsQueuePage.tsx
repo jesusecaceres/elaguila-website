@@ -1,7 +1,5 @@
-import Link from "next/link";
-
 import { ADMIN_QUEUE_DEFAULT_LIMIT, normalizeAdminQueueLimit } from "@/app/admin/_lib/adminQueueActionFlow";
-import { adminBtnSecondary, adminCardBase } from "@/app/admin/_components/adminTheme";
+import { adminCardBase } from "@/app/admin/_components/adminTheme";
 import {
   fetchListingsForAdminWorkspaceFiltered,
   isUuidString,
@@ -14,12 +12,30 @@ import {
   appendPreservedSearchParams,
   parseAdminScope,
 } from "@/app/admin/(dashboard)/workspace/clasificados/_lib/clasificadosAdminScopeUrls";
+import {
+  adminCategoryDisplayName,
+  adminRowMatchesLeonixAdIdFilter,
+  adminStatusOptionsForCategory,
+} from "@/app/admin/(dashboard)/workspace/clasificados/_lib/adminNormalizedShell";
+import {
+  fetchAdminCategorySummary,
+  type AdminCategorySummary,
+} from "@/app/admin/_lib/adminCategorySummary";
+import {
+  loadAdminListingCommercialTruth,
+  type AdminListingCommercialTruthMap,
+} from "@/app/admin/_lib/adminListingCommercialTruth";
+import {
+  fetchListingFlagContextMaps,
+  type ListingFlagContextMaps,
+} from "@/app/admin/_lib/adminReviewFlagContext";
 
 import AdminListingsTable, { type AdminListingsTableRow } from "../AdminListingsTable";
 import { ClasificadosQueueHeader } from "./ClasificadosQueueHeader";
-import { ClasificadosScopeNav } from "./ClasificadosScopeNav";
 import { ClasificadosLiveScopePanel } from "./ClasificadosLiveScopePanel";
 import { BienesNegocioOpsPanel } from "./BienesNegocioOpsPanel";
+import { AdminCategorySummaryPanel } from "./normalized/AdminCategorySummaryPanel";
+import { AdminCategoryFilterBar } from "./normalized/AdminCategoryFilterBar";
 import {
   loadBienesCapacityAuthorityState,
   loadBienesNegocioParentOps,
@@ -39,6 +55,20 @@ type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
+/** A summary that says "nothing could be read" — every count null (rendered "—"), never 0. */
+function unavailableSummary(slug: string, source: string, error: string | null): AdminCategorySummary {
+  return {
+    slug,
+    total: null,
+    live: null,
+    needsAttention: null,
+    paymentIssue: null,
+    expired: null,
+    sourceHealth: { ok: false, source, note: error ?? "summary unavailable" },
+    queryError: error,
+  };
+}
+
 export async function ListingsCategoryOpsQueuePage({ categorySlug, searchParams }: PageProps) {
   const lang = await getAdminLang();
   const m = adminMessages(lang);
@@ -47,6 +77,7 @@ export async function ListingsCategoryOpsQueuePage({ categorySlug, searchParams 
   const qInput = firstParam(sp.q) ?? "";
   const statusFilter = (firstParam(sp.status) ?? "").trim().toLowerCase();
   const ownerFrag = (firstParam(sp.owner) ?? "").trim().toLowerCase();
+  const leonixAdIdFilter = (firstParam(sp.leonix_ad_id) ?? "").trim();
   const queueLimit = normalizeAdminQueueLimit(firstParam(sp.limit), ADMIN_QUEUE_DEFAULT_LIMIT);
   const scope = parseAdminScope(sp);
 
@@ -58,7 +89,9 @@ export async function ListingsCategoryOpsQueuePage({ categorySlug, searchParams 
   const supabase = getAdminSupabase();
   const fetchRes = configured
     ? await fetchListingsForAdminWorkspaceFiltered(supabase, {
-        q: qInput || undefined,
+        // A Leonix Ad ID typed into its own field is searched through the same canonical `q` path
+        // (it already resolves exact stored `leonix_ad_id`s), then narrowed exactly below.
+        q: qInput || leonixAdIdFilter || undefined,
         category: categorySlug,
         status: statusFilter || undefined,
         ownerFrag: ownerFrag && isUuidString(ownerFrag) ? ownerFrag : undefined,
@@ -71,13 +104,45 @@ export async function ListingsCategoryOpsQueuePage({ categorySlug, searchParams 
   if (ownerFrag && !isUuidString(ownerFrag)) {
     rows = rows.filter((r) => (r.owner_id ?? "").toLowerCase().includes(ownerFrag));
   }
+  if (leonixAdIdFilter) {
+    rows = rows.filter((r) => adminRowMatchesLeonixAdIdFilter(r, leonixAdIdFilter));
+  }
 
-  const pageTitle =
-    scope === "live"
-      ? m("listingsCategoryOps.titleLive", { slug: categorySlug })
-      : m("listingsCategoryOps.titleQueue", { slug: categorySlug });
+  const categoryName = adminCategoryDisplayName(categorySlug);
   const pageSubtitle =
     scope === "live" ? m("listingsCategoryOps.subLive") : m("listingsCategoryOps.subQueue");
+
+  // Shared operating summary (canonical counts owned by adminCategorySummary — this page never
+  // recomputes them from the truncated page rows).
+  let summary: AdminCategorySummary = unavailableSummary(categorySlug, surface.sourceTable, "Supabase admin is not configured.");
+  if (configured) {
+    try {
+      summary = await fetchAdminCategorySummary(categorySlug);
+    } catch (e) {
+      summary = unavailableSummary(categorySlug, surface.sourceTable, e instanceof Error ? e.message : "summary query failed");
+    }
+  }
+
+  // Report / AI-review / owner-email context — the same maps the global Clasificados page passes.
+  let flagContext: ListingFlagContextMaps = { reportsByListingId: {}, ownerEmailByUserId: {}, aiReviewByListingId: {} };
+  // Commercial truth (READ-ONLY): payment / entitlement / subscription records for THESE rows only.
+  let commercialTruthByListingId: AdminListingCommercialTruthMap = {};
+  if (configured && rows.length > 0) {
+    try {
+      flagContext = await fetchListingFlagContextMaps(
+        supabase,
+        rows.map((r) => r.id),
+        rows.map((r) => r.owner_id ?? "").filter(Boolean),
+      );
+    } catch {
+      /* context is optional chrome — the table degrades to status-only truth */
+    }
+    commercialTruthByListingId = await loadAdminListingCommercialTruth({
+      category: categorySlug,
+      listingIds: rows.map((r) => r.id),
+      listingRowsById: Object.fromEntries(rows.map((r) => [r.id, r as unknown as Record<string, unknown>])),
+    });
+  }
 
   // Gate BIENES-NEGOCIO-2 — Bienes Negocio is a $399 parent + child-inventory product, so the
   // Admin ops queue must show capacity, entitlement and payment truth, not just rows. Built only
@@ -98,14 +163,18 @@ export async function ListingsCategoryOpsQueuePage({ categorySlug, searchParams 
   return (
     <div className="min-w-0 max-w-[1200px] space-y-6 overflow-x-hidden">
       <ClasificadosQueueHeader
-        title={pageTitle}
+        lang={lang}
+        categoryName={categoryName}
+        scope={scope === "live" ? "live" : "queue"}
         sourceTable={surface.sourceTable}
         subtitle={pageSubtitle}
         publicHref={surface.publicHref}
         publishHref={surface.publishHref}
-        scopeLabel={scope === "live" ? m("listingsCategoryOps.scopeLive") : m("listingsCategoryOps.scopeQueue")}
-        rightSlot={<ClasificadosScopeNav lang={lang} queueHref={queueHref} liveHref={liveHref} active={scope === "live" ? "live" : "queue"} />}
+        queueHref={queueHref}
+        liveHref={liveHref}
       />
+
+      <AdminCategorySummaryPanel summary={summary} lang={lang} technicalDetails={[["Table", surface.sourceTable]]} />
 
       <BienesNegocioOpsPanel parents={bienesParentOps} />
 
@@ -122,50 +191,13 @@ export async function ListingsCategoryOpsQueuePage({ categorySlug, searchParams 
       ) : null}
 
       {configured ? (
-        <div className={`${adminCardBase} mb-4 space-y-3 p-4 text-sm text-[#5C5346]`}>
-          <p className="font-bold text-[#1E1810]">{m("listingsCategoryOps.searchTitle")}</p>
-          <form
-            className="flex flex-col flex-wrap gap-2 sm:flex-row sm:items-end"
-            method="get"
-            action={basePath}
-          >
-            {scope === "live" ? <input type="hidden" name="scope" value="live" /> : null}
-            <label className="flex min-w-[10rem] flex-1 flex-col gap-1 text-xs">
-              <span className="font-semibold text-[#5C5346]">q</span>
-              <input
-                name="q"
-                defaultValue={qInput}
-                className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 font-mono text-xs text-[#1E1810]"
-                placeholder="Leonix ID, UUID, slug, título…"
-                autoComplete="off"
-              />
-            </label>
-            <label className="flex min-w-[8rem] flex-col gap-1 text-xs">
-              <span className="font-semibold text-[#5C5346]">status</span>
-              <input
-                name="status"
-                defaultValue={statusFilter}
-                className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 font-mono text-xs"
-                autoComplete="off"
-              />
-            </label>
-            <label className="flex min-w-[8rem] flex-col gap-1 text-xs">
-              <span className="font-semibold text-[#5C5346]">owner (UUID)</span>
-              <input
-                name="owner"
-                defaultValue={ownerFrag}
-                className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 font-mono text-xs"
-                autoComplete="off"
-              />
-            </label>
-            <button type="submit" className="rounded-xl bg-[#2A2620] px-4 py-2 text-xs font-bold text-[#FAF7F2]">
-              {m("common.apply")}
-            </button>
-            <Link href={queueHref} className={`${adminBtnSecondary} inline-flex items-center text-xs`}>
-              {m("common.clear")}
-            </Link>
-          </form>
-        </div>
+        <AdminCategoryFilterBar
+          lang={lang}
+          action={basePath}
+          searchParams={sp}
+          statusOptions={adminStatusOptionsForCategory(categorySlug)}
+          clearHref={appendPreservedSearchParams(basePath, {}, scope === "live" ? "live" : null)}
+        />
       ) : null}
 
       {!configured ? (
@@ -181,6 +213,10 @@ export async function ListingsCategoryOpsQueuePage({ categorySlug, searchParams 
           republishColsAvailable={fetchRes.republishColsAvailable}
           listingsCategorySlug={categorySlug}
           staffQueueMode
+          flagReportByListingId={flagContext.reportsByListingId}
+          ownerEmailByUserId={flagContext.ownerEmailByUserId}
+          aiReviewByListingId={flagContext.aiReviewByListingId}
+          commercialTruthByListingId={commercialTruthByListingId}
         />
       )}
     </div>

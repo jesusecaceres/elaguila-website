@@ -1,10 +1,8 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import {
-  ADMIN_QUEUE_DEFAULT_LIMIT,
   adminQueueRowAnchorId,
   adminQueueRowClass,
-  normalizeAdminQueueLimit,
   parseAdminActionResultFromRecord,
 } from "@/app/admin/_lib/adminQueueActionFlow";
 import { ClasificadosQueueActionChrome } from "../_components/ClasificadosQueueActionChrome";
@@ -24,20 +22,33 @@ import {
 import { listPendingServiciosReviews } from "@/app/clasificados/servicios/lib/serviciosOpsTablesServer";
 import { setServiciosReviewModerationStatusAction } from "./actions";
 import { serviciosRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCapability";
-import { ClasificadosScopeNav } from "../_components/ClasificadosScopeNav";
+import { ClasificadosQueueHeader } from "../_components/ClasificadosQueueHeader";
+import { AdminCategorySummaryPanel } from "../_components/normalized/AdminCategorySummaryPanel";
+import { AdminCategoryFilterBar } from "../_components/normalized/AdminCategoryFilterBar";
 import { clasificadosQueueSurfaceForSlug } from "../_lib/clasificadosQueueSurfaceMeta";
 import {
   appendPreservedSearchParams,
   parseAdminScope,
 } from "../_lib/clasificadosAdminScopeUrls";
+import { adminRowMatchesOwnerFilter, adminStatusOptionsForCategory } from "../_lib/adminNormalizedShell";
 import { getAdminLang } from "@/app/admin/_lib/adminI18n";
 import { adminMessages } from "@/app/admin/_lib/adminStrings";
+import { fetchAdminCategorySummary, type AdminCategorySummary } from "@/app/admin/_lib/adminCategorySummary";
+import {
+  adminLaneListingTruth,
+  adminScanWindowNote,
+  adminUnavailableCategorySummary,
+  planAdminQueueScan,
+  readAdminQueueFilters,
+  withOwnerAlias,
+} from "@/app/admin/_lib/adminCategoryShellAdoption";
+import { loadAdminLaneSuspendedReasons } from "@/app/admin/_lib/adminLaneSuspendedReason";
+import type { PublicationTruth } from "@/app/admin/_lib/publicationSemantics";
 import {
   serviciosLikeCountAliasKeys,
   serviciosNetLikeCountForPublicRow,
 } from "@/app/clasificados/servicios/lib/serviciosPublicListingSort";
 import type { ServiciosPublicAdminRow } from "./_lib/serviciosAdminOpsTypes";
-import { ServiciosAdminFilterPanel, ServiciosAdminQuickActions } from "./_components/ServiciosAdminOpsChrome";
 import { ServiciosAdminOpsListingCard } from "./_components/ServiciosAdminOpsListingCard";
 import { loadServiciosCommercialOps } from "@/app/admin/_lib/serviciosCommercialOps";
 import { fetchServiciosAdminCanonicalAnalyticsByRows } from "./_lib/serviciosAdminCanonicalAnalytics";
@@ -109,6 +120,13 @@ function firstParam(v: string | string[] | undefined): string | undefined {
   return undefined;
 }
 
+/** Ceiling of `listServiciosPublicListingsAdminQueueFromDb` (its own `Math.min(limit, 800)`). */
+const SERVICIOS_ADMIN_SCAN_CAP = 800;
+
+const SERVICIOS_EXTRA_FILTER_FIELDS = ["slug", "id", "owner_user_id"] as const;
+const SERVICIOS_EXTRA_FIELD_CLASS =
+  "rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs text-[#1E1810] min-h-[40px] font-mono";
+
 function filterDevServiciosRows(rows: ServiciosPublicAdminRow[], q: string | undefined): ServiciosPublicAdminRow[] {
   const n = (q ?? "").trim().toLowerCase();
   if (!n) return rows;
@@ -136,23 +154,36 @@ export default async function AdminServiciosWorkspacePage(props: {
   const msg = adminMessages(lang);
   const sp = props.searchParams ? await props.searchParams : {};
   const actionProof = parseAdminActionResultFromRecord(sp);
-  const queueLimit = normalizeAdminQueueLimit(firstParam(sp.limit), ADMIN_QUEUE_DEFAULT_LIMIT);
+  const filters = readAdminQueueFilters(sp);
+  const queueLimit = filters.limit;
   const scope = parseAdminScope(sp);
   const serviciosBase = "/admin/workspace/clasificados/servicios";
   const queueHref = appendPreservedSearchParams(serviciosBase, sp, null);
   const liveHref = appendPreservedSearchParams(serviciosBase, sp, "live");
+  // Filters BEFORE the limit. status / Leonix Ad ID / slug / id / a full owner UUID / q are all applied
+  // in SQL by the data function (it applies `.limit()` last). Only a PARTIAL owner fragment (not a
+  // UUID) cannot be expressed in SQL — then the window is widened to the function's ceiling, narrowed
+  // in memory, and the requested limit is applied last.
+  const ownerNeedsMemory = Boolean(filters.owner && !filters.ownerIsUuid);
+  const scan = planAdminQueueScan({ limit: queueLimit, memoryFiltered: ownerNeedsMemory, cap: SERVICIOS_ADMIN_SCAN_CAP });
   const queueFilters = {
-    limit: queueLimit,
+    limit: scan.fetchLimit,
     ...(scope === "live" ? { scope: "live" as const } : {}),
-    q: firstParam(sp.q),
+    q: filters.q || undefined,
     slug: firstParam(sp.slug),
     id: firstParam(sp.id),
-    leonix_ad_id: firstParam(sp.leonix_ad_id),
-    owner_user_id: firstParam(sp.owner_user_id),
+    leonix_ad_id: filters.leonixAdId || undefined,
+    owner_user_id: filters.owner && filters.ownerIsUuid ? filters.owner : undefined,
+    status: filters.status || undefined,
   };
   const queueRes = await listServiciosPublicListingsAdminQueueFromDb(queueFilters);
   const { unavailable, fullSchema, readError } = queueRes;
-  const rows: ServiciosPublicAdminRow[] = queueRes.rows.map((r) => ({
+  const fetchedRowCount = queueRes.rows.length;
+  const queueRowsNarrowed = ownerNeedsMemory
+    ? queueRes.rows.filter((r) => adminRowMatchesOwnerFilter({ owner_user_id: r.owner_user_id }, filters.owner)).slice(0, queueLimit)
+    : queueRes.rows;
+  const windowNote = adminScanWindowNote(lang, { widened: scan.widened, fetched: fetchedRowCount, fetchLimit: scan.fetchLimit });
+  const rows: ServiciosPublicAdminRow[] = queueRowsNarrowed.map((r) => ({
     id: r.id,
     slug: r.slug,
     leonix_ad_id: r.leonix_ad_id ?? null,
@@ -211,31 +242,51 @@ export default async function AdminServiciosWorkspacePage(props: {
   const pendingReviews = await listPendingServiciosReviews(80);
   const recentLeads = await fetchServiciosLeadsForAdmin();
   const surface = clasificadosQueueSurfaceForSlug("servicios");
-  const pageTitle =
-    scope === "live"
-      ? msg("listingsCategoryOps.titleLive", { slug: "servicios" })
-      : "Servicios — operational queue";
+
+  // Shared operating summary (canonical counts owned by adminCategorySummary — never recomputed
+  // from the truncated page rows). A count that cannot be read renders "—", never 0.
+  let summary: AdminCategorySummary;
+  try {
+    summary = await fetchAdminCategorySummary("servicios");
+  } catch (e) {
+    summary = adminUnavailableCategorySummary("servicios", surface.sourceTable, e instanceof Error ? e.message : "summary query failed");
+  }
+
+  // Shared LISTING TRUTH per row (publicationSemantics). The list select does not carry
+  // `suspended_reason`, so it is read (read-only, bounded) for the SUSPENDED rows on this page only.
+  const suspendedReasons = unavailable
+    ? { loaded: false, byId: {} as Record<string, string | null> }
+    : await loadAdminLaneSuspendedReasons(
+        "servicios_public_listings",
+        rows.filter((r) => (r.listing_status ?? "").toLowerCase() === "suspended").map((r) => r.id),
+      );
+  const listingTruthByRowId = new Map<string, PublicationTruth>();
+  for (const r of rows) {
+    const rowRec: Record<string, unknown> = { ...(r as unknown as Record<string, unknown>) };
+    if (suspendedReasons.loaded && Object.prototype.hasOwnProperty.call(suspendedReasons.byId, r.id)) {
+      rowRec.suspended_reason = suspendedReasons.byId[r.id];
+    }
+    listingTruthByRowId.set(r.id, adminLaneListingTruth("servicios_public_listings", rowRec));
+  }
 
   return (
     <div className="min-w-0 max-w-5xl space-y-6 overflow-x-hidden" data-testid="servicios-admin-ops-page">
-      <header className="space-y-3 border-b border-[#E8DFD0] pb-5" data-testid="servicios-admin-command-header">
-        <Link
-          href="/admin/workspace/clasificados"
-          className="inline-flex min-h-[40px] items-center rounded-lg border border-[#E8DFD0] bg-[#FAF7F2] px-3 py-2 text-xs font-semibold text-[#3D3428] hover:bg-[#FFFCF7]"
-        >
-          ← Clasificados hub
-        </Link>
-        <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">Servicios ops</p>
-        <h1 className="text-2xl font-bold text-[#1E1810]">{pageTitle}</h1>
-        <p className="font-mono text-xs text-[#7A7164]">
-          Source: <span className="text-[#3D3428]">public.servicios_public_listings</span>
-        </p>
-        <p className="max-w-3xl text-sm leading-relaxed text-[#5C5346]">
-          Manage published, suspended, featured, verified, and monetized Servicios listings. This is the Supabase-backed
-          Servicios directory queue — empty or missing data is shown truthfully.
-        </p>
-        <ClasificadosScopeNav lang={lang} queueHref={queueHref} liveHref={liveHref} active={scope === "live" ? "live" : "queue"} />
-      </header>
+      {/* Shared category header (scope-aware title, Queue/Live switch, Public/Publish, technical source under Advanced). */}
+      <div data-testid="servicios-admin-command-header">
+        <ClasificadosQueueHeader
+          lang={lang}
+          categoryName="Servicios"
+          scope={scope === "live" ? "live" : "queue"}
+          sourceTable={surface.sourceTable}
+          subtitle={scope === "live" ? msg("listingsCategoryOps.subLive") : msg("listingsCategoryOps.subQueue")}
+          publicHref={surface.publicHref}
+          publishHref={surface.publishHref}
+          queueHref={queueHref}
+          liveHref={liveHref}
+        />
+      </div>
+
+      <AdminCategorySummaryPanel summary={summary} lang={lang} technicalDetails={[["Table", surface.sourceTable]]} />
 
       <AdminPagePurposeCard
         title="Servicios admin ops"
@@ -247,21 +298,11 @@ export default async function AdminServiciosWorkspacePage(props: {
         warningNote="Promote/Verify actions require the live schema drift migration. Analytics remain partial when engagement tables are unavailable."
       />
 
-      <section className={`${adminCardBase} border-[#C9B46A]/35 p-4 sm:p-5`} data-testid="servicios-admin-quick-actions">
-        <p className="mb-3 text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">Quick actions</p>
-        <ServiciosAdminQuickActions
-          queueHref={queueHref}
-          liveHref={liveHref}
-          publicHref={surface.publicHref}
-          publishHref={surface.publishHref}
-        />
-      </section>
-
-      <section
+      <details
         className={`${adminCardBase} border-[#E8DFD0]/80 bg-[#FAF7F2]/90 p-4 sm:p-5`}
         data-testid="servicios-admin-supabase-truth"
       >
-        <p className="text-sm font-bold text-[#1E1810]">Supabase truth</p>
+        <summary className="cursor-pointer select-none text-sm font-bold text-[#1E1810]">Supabase truth (advanced)</summary>
         <dl className="mt-3 grid gap-2 text-sm text-[#5C5346] sm:grid-cols-2">
           <div>
             <dt className="text-[11px] font-bold uppercase text-[#7A7164]">Source table</dt>
@@ -290,16 +331,35 @@ export default async function AdminServiciosWorkspacePage(props: {
           Columns used: {SERVICIOS_ADMIN_COLUMNS.join(", ")}. Engagement uses user_liked_listings / saved_listings when
           readable.
         </p>
-      </section>
+      </details>
 
       {!unavailable ? (
-        <ServiciosAdminFilterPanel
-          serviciosBase={serviciosBase}
-          queueHref={queueHref}
-          scopeLive={scope === "live"}
-          filters={queueFilters}
-          searchHint="Leonix Ad ID, UUID, slug, public URL /clasificados/servicios/…, business name, owner profile match."
-        />
+        <div data-testid="servicios-admin-filter-panel">
+          <AdminCategoryFilterBar
+            lang={lang}
+            action={serviciosBase}
+            searchParams={withOwnerAlias(sp)}
+            statusOptions={adminStatusOptionsForCategory("servicios")}
+            clearHref={appendPreservedSearchParams(serviciosBase, {}, scope === "live" ? "live" : null)}
+            extraFieldNames={SERVICIOS_EXTRA_FILTER_FIELDS}
+            searchPlaceholder="Leonix Ad ID, UUID, slug, /clasificados/servicios/… URL, business, owner profile"
+          >
+            {/* Servicios exact-match fields kept from the previous filter panel (slug / id). */}
+            <label className="flex min-w-[9rem] flex-col gap-1 text-xs">
+              <span className="font-semibold text-[#5C5346]">slug</span>
+              <input name="slug" defaultValue={firstParam(sp.slug) ?? ""} className={SERVICIOS_EXTRA_FIELD_CLASS} autoComplete="off" />
+            </label>
+            <label className="flex min-w-[9rem] flex-col gap-1 text-xs">
+              <span className="font-semibold text-[#5C5346]">id (UUID)</span>
+              <input name="id" defaultValue={firstParam(sp.id) ?? ""} className={SERVICIOS_EXTRA_FIELD_CLASS} autoComplete="off" />
+            </label>
+          </AdminCategoryFilterBar>
+          {windowNote ? (
+            <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950" role="status" data-testid="servicios-admin-scan-window-note">
+              {windowNote}
+            </p>
+          ) : null}
+        </div>
       ) : null}
 
       {!unavailable ? (
@@ -337,6 +397,8 @@ export default async function AdminServiciosWorkspacePage(props: {
                   }
                   canonicalLeads={canonical?.leads ?? 0}
                   commercial={commercialOps.get(r.id)}
+                  listingTruth={listingTruthByRowId.get(r.id) ?? null}
+                  lang={lang}
                   highlighted={highlighted}
                 />
               );

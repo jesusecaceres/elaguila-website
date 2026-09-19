@@ -36,7 +36,8 @@ for (const rel of [preview, paidCheckout, pendingSave, checkpoint, fulfillment, 
 
 const previewSrc = read(preview);
 const paidSrc = read(paidCheckout);
-const pendingSrc = read(pendingSave);
+// Closeout 2: the pending save delegates to the shared canonical-row helper (same API, same-row PATCH first).
+const pendingSrc = read(pendingSave) + " " + read("app/lib/clasificados/autos/autosCanonicalListingIdentity.ts");
 const checkpointSrc = read(checkpoint);
 const fulfillmentSrc = read(fulfillment);
 const autosFulfillmentSrc = read(autosFulfillment);

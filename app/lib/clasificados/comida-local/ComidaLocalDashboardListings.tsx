@@ -12,6 +12,13 @@ import {
 import { getOwnerEntityCapabilities, isLiveCapability } from "@/app/(site)/dashboard/lib/ownerEntityCapabilityRegistry";
 import { resolveListingUiStatus, listingUiStatusLabel, listingUiStatusChipClass } from "@/app/(site)/dashboard/lib/listingDisplayStatus";
 import { OwnerEntityWorkspace } from "@/app/(site)/dashboard/components/OwnerEntityWorkspace";
+import { getStatusChipClass, getStatusLabel } from "@/app/lib/clasificados/listingLifecycleDomain";
+import {
+  comidaLocalResumePaymentHref,
+  comidaLocalResumePaymentLabel,
+  comidaLocalRowHasPublicPage,
+  isComidaLocalAwaitingPayment,
+} from "./comidaLocalPaymentResume";
 import type { ActionItem } from "@/app/(site)/dashboard/components/DashboardListingActionBar";
 
 type Lang = "es" | "en";
@@ -113,6 +120,9 @@ export function ComidaLocalDashboardListings({ lang, items, showEmpty = false, o
     <div className="mt-8 flex flex-col gap-4">
       {items.map((item) => {
         const uiStatus = resolveListingUiStatus({ status: item.status });
+        // Closeout 2 - `pending_payment` is collapsed to a generic "draft" by resolveListingUiStatus; here it is
+        // shown truthfully as awaiting payment, with a Complete-payment doorway and NO public CTA.
+        const awaitingPayment = isComidaLocalAwaitingPayment(item.status);
         const busy = busyId === item.id;
         const editHref = `/publicar/comida-local?edit=1&listingId=${encodeURIComponent(item.id)}&source=dashboard&${q}`;
         const detailItems = [
@@ -124,7 +134,15 @@ export function ComidaLocalDashboardListings({ lang, items, showEmpty = false, o
         ].filter((x): x is { label: string; value: string } => x !== null);
 
         const quickActions: ActionItem[] = [];
-        if (isLiveCapability(capabilities.identity.publicView) && item.publicPath) {
+        if (awaitingPayment) {
+          // Edit stays the canonical primary action; Complete payment is the first quick action.
+          quickActions.push({ href: comidaLocalResumePaymentHref(item.id, lang), label: comidaLocalResumePaymentLabel(lang), tone: "positive" });
+        }
+        if (
+          isLiveCapability(capabilities.identity.publicView) &&
+          item.publicPath &&
+          comidaLocalRowHasPublicPage(item.status)
+        ) {
           quickActions.push({ href: `${item.publicPath}?${q}`, label: publicViewLabel(lang), tone: "secondary" });
         }
 
@@ -153,13 +171,25 @@ export function ComidaLocalDashboardListings({ lang, items, showEmpty = false, o
             header={{
               eyebrow: t.eyebrow,
               title: item.title,
-              statusLabel: listingUiStatusLabel(uiStatus, lang),
-              statusChipClass: listingUiStatusChipClass(uiStatus),
+              statusLabel: awaitingPayment ? getStatusLabel("pending_payment", lang) : listingUiStatusLabel(uiStatus, lang),
+              statusChipClass: awaitingPayment ? getStatusChipClass("pending_payment") : listingUiStatusChipClass(uiStatus),
               plan: item.packageLabel || null,
               leonixId: item.leonixAdId,
               badges: item.categoryLabel ? [item.categoryLabel] : undefined,
             }}
-            note={actionError && busyId === null ? { text: actionError, tone: "urgent" } : null}
+            note={
+              actionError && busyId === null
+                ? { text: actionError, tone: "urgent" }
+                : awaitingPayment
+                  ? {
+                      text:
+                        lang === "es"
+                          ? "Tu ficha está guardada pero aún no está publicada. Completa el pago para publicarla; se usa este mismo anuncio."
+                          : "Your listing is saved but not published yet. Complete payment to publish it; this same listing is used.",
+                      tone: "warning",
+                    }
+                  : null
+            }
             detailItems={detailItems}
             primaryAction={{ href: editHref, label: editListingLabel(lang) }}
             quickActions={quickActions}

@@ -36,6 +36,13 @@ export function appendPreservedSearchParams(
     "leonix_operation",
     "leonix_propiedad",
     "lang",
+    // Ofertas Locales filters — the scope toggle used to silently drop them (closeout 2).
+    "status_group",
+    "lane",
+    "commercial",
+    "scan_review",
+    "term",
+    "owner_id",
     ...extraKeys,
   ]);
   for (const key of keys) {

@@ -1,5 +1,10 @@
 /**
- * Ofertas Locales admin approve / reject / archive mutations (FINAL-2).
+ * Ofertas Locales admin approve / reject / archive / restore mutations (FINAL-2 + closeout 2).
+ *
+ * `restore` (closeout 2) sends a rejected / archived offer BACK TO REVIEW (`pending_review`) — never straight
+ * to `approved`. Going live again still requires the normal approve gates (paid entitlement or partner
+ * courtesy, resolved AI items, scan-ready public source, valid Leonix Ad ID). Restore writes no payment /
+ * entitlement field and leaves published_at / expires_at untouched.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -16,7 +21,17 @@ import { validateOfertaLocalPartnerCourtesyEligibility } from "./ofertasLocalesP
 import { markOfertaLocalSourceVersionActive } from "./ofertasLocalesAssetLifecycle";
 import type { OfertaLocalPublishStatus } from "./ofertasLocalesTypes";
 
-export type OfertaLocalAdminReviewAction = "approve" | "reject" | "archive";
+export type OfertaLocalAdminReviewAction = "approve" | "reject" | "archive" | "restore";
+
+/** Same chunk prefix `appendOfertaLocalAdminReviewNote` writes (private there); restore notes reuse it. */
+const ADMIN_REVIEW_NOTE_PREFIX = "[admin_review]";
+
+function appendRestoreReviewNote(existingNotes: string | null | undefined, note: string | null | undefined): string {
+  const text = String(note ?? "").trim().slice(0, 2000) || "Restored to review by staff.";
+  const chunk = `${ADMIN_REVIEW_NOTE_PREFIX}${JSON.stringify({ action: "restore", note: text, at: new Date().toISOString() })}`;
+  const base = String(existingNotes ?? "").trim();
+  return (base ? `${base}\n\n${chunk}` : chunk).slice(0, 8000);
+}
 
 export type OfertaLocalAdminReviewResult =
   | { ok: true; id: string; previousStatus: OfertaLocalPublishStatus; newStatus: OfertaLocalPublishStatus }
@@ -40,7 +55,26 @@ const ARCHIVE_FROM: ReadonlySet<OfertaLocalPublishStatus> = new Set([
   "submitted",
   "draft",
   "rejected",
+  // closeout 2: an expired offer (History view) can be archived too.
+  "expired",
 ]);
+
+/** Closeout 2: only rejected / archived offers can be restored, and only back to review. */
+const RESTORE_FROM: ReadonlySet<OfertaLocalPublishStatus> = new Set(["rejected", "archived"]);
+
+/** Status a restored offer returns to. NEVER `approved`. */
+export const OFERTAS_LOCALES_RESTORE_TARGET_STATUS: OfertaLocalPublishStatus = "pending_review";
+
+/** Pure: which review actions apply to an offer in `status` (transition table only; approve gates run at mutation time). */
+export function ofertaLocalAdminActionsForStatus(status: string | null | undefined): OfertaLocalAdminReviewAction[] {
+  const st = String(status ?? "").trim() as OfertaLocalPublishStatus;
+  const out: OfertaLocalAdminReviewAction[] = [];
+  if (APPROVE_FROM.has(st)) out.push("approve");
+  if (REJECT_FROM.has(st)) out.push("reject");
+  if (RESTORE_FROM.has(st)) out.push("restore");
+  if (ARCHIVE_FROM.has(st)) out.push("archive");
+  return out;
+}
 
 function targetStatusForAction(action: OfertaLocalAdminReviewAction): OfertaLocalPublishStatus {
   switch (action) {
@@ -50,6 +84,8 @@ function targetStatusForAction(action: OfertaLocalAdminReviewAction): OfertaLoca
       return "rejected";
     case "archive":
       return "archived";
+    case "restore":
+      return OFERTAS_LOCALES_RESTORE_TARGET_STATUS;
     default:
       return "archived";
   }
@@ -66,6 +102,8 @@ function isTransitionAllowed(
       return REJECT_FROM.has(current);
     case "archive":
       return ARCHIVE_FROM.has(current);
+    case "restore":
+      return RESTORE_FROM.has(current);
     default:
       return false;
   }
@@ -241,11 +279,10 @@ export async function mutateOfertaLocalAdminReview(
     }
   }
 
-  const internal_notes = appendOfertaLocalAdminReviewNote(
-    (row as OfertaLocalAdminRow).internal_notes,
-    action,
-    adminNote
-  );
+  const internal_notes =
+    action === "restore"
+      ? appendRestoreReviewNote((row as OfertaLocalAdminRow).internal_notes, adminNote)
+      : appendOfertaLocalAdminReviewNote((row as OfertaLocalAdminRow).internal_notes, action, adminNote);
 
   const now = new Date().toISOString();
   const parentUpdate: Record<string, unknown> = {

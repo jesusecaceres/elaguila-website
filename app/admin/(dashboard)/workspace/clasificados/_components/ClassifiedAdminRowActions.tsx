@@ -20,7 +20,28 @@ export type ClassifiedStaffOpsVariant =
   | "servicios"
   | "empleos"
   | "autos"
-  | "viajes";
+  | "viajes"
+  | "comida-local"
+  | "ofertas";
+
+/**
+ * One lifecycle button for the data-driven variants (`comida-local`, `ofertas`). The SERVER page decides
+ * which actions exist for a row (from the same pure policy the API route enforces) and passes them here as
+ * plain data; the route re-decides every action, so a stale button can never do something the policy forbids.
+ */
+export type ClassifiedAdminLifecycleAction = {
+  /** Sent to the variant's PATCH route as `{ action }`. */
+  action: string;
+  label: string;
+  tone: "active" | "warning" | "neutral" | "danger";
+  /** Confirmation copy (window.confirm) or, when `note` is set, the note prompt. */
+  confirm: string;
+  /** `required`: prompt for a note and refuse an empty one (e.g. rejection reason). `optional`: prompt, may be empty. */
+  note?: "required" | "optional";
+  disabled?: boolean;
+  /** Tooltip; for a disabled button, WHY it is unavailable. */
+  reason?: string | null;
+};
 
 type Props = {
   variant: ClassifiedStaffOpsVariant;
@@ -37,6 +58,21 @@ type Props = {
   layout?: "compact" | "card";
   /** Mobile card queue — collapse lifecycle/monetization into details sections. */
   collapseSections?: boolean;
+  /**
+   * Additive: extra staff lifecycle actions sent through the SAME PATCH route as every other button
+   * (e.g. Empleos `reject` / `send_to_review`). `askReason` prompts for a short reason, sent as `reason`.
+   */
+  extraActions?: ReadonlyArray<{
+    action: string;
+    label: string;
+    confirmMessage: string;
+    askReason?: boolean;
+    variant?: "neutral" | "warning";
+  }>;
+  /** Additive: when set, Restore is disabled and shows this explanation (the server still enforces it). */
+  restoreDisabledReason?: string | null;
+  /** `comida-local` / `ofertas`: the lifecycle buttons (see `ClassifiedAdminLifecycleAction`). */
+  lifecycleActions?: readonly ClassifiedAdminLifecycleAction[];
 };
 
 function patchUrl(variant: ClassifiedStaffOpsVariant, rowId: string): string {
@@ -54,13 +90,17 @@ function patchUrl(variant: ClassifiedStaffOpsVariant, rowId: string): string {
       return `/api/admin/autos/listings/${id}`;
     case "viajes":
       return `/api/admin/viajes/listings/${id}`;
+    case "comida-local":
+      return `/api/admin/comida-local/listings/${id}`;
+    case "ofertas":
+      return `/api/admin/ofertas-locales/listings/${id}`;
     default:
       return `/api/admin/clasificados/listings/${id}`;
   }
 }
 
-function safeErrorMessage(j: { error?: string }, status: number): string {
-  const raw = (j.error ?? `HTTP ${status}`).trim();
+function safeErrorMessage(j: { error?: string; message?: string }, status: number): string {
+  const raw = (j.message ?? j.error ?? `HTTP ${status}`).trim();
   return raw.slice(0, 200);
 }
 
@@ -111,6 +151,9 @@ export function ClassifiedAdminRowActions({
   displayLabel,
   layout = "compact",
   collapseSections = false,
+  extraActions,
+  restoreDisabledReason,
+  lifecycleActions,
 }: Props) {
   const pathname = usePathname() ?? "";
   const searchParams = useSearchParams();
@@ -124,7 +167,7 @@ export function ClassifiedAdminRowActions({
   }, [pathname, searchParams]);
 
   const run = useCallback(
-    async (action: string, proofAction?: string) => {
+    async (action: string, proofAction?: string, extraBody?: Record<string, unknown>) => {
       const scrollY = typeof window !== "undefined" ? window.scrollY : 0;
       setBusy(true);
       try {
@@ -132,9 +175,9 @@ export function ClassifiedAdminRowActions({
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           credentials: "same-origin",
-          body: JSON.stringify({ action }),
+          body: JSON.stringify({ action, ...(extraBody ?? {}) }),
         });
-        const j = (await res.json()) as { ok?: boolean; error?: string };
+        const j = (await res.json()) as { ok?: boolean; error?: string; message?: string };
         if (!res.ok || !j.ok) {
           const url = buildAdminActionReturnUrl({
             returnTo,
@@ -197,6 +240,26 @@ export function ClassifiedAdminRowActions({
     [run],
   );
 
+  const runLifecycle = useCallback(
+    (a: ClassifiedAdminLifecycleAction) => {
+      if (a.disabled) return;
+      let note: string | undefined;
+      if (a.note) {
+        const typed = window.prompt(a.confirm, "");
+        if (typed === null) return;
+        note = typed.trim();
+        if (a.note === "required" && !note) {
+          window.alert("A note is required for this action.");
+          return;
+        }
+      } else if (!window.confirm(a.confirm)) {
+        return;
+      }
+      void run(a.action, undefined, { confirmed: true, ...(note ? { note } : {}) });
+    },
+    [run],
+  );
+
   const republish =
     republishCategory && republishRow ? republishActionLabel(republishRow, republishCategory) : null;
 
@@ -210,6 +273,48 @@ export function ClassifiedAdminRowActions({
     suspend: getAdminActionContract("suspend").label,
     verifyLeonix: getAdminActionContract("verifyLeonix").label,
   };
+
+  if (variant === "comida-local" || variant === "ofertas") {
+    // Data-driven lifecycle set (payment-aware, audited server-side). No feature / verify controls: neither
+    // table has those columns, and staff never mark anything paid from here.
+    const blocked = (lifecycleActions ?? []).filter((a) => a.disabled && a.reason);
+    return (
+      <div className="min-w-0 space-y-2 overflow-x-hidden" data-testid="classified-admin-row-actions" data-variant={variant}>
+        <ActionSection title="Lifecycle" collapseSections={collapseSections} testId="admin-row-actions-lifecycle">
+          <AdminDashboardCtaGrid columns={gridCols}>
+            {staffEditBoardHref ? (
+              <a
+                href={staffEditBoardHref}
+                className={`${compact} inline-flex min-h-[36px] items-center justify-center rounded-lg border border-[#E8DFD0] bg-[#FFFCF7] px-3 py-2 text-center text-xs font-bold text-[#2C2416] transition hover:border-[#C9B46A]`}
+              >
+                Open manage
+              </a>
+            ) : null}
+            {(lifecycleActions ?? []).map((a) => (
+              <AdminDashboardCtaButton
+                key={a.action}
+                label={busy ? "…" : a.label}
+                variant={a.tone}
+                disabled={busy || Boolean(a.disabled)}
+                title={a.reason ?? undefined}
+                onClick={() => runLifecycle(a)}
+                className={compact}
+              />
+            ))}
+          </AdminDashboardCtaGrid>
+        </ActionSection>
+        {blocked.length > 0 ? (
+          <ul className="space-y-0.5 text-[10px] leading-snug text-[#9A9084]" data-testid="admin-row-actions-blocked-reasons">
+            {blocked.map((a) => (
+              <li key={a.action}>
+                {a.label}: {a.reason}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className="min-w-0 space-y-2 overflow-x-hidden" data-testid="classified-admin-row-actions">
@@ -259,8 +364,8 @@ export function ClassifiedAdminRowActions({
             <AdminDashboardCtaButton
               label={busy ? "…" : actionLabel.restore}
               variant="active"
-              disabled={busy}
-              title={getAdminActionContract("restore").helperCopy}
+              disabled={busy || Boolean(restoreDisabledReason)}
+              title={restoreDisabledReason || getAdminActionContract("restore").helperCopy}
               onClick={() =>
                 runConfirmed(
                   "unsuspend",
@@ -280,6 +385,25 @@ export function ClassifiedAdminRowActions({
               className={compact}
             />
           ) : null}
+          {(extraActions ?? []).map((x) => (
+            <AdminDashboardCtaButton
+              key={x.action}
+              label={busy ? "…" : x.label}
+              variant={x.variant ?? "neutral"}
+              disabled={busy}
+              onClick={() => {
+                if (!window.confirm(x.confirmMessage)) return;
+                if (x.askReason) {
+                  const reason = window.prompt("Reason (stored with the moderation record):", "");
+                  if (reason === null) return;
+                  void run(x.action, undefined, { reason });
+                  return;
+                }
+                void run(x.action);
+              }}
+              className={compact}
+            />
+          ))}
         </AdminDashboardCtaGrid>
       </ActionSection>
 

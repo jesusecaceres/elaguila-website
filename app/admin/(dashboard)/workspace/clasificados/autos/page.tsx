@@ -24,14 +24,31 @@ import {
 } from "@/app/lib/clasificados/autos/autosClassifiedsVisibility";
 import { autosLiveVehiclePath } from "@/app/clasificados/autos/filters/autosBrowseFilterContract";
 import { ClasificadosQueueHeader } from "../_components/ClasificadosQueueHeader";
-import { ClasificadosScopeNav } from "../_components/ClasificadosScopeNav";
 import { clasificadosQueueSurfaceForSlug } from "../_lib/clasificadosQueueSurfaceMeta";
 import { appendPreservedSearchParams, parseAdminScope } from "../_lib/clasificadosAdminScopeUrls";
-import { adminCardBase, adminBtnSecondary, adminCtaChip, adminCtaChipSecondary } from "../../../../_components/adminTheme";
+import { adminCardBase, adminCtaChip, adminCtaChipSecondary } from "../../../../_components/adminTheme";
 import { AdminPagePurposeCard } from "../../../../_components/AdminPagePurposeCard";
 import { ClassifiedAdminRowActions } from "../_components/ClassifiedAdminRowActions";
 import { AdminListingMonetizationSummary } from "../_components/AdminListingMonetizationSummary";
-import type { AdminLang } from "@/app/admin/_lib/adminI18nCookie";
+import { adminTr } from "@/app/admin/_lib/adminStrings";
+import { classifyPublication } from "@/app/admin/_lib/publicationSemantics";
+import { fetchAdminCategorySummary, type AdminCategorySummary } from "@/app/admin/_lib/adminCategorySummary";
+import { loadAdminListingCommercialTruth, type AdminListingCommercialTruthMap } from "@/app/admin/_lib/adminListingCommercialTruth";
+import {
+  autosDealerGroupKey,
+  fetchAutosDealerCapacityForRows,
+  describeDealerCapacity,
+  type AutosDealerCapacityView,
+} from "@/app/admin/_lib/adminAutosDealerCapacity";
+import { STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
+import { AdminCategorySummaryPanel } from "../_components/normalized/AdminCategorySummaryPanel";
+import { AdminCategoryFilterBar } from "../_components/normalized/AdminCategoryFilterBar";
+import { AdminCommercialTruthSection } from "../_components/normalized/AdminListingCardSections";
+import {
+  adminRowMatchesLeonixAdIdFilter,
+  adminRowMatchesOwnerFilter,
+  adminStatusOptionsForCategory,
+} from "../_lib/adminNormalizedShell";
 import {
   ADMIN_AUTOS_LANE_OPTIONS,
   ADMIN_AUTOS_WORKSPACE_PATH,
@@ -41,7 +58,7 @@ import {
 export const dynamic = "force-dynamic";
 
 type AutosAdminPageProps = {
-  searchParams?: Promise<{ q?: string; scope?: string; lane?: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
 function autosStripeAdminHint(row: AutosClassifiedsListingRow): string {
@@ -103,6 +120,12 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
   );
   const scope = parseAdminScope(sp);
   const qRaw = typeof sp.q === "string" ? sp.q.trim() : "";
+  const statusFilter = typeof sp.status === "string" ? sp.status.trim().toLowerCase() : "";
+  const ownerFilter = typeof sp.owner === "string" ? sp.owner.trim() : "";
+  const leonixAdIdFilter = typeof sp.leonix_ad_id === "string" ? sp.leonix_ad_id.trim() : "";
+  // Status / owner / Leonix Ad ID are matched in memory (the Autos service filters only by scope +
+  // lane in SQL), so any of them widens the scan to the 500-row service cap before narrowing.
+  const memoryFiltered = Boolean(qRaw || statusFilter || ownerFilter || leonixAdIdFilter);
   const autosBase = ADMIN_AUTOS_WORKSPACE_PATH;
   // Dealers vs Privados — one engine, one table; `lane` is the canonical `row.lane` value and is
   // applied in the SQL query (not as a cosmetic client filter over the same rows).
@@ -111,7 +134,7 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
   const liveNavHref = appendPreservedSearchParams(autosBase, sp, "live", ["lane"]);
   const laneHref = (target: (typeof ADMIN_AUTOS_LANE_OPTIONS)[number]["value"]) =>
     appendPreservedSearchParams(autosBase, { ...sp, lane: target === "all" ? undefined : target }, scope, ["lane"]);
-  let rows = await listAllAutosClassifiedsRowsForAdmin(qRaw ? 500 : queueLimit, {
+  let rows = await listAllAutosClassifiedsRowsForAdmin(memoryFiltered ? 500 : queueLimit, {
     ...(scope === "live" ? { scope: "live" as const } : {}),
     ...(lane !== "all" ? { lane } : {}),
   });
@@ -159,33 +182,92 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
   if (scope === "live") {
     rows = rows.filter((r) => autosRowIsPublicLive(r as unknown as Record<string, unknown>));
   }
+  if (statusFilter) rows = rows.filter((r) => String(r.status).toLowerCase() === statusFilter);
+  if (ownerFilter) rows = rows.filter((r) => adminRowMatchesOwnerFilter(r, ownerFilter));
+  if (leonixAdIdFilter) rows = rows.filter((r) => adminRowMatchesLeonixAdIdFilter(r, leonixAdIdFilter));
+  if (memoryFiltered) rows = rows.slice(0, queueLimit);
 
-  // Gate 17 (lifecycle closeout, 2026-09-18) — key by the dealer inventory group, not the owner:
-  // an owner_user_id can hold more than one distinct Dealer parent/group, and counting by owner
-  // alone would merge two unrelated groups' active counts into one displayed number. Ungrouped
-  // standalone parents (no dealer_inventory_group_id yet) fall back to their own row id, matching
-  // resolveAutosDealerInventoryGroupKey's own parent-fallback convention on the owner dashboard.
-  const dealerActiveCountByGroup = new Map<string, number>();
-  for (const r of rows) {
-    if (r.lane !== "negocios" || r.status !== "active") continue;
-    const groupKey = r.dealer_inventory_group_id?.trim() || r.dealer_inventory_parent_listing_id?.trim() || r.id;
-    dealerActiveCountByGroup.set(groupKey, (dealerActiveCountByGroup.get(groupKey) ?? 0) + 1);
-  }
+  // Dealer capacity (closeout 2): the active count per dealer inventory GROUP comes from the canonical
+  // grouped count (adminCategorySummary.fetchAutosDealerCapacityTruth, scoped to the owners visible
+  // here) — never counted over the truncated page rows, never divided by a
+  // hard-coded 10. The standard limit is STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT; a paid inventory pack
+  // raises it, so a group above the standard limit is flagged for entitlement review instead of being
+  // shown as a bare "n/10". If the read fails the page prints "—".
+  const capacity: AutosDealerCapacityView = await fetchAutosDealerCapacityForRows(rows);
 
+  // Commercial truth (READ-ONLY): payment / entitlement / subscription records for THESE rows.
+  const commercialTruthByListingId: AdminListingCommercialTruthMap = isSupabaseAdminConfigured() && rows.length > 0
+    ? await loadAdminListingCommercialTruth({
+        category: "autos",
+        listingIds: rows.map((r) => r.id),
+        listingRowsById: Object.fromEntries(rows.map((r) => [r.id, r as unknown as Record<string, unknown>])),
+      })
+    : {};
+
+  // Shared operating summary, lane-aware.
   const surface = clasificadosQueueSurfaceForSlug("autos");
+  let summary: AdminCategorySummary;
+  try {
+    summary = await fetchAdminCategorySummary("autos", lane !== "all" ? { lane } : undefined);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "summary query failed";
+    summary = {
+      slug: "autos",
+      total: null,
+      live: null,
+      needsAttention: null,
+      paymentIssue: null,
+      expired: null,
+      sourceHealth: { ok: false, source: surface.sourceTable, note: msg },
+      queryError: msg,
+    };
+  }
+  const laneLabel = lane === "all" ? null : ADMIN_AUTOS_LANE_OPTIONS.find((o) => o.value === lane)?.label ?? lane;
 
   return (
     <div className="mx-auto max-w-[110rem] px-4 py-8 sm:px-6">
       <ClasificadosQueueHeader
-        title={m("autosQueue.pageTitle")}
+        lang={lang}
+        categoryName="Autos"
+        scope={scope === "live" ? "live" : "queue"}
         sourceTable={surface.sourceTable}
         subtitle={m("autosQueue.pageSubtitle")}
         publicHref={surface.publicHref}
         publishHref={surface.publishHref}
-        rightSlot={
-          <ClasificadosScopeNav lang={lang} queueHref={queueNavHref} liveHref={liveNavHref} active={scope === "live" ? "live" : "queue"} />
+        queueHref={queueNavHref}
+        liveHref={liveNavHref}
+        laneSlot={
+          <div className="space-y-1" data-testid="autos-lane-selector">
+            <p className="text-[10px] leading-snug text-[#7A7164]">
+              Autos lane — dealers and private sellers share this one Autos workspace and table; pick a
+              lane to see only that operation. Search, Queue/Live scope, and row actions all apply inside the selected lane.
+            </p>
+            <nav className="flex flex-wrap gap-2" aria-label="Autos lane">
+              {ADMIN_AUTOS_LANE_OPTIONS.map((opt) => (
+                <Link
+                  key={opt.value}
+                  href={laneHref(opt.value)}
+                  className={`${opt.value === lane ? adminCtaChip : adminCtaChipSecondary} inline-flex`}
+                  aria-current={opt.value === lane ? "page" : undefined}
+                  title={opt.hint}
+                >
+                  {opt.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
         }
       />
+
+      <div className="mb-6">
+        <AdminCategorySummaryPanel
+          summary={summary}
+          lang={lang}
+          laneLabel={laneLabel}
+          technicalDetails={[["Table", surface.sourceTable]]}
+        />
+      </div>
+
       <AdminPagePurposeCard
         title="Autos admin ops"
         purpose="Review dealer and private Autos listings, inspect inventory identity, and run staff lifecycle/trust actions."
@@ -196,59 +278,15 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
         warningNote="Public browse and dealer inventory are real; action confirmations/audit consistency still need QA proof."
       />
 
-      <div className="mb-6 flex flex-wrap gap-2">
-        <Link href="/admin/workspace/clasificados" className={adminCtaChipSecondary}>
-          {m("autosQueue.backGeneric")}
-        </Link>
-        <Link href="/publicar/autos" className={adminCtaChipSecondary} target="_blank" rel="noreferrer">
-          {m("autosQueue.openPublishFlow")}
-        </Link>
-      </div>
-
-      <div className={`${adminCardBase} mb-6 space-y-2 p-4 text-sm text-[#5C5346]`} data-testid="autos-lane-selector">
-        <p className="font-bold text-[#1E1810]">Autos lane</p>
-        <p className="text-[10px] leading-snug text-[#7A7164]">
-          Dealers and private sellers share this one Autos workspace and table — pick a lane to see only that
-          operation. Search, Queue/Live scope, and row actions all apply inside the selected lane.
-        </p>
-        <nav className="flex flex-wrap gap-2" aria-label="Autos lane">
-          {ADMIN_AUTOS_LANE_OPTIONS.map((opt) => (
-            <Link
-              key={opt.value}
-              href={laneHref(opt.value)}
-              className={`${opt.value === lane ? adminCtaChip : adminCtaChipSecondary} inline-flex`}
-              aria-current={opt.value === lane ? "page" : undefined}
-              title={opt.hint}
-            >
-              {opt.label}
-            </Link>
-          ))}
-        </nav>
-      </div>
-
-      <div className={`${adminCardBase} mb-6 space-y-3 p-4 text-sm text-[#5C5346]`}>
-        <p className="font-bold text-[#1E1810]">{m("autosQueue.searchTitle")}</p>
-        <p className="text-[10px] leading-snug text-[#7A7164]">{m("autosQueue.searchHint")}</p>
-        <form className="flex flex-col flex-wrap gap-2 sm:flex-row sm:items-end" method="get" action={autosBase}>
-          {scope === "live" ? <input type="hidden" name="scope" value="live" /> : null}
-          {lane !== "all" ? <input type="hidden" name="lane" value={lane} /> : null}
-          <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-xs">
-            <span className="font-semibold text-[#5C5346]">{m("autosQueue.labelQ")}</span>
-            <input
-              name="q"
-              defaultValue={qRaw}
-              className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 font-mono text-xs text-[#1E1810]"
-              placeholder={m("autosQueue.placeholderQ")}
-              autoComplete="off"
-            />
-          </label>
-          <button type="submit" className="rounded-xl bg-[#2A2620] px-4 py-2 text-xs font-bold text-[#FAF7F2]">
-            {m("common.apply")}
-          </button>
-          <Link href={queueNavHref} className={`${adminBtnSecondary} inline-flex items-center text-xs`}>
-            {m("common.clear")}
-          </Link>
-        </form>
+      <div className="mb-6">
+        <AdminCategoryFilterBar
+          lang={lang}
+          action={autosBase}
+          searchParams={sp}
+          statusOptions={adminStatusOptionsForCategory("autos")}
+          clearHref={appendPreservedSearchParams(autosBase, { lane: sp.lane }, scope, ["lane"])}
+          searchPlaceholder={m("autosQueue.placeholderQ")}
+        />
       </div>
 
       {rows.length === 0 ? (
@@ -278,6 +316,7 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                 <th className="px-3 py-2" title={m("autosQueue.actionsColTitle")}>
                   {m("autosQueue.colActions")}
                 </th>
+                <th className="px-3 py-2">{adminTr(lang, "catShell.section.commercial")}</th>
                 <th className="px-3 py-2">Monetization</th>
               </tr>
             </thead>
@@ -302,8 +341,17 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                   dash.thumbUrl ? "photo" : "",
                   payload.muxPlaybackId?.trim() || payload.muxPlaybackUrl?.trim() || (payload.videoUrls?.length ?? 0) > 0 ? "video" : "",
                 ].filter(Boolean).join(" + ");
-                const dealerGroupKey = r.dealer_inventory_group_id?.trim() || r.dealer_inventory_parent_listing_id?.trim() || r.id;
-                const dealerActiveCount = r.lane === "negocios" ? dealerActiveCountByGroup.get(dealerGroupKey) ?? 0 : null;
+                const isDealerRow = r.lane === "negocios";
+                // TRUE active count for this dealer group (read from the table, not the page rows);
+                // null = capacity could not be read → printed as "—", never a guess.
+                const dealerActiveCount = isDealerRow && capacity.available
+                  ? capacity.activeByGroupKey[autosDealerGroupKey(r)] ?? 0
+                  : null;
+                const capacityInfo = describeDealerCapacity(dealerActiveCount, {
+                  standard: capacity.standardLimit,
+                  boosted: capacity.boostedLimit,
+                });
+                const listingTruth = classifyPublication("autos_classifieds_listings", r as unknown as Record<string, unknown>);
                 const liveHref =
                   r.status === "active"
                     ? `${autosLiveVehiclePath(r.id)}?lang=${r.lang === "en" ? "en" : "es"}`
@@ -324,10 +372,33 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                         {payload.mileage != null ? ` · ${formatMiles(payload.mileage, locale)}` : ""}
                         {location ? ` · ${location}` : ""}
                       </p>
-                      {(sellerName || contactSignal || mediaSignal) ? (
+                      {(sellerName || contactSignal || mediaSignal || isDealerRow) ? (
                         <p className="mt-0.5 text-[10px] font-normal text-[#7A7164]">
                           {sellerName ? sellerName : r.lane}
-                          {dealerActiveCount != null ? ` · active ${dealerActiveCount}/10` : ""}
+                          {isDealerRow ? (
+                            <span
+                              data-testid="autos-dealer-capacity"
+                              title={
+                                dealerActiveCount == null
+                                  ? adminTr(lang, "catShell.autos.capacityUnavailable") + (capacity.note ? ` (${capacity.note})` : "")
+                                  : undefined
+                              }
+                            >
+                              {" · "}
+                              {dealerActiveCount == null
+                                ? `capacity ${capacityInfo.text}`
+                                : adminTr(lang, "catShell.autos.capacityActive", {
+                                    n: dealerActiveCount,
+                                    limit: STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT,
+                                  })}
+                              {capacityInfo.overStandard
+                                ? ` · ${adminTr(lang, "catShell.autos.capacityOverStandard", {
+                                    n: dealerActiveCount ?? 0,
+                                    limit: STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT,
+                                  })}`
+                                : ""}
+                            </span>
+                          ) : null}
                           {r.lane === "negocios" && r.inventory_role ? ` · role ${r.inventory_role}` : ""}
                           {r.dealer_inventory_parent_listing_id
                             ? ` · parent ${r.dealer_inventory_parent_listing_id.slice(0, 8)}…`
@@ -343,7 +414,12 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                     </td>
                     <td className="px-3 py-2">{r.featured ? m("autosQueue.yes") : m("autosQueue.no")}</td>
                     <td className="px-3 py-2">{statusLabel(r.status)}</td>
-                    <td className="px-3 py-2">{vis}</td>
+                    <td className="px-3 py-2">
+                      {vis}
+                      <p className="mt-1 max-w-[14rem] text-[10px] font-normal leading-snug text-[#5C5346]" data-testid="autos-listing-truth-reason">
+                        {listingTruth.reason}
+                      </p>
+                    </td>
                     <td className="whitespace-nowrap px-3 py-2 text-[10px] text-[#5C5346]">{pub}</td>
                     <td
                       className="max-w-[8rem] truncate px-3 py-2 font-mono text-[10px]"
@@ -388,6 +464,9 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                           }}
                         />
                       </div>
+                    </td>
+                    <td className="min-w-[12rem] max-w-[16rem] px-3 py-2 align-top" data-testid="autos-row-commercial-truth">
+                      <AdminCommercialTruthSection lang={lang} truth={commercialTruthByListingId[r.id]} compact />
                     </td>
                     <td className="px-3 py-2 align-top">
                       <AdminListingMonetizationSummary

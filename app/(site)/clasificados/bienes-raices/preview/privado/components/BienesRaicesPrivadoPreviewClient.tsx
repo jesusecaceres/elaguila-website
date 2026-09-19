@@ -194,10 +194,14 @@ export default function BienesRaicesPrivadoPreviewClient() {
   const savePendingFsboListing = useCallback(
     async (d: BienesRaicesPrivadoFormState): Promise<{ ok: true; listingId: string; leonixAdId: string | null } | { ok: false; error: string }> => {
       const cached = await validateCachedPendingListing();
-      if (cached) return { ok: true, ...cached };
 
+      // Closeout 2 - same application = same row. The validated cached id (plus the per-tab draft key the core
+      // derives and writes onto the row) makes this a SAME-UUID / SAME-Leonix-Ad-ID update, so edits made after
+      // the first save are persisted instead of silently dropped, and FSBO no longer depends on a
+      // sessionStorage id alone (a new tab or a title change reuses the row via the draft key / title).
       const r = await publishLeonixListingFromBienesRaicesPrivadoDraft(d, lang, {
         activationMode: "pending_payment",
+        existingListingId: cached?.listingId ?? null,
       });
       if (!r.ok) return { ok: false, error: r.error };
       // Gate I.5.4A.1 — same warnings-banner pattern already proven for BR Negocio: surfaces a

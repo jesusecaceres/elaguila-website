@@ -20,7 +20,15 @@ import {
   loadComidaLocalDraftFromStorage,
   saveComidaLocalDraftToStorage,
 } from "@/app/lib/clasificados/comida-local/comidaLocalDraftPersistence";
-import { readComidaLocalEditContext } from "@/app/lib/clasificados/comida-local/comidaLocalListingEditContext";
+import {
+  fetchOwnerComidaLocalListingForEdit,
+  readComidaLocalEditContext,
+  writeComidaLocalEditContext,
+} from "@/app/lib/clasificados/comida-local/comidaLocalListingEditContext";
+import {
+  decideComidaLocalPreviewCheckout,
+  isComidaLocalAwaitingPayment,
+} from "@/app/lib/clasificados/comida-local/comidaLocalPaymentResume";
 import {
   comidaLocalDraftHasPreviewContent,
   mapComidaLocalDraftToPreviewVm,
@@ -57,25 +65,68 @@ export function ComidaLocalPreviewClient() {
   const editListingIdParam = ((searchParams?.get("edit") ?? "") === "1" ? searchParams?.get("listingId") ?? "" : "").trim();
   const [editListingId, setEditListingId] = useState<string>(editListingIdParam);
 
+  /** The listing row's REAL status (owner-scoped read), or null while unknown. Drives the payment-resume
+   * checkout: only a `pending_payment` row ever shows checkout in a listing-bound preview. */
+  const [editRowStatus, setEditRowStatus] = useState<string | null>(null);
+
   useEffect(() => {
-    const marker = readComidaLocalEditContext();
-    // URL param wins; the marker only backs up a hard refresh that lost the query string AND
-    // only when it matches an existing edit workspace.
-    const resolvedEditId = editListingIdParam || (marker ? marker.listingId : "");
-    const editWorkspace = resolvedEditId
-      ? loadComidaLocalDraftFromStorage(comidaLocalEditWorkspaceStorageKey(resolvedEditId))
-      : null;
-    if (resolvedEditId && editWorkspace) {
-      setEditListingId(resolvedEditId);
-      setDraft(editWorkspace);
-    } else {
-      setEditListingId("");
-      setDraft(loadComidaLocalDraftFromStorage() ?? createEmptyComidaLocalDraft());
-    }
-    setReady(true);
+    let cancelled = false;
+    void (async () => {
+      const marker = readComidaLocalEditContext();
+      // URL param wins; the marker only backs up a hard refresh that lost the query string AND
+      // only when it matches an existing edit workspace.
+      const resolvedEditId = editListingIdParam || (marker ? marker.listingId : "");
+      const editStorageKey = resolvedEditId ? comidaLocalEditWorkspaceStorageKey(resolvedEditId) : undefined;
+      let editWorkspace = editStorageKey ? loadComidaLocalDraftFromStorage(editStorageKey) : null;
+      let rowStatus: string | null = null;
+      if (resolvedEditId) {
+        // Owner-scoped truth of the row (status), and - closeout 2 payment resume - self-hydration when the
+        // owner arrives straight from the dashboard ("Completar pago") with no edit workspace in this
+        // browser. The draft's draftListingId is forced to the ROW's own value so the pending save is a
+        // SAME-ROW update, never a duplicate.
+        try {
+          const sb = createSupabaseBrowserClient();
+          const { data: sess } = await sb.auth.getSession();
+          const ownerUserId = sess.session?.user?.id ?? "";
+          if (ownerUserId) {
+            const hydrated = await fetchOwnerComidaLocalListingForEdit(sb, { ownerUserId, listingId: resolvedEditId });
+            if (hydrated.ok) {
+              rowStatus = hydrated.context.status || null;
+              if (!editWorkspace && editStorageKey) {
+                editWorkspace = hydrated.draft;
+                saveComidaLocalDraftToStorage(hydrated.draft, editStorageKey);
+                writeComidaLocalEditContext(hydrated.context);
+              } else if (editWorkspace && editWorkspace.draftListingId !== hydrated.context.draftListingId) {
+                editWorkspace = { ...editWorkspace, draftListingId: hydrated.context.draftListingId };
+              }
+            }
+          }
+        } catch {
+          rowStatus = null; // unknown status fails closed: no checkout is offered on a bound preview
+        }
+      }
+      if (cancelled) return;
+      if (resolvedEditId && editWorkspace) {
+        setEditListingId(resolvedEditId);
+        setEditRowStatus(rowStatus);
+        setDraft(editWorkspace);
+      } else {
+        setEditListingId("");
+        setEditRowStatus(null);
+        setDraft(loadComidaLocalDraftFromStorage() ?? createEmptyComidaLocalDraft());
+      }
+      setReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [editListingIdParam]);
 
   const previewMode = resolvePreviewMode({ listingBound: Boolean(editListingId), hasUnsavedEditDraft: Boolean(editListingId) });
+  // Closeout 2 - payment resume: a listing-bound row still `pending_payment` shows the SAME base checkout
+  // (COMIDA_LOCAL_BASE_CHECKOUT) against the SAME row. Every other bound status is edit-only (no re-charge).
+  const checkoutMode = decideComidaLocalPreviewCheckout({ listingBound: Boolean(editListingId), rowStatus: editRowStatus });
+  const resumingPayment = checkoutMode === "resume_payment";
   const backToEditHref = editListingId
     ? `${PUBLISH_FORM_HREF}?edit=1&listingId=${encodeURIComponent(editListingId)}&lang=${routeLang}`
     : `${PUBLISH_FORM_HREF}?lang=${routeLang}`;
@@ -88,9 +139,9 @@ export function ComidaLocalPreviewClient() {
     // published vitrina uses `viewer: "public"` and drops it instead.
     return mapComidaLocalDraftToPreviewVm(draft, es ? "es" : "en", {
       viewer: "owner",
-      ownerListingPublished: Boolean(editListingId),
+      ownerListingPublished: Boolean(editListingId) && !isComidaLocalAwaitingPayment(editRowStatus),
     });
-  }, [draft, es, editListingId]);
+  }, [draft, es, editListingId, editRowStatus]);
 
   const hasContent = draft ? comidaLocalDraftHasPreviewContent(draft) : false;
 
@@ -138,7 +189,10 @@ export function ComidaLocalPreviewClient() {
       setCheckoutError(null);
       setNewsletterCaptureNote(null);
       try {
-        saveComidaLocalDraftToStorage(draft);
+        // draftWorkspaceContract Rule 1: a listing-bound (payment-resume) preview writes only its own EDIT
+        // workspace, never the new-ad draft key.
+        if (editListingId) saveComidaLocalDraftToStorage(draft, comidaLocalEditWorkspaceStorageKey(editListingId));
+        else saveComidaLocalDraftToStorage(draft);
         const sb = createSupabaseBrowserClient();
         const { data: sess } = await sb.auth.getSession();
         const accessToken = sess.session?.access_token ?? null;
@@ -221,7 +275,7 @@ export function ComidaLocalPreviewClient() {
         setCheckoutBusy(false);
       }
     },
-    [draft, newsletterEmail, es],
+    [draft, newsletterEmail, es, editListingId],
   );
 
   const checkoutConfig: PublishCheckpointConfig | null = draft
@@ -268,7 +322,11 @@ export function ComidaLocalPreviewClient() {
         <div className={`${CL_CONTAINER_NARROW} flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between`}>
           <div>
             <p className={CL_EYEBROW}>
-              {previewMode === "edit-draft"
+              {resumingPayment
+                ? es
+                  ? "Vista previa · Pago pendiente"
+                  : "Preview · Payment pending"
+                : previewMode === "edit-draft"
                 ? es
                   ? "Vista previa · Edición"
                   : "Preview · Editing"
@@ -277,7 +335,11 @@ export function ComidaLocalPreviewClient() {
                   : "Preview · not published"}
             </p>
             <p className="mt-1 text-sm text-[#1E1814]/72">
-              {previewMode === "edit-draft"
+              {resumingPayment
+                ? es
+                  ? "Tu ficha ya está guardada pero aún no está publicada. Completa el pago abajo para publicarla — se usa el mismo anuncio, no se crea uno nuevo."
+                  : "Your listing is saved but not published yet. Complete payment below to publish it — this uses the same listing, no new one is created."
+                : previewMode === "edit-draft"
                 ? es
                   ? "Así se verán tus cambios. Regresa al formulario y guarda para actualizar el mismo anuncio publicado."
                   : "This is how your changes will look. Go back to the form and save to update the same published listing."
@@ -296,7 +358,7 @@ export function ComidaLocalPreviewClient() {
                   ? "Editar formulario"
                   : "Edit form"}
             </Link>
-            {previewMode === "edit-draft" ? (
+            {previewMode === "edit-draft" && !resumingPayment ? (
               <Link href={backToEditHref} className={CL_BTN_PRIMARY}>
                 {es ? "Guardar desde formulario" : "Save from the form"}
               </Link>
@@ -324,7 +386,7 @@ export function ComidaLocalPreviewClient() {
           </div>
         ) : null}
 
-        {previewMode === "new-publish" && checkoutConfig ? (
+        {(previewMode === "new-publish" || resumingPayment) && checkoutConfig ? (
           <div className="mt-6">
             <PublishCheckoutCheckpoint
               config={checkoutConfig}

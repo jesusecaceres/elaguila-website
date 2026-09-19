@@ -1,38 +1,16 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+import type { OfertaLocalAdminReviewAction } from "@/app/lib/ofertas-locales/ofertasLocalesAdminReviewMutations";
 import {
-  mutateOfertaLocalAdminReview,
-  type OfertaLocalAdminReviewAction,
-} from "@/app/lib/ofertas-locales/ofertasLocalesAdminReviewMutations";
+  isOfertaLocalAdminReviewAction,
+  ofertaReviewErrorMessage,
+} from "@/app/lib/ofertas-locales/ofertasLocalesAdminReviewMessages";
+import { runOfertaLocalAdminReview } from "@/app/lib/ofertas-locales/ofertasLocalesAdminReviewService";
 import { buildAdminActionReturnUrl } from "@/app/admin/_lib/adminQueueActionFlow";
 import { getAdminSupabase, requireAdminCookie } from "@/app/lib/supabase/server";
-
-const ALLOWED_ACTIONS: ReadonlySet<OfertaLocalAdminReviewAction> = new Set([
-  "approve",
-  "reject",
-  "archive",
-]);
-
-function adminReviewActionMessage(error: string): string {
-  switch (error) {
-    case "rejection_reason_required":
-      return "Rejection reason is required.";
-    case "unresolved_review_items":
-      return "Resolve all pending or needs_review AI items before approval.";
-    case "invalid_transition":
-      return "This offer cannot move to that review state.";
-    case "not_found":
-      return "Offer was not found.";
-    case "confirmation_required":
-      return "Confirm the operational review before executing this action.";
-    default:
-      return "Review action failed. Try again or inspect the offer state.";
-  }
-}
 
 function redirectWithReviewResult(params: {
   returnTo: string;
@@ -66,12 +44,12 @@ export async function reviewOfertaLocalAdminAction(formData: FormData): Promise<
   const label = String(formData.get("target_label") ?? "").trim();
   const confirmed = String(formData.get("confirmed") ?? "") === "true";
 
-  if (!id || !ALLOWED_ACTIONS.has(action)) {
+  if (!id || !isOfertaLocalAdminReviewAction(action)) {
     if (returnTo) {
       redirectWithReviewResult({
         returnTo,
         status: "error",
-        action: ALLOWED_ACTIONS.has(action) ? action : "archive",
+        action: isOfertaLocalAdminReviewAction(action) ? action : "archive",
         id: id || "unknown",
         label,
         error: "Invalid review action.",
@@ -87,12 +65,13 @@ export async function reviewOfertaLocalAdminAction(formData: FormData): Promise<
       action,
       id,
       label,
-      error: adminReviewActionMessage("confirmation_required"),
+      error: ofertaReviewErrorMessage("confirmation_required"),
     });
   }
 
+  // One engine for every staff entry point: mutation (all approve gates intact) + audit row + revalidation.
   const supabase = getAdminSupabase();
-  const result = await mutateOfertaLocalAdminReview(supabase, id, action, note || null);
+  const result = await runOfertaLocalAdminReview(supabase, { id, action, note: note || null });
   if (!result.ok) {
     redirectWithReviewResult({
       returnTo,
@@ -100,12 +79,10 @@ export async function reviewOfertaLocalAdminAction(formData: FormData): Promise<
       action,
       id,
       label,
-      error: adminReviewActionMessage(result.error),
+      error: ofertaReviewErrorMessage(result.error),
     });
   }
 
-  revalidatePath("/clasificados/ofertas-locales");
-  revalidatePath("/admin/workspace/clasificados/ofertas-locales");
   redirectWithReviewResult({
     returnTo,
     status: "success",

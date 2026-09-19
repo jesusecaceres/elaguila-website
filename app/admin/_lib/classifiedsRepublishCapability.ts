@@ -1,4 +1,10 @@
 import { isListingRowActiveAndPublishedForBrowse } from "@/app/(site)/clasificados/lib/listingPublicBrowseEligibility";
+import {
+  ADMIN_GENERIC_LIVE_CATEGORIES,
+  isAutosRowLiveRowLevel,
+  isGenericListingPubliclyLive,
+  type AutosLiveRowLike,
+} from "@/app/admin/_lib/adminLivePredicates";
 import { listingPlanFromDetailPairs } from "@/app/(site)/dashboard/lib/dashboardListingMeta";
 
 export type RepublishActionLabelResult = {
@@ -62,9 +68,24 @@ export function canRepublishListingsRow(row: Record<string, unknown>, categoryRa
   return republishCapabilityReasonListings(row, categoryRaw) === null;
 }
 
-/** Matches public browse eligibility for generic `listings` rows (En Venta, Rentas, Clases, Comunidad, …). */
+/**
+ * Matches the PUBLIC reader of the row's own category for generic `listings` rows.
+ *
+ * 2026-09 closeout 2 — for the audited generic categories (Rentas, Bienes Raices, En Venta, Clases,
+ * Comunidad, Mascotas y Perdidos, Busco) this DELEGATES to `isGenericListingPubliclyLive`
+ * (app/admin/_lib/adminLivePredicates.ts), the same predicate Admin Live lists and Admin summary counts
+ * use. Consequences worth knowing for row-action callers: Rentas needs a future `expires_at`
+ * (null = not live); `sold` counts as live for Busco / Mascotas / Clases / Comunidad but not for
+ * En Venta; the Bienes Raices child-parent gate is NOT evaluated here (no parent data in a synchronous
+ * row check — the Admin Live list applies it). Rows without a recognised `category` keep the canonical
+ * active + published + not-expired rule.
+ */
 export function listingsRowIsPublicLive(row: Record<string, unknown>): boolean {
   if (lc(row.status) === "removed") return false;
+  const cat = lc(row.category);
+  if (cat && (ADMIN_GENERIC_LIVE_CATEGORIES as readonly string[]).includes(cat)) {
+    return isGenericListingPubliclyLive(cat, row);
+  }
   return isListingRowActiveAndPublishedForBrowse({
     status: row.status as string | null | undefined,
     is_published: row.is_published as boolean | null | undefined,
@@ -117,8 +138,13 @@ export function republishCapabilityReasonAutos(row: Record<string, unknown>): st
   return null;
 }
 
+/**
+ * Row-level Autos public truth: status active and (Privado) `expires_at` not past. The dealer
+ * child-parent gate needs parent rows and is applied by the Admin Live list / summary
+ * (`isAutosRowPubliclyLive`), not by this synchronous check.
+ */
 export function autosRowIsPublicLive(row: Record<string, unknown>): boolean {
-  return lc(row.status) === "active";
+  return isAutosRowLiveRowLevel({ ...(row as AutosLiveRowLike), status: lc(row.status) });
 }
 
 export function republishCapabilityReasonViajes(row: Record<string, unknown>): string | null {
