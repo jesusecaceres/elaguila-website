@@ -5,6 +5,7 @@ import type { ClasificadosServiciosApplicationState } from "./clasificadosServic
 import type { ServiciosLang } from "./clasificadosServiciosApplicationTypes";
 import { buildServiciosPublishTransportBody } from "./buildServiciosPublishPayload";
 import { resolveServiciosDraftMediaToRemoteUrls } from "./serviciosDraftPublishPrepare";
+import { rememberServiciosDraftListingIdentity } from "./serviciosDraftListingIdentity";
 
 export type ServiciosPublishPersistence = "database" | "dev_workspace" | "none";
 
@@ -109,6 +110,9 @@ export async function postServiciosPublishApi(args: {
       ? sessionStorage.getItem(SERVICIOS_EXISTING_PUBLIC_SLUG_SESSION_KEY) ?? undefined
       : undefined;
 
+  // Fallback chain (pinned by verify-servicios-exec-gate6): explicit arg, then the primed session id.
+  // The draft-bound identity (serviciosDraftListingIdentity) restores that session id when the
+  // Application form re-mounts, so no third source is needed here.
   const existingListingId =
     args.existingListingId?.trim() ||
     (typeof window !== "undefined"
@@ -185,6 +189,14 @@ export async function postServiciosPublishApi(args: {
   // the same row even if the owner renames the business (which changes the slug).
   if (data.ok && data.listingId) {
     primeServiciosExistingListingId(data.listingId);
+    // Bind the canonical identity to the DRAFT so it outlives the Application form re-mounting.
+    if (typeof window !== "undefined") {
+      rememberServiciosDraftListingIdentity(sessionStorage, {
+        listingId: data.listingId,
+        leonixAdId: data.leonixAdId ?? null,
+        slug: data.slug ?? null,
+      });
+    }
   }
 
   return { res, data };

@@ -9,6 +9,7 @@
 import "server-only";
 import {
   getAutosClassifiedsListingById,
+  isAutosListingPayableStatus,
   tryActivateAutosListingAfterPayment,
   tryRenewAutosPrivadoListingAfterPayment,
 } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
@@ -110,7 +111,9 @@ export async function activatePaidAutosPrivadoListingFromRevenueOs(input: {
     return { ok: true, outcome: "already_published", listingId };
   }
 
-  if (row.status !== "pending_payment") {
+  // Any pre-publication status (pending_payment / draft / payment_failed) — see
+  // `tryActivateAutosListingAfterPayment` for why a verified payment must not be refused on `draft`.
+  if (!isAutosListingPayableStatus(row.status)) {
     return {
       ok: false,
       outcome: "unsafe_status",

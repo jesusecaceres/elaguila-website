@@ -8,6 +8,7 @@ export type ClassifiedsOpsKind =
   | "restaurantes"
   | "servicios"
   | "comida_local"
+  | "ofertas_locales"
   | "empleos"
   | "autos"
   | "listings"
@@ -105,6 +106,27 @@ export const CLASSIFIEDS_OPS_CONTRACTS: ClassifiedsCategoryOpsContract[] = [
       return `/clasificados/comida-local/${encodeURIComponent(slug)}?lang=es`;
     },
     buildStaffEditUrl: () => "/publicar/comida-local",
+  },
+  {
+    // Dedicated table `ofertas_locales` (+ `oferta_local_items`); Leonix Ad ID is app-generated `LNX-XXXXXXXX`.
+    // Staff review/approve/reject lives in the queue; ad content is edited via the owner dashboard.
+    slug: "ofertas-locales",
+    displayLabelEs: "Ofertas Locales",
+    displayLabelEn: "Local Offers",
+    opsKind: "ofertas_locales",
+    writableTable: "ofertas_locales",
+    leonixPrefix: "LNX",
+    publicListingsAdminPath: "/admin/workspace/clasificados/ofertas-locales",
+    // No `categorySchema` entry exists for Ofertas Locales, so `/category/ofertas-locales` would 404;
+    // the queue page is the real operating surface, so both hub links resolve to it.
+    fieldsNotesAdminPath: "/admin/workspace/clasificados/ofertas-locales",
+    operationalSpaceAdminPath: "/admin/workspace/clasificados/ofertas-locales",
+    adQueueAdminPath: "/admin/workspace/clasificados/ofertas-locales",
+    buildPublicUrl: (row) => {
+      const id = String(row.id ?? "").trim();
+      return `/clasificados/ofertas-locales/${encodeURIComponent(id)}?lang=es`;
+    },
+    buildStaffEditUrl: () => "/admin/workspace/clasificados/ofertas-locales",
   },
   {
     slug: "empleos",

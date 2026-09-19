@@ -360,6 +360,52 @@ export async function fetchClasificadosCategoryOpsAuditRows(
       continue;
     }
 
+    // Dedicated-table categories whose live predicate is a single status value. Without these
+    // branches the audit falls through to the generic `listings` category probe, which reads the
+    // wrong table (Ofertas Locales / Comida Local rows never live in `listings`).
+    const dedicatedStatusTables: Record<string, { table: string; column: string; live: string }> = {
+      "ofertas-locales": { table: "ofertas_locales", column: "status", live: "approved" },
+      "comida-local": { table: "comida_local_public_listings", column: "status", live: "published" },
+    };
+    const dedicated = dedicatedStatusTables[slug];
+    if (dedicated) {
+      const { table, column, live } = dedicated;
+      row.sourceTableOrSystem = table;
+      const { count, error } = await supabase.from(table).select("id", { count: "exact", head: true });
+      if (error) {
+        pushReason(row, `Query ${table} failed: ${error.message}`);
+        row.rowCount = null;
+      } else {
+        row.rowCount = typeof count === "number" ? count : 0;
+        row.canLoadPublishedListings = true;
+        row.canSearchFilterListings = true;
+        row.canOpenPublicListingLink = true;
+        row.canModerateOrStatusManage = true;
+        // Admin can review/change lifecycle status here, not edit ad content (owner dashboard does that).
+        row.canEditAdInAdmin = false;
+        pushReason(row, `${slug}: staff can review / change status in the Admin queue; ad content is edited through the owner dashboard, not Admin.`);
+      }
+      await auditDedicatedLeonix(
+        supabase,
+        row,
+        table,
+        `${column}=${live}`,
+        async () => {
+          const r = await supabase.from(table).select("id", { count: "exact", head: true }).eq(column, live);
+          return { count: r.count, error: r.error };
+        },
+        async () => {
+          const [a, b] = await Promise.all([
+            supabase.from(table).select("id", { count: "exact", head: true }).eq(column, live).is("leonix_ad_id", null),
+            supabase.from(table).select("id", { count: "exact", head: true }).eq(column, live).eq("leonix_ad_id", ""),
+          ]);
+          return { n0: a.count ?? 0, n1: b.count ?? 0, error: a.error ?? b.error };
+        },
+      );
+      out.push(row);
+      continue;
+    }
+
     if (slug === "travel") {
       row.sourceTableOrSystem = "viajes_staged_listings (approved + is_public = live catalog)";
       const { count, error } = await supabase.from("viajes_staged_listings").select("id", { count: "exact", head: true });

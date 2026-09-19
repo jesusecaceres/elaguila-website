@@ -34,6 +34,10 @@ export async function POST(request: Request, { params }: Props) {
   const { id } = await params;
 
   const row = await getAutosClassifiedsListingById(id);
+  if (row && row.owner_user_id === userId && row.suspended_reason) {
+    // Staff moderation (suspend / remove-public) is not owner-reversible; only Admin can restore it.
+    return NextResponse.json({ ok: false, error: "suspended_by_staff" }, { status: 403 });
+  }
   if (row && String(row.lane) === "negocios") {
     const role = String(row.inventory_role ?? "").trim().toLowerCase();
     const parentListingId =

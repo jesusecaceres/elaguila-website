@@ -67,6 +67,15 @@ export async function POST(request: Request) {
   });
 
   if (!verified.ok) {
+    // These rejections happen BEFORE claimStripeEvent, so they never reach the event ledger and
+    // Vercel shows only the status code. Log the sanitized reason (code + status + whether a
+    // signature header was present — never a header value, body, key or secret) so a 503 from a
+    // missing STRIPE_WEBHOOK_SECRET is attributable in runtime logs (2026-09-18 forensic).
+    console.error("[revenue-os webhook] rejected before ledger", {
+      code: verified.code,
+      status: verified.status,
+      signaturePresent: Boolean(signature),
+    });
     return NextResponse.json({ ok: false, code: verified.code }, { status: verified.status });
   }
 
