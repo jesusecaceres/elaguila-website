@@ -112,3 +112,12 @@ applied**: the production table has `payment_status`, `published_at`, `expires_a
 the subscription payment-suspension engine cannot record `suspended_reason='payment'` for Comida Local rows, and the new Admin Comida Local
 suspend/restore route (which stamps `moderation`/reads `payment`) reports a clear "schema migration required" error instead of guessing.
 Comida Local currently has 0 rows. Safe to apply as written (idempotent, nullable, no backfill).
+
+## 8. Superseded by `FINAL_DB_MIGRATIONS_PROPOSED_2026-09.md` (added 2026-09-18, Gate 6 — still NOT APPLIED)
+
+Final, idempotent, transaction-wrapped proposals with rollbacks and branch-DB tests are in `docs/admin-os/proposed-migrations/`
+(`20260920120000` … `20260920124000`). They replace §1 (guard trigger — the version above could be laundered via `pending → paused → active` and
+`flagged → removed → …`) and §3 (unique index — production duplicate count re-verified = 0; the publish route needs a small code change first).
+New production findings since this file was written: both capacity RPCs (`br_negocio_activate_listing`, `autos_dealer_activate_listing`) are
+SECURITY DEFINER, take a caller-supplied owner id and are EXECUTE-able by `anon` and `authenticated` in production (ACL drift from the authoring
+migration's "service_role only" intent); `listing_lifecycle_reminder_events` also grants TRUNCATE to `anon`/`authenticated`. §4 is now migration #2 there.

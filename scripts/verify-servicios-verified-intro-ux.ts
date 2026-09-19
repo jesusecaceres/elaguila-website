@@ -147,6 +147,11 @@ check("⚠️26/⚠️29 NO commercial change: Revenue OS, listingPlans and supa
     "app/lib/listingPlans/revenueFulfillment.ts",
     // client display type only (no authority) — carries the server-derived term to the summary
     "app/lib/listingPlans/revenueCategoryCheckoutClient.ts",
+    // 2026-09 final paid/free defect closeout (D4 / D9): activation-STATUS fixes in the Restaurantes and BR Negocio fulfilment
+    // (archived is no longer activatable; a paused / expired Negocio parent is a terminal non-retried outcome). No pricing,
+    // discount or eligibility authority - the verified-intro / pricing files stay pinned by introAuthorityTouches below.
+    "app/lib/listingPlans/revenueRestaurantFulfillment.ts",
+    "app/lib/listingPlans/revenueBienesNegocioFulfillment.ts",
   ]);
   const protectedTouches = [...changed, ...untracked].filter(
     (f) =>

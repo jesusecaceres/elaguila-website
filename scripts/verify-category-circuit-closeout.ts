@@ -107,11 +107,14 @@ async function main() {
     assert.match(r, /viajes_checkout_not_available/);
     assert.ok(r.indexOf("viajes_checkout_not_available") < r.indexOf("createPendingPaymentRecord({"));
   });
-  await check("client: no-recharge codes surface as an honest saved-changes message, not a generic error", () => {
+  await check("client: no-recharge codes surface as an honest no-second-charge message, not a generic error", () => {
     const c = raw("app/lib/listingPlans/revenueCategoryCheckoutClient.ts");
     assert.match(c, /active_entitlement_no_recharge/);
     assert.match(c, /already_published_no_recharge/);
-    assert.match(c, /Tus cambios se guardaron/);
+    // D10 (2026-09 final defect closeout): the copy no longer claims "Tus cambios se guardaron" - a no-recharge /
+    // payment-in-progress refusal proves nothing was charged, not that anything was saved. See verify-final-paid-defects.ts.
+    assert.match(c, /No se inició ningún cobro/);
+    assert.doesNotMatch(c, /Tus cambios se guardaron/);
   });
 
   // ── no client write may activate a non-live paid/moderated row ──────────────────────────────

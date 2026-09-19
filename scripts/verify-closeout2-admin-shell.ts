@@ -683,7 +683,9 @@ async function main() {
     const src = strip(raw(P.queuePage));
     assert.match(src, /categoryName=\{categoryName\}/);
     assert.match(src, /scope=\{scope === "live" \? "live" : "queue"\}/);
-    assert.match(src, /fetchAdminCategorySummary\(categorySlug\)/);
+    // FINAL NORMALIZATION (Gate 4): Bienes Raices gained a Negocio / Privado lane selector, so the summary call may carry
+    // `{ lane }` (lane-scoped counts). Every other category still calls it with the slug only.
+    assert.match(src, /fetchAdminCategorySummary\(categorySlug(?:, brLane !== "all" \? \{ lane: brLane \} : undefined)?\)/);
     assert.match(src, /<AdminCategorySummaryPanel/);
     assert.match(src, /<AdminCategoryFilterBar/);
     assert.match(src, /adminStatusOptionsForCategory\(categorySlug\)/);

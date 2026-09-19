@@ -565,9 +565,9 @@ async function main() {
     assert.match(src, /"verify_on"/);
   });
 
-  await check("canonical route: cookie auth via requireAdminCookie, NO lifecycle logic of its own — delegates to the shared function (audit + preconditions live there)", () => {
+  await check("canonical route: identity-verified admin session (isVerifiedAdminSession), NO lifecycle logic of its own — delegates to the shared function (audit + preconditions live there)", () => {
     const src = strip(raw(P.idRoute));
-    assert.match(src, /requireAdminCookie\(jar\)/);
+    assert.match(src, /isVerifiedAdminSession\(jar\)/);
     assert.match(src, /runEmpleosStaffAction\(/);
     assert.ok(!/\.update\(/.test(src) && !/lifecycle_status\s*=/.test(src), "no update / status writes in the route");
     assert.ok(!/from\("empleos_public_listings"\)/.test(src));
@@ -579,9 +579,9 @@ async function main() {
     assert.ok(!/payment_status:\s*"paid"|\.insert\(|\.upsert\(/.test(server), "never writes or fabricates payment truth");
   });
 
-  await check("legacy /moderate route is a thin delegate: requireAdminCookie, same shared function, no second lifecycle writer", () => {
+  await check("legacy /moderate route is a thin delegate: isVerifiedAdminSession, same shared function, no second lifecycle writer", () => {
     const src = strip(raw(P.moderateRoute));
-    assert.match(src, /requireAdminCookie\(jar\)/);
+    assert.match(src, /isVerifiedAdminSession\(jar\)/);
     assert.match(src, /runEmpleosStaffAction\(/);
     assert.match(src, /legacyEmpleosStatusToAction\(/);
     assert.ok(!/updateEmpleosListingLifecycleAdmin/.test(src), "no direct lifecycle writer");
@@ -594,7 +594,7 @@ async function main() {
   await check("list API: status / owner / Leonix Ad ID / lane / q run in ONE predicate BEFORE the row limit; commercial + publication truth returned with the rows", () => {
     const src = raw(P.listRoute);
     const built = src.indexOf("rowFilter = (r) =>");
-    const fetched = src.indexOf("fetchAllEmpleosListingsForAdmin({ limit, scope, rowFilter })");
+    const fetched = src.indexOf("fetchAllEmpleosListingsForAdminDetailed({");
     assert.ok(built > 0 && fetched > built, "filter built before the fetch (the limit applies after filtering)");
     assert.ok(!/rows = rows\.filter\(\(r\) => \{\s*const job = rowToJobRecord/.test(src), "old post-limit search filter is gone");
     for (const p of ["statusFilter", "ownerFilter", "leonixAdIdFilter", "laneFilter", "adminRowMatchesOwnerFilter", "adminRowMatchesLeonixAdIdFilter"]) assert.ok(src.includes(p), p);
@@ -603,7 +603,7 @@ async function main() {
     assert.match(src, /loadAdminListingCommercialTruth\(\{ category: "empleos"/);
     assert.match(src, /classifyPublication\("empleos_public_listings"/);
     assert.match(src, /restore_blocked_reason: empleosStaffRestoreBlockedReason/);
-    assert.match(src, /NextResponse\.json\(\{ ok: true, rows: enriched, commercial \}\)/);
+    assert.match(src, /NextResponse\.json\(\{ ok: true, rows: enriched, commercial, scan_capped: listed\.scanCapped, limit \}\)/);
     // applications intelligence preserved
     assert.match(src, /fetchEmpleosApplicationHealthByListingIds\(ids\)/);
     assert.match(src, /application_health: health\.get\(r\.id\)/);

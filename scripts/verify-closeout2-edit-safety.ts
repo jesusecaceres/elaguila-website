@@ -287,7 +287,10 @@ async function main() {
     assert.notEqual(dk.getOrCreateRealEstateDraftKey(st, { ...scope, category: "rentas" }), k1);
     assert.equal(dk.sanitizeRealEstateDraftKey("../../etc"), null);
     assert.equal(dk.getOrCreateRealEstateDraftKey(null, scope), null);
-    dk.clearRealEstateDraftKey(st, scope);
+    // Final identity closeout: clearing now REQUIRES an allowed terminal reason (a reasonless / back / retry clear is a no-op).
+    assert.equal(dk.clearRealEstateDraftKey(st, scope, "retry" as never), false);
+    assert.equal(dk.getOrCreateRealEstateDraftKey(st, scope), k1, "retry must not clear the key");
+    dk.clearRealEstateDraftKey(st, scope, "application_draft_cleared");
     assert.notEqual(dk.getOrCreateRealEstateDraftKey(st, scope), k1, "cleared draft gets a new key");
   });
   await check("draft key: written top-level in listing_json (survives br_publish/rentas_publish rebuilds); lookup order key -> id -> title", () => {

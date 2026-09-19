@@ -475,7 +475,7 @@ async function main() {
     assert.match(fn, /republish_sort_at/, "schema-drift fallback preserved");
     assert.ok(!/\.limit\(cap\)/.test(fn), "no bare limit before filtering");
     const r = raw("app/api/admin/empleos/listings/route.ts");
-    assert.ok(r.indexOf("rowFilter = (r) =>") < r.indexOf("fetchAllEmpleosListingsForAdmin({ limit, scope, rowFilter })"), "filter built before the fetch");
+    assert.ok(r.indexOf("rowFilter = (r) =>") < r.indexOf("fetchAllEmpleosListingsForAdminDetailed({"), "filter built before the fetch");
     assert.ok(!/rows = rows\.filter\(\(r\) => \{\s*const job = rowToJobRecord/.test(r), "old post-limit search filter is gone");
   });
   await check("travel: q applied in the data layer before the row cap (pure matcher + windowed scan), live stays SQL", () => {

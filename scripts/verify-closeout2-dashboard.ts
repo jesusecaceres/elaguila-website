@@ -343,7 +343,9 @@ async function main() {
   // ── Viajes count/list parity (source guards) ────────────────────────────────────────────────
   await check("viajes: list and tab-count BOTH count every owner row (neither filters is_public)", () => {
     const inventory = raw(`${P}/lib/dashboardInventory.ts`);
-    const listFn = fnBody(inventory, "fetchOwnerViajesListings");
+    // Gate 2 (2026-09 dashboard state machine): the select moved into `readOwnerViajesListings` (the read that
+    // returns its outcome so a failed read is not rendered as "no listings"); `fetchOwnerViajesListings` is a thin wrapper.
+    const listFn = fnBody(inventory, "readOwnerViajesListings");
     assert.match(listFn, /\.from\("viajes_staged_listings"\)/);
     assert.match(listFn, /\.eq\("owner_user_id", ownerId\)/);
     assert.doesNotMatch(listFn.replace(/\/\/[^\n]*/g, ""), /\.eq\("is_public"/, "list must not hide non-public staged rows");
@@ -418,7 +420,10 @@ async function main() {
     assert.match(s, /startPendingPayment\("clases", x\.id, x\.leonix_ad_id\)/);
     assert.match(s, /startPendingPayment\("empleos", item\.id, item\.leonixAdId\)/);
     assert.match(s, /resumeRestaurantePayment\(item\.id, "checkout"\)/);
-    assert.match(s, /\{genericNotLive \? null : \(/, "generic card hides 'View public' while not live");
+    // Gate 2 (2026-09 dashboard state machine): the pre-publication-only `genericNotLive` gate became the full public-truth gate
+    // (`genericPublicLinkOk` = dashboardOwnerActionPlan().viewPublic, which also hides paused / expired / term-elapsed / removed rows).
+    // Still asserts the unpaid case: a pending row can never resolve a public link (executable in verify-final-dashboard-state-machine.ts).
+    assert.match(s, /\{!genericPublicLinkOk \? null : \(/, "generic card hides 'View public' while not live");
     assert.match(s, /data-testid="mis-anuncios-attention-complete-payment"/);
     // Bienes Negocio has no pay wiring anywhere in the dashboard
     assert.doesNotMatch(s, /startPendingPayment\("bienes-raices-negocio/);
@@ -429,8 +434,10 @@ async function main() {
     const s = raw(`${P}/components/LeonixRealEstateListingManageCard.tsx`);
     assert.match(s, /const notLive = isSharedListingsRowNotLive\(row\);/);
     assert.match(s, /onCompletePayment && notLive && awaitingPaymentLane/);
-    assert.match(s, /\{notLive \? null : \(\s*<Link\s+href=\{publicViewHref\}/);
-    assert.match(s, /brDashboardPreviewHref && !\(notLive && effectiveBranch === "bienes_raices_privado"\)/);
+    // Gate 2: the gate widened from "not pre-publication" to the REAL public state (`liveState.linkResolves`: term / rented / BR parent
+    // gate). `notLive` still drives the pending chip + payment button asserted above. A pending row is never `linkResolves`.
+    assert.match(s, /\{!liveState\.linkResolves \? null : \(\s*<Link\s+href=\{publicViewHref\}/);
+    assert.match(s, /brDashboardPreviewHref && !\(\(notLive \|\| !liveState\.linkResolves\) && effectiveBranch === "bienes_raices_privado"\)/);
     assert.match(s, /data-testid="listing-not-live-status"/);
     assert.match(s, /dashboardAwaitingPaymentLabel\(lang\)/);
   });
@@ -439,17 +446,21 @@ async function main() {
     const sec = raw("app/(site)/clasificados/autos/dashboard/AutosDealerInventoryDashboardSection.tsx");
     assert.match(sec, /isAutosPrivadoAwaitingPayment\(\{ lane: row\.lane, status: row\.status \}\)/);
     assert.match(sec, /startDashboardResumePayment\(\{ lane: "autos-privado", listingId: id, leonixAdId, lang \}\)/);
-    assert.match(sec, /if \(row\.status === "active" && isLiveCapability\(privadoCaps\.identity\.publicView\)\)/, "public view still active-only");
+    // Gate 2: "View public" was `status === "active"` only; a Privado row past its fixed term stays `active` but has no public page, so it now
+    // needs the public predicate (`dashboardViewPublicAllowed("autos", row)` -> isAutosRowPubliclyLive). draft / pending_payment / payment_failed
+    // are still never public (executable in verify-final-dashboard-state-machine.ts).
+    assert.match(sec, /dashboardViewPublicAllowed\("autos", row\) && isLiveCapability\(privadoCaps\.identity\.publicView\)/, "public view needs the public predicate");
     assert.match(sec, /autosPrivadoPreviewHref\(row\.id\)/, "Preview stays");
     const card = raw("app/(site)/clasificados/autos/dashboard/AutosClassifiedListingManageCard.tsx");
-    assert.match(card, /const notLive = isPrePublicationStatus\(row\.status\);/);
+    assert.match(card, /const notLive = isPrePublicationStatus\(row\.status\) \|\| !publicViewAllowed;/);
     assert.match(card, /\{notLive \? null : \(/);
   });
 
   await check("listing workspace (/dashboard/mis-anuncios/[id]): unpaid row = 'Pago pendiente' + Completar pago; no public link until live", () => {
     const s = raw(`${P}/mis-anuncios/[id]/page.tsx`);
     assert.match(s, /const rowNotLive = row \? isSharedListingsRowNotLive\(row\) : false;/);
-    assert.match(s, /row && !rowNotLive \? \[\{ href: publicListingHref/);
+    // Gate 2: `!rowNotLive` (pre-publication only) -> `wsViewPublic` (the public predicate incl. term + BR parent gate).
+    assert.match(s, /row && wsViewPublic \? \[\{ href: publicListingHref/);
     assert.match(s, /startDashboardResumePayment\(\{\s*lane: unpaidPayLane,/);
     assert.match(s, /statusLabel: unpaidPayLane \? dashboardAwaitingPaymentLabel\(lang\)/);
     assert.doesNotMatch(code(`${P}/mis-anuncios/[id]/page.tsx`), /BIENES_RAICES_NEGOCIO_CHECKOUT|startRevenueCategoryCheckout/);
@@ -468,7 +479,12 @@ async function main() {
       assert.match(s, /isEmpleosDraftAwaitingPayment\(/, f);
       assert.match(s, /startDashboardResumePayment\(\{\s*lane: "empleos"/, f);
       assert.match(s, /dashboardAwaitingPaymentLabel\(lang\)/, f);
-      assert.match(s, /\(r?o?w?\.?lifecycle_status === "draft" && (r|row)\.lane === "feria"\)/, `${f}: only Feria drafts may still 'resume'`);
+      // Gate 2 (2026-09 dashboard state machine): the literal Feria-only condition was replaced by
+      // `dashboardEmpleosOwnerTransitions` (which calls the SAME `resolveEmpleosOwnerTransition` the PATCH route runs), so
+      // the paid-draft 'Resume' stays hidden AND a staff-held / never-live archive is never offered a dead Reactivate.
+      // The behavior is executable in scripts/verify-final-dashboard-state-machine.ts (paid draft, feria draft, staff hold, archive matrix).
+      assert.match(s, /dashboardEmpleosOwnerTransitions\(/, `${f}: resume/pause/archive come from the server transition policy`);
+      assert.match(s, /empleosTransitions\.resume/, `${f}: 'Resume' is gated by the transition policy (paid drafts never resume)`);
     }
   });
 

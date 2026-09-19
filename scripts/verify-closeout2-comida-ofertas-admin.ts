@@ -180,8 +180,10 @@ async function main() {
 
   // ═══ COMIDA LOCAL — the one mover, against a fake client ════════════════════════════════════════
   type DbRow = Record<string, unknown>;
-  const comidaDb = (r: DbRow | null, opts: { updateRows?: number; readError?: boolean; updateError?: string } = {}) =>
+  const comidaDb = (r: DbRow | null, opts: { updateRows?: number; readError?: boolean; updateError?: string; entitlements?: DbRow[] } = {}) =>
     fakeClient((table, calls) => {
+      // Gate 5: Restore / Republish also READ the base-package entitlement evidence (read-only; never written).
+      if (table === "listing_package_entitlements") return { data: opts.entitlements ?? [] };
       assert.equal(table, "comida_local_public_listings");
       if (calls.some(([m]) => m === "update")) {
         if (opts.updateError) return { error: { message: opts.updateError } };
@@ -214,7 +216,8 @@ async function main() {
     assert.ok(res.ok && res.fromStatus === "paused" && res.toStatus === "published");
     const upd = db.seen.filter((s) => callsOf(s.calls, "update").length);
     assert.equal(upd.length, 1);
-    assert.deepEqual(Object.keys(updatePayload(upd[0].calls)!).sort(), ["status", "updated_at"]);
+    // Final closeout: republish also clears the staff-archive marker (suspended_reason 'staff_archived') so the row is not left held.
+    assert.deepEqual(Object.keys(updatePayload(upd[0].calls)!).sort(), ["status", "suspended_reason", "updated_at"]);
     assert.ok(has(upd[0].calls, "eq", "status", "paused"), "CAS on the status the decision was made against");
     assert.ok(has(upd[0].calls, "eq", "id", UUID(1)));
   });
@@ -273,7 +276,7 @@ async function main() {
     const text = fakeClient(() => ({ data: [] }));
     await queries.listAdminComidaLocalListingsDetailed(text.client, { q: "COMIDA-2026-000001" });
     const orArg = String(callsOf(text.seen[0].calls, "or")[0][1][0]);
-    assert.match(orArg, /leonix_ad_id\.ilike\.%COMIDA-2026-000001%/);
+    assert.match(orArg, /leonix_ad_id\.ilike\."?%COMIDA-2026-000001%"?/);
     assert.ok(!/id\.eq\./.test(orArg), "free text is never .eq on a uuid column");
     const uu = fakeClient(() => ({ data: [] }));
     await queries.listAdminComidaLocalListingsDetailed(uu.client, { q: UUID(9) });
@@ -343,7 +346,7 @@ async function main() {
     assert.ok(!/updateAdminComidaLocalListingStatus/.test(strip(raw(P.comidaQueries))), "the raw writer is gone");
     const route = strip(raw(P.comidaRoute));
     assert.match(route, /export async function PATCH/);
-    assert.match(route, /requireAdminCookie\(jar\)/);
+    assert.match(route, /isVerifiedAdminSession\(jar\)/);
     assert.match(route, /appendAdminAuditLog\(/);
     assert.match(route, /revalidatePath\("\/clasificados\/comida-local"\)/);
     assert.match(route, /applyAdminComidaLocalAction\(/);
@@ -585,7 +588,7 @@ async function main() {
     assert.match(act, /confirmed/);
     const route = strip(raw(P.ofertasRoute));
     assert.match(route, /export async function PATCH/);
-    assert.match(route, /requireAdminCookie\(jar\)/);
+    assert.match(route, /isVerifiedAdminSession\(jar\)/);
     assert.match(route, /body\?\.confirmed !== true/);
     assert.match(route, /runOfertaLocalAdminReview\(/);
     const legacy = strip(raw(P.ofertasLegacyRoute));

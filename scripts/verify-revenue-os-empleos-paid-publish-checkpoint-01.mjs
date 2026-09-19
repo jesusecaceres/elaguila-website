@@ -103,7 +103,9 @@ if (quickApp.includes("EmpleosPublishConfirmModal") || premiumApp.includes("Empl
 if (!quickApp.includes("onPublicar={goPreview}") || !premiumApp.includes("onPublicar={goPreview}")) {
   fail("Paid application Publicar must route to preview");
 }
-if (!feriaApp.includes("EmpleosPublishConfirmModal") || !feriaApp.includes('mode: "publish"')) {
+// F7 (2026-09 final defect closeout): the feria client has ONE save path (saveFeriaEnvelope) that reuses the remembered row
+// id, so the publish mode is passed as an argument instead of a literal in the fetch body.
+if (!feriaApp.includes("EmpleosPublishConfirmModal") || !feriaApp.includes('saveFeriaEnvelope(data.session.access_token, "publish")')) {
   fail("Feria must keep free confirm + publish path");
 }
 if (feriaApp.includes("saveEmpleosDraftAndStartPaidJobCheckout") || feriaApp.includes("startRevenueCategoryCheckout")) {

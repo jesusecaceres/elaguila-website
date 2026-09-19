@@ -236,7 +236,9 @@ async function main() {
 
   await check("Travel: q is passed INTO fetchViajesStagedAdminQueue (runs before the cap); limit applied last", () => {
     const s = strip(src(P.travel));
-    assert.match(s, /fetchViajesStagedAdminQueue\(\{[\s\S]*limit: scan\.fetchLimit[\s\S]*q: sqlSearch/);
+    // FINAL NORMALIZATION (Gate 3): the page calls the Detailed form (read errors + scan cap reported); q rides the scan,
+    // status / owner UUID / Leonix Ad ID are SQL predicates (see scripts/verify-final-admin-filters.ts).
+    assert.match(s, /fetchViajesStagedAdminQueue(?:Detailed)?\(\{[\s\S]*limit: scan\.fetchLimit[\s\S]*q: filters\.q/);
     assert.ok(!/const n = qRaw\.toLowerCase\(\)/.test(s), "the post-limit in-memory q search is gone");
     assert.ok(!/rows\.filter\(\(r\) => \{\s*const n/.test(s));
     const idxFilter = s.indexOf("adminRowMatchesLeonixAdIdFilter(r, filters.leonixAdId)");
@@ -285,7 +287,9 @@ async function main() {
     const data = strip(src(P.serviciosData));
     assert.match(data, /if \(statusFilter\) q = q\.eq\("listing_status", statusFilter\);/, "status is applied inside the shared query builder (before .limit)");
     assert.match(data, /ilike\("leonix_ad_id"/);
-    assert.match(data, /if \(statusFilter\) return \{ rows: \[\], fullSchema: false, unavailable: false \}/, "reduced schema never returns unfiltered rows for a status filter");
+    // FINAL NORMALIZATION (Gate 3): reduced schema still never returns unfiltered rows for a status / Live filter, and now
+    // REPORTS it (unavailable + readError) instead of returning an empty list that reads as "no results".
+    assert.match(data, /if \(statusFilter \|\| opts\.scope === "live"\) \{[\s\S]{0,240}unavailable: true/, "reduced schema never returns unfiltered rows for a status filter");
     // .limit(limit) stays the LAST op of every row query
     assert.ok(!/\.limit\(limit\)\.eq\(/.test(data));
   });
@@ -389,8 +393,10 @@ async function main() {
     assert.match(src(P.serviciosCard), /republishCategory="servicios"/);
     // additive: the exact-field paths and legacy fallbacks of the data functions are still there
     assert.match(src(P.serviciosData), /Reduced-schema mode|reduced-schema mode|leg\.error/);
-    assert.match(src(P.serviciosData), /rowQuery\.eq\("slug", slug\)/);
-    assert.match(src(P.restaurantesData), /rowQuery\.eq\("slug", slug\)/);
+    // FINAL NORMALIZATION (Gate 3): the exact-field filters live in the shared qb() builder now (they used to be an early-return
+    // path that silently dropped q), so they intersect with q on every path.
+    assert.match(src(P.serviciosData), /if \(slug\) q = q\.eq\("slug", slug\)/);
+    assert.match(src(P.restaurantesData), /if \(slug\) q = q\.eq\("slug", slug\)/);
   });
 
   await check("line endings preserved: every edited CRLF file is still pure CRLF (no mixed / lone LF)", () => {

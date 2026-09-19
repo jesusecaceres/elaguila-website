@@ -104,8 +104,11 @@ assert.ok(myListingSrc.includes('if (!token && !isAssistedRequest) {') && myList
 // header + extract the existing footer's step-transition handlers into named callbacks — no new
 // field, no new persistence call, no duplicate application. See
 // verify-p0-assisted-servicios-navigation-01.ts for the dedicated proof of that boundary.
+// 2026-09 final paid/free defect closeout (D1/F2, later explicitly-authorized): app/api/clasificados/restaurantes/publish/route.ts
+// now refuses a NEW row that is not the pre-checkout pending_payment row (402 payment_required). That is a server-side payment
+// gate only - no assisted-publishing adapter, no duplicate application - so it is intentionally no longer in this "untouched"
+// list. scripts/verify-final-paid-defects.ts re-proves the change.
 for (const f of [
-  "app/api/clasificados/restaurantes/publish/route.ts",
   "app/(site)/clasificados/restaurantes/preview/RestaurantePreviewClient.tsx",
 ]) {
   assert.ok(!allTouched.includes(f), `${f} was not touched — no duplicate application, and the Restaurantes adapter gap (Gate 9) is reported, not silently half-built`);

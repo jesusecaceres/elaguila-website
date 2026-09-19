@@ -125,8 +125,10 @@ for (const f of PER_CATEGORY_LAYOUTS) {
 // strict bearer-token / Revenue OS checkout gates inside that file are still fully intact,
 // byte-identical in shape, only additively bypassed when a server-verified assisted context is
 // present. Restaurantes and the shared bearer-auth helper remain untouched by either mission.
+// 2026-09 final paid/free defect closeout (D1/F2, later explicitly-authorized): restaurantes/publish/route.ts gained ONLY a
+// 402 payment_required guard for a NEW row without activation_mode:"pending_payment" - its bearer / ownership enforcement is
+// unchanged (proved by scripts/verify-final-paid-defects.ts), so it is no longer in this "untouched" list.
 for (const f of [
-  "app/api/clasificados/restaurantes/publish/route.ts",
   "app/api/clasificados/servicios/lib/serviciosPublishServerAuth.ts",
 ]) {
   assert.ok(!allTouched.includes(f), `${f} (real publish-time customer auth enforcement) was not touched — unweakened, unchanged`);
