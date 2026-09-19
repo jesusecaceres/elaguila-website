@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 import {
   getAdvertiseDropdownCopy,
   getAdvertiseDropdownOptions,
@@ -27,17 +34,21 @@ function cx(...classes: Array<string | false | null | undefined>) {
 
 const TRIGGER_CLASS: Record<AdvertiseDropdownVariant, string> = {
   outline:
-    "inline-flex min-h-[2.875rem] items-center justify-center gap-1.5 rounded-full border-2 border-[#7A1E2C]/85 bg-[#FFFDF7] px-8 py-2.5 text-sm font-bold text-[#7A1E2C] transition hover:border-[#7A1E2C] hover:bg-[#FBF7EF] sm:text-[0.9375rem]",
+    "inline-flex min-h-[2.875rem] items-center justify-center gap-1.5 rounded-full border-2 border-[#7A1E2C]/85 bg-[#FFFDF7] px-8 py-2.5 text-sm font-bold text-[#7A1E2C] transition hover:border-[#7A1E2C] hover:bg-[#FBF7EF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A1E2C] sm:text-[0.9375rem]",
   primary:
-    "inline-flex min-h-[2.875rem] items-center justify-center gap-1.5 rounded-full bg-[#7A1E2C] px-8 py-2.5 text-sm font-bold text-[#FFFDF7] shadow-[0_10px_28px_-10px_rgba(122,30,44,0.5)] transition hover:bg-[#5e1721]",
+    "inline-flex min-h-[2.875rem] items-center justify-center gap-1.5 rounded-full bg-[#7A1E2C] px-8 py-2.5 text-sm font-bold text-[#FFFDF7] shadow-[0_10px_28px_-10px_rgba(122,30,44,0.5)] transition hover:bg-[#5e1721] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A1E2C]",
   onDark:
-    "inline-flex min-h-[2.75rem] items-center justify-center gap-1.5 rounded-full border-2 border-[#C9A84A]/60 bg-transparent px-6 py-2 text-sm font-bold text-[#F8F4EA] transition hover:bg-[#C9A84A]/15",
+    "inline-flex min-h-[2.75rem] items-center justify-center gap-1.5 rounded-full border-2 border-[#C9A84A]/60 bg-transparent px-6 py-2 text-sm font-bold text-[#F8F4EA] transition hover:bg-[#C9A84A]/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A84A]",
   navbar:
-    "inline-flex shrink-0 min-h-[2rem] items-center justify-center gap-1 rounded-full bg-[#7A1E2C] px-3 py-1.5 text-[0.7rem] font-bold text-[#FFFDF7] shadow-[0_3px_10px_-3px_rgba(122,30,44,0.55)] transition-colors hover:bg-[#5e1721] sm:min-h-[2.125rem] sm:px-3.5 sm:text-xs",
+    "inline-flex shrink-0 min-h-[2rem] items-center justify-center gap-1 rounded-full bg-[#7A1E2C] px-3 py-1.5 text-[0.7rem] font-bold text-[#FFFDF7] shadow-[0_3px_10px_-3px_rgba(122,30,44,0.55)] transition-colors hover:bg-[#5e1721] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A1E2C] sm:min-h-[2.125rem] sm:px-3.5 sm:text-xs",
 };
 
+/**
+ * Gate HOME-LAUNCH-1 — menu stays inside the viewport: capped height with internal scroll,
+ * never wider than the viewport, and stacked above page chrome.
+ */
 const MENU_CLASS =
-  "absolute top-full z-[60] mt-1 min-w-[14rem] overflow-visible rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] py-1 shadow-[0_12px_32px_rgba(31,36,28,0.18)]";
+  "absolute top-full z-[60] mt-1 max-h-[min(70vh,24rem)] w-max min-w-[14rem] max-w-[calc(100vw-1.5rem)] overflow-y-auto overflow-x-hidden rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] py-1 shadow-[0_12px_32px_rgba(31,36,28,0.18)]";
 
 const ITEM_CLASS =
   "block whitespace-nowrap px-4 py-2.5 text-sm text-[#3D3428] hover:bg-[#FBF7EF] hover:text-[#7A1E2C] focus-visible:bg-[#FBF7EF] focus-visible:text-[#7A1E2C] focus-visible:outline-none";
@@ -55,6 +66,8 @@ export function AdvertiseDropdown({
   const options = getAdvertiseDropdownOptions(lang);
   const menuId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
 
   const close = useCallback(() => setOpen(false), []);
@@ -71,17 +84,49 @@ export function AdvertiseDropdown({
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
+      if (e.key === "Escape") {
+        close();
+        triggerRef.current?.focus();
+      }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [open, close]);
+
+  // Move focus into the menu when opened so keyboard users can reach the items.
+  useEffect(() => {
+    if (!open) return;
+    const first = menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]');
+    first?.focus();
+  }, [open]);
+
+  const onMenuKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    const items = Array.from(menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []);
+    if (!items.length) return;
+    const current = items.indexOf(document.activeElement as HTMLElement);
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      items[(current + 1 + items.length) % items.length]?.focus();
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      items[(current - 1 + items.length) % items.length]?.focus();
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      items[0]?.focus();
+    } else if (e.key === "End") {
+      e.preventDefault();
+      items[items.length - 1]?.focus();
+    } else if (e.key === "Tab") {
+      close();
+    }
+  };
 
   const label = buttonLabel ?? copy.button;
 
   return (
     <div ref={rootRef} className={cx("relative", fullWidth && "w-full", className)}>
       <button
+        ref={triggerRef}
         type="button"
         className={cx(TRIGGER_CLASS[variant], fullWidth && "w-full")}
         aria-expanded={open}
@@ -89,6 +134,12 @@ export function AdvertiseDropdown({
         aria-controls={menuId}
         aria-label={buttonLabel ? copy.button : undefined}
         onClick={() => setOpen((v) => !v)}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowDown" && !open) {
+            e.preventDefault();
+            setOpen(true);
+          }
+        }}
       >
         <span>{label}</span>
         <span className="text-[0.6rem] leading-none opacity-80" aria-hidden>
@@ -99,15 +150,18 @@ export function AdvertiseDropdown({
       {open ? (
         <div
           id={menuId}
+          ref={menuRef}
           role="menu"
           aria-label={copy.menuAria}
           className={cx(MENU_CLASS, align === "right" ? "right-0" : "left-0")}
+          onKeyDown={onMenuKeyDown}
         >
           {options.map((option) => (
             <Link
               key={option.id}
               href={option.href}
               role="menuitem"
+              tabIndex={-1}
               className={ITEM_CLASS}
               onClick={() => {
                 close();

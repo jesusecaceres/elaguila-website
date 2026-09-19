@@ -488,6 +488,7 @@
     "website:home-4-audit": "tsx scripts/website-home-4-audit.ts",
     "website:home-5-audit": "tsx scripts/website-home-5-audit.ts",
     "website:home-6-final-audit": "tsx scripts/website-home-6-final-audit.ts",
+    "website:home-launch-audit": "tsx scripts/website-home-launch-audit.ts",
     "website:cat-std-1-audit": "tsx scripts/website-cat-std-1-category-landing-results-audit.ts",
     "cat:std-all-audit": "tsx scripts/cat-std-all-landing-results-audit.ts",
     "varios:final-stack-audit": "tsx scripts/varios-final-stack-2k-2l-2m-2p-audit.ts",

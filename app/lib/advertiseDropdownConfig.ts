@@ -1,6 +1,9 @@
 /**
- * Gate A1 — Advertise CTA dropdown lane routes and labels.
- * Uses existing publish/landing destinations only; avoids defaulting to Varios.
+ * Gate HOME-LAUNCH-9 — "Anúnciate con nosotros" intents and routes.
+ *
+ * Advertising (business visibility) and publishing a classified are separate paths. The menu
+ * lists clear intents that land on existing public pages, language preserved. The legacy
+ * login → `/publicar` redirect is gone: "Publicar en Clasificados" goes to `/clasificados`.
  */
 
 import type { SupportedLang } from "@/app/lib/language";
@@ -9,30 +12,62 @@ import { getPublicNavItemLabel } from "@/app/lib/leonix/publicNavCopy";
 /** @deprecated Use SupportedLang — retained for legacy imports. */
 export type AdvertiseLang = SupportedLang;
 
+/** @deprecated Legacy lane ids (magazine reader helper). New consumers use AdvertiseIntent. */
 export type AdvertiseLane = "clasificados" | "negocios-locales" | "recursos-comunitarios";
+
+export type AdvertiseIntent =
+  | "digital-presence"
+  | "magazine-digital"
+  | "post-classified"
+  | "media-kit"
+  | "contact";
+
+export const ADVERTISE_INTENTS: readonly AdvertiseIntent[] = [
+  "digital-presence",
+  "magazine-digital",
+  "post-classified",
+  "media-kit",
+  "contact",
+];
 
 export type AdvertiseDropdownCopy = {
   button: string;
+  menuAria: string;
+  digitalPresence: string;
+  magazineDigital: string;
+  postClassified: string;
+  mediaKit: string;
+  talkToLeonix: string;
+  /** Legacy lane labels — still consumed by the magazine reader helper. */
   clasificados: string;
   negociosLocales: string;
   recursosComunitarios: string;
-  menuAria: string;
 };
 
 const ADVERTISE_ES: AdvertiseDropdownCopy = {
   button: "Anúnciate con nosotros",
+  menuAria: "Elige cómo anunciarte con Leonix",
+  digitalPresence: "Presencia digital",
+  magazineDigital: "Revista + digital",
+  postClassified: "Publicar en Clasificados",
+  mediaKit: "Media Kit",
+  talkToLeonix: "Hablar con Leonix",
   clasificados: "Clasificados",
   negociosLocales: "Negocios Locales",
   recursosComunitarios: "Recursos Comunitarios",
-  menuAria: "Elige dónde anunciarte",
 };
 
 const ADVERTISE_EN: AdvertiseDropdownCopy = {
   button: "Advertise with us",
+  menuAria: "Choose how to advertise with Leonix",
+  digitalPresence: "Digital presence",
+  magazineDigital: "Magazine + digital",
+  postClassified: "Post in Classifieds",
+  mediaKit: "Media Kit",
+  talkToLeonix: "Talk to Leonix",
   clasificados: "Classifieds",
   negociosLocales: "Local Businesses",
   recursosComunitarios: "Community Resources",
-  menuAria: "Choose where to advertise",
 };
 
 function fromEn(partial: Partial<AdvertiseDropdownCopy>): AdvertiseDropdownCopy {
@@ -50,15 +85,25 @@ export const ADVERTISE_DROPDOWN_COPY: Record<SupportedLang, AdvertiseDropdownCop
   }),
   pt: fromEn({
     button: "Anuncie conosco",
+    menuAria: "Escolha como anunciar com a Leonix",
+    digitalPresence: "Presença digital",
+    magazineDigital: "Revista + digital",
+    postClassified: "Publicar nos Classificados",
+    mediaKit: "Media Kit",
+    talkToLeonix: "Falar com a Leonix",
     clasificados: "Classificados",
     recursosComunitarios: "Recursos comunitários",
-    menuAria: "Escolha onde anunciar",
   }),
   tl: fromEn({
     button: "Mag-advertise sa amin",
+    menuAria: "Piliin kung paano mag-advertise sa Leonix",
+    digitalPresence: "Digital presence",
+    magazineDigital: "Magazine + digital",
+    postClassified: "Mag-post sa Classifieds",
+    mediaKit: "Media Kit",
+    talkToLeonix: "Makipag-usap sa Leonix",
     clasificados: "Classifieds",
     recursosComunitarios: "Mga mapagkukunan ng komunidad",
-    menuAria: "Piliin kung saan mag-advertise",
   }),
   km: fromEn({
     button: "ផ្សាយពាណិជ្ជកម្មជាមួយយើង",
@@ -127,16 +172,30 @@ export function appendLangToAdvertisePath(path: string, lang: SupportedLang): st
   return hash ? `${withParam}#${hash}` : withParam;
 }
 
-/** Clasificados — publish category chooser (not Varios). */
-export function buildClasificadosAdvertiseHref(lang: SupportedLang): string {
-  const redirect = encodeURIComponent(`/publicar?lang=${lang}`);
-  return `/login?mode=post&lang=${lang}&redirect=${redirect}`;
+/**
+ * Existing public destinations only (Gate 0 route map):
+ * - digital presence → Negocios Locales (current business-facing landing; no dedicated page yet)
+ * - magazine + digital / media kit → Media Kit (advertising information)
+ * - post a classified → Clasificados hub (never the legacy `/publicar` login redirect)
+ * - talk to Leonix → Contact, advertising intent
+ */
+export const ADVERTISE_INTENT_PATHS: Record<AdvertiseIntent, string> = {
+  "digital-presence": "/negocios-locales",
+  "magazine-digital": "/media-kit",
+  "post-classified": "/clasificados",
+  "media-kit": "/media-kit",
+  contact: "/contacto?inquiryType=advertising",
+};
+
+export function buildAdvertiseIntentHref(intent: AdvertiseIntent, lang: SupportedLang): string {
+  return appendLangToAdvertisePath(ADVERTISE_INTENT_PATHS[intent], lang);
 }
 
+/** @deprecated Legacy lane routing kept for backwards compatibility; no `/publicar` redirect. */
 export function buildAdvertiseLaneHref(lane: AdvertiseLane, lang: SupportedLang): string {
   switch (lane) {
     case "clasificados":
-      return buildClasificadosAdvertiseHref(lang);
+      return appendLangToAdvertisePath("/clasificados", lang);
     case "negocios-locales":
       return appendLangToAdvertisePath("/negocios-locales", lang);
     case "recursos-comunitarios":
@@ -145,24 +204,23 @@ export function buildAdvertiseLaneHref(lane: AdvertiseLane, lang: SupportedLang)
 }
 
 export type AdvertiseDropdownOption = {
-  id: AdvertiseLane;
+  id: AdvertiseIntent;
   label: string;
   href: string;
 };
 
 export function getAdvertiseDropdownOptions(lang: SupportedLang): AdvertiseDropdownOption[] {
   const copy = getAdvertiseDropdownCopy(lang);
-  return [
-    { id: "clasificados", label: copy.clasificados, href: buildAdvertiseLaneHref("clasificados", lang) },
-    {
-      id: "negocios-locales",
-      label: copy.negociosLocales,
-      href: buildAdvertiseLaneHref("negocios-locales", lang),
-    },
-    {
-      id: "recursos-comunitarios",
-      label: copy.recursosComunitarios,
-      href: buildAdvertiseLaneHref("recursos-comunitarios", lang),
-    },
-  ];
+  const labels: Record<AdvertiseIntent, string> = {
+    "digital-presence": copy.digitalPresence,
+    "magazine-digital": copy.magazineDigital,
+    "post-classified": copy.postClassified,
+    "media-kit": copy.mediaKit,
+    contact: copy.talkToLeonix,
+  };
+  return ADVERTISE_INTENTS.map((id) => ({
+    id,
+    label: labels[id],
+    href: buildAdvertiseIntentHref(id, lang),
+  }));
 }
