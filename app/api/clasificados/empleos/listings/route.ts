@@ -62,9 +62,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const status =
       res.error === "forbidden"
         ? 403
-        : res.error === "lane_mismatch" || res.error === QUICK_LISTING_EXISTING_IDENTITY_INVALID_CODE
-          ? 400
-          : 500;
+        : res.error === "payment_required"
+          ? 402
+          : res.error === "not_publishable"
+            ? 409
+            : res.error === "lane_mismatch" || res.error === QUICK_LISTING_EXISTING_IDENTITY_INVALID_CODE
+              ? 400
+              : 500;
     return NextResponse.json({ ok: false, error: res.error }, { status });
   }
 

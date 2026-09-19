@@ -1,6 +1,6 @@
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
-import { deriveHeroImageUrls } from "@/app/clasificados/autos/negocios/lib/autoDealerHeroImages";
+import { derivePrimaryImageUrl } from "@/app/clasificados/autos/negocios/lib/autoDealerHeroImages";
 import { normalizeLoadedListing } from "@/app/clasificados/autos/negocios/lib/autoDealerDraftDefaults";
 import { buildVehicleTitle } from "@/app/publicar/autos/negocios/lib/autoDealerTitle";
 import { buildRelatedPublicListings } from "@/app/clasificados/autos/lib/mapAutosPublicListingToAutoDealer";
@@ -62,6 +62,7 @@ function rowFromDb(r: Record<string, unknown>): AutosClassifiedsListingRow {
     stripe_payment_intent_id: r.stripe_payment_intent_id ? String(r.stripe_payment_intent_id) : null,
     published_at: r.published_at ? String(r.published_at) : null,
     expires_at: r.expires_at ? String(r.expires_at) : null,
+    suspended_reason: r.suspended_reason != null && String(r.suspended_reason).trim() ? String(r.suspended_reason).trim() : null,
     created_at: String(r.created_at),
     updated_at: String(r.updated_at),
   };
@@ -424,7 +425,10 @@ export function autosClassifiedsRowToDashboardRow(row: AutosClassifiedsListingRo
   const L = row.listing_payload;
   const autoTitle = buildVehicleTitle(L.year, L.make, L.model, L.trim);
   const title = (L.vehicleTitle?.trim() || autoTitle || "").trim() || "—";
-  const thumbs = deriveHeroImageUrls(L);
+  // Gate 14 (Autos Dealer lifecycle closeout, 2026-09-18): the dashboard thumbnail must be the
+  // owner's chosen cover, matching Preview/results/public detail — not merely the first image by
+  // sortOrder (see derivePrimaryImageUrl's own doc comment).
+  const thumbUrl = derivePrimaryImageUrl(L) || null;
   const priceUsd = typeof L.price === "number" && Number.isFinite(L.price) ? L.price : null;
   const mileage = typeof L.mileage === "number" && Number.isFinite(L.mileage) ? L.mileage : null;
   return {
@@ -440,7 +444,7 @@ export function autosClassifiedsRowToDashboardRow(row: AutosClassifiedsListingRo
     mileage,
     priceUsd,
     city: (L.city ?? "").trim(),
-    thumbUrl: thumbs[0] ?? null,
+    thumbUrl,
     leonix_ad_id: row.leonix_ad_id?.trim() ? row.leonix_ad_id.trim() : null,
     dealer_inventory_group_id: row.dealer_inventory_group_id ?? null,
     dealer_inventory_parent_listing_id: row.dealer_inventory_parent_listing_id ?? null,
@@ -467,6 +471,8 @@ export async function markAutosClassifiedsListingRemovedIfOwner(listingId: strin
 export async function markAutosClassifiedsListingRestoredIfOwner(listingId: string, ownerUserId: string): Promise<boolean> {
   const row = await assertAutosListingOwner(listingId, ownerUserId);
   if (!row || row.status !== "removed") return false;
+  // Staff suspension / remove-public writes suspended_reason="moderation" — never owner-reversible.
+  if (row.suspended_reason) return false;
   return updateAutosListingStatus(listingId, "active");
 }
 
@@ -509,10 +515,13 @@ export async function listActiveAutosClassifiedsRows(): Promise<AutosClassifieds
   return filterAutosRowsByActiveParent(unexpired, parentsById);
 }
 
-/** Admin workspace: paid Autos rows (any status), newest first. */
+/**
+ * Admin workspace: paid Autos rows (any status), newest first. `lane` filters at the SQL level
+ * (so the row cap applies within the lane, not before it) using the canonical `lane` column.
+ */
 export async function listAllAutosClassifiedsRowsForAdmin(
   limit = 100,
-  opts?: { scope?: "live" },
+  opts?: { scope?: "live"; lane?: AutosClassifiedsLane },
 ): Promise<AutosClassifiedsListingRow[]> {
   if (!isSupabaseAdminConfigured()) return [];
   const supabase = getAdminSupabase();
@@ -526,6 +535,9 @@ export async function listAllAutosClassifiedsRowsForAdmin(
     .limit(cap);
   if (opts?.scope === "live") {
     q = q.eq("status", "active");
+  }
+  if (opts?.lane) {
+    q = q.eq("lane", opts.lane);
   }
   const { data, error } = await q;
   if (error || !data?.length) return [];
@@ -551,10 +563,41 @@ export async function updateAutosListingStatus(
   return true;
 }
 
+/**
+ * Pre-publication statuses. Used two ways, deliberately the same set:
+ *  - checkout: only these may (re)start payment / move to `pending_payment`. A LIVE (`active`),
+ *    `removed` (staff suspension writes this) or `cancelled` listing is never flipped by checkout —
+ *    that would silently take a live ad offline (2026-09-18 audit: `/api/revenue-os/checkout` had no
+ *    owner/status precondition on that write).
+ *  - activation: a VERIFIED payment may activate any of these (the client "checkout cancelled" route
+ *    resets pending_payment → draft while the Stripe session is still payable).
+ */
+export const AUTOS_PAYABLE_LISTING_STATUSES: readonly AutosClassifiedsListingStatus[] = [
+  "draft",
+  "pending_payment",
+  "payment_failed",
+];
+
+export function isAutosListingPayableStatus(status: string | null | undefined): boolean {
+  return AUTOS_PAYABLE_LISTING_STATUSES.includes(String(status ?? "") as AutosClassifiedsListingStatus);
+}
+
 export async function setAutosListingPendingPayment(listingId: string, stripeCheckoutSessionId: string): Promise<boolean> {
-  return updateAutosListingStatus(listingId, "pending_payment", {
-    stripe_checkout_session_id: stripeCheckoutSessionId,
-  });
+  if (!isSupabaseAdminConfigured()) return false;
+  const supabase = getAdminSupabase();
+  // Status-conditional UPDATE: only a pre-payment row may move to pending_payment.
+  const { data, error } = await supabase
+    .from("autos_classifieds_listings")
+    .update({
+      status: "pending_payment",
+      stripe_checkout_session_id: stripeCheckoutSessionId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", listingId)
+    .in("status", [...AUTOS_PAYABLE_LISTING_STATUSES])
+    .select("id");
+  if (error) return false;
+  return Array.isArray(data) && data.length > 0;
 }
 
 /**
@@ -657,13 +700,18 @@ export async function tryActivateAutosListingAfterPayment(
   const existing = await getAutosClassifiedsListingById(listingId);
   if (!existing) return { ok: false, transitioned: false };
   if (existing.status === "active") return { ok: true, transitioned: false };
-  if (existing.status !== "pending_payment") return { ok: false, transitioned: false };
+  // A VERIFIED payment activates any pre-publication row, not only `pending_payment`. The client
+  // "checkout cancelled" route resets pending_payment → draft while the Stripe session stays open and
+  // payable, so a customer who cancels then completes the same session paid for a listing that this
+  // guard used to refuse (production: paid Autos rows AUTO-2026-000219 / -000220 stuck in `draft`).
+  // removed / cancelled rows (owner or staff decisions) are still never reactivated by a payment.
+  if (!isAutosListingPayableStatus(existing.status)) return { ok: false, transitioned: false };
 
   if (existing.lane === "negocios") {
     const result = await activateAutosDealerListingAtomic({
       listingId,
       ownerUserId: existing.owner_user_id,
-      fromStatus: "pending_payment",
+      fromStatus: existing.status,
     });
     if (!result.ok) {
       console.error("tryActivateAutosListingAfterPayment RPC error", result.rpcError);
@@ -717,7 +765,7 @@ export async function tryActivateAutosListingAfterPayment(
     .from("autos_classifieds_listings")
     .update(patch)
     .eq("id", listingId)
-    .eq("status", "pending_payment")
+    .in("status", [...AUTOS_PAYABLE_LISTING_STATUSES])
     .select("id")
     .maybeSingle();
   if (error) {

@@ -231,7 +231,6 @@ export function getServiciosCheckpointCard(
           "Business Hub con teléfono, SMS, WhatsApp, email, sitio web y redes",
           "Áreas de servicio, ciudad, estado, ZIP y ubicación pública",
           "Horarios semanales y nota especial de horario",
-          "Hasta 4 promociones generales incluidas",
           "Preparado para móvil/PWA",
         ]
       : [
@@ -240,7 +239,6 @@ export function getServiciosCheckpointCard(
           "Business Hub with phone, SMS, WhatsApp, email, website, and social media",
           "Service areas, city, state, ZIP, and public location",
           "Weekly hours and special hours note",
-          "Up to 4 general promotions included",
           "Mobile/PWA ready",
         ],
     optionalUpgradeLine: es

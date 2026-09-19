@@ -61,7 +61,15 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ listingId
 
   const res = await updateEmpleosListingLifecycleOwner({ id: listingId, ownerUserId, lifecycle_status });
   if (!res.ok) {
-    return NextResponse.json({ ok: false, error: res.error ?? "update_failed" }, { status: res.error === "forbidden" ? 403 : 500 });
+    const status =
+      res.error === "forbidden"
+        ? 403
+        : res.error === "payment_required"
+          ? 402
+          : res.error === "forbidden_transition" || res.error === "staff_hold"
+            ? 409
+            : 500;
+    return NextResponse.json({ ok: false, error: res.error ?? "update_failed" }, { status });
   }
   const supabase = getAdminSupabase();
   const { data: slugRow } = await supabase.from("empleos_public_listings").select("slug").eq("id", listingId).maybeSingle();

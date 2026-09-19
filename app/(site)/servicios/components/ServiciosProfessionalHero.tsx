@@ -12,7 +12,7 @@ import {
 } from "@/app/lib/leonixCommunityTrust/leonixEndorsementClient";
 import { serviciosOpenGoogleMapsDirections } from "../lib/serviciosDirectCta";
 import { resolveServiciosProfileDirectWhatsAppHref } from "../lib/serviciosWhatsAppHref";
-import { buildQuoteSmsHref } from "../lib/serviciosContactActions";
+import { buildQuoteSmsHref, normalizeServiciosPhoneForCompare } from "../lib/serviciosContactActions";
 import {
   LX,
   LX_CTA_MAP,
@@ -210,15 +210,24 @@ export function ServiciosProfessionalHero({
       : undefined;
   const isLeonixVerified = profile.hero.badges.some((b) => b.kind === "verified");
   const showDirections = hasPhysicalAddress(profile);
-  // Servicios Final Contact Truth + Email No-Mailto Closeout (2026-09-17, Gate 1/7) — one Call
-  // destination: office phone when present, principal phone as fallback. The primary button's
-  // LABEL stays the category-specific primaryLabel below (Contactar/Cotizar/etc.) per the owner's
-  // instruction to preserve that aggregate Contact/Cotización behavior — only the destination changes.
+  // Servicios Final Phone Destination Closeout (2026-09-17, Gate 1/3) — principal and office phone
+  // are DISTINCT destinations with their own CTAs; principal is never suppressed merely because an
+  // office phone exists. The primary button's LABEL stays the category-specific primaryLabel below
+  // (Contactar/Cotizar/etc.) per the owner's instruction to preserve that aggregate Contact/
+  // Cotización behavior for the principal number; office phone gets its own explicit "Llamar
+  // oficina" CTA so direct phone actions truthfully identify their destination. They dedupe against
+  // each other ONLY when they resolve to the literal same number (Gate 8).
   const officeTel = profile.contact.phoneOfficeTelHref?.trim();
   const officeDisplay = profile.contact.phoneOfficeDisplay?.trim();
-  const tel = officeTel && officeDisplay ? officeTel : profile.contact.phoneTelHref?.trim();
+  const principalTel = profile.contact.phoneTelHref?.trim();
+  const sameCallNumber = Boolean(
+    principalTel && officeTel && normalizeServiciosPhoneForCompare(principalTel) === normalizeServiciosPhoneForCompare(officeTel),
+  );
+  const tel = principalTel;
+  const showOfficeCall = Boolean(officeTel && officeDisplay && !sameCallNumber);
+  const officeCallLabel = lang === "en" ? "Call office" : "Llamar oficina";
   const waHref = resolveServiciosProfileDirectWhatsAppHref(profile.contact);
-  // Gate 2/7 — the dedicated "número para mensajes/cotizaciones"; never WhatsApp, never the office
+  // Gate 2 — the dedicated "número para mensajes/cotizaciones"; never WhatsApp, never the office
   // number merely because it exists. buildQuoteSmsHref preserves the existing quote/message copy.
   const smsHref = buildQuoteSmsHref(profile.contact.quoteMessagePhone, lang);
   const primaryLabel = getPrimaryCtaLabel(template, lang);
@@ -249,6 +258,12 @@ export function ServiciosProfessionalHero({
     }
     trackServiciosListingCta(listingSlug, "cta_call_click", analyticsBase);
     window.location.href = tel.startsWith("tel:") ? tel : `tel:${tel}`;
+  };
+
+  const openOfficeCall = () => {
+    if (!officeTel) return;
+    trackServiciosListingCta(listingSlug, "cta_call_click", analyticsBase);
+    window.location.href = officeTel.startsWith("tel:") ? officeTel : `tel:${officeTel}`;
   };
 
   const openWhatsApp = () => {
@@ -380,11 +395,21 @@ export function ServiciosProfessionalHero({
             <button
               type="button"
               onClick={openCall}
-              className={`${LX_CTA_PRIMARY} ${LX_CTA_PRIMARY_LG} w-full sm:col-span-2 lg:min-w-[14rem] lg:flex-1`}
+              className={`${LX_CTA_PRIMARY} ${LX_CTA_PRIMARY_LG} w-full lg:min-w-[14rem] lg:flex-1`}
               style={{ backgroundColor: LX.burgundy, boxShadow: "0 8px 24px rgba(92, 22, 34, 0.32)" }}
             >
               <FiPhone className="h-4 w-4 shrink-0" aria-hidden />
               {primaryLabel}
+            </button>
+          ) : null}
+          {showOfficeCall ? (
+            <button
+              type="button"
+              onClick={openOfficeCall}
+              className={`${LX_CTA_SECONDARY} ${LX_CTA_PRIMARY_LG} w-full lg:min-w-[10rem] lg:flex-1`}
+            >
+              <FiPhone className="h-4 w-4 shrink-0" aria-hidden />
+              {officeCallLabel}
             </button>
           ) : null}
           {smsHref ? (
@@ -414,7 +439,7 @@ export function ServiciosProfessionalHero({
               {lang === "en" ? "Directions" : "Cómo llegar"}
             </button>
           ) : null}
-          {!tel && !smsHref && !waHref ? (
+          {!tel && !showOfficeCall && !smsHref && !waHref ? (
             <button
               type="button"
               onClick={scrollToContact}

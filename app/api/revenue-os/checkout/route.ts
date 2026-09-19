@@ -27,7 +27,11 @@ import {
   validateOfertasLocalesCheckoutOwnership,
 } from "@/app/lib/ofertas-locales/ofertasLocalesCommercialServer";
 import type { OfertaLocalCommercialProduct } from "@/app/lib/ofertas-locales/ofertasLocalesCommercial";
-import { setAutosListingPendingPayment } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
+import {
+  getAutosClassifiedsListingById,
+  isAutosListingPayableStatus,
+  setAutosListingPendingPayment,
+} from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
 import {
   attachStripeSessionToPaymentRecord,
   attachPromoRedemptionToPaymentRecord,
@@ -274,9 +278,20 @@ export async function POST(request: NextRequest) {
     serverVerifiedOwnerUserId = ownerGate.ownerUserId;
   }
 
+  // Gate 12 (Servicios Final Consolidated Lifecycle Execution, 2026-09-18) — the base/default
+  // branch (which the Servicios `servicios_base_monthly` checkout falls into, since it is not one
+  // of the special early-exit categories above) used to let a client-submitted `body.ownerUserId`
+  // take priority over the server-verified authenticated bearer user whenever a bearer session
+  // existed. The real client never actually sends `ownerUserId` (it relies entirely on the bearer
+  // token), so this had no effect on the golden path — but a crafted request with a valid bearer
+  // token for one user and a DIFFERENT `ownerUserId` in the body could otherwise borrow another
+  // user's identity for the owner-scoped verified-intro-discount phone-identity lookup below, or
+  // for the existing-row lookup — real, exploitable identity confusion, not merely defensive
+  // hardening. The authenticated bearer now always wins when present; `body.ownerUserId` remains
+  // only as a fallback for the (bearer-absent) case, unchanged from before.
   const ownerUserId = isRestauranteAddonOnlyEarly || isAutosDealerInventoryAddonEarly || isBienesInventoryAddonOnlyEarly || isServiciosOffersAddonOnlyEarly || isRentasRenewalEarly || isAutosPrivadoRenewalEarly || isBienesFsboRenewalEarly || isOfertasLocalesCheckoutEarly
     ? serverVerifiedOwnerUserId ?? bearerUserId
-    : body.ownerUserId?.trim() || bearerUserId || null;
+    : bearerUserId || body.ownerUserId?.trim() || null;
 
   const addOnValidation = validateRevenueCheckoutAddOns({
     category: String(body.category ?? "").trim().toLowerCase(),
@@ -569,6 +584,44 @@ export async function POST(request: NextRequest) {
           message:
             "This listing already has an active base package — no additional charge is required. Save your edit instead of checking out again.",
           activeEntitlement: entitlementGuard.activeEntitlement,
+        },
+        { status: 409 },
+      );
+    }
+  }
+
+  // ── Autos base-package pre-flight (2026-09-18 publication-circuit audit) ─────────────────
+  // This route flips the Autos listing to `pending_payment` after the Stripe session is created.
+  // That write used to be unconditional: any caller who knew a public vehicle UUID could POST a base
+  // checkout for it and take a LIVE listing offline. Refuse BEFORE any Stripe session / payment
+  // record exists when the listing is missing, owned by someone else (when the caller is
+  // authenticated), or not in a pre-payment status. Renewals have their own ownership gate above.
+  if (
+    packageDef.category === "autos" &&
+    !isAutosPrivadoRenewalEarly &&
+    (packageDef.packageKey === AUTOS_PRIVADO_30D_PACKAGE_KEY ||
+      packageDef.packageKey === AUTOS_DEALER_MONTHLY_PACKAGE_KEY) &&
+    listingRef
+  ) {
+    const autosRow = await getAutosClassifiedsListingById(listingRef);
+    if (!autosRow) {
+      return NextResponse.json(
+        { ok: false, code: "autos_listing_not_found", message: "Autos listing not found." },
+        { status: 404 },
+      );
+    }
+    if (bearerUserId && autosRow.owner_user_id !== bearerUserId) {
+      return NextResponse.json(
+        { ok: false, code: "autos_listing_owner_mismatch", message: "This listing belongs to a different account." },
+        { status: 403 },
+      );
+    }
+    if (!isAutosListingPayableStatus(autosRow.status)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "autos_listing_not_payable",
+          message: `This listing is "${autosRow.status}" and cannot start a new base payment. Only draft, pending-payment or payment-failed listings can be paid for.`,
         },
         { status: 409 },
       );
@@ -958,7 +1011,16 @@ export async function POST(request: NextRequest) {
       packageDef.packageKey === AUTOS_DEALER_MONTHLY_PACKAGE_KEY) &&
     listingRef
   ) {
-    await setAutosListingPendingPayment(listingRef, stripeResult.sessionId);
+    const flipped = await setAutosListingPendingPayment(listingRef, stripeResult.sessionId);
+    if (!flipped) {
+      // Pre-flight passed a moment ago, so this is a race (status changed between the read and the
+      // conditional write). Leave the listing untouched — never force a status — and make it visible.
+      console.error("[revenue-os checkout] autos listing was not flipped to pending_payment", {
+        listingId: listingRef,
+        packageKey: packageDef.packageKey,
+        paymentRecordId: paymentInsert.paymentRecordId,
+      });
+    }
   }
 
   return NextResponse.json({

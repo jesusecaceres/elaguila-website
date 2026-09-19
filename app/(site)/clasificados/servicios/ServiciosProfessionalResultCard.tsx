@@ -29,7 +29,7 @@ import {
   serviciosOpenTelHref,
   serviciosOpenWhatsAppHref,
 } from "@/app/(site)/servicios/lib/serviciosDirectCta";
-import { buildQuoteSmsHref } from "@/app/(site)/servicios/lib/serviciosContactActions";
+import { buildQuoteSmsHref, normalizeServiciosPhoneForCompare } from "@/app/(site)/servicios/lib/serviciosContactActions";
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
 import { isServiciosListingPromoted } from "./lib/serviciosResultsFilter";
 import { SERVICIOS_LISTING_STATUS_PUBLISHED } from "./lib/serviciosListingLifecycle";
@@ -168,12 +168,18 @@ export function ServiciosProfessionalResultCard({
   const thumb = profile.hero.logoUrl || null;
   const category = profile.hero.categoryLine?.trim();
   const location = profile.hero.locationSummary?.trim() || row.city?.trim();
-  // Servicios Final Contact Truth + Email No-Mailto Closeout (2026-09-17, Gate 1/4) — one Call
-  // destination: office phone when present, principal phone as fallback. Never two separate buttons.
+  // Servicios Final Phone Destination Closeout (2026-09-17, Gate 1) — principal and office phone are
+  // DISTINCT destinations with their own CTAs; principal is never suppressed merely because an
+  // office phone exists. They dedupe against each other ONLY when they resolve to the literal same
+  // number (Gate 8), never simply because both are "a phone".
   const officeTel = profile.contact.phoneOfficeTelHref?.trim();
   const officeDisplay = profile.contact.phoneOfficeDisplay?.trim();
-  const useOfficeCall = Boolean(officeTel && officeDisplay);
-  const tel = useOfficeCall ? officeTel : profile.contact.phoneTelHref;
+  const principalTel = profile.contact.phoneTelHref?.trim();
+  const sameCallNumber = Boolean(
+    principalTel && officeTel && normalizeServiciosPhoneForCompare(principalTel) === normalizeServiciosPhoneForCompare(officeTel),
+  );
+  const tel = principalTel;
+  const showOfficeCall = Boolean(officeTel && officeDisplay && !sameCallNumber);
   const waHrefNormalized = resolveServiciosProfileDirectWhatsAppHref(profile.contact) ?? "";
   const promoted = isServiciosListingPromoted(row);
   const showDirections = hasPhysicalAddress(profile);
@@ -223,15 +229,13 @@ export function ServiciosProfessionalResultCard({
   const primaryLabel = getPrimaryCtaLabel(template, displayLang);
   const secondaryLabel = getProfileCtaSecondary(template, displayLang);
   const servicesLabel = getServicesTitle(template, displayLang);
-  // Gate 2/4 — the dedicated "número para mensajes/cotizaciones"; never WhatsApp, never the office
+  // Gate 2 — the dedicated "número para mensajes/cotizaciones"; never WhatsApp, never the office
   // number merely because it exists. buildQuoteSmsHref preserves the existing quote/message copy.
   const smsHref = buildQuoteSmsHref(profile.contact.quoteMessagePhone, displayLang);
-  // Gate 4 — WhatsApp is bumped to its own row only when it would otherwise fight Call+Message for
-  // the primary two-up row; with any other combination the real channels stay balanced side by side.
-  const forceWhatsAppBelow = Boolean(tel) && Boolean(smsHref) && Boolean(waHrefNormalized);
-  // Gate 4/12 — same "no call, no Message, no WhatsApp" email-only fallback the trade card already
-  // has; this template previously had no email CTA at all when nothing else resolved.
-  const showEmailFallback = Boolean(!tel && !smsHref && !waHrefNormalized && profile.contact.emailMailtoHref);
+  const officeCallLabel = displayLang === "en" ? "Call office" : "Llamar oficina";
+  // Gate 4/12 — same "no call, no office call, no Message, no WhatsApp" email-only fallback the
+  // trade card already has; this template previously had no email CTA at all when nothing resolved.
+  const showEmailFallback = Boolean(!tel && !showOfficeCall && !smsHref && !waHrefNormalized && profile.contact.emailMailtoHref);
 
   const ratingValue =
     typeof profile.hero.rating === "number" && Number.isFinite(profile.hero.rating) && profile.hero.rating > 0
@@ -272,6 +276,12 @@ export function ServiciosProfessionalResultCard({
     trackServiciosListingCta(row.slug, "cta_call_click", ctaTrackMeta);
     serviciosOpenTelHref(tel);
   }, [ctaTrackMeta, row.slug, tel]);
+
+  const onOfficeCallClick = useCallback(() => {
+    if (!officeTel) return;
+    trackServiciosListingCta(row.slug, "cta_call_click", ctaTrackMeta);
+    serviciosOpenTelHref(officeTel);
+  }, [ctaTrackMeta, row.slug, officeTel]);
 
   const onWhatsAppClick = useCallback(() => {
     if (!waHrefNormalized) return;
@@ -428,6 +438,16 @@ export function ServiciosProfessionalResultCard({
                 </button>
               ) : null}
               <div className="flex flex-wrap gap-2 sm:flex-col sm:gap-1.5">
+                {showOfficeCall ? (
+                  <button
+                    type="button"
+                    onClick={onOfficeCallClick}
+                    className={`${LX_CTA_CARD_SECONDARY} sm:!min-h-[30px] sm:!w-full sm:flex-none sm:!px-2 sm:!py-1.5 sm:!text-[11px]`}
+                  >
+                    <FiPhone className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    {officeCallLabel}
+                  </button>
+                ) : null}
                 {smsHref ? (
                   <button
                     type="button"
@@ -484,61 +504,66 @@ export function ServiciosProfessionalResultCard({
             </div>
           ) : (
             <div className="flex flex-col gap-2">
-              <div className="flex flex-wrap gap-2">
-                {tel ? (
-                  <button
-                    type="button"
-                    onClick={onCallClick}
-                    className={LX_CTA_CARD_PRIMARY_FLEX}
-                    style={{ backgroundColor: LX.burgundy, boxShadow: "0 4px 12px rgba(92, 22, 34, 0.2)" }}
-                  >
-                    <FiPhone className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                    {primaryLabel}
-                  </button>
-                ) : null}
-                {smsHref ? (
-                  <button type="button" onClick={onMessageClick} className={LX_CTA_CARD_SECONDARY}>
-                    <FiMessageSquare className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                    {displayLang === "en" ? "Message" : "Mensaje"}
-                  </button>
-                ) : null}
-                {waHrefNormalized && !forceWhatsAppBelow ? (
-                  <button
-                    type="button"
-                    onClick={onWhatsAppClick}
-                    className={LX_CTA_CARD_WHATSAPP}
-                    style={{ backgroundColor: LX.whatsApp, boxShadow: LX.whatsAppShadow }}
-                  >
-                    <FaWhatsapp className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                    WhatsApp
-                  </button>
-                ) : null}
-                {showDirections ? (
-                  <button type="button" onClick={onDirectionsClick} className={LX_CTA_CARD_MAP}>
-                    <FiMapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                    {displayLang === "en" ? "Directions" : "Cómo llegar"}
-                  </button>
-                ) : null}
-                {showEmailFallback ? (
+              {/* Servicios Final Phone Destination Closeout (2026-09-17, Gate 2) — an adaptive
+                  2-column grid over the REAL available actions, in priority order (Llamar, Llamar
+                  oficina, Mensaje, WhatsApp, Directions). CSS grid auto-flow naturally reproduces
+                  every layout the owner specified with no hardcoded slot count and no dead cell. */}
+              {tel || showOfficeCall || smsHref || waHrefNormalized || showDirections ? (
+                <div className="grid grid-cols-2 gap-2">
+                  {tel ? (
+                    <button
+                      type="button"
+                      onClick={onCallClick}
+                      className={LX_CTA_CARD_PRIMARY_FLEX}
+                      style={{ backgroundColor: LX.burgundy, boxShadow: "0 4px 12px rgba(92, 22, 34, 0.2)" }}
+                    >
+                      <FiPhone className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                      {primaryLabel}
+                    </button>
+                  ) : null}
+                  {showOfficeCall ? (
+                    <button
+                      type="button"
+                      onClick={onOfficeCallClick}
+                      className={LX_CTA_CARD_PRIMARY_FLEX}
+                      style={{ backgroundColor: LX.burgundy, boxShadow: "0 4px 12px rgba(92, 22, 34, 0.2)" }}
+                    >
+                      <FiPhone className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                      {officeCallLabel}
+                    </button>
+                  ) : null}
+                  {smsHref ? (
+                    <button type="button" onClick={onMessageClick} className={LX_CTA_CARD_SECONDARY}>
+                      <FiMessageSquare className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                      {displayLang === "en" ? "Message" : "Mensaje"}
+                    </button>
+                  ) : null}
+                  {waHrefNormalized ? (
+                    <button
+                      type="button"
+                      onClick={onWhatsAppClick}
+                      className={LX_CTA_CARD_WHATSAPP}
+                      style={{ backgroundColor: LX.whatsApp, boxShadow: LX.whatsAppShadow }}
+                    >
+                      <FaWhatsapp className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                      WhatsApp
+                    </button>
+                  ) : null}
+                  {showDirections ? (
+                    <button type="button" onClick={onDirectionsClick} className={LX_CTA_CARD_MAP}>
+                      <FiMapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                      {displayLang === "en" ? "Directions" : "Cómo llegar"}
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+              {showEmailFallback ? (
+                <div className="grid grid-cols-2 gap-2">
                   <button type="button" onClick={onEmailClick} className={LX_CTA_CARD_SECONDARY}>
                     <FiMail className="h-3.5 w-3.5 shrink-0" aria-hidden />
                     {displayLang === "en" ? "Email" : "Correo"}
                   </button>
-                ) : null}
-              </div>
-
-              {/* Gate 4 — WhatsApp gets its own row only when Call AND Message both already filled
-                  the primary row; it never displaces Message from the balanced Call+Message pairing. */}
-              {waHrefNormalized && forceWhatsAppBelow ? (
-                <button
-                  type="button"
-                  onClick={onWhatsAppClick}
-                  className={`${LX_CTA_CARD_WHATSAPP} w-full`}
-                  style={{ backgroundColor: LX.whatsApp, boxShadow: LX.whatsAppShadow }}
-                >
-                  <FaWhatsapp className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                  WhatsApp
-                </button>
+                </div>
               ) : null}
 
               <div className="flex flex-wrap items-center justify-between gap-2" data-servicios-card-trust-strip="1">

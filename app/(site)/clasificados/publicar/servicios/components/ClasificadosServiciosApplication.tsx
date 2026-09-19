@@ -117,6 +117,7 @@ import {
   MAX_CUSTOM_BUSINESS_HIGHLIGHTS,
 } from "../lib/serviciosHighlightCaps";
 import { digitsOnly, formatPhoneInputDisplay, formatWhatsAppInputDisplay } from "../lib/serviciosPhoneUi";
+import { formatServiciosWhatsAppDisplay } from "@/app/(site)/servicios/lib/serviciosWhatsAppHref";
 import { resolveServiciosBusinessHighlightVisual } from "@/app/(site)/clasificados/servicios/lib/serviciosBusinessHighlightVisual";
 import { resolveServiciosServiceVisual } from "@/app/(site)/clasificados/servicios/lib/serviciosServiceVisualCatalog";
 import {
@@ -152,7 +153,16 @@ import {
   SERVICIOS_CERTIFICATION_LABEL_MAX,
   SERVICIOS_CREDENTIAL_STRING_MAX,
 } from "@/app/servicios/lib/serviciosCredentialsCatalog";
-import { primeServiciosExistingListingId, primeServiciosExistingPublicSlug } from "../lib/serviciosPublishClient";
+import {
+  primeServiciosExistingListingId,
+  primeServiciosExistingPublicSlug,
+  SERVICIOS_EXISTING_LISTING_ID_SESSION_KEY,
+  SERVICIOS_EXISTING_PUBLIC_SLUG_SESSION_KEY,
+} from "../lib/serviciosPublishClient";
+import {
+  readServiciosDraftListingIdentity,
+  reconcileServiciosPrimedIdentityOnApplicationMount,
+} from "../lib/serviciosDraftListingIdentity";
 import {
   serviciosPublishedToApplicationDraft,
   type ServiciosEditIdentity,
@@ -295,6 +305,12 @@ export function ClasificadosServiciosApplication() {
   const [newFieldsMissing, setNewFieldsMissing] = useState<string[]>([]);
   const [languageOtherPending, setLanguageOtherPending] = useState("");
   const [serviceAreaPending, setServiceAreaPending] = useState("");
+  // WhatsApp field display-format micro-fix — show the nicely formatted US "(XXX) XXX-XXXX" value
+  // (when applicable) while the field is NOT focused, and the raw international-safe editing value
+  // while the owner is actively typing, so keystrokes never fight a reformatting value prop. The
+  // STORED state.whatsapp value (and everything downstream: publish payload, resolver, wa.me
+  // destination) is completely untouched by this — display-only.
+  const [whatsappFieldFocused, setWhatsappFieldFocused] = useState(false);
 
   // Owner UX doctrine (INPUT -> ACCEPTED -> PERSISTED): one useAddedConfirmation() instance per
   // distinct explicit Add flow. Groups/rows that repeat a fixed, bounded set (5 amenity groups,
@@ -644,8 +660,20 @@ export function ClasificadosServiciosApplication() {
       setHydrated(false);
       return;
     }
-    primeServiciosExistingPublicSlug(null);
-    primeServiciosExistingListingId(null);
+    // ONE APPLICATION = ONE LISTING. This used to wipe both primed keys unconditionally on every
+    // mount, then restore only the draft — so returning to the form after a cancelled checkout /
+    // "Back to edit" made the next save mint a NEW listing (name-2, name-3…). The canonical identity
+    // is bound to the draft now: restore it if the draft has one; a draft with no bound
+    // identity keeps whatever is already primed (never wiped on mount). Deleting the draft clears it.
+    const restored = reconcileServiciosPrimedIdentityOnApplicationMount(
+      readServiciosDraftListingIdentity(typeof window !== "undefined" ? window.sessionStorage : null),
+      {
+        listingId: typeof window !== "undefined" ? window.sessionStorage.getItem(SERVICIOS_EXISTING_LISTING_ID_SESSION_KEY) : null,
+        slug: typeof window !== "undefined" ? window.sessionStorage.getItem(SERVICIOS_EXISTING_PUBLIC_SLUG_SESSION_KEY) : null,
+      },
+    );
+    primeServiciosExistingPublicSlug(restored.slug);
+    primeServiciosExistingListingId(restored.listingId);
     setEditIdentity(null);
     setNewFieldsMissing([]);
     setEditHydration({ status: "idle" });
@@ -1923,8 +1951,14 @@ export function ClasificadosServiciosApplication() {
                     type="tel"
                     inputMode="tel"
                     placeholder={lang === "es" ? "+1 713 555 0100" : "+1 713 555 0100"}
-                    value={formatWhatsAppInputDisplay(state.whatsapp)}
+                    value={
+                      whatsappFieldFocused
+                        ? formatWhatsAppInputDisplay(state.whatsapp)
+                        : formatServiciosWhatsAppDisplay(state.whatsapp) || formatWhatsAppInputDisplay(state.whatsapp)
+                    }
                     onChange={(e) => setState((s) => ({ ...s, whatsapp: formatWhatsAppInputDisplay(e.target.value) }))}
+                    onFocus={() => setWhatsappFieldFocused(true)}
+                    onBlur={() => setWhatsappFieldFocused(false)}
                   />
                 </div>
                 <div>

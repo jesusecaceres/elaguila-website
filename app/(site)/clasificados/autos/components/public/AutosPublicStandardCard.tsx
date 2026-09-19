@@ -20,6 +20,11 @@ import type { AutosPublicBlueprintCopy } from "../../lib/autosPublicBlueprintCop
 import type { AutosPublicLang } from "../../lib/autosPublicBlueprintCopy";
 import { AUTOS_CLASSIFIEDS_EVENT } from "@/app/lib/clasificados/autos/autosClassifiedsEventTypes";
 import { trackAutosListingEvent } from "../../lib/autosListingAnalyticsClient";
+import { autosResultsCardDealerBadge } from "@/app/lib/clasificados/autos/autosNegociosInventoryBundleCopy";
+import {
+  autosPreviewPremiumCardClass,
+  autosPreviewRectBadgeClass,
+} from "@/app/lib/clasificados/autos/autosNegociosPremiumPreviewTokens";
 
 export function AutosPublicStandardCard({
   listing,
@@ -56,6 +61,124 @@ export function AutosPublicStandardCard({
   const laneClass = isDealer
     ? "border-l-[3px] border-[#D4A574]/85"
     : "border-l-[3px] border-[#E5E5E5]";
+
+  if (isDealer) {
+    const specs = [listing.transmission, listing.drivetrain, listing.fuelType].filter(Boolean).join(" · ") || null;
+    return (
+      <Link
+        href={href}
+        onClick={() => {
+          trackAutosListingEvent(listing.id, AUTOS_CLASSIFIEDS_EVENT.resultCardClick, {
+            lane: trackLane,
+            leonixAdId: listing.leonixAdId,
+          });
+        }}
+        className={`${autosPreviewPremiumCardClass} group flex min-w-0 flex-col overflow-hidden transition-all duration-200 hover:shadow-[0_14px_36px_-18px_rgba(122,30,44,0.22)] active:opacity-95 ${compact ? "max-w-full" : ""}`}
+      >
+        <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden bg-[#F3EEE4]">
+          {imageUrl ? (
+            <Image
+              src={imageUrl}
+              alt=""
+              fill
+              className="object-cover transition duration-300 group-hover:scale-[1.03]"
+              sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 26vw"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">
+              {lang === "es" ? "Sin foto" : "No photo"}
+            </div>
+          )}
+          <span className={`${autosPreviewRectBadgeClass} absolute left-2.5 top-2.5 border-[#7A1E2C] bg-[#7A1E2C] text-[#FFFCF7]`}>
+            {autosResultsCardDealerBadge(lang)}
+          </span>
+          {listing.featured ? (
+            <span className="absolute right-2.5 top-2.5 rounded-full border border-[#D4A574]/50 bg-[#FFFAF0] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#D4A574] shadow-sm">
+              {copy.featuredBadge}
+            </span>
+          ) : listing.hasVideo ? (
+            <span className="absolute right-2.5 top-2.5 rounded-full border border-[#1A1A1A]/20 bg-[#1A1A1A]/80 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white shadow-sm">
+              {copy.filterVideo}
+            </span>
+          ) : null}
+        </div>
+        <div className={`flex min-w-0 flex-1 flex-col gap-1.5 ${compact ? "p-3" : "p-3.5"}`}>
+          {listing.dealerName || listing.dealerLogoUrl ? (
+            <div className="flex min-w-0 items-center gap-2">
+              {listing.dealerLogoUrl ? (
+                <Image
+                  src={listing.dealerLogoUrl}
+                  alt=""
+                  width={20}
+                  height={20}
+                  className="h-5 w-5 shrink-0 rounded-[5px] border border-[#D6C7AD]/70 bg-[#FFFDF7] object-contain p-0.5"
+                />
+              ) : null}
+              {listing.dealerName ? (
+                <span className="min-w-0 truncate text-[11px] font-bold text-[#8A6B1F]">{listing.dealerName}</span>
+              ) : null}
+            </div>
+          ) : null}
+          <p className={`line-clamp-2 min-h-[2.5rem] font-serif font-semibold leading-snug tracking-tight text-[#1F241C] ${compact ? "text-sm" : "text-[15px] sm:text-base"}`}>
+            {listing.vehicleTitle}
+          </p>
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+            <span className={`font-extrabold tabular-nums text-[#7A1E2C] ${compact ? "text-lg" : "text-lg sm:text-xl"}`}>
+              {formatAutosUsd(listing.price, lang)}
+            </span>
+            <span className="text-sm font-semibold tabular-nums text-[#5C5346]">{formatAutosMiles(listing.mileage, lang)}</span>
+          </div>
+          {listing.monthlyEstimate ? (
+            <p className="text-[11px] font-medium text-[#8A7A68]">{listing.monthlyEstimate}</p>
+          ) : null}
+          <p className="flex min-w-0 items-center gap-1.5 text-sm text-[#5C5346]">
+            <FiMapPin className="h-4 w-4 shrink-0 text-[#C9A84A]" aria-hidden />
+            <span className="truncate">{loc}</span>
+          </p>
+          {specs ? <p className="line-clamp-2 text-[11px] leading-snug text-[#8A7A68]">{specs}</p> : null}
+          <div className="mt-2 border-t border-[#D6C7AD]/55 pt-2.5">
+            <span className="inline-flex min-h-[36px] w-full items-center justify-center gap-1 rounded-[10px] border border-[#7A1E2C]/35 bg-[#FFFCF7] px-3 text-[12px] font-bold text-[#7A1E2C]">
+              {copy.cardViewDetails}
+            </span>
+          </div>
+          <div className="mt-auto flex items-center gap-3 border-t border-[#E5E5E5]/50 pt-2">
+            <LeonixLikeButton
+              listingId={listing.id}
+              ownerUserId={listing.ownerUserId ?? undefined}
+              variant="small"
+              lang={lang as "es" | "en"}
+              category="autos"
+              persistEngagement={Boolean(listing.id)}
+              recordLikeEvent={globalListing ? autosGlobalLikeRecorder(globalListing) : undefined}
+            />
+            <LeonixSaveButton
+              listingId={listing.id}
+              ownerUserId={listing.ownerUserId ?? undefined}
+              variant="small"
+              lang={lang as "es" | "en"}
+              category="autos"
+              persistEngagement={Boolean(listing.id)}
+              saveExtras={saveExtras}
+              recordSaveEvent={globalListing ? autosGlobalSaveRecorder(globalListing) : undefined}
+            />
+            <LeonixShareButton
+              listingId={listing.id}
+              ownerUserId={listing.ownerUserId ?? undefined}
+              listingTitle={listing.vehicleTitle}
+              listingUrl={listingShareUrl}
+              variant="small"
+              lang={lang as "es" | "en"}
+              category="autos"
+              persistEngagement={Boolean(listing.id)}
+              recordShareEvent={
+                globalListing ? autosGlobalShareRecorder(globalListing, "results_card_share") : undefined
+              }
+            />
+          </div>
+        </div>
+      </Link>
+    );
+  }
 
   // Leonix design system classes
   const RESULT_CARD = "group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[#D4A574]/30 bg-[#FFFAF0] shadow-[0_10px_32px_-20px_rgba(212,165,116,0.15)] transition-all duration-200 hover:border-[#D4A574]/50 hover:shadow-[0_14px_44px_-24px_rgba(212,165,116,0.20)] active:opacity-95";

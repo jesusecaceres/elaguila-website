@@ -214,7 +214,7 @@ export function ServiciosProfessionalProfileShell({
           ) : null}
 
           <ServiciosProfessionalHero
-            profile={profile}
+            profile={displayProfile}
             lang={displayLang}
             template={template}
             contactScrollTargetId="servicios-pro-contact"

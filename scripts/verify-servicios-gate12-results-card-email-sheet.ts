@@ -52,7 +52,9 @@ check("professional card: previously had NO email CTA at all; now gets the same 
   const src = raw(PRO_CARD);
   // Servicios Final Contact Truth (2026-09-17, Gate 4/9): email fallback now also excludes the
   // Message/SMS channel — it's the true "nothing else resolved" state, not just "no call, no WhatsApp".
-  assert.ok(src.includes("const showEmailFallback = Boolean(!tel && !smsHref && !waHrefNormalized && profile.contact.emailMailtoHref);"));
+  // Servicios Final Phone Destination Closeout (2026-09-17): email fallback now also excludes the
+  // independent office-call destination, not just the (now non-fallback-merged) principal tel.
+  assert.ok(src.includes("const showEmailFallback = Boolean(!tel && !showOfficeCall && !smsHref && !waHrefNormalized && profile.contact.emailMailtoHref);"));
   assert.ok(src.includes("const onEmailClick = useCallback"));
   assert.ok(src.includes("buildServiciosSendEmailIntentFromMailto(mailtoHref, displayLang, row.slug, listingShareUrl || undefined)"));
   assert.ok(src.includes("setEmailSheetIntent(intent)"));

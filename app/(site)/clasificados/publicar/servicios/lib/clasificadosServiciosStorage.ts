@@ -1,6 +1,7 @@
 import type { ClasificadosServiciosApplicationState, VideoItem } from "./clasificadosServiciosApplicationTypes";
 import { normalizeServiciosApplicationVideos } from "./clasificadosServiciosApplicationTypes";
 import { normalizeClasificadosServiciosApplicationState } from "./clasificadosServiciosApplicationNormalize";
+import { clearServiciosDraftListingIdentity } from "./serviciosDraftListingIdentity";
 import {
   clearServiciosDraftMediaNamespace,
   inlineServiciosHeavyMediaFromIdb,
@@ -143,6 +144,8 @@ export async function clearServiciosDraftStorageAndIdb(): Promise<void> {
   clearClasificadosServiciosApplicationFromBrowser();
   try {
     window.sessionStorage.removeItem("leonix.clasificados.servicios.previewReturn.v1");
+    // The canonical listing identity is bound to the draft: when the draft goes, it goes with it.
+    clearServiciosDraftListingIdentity(window.sessionStorage);
   } catch {
     /* ignore */
   }

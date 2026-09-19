@@ -71,11 +71,12 @@ check("navigation URL (?lang=) intentionally stays the SITE locale, not the card
 check("both cards gate every contact CTA on a REAL resolved destination — no hardcoded assumption", () => {
   for (const rel of [TRADE_CARD, PRO_CARD]) {
     const src = raw(rel);
-    // Servicios Final Contact Truth (2026-09-17): Call is gated via primaryCall/tel (office-first
-    // resolution); WhatsApp is gated via wa/waHrefNormalized combined with the forceWhatsAppBelow
-    // row-placement flag — still a real truthy destination check either way.
-    assert.ok(/\{primaryCall \? \(|\{tel \? \(/.test(src), `${rel}: Call CTA gated on a real truthy destination`);
-    assert.ok(/\{(?:wa|waHrefNormalized) && (?:!)?forceWhatsAppBelow \? \(/.test(src), `${rel}: WhatsApp CTA gated on a real truthy destination`);
+    // Servicios Final Phone Destination Closeout (2026-09-17): principal Call (principalCall/tel)
+    // and office Call (officeCall/showOfficeCall) are independently gated; WhatsApp is a single
+    // plain truthy gate (the row-forcing flag was removed).
+    assert.ok(/\{principalCall \? \(|\{tel \? \(/.test(src), `${rel}: principal Call CTA gated on a real truthy destination`);
+    assert.ok(/\{officeCall \? \(|\{showOfficeCall \? \(/.test(src), `${rel}: office Call CTA gated on a real truthy destination`);
+    assert.ok(/\{wa \? \(|\{waHrefNormalized \? \(/.test(src), `${rel}: WhatsApp CTA gated on a real truthy destination`);
     assert.ok(/\{showDirections \? \(/.test(src), `${rel}: Directions CTA gated on a real resolved maps destination`);
   }
 });

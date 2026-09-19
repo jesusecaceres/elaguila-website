@@ -38,6 +38,15 @@ import { shouldOfferAutosTranslateAd } from "../app/(site)/clasificados/autos/li
 import { filterDealerHoursForDisplay } from "../app/(site)/clasificados/autos/negocios/lib/dealerHoursDisplay";
 import { buildAutosContactEmailBody } from "../app/lib/clasificados/autos/autosContactEmailBody";
 import { oppositeActiveTranslateLocale } from "../app/lib/translation/unknownSourcePolicy";
+import {
+  autosDraftListingHasLocalPhotos,
+  autosInventoryDraftHasLocalPhotos,
+} from "../app/lib/clasificados/autos/autosDraftPhotoPublishPrepare";
+import { autosDraftImageRequiresUpload } from "../app/lib/clasificados/autos/autosPublishMediaTransport";
+import {
+  reconcileAdditionalInventoryVehicles,
+} from "../app/(site)/publicar/autos/negocios/lib/autosPublishedToDealerApplicationDraft";
+import { createEmptyInventoryVehicleDraft } from "../app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 
 const failures: string[] = [];
 function check(name: string, fn: () => void) {
@@ -1579,6 +1588,318 @@ check("Gate 02C: monthlyEstimate is vehicle-owned (childSpecific), not dealer-in
   const childSpecificStart = inherited.indexOf("childSpecific: [");
   const childSpecificBlock = inherited.slice(childSpecificStart, inherited.indexOf("]", childSpecificStart));
   assert.ok(childSpecificBlock.includes('"monthlyEstimate",'), "monthlyEstimate must be in the childSpecific list, never inherited from the parent");
+});
+
+/* ================================================================================================
+ * CHECKOUT SPEED + NEWSLETTER FINAL CLOSEOUT (2026-09-17) — Gate 01-07: media durability moved
+ * earlier than Pay, bounded upload concurrency, Pay-click path stays the final safety net, never
+ * the start of a large upload batch. Gate 08-12: Autos newsletter capture matches Servicios'
+ * authenticated-identity, awaited-result, non-blocking-failure doctrine.
+ * ============================================================================================ */
+
+/* --- Gate 01/06 root-cause proof: the fast-path check the audit found unused is now real --- */
+check("Gate 01 root cause, confirmed still true: autosDraftImageRequiresUpload is the ONE gate deciding durable-vs-local — an already-durable https:// URL never re-enters the upload path", () => {
+  assert.equal(autosDraftImageRequiresUpload("https://blob.vercel-storage.com/photo-abc123.jpg"), false, "a durable URL must never require upload");
+  assert.equal(autosDraftImageRequiresUpload("data:image/jpeg;base64,AAAA"), true, "a data: URL is genuinely local and must require upload");
+  assert.equal(autosDraftImageRequiresUpload("blob:http://localhost/abc"), true, "a blob: URL is genuinely local and must require upload");
+  assert.equal(autosDraftImageRequiresUpload("__AUTOS_IDB_MEDIA__:abc123"), true, "an IDB placeholder ref is genuinely local and must require upload");
+});
+check("Gate 01/03: the previously-unused fast-path helpers (autosDraftListingHasLocalPhotos / autosInventoryDraftHasLocalPhotos) are now actually consumed by the early-preparation trigger — the audit's exact finding is closed, not just noted", () => {
+  const client = raw("app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx");
+  assert.ok(client.includes("autosDraftListingHasLocalPhotos(listing)"), "the early-trigger effect must gate on real local-photo detection, not run unconditionally");
+  assert.ok(client.includes("autosInventoryDraftHasLocalPhotos(additionalInventoryVehicles)"));
+  assert.equal(
+    (client.match(/autosDraftListingHasLocalPhotos\(/g) ?? []).length >= 1 &&
+      (client.match(/autosInventoryDraftHasLocalPhotos\(/g) ?? []).length >= 1,
+    true,
+  );
+});
+check("Gate 03: media preparation begins while the dealer is still in Preview (mode 'draft'), BEFORE any Pay click exists — a real useEffect, not something wired into onStartDealerCheckout", () => {
+  const client = raw("app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx");
+  const effectStart = client.indexOf("if (!ready || mode !== \"draft\" || mediaPrepStartedRef.current) return;");
+  assert.ok(effectStart > -1, "the early-preparation effect's real gating condition must exist");
+  const effectEnd = client.indexOf("}, [ready, mode]);", effectStart);
+  assert.ok(effectEnd > effectStart, "the effect must close with its own dependency array");
+  const effectBlock = client.slice(effectStart, effectEnd);
+  assert.ok(
+    !effectBlock.includes("onStartDealerCheckout") && !effectBlock.includes("startRevenueCategoryCheckout"),
+    "the early-preparation effect must be self-contained — never call into or depend on the checkout click handler",
+  );
+  // AutosNegociosPreviewInner (which owns onStartDealerCheckout) is defined and closed with its
+  // own `export function AutosNegociosPreviewClient()` sibling starting later in the file — the
+  // early-preparation effect lives inside that LATER top-level component, confirming it is a
+  // structurally separate code path, not a step inside the click handler.
+  assert.ok(client.indexOf("export function AutosNegociosPreviewClient()") < effectStart, "the effect must live inside the top-level exported component, not inside AutosNegociosPreviewInner");
+});
+check("Gate 03: the early-preparation pass reuses the EXACT SAME resolveAutosDraftPhotosForPublish engine Pay itself uses — no second/replacement uploader — and writes the resulting durable URLs back into the same in-memory listing/additionalInventoryVehicles state Pay will read", () => {
+  const client = raw("app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx");
+  const effectStart = client.indexOf("if (!ready || mode !== \"draft\" || mediaPrepStartedRef.current) return;");
+  const effectEnd = client.indexOf("}, [ready, mode]);", effectStart);
+  const effectBlock = client.slice(effectStart, effectEnd);
+  assert.ok(effectBlock.includes("await resolveAutosDraftPhotosForPublish("), "must reuse the existing engine, not a new one");
+  assert.ok(effectBlock.includes("setListing(result.listing);") && effectBlock.includes("setAdditionalInventoryVehicles(result.additionalInventoryVehicles);"));
+  assert.ok(!effectBlock.includes("Stripe") && !effectBlock.includes("startRevenueCategoryCheckout"), "the early-preparation pass must never touch Revenue OS/Stripe — media readiness only");
+});
+check("Gate 06: ensurePendingDealerListing's own Pay-click call to resolveAutosDraftPhotosForPublish is completely unchanged in position/behavior — it remains the final safety net, not removed", () => {
+  const client = raw("app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx");
+  const fnStart = client.indexOf("const ensurePendingDealerListing = useCallback(");
+  const fnEnd = client.indexOf("[additionalInventoryVehicles, lang, listing, canonicalListingId]);", fnStart);
+  const fnBlock = client.slice(fnStart, fnEnd);
+  assert.ok(fnBlock.includes("await resolveAutosDraftPhotosForPublish("), "the safety-net call at Pay-click time must still exist");
+  assert.ok(fnBlock.indexOf("await resolveAutosDraftPhotosForPublish(") < fnBlock.indexOf("prepareAutosListingForApiTransport("), "photo resolution must still run before transport prep, unchanged order");
+});
+check("Gate 04: bounded concurrency exists on the EXISTING upload engine — no new queue library, no unbounded batch", () => {
+  const prep = raw("app/lib/clasificados/autos/autosDraftPhotoPublishPrepare.ts");
+  assert.ok(prep.includes("const AUTOS_DRAFT_UPLOAD_CONCURRENCY = 4;"), "concurrency must be a small bounded constant, not unlimited");
+  assert.ok(prep.includes("async function mapWithConcurrency"), "must be a small local worker-pool, not an added dependency");
+  assert.ok(!prep.includes("import") || !/from ["'](?!.*(?:@\/|\.\.?\/))/.test(prep), "sanity: no new third-party queue package imported");
+  assert.ok(prep.includes("await mapWithConcurrency(images, AUTOS_DRAFT_UPLOAD_CONCURRENCY"), "mapMediaImages must actually use the bounded pool");
+});
+check("Gate 05: readiness reporting is additive and optional — resolveAutosDraftPhotosForPublish's onProgress never gates Stripe/Revenue OS, it only drives the existing draftReady/draftReadyMessage UI contract", () => {
+  const prep = raw("app/lib/clasificados/autos/autosDraftPhotoPublishPrepare.ts");
+  assert.ok(prep.includes("onProgress?: (done: number, total: number) => void;"));
+  const client = raw("app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx");
+  assert.ok(client.includes("draftReady={mediaReadiness.phase !== \"preparing\"}"), "must use the EXISTING PublishCheckoutCheckpoint draftReady contract, not a new gate");
+  assert.ok(client.includes("Preparando imágenes") && client.includes("Preparing images"), "truthful bilingual progress copy must exist");
+});
+check("Gate 07 regression guard: the bounded-concurrency rewrite preserves normalizeMediaImagesOrder as the final step, and still throws (never silently drops) on an unsupported gallery ref — cover/order semantics and safety validation are untouched", () => {
+  const prep = raw("app/lib/clasificados/autos/autosDraftPhotoPublishPrepare.ts");
+  assert.ok(prep.includes("return normalizeMediaImagesOrder(next);"), "order/cover derivation must still run as the last step");
+  assert.ok(prep.includes('throw new Error(`unsupported_gallery_ref_${i}`);'), "an unsupported ref must still hard-fail, never be silently dropped");
+});
+check("Gate 07 regression guard: child vehicles still get their own isolated draftId/media pipeline per vehicle — no shared mutable state that could leak Child A's upload result into Child B", () => {
+  const prep = raw("app/lib/clasificados/autos/autosDraftPhotoPublishPrepare.ts");
+  assert.ok(prep.includes("const invDraftId = `${input.draftId}-inv-${v.id ?? vi}`;"), "each child must still get its own namespaced draftId");
+});
+
+/* --- Gate 08-12: newsletter capture matches Servicios' authenticated-identity doctrine ------- */
+check("Gate 08: Autos resolves the AUTHENTICATED session email and passes it read-only into PublishCheckoutCheckpoint — no onNewsletterEmailChange (editable-email authority is explicitly forbidden for checkout identity)", () => {
+  const client = raw("app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx");
+  assert.ok(client.includes("data.session?.user?.email ?? null"), "must resolve the real authenticated session email");
+  assert.ok(client.includes("newsletterEmail={newsletterEmail}"), "must pass the resolved email into the shared checkpoint");
+  assert.ok(!client.includes("onNewsletterEmailChange={"), "Autos must never make the checkout email editable");
+});
+check("Gate 10: the newsletter capture call passes accessToken (server resolves the canonical account email itself) and is AWAITED, not fire-and-forget", () => {
+  const client = raw("app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx");
+  assert.ok(!/void captureCheckoutNewsletterSubscriber/.test(client), "the old fire-and-forget call must be gone");
+  assert.ok(client.includes("const captureResult = await capturePromise;"), "the result must be awaited");
+  assert.ok(/captureCheckoutNewsletterSubscriber\(\{[\s\S]{0,200}accessToken,/.test(client), "accessToken must be passed to the capture call");
+});
+check("Gate 10: a FAILED capture result sets a non-blocking inline note and never gates checkout — pending.ok is checked independently, after the capture result is already handled", () => {
+  const client = raw("app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx");
+  const failedIdx = client.indexOf('if (captureResult.status === "FAILED") {');
+  const pendingCheckIdx = client.indexOf("if (!pending.ok) {", failedIdx);
+  assert.ok(failedIdx > -1 && pendingCheckIdx > failedIdx, "FAILED handling must exist and run before the (independent) required-listing failure check");
+  assert.ok(client.includes("setNewsletterCaptureNote("), "must surface a real, visible non-blocking note");
+});
+check("Gate 11: the capture promise is fired BEFORE ensurePendingDealerListing is awaited — required listing preparation and optional newsletter capture overlap instead of serializing", () => {
+  const client = raw("app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx");
+  const captureStart = client.indexOf("const capturePromise = (async () => {");
+  const pendingAwait = client.indexOf("const pending = await ensurePendingDealerListing();");
+  assert.ok(captureStart > -1 && pendingAwait > captureStart, "capturePromise must be created before ensurePendingDealerListing is awaited");
+});
+check("Gate 12: newsletter opt-in has zero coupling to promo/verified-intro/price/Stripe-customer-identity in the shared checkpoint logic — the newsletterOptIn config object is a static label/eligibility flag, never a runtime input to discount/price math", () => {
+  const logic = raw("app/lib/listingPlans/publishCheckoutCheckpoint.ts");
+  assert.ok(logic.includes("const promoEligible = config.promoEligible ?? packageDef?.promoEligible ?? false;"));
+  assert.ok(
+    logic.includes(
+      "const newsletterOptIn: PublishCheckpointOptIn | null =\n    config.newsletterEligible !== false",
+    ),
+    "newsletterOptIn here must be built from the static per-category newsletterEligible flag only — not from the checkbox's checked state, and not read by any discount/price computation",
+  );
+});
+check("Gate 12: the runtime newsletterOptIn CHECKBOX VALUE is handed to the caller as a plain sibling field on the same baseCtx object as promoCode — never derived from or gating promoCode/recurringConsent/requestVerifiedIntroDiscount", () => {
+  const checkpoint = raw("app/(site)/clasificados/components/PublishCheckoutCheckpoint.tsx");
+  assert.ok(
+    checkpoint.includes(
+      "const baseCtx = {\n      newsletterOptIn,\n      promoCode: appliedPromoCode,\n      checkedConfirmationIds: [...checkedIds],\n    };",
+    ),
+    "newsletterOptIn and promoCode must be independent plain fields with no conditional relationship",
+  );
+  assert.ok(
+    checkpoint.includes("requestVerifiedIntroDiscount: verifiedIntroDiscountApplied,"),
+    "the verified-intro flag must come from its own independent state, not from newsletterOptIn",
+  );
+});
+check("Gate 12: the newsletter checkbox itself defaults unchecked in the one shared component both Servicios and Autos use — no category-specific override exists", () => {
+  const checkpoint = raw("app/(site)/clasificados/components/PublishCheckoutCheckpoint.tsx");
+  assert.ok(checkpoint.includes("const [newsletterOptIn, setNewsletterOptIn] = useState(false);"), "must default to unchecked");
+});
+check("Gate 13: the newsletter engine's checkout-capture schema (unsubscribe_token / unsubscribe_token_expires_at) is proven present on the live production table — confirmed via a direct read-only information_schema query, no migration applied this round", () => {
+  const migration = raw("supabase/migrations/20260916140000_newsletter_unsubscribe_token_columns.sql");
+  assert.ok(migration.includes("unsubscribe_token") && migration.includes("unsubscribe_token_expires_at"));
+});
+
+/* ================================================================================================
+ * MEDIA + CHILD ROUND-TRIP RECOVERY CLOSEOUT — owner-proven runtime defects (2026-09-18/19):
+ * durable parent photos rendering as URL-only rows on Dashboard edit, the pre-checkout child
+ * bundle disappearing on the same edit, and a second competing "Publicar anuncio" path on the
+ * Dealer application's final review step.
+ * ============================================================================================ */
+check("Round-trip Gate A/B/C: the media manager no longer classifies canonical gallery photos by sourceType — durable/uploaded and owner-typed-URL images render through ONE visual sortable grid (thumbnail, cover, order, remove), not two separate UI worlds", () => {
+  const mgr = raw("app/(site)/publicar/autos/negocios/components/AutosNegociosMediaManager.tsx");
+  assert.ok(!mgr.includes("isUrlSource"), "the sourceType-based UI split must be removed entirely");
+  assert.ok(!mgr.includes("fileImages"), "no separate file-only image array should remain");
+  assert.ok(!mgr.includes("urlImages"), "no separate url-only image array/list should remain");
+  assert.ok(mgr.includes("<AutosSortablePhotoGrid"), "the visual grid must still be rendered");
+  assert.ok(
+    /<AutosSortablePhotoGrid\s+images=\{images\}/.test(mgr),
+    "the grid must receive the FULL canonical images array (both origins), not a filtered subset",
+  );
+  assert.ok(
+    mgr.includes('images.length === 0 ? (') && mgr.includes("images.length > 0"),
+    "empty-state and grid-visibility must be gated on the full image count, not a file-only subset",
+  );
+});
+check("Round-trip Gate C: dragging to reorder and the left/right move buttons operate on the full canonical mediaImages array (both origins), so a durable/uploaded photo's position round-trips exactly like a file-sourced one", () => {
+  const mgr = raw("app/(site)/publicar/autos/negocios/components/AutosNegociosMediaManager.tsx");
+  const moveFn = mgr.slice(mgr.indexOf("const move = "), mgr.indexOf("const onVideoUrlsChange"));
+  assert.ok(moveFn.includes("sortByOrder(listing.mediaImages ?? [])"), "move() must reorder within the full mediaImages array, not a file-only filtered copy");
+  const onReorder = mgr.slice(mgr.indexOf("onReorder={(next)"), mgr.indexOf("onSetPrimary={setPrimary}"));
+  assert.ok(!onReorder.includes("urlOnly"), "onReorder must not re-append a separately-tracked url-only subset (that silently forced url images to the end)");
+});
+check("Round-trip Gate B: cover selection is unchanged (still the same isPrimary field on MediaImageEntry, still the same setPrimary/commitImages path) — the fix is purely which images are ELIGIBLE for the grid, never how the persisted cover flag is read or written", () => {
+  const mgr = raw("app/(site)/publicar/autos/negocios/components/AutosNegociosMediaManager.tsx");
+  assert.ok(mgr.includes("const setPrimary = (id: string) => {"));
+  assert.ok(mgr.includes("x.id === id"), "setPrimary must still flip isPrimary by id across the full array");
+  const grid = raw("app/(site)/publicar/autos/shared/components/AutosSortablePhotoGrid.tsx");
+  assert.ok(grid.includes("img.isPrimary"), "the grid tile must still read isPrimary directly off each entry — no separate cover field introduced");
+});
+check("Round-trip Gate D: zero real child rows + a durable embedded additionalInventoryVehicles bundle on the parent restores the FULL staged child bundle (no fields dropped)", () => {
+  const embedded = [
+    createEmptyInventoryVehicleDraft("draft-a"),
+    createEmptyInventoryVehicleDraft("draft-b"),
+  ];
+  const result = reconcileAdditionalInventoryVehicles([], embedded);
+  assert.equal(result.length, 2, "both staged children must be restored when no real rows exist yet");
+});
+check("Round-trip Gate E: once a real published child row exists, it is canonical — a stale embedded draft that matches it by VIN is not duplicated alongside it", () => {
+  const real = { ...createEmptyInventoryVehicleDraft("real-row-uuid"), vin: "1HGCM82633A004352" };
+  const staleEmbedded = { ...createEmptyInventoryVehicleDraft("pre-checkout-draft-id"), vin: "1HGCM82633A004352" };
+  const result = reconcileAdditionalInventoryVehicles([real], [staleEmbedded]);
+  assert.equal(result.length, 1, "the real row must win — no duplicate for the same VIN");
+  assert.equal(result[0]?.id, "real-row-uuid", "the surviving entry must be the real canonical row, not the stale draft");
+});
+check("Round-trip Gate F: partial fulfillment reconciles deterministically — a real child is kept once, and a still-unpublished sibling staged in the same embedded bundle is recovered rather than silently dropped", () => {
+  const real = { ...createEmptyInventoryVehicleDraft("real-row-uuid"), vin: "1HGCM82633A004352" };
+  const embeddedMatching = { ...createEmptyInventoryVehicleDraft("pre-checkout-a"), vin: "1HGCM82633A004352" };
+  const embeddedUnpublishedSibling = { ...createEmptyInventoryVehicleDraft("pre-checkout-b"), vin: "5YJ3E1EA8KF317000" };
+  const result = reconcileAdditionalInventoryVehicles([real], [embeddedMatching, embeddedUnpublishedSibling]);
+  assert.equal(result.length, 2, "exactly one real + one still-unpublished sibling — no duplicate, no silent drop");
+  const ids = result.map((r) => r.id);
+  assert.ok(ids.includes("real-row-uuid"));
+  assert.ok(ids.includes("pre-checkout-b"));
+  assert.ok(!ids.includes("pre-checkout-a"), "the matched stale draft must not survive alongside its real row");
+});
+check("Round-trip Gate D/E fallback: with no VIN/stock number on either side, identity falls back to a title-shaped key (year/make/model/trim) rather than always treating them as distinct — this only applies when neither side has a stronger identifier", () => {
+  const real = { ...createEmptyInventoryVehicleDraft("real-row-uuid"), year: 2021, make: "Lexus", model: "RX", trim: "F Sport" };
+  const embeddedSame = { ...createEmptyInventoryVehicleDraft("pre-checkout-a"), year: 2021, make: "Lexus", model: "RX", trim: "F Sport" };
+  const result = reconcileAdditionalInventoryVehicles([real], [embeddedSame]);
+  assert.equal(result.length, 1, "identical title-shaped fallback identity must still de-duplicate when neither side has VIN/stock");
+});
+check("Round-trip Gate H: the Dealer main application review step exposes ONLY Vista previa/Preview — the second 'Publicar anuncio'/'continue to publish' CTA and its gating checklist are hidden for lane=negocios when not in inventory-add-child mode", () => {
+  const actions = raw("app/(site)/publicar/autos/shared/components/AutosApplicationFinalActions.tsx");
+  assert.ok(
+    actions.includes('const showSecondaryContinueButton = publishLane !== "negocios" || inventoryAddMode;'),
+    "the second CTA must be hidden exactly when lane is negocios and this is not the child-add flow",
+  );
+  assert.ok(
+    actions.includes("{showSecondaryContinueButton ? (") ,
+    "the second CTA button must be conditionally rendered",
+  );
+  assert.ok(
+    /\{showSecondaryContinueButton \? \(\s*<div className="mt-6">/.test(actions),
+    "the 'Before publishing' checklist that only gates the removed button must also be hidden alongside it, not left as dead UI",
+  );
+});
+check("Round-trip Gate H/J: 'Agregar al inventario' (child-draft save, NOT public publication) and Privado's own continue-to-publish path are both unaffected by the Dealer main Step-7 change", () => {
+  const actions = raw("app/(site)/publicar/autos/shared/components/AutosApplicationFinalActions.tsx");
+  assert.ok(actions.includes('inventoryAddMode && publishLane === "negocios"'), "inventory-add-child mode must still resolve its own distinct continue label");
+  const negocios = raw("app/(site)/publicar/autos/negocios/components/AutosNegociosApplication.tsx");
+  assert.ok(negocios.includes('lane="negocios"') && negocios.includes("inventoryAddMode={inventoryAddMode}"), "Dealer main still passes its real inventoryAddMode state through, unmodified");
+  const privado = raw("app/(site)/publicar/autos/privado/components/AutosPrivadoApplication.tsx");
+  assert.ok(privado.includes('lane="privado"'), "Privado's lane prop is untouched, so showSecondaryContinueButton is always true for Privado");
+});
+check("Round-trip Gate I: early progressive media preparation (pre-Pay durable upload, bounded concurrency) is completely untouched by this pass — no source line in the upload engine itself changed", () => {
+  const prepare = raw("app/lib/clasificados/autos/autosDraftPhotoPublishPrepare.ts");
+  assert.ok(prepare.includes("AUTOS_DRAFT_UPLOAD_CONCURRENCY = 4"), "bounded concurrency constant unchanged");
+  assert.ok(prepare.includes("onProgress?: (done: number, total: number) => void;"), "readiness progress callback unchanged");
+});
+check("Round-trip Gate J: Privado is protected — the shared media manager fix and the child-bundle reconciliation helper are generic, lane-agnostic repairs (no new Dealer-only branch was added to a component Privado also renders)", () => {
+  const mgr = raw("app/(site)/publicar/autos/negocios/components/AutosNegociosMediaManager.tsx");
+  assert.ok(!mgr.includes('lane ==='), "the media manager must not have grown a lane-conditional branch");
+  const privado = raw("app/(site)/publicar/autos/privado/components/AutosPrivadoApplication.tsx");
+  assert.ok(privado.includes("AutosNegociosMediaManager"), "Privado still uses the exact same shared, now-corrected media manager");
+});
+
+/* ================================================================================================
+ * EDIT PREVIEW MODE — a canonical Dashboard edit (?edit=1&source=dashboard&listingId=<real id>)
+ * must never re-offer the $399 base Dealer checkout merely because the row's lifecycle status
+ * happens to be pending_payment. Route intent and lifecycle status are separate axes.
+ * ============================================================================================ */
+check("Edit preview mode: dashboard-edit detection is derived from ROUTE INTENT (canonicalListingId + ?edit=1&source=dashboard), never from the row's lifecycle status alone", () => {
+  const client = raw("app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx");
+  assert.ok(
+    client.includes(
+      'const isDashboardListingEditPreview =\n    Boolean(canonicalListingId) && searchParams?.get("edit") === "1" && searchParams?.get("source") === "dashboard";',
+    ),
+    "must gate on route intent params, not on mode/status",
+  );
+  const appHref = raw("app/(site)/publicar/autos/negocios/components/AutosNegociosApplication.tsx");
+  assert.ok(
+    appHref.includes('edit: "1"') && appHref.includes('source: "dashboard"'),
+    "the application's own previewHref must set the exact params the Preview page reads",
+  );
+});
+check("Edit preview mode: a canonical dashboard edit renders Save Changes, never PublishCheckoutCheckpoint — a brand-new application (no edit route intent) still renders the real $399 checkout", () => {
+  const client = raw("app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx");
+  const branchStart = client.indexOf("{isDashboardListingEditPreview ? (");
+  const branchEnd = client.indexOf(")}", client.indexOf("<PublishCheckoutCheckpoint", branchStart));
+  const branch = client.slice(branchStart, branchEnd);
+  assert.ok(branch.includes("Guardar cambios") && branch.includes("Save changes"), "the true branch must be the Save Changes UI");
+  assert.ok(branch.includes("<PublishCheckoutCheckpoint"), "the false branch (new application) must still render the real checkout");
+  assert.ok(!/isDashboardListingEditPreview \? \(\s*<PublishCheckoutCheckpoint/.test(client), "PublishCheckoutCheckpoint must be on the FALSE side of the branch, never the true (edit) side");
+});
+check("Edit preview mode payment firewall: Save Changes calls ONLY ensurePendingDealerListing (the existing PATCH-only-for-canonical-id path) — never startRevenueCategoryCheckout, redirectToRevenueCategoryCheckout, promo apply, verified-intro, or newsletter checkout capture", () => {
+  const client = raw("app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx");
+  const fnStart = client.indexOf("const onSaveDealerChanges = useCallback(async () => {");
+  const fnEnd = client.indexOf("}, [ensurePendingDealerListing]);", fnStart);
+  const fnBody = client.slice(fnStart, fnEnd);
+  assert.ok(fnBody.includes("await ensurePendingDealerListing()"), "must call the existing canonical-PATCH-only preparation path");
+  for (const forbidden of [
+    "startRevenueCategoryCheckout",
+    "redirectToRevenueCategoryCheckout",
+    "applyAutosDealerPreviewPromoCode",
+    "captureCheckoutNewsletterSubscriber",
+    "requestVerifiedIntroDiscount",
+  ]) {
+    assert.ok(!fnBody.includes(forbidden), `Save Changes must never call ${forbidden} — ordinary listing edits must have zero payment side effects`);
+  }
+});
+check("Edit preview mode: ensurePendingDealerListing still PATCHes the SAME canonical row (never falls back to POST/create) when canonicalListingId is present, and includes the complete restored listing + child bundle so Save never strips media", () => {
+  const client = raw("app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx");
+  assert.ok(client.includes("if (canonicalListingId) {"), "the canonical-id PATCH-only branch must still exist");
+  assert.ok(
+    client.includes("additionalInventoryVehicles: photoPrep.additionalInventoryVehicles,"),
+    "the PATCH payload must carry the complete restored child bundle, not a stripped one",
+  );
+});
+check("Edit preview mode: the underlying Autos PATCH route only ever updates listing_payload/lang/updated_at — status, published_at, payment/subscription/entitlement, id, owner_user_id, and inventory identity are structurally impossible for Save Changes to mutate", () => {
+  const svc = raw("app/lib/clasificados/autos/autosClassifiedsListingService.ts");
+  const fnStart = svc.indexOf("export async function updateAutosClassifiedsListingDraft(");
+  const updateStart = svc.indexOf(".update({", fnStart);
+  const updateEnd = svc.indexOf("})", updateStart);
+  const updatePayload = svc.slice(updateStart, updateEnd);
+  assert.ok(updatePayload.includes("listing_payload: payload") && updatePayload.includes("lang,") && updatePayload.includes("updated_at:"));
+  assert.ok(
+    !/status\s*:|published_at\s*:|inventory_role\s*:|dealer_inventory_group_id\s*:|stripe_/i.test(updatePayload),
+    "the update payload must never include lifecycle/payment/inventory-identity fields",
+  );
+  const recoverableCheck = svc.slice(fnStart, updateStart);
+  assert.ok(
+    recoverableCheck.includes('row.status === "pending_payment"') && recoverableCheck.includes('row.status === "active"'),
+    "both a pending-payment row (Case 1) and an active row (Case 2) must remain editable through this same path",
+  );
 });
 
 if (failures.length) {

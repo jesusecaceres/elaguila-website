@@ -30,21 +30,19 @@ const HERO = "app/(site)/servicios/components/ServiciosProfessionalHero.tsx";
 const SHEET = "app/components/cta/CtaActionSheet.tsx";
 
 /* ── RESULT CARD ── */
-check("RESULT CARD: contact CTA row wraps instead of overflowing at 390px (flex-wrap present, no nowrap/overflow-x-scroll escape hatch)", () => {
+check("RESULT CARD: contact CTA area uses the adaptive 2-column grid, no horizontal-scroll escape hatch at 390px", () => {
   for (const rel of [TRADE_CARD, PRO_CARD]) {
     const src = raw(rel);
-    assert.ok(/className=\{`\$\{LX_CTA_CARD_PRIMARY_FLEX\}/.test(src) || src.includes("flex flex-wrap gap-2"), `${rel}: CTA row must be a wrapping flex row`);
-    assert.ok(!/overflow-x-scroll|overflow-x-auto|whitespace-nowrap/.test(src), `${rel}: CTA row must not rely on horizontal scroll to fit narrow viewports`);
+    assert.ok(src.includes('className="grid grid-cols-2 gap-2"'), `${rel}: CTA area must use the adaptive 2-column grid`);
+    assert.ok(!/overflow-x-scroll|overflow-x-auto|whitespace-nowrap/.test(src), `${rel}: CTA area must not rely on horizontal scroll to fit narrow viewports`);
   }
 });
 check("RESULT CARD: WhatsApp absence leaves no dead hole (conditionally rendered, not a hidden/disabled placeholder)", () => {
   for (const rel of [TRADE_CARD, PRO_CARD]) {
     const src = raw(rel);
-    // Servicios Final Contact Truth (2026-09-17, Gate 4): WhatsApp is conditionally rendered in one
-    // of two spots (primary row, or its own row when Call+Message+WhatsApp all coexist) — both are
-    // still real truthy gates, never a disabled placeholder.
-    assert.ok(/\{(?:wa|waHrefNormalized) && !forceWhatsAppBelow \? \(/.test(src), `${rel}: WhatsApp CTA (primary row) must be conditionally rendered on a real truthy destination`);
-    assert.ok(/\{(?:wa|waHrefNormalized) && forceWhatsAppBelow \? \(/.test(src), `${rel}: WhatsApp CTA (bumped row) must be conditionally rendered on a real truthy destination`);
+    // Servicios Final Phone Destination Closeout (2026-09-17): WhatsApp is a single, plain
+    // conditionally-rendered grid item — the forced-row special case was removed.
+    assert.ok(/\{wa \? \(|\{waHrefNormalized \? \(/.test(src), `${rel}: WhatsApp CTA must be conditionally rendered on a real truthy destination`);
     assert.ok(!/WhatsApp[\s\S]{0,80}disabled/.test(src), `${rel}: no disabled/greyed-out WhatsApp button variant`);
   }
 });

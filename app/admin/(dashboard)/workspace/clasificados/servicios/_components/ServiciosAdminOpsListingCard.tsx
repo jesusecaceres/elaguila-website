@@ -7,6 +7,7 @@ import { ClassifiedAdminRowActions } from "../../_components/ClassifiedAdminRowA
 import { AdminActionExplainerGrid } from "@/app/admin/_components/AdminActionExplainer";
 import {
   setServiciosListingLeonixVerifiedAction,
+  updateServiciosModerationNotesAction,
   updateServiciosPublicListingStatusAction,
 } from "../actions";
 import type { ServiciosPublicAdminRow } from "../_lib/serviciosAdminOpsTypes";
@@ -14,13 +15,20 @@ import type {
   ServiciosCommercialOpsRow,
   ServiciosOpsField,
 } from "@/app/admin/_lib/serviciosCommercialOps";
+import { isPubliclyVisible, isValidLifecycleStatus } from "@/app/lib/clasificados/listingLifecycleDomain";
 import { ServiciosAdminMonetizationPanel } from "./ServiciosAdminMonetizationPanel";
 
-function formatWhen(iso: string | null | undefined, fallback?: string): string {
+function formatWhen(iso: string | null | undefined, fallback?: string | null): string {
   const raw = iso ?? fallback;
   if (!raw) return "—";
   const d = new Date(raw);
   return Number.isFinite(d.getTime()) ? d.toLocaleString() : "—";
+}
+
+/** Cents-truth field -> a dollar-formatted string field for `ServiciosOpsTruthRow` (never render raw cents as if they were dollars). */
+function centsOpsField(field: ServiciosOpsField<number> | undefined): ServiciosOpsField<string> | undefined {
+  if (!field) return undefined;
+  return { ...field, value: typeof field.value === "number" ? `$${(field.value / 100).toFixed(2)}` : null };
 }
 
 function statusBadgeClass(status: string | null): string {
@@ -100,6 +108,12 @@ export function ServiciosAdminOpsListingCard({
   highlighted: boolean;
 }) {
   const publicLive = (row.listing_status ?? "") === "published";
+  // Gate 10 (Servicios Final Consolidated Lifecycle Execution, 2026-09-18) — the same shared
+  // public-eligibility predicate Gate 9 used on the owner dashboard (canonical
+  // `isPubliclyVisible`/`getVisibilityBucket`, not a bespoke re-check): a `pending_payment` row
+  // is never public, so Admin must not render a working-looking "View public listing" link for
+  // it. This never mutates listing_status — read-only display gating only.
+  const publiclyVisible = isValidLifecycleStatus(row.listing_status) && isPubliclyVisible(row.listing_status);
 
   return (
     <article
@@ -137,6 +151,11 @@ export function ServiciosAdminOpsListingCard({
               <ServiciosOpsTruthRow label="Subscription" field={commercial?.subscription} />
               <ServiciosOpsTruthRow label="Period end" field={commercial?.subscriptionPeriodEnd} />
               <ServiciosOpsTruthRow label="Stripe payment" field={commercial?.payment} />
+              <ServiciosOpsTruthRow label="Payment status" field={commercial?.paymentRecordStatus} />
+              <ServiciosOpsTruthRow label="Amount paid" field={centsOpsField(commercial?.paymentAmountPaidCents)} />
+              <ServiciosOpsTruthRow label="Amount expected" field={centsOpsField(commercial?.paymentAmountExpectedCents)} />
+              <ServiciosOpsTruthRow label="Paid at" field={commercial?.paymentPaidAt} />
+              <ServiciosOpsTruthRow label="Stripe payment intent" field={commercial?.paymentStripePaymentIntentId} />
             </dl>
           </div>
 
@@ -159,7 +178,11 @@ export function ServiciosAdminOpsListingCard({
             </div>
             <div>
               <dt className="font-bold uppercase tracking-wide text-[#7A7164]">Updated</dt>
-              <dd className="mt-0.5">{formatWhen(row.updated_at, row.published_at)}</dd>
+              <dd className="mt-0.5">{formatWhen(row.updated_at)}</dd>
+            </div>
+            <div>
+              <dt className="font-bold uppercase tracking-wide text-[#7A7164]">Published at</dt>
+              <dd className="mt-0.5">{formatWhen(row.published_at)}</dd>
             </div>
             <div>
               <dt className="font-bold uppercase tracking-wide text-[#7A7164]">Engagement</dt>
@@ -178,36 +201,68 @@ export function ServiciosAdminOpsListingCard({
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-lg border border-[#E8DFD0]/80 bg-[#FAF7F2]/90 p-3">
               <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">Status &amp; moderation</p>
-              <form action={updateServiciosPublicListingStatusAction} className="mt-2 space-y-2">
-                <input type="hidden" name="listing_id" value={row.id} />
-                <select
-                  name="listing_status"
-                  defaultValue={row.listing_status ?? "published"}
-                  className="w-full rounded-lg border border-[#E8DFD0] bg-white px-2 py-2 text-xs"
-                >
-                  <option value="pending_review">pending_review</option>
-                  <option value="published">published</option>
-                  <option value="paused_unpublished">paused_unpublished</option>
-                  <option value="rejected">rejected</option>
-                  <option value="suspended">suspended</option>
-                  <option value="draft">draft</option>
-                </select>
-                <label className="block text-[10px] font-semibold text-[#7A7164]">
-                  Moderation notes
-                  <textarea
-                    name="moderation_notes"
-                    rows={2}
-                    defaultValue={row.moderation_notes ?? ""}
-                    className="mt-1 w-full resize-y rounded-lg border border-[#E8DFD0] bg-white px-2 py-1.5 text-xs"
-                  />
-                </label>
-                <button
-                  type="submit"
-                  className="inline-flex min-h-[40px] w-full items-center justify-center rounded-lg border border-[#6B1A26] bg-[#7A1E2C] px-3 py-2 text-xs font-semibold text-white hover:bg-[#6B1A26]"
-                >
-                  Save listing status
-                </button>
-              </form>
+              {row.listing_status === "pending_payment" ? (
+                <>
+                  {/* Gate SERVICIOS-EXEC-2: pending_payment is commercial/payment truth, not a staff-
+                      moderation state — it is never staff-editable here. It changes only via the
+                      Revenue OS webhook on real paid truth. Showing a mutable status control for it
+                      (whose option list has no matching entry) is exactly what let an unrelated save
+                      silently downgrade it before. */}
+                  <p className="mt-2 rounded-lg border border-[#E8DFD0] bg-[#FFFCF7] px-2 py-2 text-[11px] leading-relaxed text-[#7A5C2E]">
+                    Pago pendiente — verdad comercial, no editable por staff aquí. Se activa
+                    automáticamente cuando Revenue OS confirma el pago.
+                  </p>
+                  <form action={updateServiciosModerationNotesAction} className="mt-2 space-y-2">
+                    <input type="hidden" name="listing_id" value={row.id} />
+                    <label className="block text-[10px] font-semibold text-[#7A7164]">
+                      Moderation notes
+                      <textarea
+                        name="moderation_notes"
+                        rows={2}
+                        defaultValue={row.moderation_notes ?? ""}
+                        className="mt-1 w-full resize-y rounded-lg border border-[#E8DFD0] bg-white px-2 py-1.5 text-xs"
+                      />
+                    </label>
+                    <button
+                      type="submit"
+                      className="inline-flex min-h-[40px] w-full items-center justify-center rounded-lg border border-[#6B1A26] bg-[#7A1E2C] px-3 py-2 text-xs font-semibold text-white hover:bg-[#6B1A26]"
+                    >
+                      Save notes
+                    </button>
+                  </form>
+                </>
+              ) : (
+                <form action={updateServiciosPublicListingStatusAction} className="mt-2 space-y-2">
+                  <input type="hidden" name="listing_id" value={row.id} />
+                  <select
+                    name="listing_status"
+                    defaultValue={row.listing_status ?? "published"}
+                    className="w-full rounded-lg border border-[#E8DFD0] bg-white px-2 py-2 text-xs"
+                  >
+                    <option value="pending_review">pending_review</option>
+                    <option value="published">published</option>
+                    <option value="paused_unpublished">paused_unpublished</option>
+                    <option value="rejected">rejected</option>
+                    <option value="suspended">suspended</option>
+                    <option value="draft">draft</option>
+                  </select>
+                  <label className="block text-[10px] font-semibold text-[#7A7164]">
+                    Moderation notes
+                    <textarea
+                      name="moderation_notes"
+                      rows={2}
+                      defaultValue={row.moderation_notes ?? ""}
+                      className="mt-1 w-full resize-y rounded-lg border border-[#E8DFD0] bg-white px-2 py-1.5 text-xs"
+                    />
+                  </label>
+                  <button
+                    type="submit"
+                    className="inline-flex min-h-[40px] w-full items-center justify-center rounded-lg border border-[#6B1A26] bg-[#7A1E2C] px-3 py-2 text-xs font-semibold text-white hover:bg-[#6B1A26]"
+                  >
+                    Save listing status
+                  </button>
+                </form>
+              )}
             </div>
 
             <div className="rounded-lg border border-[#E8DFD0]/80 bg-[#FAF7F2]/90 p-3">
@@ -235,14 +290,20 @@ export function ServiciosAdminOpsListingCard({
             </div>
           </div>
 
-          <Link
-            href={`/clasificados/servicios/${row.slug}?lang=es`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`${adminDashboardCtaView} w-full sm:w-auto`}
-          >
-            View public listing →
-          </Link>
+          {publiclyVisible ? (
+            <Link
+              href={`/clasificados/servicios/${row.slug}?lang=es`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${adminDashboardCtaView} w-full sm:w-auto`}
+            >
+              View public listing →
+            </Link>
+          ) : (
+            <p className="w-full rounded-lg border border-[#E8DFD0] bg-[#FAF7F2] px-3 py-2 text-xs text-[#7A7164] sm:w-auto">
+              Not public yet ({row.listing_status ?? "—"}) — no public page to view.
+            </p>
+          )}
         </div>
 
         <div className="min-w-0 space-y-4 border-[#E8DFD0]/70 lg:border-l lg:pl-6">

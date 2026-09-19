@@ -4,6 +4,7 @@
  */
 
 import type { AutosListingAnalyticsSnapshot } from "@/app/clasificados/autos/shared/types/autosListingAnalytics";
+import type { AutosAdditionalInventoryVehicleDraft } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 
 export type VehicleBadge =
   | "certified"
@@ -309,4 +310,13 @@ export type AutoDealerListing = {
   relatedDealerListings?: RelatedDealerListing[];
   relatedDealerInventoryHref?: string | null;
   relatedDealerInventoryHasMore?: boolean;
+  /**
+   * Durable server-side staging for Dealer additional-inventory (child) vehicle drafts, written
+   * to the parent's own `listing_payload` before Stripe Checkout opens (negocios main listing
+   * only). The Stripe webhook has no access to browser state after redirect, so it reads this
+   * field to know exactly which children to create/activate once payment is verified. Same key
+   * `syncDealerInventoryChildRowsFromParentPayload` already reads for post-publish child edits —
+   * not a buyer-facing field, never surfaced by the public listing mapper.
+   */
+  additionalInventoryVehicles?: AutosAdditionalInventoryVehicleDraft[];
 };
