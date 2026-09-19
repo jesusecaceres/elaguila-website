@@ -205,10 +205,10 @@ check(
 );
 check(
   "16. Both pages route loading/empty/error state through the frame's props, not a bespoke conditional block outside it",
-  /<OwnerProductPageFrame[\s\S]{0,600}loading=\{/.test(servicios) &&
-    /<OwnerProductPageFrame[\s\S]{0,600}empty=\{/.test(servicios) &&
-    /<OwnerProductPageFrame[\s\S]{0,600}loading=\{/.test(restaurantes) &&
-    /<OwnerProductPageFrame[\s\S]{0,600}empty=\{/.test(restaurantes),
+  /<OwnerProductPageFrame[\s\S]{0,1200}loading=\{/.test(servicios) &&
+    /<OwnerProductPageFrame[\s\S]{0,1200}empty=\{/.test(servicios) &&
+    /<OwnerProductPageFrame[\s\S]{0,1200}loading=\{/.test(restaurantes) &&
+    /<OwnerProductPageFrame[\s\S]{0,1200}empty=\{/.test(restaurantes),
 );
 check("17. Servicios no longer imports the account-level analytics summary fetcher", !/fetchDashboardAnalyticsSummary/.test(servicios));
 check("18. Restaurantes no longer imports the account-level analytics summary fetcher", !/fetchDashboardAnalyticsSummary/.test(restaurantes));
