@@ -1,5 +1,7 @@
 # LEONIX QUICK BUSINESS CORE — EXECUTION LEDGER (build mission + Dealer/Bienes closeout, 2026-09-20)
 
+> **Proof pointer (integration gate, 2026-09-20):** every `PROVEN_SOURCE` / `OK` cell below is backed by a row of `LEONIX_QUICK_BUSINESS_FINAL_PROOF_MATRIX.md` (Servicios SV-*, Restaurantes RS-*, Autos Dealer AD-*, Bienes BN-*, shared SQ-*, staff SP-*, customer control CM-*, validation NR-01…NR-03) and by `LEONIX_QUICK_BUSINESS_VERIFIER_DRIFT_LEDGER.md` for every failing / limited verifier. The integration-gate results (full TypeScript, full build, exact-SHA Preview) live in `LEONIX_QUICK_BUSINESS_PRE_QA_TECHNICAL_CERTIFICATION.md`. This ledger is a lead, not evidence.
+
 Branch `claude/quick-business-core-build-2026-09` (from certified Quick Classifieds HEAD `7555fb6456dff1797a7ca8d5716f99abdc511cce`; `origin/main` `fd9094994aa2a63fdcea49f24b2435300a7b49a4`, never merged).
 Statuses are SOURCE-level only. No runtime / browser / human proof is claimed here (deferred to the integration gate and owner QA).
 

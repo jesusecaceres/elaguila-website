@@ -1,5 +1,7 @@
 # LEONIX QUICK BUSINESS CORE — PM HANDOFF (2026-09-20, updated by the Dealer + Bienes closeout)
 
+> **Proof pointer (integration gate, 2026-09-20):** every `PROVEN_SOURCE` status line below is backed by rows of `LEONIX_QUICK_BUSINESS_FINAL_PROOF_MATRIX.md` (SERVICIOS → SV-01…SV-15; RESTAURANTES → RS-01…RS-12; AUTOS DEALER → AD-01…AD-24; BIENES → BN-01…BN-21; SHARED → SQ-01…SQ-13; STAFF PWA → SP-01…SP-05; FIELD-WIRING → SQ-05…SQ-10; IMAGE → MD-01…MD-05; PAYMENT → PY-01…PY-06; OWNERSHIP → OW-01…OW-09; STRUCTURED PROTECTION → SI-01…SI-05, MC-01, MC-02; CLASSIFIEDS NO-REGRESSION → CP-01…CP-03) and the release decision is recorded in `LEONIX_QUICK_BUSINESS_PRE_QA_TECHNICAL_CERTIFICATION.md`. This handoff is a lead, not evidence.
+
 SOURCE CERTIFIED CLASSIFIEDS SHA: `7555fb6456dff1797a7ca8d5716f99abdc511cce` (branch `claude/quick-classifieds-master-build-0j5p30`, not modified by this mission)
 QUICK BUSINESS BRANCH: `claude/quick-business-core-build-2026-09`
 START SHA: `7555fb6456dff1797a7ca8d5716f99abdc511cce`

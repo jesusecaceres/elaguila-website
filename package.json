@@ -45,6 +45,7 @@
     "verify:quick-classifieds-interaction": "npx tsx scripts/verify-quick-classifieds-interaction-02.ts",
     "verify:quick-classifieds-proof-matrix": "npx tsx scripts/verify-quick-classifieds-proof-matrix-03.ts",
     "verify:quick-business-core": "npx tsx scripts/verify-quick-business-core-01.ts",
+    "verify:quick-business-proof-matrix": "npx tsx scripts/verify-quick-business-proof-matrix-02.ts",
     "verify:program7": "npx tsx scripts/program7-verifier.ts",
     "test:program7": "npx tsx scripts/program7-business-concierge-tests.ts",
     "verify:br": "npx tsx scripts/br-launch-selftest.ts",
