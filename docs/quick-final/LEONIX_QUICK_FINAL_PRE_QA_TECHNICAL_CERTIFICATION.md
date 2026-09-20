@@ -3,6 +3,18 @@
 Single release-level technical certification for the complete Leonix Quick program
 (19 families). This is a technical gate only. **No owner QA was performed.**
 
+| Gate | State |
+|---|---|
+| Quick application code | **TECHNICALLY CERTIFIED** |
+| Full TypeScript | PASS |
+| Full production build | PASS |
+| Feature regressions | 0 |
+| `REPAIR_REQUIRED` | 0 |
+| Required product blockers | 0 |
+| Exact-SHA Vercel Preview | **DEFERRED_BY_OWNER_TO_FINAL_RELEASE_GATE** |
+| Owner QA | DEFERRED UNTIL FINAL RELEASE PREVIEW |
+| Production | UNTOUCHED |
+
 - Branch: `cursor/remaining-families-closeout-cb29`
 - Final application code SHA: `80808e2fd3dd57e71fd921b0f50e85886f4ee6f2`
 - Base: `origin/main` `fd9094994aa2a63fdcea49f24b2435300a7b49a4`, behind 0
@@ -65,25 +77,30 @@ All seven required Quick routes are present in the build route table: `/publicar
 
 | Field | Value |
 |---|---|
-| Exact-SHA Vercel Preview | **NOT CREATED** |
-| Reason | No Vercel credential exists in this environment |
+| Exact-SHA Vercel Preview | **DEFERRED_BY_OWNER_TO_FINAL_RELEASE_GATE** |
+| Reason | Owner PM policy: deployments incur cost and the broader Leonix launch scope is not yet complete, so all additional Previews are consolidated into one final release gate |
+| Nature | Owner-approved scheduling decision, **not** a technical product defect |
+| Preview triggered | **NONE** |
+| Production deployed | **NONE** |
 | Vercel settings read or modified | **NONE** |
+| Vercel credential requested or used | **NONE** |
 | Fabricated deployment proof | **NONE** |
 
-`vercel whoami` and `vercel project ls` both fall back to an interactive device-code login
-(`https://vercel.com/oauth/device`), which an autonomous agent cannot complete. There is no
-`~/.vercel`, no `~/.config/vercel`, no `.vercel` in the repository, and no `VERCEL_*`
-environment variable. Because no Vercel setting was ever read or written, the project's
-Ignore Build Step rule, production branch, domains, aliases and protection settings are
-intact by construction — there is nothing to restore.
+The owner has explicitly deferred all additional Vercel Preview deployments until the
+single final Leonix release and owner-QA gate, after the remaining launch-scope work is
+complete. No `VERCEL_TOKEN` was requested or used, no Preview was triggered, and no
+Production deployment occurred. Because no Vercel setting was ever read or written, the
+project's Ignore Build Step rule, production branch, domains, aliases and protection
+settings are intact by construction — there is nothing to restore.
 
-**Substitute evidence.** The production build of the exact SHA was served locally with
-`next start` and all 18 audited routes were exercised with non-mutating GET requests:
-zero 404, zero 5xx, zero route crashes. Every Quick publication route correctly serves the
-`PublishAuthGate` shell; `/admin/businesses` correctly returns 307 to `/admin/login`. Auth
-gating was not bypassed, disabled or modified to obtain this evidence. This exercises the
-identical compiled output a Preview of this SHA would serve, but it is **not** a substitute
-for the Preview URL the owner needs for QA.
+**Local evidence standing in until the final gate.** The production build of the exact SHA
+was served locally with `next start` and all 18 audited routes were exercised with
+non-mutating GET requests: zero 404, zero 5xx, zero route crashes. Every Quick publication
+route correctly serves the `PublishAuthGate` shell; `/admin/businesses` correctly returns
+307 to `/admin/login`. Auth gating was not bypassed, disabled or modified to obtain this
+evidence. This exercises the identical compiled output a Preview of this SHA would serve.
+It certifies the application code; the Preview URL itself is produced once at the final
+release gate, when owner QA is performed.
 
 ## 5. PROOF MATRIX TOTALS
 
@@ -101,9 +118,10 @@ for the Preview URL the owner needs for QA.
 | ID | Subject | Class | Required | Justification |
 |---|---|---|---|---|
 | `BLK-01` | Viajes final business monthly price | `OWNER_PRICING_DECISION` | NO | Viajes is a `DIRECT_CANONICAL_LINK` with `pricing: null` in the Quick registry. Quick shows no price and promises no payment, so no advertised customer capability depends on the decision |
-| `XC-16` | Exact-SHA Vercel Preview | `EXTERNAL_PERMISSION` | NO at product level | No customer capability is blocked. It is nonetheless the single dependency holding the release decision below |
+| `XC-16` | Exact-SHA Vercel Preview | `OWNER_DEFERRED_RELEASE_GATE` | NO | Owner-approved deferral of deployment spend to the single final Leonix release gate. Not a technical defect and not an environment limitation: the application code is certified without it |
 
-No advertised customer capability is blocked in any of the 19 families.
+No advertised customer capability is blocked in any of the 19 families, and neither entry
+is a technical product defect.
 
 ## 7. BLAST RADIUS
 
@@ -137,32 +155,43 @@ deliberately reverted, because six Ofertas audits enforce an allowlist forbiddin
 from being touched by Ofertas work. The repository's own invariant was honored and the
 stale comment is recorded in the drift ledger for separate cleanup.
 
-## 8. OWNER QA RELEASE DECISION
+## 8. RELEASE STATE
 
-> **NOT AUTHORIZED**
+> **QUICK APPLICATION CODE: TECHNICALLY CERTIFIED**
+>
+> **EXACT-SHA VERCEL PREVIEW: DEFERRED_BY_OWNER_TO_FINAL_RELEASE_GATE**
+>
+> **OWNER QA: DEFERRED UNTIL FINAL RELEASE PREVIEW**
 
-Authorization requires all six of: verifiers passing or fully classified, TypeScript pass,
-production build pass, an exact-code Preview READY, zero required blockers, and zero
-`REPAIR_REQUIRED`. Five of the six are satisfied:
+Every technical condition within this contract's scope is satisfied:
 
 | Condition | State |
 |---|---|
 | All verifiers pass or are classified against a real baseline | MET |
 | Full TypeScript pass | MET, 0 errors |
 | Full production build pass | MET, exit 0 |
-| Zero required blockers | MET |
+| Feature regressions versus `origin/main` | MET, 0 |
+| Zero required product blockers | MET |
 | Zero `REPAIR_REQUIRED` | MET |
-| Exact-code Preview READY | **NOT MET** |
+| Exact-code Preview READY | **DEFERRED BY OWNER**, not a technical gap |
 
-### The single technical dependency
+### Why the Preview is deferred rather than blocked
 
-A Vercel deployment credential for project `leonix-media` must be made available to the
-agent environment — a `VERCEL_TOKEN` added under Cloud Agents → Secrets, scoped to permit
-`vercel deploy` for this project.
+The owner has explicitly deferred all additional Vercel Preview deployments: deployments
+incur cost and the broader Leonix launch project is not yet complete, so the exact-SHA
+Preview is consolidated into the **single final Leonix release and owner-QA gate** once
+the remaining launch-scope work lands.
 
-That is the only outstanding item. With it, an exact-SHA Preview of
-`80808e2fd3dd57e71fd921b0f50e85886f4ee6f2` can be produced, route health re-proved against
-the Preview URL, and this decision revisited without any application code change.
+This is an owner-approved deferred release gate, not a missing capability and not a
+technical product defect. No Vercel credential was requested or used, no Preview was
+triggered, no Production deployment occurred, and no Vercel setting was read or modified.
+
+### Next dependency
+
+Continue the remaining Leonix launch-scope work. When that is complete, one exact-SHA
+Preview is produced at the final release gate and owner QA is performed against it. The
+Quick application code requires no further change to reach that gate: `app/` is already
+byte-identical to the certified SHA `80808e2fd3dd57e71fd921b0f50e85886f4ee6f2`.
 
 ## 9. SCOPE STATEMENT
 

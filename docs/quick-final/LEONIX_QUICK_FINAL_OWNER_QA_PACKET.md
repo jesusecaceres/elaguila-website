@@ -1,19 +1,24 @@
-# LEONIX QUICK — OWNER QA PACKET (PREPARED, NOT EXECUTED)
+# LEONIX QUICK — OWNER QA PACKET (PREPARED, DEFERRED)
 
-Prepared for the owner to run. **Nothing in this packet has been executed.** No listing was
-published, no checkout completed, no payment taken, and no database row created or modified
-during technical certification.
+Prepared for the owner to run at the final Leonix release gate. **Nothing in this packet has
+been executed.** No listing was published, no checkout completed, no payment taken, and no
+database row created or modified during technical certification.
 
 - Final application code SHA: `80808e2fd3dd57e71fd921b0f50e85886f4ee6f2`
 - Branch: `cursor/remaining-families-closeout-cb29`
+- Owner QA: **DEFERRED UNTIL FINAL RELEASE PREVIEW**
 
 ## BEFORE YOU START
 
-The Preview URL is not yet available. A Vercel deployment credential for project
-`leonix-media` must be added to the agent environment first (Cloud Agents → Secrets, a
-`VERCEL_TOKEN` scoped to deploy this project). Once an exact-SHA Preview of
-`80808e2fd3dd57e71fd921b0f50e85886f4ee6f2` exists, substitute its origin for
-`{PREVIEW}` below. Every path is exact and final; only the origin is pending.
+Owner QA is deferred until the single final Leonix release and owner-QA gate. Per owner PM
+policy, additional Vercel Previews are not deployed in the interim because deployments
+incur cost and the broader launch scope is not yet complete. This is a scheduling decision,
+not a technical gap: the Quick application code is already technically certified at the SHA
+above.
+
+When the final release Preview of `80808e2fd3dd57e71fd921b0f50e85886f4ee6f2` is produced at
+that gate, substitute its origin for `{PREVIEW}` below. Every path is exact and final; only
+the origin is pending.
 
 Use a real account you are comfortable transacting with. Paid steps take real money on the
 configured Stripe mode. Where a family is free or team-moderated, that is called out.
