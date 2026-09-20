@@ -85,8 +85,12 @@ export const QUICK_BUSINESS_DEFINITIONS: Record<QuickBusinessCategoryKey, QuickB
       billingHref: "/dashboard/perfil",
     },
     staff: {
+      // REPAIR_REQUIRED: save_for_client / publish_for_client not yet wired into
+      // app/api/clasificados/restaurantes/publish/route.ts. Needs: (1) import readAssistedPublishingContext,
+      // (2) handle assistedAction:"save_for_client"|"publish_for_client" with category="restaurantes" check,
+      // (3) add staff buttons to RestaurantePreviewClient.tsx. Servicios publish route is the golden pattern.
       publishForClientSupported: false,
-      note: { es: "El cliente inicia sesión con su correo y publica a su nombre.", en: "The customer signs in with their email and publishes in their own name." },
+      note: { es: "REPAIR_REQUIRED: La ruta de publicación de Restaurantes todavía no acepta assistedAction. Ver comentario de código.", en: "REPAIR_REQUIRED: The Restaurantes publish route does not yet accept assistedAction. See the code comment." },
     },
     essentialQuestionCount: 11,
   },
@@ -115,7 +119,12 @@ export const QUICK_BUSINESS_DEFINITIONS: Record<QuickBusinessCategoryKey, QuickB
       billingNote: { es: "Suscripción mensual + paquete de inventario opcional.", en: "Monthly subscription + optional inventory pack." },
       billingHref: "/dashboard/perfil",
     },
-    staff: { publishForClientSupported: false, note: { es: "El cliente inicia sesión con su correo y publica a su nombre.", en: "The customer signs in with their email and publishes in their own name." } },
+    // REPAIR_REQUIRED: save_for_client / publish_for_client not yet wired for Autos Dealer.
+    // The publish circuit for a dealer listing is vehicle-first: the first vehicle row must be created
+    // attributed to the client's account, not the staff actor's. Needs: a staff-assisted route that
+    // accepts assistedAction + the client's account id, creates both the dealer parent row and the
+    // vehicle child row correctly, and is guarded by readAssistedPublishingContext(category="autos").
+    staff: { publishForClientSupported: false, note: { es: "REPAIR_REQUIRED: La publicación asistida de Autos Dealer requiere crear la fila del vehículo en la cuenta del cliente. Ver comentario.", en: "REPAIR_REQUIRED: Dealer staff-publish requires vehicle row attributed to the client account. See code comment." } },
     essentialQuestionCount: 16,
   },
   "bienes-negocio": {
@@ -143,7 +152,11 @@ export const QUICK_BUSINESS_DEFINITIONS: Record<QuickBusinessCategoryKey, QuickB
       billingNote: { es: "Suscripción mensual + paquete de inventario opcional.", en: "Monthly subscription + optional inventory pack." },
       billingHref: "/dashboard/perfil",
     },
-    staff: { publishForClientSupported: false, note: { es: "El cliente inicia sesión con su correo y publica a su nombre.", en: "The customer signs in with their email and publishes in their own name." } },
+    // REPAIR_REQUIRED: save_for_client / publish_for_client not yet wired for Bienes Negocio (agente/negocio).
+    // The publish circuit is property-first: a child listing (inventory_role="inventory_property") + parent must
+    // both be attributed to the client's account, not the staff actor's. Needs: a staff-assisted route accepting
+    // assistedAction + the client's account id, guarded by readAssistedPublishingContext(category="bienes-raices").
+    staff: { publishForClientSupported: false, note: { es: "REPAIR_REQUIRED: La publicación asistida de Bienes Negocio requiere filas de propiedad atribuidas a la cuenta del cliente. Ver comentario.", en: "REPAIR_REQUIRED: Bienes staff-publish requires property rows attributed to the client account. See code comment." } },
     essentialQuestionCount: 19,
   },
 };

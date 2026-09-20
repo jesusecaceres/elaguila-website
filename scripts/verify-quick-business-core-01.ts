@@ -450,4 +450,34 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
   assert.ok(mod.includes("next = { ...next, descripcionPrincipal: translated.description"), "translate module applies description back to descripcionPrincipal");
 }
 
+// 11. STAFF OPERATIONS — Gate 5 corrective -------------------------------------------------------------------
+// Proves:
+//   a. publishForClientSupported: true for Servicios only (one verified server route).
+//   b. All three non-Servicios blocks carry REPAIR_REQUIRED in their staff notes (honest gap disclosure).
+//   c. The launchpad renders the staff note for ALL categories, not only supported ones.
+{
+  // (a) Servicios is the only supported category
+  assert.ok(reg.includes("publishForClientSupported: true"), "registry has publishForClientSupported: true (Servicios)");
+  assert.equal((reg.match(/publishForClientSupported: false/g) ?? []).length, 3, "exactly 3 categories have publishForClientSupported: false");
+
+  // (b) Each non-Servicios staff block carries REPAIR_REQUIRED
+  for (const catKey of ["restaurantes", "autos-dealer", "bienes-negocio"] as const) {
+    const block = registryBlock(catKey.includes("-") ? `"${catKey}"` : catKey);
+    assert.ok(block.includes("REPAIR_REQUIRED"), `${catKey} staff block carries REPAIR_REQUIRED gap disclosure`);
+    assert.ok(block.includes("publishForClientSupported: false"), `${catKey} correctly declares publishForClientSupported: false`);
+  }
+
+  // (c) Launchpad renders staff note for ALL categories (not gated on publishForClientSupported: true)
+  const launchpad = read("app/admin/(dashboard)/businesses/QuickApplicationsLaunchpad.tsx");
+  // The note must appear in BOTH the true branch and a fallback (else/ternary) — NOT in a single if-true block only
+  assert.ok(
+    launchpad.includes("def.staff.publishForClientSupported ?") || launchpad.includes("def.staff.publishForClientSupported &&"),
+    "launchpad checks publishForClientSupported",
+  );
+  // The note text must be reachable when publishForClientSupported is false
+  const afterTrueBranch = launchpad.slice(launchpad.indexOf("def.staff.note.es"));
+  // There must be a second occurrence of def.staff.note.es (the false/else branch)
+  assert.ok(afterTrueBranch.includes("def.staff.note.es", 1), "launchpad renders def.staff.note.es in BOTH branches (supported and REPAIR_REQUIRED)");
+}
+
 console.log("verify-quick-business-core-01: OK");
