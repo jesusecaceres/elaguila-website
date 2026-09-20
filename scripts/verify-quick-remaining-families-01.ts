@@ -225,6 +225,9 @@ function defBlocksInclude(source: string, key: string, needle: string): boolean 
     "app/(site)/publicar/negocio-rapido/_adapters/restaurantesQuickBusinessAdapter.ts",
     "app/(site)/publicar/negocio-rapido/_adapters/autosDealerQuickBusinessAdapter.ts",
     "app/(site)/publicar/negocio-rapido/_adapters/bienesNegocioQuickBusinessAdapter.ts",
+    // Bible §10.1 (2026-09-20): contact validation narrowed — email/website removed from
+    // atLeastOne so only phone/WhatsApp satisfy the direct-contact minimum.
+    "app/(site)/publicar/negocio-rapido/_adapters/quickBusinessAdapterShared.ts",
   ]);
   const qbDiff = execSync(`git diff --name-only ${CERTIFIED_CORE_SHA} HEAD -- app/lib/quickBusiness "app/(site)/publicar/negocio-rapido"`, { cwd: ROOT, encoding: "utf8" })
     .trim()
