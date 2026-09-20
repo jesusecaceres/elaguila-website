@@ -247,5 +247,26 @@ check("the print bridge and the DIY Concierge tier gate split the ladder at the 
   assert.equal(isHalfPagePlusTier(null), false, "no tier is never half-page-plus");
 });
 
+check("the DIY Concierge keeps its shipped split: quarter previews, half and above personalized", () => {
+  // The bridge agreeing with isHalfPagePlusTier is only meaningful while the Concierge still
+  // ACTS on that split. This pins the two outcomes the pilot ships today, so a change that made
+  // quarter_page personalized would fail here rather than quietly hand a $499 print customer the
+  // personalized product the owner priced at half page.
+  const src = read("app/lib/business/diyConcierge/entitlement.ts").replace(/\/\*[\s\S]*?\*\//g, "");
+  const quarterBranch = src.slice(src.indexOf('if (resolved.tier === "quarter_page")'));
+  assert.ok(quarterBranch.startsWith('if (resolved.tier === "quarter_page")'), "the quarter branch must exist");
+  const quarterReturn = quarterBranch.slice(0, quarterBranch.indexOf("}"));
+  assert.ok(quarterReturn.includes('state: "quarter_preview"'), "quarter_page must resolve to the preview state");
+  assert.ok(
+    /personalizedAccess:\s*false/.test(quarterReturn),
+    "quarter_page must never carry personalized access",
+  );
+  const fallThrough = quarterBranch.slice(quarterBranch.indexOf("return {", quarterReturn.length));
+  assert.ok(
+    fallThrough.includes('state: "personalized_access_active"') && /personalizedAccess:\s*true/.test(fallThrough),
+    "half_page and above must resolve to personalized access",
+  );
+});
+
 console.log(failures === 0 ? "\nOK — print bundle bridge proven" : `\n${failures} FAILED`);
 process.exit(failures === 0 ? 0 : 1);
