@@ -200,7 +200,8 @@ check("20", "All 5 confirmations are required before checkout proceeds", () => {
   );
   assert.match(checkoutSrc, /const allConfirmed = CONFIRMATION_IDS\.every\(\(id\) => checkedIds\.has\(id\)\);/);
   assert.match(checkoutSrc, /disabled=\{!allConfirmed \|\| checkoutBusy\}/);
-  assert.match(checkoutSrc, /confirmCharge:\s*\n\s*"Entiendo y autorizo el cobro de \$399/);
+  assert.match(checkoutSrc, /chargeConsent: liveProduct\s*\n\s*\? ofertaLocalChargeConsentCopy\(liveProduct, lang\)/);
+  assert.doesNotMatch(checkoutSrc, /"Entiendo y autorizo el cobro de \$399/);
 });
 
 check("21", "No routine Leonix staff-approval language remains", () => {

@@ -7,6 +7,11 @@ import { useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import { withClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import { fetchOfertaLocalReviewItems } from "@/app/lib/ofertas-locales/ofertasLocalesItemReviewClient";
 import {
+  formatOfertaLocalCommercialAmount,
+  getOfertaLocalCommercialProductByPackageKey,
+  ofertaLocalChargeConsentCopy,
+} from "@/app/lib/ofertas-locales/ofertasLocalesCommercial";
+import {
   summarizeOfertaLocalPageCompletion,
   summarizeScopedItemReviewCounts,
 } from "@/app/lib/ofertas-locales/ofertasLocalesScanReviewRuntime";
@@ -59,8 +64,6 @@ function OfertasLocalesOwnerCheckoutContent() {
             confirmAuthorized:
               "Confirmo que estoy autorizado para publicar este volante, imágenes, promociones, precios y contenido comercial.",
             confirmRules: "Confirmo que esta publicación cumple las reglas de Leonix y que soy responsable por la información enviada.",
-            confirmCharge:
-              "Entiendo y autorizo el cobro de $399 por esta publicación de 30 días y que, al completarse correctamente el pago, la publicación se activa según las reglas comerciales de Leonix.",
             continueLabel: "Continuar al pago seguro",
             continueBusy: "Creando pago seguro…",
             backToEdit: "Volver a editar",
@@ -89,8 +92,6 @@ function OfertasLocalesOwnerCheckoutContent() {
             confirmAuthorized:
               "I confirm I am authorized to publish this flyer, images, promotions, prices, and commercial content.",
             confirmRules: "I confirm this publication complies with Leonix rules and that I am responsible for the submitted information.",
-            confirmCharge:
-              "I understand and authorize the $399 charge for this 30-day publication, and that once payment completes successfully, publication activates according to Leonix commercial rules.",
             continueLabel: "Continue to secure payment",
             continueBusy: "Creating secure checkout…",
             backToEdit: "Back to edit",
@@ -99,14 +100,6 @@ function OfertasLocalesOwnerCheckoutContent() {
           },
     [lang]
   );
-
-  const confirmationLabels: Record<ConfirmationId, string> = {
-    identity: t.confirmIdentity,
-    products: t.confirmProducts,
-    authorized: t.confirmAuthorized,
-    rules: t.confirmRules,
-    chargeConsent: t.confirmCharge,
-  };
 
   const [loading, setLoading] = useState(true);
   const [offer, setOffer] = useState<OfertaLocalOwnerDetail | null>(null);
@@ -176,7 +169,10 @@ function OfertasLocalesOwnerCheckoutContent() {
       code: promoInput.trim(),
       category: "ofertas-locales",
       packageKey: offer.commercialProductKey,
-      subtotalCents: offer.commercialAmountCents ?? 0,
+      subtotalCents:
+        getOfertaLocalCommercialProductByPackageKey(offer.commercialProductKey)?.amountCents ??
+        offer.commercialAmountCents ??
+        0,
       listingId: offer.id,
       locale: lang,
     });
@@ -234,10 +230,28 @@ function OfertasLocalesOwnerCheckoutContent() {
     );
   }
 
+  const liveProduct = getOfertaLocalCommercialProductByPackageKey(offer.commercialProductKey);
+  const chargeCents = liveProduct?.amountCents ?? offer.commercialAmountCents ?? 0;
+  const chargeLabel = liveProduct
+    ? formatOfertaLocalCommercialAmount(liveProduct.amountCents, liveProduct.currency)
+    : offer.commercialAmount;
+  const durationDays = liveProduct?.durationDays ?? offer.commercialDurationDays ?? 30;
+  const confirmationLabels: Record<ConfirmationId, string> = {
+    identity: t.confirmIdentity,
+    products: t.confirmProducts,
+    authorized: t.confirmAuthorized,
+    rules: t.confirmRules,
+    chargeConsent: liveProduct
+      ? ofertaLocalChargeConsentCopy(liveProduct, lang)
+      : lang === "es"
+        ? `Entiendo y autorizo el cobro de ${chargeLabel ?? ""} por esta publicación de ${durationDays} días y que, al completarse correctamente el pago, la publicación se activa según las reglas comerciales de Leonix.`
+        : `I understand and authorize the ${chargeLabel ?? ""} charge for this ${durationDays}-day publication, and that once payment completes successfully, publication activates according to Leonix commercial rules.`,
+  };
+
   const discountedTotalLabel =
-    promoDiscountCents && promoDiscountCents > 0 && offer.commercialAmountCents != null
-      ? `$${Math.max(0, (offer.commercialAmountCents - promoDiscountCents) / 100).toFixed(2)}`
-      : offer.commercialAmount;
+    promoDiscountCents && promoDiscountCents > 0
+      ? `$${Math.max(0, (chargeCents - promoDiscountCents) / 100).toFixed(2)}`
+      : chargeLabel;
 
   const previewHref = withClasificadosPublishLang("/publicar/ofertas-locales", lang, {
     id: offer.id,
@@ -267,7 +281,7 @@ function OfertasLocalesOwnerCheckoutContent() {
             {offer.commercialProductLabel || offer.commercialProductKey}
           </p>
           <p className="text-sm text-[#5C5346]">
-            {offer.commercialAmount} / {offer.commercialDurationDays ?? 30} {lang === "es" ? "días" : "days"}
+            {chargeLabel} / {durationDays} {lang === "es" ? "días" : "days"}
           </p>
 
           <div className="mt-4 border-t border-[#E8DFD0] pt-4">

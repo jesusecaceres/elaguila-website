@@ -74,7 +74,9 @@ const ADAPTERS = `${QUICK_ROUTE}/_adapters`;
     // Tier-1 Gate 5 — the ONE documented narrow exception: the Empleos media wiring repair (a new upload helper
     // + its single call-site insertion in the quick preview checkout). Everything else under these trees stays locked.
     /^app\/\(site\)\/clasificados\/(?!empleos\/quick-preview\/EmpleoQuickPreviewClient\.tsx$)/,
-    /^app\/\(site\)\/dashboard\//,
+    // Remaining-families closeout: Ofertas coupon consent copy is derived from the existing
+    // `ofertas_locales_coupons_30d` / flyer packages. No other dashboard path is opened.
+    /^app\/\(site\)\/dashboard\/(?!ofertas-locales\/\[id\]\/checkout\/page\.tsx$)/,
     // Quick Business Core (Phase 2, branch claude/quick-business-core-build-2026-09): the additive
     // `/publicar/negocio-rapido/**` tree is the business intake sibling of `rapido/`; it never touches the
     // certified classifieds tree (asserted by scripts/verify-quick-business-core-01.ts §7).

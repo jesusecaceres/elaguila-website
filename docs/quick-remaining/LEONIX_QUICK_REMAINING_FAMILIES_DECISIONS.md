@@ -16,14 +16,16 @@ Source of truth checked directly in code, not assumed:
 |---|---|---|---|
 | Comida Local | `comida_local_base_monthly` | $129.00/mo | `customerType: "food_business"`, comment marks it distinct from Restaurantes (Quick Business) |
 | Ofertas Locales (flyer) | `ofertas_locales_flyer_30d` | $399.00 one-time / 30 days | matches checkout consent copy |
-| Ofertas Locales (coupon) | `ofertas_locales_coupons_30d` | $199.00 one-time / 30 days in `revenuePricingMatrix.ts` **vs.** `OFERTAS_LOCALES_COUPONS_PRICE_CENTS = 0` in `ofertasLocalesConstants.ts` **vs.** hardcoded "$399" in checkout consent text | **Live 3-way inconsistency — pre-existing product defect, out of scope for this mission.** Filed separately (see spawn_task below). Confirms the Ofertas Locales DIRECT_CANONICAL_LINK decision: a Quick front door must not surface a price this untrustworthy. |
+| Ofertas Locales (coupon) | `ofertas_locales_coupons_30d` | $199.00 one-time / 30 days | **CLOSED** in the Cursor closeout: client constant `$0` and checkout consent `$399` were aligned to this server package. Flyer remains `$399`. See `LEONIX_OFERTAS_LOCALES_PRICING_RECONCILIATION.md`. |
 | Negocios Locales | none | — | Confirms it is not a monetized product |
 | Viajes (business) | `viajes_business_monthly` | $399.00/mo, flagged `unresolvedOwnerDecision: "Viajes business monthly pricing final lock"` | Owner has not finalized this price |
 | Viajes (affiliate) | `viajes_affiliate` | $0 | |
 | Iglesias | none | — | Confirmed free |
 | Recursos | none | — | Confirmed not a product |
 
-No pricing, package, or Stripe SKU was created, changed, or touched by this mission. The Comida Local
+No pricing, package, or Stripe SKU was created, changed, or touched by the Remaining Families
+intake work. The later Cursor closeout aligned stale Ofertas coupon *client* constants and
+checkout consent to the existing server package — it did not create a price or SKU. Comida Local
 Quick form surfaces the existing `comida_local_base_monthly` amount read live via
 `getRevenuePackagePriceCents` — never a hardcoded number.
 
@@ -59,12 +61,12 @@ Decision: staff opens `/publicar/ofertas-locales` directly with the customer. No
 either lane.
 
 Doctrine honored: the flyer lane runs mandatory AI review before publish — a Quick wrapper cannot
-shorten a step that is a content-safety gate, and doing so would silently change product behavior. The
-coupon lane shares the same form and currently has an unresolved, three-way pricing conflict (see Gate
-2) — building a fresh Quick price badge on top of a number that disagrees with itself in two other
-places would launder a live bug into a second surface. Both lanes were explicitly evaluated
-separately (FLYER STRATEGY / COUPON STRATEGY) rather than defaulted to one shared verdict for a shared
-reason.
+shorten a step that is a content-safety gate, and doing so would silently change product behavior.
+The coupon lane shares the same form and previously had a three-way pricing conflict (matrix $199,
+client constant $0, consent $399). That defect is **CLOSED** in the Cursor closeout by aligning
+client constants and consent copy to the existing server coupon package (`$199 / 30 days`); flyer
+stays `$399`. DIRECT_CANONICAL_LINK remains the correct Quick action because the flyer lane still
+requires mandatory AI review.
 
 ### Gate 5 — Negocios Locales → D. NOT_AN_AD_PRODUCT_NO_QUICK_FORM
 
@@ -112,6 +114,5 @@ of any kind to shorten.
 
 No family required **E. BLOCKED_REQUIRES_OWNER_PRODUCT_DECISION**. Every classification above was
 determinable from the family's real, current architecture. The Ofertas Locales coupon pricing
-inconsistency is a pre-existing defect to be fixed independently of this mission's classification —
-DIRECT_CANONICAL_LINK is the correct action regardless of which of the three numbers is eventually
-authoritative.
+inconsistency is **CLOSED** (client constants + consent aligned to the existing `$199` server
+package). DIRECT_CANONICAL_LINK remains the correct Quick action.

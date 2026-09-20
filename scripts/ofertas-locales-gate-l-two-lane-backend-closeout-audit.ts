@@ -149,8 +149,9 @@ async function run() {
   });
 
   // --- COUPON ---
-  await check("07", "Coupon = FREE", () => {
-    assert.equal(OFERTAS_LOCALES_COMMERCIAL_PRODUCTS.coupons.amountCents, 0);
+  await check("07", "Coupon = $199 / 30 days (server package ofertas_locales_coupons_30d)", () => {
+    assert.equal(OFERTAS_LOCALES_COMMERCIAL_PRODUCTS.coupons.amountCents, 19900);
+    assert.equal(OFERTAS_LOCALES_COMMERCIAL_PRODUCTS.coupons.durationDays, 30);
   });
 
   await check("08", "Coupon AI FALSE", () => {

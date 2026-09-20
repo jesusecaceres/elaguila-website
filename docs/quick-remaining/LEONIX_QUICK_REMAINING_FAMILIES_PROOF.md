@@ -95,4 +95,7 @@ ANCESTOR_OK
   file inside the certified Quick Classifieds (`app/lib/quickClassifieds/**`,
   `app/(site)/publicar/rapido/**`) or Quick Business Core (`app/lib/quickBusiness/**`,
   `app/(site)/publicar/negocio-rapido/**`) trees was touched.
-- No pricing file, Stripe config, migration, `.env*`, or CI/CD file appears in the diff.
+- No pricing file, Stripe config, migration, `.env*`, or CI/CD file appears in the Remaining Families
+  intake diff. The later Cursor closeout aligned stale Ofertas coupon *client* constants and checkout
+  consent to the existing server package (`LEONIX_OFERTAS_LOCALES_PRICING_RECONCILIATION.md`); it did
+  not create a SKU, change `revenuePricingMatrix.ts`, or add a migration.

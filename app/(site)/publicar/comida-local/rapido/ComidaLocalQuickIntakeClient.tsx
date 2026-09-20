@@ -217,18 +217,18 @@ export function ComidaLocalQuickIntakeClient() {
       // accept already-uploaded HTTPS URLs — the EXISTING publish route rejects `data:`/`blob:`.
       try {
         const first = draft.media[0];
-        if (first) {
-          const file = await dataUrlToFile(first.dataUrl, first.fileName || "foto.jpg");
-          const uploaded = await uploadComidaLocalDraftImage({ file, role: "main", draftListingId });
-          if (!uploaded.ok) throw new Error(uploaded.error);
-          canonical = { ...canonical, mainPhoto: uploaded.image };
-        }
+        if (!first) throw new Error("missing_required_image");
+        const mainFile = await dataUrlToFile(first.dataUrl, first.fileName || "foto.jpg");
+        const mainUploaded = await uploadComidaLocalDraftImage({ file: mainFile, role: "main", draftListingId });
+        if (!mainUploaded.ok) throw new Error(mainUploaded.error);
+        canonical = { ...canonical, mainPhoto: mainUploaded.image };
         const rest = draft.media.slice(1, 6);
         const galleryImages = [];
         for (const item of rest) {
-          const file = await dataUrlToFile(item.dataUrl, item.fileName || "foto.jpg");
-          const uploaded = await uploadComidaLocalDraftImage({ file, role: "gallery", draftListingId });
-          if (uploaded.ok) galleryImages.push(uploaded.image);
+          const galleryFile = await dataUrlToFile(item.dataUrl, item.fileName || "foto.jpg");
+          const galleryUploaded = await uploadComidaLocalDraftImage({ file: galleryFile, role: "gallery", draftListingId });
+          if (!galleryUploaded.ok) throw new Error(galleryUploaded.error);
+          galleryImages.push(galleryUploaded.image);
         }
         canonical = { ...canonical, galleryImages };
       } catch {

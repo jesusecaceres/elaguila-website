@@ -15,6 +15,13 @@ All six now appear in a new "Más Opciones / More Options" section on the staff 
 launchpad, each with the truthful action for its real product (create-with-customer, open-application,
 or open-directory), Copy/Share, and a manage link where one genuinely exists.
 
+Cursor closeout additionally:
+
+- executed `scripts/verify-quick-business-core-01.ts` (the run Claude's session could not complete) → **OK**
+- repaired the Ofertas Locales coupon pricing defect against the existing server package
+  (`ofertas_locales_coupons_30d` = $199 / 30 days; flyer remains $399). See
+  `docs/quick-remaining/LEONIX_OFERTAS_LOCALES_PRICING_RECONCILIATION.md`.
+
 ## What this unblocks
 
 - Staff can onboard a Comida Local vendor in the same launchpad flow already used for Servicios,
@@ -22,11 +29,14 @@ or open-directory), Copy/Share, and a manage link where one genuinely exists.
 - Every one of Leonix's 19 families now has one, explicit, source-grounded entry strategy recorded in
   `docs/quick-remaining/LEONIX_QUICK_ALL_FAMILIES_COVERAGE_MATRIX.md` — no more ad hoc guessing about
   which categories "should" get a Quick form.
+- Remaining-family technical closeout is ready for the **FINAL ALL-QUICK INTEGRATION + FORENSIC
+  CERTIFICATION** gate.
 
 ## What this does NOT change
 
 - No new pricing, package, or Stripe SKU. Comida Local Quick reads the existing
-  `comida_local_base_monthly` price live.
+  `comida_local_base_monthly` price live. Ofertas coupon client constants were aligned to the
+  already-existing server package; flyer was not altered.
 - No new database table, migration, or API route.
 - No redesign of any Full experience.
 - The certified Quick Classifieds and Quick Business Core trees are content-unchanged versus the
@@ -34,24 +44,15 @@ or open-directory), Copy/Share, and a manage link where one genuinely exists.
 
 ## Open items for the PM / owner
 
-1. **Ofertas Locales coupon pricing defect (pre-existing, found during this mission's cold-mapping, not
-   caused or fixed by it).** Three disagreeing numbers exist today: the pricing matrix says $199, a
-   constants file says $0, and the checkout consent copy hardcodes $399 (the flyer's price). This is a
-   live, customer-facing bug independent of Quick — recommend a dedicated fix task. (This session's
-   `spawn_task` tool was unavailable to file it automatically; it needs to be filed manually.)
-2. **Viajes pricing is still owner-unresolved** (`unresolvedOwnerDecision` flag in the pricing matrix).
+1. **Viajes pricing is still owner-unresolved** (`unresolvedOwnerDecision` flag in the pricing matrix).
    Until the owner locks a price, Viajes correctly stays DIRECT_CANONICAL_LINK — a Quick form cannot be
    built on top of a price that doesn't exist yet.
-3. **A repo verifier permission question** came up while re-proving the certified core (see
-   REQUIRED TECHNICAL BLOCKERS in the final report): two pre-existing verifier scripts needed a one-line
-   allowlist widening (adding the new `comida-local/` sibling directory, mirroring the existing
-   `negocio-rapido/` precedent already in those same files) to stay accurate. One of the two edits could
-   be executed and reverified; the other's re-run was blocked by this session's own permission
-   classifier and needs a human or a differently-permissioned session to confirm it passes.
+2. Ofertas coupon **pricing defect is CLOSED**. No remaining commercial decision is required for the
+   $199 / 30-day coupon package.
 
 ## Recommended next PM gate
 
-Owner/PM review of the Comida Local Quick form's live behavior on a Preview deployment (deferred by
-this mission's resource constraints — no Preview build was run here), followed by a decision on the
-Ofertas Locales pricing defect fix, is the natural next gate. No further Quick-family work is currently
-blocked or pending beyond those two items.
+**FINAL ALL-QUICK INTEGRATION + FORENSIC CERTIFICATION.**
+
+Owner QA is still forbidden until that gate is technically closed and proven. No Preview was run in
+this remaining-families closeout. Merge to main and Production remain NOT AUTHORIZED.
