@@ -10,26 +10,47 @@ unless it was observed failing identically on `origin/main`.
 ## METHOD
 
 The baseline was not inferred. A detached `git worktree` was created at `origin/main`,
-the identical 179-script Ofertas verifier set was executed in both trees, and the two
-result sets were joined to compute the differential. Scripts touching staging, live
-Supabase, network smoke or screenshots were excluded so that nothing could mutate data.
+the identical Ofertas verifier set was executed in both trees, and the two result sets
+were joined to compute the differential.
 
-A late correction matters for interpretation: several Ofertas audits enforce a
-changed-file allowlist by reading `git diff --name-only`, which reports **uncommitted**
-working-tree dirt. An early sweep run with unstaged edits showed six false regressions.
-Re-running against a committed, clean tree removed all six. The numbers below are from
-the clean-tree run.
+The set is defined in code rather than hand-counted, so the differential is reproducible:
+`scripts/verify-quick-final-ofertas-sweep-01.ts` selects every `scripts/*.{ts,mjs}` whose
+filename matches `/ofertas/i`, minus four explicit exclusion substrings — `staging`,
+`screenshot`, `smoke`, `worker` — which are the scripts that would touch a staging
+environment, drive a browser, exercise a live pipeline, or enqueue worker jobs. It emits
+JSON so the two runs can be joined mechanically, and it exits non-zero if any verifier
+regressed or was deleted.
+
+```
+npx tsx scripts/verify-quick-final-ofertas-sweep-01.ts --out /tmp/sweep-branch.json
+# then, in a detached origin/main worktree:
+npx tsx scripts/verify-quick-final-ofertas-sweep-01.ts --out /tmp/sweep-main.json
+npx tsx scripts/verify-quick-final-ofertas-sweep-01.ts --diff /tmp/sweep-main.json /tmp/sweep-branch.json
+```
+
+A correction matters for interpretation: several Ofertas audits enforce a changed-file
+allowlist by reading `git diff --name-only` / `git status --short`, which report
+**uncommitted** working-tree dirt. A sweep run with unstaged edits showed six false
+regressions, and `ofertas-package-13-pre-qa-completion-audit.mjs` fails on any dirty tree
+regardless of what changed. All numbers below are from a committed, clean tree in both
+trees.
 
 ## HEADLINE RESULT
 
 | Metric | Branch | origin/main |
 |---|---|---|
-| Ofertas verifier set (179 scripts) | 127 pass / 52 fail | 124 pass / 55 fail |
-| Eight Quick program verifiers | 8 pass / 0 fail | not applicable, most do not exist on main |
+| Ofertas verifier common set (181 scripts present in both trees) | 124 pass / 57 fail | 122 pass / 59 fail |
+| Branch-only Ofertas verifiers added by this work | 1 (`verify-ofertas-pricing-consistency-01.ts`), passing | not applicable |
+| Ofertas verifiers deleted by this work | **0** | not applicable |
+| Nine Quick program verifiers | 9 pass / 0 fail | not applicable, most do not exist on main |
 | Final proof checker | pass, 7 of 7 self-test defect classes rejected | not applicable |
 
 - **FEATURE_REGRESSION: 0**
-- **IMPROVEMENTS: 3**
+- **IMPROVEMENTS: 2 in the common set, plus 1 new passing verifier**
+
+Every one of the branch's 57 failures is one of the 57 scripts that fail identically on
+`origin/main`; the two sets are the same set, so the branch introduces no new failure at
+all. Full run recorded in `/opt/cursor/artifacts/ofertas_sweep_reproducible_differential.log`.
 
 ## CLASSIFICATIONS
 
@@ -37,13 +58,16 @@ the clean-tree run.
 
 No script passes on `origin/main` and fails on this branch.
 
-### IMPROVEMENT — 3 (failed on main, pass on this branch)
+### IMPROVEMENT — 2 in the common set (failed on main, pass on this branch)
 
 | Verifier | Why it now passes |
 |---|---|
 | `scripts/ofertas-commercial-products-audit.mjs` | Already expected the coupon lane at the real server price; the stale client `$0` was what broke it |
 | `scripts/ofertas-checkpoint-product-value-audit.mjs` | Same root cause, resolved by the pricing reconciliation |
-| `scripts/verify-ofertas-pricing-consistency-01.ts` | New verifier added by this work, so it cannot exist on main |
+
+`scripts/verify-ofertas-pricing-consistency-01.ts` passes on the branch but is counted
+separately as a branch-only addition, not an improvement: it does not exist on `origin/main`,
+so there is no baseline result to improve on.
 
 The first two are the strongest independent evidence that the Ofertas coupon change was a
 genuine bug fix against existing server authority, not a pricing decision: two audits
@@ -64,12 +88,13 @@ the repaired contract, and two were strengthened with additional assertions.
 Checks 44 and 45 were the most dangerous kind of drift: their assertions still passed, so
 the suite stayed green while printing two false claims into the certification record.
 
-### PREEXISTING_MAIN_DEFECT — 51
+### PREEXISTING_MAIN_DEFECT — 56
 
-Fifty-one scripts fail identically on `origin/main` and on this branch. They are unrelated
-to Quick and were not repaired here, because fixing unrelated main defects is outside this
-contract and would have widened the blast radius. Representative examples with the same
-assertion text and the same actual value in both trees:
+Fifty-six scripts fail identically on `origin/main` and on this branch for product reasons.
+They are unrelated to Quick and were not repaired here, because fixing unrelated main
+defects is outside this contract and would have widened the blast radius. With the one
+environment-limited script below they account for all 57 identical failures. Representative
+examples with the same assertion text and the same actual value in both trees:
 
 | Verifier | Identical failure in both trees |
 |---|---|
@@ -116,8 +141,13 @@ diff in which every added and removed line begins with `//`.
 | Classification | Count |
 |---|---|
 | FEATURE_REGRESSION | 0 |
-| IMPROVEMENT | 3 |
+| IMPROVEMENT in the common set | 2 |
+| Branch-only verifiers added, passing | 1 |
 | STALE_VERIFIER repaired | 4 checks across 4 files |
-| PREEXISTING_MAIN_DEFECT | 51 |
+| PREEXISTING_MAIN_DEFECT | 56 |
 | ENVIRONMENT_LIMITATION | 1 verifier plus 2 heavy-gate limitations |
 | Verifiers weakened or deleted to obtain green | 0 |
+| Ofertas verifiers deleted | 0, enforced by the sweep's own exit code |
+
+56 pre-existing defects plus 1 environment-limited script equals the 57 failures observed
+identically in both trees.

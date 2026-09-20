@@ -13,16 +13,19 @@ Single release-level technical certification for the complete Leonix Quick progr
 
 | Set | Result |
 |---|---|
-| Eight Quick program verifiers | 8 of 8 PASS |
+| Nine Quick program verifiers | 9 of 9 PASS |
 | Final proof checker `scripts/verify-quick-final-all-program-proof-01.ts` | PASS, 7 of 7 self-test defect classes rejected |
-| Ofertas verifier set, 179 non-network scripts | 127 pass / 52 fail on branch, versus 124 pass / 55 fail on `origin/main` |
+| Ofertas verifier common set, 181 scripts present in both trees | 124 pass / 57 fail on branch, versus 122 pass / 59 fail on `origin/main` |
 | Feature regressions versus `origin/main` | **0** |
-| Improvements versus `origin/main` | 3 |
-| Verifiers weakened or deleted to obtain green | **0** |
+| Improvements in the common set | 2, plus 1 new passing branch-only verifier |
+| Verifiers weakened or deleted to obtain green | **0**, enforced by the sweep's exit code |
 
-Every one of the 52 branch failures was observed failing identically in a detached
-`origin/main` worktree and is classified in
-`docs/quick-final/LEONIX_QUICK_FINAL_VERIFIER_DRIFT_LEDGER.md`.
+Every one of the 57 branch failures was observed failing identically in a detached
+`origin/main` worktree — the branch fail set and the main-identical fail set are the same
+57 scripts — and each is classified in
+`docs/quick-final/LEONIX_QUICK_FINAL_VERIFIER_DRIFT_LEDGER.md`. The set is defined in code
+by `scripts/verify-quick-final-ofertas-sweep-01.ts` so the differential is reproducible
+rather than hand-counted.
 
 ## 2. TYPESCRIPT STATE
 
@@ -104,7 +107,7 @@ No advertised customer capability is blocked in any of the 19 families.
 
 ## 7. BLAST RADIUS
 
-98 files changed versus `origin/main` — **85 added, 13 modified**. Only **8** of the
+99 files changed versus `origin/main` — **86 added, 13 modified**. Only **8** of the
 modifications are application code; the other 5 are four pre-existing Ofertas verifier
 scripts and `package.json`. Counts are reproducible with
 `git diff --name-status origin/main HEAD`.
@@ -118,7 +121,7 @@ scripts and `package.json`. Counts are reproducible with
 | Empleos media repair | 1 added, 1 modified | `empleosDraftMediaUpload.ts` added, `EmpleoQuickPreviewClient.tsx` uploads real media before publish |
 | Staff PWA integration | 1 added, 2 modified | `QuickApplicationsLaunchpad.tsx` added; `StaffCommandCenter.tsx` +4 lines and `PublicarGatewayClient.tsx` +16 lines, both purely additive |
 | Ofertas pricing repair | 5 modified | Four `app/lib/ofertas-locales` and `app/(site)/dashboard/ofertas-locales` files: price value, consent copy and one comment |
-| Verifiers | 8 added, 4 modified | Test-only; the four modifications repair stale assertions |
+| Verifiers | 9 added, 4 modified | Test-only; the four modifications repair stale assertions |
 | Documentation | 29 added | Docs-only |
 | `package.json` | 1 modified | Script entries only, no dependency change |
 | **UNEXPECTED** | **0** | |
