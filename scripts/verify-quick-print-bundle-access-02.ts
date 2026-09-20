@@ -24,6 +24,7 @@ import {
   normalizePackageEntitlementTier,
 } from "../app/lib/listingPlans/packageEntitlements";
 import { getPackageBasePriceCents } from "../app/lib/listingPlans/packagePricingRules";
+import { isHalfPagePlusTier } from "../app/lib/business/diyConcierge/logic";
 import type { EntitlementRowFacts } from "../app/lib/listingPlans/categoryCommercialPlanPolicy";
 
 const ROOT = process.cwd();
@@ -227,6 +228,23 @@ check("tier normalization accepts the variants staff actually type", () => {
   assert.equal(normalizePackageEntitlementTier("Quarter Page"), "quarter_page");
   assert.equal(businessAccessLevelForPrintTier("Quarter Page"), "simple");
   assert.equal(businessAccessLevelForPrintTier("half"), "full");
+});
+
+// 5. THE BRIDGE AGREES WITH THE PRE-EXISTING DIY CONCIERGE GATE -----------------------------
+// The DIY Concierge pilot resolves its own access straight from listing_package_entitlements
+// package_tier, and it predates this mission: quarter_page gets a preview, half_page and above get
+// personalized access. That is the same split as the owner print lock. Asserting the two agree
+// means a future edit to either one fails here instead of leaving the repository with two
+// contradictory definitions of what a quarter page buys.
+check("the print bridge and the DIY Concierge tier gate split the ladder at the same place", () => {
+  for (const tier of ["quarter_page", "half_page", "full_page", "premium"] as const) {
+    assert.equal(
+      businessAccessLevelForPrintTier(tier) === "full",
+      isHalfPagePlusTier(tier),
+      `${tier}: businessAccessLevelForPrintTier and isHalfPagePlusTier must agree`,
+    );
+  }
+  assert.equal(isHalfPagePlusTier(null), false, "no tier is never half-page-plus");
 });
 
 console.log(failures === 0 ? "\nOK — print bundle bridge proven" : `\n${failures} FAILED`);

@@ -42,7 +42,7 @@ decides) · **SEP** separate entitlement, not conferred by this column.
 | ANALYTICS | **N** | Y | **N** | Y | Y | Y | `analytics` (FULL-only) | `app/api/dashboard/analytics/listing/route.ts` → 403 `upgrade_required` | PROVEN |
 | LEADS | **N** | Y | **N** | Y | Y | Y | `leads` (FULL-only) | `resolveFullOnlyFeatureGate` | PROVEN_NA — no leads product implemented |
 | BUSINESS TOOLS | **N** | **N** | **N** | **N** | **N** | **N** | Business Identity pilot flag `business_identity_flags` | `app/lib/business/access.ts` | PROVEN_NA — orthogonal flagged pilot, not sold in any package (current-state §3) |
-| BUSINESS CONCIERGE | **N** | Y | **N** | **N** | **N** | Y (print benefit) | `business_concierge` (FULL-only) **and**, separately, `concierge_eligible` on the premium print tier | `resolveFullOnlyFeatureGate`; `getPackageEntitlementBenefits("premium")` | PROVEN_NA — no customer-facing Concierge surface implemented |
+| BUSINESS CONCIERGE | **N** | **N** | preview only | Y | Y | Y | Three separate notions (§5): the reserved `business_concierge` capability, the `concierge_eligible` premium print benefit, and the shipped DIY Concierge pilot | `resolveDiyAccess` → pilot flag + exact business membership + `resolveConciergeEntitlement` (print tier only) | PROVEN — the shipped gate grants nothing to a digital-only package, and splits the print ladder exactly where the owner lock does |
 | COUPONS/OFFERS | **N** | CAT | SEP | SEP | SEP | SEP | `RevenuePackageDefinition.capabilities` (`coupons_offers`) | `resolveBusinessToolsAccess` (`categoryCommercialPlan.ts`) | PROVEN — included in the Servicios/Restaurantes Full packages only; Quick declares `capabilities: []` |
 | INVENTORY | 1 item | package allowance | SEP | SEP | SEP | SEP | `includedInventory` / `addOnInventory` on the package | Revenue OS inventory packs + capacity activation | PROVEN |
 | ADVANCED MEDIA | **N** | CAT | **N** | CAT | CAT | CAT | `advanced_media` (FULL-only) | `resolveFullOnlyFeatureGate` | PROVEN_NA — no capability-gated advanced media surface today |
@@ -108,3 +108,24 @@ FULL-only capabilities — today that means the per-listing analytics route retu
 `403 upgrade_required`. This follows directly from the owner lock `QUARTER_PAGE = SIMPLE` and is
 intended, not a defect. A quarter-page advertiser who also holds a Full digital package is
 unaffected, because the highest grant wins.
+
+## 5. The three things called "Concierge"
+
+They are unrelated, and conflating them is the easiest way to misread the Concierge row:
+
+1. `concierge_eligible` — a **print benefit flag**, premium tier only, in the untouched
+   print/visibility model.
+2. `business_concierge` — the FULL-only **capability** reserved by this mission. No caller, no copy.
+3. The **DIY Concierge** — a shipped customer-facing pilot at
+   `/dashboard/business-tools/concierge`, part of the flagged Business Identity product.
+
+Only the third grants anything today. `resolveDiyAccess` requires the pilot flag plus an exact
+active business membership, then `resolveConciergeEntitlement` resolves a tier from verified
+`business_listing_links` joined against active `listing_package_entitlements` rows — accepting
+**print tiers only**. `quarter_page` gives a preview with `personalizedAccess: false`; `half_page`
+and above give personalized access; a `digital_only` row (every Quick and every Full digital grant)
+is not a known tier and grants nothing.
+
+That pilot predates this mission and splits the print ladder at exactly the point the owner lock
+does. The print bridge here restates policy the repository already enforced rather than inventing
+it, and `verify-quick-print-bundle-access-02.ts` now asserts the two resolvers agree.

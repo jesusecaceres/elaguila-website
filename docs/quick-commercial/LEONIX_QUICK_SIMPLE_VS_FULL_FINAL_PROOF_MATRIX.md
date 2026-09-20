@@ -54,7 +54,7 @@ Verifier keys: **V1** `verify-quick-business-access-level-01.ts` · **V2**
 | ANALYTICS | **N** | Y | **N** | Y | Y | Y | `analytics` (FULL-only) | `api/dashboard/analytics/listing/route.ts` → **403 `upgrade_required`** | doorway omits the module | listing analytics in the dashboard | V4 | PROVEN |
 | LEADS | **N** | Y | **N** | Y | Y | Y | `leads` (FULL-only) | `resolveFullOnlyFeatureGate` | n/a | none today | V4 | PROVEN_NA — no leads product implemented |
 | BUSINESS TOOLS | **N** | **N** | **N** | **N** | **N** | **N** | Business Identity pilot flag `business_identity_flags` | `app/lib/business/access.ts` (membership, never package entitlement) | unchanged | `/dashboard/business-tools` (pilot) | V3 | PROVEN_NA — orthogonal flagged product, sold in no package, and now explicitly absent from the Full pitch (§4) |
-| BUSINESS CONCIERGE | **N** | Y | **N** | **N** | **N** | Y (print benefit) | `business_concierge` (FULL-only) **and**, separately, `concierge_eligible` on the premium print tier | `resolveFullOnlyFeatureGate`; `getPackageEntitlementBenefits("premium")` | n/a | none today | V4, V2 | PROVEN_NA — no Concierge surface implemented; the two concierge notions stay distinct |
+| BUSINESS CONCIERGE | **N** | **N** | preview only | Y | Y | Y | Three separate notions, listed in §6.2 | `resolveDiyAccess` → pilot flag + exact business membership + `resolveConciergeEntitlement`, which reads `listing_package_entitlements.package_tier` | flag-gated pilot UI | `/dashboard/business-tools/concierge` (pilot) | V4, V2 | PROVEN — the shipped gate reads the print tier only, so it grants nothing to a digital-only package at either access level, and its quarter vs half+ split independently matches the owner print lock (§6.2) |
 | COUPONS/OFFERS | **N** | CAT | SEP | SEP | SEP | SEP | `RevenuePackageDefinition.capabilities` (`coupons_offers`) | `resolveBusinessToolsAccess` (`categoryCommercialPlan.ts`) | dashboard category page | `/dashboard/servicios`, `/dashboard/restaurantes` | V1 | PROVEN — included in the Servicios/Restaurantes Full packages only; every Quick package declares `capabilities: []` |
 | INVENTORY | 1 item | package allowance | SEP | SEP | SEP | SEP | `includedInventory` / `addOnInventory` on the package | capacity activation RPC | dashboard inventory section | `/dashboard/mis-anuncios` | V1 | PROVEN — Quick dealer 1 vehicle vs Full 10; Quick agent 1 property vs Full package + pack; Quick has no `addOnInventory` |
 | ADVANCED MEDIA | **N** | CAT | **N** | CAT | CAT | CAT | `advanced_media` (FULL-only) | `resolveFullOnlyFeatureGate` | n/a | none today | V4 | PROVEN_NA — no capability-gated advanced-media surface exists |
@@ -131,5 +131,55 @@ V1 → "the entitlement tracker shows staff every commercial fact about a row".
 | Item | State | What is missing |
 |---|---|---|
 | Comida Local tier split | Deferred; $129/mo product untouched and mechanically locked | The Simple price, what happens to existing $129 customers, and what a Comida Local Full would contain. Full audit: `LEONIX_COMIDA_LOCAL_COMMERCIAL_CLASSIFICATION.md` |
-| Business Hub / Leads / Concierge / advanced media surfaces | Capability reserved, denied at SIMPLE, no product to gate | These are product decisions, not access decisions. When a surface ships it calls `resolveFullOnlyFeatureGate` and is correct by default |
+| Business Hub / Leads / advanced media surfaces | Capability reserved, denied at SIMPLE, no product to gate | These are product decisions, not access decisions. When a surface ships it calls `resolveFullOnlyFeatureGate` and is correct by default |
+| Whether a digital package should ever reach the DIY Concierge | Unchanged; the pilot keeps its own print-tier gate | Today the Concierge is bought with print, not with a digital package (§6.2). Whether $399 Full should include it is a commercial decision, and this mission does not hold it |
 | Account-level analytics summary | Deliberately ungated | `api/dashboard/analytics/summary/route.ts` serves every seller including free classified users. Gating it would remove access from customers who never bought a business package — out of scope and not an owner decision this mission holds |
+
+## 6. Adjacent surfaces audited at closeout
+
+### 6.1 The public autos counter is not the analytics product
+
+`api/clasificados/autos/listing/[id]/analytics-summary/route.ts` returns five aggregate numbers
+(views, unique views, saves, shares, contacts) for any listing id with no authentication at all. It
+is not an owner surface and not a leak in the SIMPLE gate: it feeds `AutosAnuncioAnalyticsStrip` on
+the **public** detail page `/clasificados/anuncio/[id]`, where every anonymous visitor already sees
+the same counts, and it returns only rolled-up totals, never a row or a `user_id`.
+
+Gating it by access level would hide a public social-proof element from visitors based on what the
+advertiser pays, and would protect nothing, because the numbers are public by construction. It is
+therefore deliberately untouched. The sold analytics product is the owner-scoped per-listing route,
+which is gated. Anyone tempted to "fix" this route should read the P0 note in its header first.
+
+There is no Servicios analytics route; the canonical owner path is the `api/dashboard/analytics/*`
+pair alone.
+
+### 6.2 The DIY Concierge already implements this mission's print bridge
+
+"Concierge" names three unrelated things in this repository, which is why the earlier draft of this
+matrix recorded the row as unimplemented. They are:
+
+1. `concierge_eligible` — a print-package **benefit flag**, premium tier only, in the untouched
+   print/visibility model (`getPackageEntitlementBenefits`).
+2. `business_concierge` — the FULL-only **capability** reserved by this mission in
+   `businessAccessLevel.ts`. Nothing calls it yet, and no copy sells it.
+3. The **DIY Concierge**, a real customer-facing pilot at `/dashboard/business-tools/concierge`,
+   part of the same flagged Business Identity product as `/dashboard/business-tools`.
+
+The third is shipped and server-gated, so the row is PROVEN rather than PROVEN_NA. `resolveDiyAccess`
+requires the pilot flag and an exact active business membership, then `resolveConciergeEntitlement`
+resolves a tier by joining verified `business_listing_links` against active
+`listing_package_entitlements` rows.
+
+That gate accepts print tiers only. `quarter_page` yields `quarter_preview` with
+`personalizedAccess: false`; `half_page`, `full_page` and `premium` yield
+`personalized_access_active`. A `digital_only` row — every Quick and every Full digital grant alike
+— is not a known tier, so it resolves to `pending_entitlement_linkage` and grants nothing. Hence
+**N** for both SIMPLE and FULL in the row above: today the Concierge is bought with print, not with
+a digital package.
+
+The useful finding is that this pre-existing module, written independently and before this mission,
+splits the print ladder at exactly the same place the owner lock does: quarter page is the lesser
+tier, half page and above is the full one. The print bridge in `businessAccessLevelForPrintTier` is
+therefore not a new policy invented here — it restates policy the repository already enforced. V2
+now asserts the two resolvers agree, so a future edit that moves the split in one of them fails
+rather than silently producing two contradictory definitions of what a quarter page buys.
