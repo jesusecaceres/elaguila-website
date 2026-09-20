@@ -29,7 +29,8 @@ import {
   startRevenueCategoryCheckout,
   validateRevenuePromoForCheckout,
 } from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
-import { RESTAURANTES_BASE_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
+import { RESTAURANTES_BASE_CHECKOUT, RESTAURANTES_QUICK_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
+import { businessPlanFromSearchParams } from "@/app/lib/listingPlans/businessQuickPlanSignal";
 import {
   RESTAURANTES_CHECKPOINT_CONFIRMATIONS,
   type PublishCheckpointConfig,
@@ -130,26 +131,36 @@ export default function RestaurantePreviewClient() {
   const readiness = useMemo(() => auditRestaurantePublishReadiness(normalizedDraft), [normalizedDraft]);
   const minOk = readiness.readyToPublish;
 
+  // Quick Business intake hands off here with the Quick plan marker; the standard application
+  // arrives without it and keeps the Full package exactly as before. Same draft, same preview,
+  // same publisher, same public listing — only the base package purchased differs.
+  const quickPlan = businessPlanFromSearchParams(searchParams) === "quick";
+  const baseCheckout = quickPlan ? RESTAURANTES_QUICK_CHECKOUT : RESTAURANTES_BASE_CHECKOUT;
+  // Both base keys are static matrix entries; the fallback preserves the historical Full value
+  // and never invents a second price literal for Quick.
+  const restaurantBaseCents =
+    getRevenuePackageDefinition(baseCheckout.packageKey)?.priceCents ?? (quickPlan ? 0 : 39900);
+
   const checkpointConfig = useMemo((): PublishCheckpointConfig => {
     const isEstablished = normalizedDraft.productType === "established_restaurant";
     return {
-      category: RESTAURANTES_BASE_CHECKOUT.category,
-      packageKey: RESTAURANTES_BASE_CHECKOUT.packageKey,
+      category: baseCheckout.category,
+      packageKey: baseCheckout.packageKey,
       listingDraftId: normalizedDraft.draftListingId,
       lang,
       mode: "checkout",
       baseLineItem: {
         labelEn: isEstablished ? "Established restaurant" : "Mobile vendor / pop-up",
         labelEs: isEstablished ? "Restaurante establecido" : "Puesto / pop-up / vendedor móvil",
-        priceCents: 39900,
+        priceCents: restaurantBaseCents,
       },
       confirmations: RESTAURANTES_CHECKPOINT_CONFIRMATIONS,
       newsletterEligible: true,
       promoEligible: true,
       restaurantOffersAddonSelected: Boolean(normalizedDraft.couponUpgradeEnabled),
-      returnPath: RESTAURANTES_BASE_CHECKOUT.returnPath,
+      returnPath: baseCheckout.returnPath,
     };
-  }, [normalizedDraft.couponUpgradeEnabled, normalizedDraft.draftListingId, normalizedDraft.productType, lang]);
+  }, [baseCheckout, restaurantBaseCents, normalizedDraft.couponUpgradeEnabled, normalizedDraft.draftListingId, normalizedDraft.productType, lang]);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== "development") return;
@@ -164,16 +175,14 @@ export default function RestaurantePreviewClient() {
   // package. The toggle stays as content/setup intent (seeds the coupon editor after publish)
   // but never adds a checkout line item, never adds Stripe cost, and is never sent as an addOn.
   const couponUpgradeSelected = Boolean(normalizedDraft.couponUpgradeEnabled);
-  const restaurantBaseCents =
-    getRevenuePackageDefinition(RESTAURANTES_BASE_CHECKOUT.packageKey)?.priceCents ?? 39900;
   const checkoutSubtotalCents = restaurantBaseCents;
 
   const handlePromoApply = useCallback(
     async (code: string) => {
       const result = await validateRevenuePromoForCheckout({
         code,
-        category: RESTAURANTES_BASE_CHECKOUT.category,
-        packageKey: RESTAURANTES_BASE_CHECKOUT.packageKey,
+        category: baseCheckout.category,
+        packageKey: baseCheckout.packageKey,
         subtotalCents: checkoutSubtotalCents,
         locale: lang,
       });
@@ -189,7 +198,7 @@ export default function RestaurantePreviewClient() {
             : `${result.discountLabel} applied. Total: $${(result.totalCents / 100).toFixed(2)}/mo`,
       };
     },
-    [lang, checkoutSubtotalCents],
+    [baseCheckout, lang, checkoutSubtotalCents],
   );
 
   const onCheckout = useCallback(
@@ -273,7 +282,7 @@ export default function RestaurantePreviewClient() {
         }
 
         const checkout = await startRevenueCategoryCheckout({
-          ...RESTAURANTES_BASE_CHECKOUT,
+          ...baseCheckout,
           listingId: pending.listingId,
           leonixAdId: pending.leonixAdId,
           locale: lang,
@@ -295,7 +304,7 @@ export default function RestaurantePreviewClient() {
         setCheckoutBusy(false);
       }
     },
-    [lang, normalizedDraft, couponUpgradeSelected, pageCopy, newsletterEmail],
+    [baseCheckout, lang, normalizedDraft, couponUpgradeSelected, pageCopy, newsletterEmail],
   );
 
   if (!hydrated) {

@@ -15,13 +15,13 @@ import {
 } from "@/app/lib/listingPlans/revenueCheckout";
 import {
   AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY,
-  AUTOS_DEALER_MONTHLY_PACKAGE_KEY,
   AUTOS_PRIVADO_30D_PACKAGE_KEY,
   BR_INVENTORY_PACK_PACKAGE_KEY,
   OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY,
   OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY,
   SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
 } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
+import { isBusinessBasePackageKey } from "@/app/lib/listingPlans/businessAccessLevel";
 import {
   markOfertaLocalCheckoutStarted,
   validateOfertasLocalesCheckoutOwnership,
@@ -600,7 +600,7 @@ export async function POST(request: NextRequest) {
     packageDef.category === "autos" &&
     !isAutosPrivadoRenewalEarly &&
     (packageDef.packageKey === AUTOS_PRIVADO_30D_PACKAGE_KEY ||
-      packageDef.packageKey === AUTOS_DEALER_MONTHLY_PACKAGE_KEY) &&
+      isBusinessBasePackageKey("autos", packageDef.packageKey)) &&
     listingRef
   ) {
     const autosRow = await getAutosClassifiedsListingById(listingRef);
@@ -1008,7 +1008,7 @@ export async function POST(request: NextRequest) {
   if (
     packageDef.category === "autos" &&
     (packageDef.packageKey === AUTOS_PRIVADO_30D_PACKAGE_KEY ||
-      packageDef.packageKey === AUTOS_DEALER_MONTHLY_PACKAGE_KEY) &&
+      isBusinessBasePackageKey("autos", packageDef.packageKey)) &&
     listingRef
   ) {
     const flipped = await setAutosListingPendingPayment(listingRef, stripeResult.sessionId);

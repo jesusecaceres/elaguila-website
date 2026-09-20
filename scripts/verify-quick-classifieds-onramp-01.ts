@@ -104,6 +104,29 @@ const ADAPTERS = `${QUICK_ROUTE}/_adapters`;
     "app/api/dashboard/analytics/listing/route.ts", // analytics becomes a Full-only capability
     "app/admin/(dashboard)/workspace/package-entitlements/page.tsx", // staff can see the access level
     "app/admin/_lib/packageEntitlementData.ts", // surfaces the package_key the writer already stores
+    // Chunk 2 — actually SELLING the Quick package. Chunk 1 defined the $99 packages but nothing
+    // purchased them: Quick intake handed off to the shared preview, which checked out the Full
+    // key, and the webhook would not have activated a Quick payment. These files close that
+    // circuit. Each one either selects between two existing package keys or widens an exact-key
+    // gate to accept EITHER of a category's two base keys; none adds a price, a Stripe id, a
+    // parallel checkout, a second listing table or a second public page.
+    "app/lib/listingPlans/businessQuickPlanSignal.ts", // which base package a checkout is buying
+    "app/lib/listingPlans/categoryCommercialPlanPolicy.ts", // a live Quick row is a canonical plan
+    "app/lib/listingPlans/publishCheckoutCheckpoint.ts", // Quick inventory allowance constants
+    "app/lib/listingPlans/revenueFulfillment.ts", // webhook routes a Quick payment to its category
+    "app/lib/listingPlans/revenueServiciosFulfillment.ts", // a paid Quick listing publishes
+    "app/lib/listingPlans/revenueRestaurantFulfillment.ts", // a paid Quick listing publishes
+    "app/lib/listingPlans/revenueAutosDealerFulfillment.ts", // a paid Quick listing publishes
+    "app/lib/listingPlans/revenueBienesNegocioFulfillment.ts", // a paid Quick listing publishes
+    "app/api/revenue-os/checkout/route.ts", // the autos pre-flight accepts the Quick dealer key
+    // The four shared previews. Each reads the Quick marker off its own URL and picks the Quick
+    // checkout constant instead of the Full one — the SAME preview, draft, publisher and public
+    // page either way. Without the marker every one of them behaves exactly as before.
+    "app/(site)/clasificados/publicar/servicios/preview/ClasificadosServiciosPreviewClient.tsx",
+    "app/(site)/clasificados/restaurantes/preview/RestaurantePreviewClient.tsx",
+    "app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx",
+    "app/(site)/clasificados/autos/negocios/lib/autosDealerRevenueCheckout.ts",
+    "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewClient.tsx",
   ]);
   const violations = touched.filter((f) => !MISSION_AUTHORIZED.has(f) && PROTECTED.some((re) => re.test(f)));
   assert.deepEqual(violations, [], `protected canonical surfaces must not change: ${violations.join(", ")}`);

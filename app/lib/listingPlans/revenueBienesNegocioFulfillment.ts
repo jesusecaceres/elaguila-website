@@ -4,6 +4,7 @@
  */
 
 import "server-only";
+import { isBusinessBasePackageKey } from "./businessAccessLevel";
 import {
   getBrListingById,
   tryActivateBrListingAfterPayment,
@@ -40,7 +41,9 @@ export async function activatePaidBienesNegocioListingFromRevenueOs(input: {
   if (packageKey === BIENES_INVENTORY_PACK_PACKAGE_KEY) {
     return { ok: true, outcome: "skipped_wrong_package" };
   }
-  if (packageKey !== BIENES_NEGOCIO_BASE_PACKAGE_KEY) {
+  // Either base subscription activates the agent listing — see the note in
+  // revenueServiciosFulfillment. The property ALLOWANCE still differs by package.
+  if (!isBusinessBasePackageKey("bienes-raices", packageKey)) {
     return { ok: true, outcome: "skipped_wrong_package" };
   }
 

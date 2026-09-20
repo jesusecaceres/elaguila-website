@@ -33,7 +33,8 @@ import {
   redirectToRevenueCategoryCheckout,
   startRevenueCategoryCheckout,
 } from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
-import { AUTOS_DEALER_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
+import { AUTOS_DEALER_CHECKOUT, AUTOS_DEALER_QUICK_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
+import { businessPlanFromSearchParams } from "@/app/lib/listingPlans/businessQuickPlanSignal";
 import {
   CHECKOUT_NEWSLETTER_SOURCES,
   captureCheckoutNewsletterSubscriber,
@@ -451,9 +452,12 @@ function AutosNegociosPreviewInner({
     [listing, additionalInventoryVehicles, lang],
   );
   const totalVehicleCount = countApplicationInventoryVehicles(additionalInventoryVehicles.length);
+  // Quick Business intake hands off here with the Quick plan marker; the standard dealer
+  // application arrives without it and keeps the Full package and its inventory pack unchanged.
+  const quickPlan = businessPlanFromSearchParams(searchParams) === "quick";
   const checkpointConfig = useMemo(
-    () => autosDealerPreviewCheckpointConfig({ lang, totalVehicleCount }),
-    [lang, totalVehicleCount],
+    () => autosDealerPreviewCheckpointConfig({ lang, totalVehicleCount, quickPlan }),
+    [lang, totalVehicleCount, quickPlan],
   );
 
   const ensurePendingDealerListing = useCallback(async (): Promise<
@@ -665,7 +669,7 @@ function AutosNegociosPreviewInner({
       }
 
       const checkout = await startRevenueCategoryCheckout({
-        ...AUTOS_DEALER_CHECKOUT,
+        ...(quickPlan ? AUTOS_DEALER_QUICK_CHECKOUT : AUTOS_DEALER_CHECKOUT),
         listingId: pending.listingId,
         leonixAdId: pending.leonixAdId,
         locale: lang,
@@ -673,7 +677,7 @@ function AutosNegociosPreviewInner({
         promoCode: ctx.promoCode,
         recurringConsent: ctx.recurringConsent ?? null,
         requestVerifiedIntroDiscount: ctx.requestVerifiedIntroDiscount ?? false,
-        addOns: autosDealerSelectedAddOns(totalVehicleCount),
+        addOns: autosDealerSelectedAddOns(totalVehicleCount, quickPlan),
       });
       setCheckoutBusy(false);
       if (!checkout.ok) {
@@ -682,7 +686,7 @@ function AutosNegociosPreviewInner({
       }
       redirectToRevenueCategoryCheckout(checkout.checkoutUrl);
     },
-    [ensurePendingDealerListing, lang, listing.city, listing.dealerName, listing.zip, totalVehicleCount, newsletterEmail],
+    [ensurePendingDealerListing, lang, listing.city, listing.dealerName, listing.zip, quickPlan, totalVehicleCount, newsletterEmail],
   );
 
   if (!ready) {
@@ -842,7 +846,7 @@ function AutosNegociosPreviewInner({
                       : `Preparing images… ${mediaReadiness.done} of ${mediaReadiness.total}`
                     : null
                 }
-                onPromoApply={(code) => applyAutosDealerPreviewPromoCode({ code, lang, totalVehicleCount })}
+                onPromoApply={(code) => applyAutosDealerPreviewPromoCode({ code, lang, totalVehicleCount, quickPlan })}
                 onCheckout={(ctx) => void onStartDealerCheckout(ctx)}
                 rulesModal={AUTOS_DEALER_PREVIEW_RULES_MODAL}
                 newsletterEmail={newsletterEmail}

@@ -2,15 +2,19 @@
  * Quick Business → BIENES RAÍCES NEGOCIO / AGENT. Professional identity + the customer's FIRST REAL property → the
  * EXISTING `AgenteIndividualResidencialFormState` (canonical merge + instance-scoped preview draft store used by the
  * Full agente application) → the EXISTING `…/negocio/agente-individual/preview`, which owns the pending insert
- * (`publishLeonixListingFromAgenteResidencialDraft`, `activationMode: "pending_payment"`), the `br_agent_monthly`
- * checkout, the `listing-images` upload and the lifecycle RPCs. Zero canonical code is touched. Nothing is
- * fabricated: title, price, city, property type, condition and the property photos are the customer's own answers;
- * license, brokerage, beds, baths, sqft, address and amenities stay empty unless typed.
+ * (`publishLeonixListingFromAgenteResidencialDraft`, `activationMode: "pending_payment"`), the agent checkout, the
+ * `listing-images` upload and the lifecycle RPCs. Nothing is fabricated: title, price, city, property type,
+ * condition and the property photos are the customer's own answers; license, brokerage, beds, baths, sqft, address
+ * and amenities stay empty unless typed.
+ *
+ * The handoff carries the Quick plan marker, so that shared preview charges the Quick package
+ * (`br_agent_quick_monthly`, SIMPLE, ONE active property) rather than the Full agent package.
  */
 
 import { type BrNegocioCategoriaPropiedad } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import { gateBienesRaicesNegocioPreview } from "@/app/clasificados/lib/publish/leonixRequiredForPreviewGates";
 import { withBrAgenteResLangParam } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/brAgenteResidencialLang";
+import { withQuickPlanParam } from "@/app/lib/listingPlans/businessQuickPlanSignal";
 import {
   createBrAgenteResApplicationInstanceId,
   persistAgenteResApplicationDraftResolved,
@@ -168,7 +172,15 @@ export const bienesNegocioQuickBusinessAdapter: QuickBusinessCategoryAdapter = {
     }
     return {
       ok: true,
-      handoff: { kind: "preview", href: withBrAgenteResLangParam(withBrAgenteResApplicationInstanceParam(BR_AGENTE_PREVIEW_ROUTE, applicationInstanceId), ctx.lang) },
+      handoff: {
+        kind: "preview",
+        href: withQuickPlanParam(
+          withBrAgenteResLangParam(
+            withBrAgenteResApplicationInstanceParam(BR_AGENTE_PREVIEW_ROUTE, applicationInstanceId),
+            ctx.lang,
+          ),
+        ),
+      },
     };
   },
 };

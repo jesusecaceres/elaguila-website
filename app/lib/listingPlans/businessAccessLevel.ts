@@ -234,6 +234,32 @@ export function upgradeTargetPackageKey(category: string | null | undefined): st
   return businessPackageKeyForLevel(category, "full");
 }
 
+/**
+ * Both base subscriptions a category sells, Full first.
+ *
+ * Quick and Full are two price/access levels of ONE product, not two products: they share the
+ * canonical draft, preview, publisher, listing row and public page. Every gate that used to ask
+ * "is this THE base package key?" must therefore ask "is this ONE OF the category's base package
+ * keys?", or a paid Quick customer is treated as though they never bought anything — their
+ * listing never activates and their plan resolves to `none`.
+ *
+ * Full is listed first so a customer holding both (the moment an upgrade completes, before the
+ * Quick subscription is cancelled) resolves to Full rather than to whichever row is found first.
+ */
+export function businessBasePackageKeys(category: string | null | undefined): readonly string[] {
+  const pair = BUSINESS_CATEGORY_PACKAGE_PAIR[String(category ?? "").trim().toLowerCase()];
+  return pair ? [pair.full, pair.simple] : [];
+}
+
+/** True when `packageKey` is either base subscription for `category` (Quick or Full). */
+export function isBusinessBasePackageKey(
+  category: string | null | undefined,
+  packageKey: string | null | undefined,
+): boolean {
+  const key = String(packageKey ?? "").trim().toLowerCase();
+  return key.length > 0 && businessBasePackageKeys(category).includes(key);
+}
+
 export type BusinessAccessGrantSourceKind = "digital_package" | "print_package" | "none";
 
 export type BusinessAccessDecision = {

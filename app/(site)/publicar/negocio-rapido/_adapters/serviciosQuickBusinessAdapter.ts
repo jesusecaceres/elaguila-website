@@ -1,8 +1,12 @@
 /**
  * Quick Business → SERVICIOS. Feeds the EXISTING `ClasificadosServiciosApplicationState` through the category's
  * own default state + normalizer + readiness validator + draft store, then hands off to the EXISTING preview
- * (`/clasificados/publicar/servicios/preview`), which owns the pending row, the monthly base checkout
- * (`servicios_base_monthly`) and the assisted save/publish-for-client actions. Zero canonical code is touched.
+ * (`/clasificados/publicar/servicios/preview`), which owns the pending row, the monthly base checkout and the
+ * assisted save/publish-for-client actions.
+ *
+ * The handoff carries the Quick plan marker, so that shared preview charges the Quick package
+ * (`servicios_quick_monthly`, SIMPLE) instead of the Full one. Without it a Quick customer would
+ * reach the Full checkout, which is the product this intake exists to be cheaper than.
  */
 
 import { BUSINESS_TYPE_PRESETS, getBusinessTypePreset } from "@/app/clasificados/publicar/servicios/lib/businessTypePresets";
@@ -13,6 +17,7 @@ import { serviciosBusinessTypeUsesCustomCategoryLabel } from "@/app/clasificados
 import { syncServiciosContactEnables } from "@/app/clasificados/publicar/servicios/lib/serviciosContactVisibility";
 import { evaluateServiciosPublishReadiness } from "@/app/clasificados/publicar/servicios/lib/serviciosPublishReadiness";
 import { withClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
+import { withQuickPlanParam } from "@/app/lib/listingPlans/businessQuickPlanSignal";
 import type { SupportedLang } from "@/app/lib/language";
 import type { QuickBusinessCategoryAdapter } from "@/app/lib/quickBusiness/quickBusinessTypes";
 import type { QuickFieldOption, QuickIntakeStep, QuickIntakeValues, QuickMediaItem } from "@/app/lib/quickClassifieds/quickClassifiedTypes";
@@ -107,6 +112,14 @@ export const serviciosQuickBusinessAdapter: QuickBusinessCategoryAdapter = {
     if (!readiness.ok) return { ok: false, issues: readiness.missing.map((m) => m.label) };
     const saved = await persistServiciosDraftForPreviewNavigation(state);
     if (!saved) return { ok: false, issues: [ctx.lang === "en" ? "Could not save your draft in this browser." : "No se pudo guardar tu borrador en este navegador."] };
-    return { ok: true, handoff: { kind: "preview", href: withClasificadosPublishLang("/clasificados/publicar/servicios/preview", ctx.routeLang as SupportedLang) } };
+    return {
+      ok: true,
+      handoff: {
+        kind: "preview",
+        href: withQuickPlanParam(
+          withClasificadosPublishLang("/clasificados/publicar/servicios/preview", ctx.routeLang as SupportedLang),
+        ),
+      },
+    };
   },
 };

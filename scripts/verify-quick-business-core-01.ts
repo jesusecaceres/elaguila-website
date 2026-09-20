@@ -246,6 +246,25 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
     // line, and the package_key column the writer already populates surfaced on the read type.
     "app/admin/(dashboard)/workspace/package-entitlements/page.tsx",
     "app/admin/_lib/packageEntitlementData.ts",
+    // Chunk 2 (Gate 1) — closing the purchase circuit. Chunk 1 declared the Quick packages but
+    // nothing sold them: the Quick intake handed off to the shared preview, the preview checked
+    // out the FULL key, and the webhook would have skipped a Quick payment as "wrong package",
+    // leaving a paying customer unpublished. Each file below either chooses between two existing
+    // package keys or widens an exact-key gate to accept EITHER of a category's two base keys.
+    "app/lib/listingPlans/businessQuickPlanSignal.ts", // new: which base package is being bought
+    "app/lib/listingPlans/categoryCommercialPlanPolicy.ts", // a live Quick row is a canonical plan
+    "app/lib/listingPlans/publishCheckoutCheckpoint.ts", // Quick inventory allowance constants
+    "app/lib/listingPlans/revenueFulfillment.ts", // webhook routes a Quick payment to its category
+    "app/lib/listingPlans/revenueServiciosFulfillment.ts", // a paid Quick listing publishes
+    "app/lib/listingPlans/revenueRestaurantFulfillment.ts", // a paid Quick listing publishes
+    "app/lib/listingPlans/revenueAutosDealerFulfillment.ts", // a paid Quick listing publishes
+    "app/lib/listingPlans/revenueBienesNegocioFulfillment.ts", // a paid Quick listing publishes
+    "app/api/revenue-os/checkout/route.ts", // the autos pre-flight accepts the Quick dealer key
+    "app/(site)/clasificados/publicar/servicios/preview/ClasificadosServiciosPreviewClient.tsx",
+    "app/(site)/clasificados/restaurantes/preview/RestaurantePreviewClient.tsx",
+    "app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx",
+    "app/(site)/clasificados/autos/negocios/lib/autosDealerRevenueCheckout.ts",
+    "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewClient.tsx",
   ]);
   const violations = touched.filter(
     (f) => f.startsWith("app/") && !MISSION_AUTHORIZED.has(f) && PROTECTED.some((re) => re.test(f)),

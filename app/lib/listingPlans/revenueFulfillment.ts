@@ -4,6 +4,7 @@
  */
 
 import "server-only";
+import { isBusinessBasePackageKey } from "./businessAccessLevel";
 import type Stripe from "stripe";
 import { isPaymentCleared } from "./paymentTracking";
 import { activateEntitlementsForPayment } from "./revenueEntitlementFulfillment";
@@ -11,14 +12,12 @@ import { writeRevenueAuditLog } from "./revenueAuditLog";
 import {
   activatePaidRestauranteListingFromRevenueOs,
   activateRestauranteCouponAddonFromRevenueOs,
-  RESTAURANTES_BASE_MONTHLY_PACKAGE_KEY,
   RESTAURANTES_OFFERS_ADDON_PACKAGE_KEY,
 } from "./revenueRestaurantFulfillment";
 import {
   activatePaidServiciosListingFromRevenueOs,
   grantServiciosOffersAddonEntitlementFromBasePayment,
   normalizeServiciosOffersAddonEntitlementSource,
-  SERVICIOS_BASE_MONTHLY_PACKAGE_KEY,
   SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
 } from "./revenueServiciosFulfillment";
 import { triggerServiciosSavedSearchMatchBestEffort } from "@/app/lib/saved-search/servicios/serviciosSavedSearchMatchOrchestrator";
@@ -50,7 +49,6 @@ import {
 } from "./revenueBienesFsboFulfillment";
 import {
   activatePaidBienesNegocioListingFromRevenueOs,
-  BIENES_NEGOCIO_BASE_PACKAGE_KEY,
 } from "./revenueBienesNegocioFulfillment";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { getOfertaLocalCommercialProductByPackageKey } from "@/app/lib/ofertas-locales/ofertasLocalesCommercial";
@@ -282,7 +280,7 @@ async function tryActivateRestauranteListingAfterEntitlement(input: {
   stripeEventId: string;
   stripeCheckoutSessionId: string;
 }): Promise<{ ok: boolean; code?: string; message?: string }> {
-  if (input.packageDef.packageKey !== RESTAURANTES_BASE_MONTHLY_PACKAGE_KEY) {
+  if (!isBusinessBasePackageKey("restaurantes", input.packageDef.packageKey)) {
     return { ok: true };
   }
 
@@ -529,7 +527,7 @@ async function tryActivateServiciosListingAfterEntitlement(input: {
   stripeEventId: string;
   stripeCheckoutSessionId: string;
 }): Promise<{ ok: boolean; code?: string; message?: string }> {
-  if (input.packageDef.packageKey !== SERVICIOS_BASE_MONTHLY_PACKAGE_KEY) {
+  if (!isBusinessBasePackageKey("servicios", input.packageDef.packageKey)) {
     return { ok: true };
   }
 
@@ -1172,7 +1170,7 @@ async function tryActivateBienesNegocioListingAfterEntitlement(input: {
   stripeEventId: string;
   stripePaymentIntentId?: string | null;
 }): Promise<{ ok: boolean; code?: string; message?: string }> {
-  if (input.packageDef.packageKey !== BIENES_NEGOCIO_BASE_PACKAGE_KEY) {
+  if (!isBusinessBasePackageKey("bienes-raices", input.packageDef.packageKey)) {
     return { ok: true };
   }
 

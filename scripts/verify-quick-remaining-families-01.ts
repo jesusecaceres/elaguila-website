@@ -218,6 +218,13 @@ function defBlocksInclude(source: string, key: string, needle: string): boolean 
     "app/lib/quickBusiness/quickBusinessCopy.ts", // doorway copy
     "app/(site)/publicar/negocio-rapido/mi-negocio/page.tsx", // the Simple doorway route
     "app/(site)/publicar/negocio-rapido/_components/QuickBusinessMyBusinessClient.tsx",
+    // Chunk 2 — the four adapters now stamp the Quick plan marker onto the handoff href they
+    // already navigated to, so the shared preview charges the Quick package instead of the Full
+    // one. The canonical draft each adapter builds is otherwise byte-identical.
+    "app/(site)/publicar/negocio-rapido/_adapters/serviciosQuickBusinessAdapter.ts",
+    "app/(site)/publicar/negocio-rapido/_adapters/restaurantesQuickBusinessAdapter.ts",
+    "app/(site)/publicar/negocio-rapido/_adapters/autosDealerQuickBusinessAdapter.ts",
+    "app/(site)/publicar/negocio-rapido/_adapters/bienesNegocioQuickBusinessAdapter.ts",
   ]);
   const qbDiff = execSync(`git diff --name-only ${CERTIFIED_CORE_SHA} HEAD -- app/lib/quickBusiness "app/(site)/publicar/negocio-rapido"`, { cwd: ROOT, encoding: "utf8" })
     .trim()

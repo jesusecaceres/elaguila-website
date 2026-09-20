@@ -7,6 +7,7 @@
 
 import "server-only";
 import { randomBytes } from "node:crypto";
+import { isBusinessBasePackageKey } from "./businessAccessLevel";
 import {
   getAutosClassifiedsListingById,
   isAutosListingPayableStatus,
@@ -148,7 +149,10 @@ export async function activatePaidAutosDealerListingFromRevenueOs(input: {
   stripeCheckoutSessionId: string;
 }): Promise<AutosDealerRevenueActivationResult> {
   const packageKey = String(input.packageKey ?? "").trim().toLowerCase();
-  if (packageKey !== AUTOS_DEALER_MONTHLY_PACKAGE_KEY) {
+  // Either base subscription activates the dealer listing — see the note in
+  // revenueServiciosFulfillment. The vehicle ALLOWANCE still differs by package; only the
+  // decision to publish the parent listing is shared.
+  if (!isBusinessBasePackageKey("autos", packageKey)) {
     return { ok: true, outcome: "skipped_wrong_package" };
   }
 

@@ -27,7 +27,11 @@ import {
   CHECKOUT_NEWSLETTER_SOURCES,
   captureCheckoutNewsletterSubscriber,
 } from "@/app/lib/newsletter/checkoutNewsletterCapture";
-import { BIENES_RAICES_NEGOCIO_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
+import {
+  BIENES_RAICES_NEGOCIO_CHECKOUT,
+  BIENES_RAICES_NEGOCIO_QUICK_CHECKOUT,
+} from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
+import { businessPlanFromSearchParams } from "@/app/lib/listingPlans/businessQuickPlanSignal";
 import {
   computeBrPropertyInventoryCounts,
   isBrInventoryUpgradeActive,
@@ -310,7 +314,12 @@ export default function AgenteIndividualResidencialPreviewClient() {
         ? "Publicar anuncio"
         : "Publish listing";
 
-  const childInventoryCount = data.additionalInventoryProperties?.length ?? 0;
+  // Quick Business intake hands off here with the Quick plan marker; the standard agent
+  // application arrives without it and keeps the Full package and its inventory pack unchanged.
+  // Quick is ONE real property with no pack, so it never carries child inventory into checkout.
+  const quickPlan = businessPlanFromSearchParams(searchParams) === "quick";
+  const baseCheckout = quickPlan ? BIENES_RAICES_NEGOCIO_QUICK_CHECKOUT : BIENES_RAICES_NEGOCIO_CHECKOUT;
+  const childInventoryCount = quickPlan ? 0 : data.additionalInventoryProperties?.length ?? 0;
   const hasInventoryPackage = childInventoryCount > 0 && !inventoryCtx;
 
   const checkpointConfig = useMemo((): PublishCheckpointConfig | null => {
@@ -322,17 +331,17 @@ export default function AgenteIndividualResidencialPreviewClient() {
        below), not in whether the checkout widget itself rendered at all. */
     if (inventoryCtx || !needsNegocioPayment || listingBoundPreview) return null;
     return {
-      category: BIENES_RAICES_NEGOCIO_CHECKOUT.category,
-      packageKey: BIENES_RAICES_NEGOCIO_CHECKOUT.packageKey,
+      category: baseCheckout.category,
+      packageKey: baseCheckout.packageKey,
       lang,
       mode: "checkout",
       childInventoryCount,
       confirmations: BIENES_NEGOCIO_CHECKPOINT_CONFIRMATIONS,
       newsletterEligible: true,
-      promoEligible: true,
-      returnPath: BIENES_RAICES_NEGOCIO_CHECKOUT.returnPath,
+      promoEligible: !quickPlan,
+      returnPath: baseCheckout.returnPath,
     };
-  }, [childInventoryCount, inventoryCtx, lang, listingBoundPreview, needsNegocioPayment]);
+  }, [baseCheckout, quickPlan, childInventoryCount, inventoryCtx, lang, listingBoundPreview, needsNegocioPayment]);
 
   const onPublishLive = useCallback(async (ctx?: {
     newsletterOptIn?: boolean;
@@ -462,7 +471,7 @@ export default function AgenteIndividualResidencialPreviewClient() {
         }
 
         const checkout = await startRevenueCategoryCheckout({
-          ...BIENES_RAICES_NEGOCIO_CHECKOUT,
+          ...baseCheckout,
           listingId: r.listingId,
           leonixAdId: r.leonixAdId?.trim() || leonixAdId,
           locale: lang,
@@ -470,7 +479,10 @@ export default function AgenteIndividualResidencialPreviewClient() {
           recurringConsent: ctx?.recurringConsent ?? null,
           requestVerifiedIntroDiscount: ctx?.requestVerifiedIntroDiscount ?? false,
           returnPath: withBrAgenteResLangParam("/clasificados/publicar/bienes-raices/negocio/agente-individual/preview?checkout=cancelled", lang),
-          ...(bundleCreatedCount > 0 ? { addOns: [{ key: BR_INVENTORY_PACK_PACKAGE_KEY, quantity: 1 }] } : {}),
+          // Quick is one property and is never sold the inventory pack.
+          ...(!quickPlan && bundleCreatedCount > 0
+            ? { addOns: [{ key: BR_INVENTORY_PACK_PACKAGE_KEY, quantity: 1 }] }
+            : {}),
         });
         if (!checkout.ok) {
           setPublishBusy(false);
@@ -527,7 +539,7 @@ export default function AgenteIndividualResidencialPreviewClient() {
       setPublishBusy(false);
       setPublishErr(e instanceof Error ? e.message : String(e));
     }
-  }, [applicationInstanceId, data, inventoryCtx, lang, router]);
+  }, [applicationInstanceId, baseCheckout, quickPlan, data, inventoryCtx, lang, router]);
 
   const onSaveListingEdit = useCallback(async () => {
     if (!listingBoundPreview || !listingIdParam || saveEditBusy) return;
@@ -600,12 +612,12 @@ export default function AgenteIndividualResidencialPreviewClient() {
       const hasInventory = childInventoryCount > 0;
       const addOns = hasInventory ? [{ key: BR_INVENTORY_PACK_PACKAGE_KEY, quantity: 1 }] : undefined;
       const subtotalCents =
-        (getRevenuePackageDefinition("br_agent_monthly")?.priceCents ?? 39900) +
+        (getRevenuePackageDefinition(baseCheckout.packageKey)?.priceCents ?? (quickPlan ? 0 : 39900)) +
         (hasInventory ? getRevenuePackageDefinition(BR_INVENTORY_PACK_PACKAGE_KEY)?.priceCents ?? 9900 : 0);
       const result = await validateRevenuePromoForCheckout({
         code,
-        category: BIENES_RAICES_NEGOCIO_CHECKOUT.category,
-        packageKey: BIENES_RAICES_NEGOCIO_CHECKOUT.packageKey,
+        category: baseCheckout.category,
+        packageKey: baseCheckout.packageKey,
         subtotalCents,
         addOns,
         locale: lang,
@@ -620,7 +632,7 @@ export default function AgenteIndividualResidencialPreviewClient() {
             : `${result.discountLabel} applied. Total: $${(result.totalCents / 100).toFixed(2)}`,
       };
     },
-    [childInventoryCount, lang],
+    [baseCheckout, quickPlan, childInventoryCount, lang],
   );
 
   const onPublishNextFromBridge = useCallback(() => {

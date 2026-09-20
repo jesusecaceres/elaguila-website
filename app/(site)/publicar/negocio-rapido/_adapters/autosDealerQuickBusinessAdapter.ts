@@ -2,15 +2,20 @@
  * Quick Business → AUTOS DEALER. Dealer identity + the customer's FIRST REAL vehicle → the EXISTING
  * `AutosNegociosDraftV1` (namespaced session + IndexedDB store used by the Full dealer application) → the EXISTING
  * `/clasificados/autos/negocios/preview`, which owns the pending row (`POST /api/clasificados/autos/listings`,
- * lane `negocios`), the `autos_dealer_monthly` checkout, photo upload and the activation RPC. Zero canonical code
- * is touched. Nothing is fabricated: year / make / model / price and the vehicle photos are the customer's own
- * answers; mileage, VIN, trim and condition stay undefined unless typed.
+ * lane `negocios`), the dealer checkout, photo upload and the activation RPC. Nothing is fabricated: year / make /
+ * model / price and the vehicle photos are the customer's own answers; mileage, VIN, trim and condition stay
+ * undefined unless typed.
+ *
+ * The handoff carries the Quick plan marker, so that shared preview charges the Quick package
+ * (`autos_dealer_quick_monthly`, SIMPLE, ONE active vehicle) rather than the Full dealer package
+ * with its ten-vehicle allowance.
  */
 
 import { createEmptyListing } from "@/app/clasificados/autos/negocios/lib/autoDealerDraftDefaults";
 import { resolveAutosNegociosDraftNamespace } from "@/app/clasificados/autos/negocios/lib/autosNegociosDraftNamespace";
 import { saveAutosNegociosDraftResolved } from "@/app/clasificados/autos/negocios/lib/autosNegociosDraftStorage";
 import { withLangParam } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
+import { withQuickPlanParam } from "@/app/lib/listingPlans/businessQuickPlanSignal";
 import type { AutoDealerListing, MediaImageEntry } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { rememberAutosDraftNamespaceHint } from "@/app/clasificados/autos/shared/lib/autosDraftPreviewNamespaceHint";
 import { getAutosPreviewCompletenessIssues, type AutosPreviewCompletenessKey } from "@/app/clasificados/autos/shared/lib/autosPreviewCompleteness";
@@ -153,6 +158,12 @@ export const autosDealerQuickBusinessAdapter: QuickBusinessCategoryAdapter = {
       // First vehicle only — no bundled children; the included allowance and the inventory pack are untouched.
       additionalInventoryVehicles: [],
     });
-    return { ok: true, handoff: { kind: "preview", href: withLangParam(AUTOS_DEALER_PREVIEW_ROUTE, ctx.routeLang as SupportedLang) } };
+    return {
+      ok: true,
+      handoff: {
+        kind: "preview",
+        href: withQuickPlanParam(withLangParam(AUTOS_DEALER_PREVIEW_ROUTE, ctx.routeLang as SupportedLang)),
+      },
+    };
   },
 };

@@ -4,64 +4,87 @@ import {
   AUTOS_DEALER_INVENTORY_PACK_ADDITIONAL_VEHICLES,
   AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY,
   AUTOS_DEALER_MONTHLY_PACKAGE_KEY,
+  AUTOS_DEALER_QUICK_INCLUDED_VEHICLES,
   AUTOS_DEALER_TOTAL_WITH_INVENTORY_PACK_LIMIT,
   type PublishCheckpointAddOn,
   type PublishCheckpointConfig,
 } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
-import { AUTOS_DEALER_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
+import {
+  AUTOS_DEALER_CHECKOUT,
+  AUTOS_DEALER_QUICK_CHECKOUT,
+} from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
 import { validateRevenuePromoForCheckout } from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
 import { getRevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
 
-export function autosDealerInventoryAddOnSelected(totalVehicleCount: number): boolean {
-  return totalVehicleCount > AUTOS_DEALER_BASE_INCLUDED_VEHICLES;
+/**
+ * Quick (SIMPLE) is the smaller dealer product: one active vehicle and NO inventory pack. Every
+ * helper below takes the plan so the add-on can never be attached to a Quick checkout — that is
+ * the one path by which a $99 dealer could otherwise reach the Full ten-vehicle allowance.
+ */
+export function autosDealerInventoryAddOnSelected(totalVehicleCount: number, quickPlan = false): boolean {
+  return !quickPlan && totalVehicleCount > AUTOS_DEALER_BASE_INCLUDED_VEHICLES;
 }
 
-export function autosDealerSelectedAddOns(totalVehicleCount: number): Array<{ key: string; quantity: 1 }> {
-  return autosDealerInventoryAddOnSelected(totalVehicleCount)
+export function autosDealerSelectedAddOns(
+  totalVehicleCount: number,
+  quickPlan = false,
+): Array<{ key: string; quantity: 1 }> {
+  return autosDealerInventoryAddOnSelected(totalVehicleCount, quickPlan)
     ? [{ key: AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY, quantity: 1 }]
     : [];
 }
 
-export function autosDealerCheckoutSubtotalCents(totalVehicleCount: number): number {
-  const base = getRevenuePackageDefinition(AUTOS_DEALER_MONTHLY_PACKAGE_KEY)?.priceCents ?? 0;
+export function autosDealerCheckoutSubtotalCents(totalVehicleCount: number, quickPlan = false): number {
+  const base = getRevenuePackageDefinition(autosDealerPackageKeyForPlan(quickPlan))?.priceCents ?? 0;
   const addOn = getRevenuePackageDefinition(AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY)?.priceCents ?? 0;
-  return base + (autosDealerInventoryAddOnSelected(totalVehicleCount) ? addOn : 0);
+  return base + (autosDealerInventoryAddOnSelected(totalVehicleCount, quickPlan) ? addOn : 0);
+}
+
+function autosDealerPackageKeyForPlan(quickPlan: boolean): string {
+  return quickPlan ? AUTOS_DEALER_QUICK_CHECKOUT.packageKey : AUTOS_DEALER_MONTHLY_PACKAGE_KEY;
 }
 
 export function autosDealerPreviewCheckpointConfig(input: {
   lang: "es" | "en";
   totalVehicleCount: number;
+  quickPlan?: boolean;
 }): PublishCheckpointConfig {
-  const baseDef = getRevenuePackageDefinition(AUTOS_DEALER_MONTHLY_PACKAGE_KEY);
+  const quickPlan = Boolean(input.quickPlan);
+  const baseDef = getRevenuePackageDefinition(autosDealerPackageKeyForPlan(quickPlan));
   const addOnDef = getRevenuePackageDefinition(AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY);
-  const selected = autosDealerInventoryAddOnSelected(input.totalVehicleCount);
-  const addOns: PublishCheckpointAddOn[] = [
-    {
-      id: "autos_dealer_inventory_pack",
-      labelEn: "Dealer inventory pack",
-      labelEs: "Paquete de inventario dealer",
-      priceCents: addOnDef?.priceCents ?? 0,
-      selected,
-      detailEn: `Adds ${AUTOS_DEALER_INVENTORY_PACK_ADDITIONAL_VEHICLES} active vehicle slots (${AUTOS_DEALER_TOTAL_WITH_INVENTORY_PACK_LIMIT} total).`,
-      detailEs: `Agrega ${AUTOS_DEALER_INVENTORY_PACK_ADDITIONAL_VEHICLES} espacios de vehiculos activos (${AUTOS_DEALER_TOTAL_WITH_INVENTORY_PACK_LIMIT} total).`,
-    },
-  ];
+  const selected = autosDealerInventoryAddOnSelected(input.totalVehicleCount, quickPlan);
+  // Quick is never offered the pack at all, so the row is absent rather than present-and-unchecked.
+  const addOns: PublishCheckpointAddOn[] = quickPlan
+    ? []
+    : [
+        {
+          id: "autos_dealer_inventory_pack",
+          labelEn: "Dealer inventory pack",
+          labelEs: "Paquete de inventario dealer",
+          priceCents: addOnDef?.priceCents ?? 0,
+          selected,
+          detailEn: `Adds ${AUTOS_DEALER_INVENTORY_PACK_ADDITIONAL_VEHICLES} active vehicle slots (${AUTOS_DEALER_TOTAL_WITH_INVENTORY_PACK_LIMIT} total).`,
+          detailEs: `Agrega ${AUTOS_DEALER_INVENTORY_PACK_ADDITIONAL_VEHICLES} espacios de vehiculos activos (${AUTOS_DEALER_TOTAL_WITH_INVENTORY_PACK_LIMIT} total).`,
+        },
+      ];
+
+  const includedVehicles = quickPlan ? AUTOS_DEALER_QUICK_INCLUDED_VEHICLES : AUTOS_DEALER_BASE_INCLUDED_VEHICLES;
 
   return {
     category: AUTOS_DEALER_CHECKOUT.category,
-    packageKey: AUTOS_DEALER_MONTHLY_PACKAGE_KEY,
+    packageKey: autosDealerPackageKeyForPlan(quickPlan),
     lang: input.lang,
     mode: "checkout",
     pipeline: "negocios",
     baseLineItem: {
-      labelEn: "Autos dealer monthly",
-      labelEs: "Dealer de autos mensual",
+      labelEn: quickPlan ? "Autos dealer Quick monthly" : "Autos dealer monthly",
+      labelEs: quickPlan ? "Dealer de autos Quick mensual" : "Dealer de autos mensual",
       priceCents: baseDef?.priceCents ?? 0,
-      detailEn: `Includes ${AUTOS_DEALER_BASE_INCLUDED_VEHICLES} active vehicles.`,
-      detailEs: `Incluye ${AUTOS_DEALER_BASE_INCLUDED_VEHICLES} vehiculos activos.`,
+      detailEn: `Includes ${includedVehicles} active vehicle${includedVehicles === 1 ? "" : "s"}.`,
+      detailEs: `Incluye ${includedVehicles} vehiculo${includedVehicles === 1 ? "" : "s"} activo${includedVehicles === 1 ? "" : "s"}.`,
     },
     addOns,
-    childInventoryCount: Math.max(0, input.totalVehicleCount - 1),
+    childInventoryCount: quickPlan ? 0 : Math.max(0, input.totalVehicleCount - 1),
     confirmations: AUTOS_DEALER_CHECKPOINT_CONFIRMATIONS,
     newsletterEligible: true,
     promoEligible: baseDef?.promoEligible ?? true,
@@ -73,13 +96,15 @@ export async function applyAutosDealerPreviewPromoCode(input: {
   code: string;
   lang: "es" | "en";
   totalVehicleCount: number;
+  quickPlan?: boolean;
 }): Promise<{ ok: true; discountCents: number; message: string } | { ok: false; message: string }> {
-  const addOns = autosDealerSelectedAddOns(input.totalVehicleCount);
-  const subtotalCents = autosDealerCheckoutSubtotalCents(input.totalVehicleCount);
+  const quickPlan = Boolean(input.quickPlan);
+  const addOns = autosDealerSelectedAddOns(input.totalVehicleCount, quickPlan);
+  const subtotalCents = autosDealerCheckoutSubtotalCents(input.totalVehicleCount, quickPlan);
   const result = await validateRevenuePromoForCheckout({
     code: input.code,
     category: AUTOS_DEALER_CHECKOUT.category,
-    packageKey: AUTOS_DEALER_MONTHLY_PACKAGE_KEY,
+    packageKey: autosDealerPackageKeyForPlan(quickPlan),
     subtotalCents,
     addOns,
     locale: input.lang,
