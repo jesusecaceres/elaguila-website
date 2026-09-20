@@ -10,7 +10,9 @@ import { quickBusinessChooserPath } from "@/app/lib/quickBusiness/quickBusinessR
 import type { QuickBusinessCategoryKey, QuickBusinessConfirmations } from "@/app/lib/quickBusiness/quickBusinessTypes";
 import { qt, quickCopy } from "@/app/lib/quickClassifieds/quickClassifiedCopy";
 import type { QuickIntakeValue, QuickIntakeValues, QuickMediaItem } from "@/app/lib/quickClassifieds/quickClassifiedTypes";
-import { quickFieldIsVisible, validateQuickMedia, validateQuickStep } from "@/app/lib/quickClassifieds/quickClassifiedValidation";
+import { quickFieldIsVisible, validateQuickStep } from "@/app/lib/quickClassifieds/quickClassifiedValidation";
+import { validateQuickBusinessIntakeMedia } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
+import type { QuickClassifiedMediaContract } from "@/app/lib/quickClassifieds/quickClassifiedTypes";
 import { QuickFieldRenderer } from "@/app/publicar/rapido/_components/QuickFieldRenderer";
 import { QuickMediaStep } from "@/app/publicar/rapido/_components/QuickMediaStep";
 import { QuickShell, quickCard, quickPrimaryBtn, quickSecondaryBtn } from "@/app/publicar/rapido/_components/QuickShell";
@@ -95,7 +97,7 @@ export function QuickBusinessIntakeClient({ category }: { category: QuickBusines
         return;
       }
     } else if (stepIndex === mediaIndex) {
-      const found = validateQuickMedia(draft.media, definition.media, lang);
+      const found = validateQuickBusinessIntakeMedia(draft.media, definition.media, lang);
       if (found.length) {
         setIssues(found);
         return;
@@ -111,7 +113,7 @@ export function QuickBusinessIntakeClient({ category }: { category: QuickBusines
     try {
       const allIssues: string[] = [];
       for (const s of steps) allIssues.push(...validateQuickStep(s, draft.values, lang));
-      allIssues.push(...validateQuickMedia(draft.media, definition.media, lang));
+      allIssues.push(...validateQuickBusinessIntakeMedia(draft.media, definition.media, lang));
       if (allIssues.length) {
         setIssues(allIssues);
         return;
@@ -181,7 +183,19 @@ export function QuickBusinessIntakeClient({ category }: { category: QuickBusines
         <>
           {/* Truthful per-category wording: business photo (Servicios / Restaurantes) vs. VEHICLE photo (Dealer) vs. PROPERTY photo (Bienes). */}
           <p className="mb-2 text-sm text-[#5D4A25]/90">{qt(definition.mediaIntro, lang)}</p>
-          <QuickMediaStep lang={lang} contract={definition.media} media={draft.media} onChange={setMedia} />
+          {/* QuickMediaStep is certified Quick Classifieds code and reads ONLY `maxImages` and
+              `note` from the contract — it has no video affordance at all (its file input is
+              `accept="image/*"`). Quick Business's contract differs from the Classifieds one in
+              exactly one field, `videoOptional`, which this component never reads. The narrowing
+              keeps the certified component untouched; its safety precondition ("QuickMediaStep
+              never reads videoOptional") is asserted mechanically in
+              scripts/verify-quick-business-core-01.ts so it cannot silently stop being true. */}
+          <QuickMediaStep
+            lang={lang}
+            contract={definition.media as QuickClassifiedMediaContract}
+            media={draft.media}
+            onChange={setMedia}
+          />
         </>
       ) : (
         <QuickBusinessReviewStep

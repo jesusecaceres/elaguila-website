@@ -10,7 +10,7 @@
  * full product to a Quick customer.
  */
 
-import type { QuickClassifiedMediaContract } from "@/app/lib/quickClassifieds/quickClassifiedTypes";
+import type { QuickBusinessMediaContract } from "./quickBusinessTypes";
 import type { QuickBusinessCategoryKey, QuickBusinessDefinition } from "./quickBusinessTypes";
 import { QUICK_BUSINESS_CATEGORY_KEYS } from "./quickBusinessTypes";
 
@@ -27,7 +27,7 @@ import { QUICK_BUSINESS_CATEGORY_KEYS } from "./quickBusinessTypes";
  */
 // Bible §11.1: Quick Business max 3 real images, no video. Canonical lane caps are higher but
 // do not apply to the $249 Quick product. The Full lane retains its own unchanged limits.
-function media(note: { es: string; en: string }): QuickClassifiedMediaContract {
+function media(note: { es: string; en: string }): QuickBusinessMediaContract {
   return { minImages: 1, maxImages: 3, videoOptional: false, note };
 }
 

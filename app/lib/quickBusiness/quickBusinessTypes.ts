@@ -67,6 +67,19 @@ export type QuickBusinessStaffCustody = {
   note: QuickText;
 };
 
+/**
+ * Quick Business media contract.
+ *
+ * `QuickClassifiedMediaContract` declares `videoOptional: true` as a LITERAL, because every Quick
+ * Classifieds lane permits optional video. Quick Business permits none in any family, so it
+ * carries its own contract with `videoOptional` widened to boolean. Reusing the Classifieds type
+ * forced the registry to return `false` for a field typed `true` — a real, long-standing type
+ * error that blocked the production build.
+ */
+export type QuickBusinessMediaContract = Omit<QuickClassifiedMediaContract, "videoOptional"> & {
+  videoOptional: boolean;
+};
+
 export type QuickBusinessDefinition = {
   key: QuickBusinessCategoryKey;
   status: QuickBusinessStatus;
@@ -77,7 +90,7 @@ export type QuickBusinessDefinition = {
   /** Existing standard application / selector (never a Quick route). */
   standardApplicationPath: string;
   pricing: QuickBusinessPricingPosture;
-  media: QuickClassifiedMediaContract;
+  media: QuickBusinessMediaContract;
   /**
    * Truthful media wording shown above the shared media step. Servicios / Restaurantes ask for BUSINESS photos;
    * Dealer asks for photos of the FIRST REAL VEHICLE; Bienes asks for photos of the FIRST REAL PROPERTY — the

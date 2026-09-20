@@ -201,3 +201,45 @@ export function validateQuickBusinessMediaForCategory(
   if (!limits) return null;
   return validateQuickBusinessMediaSemantics(items, limits);
 }
+
+/**
+ * Intake-side validation for Quick Business, returning localized strings so it can stand in for
+ * the Quick Classifieds `validateQuickMedia` at the Quick Business intake.
+ *
+ * WHY A SEPARATE FUNCTION: `QuickClassifiedMediaContract` declares `videoOptional: true` as a
+ * LITERAL, because every Quick Classifieds lane allows optional video. Quick Business allows
+ * none. Quick Business therefore carries its own contract type and its own validator rather than
+ * misreporting `videoOptional: true` to reuse the Classifieds one — which is also what removes a
+ * long-standing type error where the registry returned `false` for a field typed `true`.
+ *
+ * This is strictly stronger than the function it replaces at this call site: it enforces the same
+ * count bounds AND rejects video, and identity assets (logo/headshot) do not count toward the
+ * minimum.
+ */
+export function validateQuickBusinessIntakeMedia(
+  media: readonly SemanticMediaItem[],
+  contract: { minImages: number; maxImages: number | null; videoOptional: boolean },
+  lang: "es" | "en",
+): string[] {
+  const issues: string[] = [];
+  const en = lang === "en";
+
+  if (!contract.videoOptional && media.some((m) => isVideoMime(m.mime))) {
+    issues.push(en ? "Video is not included in this package. Upload photos only." : "El video no está incluido en este paquete. Sube solo fotos.");
+  }
+
+  // Identity assets never satisfy the photo minimum, so a logo-only upload still reads as empty.
+  const countable = media.filter(
+    (m) => !isVideoMime(m.mime) && !(isQuickMediaRole(m.role) && IDENTITY_ROLES.includes(m.role)),
+  );
+
+  if (countable.length < contract.minImages) {
+    issues.push(en ? "Add at least one photo to continue." : "Sube al menos una foto para continuar.");
+  }
+  if (contract.maxImages != null && countable.length > contract.maxImages) {
+    issues.push(
+      en ? `Maximum ${contract.maxImages} photos in this category.` : `Máximo ${contract.maxImages} fotos en esta categoría.`,
+    );
+  }
+  return issues;
+}

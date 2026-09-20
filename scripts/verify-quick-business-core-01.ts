@@ -165,7 +165,30 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
 {
   assert.ok(reg.includes("return { minImages: 1, maxImages: 3, videoOptional: false, note };"), "Quick Business media: 3 max, no video");
   const intake = read(`${QB_COMPONENTS}/QuickBusinessIntakeClient.tsx`);
-  assert.ok(intake.includes('from "@/app/publicar/rapido/_components/QuickMediaStep"') && intake.includes("validateQuickMedia(draft.media, definition.media, lang)"), "intake reuses the certified media step + media lock at Next and submit");
+  assert.ok(
+    intake.includes('from "@/app/publicar/rapido/_components/QuickMediaStep"') &&
+      intake.includes("validateQuickBusinessIntakeMedia(draft.media, definition.media, lang)"),
+    "intake reuses the certified media step + the Quick Business media lock at Next and submit",
+  );
+  /**
+   * Quick Business carries its own media contract because `QuickClassifiedMediaContract` types
+   * `videoOptional` as the literal `true` (every Classifieds lane allows optional video) while
+   * Quick Business allows none. The intake narrows its contract when handing it to the certified
+   * `QuickMediaStep`. That narrowing is only sound because QuickMediaStep never reads
+   * `videoOptional` — so assert that precondition mechanically here rather than trusting the
+   * comment that states it.
+   */
+  {
+    const mediaStepSrc = read("app/(site)/publicar/rapido/_components/QuickMediaStep.tsx");
+    assert.ok(
+      !/contract\.videoOptional/.test(mediaStepSrc),
+      "QuickMediaStep must not read contract.videoOptional — the Quick Business narrowing in QuickBusinessIntakeClient depends on it",
+    );
+    assert.ok(
+      mediaStepSrc.includes("contract.maxImages") && mediaStepSrc.includes("contract.note"),
+      "QuickMediaStep reads only the count cap and the note from the contract",
+    );
+  }
   const review = read(`${QB_COMPONENTS}/QuickBusinessReviewStep.tsx`);
   assert.ok(review.includes("media.length === 0"), "review submit disabled without an image");
   assert.ok(read(`${QB_ADAPTERS}/serviciosQuickBusinessAdapter.ts`).includes("coverUrl: gallery[0]?.url") && read(`${QB_ADAPTERS}/restaurantesQuickBusinessAdapter.ts`).includes("heroImage: hero ?? \"\""), "first real image becomes the canonical cover / hero");
@@ -652,7 +675,20 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
 
   // Layer 3 — intake UI: (a) validation called at Next and Submit, (b) file input rejects non-images, (c) video not offered
   const intake = read(`${QB_COMPONENTS}/QuickBusinessIntakeClient.tsx`);
-  assert.ok(intake.includes("validateQuickMedia(draft.media, definition.media, lang)"), "QuickBusinessIntakeClient: validateQuickMedia called at step navigation and submit");
+  assert.ok(
+    intake.includes("validateQuickBusinessIntakeMedia(draft.media, definition.media, lang)"),
+    "QuickBusinessIntakeClient: the Quick Business media validator is called at step navigation and submit",
+  );
+  // Layer 2b — that validator is strictly stronger than the Classifieds one it replaced here:
+  // it enforces the same count bounds AND rejects video AND excludes identity assets from the
+  // minimum, so a logo can never stand in for the required photo.
+  {
+    const semantics = read(`${QB_LIB}/quickBusinessMediaSemantics.ts`);
+    assert.ok(semantics.includes("export function validateQuickBusinessIntakeMedia("), "the intake validator exists");
+    assert.ok(/contract\.videoOptional/.test(semantics), "it enforces the no-video rule");
+    assert.ok(/contract\.minImages/.test(semantics) && /contract\.maxImages/.test(semantics), "it enforces both count bounds");
+    assert.ok(/IDENTITY_ROLES\.includes/.test(semantics), "identity assets do not count toward the minimum");
+  }
   const mediaStep = read("app/(site)/publicar/rapido/_components/QuickMediaStep.tsx");
   assert.ok(mediaStep.includes('accept="image/*"'), "QuickMediaStep: file input accepts image/* only (video inputs absent)");
   assert.ok(!mediaStep.includes('accept="video') && !mediaStep.includes("video/*"), "QuickMediaStep: no video accept attribute (video blocked at upload layer)");
