@@ -86,8 +86,8 @@ for the Preview URL the owner needs for QA.
 
 | Metric | Value |
 |---|---|
-| Total requirements | 39 |
-| PROVEN | 34 |
+| Total requirements | 40 |
+| PROVEN | 35 |
 | PROVEN_NA | 3 |
 | BLOCKED | 2 |
 | REPAIR_REQUIRED | **0** |
@@ -104,19 +104,22 @@ No advertised customer capability is blocked in any of the 19 families.
 
 ## 7. BLAST RADIUS
 
-89 files changed versus `origin/main`, of which only **8** are modifications to
-pre-existing files. Everything else is additive.
+98 files changed versus `origin/main` — **85 added, 13 modified**. Only **8** of the
+modifications are application code; the other 5 are four pre-existing Ofertas verifier
+scripts and `package.json`. Counts are reproducible with
+`git diff --name-status origin/main HEAD`.
 
 | Class | Count | Nature |
 |---|---|---|
-| Quick Classifieds | 21 added, 1 modified | New intake plus a narrow Empleos media repair |
-| Quick Business Core | 14 added | All new |
-| Remaining families registry | 1 added | New |
-| Comida Local Quick | 3 added | New |
-| Ofertas pricing repair | 4 modified | Value and consent-copy repair only |
-| Staff PWA integration | 1 added, 2 modified | `StaffCommandCenter.tsx` +4 lines, `PublicarGatewayClient.tsx` +16 lines, both purely additive |
-| Verifiers | 8 added, 4 modified | Test-only |
-| Documentation | 28 added | Docs-only |
+| Quick Classifieds intake and registry | 26 added | New `app/(site)/publicar/rapido` tree plus `app/lib/quickClassifieds` |
+| Quick Business Core | 16 added | New `app/(site)/publicar/negocio-rapido` tree plus `app/lib/quickBusiness` |
+| Remaining families registry | 1 added | `app/lib/quickRemaining/quickRemainingRegistry.ts` |
+| Comida Local Quick | 3 added | New `/rapido` intake only, canonical Comida Local untouched |
+| Empleos media repair | 1 added, 1 modified | `empleosDraftMediaUpload.ts` added, `EmpleoQuickPreviewClient.tsx` uploads real media before publish |
+| Staff PWA integration | 1 added, 2 modified | `QuickApplicationsLaunchpad.tsx` added; `StaffCommandCenter.tsx` +4 lines and `PublicarGatewayClient.tsx` +16 lines, both purely additive |
+| Ofertas pricing repair | 5 modified | Four `app/lib/ofertas-locales` and `app/(site)/dashboard/ofertas-locales` files: price value, consent copy and one comment |
+| Verifiers | 8 added, 4 modified | Test-only; the four modifications repair stale assertions |
+| Documentation | 29 added | Docs-only |
 | `package.json` | 1 modified | Script entries only, no dependency change |
 | **UNEXPECTED** | **0** | |
 
