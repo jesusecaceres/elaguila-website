@@ -1,11 +1,12 @@
 "use client";
 
+import { brAgenteApplicationPricingCopy } from "@/app/clasificados/publicar/bienes-raices/shared/brAgenteApplicationPricingCopy";
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
 import { formatRevenuePriceLabel, getRevenuePackagePriceCents } from "@/app/lib/listingPlans/revenuePricingMatrix";
 import { quickBusinessCopy } from "@/app/lib/quickBusiness/quickBusinessCopy";
-import type { QuickBusinessConfirmationSurface, QuickBusinessDefinition } from "@/app/lib/quickBusiness/quickBusinessTypes";
+import type { QuickBusinessConfirmationSurface, QuickBusinessConfirmations, QuickBusinessDefinition } from "@/app/lib/quickBusiness/quickBusinessTypes";
 import { qt, quickCopy } from "@/app/lib/quickClassifieds/quickClassifiedCopy";
-import type { QuickConfirmations, QuickIntakeStep, QuickIntakeValues, QuickLang, QuickMediaItem } from "@/app/lib/quickClassifieds/quickClassifiedTypes";
+import type { QuickIntakeStep, QuickIntakeValues, QuickLang, QuickMediaItem } from "@/app/lib/quickClassifieds/quickClassifiedTypes";
 import { quickFieldIsVisible, quickFieldOptions, quickValueIsEmpty } from "@/app/lib/quickClassifieds/quickClassifiedValidation";
 import { quickCard, quickPrimaryBtn } from "@/app/publicar/rapido/_components/QuickShell";
 
@@ -15,12 +16,12 @@ type Props = {
   steps: readonly QuickIntakeStep[];
   values: QuickIntakeValues;
   media: QuickMediaItem[];
-  confirmations: QuickConfirmations;
+  confirmations: QuickBusinessConfirmations;
   surface: QuickBusinessConfirmationSurface;
   submitting: boolean;
   issues: string[];
   onEditStep: (index: number) => void;
-  onConfirmations: (next: QuickConfirmations) => void;
+  onConfirmations: (next: QuickBusinessConfirmations) => void;
   onSubmit: () => void;
 };
 
@@ -47,7 +48,10 @@ function priceLine(def: QuickBusinessDefinition, lang: QuickLang): string | null
 
 export function QuickBusinessReviewStep({ lang, definition, steps, values, media, confirmations, surface, submitting, issues, onEditStep, onConfirmations, onSubmit }: Props) {
   const price = priceLine(definition, lang);
-  const confirmationsOk = surface.kind === "none" || (confirmations.infoTruthful && confirmations.mediaAccurate && confirmations.rulesAccepted);
+  const rulesOk = confirmations.infoTruthful && confirmations.mediaAccurate && confirmations.rulesAccepted;
+  // property_agent = the four booleans the Full agente application requires before it opens its preview.
+  const confirmationsOk = surface.kind === "none" || (surface.kind === "servicios" ? rulesOk : rulesOk && confirmations.paymentAfterPreview);
+  const firstItem = definition.key === "autos-dealer" || definition.key === "bienes-negocio";
   return (
     <div className="space-y-4">
       <section className={quickCard}>
@@ -94,6 +98,31 @@ export function QuickBusinessReviewStep({ lang, definition, steps, values, media
         </div>
       </section>
 
+      {surface.kind === "property_agent" ? (
+        <div className={quickCard}>
+          <ListingRulesConfirmationSection
+            lang={lang}
+            subject="property"
+            confirmAccurate={confirmations.infoTruthful}
+            confirmPhotos={confirmations.mediaAccurate}
+            confirmRules={confirmations.rulesAccepted}
+            onAccurate={(v) => onConfirmations({ ...confirmations, infoTruthful: v })}
+            onPhotos={(v) => onConfirmations({ ...confirmations, mediaAccurate: v })}
+            onRules={(v) => onConfirmations({ ...confirmations, rulesAccepted: v })}
+          />
+          {/* Existing Bienes agente acknowledgement (same canonical copy as the Full application's fourth checkbox). */}
+          <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-xl border border-black/10 bg-[#FAFAFA] p-3 text-sm text-[#111111]">
+            <input
+              type="checkbox"
+              className="mt-1 h-4 w-4 shrink-0"
+              checked={confirmations.paymentAfterPreview}
+              onChange={(e) => onConfirmations({ ...confirmations, paymentAfterPreview: e.target.checked })}
+            />
+            <span>{brAgenteApplicationPricingCopy(lang).confirmPayment}</span>
+          </label>
+        </div>
+      ) : null}
+
       {surface.kind === "servicios" ? (
         <div className={quickCard}>
           <ListingRulesConfirmationSection
@@ -112,6 +141,7 @@ export function QuickBusinessReviewStep({ lang, definition, steps, values, media
       <section className={quickCard}>
         <p className="text-sm font-semibold">{price ? `${quickBusinessCopy("reviewPaidNote", lang)} ${price}` : quickBusinessCopy("reviewPaidNote", lang)}</p>
         <p className="mt-1 text-xs text-[#7A7164]">{quickBusinessCopy("reviewHandoffNote", lang)}</p>
+        {firstItem ? <p className="mt-1 text-xs text-[#7A7164]">{quickBusinessCopy("firstItemNote", lang)}</p> : null}
         {issues.length ? (
           <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">
             <p className="font-semibold">{quickCopy("fixIssues", lang)}</p>

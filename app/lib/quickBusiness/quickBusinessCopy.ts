@@ -37,9 +37,9 @@ export const QUICK_BUSINESS_COPY = {
   hoursOpen: { es: "Abres a las", en: "Opens at" },
   hoursClose: { es: "Cierras a las", en: "Closes at" },
   hoursHint: { es: "Puedes ajustar días y horarios especiales después, desde tu panel.", en: "You can fine-tune days and special hours later from your dashboard." },
-  mediaBusinessIntro: {
-    es: "Se necesita al menos una foto real de tu negocio (fachada, equipo, trabajo o platillos). La primera será la portada.",
-    en: "At least one real photo of your business is required (storefront, team, work or dishes). The first one is the cover.",
+  firstItemNote: {
+    es: "Tu perfil se publica junto con este primer anuncio real. Podrás agregar más inventario desde tu panel con el mismo paquete.",
+    en: "Your profile is published together with this first real listing. You can add more inventory from your dashboard on the same package.",
   },
 } as const satisfies Record<string, QuickText>;
 

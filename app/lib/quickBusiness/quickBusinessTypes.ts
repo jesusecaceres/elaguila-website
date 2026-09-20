@@ -28,9 +28,10 @@ export type QuickBusinessCategoryKey = (typeof QUICK_BUSINESS_CATEGORY_KEYS)[num
 
 /**
  * `live`   — the shared Quick intake feeds this category's existing canonical draft → preview → checkout.
- * `direct` — the existing canonical product cannot publish a profile-only presence (it REQUIRES structured
- *            inventory: a real vehicle / a real property). Quick therefore does NOT open an intake; the chooser and
- *            the staff launchpad link the existing application directly with honest copy (no fabricated inventory).
+ * `direct` — reserved posture for a category whose existing canonical product cannot be fed truthfully by a short
+ *            intake. Since the Dealer + Bienes closeout (PM decision: Quick MAY ask for the customer's REAL first
+ *            vehicle / first property because the canonical product requires it) all four Core categories are
+ *            `live`; the `direct` branches in the chooser / intake / launchpad remain as the honest fallback.
  */
 export type QuickBusinessStatus = "live" | "direct";
 
@@ -75,14 +76,30 @@ export type QuickBusinessDefinition = {
   standardApplicationPath: string;
   pricing: QuickBusinessPricingPosture;
   media: QuickClassifiedMediaContract;
+  /**
+   * Truthful media wording shown above the shared media step. Servicios / Restaurantes ask for BUSINESS photos;
+   * Dealer asks for photos of the FIRST REAL VEHICLE; Bienes asks for photos of the FIRST REAL PROPERTY — the
+   * images map onto the existing vehicle / property media shape, so the label must never say "business photo" there.
+   */
+  mediaIntro: QuickText;
   manage: QuickBusinessManageAdapter;
   staff: QuickBusinessStaffCustody;
   /** Rough "≈ N preguntas" shown on the chooser; derived from the adapter's steps. */
   essentialQuestionCount: number;
 };
 
-/** Which existing confirmation component the review step renders. */
-export type QuickBusinessConfirmationSurface = { kind: "servicios" } | { kind: "none" };
+/**
+ * Which existing confirmation component the review step renders.
+ * `servicios`      — `ListingRulesConfirmationSection subject="servicios"` (three canonical booleans).
+ * `property_agent` — `ListingRulesConfirmationSection subject="property"` + the existing Bienes agente
+ *                    "payment after preview" acknowledgement (`brAgenteApplicationPricingCopy().confirmPayment`),
+ *                    i.e. exactly the four booleans the Full agente application requires before opening preview.
+ * `none`           — the canonical flow has no pre-preview confirmation (Restaurantes, Autos Dealer).
+ */
+export type QuickBusinessConfirmationSurface = { kind: "servicios" } | { kind: "property_agent" } | { kind: "none" };
+
+/** Certified three booleans + the Bienes agente payment acknowledgement. Quick never pre-ticks any of them. */
+export type QuickBusinessConfirmations = QuickConfirmations & { paymentAfterPreview: boolean };
 
 export type QuickBusinessHandoff = {
   /** Language-tagged href of the EXISTING preview that continues the canonical pipeline. */
@@ -105,7 +122,7 @@ export type QuickBusinessCategoryAdapter = {
   buildAndWriteCanonicalDraft: (input: {
     values: QuickIntakeValues;
     media: readonly QuickMediaItem[];
-    confirmations: QuickConfirmations;
+    confirmations: QuickBusinessConfirmations;
     ctx: QuickBusinessIntakeContext;
   }) => Promise<{ ok: true; handoff: QuickBusinessHandoff } | { ok: false; issues: string[] }>;
 };

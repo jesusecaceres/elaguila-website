@@ -7,9 +7,9 @@ import { resolveClasificadosPublishLang } from "@/app/lib/clasificados/clasifica
 import { quickBusinessCopy } from "@/app/lib/quickBusiness/quickBusinessCopy";
 import { getQuickBusinessDefinition } from "@/app/lib/quickBusiness/quickBusinessRegistry";
 import { quickBusinessChooserPath } from "@/app/lib/quickBusiness/quickBusinessRoutes";
-import type { QuickBusinessCategoryKey } from "@/app/lib/quickBusiness/quickBusinessTypes";
+import type { QuickBusinessCategoryKey, QuickBusinessConfirmations } from "@/app/lib/quickBusiness/quickBusinessTypes";
 import { qt, quickCopy } from "@/app/lib/quickClassifieds/quickClassifiedCopy";
-import type { QuickConfirmations, QuickIntakeValue, QuickIntakeValues, QuickMediaItem } from "@/app/lib/quickClassifieds/quickClassifiedTypes";
+import type { QuickIntakeValue, QuickIntakeValues, QuickMediaItem } from "@/app/lib/quickClassifieds/quickClassifiedTypes";
 import { quickFieldIsVisible, validateQuickMedia, validateQuickStep } from "@/app/lib/quickClassifieds/quickClassifiedValidation";
 import { QuickFieldRenderer } from "@/app/publicar/rapido/_components/QuickFieldRenderer";
 import { QuickMediaStep } from "@/app/publicar/rapido/_components/QuickMediaStep";
@@ -80,7 +80,7 @@ export function QuickBusinessIntakeClient({ category }: { category: QuickBusines
     setDraft((d) => ({ ...d, values: { ...d.values, [key]: value } }));
   }, []);
   const setMedia = useCallback((media: QuickMediaItem[]) => setDraft((d) => ({ ...d, media })), []);
-  const setConfirmations = useCallback((confirmations: QuickConfirmations) => setDraft((d) => ({ ...d, confirmations })), []);
+  const setConfirmations = useCallback((confirmations: QuickBusinessConfirmations) => setDraft((d) => ({ ...d, confirmations })), []);
   const goTo = useCallback((index: number) => {
     setIssues([]);
     setDraft((d) => ({ ...d, stepIndex: index }));
@@ -137,7 +137,7 @@ export function QuickBusinessIntakeClient({ category }: { category: QuickBusines
   const chooserHref = quickBusinessChooserPath(routeLang, src === "staff" ? "staff" : undefined);
   const title = `${definition.emoji} ${qt(definition.label, lang)}`;
 
-  // Direct category (Dealer / Real-estate business): honest card, existing application, no fake intake.
+  // Direct posture (no adapter or registry says "direct"): honest card, existing application, no fake intake.
   if (!adapter || definition.status === "direct") {
     return (
       <QuickShell lang={lang} eyebrow={quickBusinessCopy("eyebrow", lang)} title={title} subtitle={qt(definition.tagline, lang)} backHref={chooserHref}>
@@ -179,7 +179,8 @@ export function QuickBusinessIntakeClient({ category }: { category: QuickBusines
         </section>
       ) : stepIndex === mediaIndex ? (
         <>
-          <p className="mb-2 text-sm text-[#5D4A25]/90">{quickBusinessCopy("mediaBusinessIntro", lang)}</p>
+          {/* Truthful per-category wording: business photo (Servicios / Restaurantes) vs. VEHICLE photo (Dealer) vs. PROPERTY photo (Bienes). */}
+          <p className="mb-2 text-sm text-[#5D4A25]/90">{qt(definition.mediaIntro, lang)}</p>
           <QuickMediaStep lang={lang} contract={definition.media} media={draft.media} onChange={setMedia} />
         </>
       ) : (

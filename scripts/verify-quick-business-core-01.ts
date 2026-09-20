@@ -3,17 +3,21 @@
  * Run: npx tsx scripts/verify-quick-business-core-01.ts
  *
  * Same hand-rolled node:assert convention as every other verify-*.ts in this repo. Proves the owner locks:
- *  1. registry: the four Quick Business categories exist; Servicios + Restaurantes live, Dealer + Bienes direct.
+ *  1. registry: the four Quick Business categories exist and are ALL live (Dealer + Bienes closed out with the
+ *     customer's REAL first vehicle / first property — PM decision); truthful per-category media wording.
  *  2. field wiring: every visible field key declared by an adapter is READ by that adapter (no decorative field),
  *     no adapter reads an undeclared key (typo / phantom read), and the Tier-2 canonical destinations are written.
  *     The detector is SELF-TESTED against synthetic broken mappings so it cannot trivially pass.
  *  3. media lock: minImages 1 in every definition; the intake reuses the certified media step.
- *  4. routes: live adapters hand off to the EXISTING previews; direct categories link the EXISTING applications.
+ *  4. routes: all four adapters hand off to the EXISTING previews; the honest "direct" fallback branches stay.
  *  5. pricing lock: only existing monthly package keys; no amount literal; no Stripe / promo code in the Quick tree.
  *  6. no parallel product: no Quick public page / template / table / migration / API route.
- *  7. structured-subsystem protection: Dealer Quick creates no vehicle, Bienes Quick creates no property,
+ *  7. structured-subsystem protection: vehicle fields live ONLY in the Dealer adapter (one real first vehicle, no
+ *     bundled inventory, no fabricated mileage / VIN / condition), property fields ONLY in the Bienes adapter (one
+ *     real first property, no inventory children, no fabricated license / beds / baths / condition / status),
  *     Restaurantes Quick fabricates no menu / coupon / hours, Servicios Quick fabricates no credential / payment /
- *     specialty; certified Quick Classifieds files untouched vs. the certified SHA.
+ *     specialty; vehicle / property media are labeled truthfully (never "business photo"); certified Quick
+ *     Classifieds files untouched vs. the certified SHA.
  *  8. staff launchpad: the four business priorities + send-link + manage, Quick Classifieds section preserved,
  *     community direct links intact; one PWA.
  */
@@ -33,14 +37,35 @@ const CERTIFIED_CLASSIFIEDS_SHA = "7555fb6456dff1797a7ca8d5716f99abdc511cce";
 
 // 1. REGISTRY ----------------------------------------------------------------------------------------------
 const reg = read(`${QB_LIB}/quickBusinessRegistry.ts`);
+function registryBlock(key: string): string {
+  const start = reg.indexOf(`  ${key}: {`);
+  assert.ok(start >= 0, `registry has ${key}`);
+  const rest = reg.slice(start + 1);
+  const next = rest.search(/\n {2}(?:[a-z]+|"[a-z-]+"): \{/);
+  return next >= 0 ? rest.slice(0, next) : rest.slice(0, rest.indexOf("\n};"));
+}
 {
   for (const k of ["servicios:", "restaurantes:", '"autos-dealer":', '"bienes-negocio":']) assert.ok(reg.includes(k), `registry has ${k}`);
-  assert.equal((reg.match(/status: "live"/g) ?? []).length, 2, "exactly two live Quick Business categories (Servicios, Restaurantes)");
-  assert.equal((reg.match(/status: "direct"/g) ?? []).length, 2, "exactly two direct categories (Dealer, Bienes negocio)");
-  assert.ok(reg.includes('code: "REQUIRES_VEHICLE_INVENTORY"') && reg.includes('code: "REQUIRES_PROPERTY_INVENTORY"'), "direct reasons are explicit");
-  assert.ok(reg.includes('standardApplicationPath: "/publicar/autos/negocios"') && reg.includes('standardApplicationPath: "/publicar/bienes-raices"'), "direct categories link the EXISTING applications");
-  assert.ok(reg.includes('standardApplicationPath: "/publicar/servicios"') && reg.includes('standardApplicationPath: "/publicar/restaurantes"'), "live categories name their EXISTING applications");
+  assert.equal((reg.match(/status: "live"/g) ?? []).length, 4, "all four Quick Business categories are live (Dealer + Bienes closed out)");
+  assert.equal((reg.match(/status: "direct"/g) ?? []).length, 0, "no category is presented as direct / blocked any more");
+  assert.ok(!reg.includes("directReason:"), "no direct reason remains in the registry");
+  assert.ok(reg.includes('standardApplicationPath: "/publicar/autos/negocios"') && reg.includes('standardApplicationPath: "/publicar/bienes-raices"'), "Dealer / Bienes still name their EXISTING full application / selector");
+  assert.ok(reg.includes('standardApplicationPath: "/publicar/servicios"') && reg.includes('standardApplicationPath: "/publicar/restaurantes"'), "Servicios / Restaurantes name their EXISTING applications");
   assert.ok(reg.includes("publishForClientSupported: true") && (reg.match(/publishForClientSupported: false/g) ?? []).length === 3, "publish-for-client is claimed for Servicios only (the one verified server path)");
+  assert.equal((reg.match(/mediaIntro: \{/g) ?? []).length, 4, "every definition carries its own truthful media wording");
+  const dealer = registryBlock('"autos-dealer"');
+  const bienes = registryBlock('"bienes-negocio"');
+  assert.ok(dealer.includes('tagline: { es: "Tu negocio + tu primer vehículo", en: "Your dealership + your first vehicle" }'), "Dealer tagline says dealership + first vehicle");
+  assert.ok(bienes.includes('tagline: { es: "Tu perfil + tu primera propiedad", en: "Your profile + your first property" }'), "Bienes tagline says profile + first property");
+  // Media-label truth: vehicle / property photos are never presented as business photos.
+  const dealerMedia = dealer.slice(dealer.indexOf("media: media("), dealer.indexOf("manage: {"));
+  const bienesMedia = bienes.slice(bienes.indexOf("media: media("), bienes.indexOf("manage: {"));
+  assert.ok(/vehículo/.test(dealerMedia) && /vehicle/.test(dealerMedia), "Dealer media wording names the VEHICLE (es + en)");
+  assert.ok(/propiedad/.test(bienesMedia) && /property/.test(bienesMedia), "Bienes media wording names the PROPERTY (es + en)");
+  for (const [label, block] of [["Dealer", dealerMedia], ["Bienes", bienesMedia]] as const) {
+    assert.ok(!/fotos? reales? de tu negocio|photos? of your business|foto de tu negocio|business photo/i.test(block), `${label} media wording never says "business photo"`);
+  }
+  assert.ok(reg.includes("essentialQuestionCount: 0") === false, "no category advertises zero questions any more");
 }
 
 // 2. FIELD WIRING (self-tested detector) ----------------------------------------------------------------------
@@ -89,6 +114,16 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
         'productType: "established_restaurant"', "businessName:", "businessType:", "businessTypeCustom:", "primaryCuisine:", "primaryCuisineCustom:", "shortSummary:", "serviceModes,", "cityCanonical: resolveCity(values)", "...weeklyHoursFrom(values)", "phoneNumber:", "whatsAppNumber:", "email:", "websiteUrl:", "heroImage:", "galleryImages:",
       ],
     },
+    "autosDealerQuickBusinessAdapter.ts": {
+      canonical: [
+        'autosLane: "negocios"', "vehicleTitle: buildVehicleTitle(year, make, model, trim) || undefined", "year,", "make,", "model,", "trim,", 'condition: conditionOrUndefined(quickStr(values, "condition"))', "mileage: numberOrUndefined(quickWholeDollars(values.mileage))", "price: numberOrUndefined(quickWholeDollars(values.price))", 'vin: quickStr(values, "vin") || undefined', 'description: quickStr(values, "description") || undefined', "city,", "zip,", 'dealerName: quickStr(values, "dealerName") || undefined', 'dealerPhoneOffice: quickStr(values, "phone") || undefined', 'dealerWhatsapp: quickStr(values, "whatsapp") || undefined', 'dealerEmail: quickStr(values, "email") || undefined', 'dealerWebsite: quickStr(values, "website") || undefined', "dealerAddressCity: city", "dealerAddressZip: zip", "mediaImages,", "heroImages: mediaImages.map((m) => m.url)",
+      ],
+    },
+    "bienesNegocioQuickBusinessAdapter.ts": {
+      canonical: [
+        'sellerTipo: "agente_individual"', "categoriaPropiedad,", 'normalizeResidencialTipoPropiedadCodigo(quickStr(values, "tipoCodigo"))', 'normalizeComercialTipoCodigo(quickStr(values, "comercialTipoCodigo"))', 'normalizeTerrenoTipoCodigo(quickStr(values, "terrenoTipoCodigo"))', 'recamaras: categoriaPropiedad === "residencial" ? quickStr(values, "recamaras") : ""', 'banos: categoriaPropiedad === "residencial" ? quickStr(values, "banos") : ""', 'titulo: quickStr(values, "titulo")', "precio: quickWholeDollars(values.precio)", "...(condicionPropiedad ? { condicionPropiedad } : {})", 'descripcionPrincipal: quickStr(values, "descripcion")', "ciudad: resolveCity(values)", 'areaCiudad: quickStr(values, "areaCiudad")', 'direccionCodigoPostal: quickStr(values, "zip")', "fotosDataUrls: media.map((m) => m.dataUrl)", "fotoPortadaIndex: 0", 'agenteNombre: quickStr(values, "agenteNombre")', 'agenteTitulo: quickStr(values, "agenteTitulo")', 'agenteLicencia: quickStr(values, "agenteLicencia")', 'marcaNombre: quickStr(values, "marcaNombre")', 'agenteTelefonoPersonal: quickStr(values, "phone")', 'agenteWhatsapp: quickStr(values, "whatsapp")', 'correoPrincipal: quickStr(values, "email")', 'agenteSitioWeb: quickStr(values, "website")', "confirmListingAccurate: confirmations.infoTruthful", "confirmPhotosRepresentItem: confirmations.mediaAccurate", "confirmCommunityRules: confirmations.rulesAccepted", "confirmPaymentAfterPreview: confirmations.paymentAfterPreview",
+      ],
+    },
   };
   for (const [file, e] of Object.entries(adapters)) {
     const src = read(`${QB_ADAPTERS}/${file}`);
@@ -106,6 +141,17 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
   assert.ok(/auditRestaurantePublishReadiness\(draft, "draft"\)[\s\S]*await saveRestauranteDraftToStorageResolved\(draft\)/.test(rs), "Restaurantes: canonical readiness audit runs before the canonical store write");
   assert.ok(rs.includes('"/clasificados/restaurantes/preview"'), "Restaurantes: hands off to the EXISTING preview");
   assert.ok(rs.includes("createEmptyRestauranteDraft()"), "Restaurantes: starts from the canonical empty draft");
+  const ad = read(`${QB_ADAPTERS}/autosDealerQuickBusinessAdapter.ts`);
+  assert.ok(/getAutosPreviewCompletenessIssues\("negocios", listing\)[\s\S]*rememberAutosDraftNamespaceHint\("negocios", ns\)[\s\S]*await saveAutosNegociosDraftResolved\(ns, \{/.test(ad), "Dealer: canonical negocios completeness runs before the namespace hint + canonical store write");
+  assert.ok(ad.includes('const AUTOS_DEALER_PREVIEW_ROUTE = "/clasificados/autos/negocios/preview";') && ad.includes("withLangParam(AUTOS_DEALER_PREVIEW_ROUTE, ctx.routeLang as SupportedLang)"), "Dealer: hands off to the EXISTING dealer preview");
+  assert.ok(ad.includes("...createEmptyListing()") && ad.includes("syncDealerAddressFromStructured({"), "Dealer: starts from the canonical empty listing and syncs the dealer address canonically");
+  assert.ok(ad.includes("editorStep: AUTOS_PUBLISH_FINAL_STEP_INDEX") && ad.includes("vehicleTitleOverride: false"), "Dealer: draft lands on the final editor step exactly like the Full flush");
+  const bd = read(`${QB_ADAPTERS}/bienesNegocioQuickBusinessAdapter.ts`);
+  assert.ok(/gateBienesRaicesNegocioPreview\(mapAgenteResidencialFormStateToNegocioForPublish\(state\)\)[\s\S]*const applicationInstanceId = createBrAgenteResApplicationInstanceId\(\);[\s\S]*await persistAgenteResApplicationDraftResolved\(state, \{ applicationInstanceId, writeReturn: true \}\)/.test(bd), "Bienes: canonical gate (on the canonical publish mapping) runs before a fresh-instance canonical store write");
+  assert.ok(bd.includes("state.confirmListingAccurate && state.confirmPhotosRepresentItem && state.confirmCommunityRules && state.confirmPaymentAfterPreview"), "Bienes: the Full application's four pre-preview confirmations are required");
+  assert.ok(bd.includes('const BR_AGENTE_PREVIEW_ROUTE = "/clasificados/publicar/bienes-raices/negocio/agente-individual/preview";') && bd.includes("withBrAgenteResApplicationInstanceParam(BR_AGENTE_PREVIEW_ROUTE, applicationInstanceId)"), "Bienes: hands off to the EXISTING agente preview scoped to the instance it just wrote");
+  assert.ok(bd.includes("mergePartialAgenteIndividualResidencial({"), "Bienes: builds through the canonical merge (canonical defaults for everything not asked)");
+  assert.ok(bd.includes("readAgenteResPreviewDraftRawForApplication({ applicationInstanceId })"), "Bienes: refuses to hand off when the canonical store did not persist");
 }
 
 // 3. MEDIA LOCK ----------------------------------------------------------------------------------------------
@@ -116,6 +162,9 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
   const review = read(`${QB_COMPONENTS}/QuickBusinessReviewStep.tsx`);
   assert.ok(review.includes("media.length === 0"), "review submit disabled without an image");
   assert.ok(read(`${QB_ADAPTERS}/serviciosQuickBusinessAdapter.ts`).includes("coverUrl: gallery[0]?.url") && read(`${QB_ADAPTERS}/restaurantesQuickBusinessAdapter.ts`).includes("heroImage: hero ?? \"\""), "first real image becomes the canonical cover / hero");
+  assert.ok(read(`${QB_ADAPTERS}/autosDealerQuickBusinessAdapter.ts`).includes('sourceType: "file", isPrimary: i === 0, sortOrder: i'), "Dealer: first real VEHICLE photo is the primary MediaImageEntry (existing vehicle media shape)");
+  assert.ok(read(`${QB_ADAPTERS}/bienesNegocioQuickBusinessAdapter.ts`).includes("fotosDataUrls: media.map((m) => m.dataUrl)") && read(`${QB_ADAPTERS}/bienesNegocioQuickBusinessAdapter.ts`).includes("fotoPortadaIndex: 0"), "Bienes: first real PROPERTY photo is the cover (existing property media shape)");
+  assert.ok(intake.includes("{qt(definition.mediaIntro, lang)}") && !intake.includes("mediaBusinessIntro"), "intake shows the per-category truthful media wording (vehicle / property / business)");
   for (const f of [`${QB_COMPONENTS}/QuickBusinessIntakeClient.tsx`, `${QB_COMPONENTS}/QuickBusinessReviewStep.tsx`, `${QB_COMPONENTS}/QuickBusinessChooser.tsx`]) {
     assert.ok(!/unsplash|placeholder\.com|picsum|generateImage|FALLBACK_IMG/i.test(read(f)), `${f}: no fake image fallback satisfies the minimum`);
   }
@@ -129,7 +178,12 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
   const chooser = read(`${QB_COMPONENTS}/QuickBusinessChooser.tsx`);
   assert.ok(chooser.includes('const direct = def.status === "direct";') && chooser.includes("withLang(def.standardApplicationPath, routeLang) : quickBusinessCategoryPath("), "chooser links direct categories to the existing application");
   const idx = read(`${QB_ADAPTERS}/index.ts`);
-  assert.ok(idx.includes("servicios: serviciosQuickBusinessAdapter") && idx.includes("restaurantes: restaurantesQuickBusinessAdapter") && !/autos|bienes/.test(idx.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "")), "adapter registry holds only the two live categories");
+  for (const k of ["servicios: serviciosQuickBusinessAdapter", "restaurantes: restaurantesQuickBusinessAdapter", '"autos-dealer": autosDealerQuickBusinessAdapter', '"bienes-negocio": bienesNegocioQuickBusinessAdapter']) assert.ok(idx.includes(k), `adapter registry holds ${k}`);
+  assert.ok(exists(`${QB_ADAPTERS}/autosDealerQuickBusinessAdapter.ts`) && exists(`${QB_ADAPTERS}/bienesNegocioQuickBusinessAdapter.ts`), "Dealer + Bienes adapters exist");
+  const intake = read(`${QB_COMPONENTS}/QuickBusinessIntakeClient.tsx`);
+  assert.ok(intake.includes('if (!adapter || definition.status === "direct") {'), "intake keeps the honest direct fallback for any future non-live category");
+  const review = read(`${QB_COMPONENTS}/QuickBusinessReviewStep.tsx`);
+  assert.ok(review.includes('subject="property"') && review.includes("brAgenteApplicationPricingCopy(lang).confirmPayment") && review.includes("rulesOk && confirmations.paymentAfterPreview"), "review renders the EXISTING property confirmations + the existing agente payment acknowledgement for Bienes");
 }
 
 // 5. PRICING LOCK ---------------------------------------------------------------------------------------------
@@ -176,9 +230,29 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
 
 // 7. STRUCTURED-SUBSYSTEM PROTECTION ----------------------------------------------------------------------------
 {
-  const allQuick = execSync(`git ls-files --others --exclude-standard --cached "${QB_ROUTE}" "${QB_LIB}"`, { cwd: ROOT, encoding: "utf8" }).trim().split(/\r?\n/).filter(Boolean).map((f) => read(f)).join("\n");
-  assert.ok(!/autoDealerDraft|AutoDealerListing|mediaImages|heroImages|inventory_vehicle|vehicleTitle|\bvin\b/i.test(allQuick), "Dealer Quick creates no vehicle / inventory data");
-  assert.ok(!/bienesRaicesNegocioFormState|AgenteIndividualResidencialFormState|photoUrls|petsAllowed|precio:/.test(allQuick), "Bienes Quick creates no property data");
+  const quickFiles = execSync(`git ls-files --others --exclude-standard --cached "${QB_ROUTE}" "${QB_LIB}"`, { cwd: ROOT, encoding: "utf8" }).trim().split(/\r?\n/).filter(Boolean);
+  const DEALER = `${QB_ADAPTERS}/autosDealerQuickBusinessAdapter.ts`;
+  const BIENES = `${QB_ADAPTERS}/bienesNegocioQuickBusinessAdapter.ts`;
+  const VEHICLE_RE = /autoDealerDraft|AutoDealerListing|mediaImages|heroImages|inventory_vehicle|vehicleTitle|\bvin\b/i;
+  const PROPERTY_RE = /bienesRaicesNegocioFormState|AgenteIndividualResidencialFormState|photoUrls|petsAllowed|precio:|fotosDataUrls/;
+  for (const f of quickFiles) {
+    const src = read(f);
+    if (f !== DEALER) assert.ok(!VEHICLE_RE.test(src), `${f}: vehicle data lives only in the Dealer adapter`);
+    if (f !== BIENES) assert.ok(!PROPERTY_RE.test(src), `${f}: property data lives only in the Bienes adapter`);
+  }
+  // Dealer: ONE real first vehicle, no bundled inventory, no fabricated vehicle facts.
+  const ad = read(DEALER);
+  assert.ok(ad.includes("additionalInventoryVehicles: []"), "Dealer: no bundled inventory children");
+  assert.ok(!/inventoryBoostSelected|inventory_role|dealer_inventory_group_id|inProgressInventoryVehicleDraft|resolveDealerActiveVehicleLimit|AUTOS_DEALER_INVENTORY_PACK/.test(ad), "Dealer: inventory pack / roles / limits untouched by Quick");
+  assert.ok(!/mileage: \d|vin: "|condition: "(new|used|certified)"|price: \d|stockNumber:|monthlyEstimate:|badges: \[|features: \[|dealerHours: \[|dealerLogo:/.test(ad), "Dealer: no fabricated mileage / VIN / condition / price / stock / hours / logo");
+  assert.ok((ad.match(/mediaImages: MediaImageEntry\[\] = media\.map/g) ?? []).length === 1 && !/dealerLogo/.test(ad), "Dealer: customer photos map ONLY to the vehicle gallery, never to a dealer logo");
+  assert.ok(/label: \{ es: "Tu primer vehículo", en: "Your first vehicle" \}|title: \{ es: "Tu primer vehículo", en: "Your first vehicle" \}/.test(ad), "Dealer: the vehicle step is labeled as the first vehicle");
+  // Bienes: ONE real first property, no inventory children, no fabricated property / agent facts.
+  const bd = read(BIENES);
+  assert.ok(!/additionalInventoryProperties|inventoryPackAccepted|confirmInventoryPackPricing|BR_INVENTORY_PACK|brInventoryGroupId|inventoryMode/.test(bd), "Bienes: no inventory children / pack acceptance written by Quick");
+  assert.ok(!/petsAllowed|estadoAnuncio:|condicionPropiedad: "|agenteLicencia: "|marcaNombre: "|recamaras: "\d|banos: "\d|tamanoInteriorSqft|direccionLinea1|destacados:|hasHoa|agenteFotoDataUrl|marcaLogoDataUrl|mostrarSegundoAgente: true|mostrarBrokerAsesor: true/.test(bd), "Bienes: no fabricated pets / status / condition / license / brokerage / beds / baths / sqft / address / amenities / agent photo / second agent / broker");
+  assert.ok(bd.includes('key: "condicionPropiedad", kind: "select"') && bd.includes("required: true, options: CONDICION_OPTIONS"), "Bienes: property condition is ASKED (the canonical default would otherwise render on the preview)");
+  assert.ok(/title: \{ es: "Tu primera propiedad", en: "Your first property" \}/.test(bd), "Bienes: the property step is labeled as the first property");
   const rs = read(`${QB_ADAPTERS}/restaurantesQuickBusinessAdapter.ts`);
   assert.ok(!/featuredDishes|menuUrl|menuFile|coupons|couponFlyer|specialHoursNote|delivery: true|dineIn: true/.test(rs), "Restaurantes Quick fabricates no menu / coupon / hours note / delivery flag");
   const sv = read(`${QB_ADAPTERS}/serviciosQuickBusinessAdapter.ts`);
@@ -198,6 +272,8 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
   assert.ok(lp.includes("listQuickBusinessDefinitions()"), "launchpad lists the registry's four business priorities in order");
   assert.ok(lp.includes("Enviar enlace de negocio / Send business link") && lp.includes("Administrar negocio / Manage business"), "launchpad exposes send-link + manage for business");
   assert.ok(lp.includes("Crear negocio rápido con el cliente / Create quick business with customer") && lp.includes("Abrir aplicación completa / Open full application"), "launchpad verbs are honest per category status");
+  assert.ok(lp.includes("Aplicación completa / Full application") && lp.includes("href={withLang(def.standardApplicationPath, linkLang)}"), "launchpad keeps the EXISTING full application one tap away on every Quick business card");
+  assert.ok(lp.includes('if (def.status === "direct") return withLang(def.standardApplicationPath, lang);') && lp.includes('return quickBusinessCategoryPath(def.key, lang, "staff");'), "launchpad: Create Quick Business + Send Quick Link resolve to the Quick form for live categories");
   assert.ok(lp.includes("Aplicaciones Rápidas / Quick Applications") && lp.includes("{tier1.map((def) => renderCard(def, \"large\"))}") && lp.includes("{community.map((def) => renderCard(def, \"compact\"))}"), "Quick Classifieds section preserved (Tier-1 + community)");
   assert.ok(lp.includes('if (isCommunity || def.status === "blocked") return withLang(def.standardApplicationPath, lang);'), "community direct links intact");
   assert.ok(lp.includes('href="/admin/businesses/create-for-client"'), "existing Create-for-Client flow still linked");

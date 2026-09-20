@@ -25,6 +25,10 @@ export const QUICK_BUSINESS_DEFINITIONS: Record<QuickBusinessCategoryKey, QuickB
     // Existing base package (revenuePricingMatrix.ts: servicios_base_monthly, monthly subscription; amount read at render time).
     pricing: { kind: "monthly", packageKey: "servicios_base_monthly", category: "servicios" },
     media: media(null, { es: "Sube fotos reales de tu negocio o tu trabajo. La primera será la portada.", en: "Upload real photos of your business or your work. The first one is the cover." }),
+    mediaIntro: {
+      es: "Se necesita al menos una foto real de tu negocio (fachada, equipo o trabajo). La primera será la portada.",
+      en: "At least one real photo of your business is required (storefront, team or work). The first one is the cover.",
+    },
     manage: {
       dashboardHref: "/dashboard/servicios",
       editNote: { es: "Editas tu perfil desde Mis Servicios (abre la aplicación existente con tus datos).", en: "Edit your profile from My Services (opens the existing application with your data)." },
@@ -47,6 +51,10 @@ export const QUICK_BUSINESS_DEFINITIONS: Record<QuickBusinessCategoryKey, QuickB
     standardApplicationPath: "/publicar/restaurantes",
     pricing: { kind: "monthly", packageKey: "restaurantes_base_monthly", category: "restaurantes" },
     media: media(null, { es: "Sube fotos reales: fachada, platillos o interior. La primera será la portada.", en: "Upload real photos: storefront, dishes or interior. The first one is the cover." }),
+    mediaIntro: {
+      es: "Se necesita al menos una foto real de tu restaurante (fachada, platillos o interior). La primera será la portada.",
+      en: "At least one real photo of your restaurant is required (storefront, dishes or interior). The first one is the cover.",
+    },
     manage: {
       dashboardHref: "/dashboard/restaurantes",
       editNote: { es: "Editas tu ficha desde Mis Restaurantes (abre la aplicación existente con tus datos).", en: "Edit your listing from My Restaurants (opens the existing application with your data)." },
@@ -61,47 +69,53 @@ export const QUICK_BUSINESS_DEFINITIONS: Record<QuickBusinessCategoryKey, QuickB
   },
   "autos-dealer": {
     key: "autos-dealer",
-    status: "direct",
-    directReason: {
-      code: "REQUIRES_VEHICLE_INVENTORY",
-      reason: { es: "Un concesionario se publica en Leonix con al menos un vehículo real; el formulario completo te guía vehículo por vehículo.", en: "A dealership publishes on Leonix with at least one real vehicle; the full application guides you vehicle by vehicle." },
-    },
+    // Closeout (PM decision): the canonical Dealer product is vehicle-first, so Quick asks for the dealer identity
+    // PLUS the customer's FIRST REAL vehicle (minimum canonical data + real vehicle photo). Nothing is fabricated.
+    status: "live",
     emoji: "🚗",
     label: { es: "Autos (concesionario)", en: "Autos (dealer)" },
-    tagline: { es: "Lote o concesionario con inventario de vehículos.", en: "Dealership or lot with vehicle inventory." },
+    tagline: { es: "Tu negocio + tu primer vehículo", en: "Your dealership + your first vehicle" },
     standardApplicationPath: "/publicar/autos/negocios",
+    // Existing dealer base package (revenuePricingMatrix.ts: autos_dealer_monthly, monthly subscription; amount read at render time).
     pricing: { kind: "monthly", packageKey: "autos_dealer_monthly", category: "autos" },
-    media: media(null, { es: "Fotos reales de cada vehículo (en la aplicación completa).", en: "Real photos of each vehicle (in the full application)." }),
+    media: media(null, { es: "Fotos reales de tu primer vehículo. La primera será la portada del vehículo.", en: "Real photos of your first vehicle. The first one is the vehicle cover." }),
+    mediaIntro: {
+      es: "Se necesita al menos una foto real del vehículo que publicas (no del negocio). La primera será la portada del vehículo.",
+      en: "At least one real photo of the vehicle you are listing is required (not of the business). The first one is the vehicle cover.",
+    },
     manage: {
       dashboardHref: "/dashboard/mis-anuncios?cat=autos",
-      editNote: { es: "Inventario y perfil desde Mis Anuncios.", en: "Inventory and profile from My Ads." },
+      editNote: { es: "Inventario y perfil desde Mis Anuncios (abre la aplicación de dealer existente con tus datos).", en: "Inventory and profile from My Ads (opens the existing dealer application with your data)." },
       endNote: { es: "Retirar / restaurar vehículos desde Mis Anuncios.", en: "Unpublish / restore vehicles from My Ads." },
       billingNote: { es: "Suscripción mensual + paquete de inventario opcional.", en: "Monthly subscription + optional inventory pack." },
     },
-    staff: { publishForClientSupported: false, note: { es: "El cliente publica a su nombre.", en: "The customer publishes in their own name." } },
-    essentialQuestionCount: 0,
+    staff: { publishForClientSupported: false, note: { es: "El cliente inicia sesión con su correo y publica a su nombre.", en: "The customer signs in with their email and publishes in their own name." } },
+    essentialQuestionCount: 16,
   },
   "bienes-negocio": {
     key: "bienes-negocio",
-    status: "direct",
-    directReason: {
-      code: "REQUIRES_PROPERTY_INVENTORY",
-      reason: { es: "Un agente o negocio inmobiliario se publica en Leonix con al menos una propiedad real; el formulario completo te guía propiedad por propiedad.", en: "A real-estate agent or business publishes on Leonix with at least one real property; the full application guides you property by property." },
-    },
+    // Closeout (PM decision): the canonical agent product is property-first, so Quick asks for the professional
+    // identity PLUS the customer's FIRST REAL property (minimum canonical data + real property photo).
+    status: "live",
     emoji: "🏢",
     label: { es: "Bienes Raíces (agente / negocio)", en: "Real Estate (agent / business)" },
-    tagline: { es: "Agentes, brokers y negocios inmobiliarios con propiedades.", en: "Agents, brokers and real-estate businesses with properties." },
+    tagline: { es: "Tu perfil + tu primera propiedad", en: "Your profile + your first property" },
     standardApplicationPath: "/publicar/bienes-raices",
+    // Existing agent base package (revenuePricingMatrix.ts: br_agent_monthly, monthly subscription; amount read at render time).
     pricing: { kind: "monthly", packageKey: "br_agent_monthly", category: "bienes-raices" },
-    media: media(null, { es: "Fotos reales de cada propiedad (en la aplicación completa).", en: "Real photos of each property (in the full application)." }),
+    media: media(40, { es: "Fotos reales de tu primera propiedad. La primera será la portada de la propiedad.", en: "Real photos of your first property. The first one is the property cover." }),
+    mediaIntro: {
+      es: "Se necesita al menos una foto real de la propiedad que publicas (no de tu oficina). La primera será la portada de la propiedad.",
+      en: "At least one real photo of the property you are listing is required (not of your office). The first one is the property cover.",
+    },
     manage: {
       dashboardHref: "/dashboard/mis-anuncios?cat=bienes-raices",
-      editNote: { es: "Propiedades y perfil desde Mis Anuncios.", en: "Properties and profile from My Ads." },
+      editNote: { es: "Propiedades y perfil desde Mis Anuncios (abre la aplicación de agente existente con tus datos).", en: "Properties and profile from My Ads (opens the existing agent application with your data)." },
       endNote: { es: "Pausar / reactivar propiedades desde Mis Anuncios.", en: "Pause / resume properties from My Ads." },
       billingNote: { es: "Suscripción mensual + paquete de inventario opcional.", en: "Monthly subscription + optional inventory pack." },
     },
-    staff: { publishForClientSupported: false, note: { es: "El cliente publica a su nombre.", en: "The customer publishes in their own name." } },
-    essentialQuestionCount: 0,
+    staff: { publishForClientSupported: false, note: { es: "El cliente inicia sesión con su correo y publica a su nombre.", en: "The customer signs in with their email and publishes in their own name." } },
+    essentialQuestionCount: 19,
   },
 };
 

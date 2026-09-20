@@ -6,8 +6,8 @@
  */
 
 import { createDraftHeavyMediaIdbStore } from "@/app/lib/media/draftHeavyMediaIdb";
-import type { QuickBusinessCategoryKey } from "@/app/lib/quickBusiness/quickBusinessTypes";
-import type { QuickConfirmations, QuickIntakeValues, QuickMediaItem } from "@/app/lib/quickClassifieds/quickClassifiedTypes";
+import type { QuickBusinessCategoryKey, QuickBusinessConfirmations } from "@/app/lib/quickBusiness/quickBusinessTypes";
+import type { QuickIntakeValues, QuickMediaItem } from "@/app/lib/quickClassifieds/quickClassifiedTypes";
 
 const STORE = createDraftHeavyMediaIdbStore("lx-quick-business-draft", "__LX_QUICK_BUSINESS_IDB__");
 
@@ -15,12 +15,12 @@ export type QuickBusinessDraft = {
   v: 1;
   values: QuickIntakeValues;
   media: QuickMediaItem[];
-  confirmations: QuickConfirmations;
+  confirmations: QuickBusinessConfirmations;
   stepIndex: number;
 };
 
 export function emptyQuickBusinessDraft(): QuickBusinessDraft {
-  return { v: 1, values: {}, media: [], confirmations: { infoTruthful: false, mediaAccurate: false, rulesAccepted: false }, stepIndex: 0 };
+  return { v: 1, values: {}, media: [], confirmations: { infoTruthful: false, mediaAccurate: false, rulesAccepted: false, paymentAfterPreview: false }, stepIndex: 0 };
 }
 
 function key(category: QuickBusinessCategoryKey): string {

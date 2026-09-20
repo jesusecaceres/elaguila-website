@@ -71,7 +71,7 @@ function businessPriceBadge(def: QuickBusinessDefinition): string {
   return priceCents == null ? "" : `${formatRevenuePriceLabel(priceCents)}/mes · /month`;
 }
 
-/** Live business categories → Quick Business intake; "direct" ones (need real inventory) → the EXISTING application. */
+/** Live business categories → Quick Business intake; a "direct" one (none since the Dealer + Bienes closeout) → the EXISTING application. */
 function businessCustomerPath(def: QuickBusinessDefinition, lang: LinkLang): string {
   if (def.status === "direct") return withLang(def.standardApplicationPath, lang);
   return quickBusinessCategoryPath(def.key, lang, "staff");
@@ -302,6 +302,17 @@ export function QuickApplicationsLaunchpad() {
                       📤 Compartir / Share
                     </button>
                   </div>
+                  {!direct ? (
+                    // The EXISTING full application stays one tap away (dealer inventory drawer, agent second-agent / broker blocks, etc.).
+                    <Link
+                      href={withLang(def.standardApplicationPath, linkLang)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-center text-[11px] font-semibold text-[#7A1E2C] underline"
+                    >
+                      Aplicación completa / Full application
+                    </Link>
+                  ) : null}
                 </div>
               </li>
             );
