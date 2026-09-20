@@ -340,5 +340,32 @@ check("the access badge is derived, never a stored account-wide tier", () => {
   }
 });
 
+// 7. CLOSURE ARTIFACT ------------------------------------------------------------------------
+check("the final proof matrix covers every required feature with no repair outstanding", () => {
+  const doc = read("docs/quick-commercial/LEONIX_QUICK_SIMPLE_VS_FULL_FINAL_PROOF_MATRIX.md");
+  const required = [
+    "PUBLIC LISTING", "CONTACT CTA CALL", "CONTACT CTA SMS", "CONTACT CTA WHATSAPP",
+    "CONTACT CTA EMAIL", "WEBSITE", "DIRECTIONS", "IMAGE ALLOWANCE", "VIDEO", "EDIT", "PAUSE",
+    "REACTIVATE", "END/CANCEL", "RENEW", "HELP", "UPGRADE", "BUSINESS HUB", "ANALYTICS", "LEADS",
+    "BUSINESS TOOLS", "BUSINESS CONCIERGE", "COUPONS/OFFERS", "INVENTORY", "ADVANCED MEDIA",
+    "REPUBLISH", "BOOST", "AUTO REFRESH", "PRINT BADGE", "PRINT PRIORITY", "DESTACADOS",
+  ];
+  const rows = doc.split(/\r?\n/).filter((l) => l.startsWith("| ") && l.includes(" | "));
+  for (const feature of required) {
+    assert.ok(
+      rows.some((r) => r.startsWith(`| ${feature} |`)),
+      `the proof matrix must carry a row for ${feature}`,
+    );
+  }
+  // Only the legend and the §4 narrative may name the failure statuses; no row may carry one.
+  for (const row of rows) {
+    const status = row.split("|").at(-2)?.trim() ?? "";
+    assert.ok(
+      !/^REPAIR_REQUIRED\b/.test(status) && !/^BLOCKED\b/.test(status),
+      `no feature may close as ${status}: ${row.slice(0, 60)}`,
+    );
+  }
+});
+
 console.log(failures === 0 ? "\nOK — business access level proven" : `\n${failures} FAILED`);
 process.exit(failures === 0 ? 0 : 1);

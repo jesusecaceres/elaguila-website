@@ -15,7 +15,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 
-import { businessAccessCopy } from "../app/lib/listingPlans/businessAccessCopy";
+import { businessAccessCopy, fullAddsList } from "../app/lib/listingPlans/businessAccessCopy";
 import { listQuickBusinessDefinitions } from "../app/lib/quickBusiness/quickBusinessRegistry";
 import { quickBusinessMyBusinessPath } from "../app/lib/quickBusiness/quickBusinessRoutes";
 
@@ -137,6 +137,27 @@ check("every destination is an existing canonical owner surface from the registr
     ["/contact", "/dashboard/mis-anuncios"],
     "no new destination may be invented here",
   );
+});
+
+check("Full is never advertised as granting a product no package actually grants", () => {
+  // `/dashboard/business-tools` is the flagged Business Identity pilot with its own membership
+  // model; no package entitlement opens it. Promising "business tools" in the Full pitch would
+  // sell a door that stays shut whatever the customer pays — a BLOCKED advertised capability.
+  for (const lang of ["es", "en"] as const) {
+    const pitch = [businessAccessCopy("fullBody", lang), ...fullAddsList(lang)].join(" ");
+    for (const forbidden of [/herramientas de negocio/i, /business tools/i, /business hub/i, /concierge/i]) {
+      assert.ok(!forbidden.test(pitch), `${lang} Full copy must not promise ${forbidden.source}`);
+    }
+    // Category-dependent benefits must say so rather than reading as universal.
+    for (const item of fullAddsList(lang)) {
+      if (/cupones|coupons|inventario|inventory/i.test(item)) {
+        assert.ok(
+          /categoría|category/i.test(item),
+          `"${item}" is category-dependent and must say so`,
+        );
+      }
+    }
+  }
 });
 
 check("the upgrade never routes to the public intake, which would start a second listing", () => {

@@ -37,8 +37,8 @@ const SIMPLE_BODY: Bilingual = {
 };
 
 const FULL_BODY: Bilingual = {
-  es: "Todo lo de Simple, más tu perfil completo de negocio, tus herramientas y la información de rendimiento de tu anuncio.",
-  en: "Everything in Simple, plus your full business profile, your tools and the performance information for your listing.",
+  es: "Todo lo de Simple, más tu perfil completo de negocio, la información de rendimiento de tu anuncio y las funciones incluidas en tu categoría.",
+  en: "Everything in Simple, plus your complete business profile, the performance information for your listing, and the features included in your category.",
 };
 
 /** Simple's included list. Every line here is a capability the server actually grants at SIMPLE. */
@@ -51,12 +51,27 @@ const SIMPLE_INCLUDES: Bilingual[] = [
   { es: "Ayuda de una persona real", en: "Help from a real person" },
 ];
 
-/** What FULL adds. Phrased as additions so Simple never reads as a list of missing things. */
+/**
+ * What FULL adds. Phrased as additions so Simple never reads as a list of missing things.
+ *
+ * Every line is something a Full package genuinely delivers today. Notably absent: "business
+ * tools". The `/dashboard/business-tools` product is the flagged Business Identity pilot with its
+ * own membership model, which no package entitlement grants — advertising it here would sell a
+ * door that stays shut no matter what the customer pays. The last two lines carry an explicit
+ * category qualifier because coupons/offers and a larger inventory allowance are real for some
+ * categories and genuinely absent in others.
+ */
 const FULL_ADDS: Bilingual[] = [
   { es: "Tu perfil completo de negocio", en: "Your complete business profile" },
   { es: "Información de rendimiento de tu anuncio", en: "Performance information for your listing" },
-  { es: "Herramientas de negocio", en: "Business tools" },
-  { es: "Más espacio para tu inventario", en: "More room for your inventory" },
+  {
+    es: "Cupones y ofertas donde tu categoría los incluye",
+    en: "Coupons and offers where your category includes them",
+  },
+  {
+    es: "Más espacio para tu inventario donde tu categoría lo permite",
+    en: "More room for your inventory where your category allows it",
+  },
 ];
 
 const UPGRADE_CTA: Bilingual = { es: "Mejorar a Full", en: "Upgrade to Full" };
