@@ -16,6 +16,7 @@ import {
   businessAccessAllows,
   businessAccessLevelForPrintTier,
   decideBusinessAccess,
+  describeBusinessAccessRow,
 } from "../app/lib/listingPlans/businessAccessLevel";
 import { printBundleCopy } from "../app/lib/listingPlans/businessAccessCopy";
 import {
@@ -71,6 +72,46 @@ check("half page, full page and premium each include FULL", () => {
     assert.equal(decided.level, "full", `${tier} resolves FULL`);
     assert.equal(decided.printTier, tier);
   }
+});
+
+check("a stamped Full package_key never upgrades a quarter-page row to FULL", () => {
+  // Package C Build 3 stamps the category BASE (Full) package key onto print-tier admin grants
+  // in restaurantes/servicios so the pre-existing capability resolver can find the catalog entry
+  // by exact key. That stamp is bookkeeping, not a $399 purchase. If business access took the max
+  // of tier and key, every quarter-page advertiser in those two categories would silently receive
+  // FULL — the exact break this lock exists to prevent.
+  for (const baseKey of ["servicios_base_monthly", "restaurantes_base_monthly"]) {
+    const stamped = printRow("quarter_page", { packageKey: baseKey });
+    const decided = decideBusinessAccess({ rows: [stamped], nowMs: NOW });
+    assert.equal(decided.level, "simple", `${baseKey} stamp must not upgrade quarter page`);
+    assert.equal(decided.source, "print_package");
+    assert.equal(decided.grants.length, 1, "one row is one purchase, so one grant");
+    const badge = describeBusinessAccessRow({ packageKey: baseKey, packageTier: "quarter_page" });
+    assert.equal(badge?.label, "PRINT + SIMPLE", "staff must see the honest bundle");
+  }
+});
+
+check("a stamped package_key still cannot downgrade a half-page row", () => {
+  // Precedence must be tier-first, not merely "print wins when lower".
+  const stamped = printRow("half_page", { packageKey: "servicios_quick_monthly" });
+  const decided = decideBusinessAccess({ rows: [stamped], nowMs: NOW });
+  assert.equal(decided.level, "full");
+  assert.equal(describeBusinessAccessRow({ packageKey: "servicios_quick_monthly", packageTier: "half_page" })?.label, "PRINT + FULL");
+});
+
+check("staff badges name the four commercial shapes distinctly", () => {
+  const labels = [
+    describeBusinessAccessRow({ packageKey: "servicios_quick_monthly", packageTier: "digital_only" })?.label,
+    describeBusinessAccessRow({ packageKey: "servicios_base_monthly", packageTier: "digital_only" })?.label,
+    describeBusinessAccessRow({ packageKey: null, packageTier: "quarter_page" })?.label,
+    describeBusinessAccessRow({ packageKey: null, packageTier: "premium" })?.label,
+  ];
+  assert.deepEqual(labels, ["QUICK / SIMPLE", "FULL", "PRINT + SIMPLE", "PRINT + FULL"]);
+  assert.equal(
+    describeBusinessAccessRow({ packageKey: null, packageTier: "classified_print" }),
+    null,
+    "a classified print row is not a business tier",
+  );
 });
 
 check("non-business print tiers bridge to nothing", () => {

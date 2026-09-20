@@ -146,6 +146,56 @@ export function businessAccessLevelForPackageKey(
   return def.businessAccessLevel;
 }
 
+export type BusinessAccessRowGrant = {
+  level: BusinessAccessLevel;
+  kind: BusinessAccessGrantSourceKind;
+  packageKey: string | null;
+  printTier: PackageEntitlementTier | null;
+};
+
+/**
+ * What ONE entitlement row grants. One row is one purchase, so it yields at most one grant.
+ *
+ * The print tier WINS over the row's own `package_key` whenever the row is a print row, and that
+ * precedence is load-bearing rather than cosmetic. Package C Build 3 stamps the category's base
+ * (Full) package key onto print-tier admin grants in restaurantes/servicios so the pre-existing
+ * capability resolver can find the base definition by exact key. That stamp records which
+ * category catalog entry to read — it is NOT evidence the customer bought the $399 digital
+ * product. Taking the max of the two dimensions here would hand every quarter-page advertiser
+ * FULL access off the back of a bookkeeping field, breaking the owner lock that quarter page
+ * includes SIMPLE only. Reading the tier first keeps the print ladder authoritative for print
+ * rows while leaving the stamp doing its original capability job, untouched.
+ *
+ * Rows with no print tier (`digital_only`, `classified_print`) fall through to the package key,
+ * which is how a standalone $99 Quick or $399 Full purchase is recognized.
+ */
+export function businessAccessGrantForRow(input: {
+  packageKey?: string | null;
+  packageTier?: string | null;
+}): BusinessAccessRowGrant | null {
+  const fromPrint = businessAccessLevelForPrintTier(input.packageTier);
+  if (fromPrint !== "none") {
+    return {
+      level: fromPrint,
+      kind: "print_package",
+      packageKey: null,
+      printTier: normalizePackageEntitlementTier(input.packageTier),
+    };
+  }
+
+  const fromPackage = businessAccessLevelForPackageKey(input.packageKey);
+  if (fromPackage !== "none") {
+    return {
+      level: fromPackage,
+      kind: "digital_package",
+      packageKey: input.packageKey ?? null,
+      printTier: null,
+    };
+  }
+
+  return null;
+}
+
 /**
  * The Simple/Full package pair per business category — the ONE place that knows which package
  * key a given access level buys. Quick intake reads `simple`, standard intake reads `full`, and
@@ -236,29 +286,13 @@ export function decideBusinessAccess(input: {
   for (const row of input.rows ?? []) {
     if (!isRowCurrentlyLive(row, input.nowMs)) continue;
 
-    const fromPackage = businessAccessLevelForPackageKey(row.packageKey);
-    if (fromPackage !== "none") {
-      grants.push({
-        level: fromPackage,
-        kind: "digital_package",
-        packageKey: row.packageKey,
-        printTier: null,
-        entitlementId: row.id,
-        endsAt: row.endsAt,
-      });
-    }
+    const grant = businessAccessGrantForRow({
+      packageKey: row.packageKey,
+      packageTier: row.packageTier,
+    });
+    if (!grant) continue;
 
-    const fromPrint = businessAccessLevelForPrintTier(row.packageTier);
-    if (fromPrint !== "none") {
-      grants.push({
-        level: fromPrint,
-        kind: "print_package",
-        packageKey: null,
-        printTier: normalizePackageEntitlementTier(row.packageTier),
-        entitlementId: row.id,
-        endsAt: row.endsAt,
-      });
-    }
+    grants.push({ ...grant, entitlementId: row.id, endsAt: row.endsAt });
   }
 
   if (grants.length === 0) return { ...NO_ACCESS };
@@ -301,6 +335,39 @@ export function fullOnlyFeatureDeniedBody(input: {
     capability: input.capability,
     upgrade_package_key: input.upgradePackageKey,
   };
+}
+
+export type BusinessAccessBadge = {
+  level: BusinessAccessLevel;
+  /** Whether a print package is part of this row's grant. */
+  fromPrint: boolean;
+  /** Staff-facing label: QUICK / SIMPLE, FULL, PRINT + SIMPLE, PRINT + FULL. */
+  label: string;
+};
+
+/**
+ * Describe ONE entitlement row for staff, from the two columns the row already carries.
+ *
+ * Deliberately row-level rather than customer-level: the admin tracker lists individual
+ * entitlement rows, and a row is the thing a staff member extends, attaches or revokes. A
+ * customer holding both a print row and a digital row sees two honest badges rather than one
+ * merged verdict that hides which row grants what. Returns null when the row confers no business
+ * access at all, so a classified or placement row is never mislabelled as a business tier.
+ */
+export function describeBusinessAccessRow(input: {
+  packageKey?: string | null;
+  packageTier?: string | null;
+}): BusinessAccessBadge | null {
+  const grant = businessAccessGrantForRow(input);
+  if (!grant) return null;
+
+  const fromPrint = grant.kind === "print_package";
+  const label = fromPrint
+    ? `PRINT + ${grant.level === "full" ? "FULL" : "SIMPLE"}`
+    : grant.level === "full"
+      ? "FULL"
+      : "QUICK / SIMPLE";
+  return { level: grant.level, fromPrint, label };
 }
 
 export type BusinessAccessCapabilityDecision = {

@@ -289,5 +289,38 @@ check("Quick Business adds no second public product surface", () => {
   assert.deepEqual(forbidden, [], "Quick must reuse the canonical public output");
 });
 
+// 6. STAFF TRUTH ----------------------------------------------------------------------------
+check("the entitlement tracker shows staff every commercial fact about a row", () => {
+  const page = read("app/admin/(dashboard)/workspace/package-entitlements/page.tsx");
+  const required: Record<string, RegExp> = {
+    business: /formatEntitlementListingHeadline\(row\)/,
+    category: /\{row\.category\}/,
+    "commercial package SKU": /SKU: \{row\.package_key\}/,
+    "business access level": /describeBusinessAccessRow\(/,
+    "print package tier": /\{row\.package_tier\}/,
+    "start and end": /fmt\(row\.starts_at\)[\s\S]{0,40}fmt\(row\.ends_at\)/,
+    status: /\{effective\}/,
+    customer: /Customer: \{row\.customer_name/,
+    "sales attribution": /Sales rep: \{salesRep\}/,
+  };
+  for (const [fact, re] of Object.entries(required)) {
+    assert.ok(re.test(page), `staff must be able to read the ${fact} of an entitlement row`);
+  }
+});
+
+check("the access badge is derived, never a stored account-wide tier", () => {
+  const page = read("app/admin/(dashboard)/workspace/package-entitlements/page.tsx");
+  // Admin must not relabel these rows with the old account-level Free/Pro vocabulary, which
+  // describes a user, not a purchased package, and would misreport a Quick or print bundle.
+  for (const misleading of ["accountTier", "account_tier", "Free/Pro", "isPro"]) {
+    assert.ok(!page.includes(misleading), `the tracker must not read ${misleading}`);
+  }
+  const src = read("app/lib/listingPlans/businessAccessLevel.ts");
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  for (const symbol of ["supabase", "process.env", '.from("']) {
+    assert.ok(!code.includes(symbol), `the badge resolver must stay pure (${symbol})`);
+  }
+});
+
 console.log(failures === 0 ? "\nOK — business access level proven" : `\n${failures} FAILED`);
 process.exit(failures === 0 ? 0 : 1);

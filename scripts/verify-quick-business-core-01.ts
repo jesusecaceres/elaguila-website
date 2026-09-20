@@ -241,6 +241,11 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
     "app/lib/listingPlans/revenueCategoryCheckoutPayload.ts", // the four Quick checkout constants
     "app/lib/listingPlans/businessAccessCopy.ts", // new: centralized ES/EN Simple/Full copy, no prices
     "app/api/dashboard/analytics/listing/route.ts", // analytics becomes a Full-only capability
+    // Staff truth (Gate 11): the entitlement tracker could not tell a Quick row from a Full row,
+    // because both read package_tier "digital_only". Additive display only — one badge, one SKU
+    // line, and the package_key column the writer already populates surfaced on the read type.
+    "app/admin/(dashboard)/workspace/package-entitlements/page.tsx",
+    "app/admin/_lib/packageEntitlementData.ts",
   ]);
   const violations = touched.filter(
     (f) => f.startsWith("app/") && !MISSION_AUTHORIZED.has(f) && PROTECTED.some((re) => re.test(f)),
