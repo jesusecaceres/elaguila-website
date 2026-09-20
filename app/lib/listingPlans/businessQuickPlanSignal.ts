@@ -56,3 +56,29 @@ export function businessPackageKeyForPlan(
 ): string | null {
   return businessPackageKeyForLevel(category, plan === "quick" ? "simple" : "full");
 }
+
+/**
+ * Pick the checkout a business preview should run.
+ *
+ * The URL marker is only ever consulted for a listing that does not exist yet. Once there is a
+ * real row, the server's answer (`businessBasePlanOffer`) wins outright, because the URL cannot
+ * know that this customer already paid for Quick and is resuming, or already holds SIMPLE and is
+ * upgrading. Returning the caller's own constants keeps the category's return path, add-on rules
+ * and line-item copy exactly as they were — only the package key can differ.
+ */
+export function selectBusinessBaseCheckout<
+  Q extends { packageKey: string },
+  F extends { packageKey: string },
+>(input: {
+  quick: Q;
+  full: F;
+  /** The plan the handoff URL asked for. Used only when the server has no answer. */
+  urlPlan: BusinessPlanChoice;
+  /** The server's answer for an existing listing, or null when there is no row / not yet known. */
+  serverSellPackageKey: string | null | undefined;
+}): Q | F {
+  const server = String(input.serverSellPackageKey ?? "").trim().toLowerCase();
+  if (server === input.quick.packageKey) return input.quick;
+  if (server === input.full.packageKey) return input.full;
+  return input.urlPlan === "quick" ? input.quick : input.full;
+}

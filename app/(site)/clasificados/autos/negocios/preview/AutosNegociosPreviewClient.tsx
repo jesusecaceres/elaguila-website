@@ -34,7 +34,11 @@ import {
   startRevenueCategoryCheckout,
 } from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
 import { AUTOS_DEALER_CHECKOUT, AUTOS_DEALER_QUICK_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
-import { businessPlanFromSearchParams } from "@/app/lib/listingPlans/businessQuickPlanSignal";
+import {
+  businessPlanFromSearchParams,
+  selectBusinessBaseCheckout,
+} from "@/app/lib/listingPlans/businessQuickPlanSignal";
+import { useBusinessBasePlanOffer } from "@/app/lib/listingPlans/businessBasePlanOfferClient";
 import {
   CHECKOUT_NEWSLETTER_SOURCES,
   captureCheckoutNewsletterSubscriber,
@@ -454,7 +458,26 @@ function AutosNegociosPreviewInner({
   const totalVehicleCount = countApplicationInventoryVehicles(additionalInventoryVehicles.length);
   // Quick Business intake hands off here with the Quick plan marker; the standard dealer
   // application arrives without it and keeps the Full package and its inventory pack unchanged.
-  const quickPlan = businessPlanFromSearchParams(searchParams) === "quick";
+  const urlQuickPlan = businessPlanFromSearchParams(searchParams) === "quick";
+  // The marker is only evidence for a dealer row that does not exist yet. A Quick dealer who
+  // abandoned Stripe returns here from the dashboard through `?listingId=…` with no marker at
+  // all, and offering the Full package there would bill a $99 customer the Full price for the
+  // listing they already started. The server answers from the entitlement table and the payment
+  // ledger, and its answer wins over the URL.
+  const businessBasePlan = useBusinessBasePlanOffer({
+    category: AUTOS_DEALER_CHECKOUT.category,
+    listingId: canonicalListingId,
+    enabled: Boolean(canonicalListingId),
+  });
+  const baseCheckout = selectBusinessBaseCheckout({
+    quick: AUTOS_DEALER_QUICK_CHECKOUT,
+    full: AUTOS_DEALER_CHECKOUT,
+    urlPlan: urlQuickPlan ? "quick" : "full",
+    serverSellPackageKey: businessBasePlan?.sellPackageKey,
+  });
+  // One derived flag drives the allowance, the add-on row and the line-item copy, so the package
+  // actually charged can never disagree with what the checkpoint showed.
+  const quickPlan = baseCheckout.packageKey === AUTOS_DEALER_QUICK_CHECKOUT.packageKey;
   const checkpointConfig = useMemo(
     () => autosDealerPreviewCheckpointConfig({ lang, totalVehicleCount, quickPlan }),
     [lang, totalVehicleCount, quickPlan],
@@ -669,7 +692,7 @@ function AutosNegociosPreviewInner({
       }
 
       const checkout = await startRevenueCategoryCheckout({
-        ...(quickPlan ? AUTOS_DEALER_QUICK_CHECKOUT : AUTOS_DEALER_CHECKOUT),
+        ...baseCheckout,
         listingId: pending.listingId,
         leonixAdId: pending.leonixAdId,
         locale: lang,
@@ -686,7 +709,7 @@ function AutosNegociosPreviewInner({
       }
       redirectToRevenueCategoryCheckout(checkout.checkoutUrl);
     },
-    [ensurePendingDealerListing, lang, listing.city, listing.dealerName, listing.zip, quickPlan, totalVehicleCount, newsletterEmail],
+    [ensurePendingDealerListing, lang, listing.city, listing.dealerName, listing.zip, baseCheckout, quickPlan, totalVehicleCount, newsletterEmail],
   );
 
   if (!ready) {

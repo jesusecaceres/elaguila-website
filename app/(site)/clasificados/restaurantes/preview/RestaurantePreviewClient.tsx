@@ -30,7 +30,11 @@ import {
   validateRevenuePromoForCheckout,
 } from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
 import { RESTAURANTES_BASE_CHECKOUT, RESTAURANTES_QUICK_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
-import { businessPlanFromSearchParams } from "@/app/lib/listingPlans/businessQuickPlanSignal";
+import {
+  businessPlanFromSearchParams,
+  selectBusinessBaseCheckout,
+} from "@/app/lib/listingPlans/businessQuickPlanSignal";
+import { useBusinessBasePlanOffer } from "@/app/lib/listingPlans/businessBasePlanOfferClient";
 import {
   RESTAURANTES_CHECKPOINT_CONFIRMATIONS,
   type PublishCheckpointConfig,
@@ -135,7 +139,20 @@ export default function RestaurantePreviewClient() {
   // arrives without it and keeps the Full package exactly as before. Same draft, same preview,
   // same publisher, same public listing — only the base package purchased differs.
   const quickPlan = businessPlanFromSearchParams(searchParams) === "quick";
-  const baseCheckout = quickPlan ? RESTAURANTES_QUICK_CHECKOUT : RESTAURANTES_BASE_CHECKOUT;
+  // For a listing that already exists the URL marker proves nothing — a resumed Quick checkout
+  // and a SIMPLE -> FULL upgrade both arrive from the dashboard without one. The server answers
+  // from the entitlement table and the payment ledger, and its answer wins.
+  const businessBasePlan = useBusinessBasePlanOffer({
+    category: RESTAURANTES_BASE_CHECKOUT.category,
+    listingId: searchParams?.get("listingId") ?? null,
+    enabled: listingBoundPreview,
+  });
+  const baseCheckout = selectBusinessBaseCheckout({
+    quick: RESTAURANTES_QUICK_CHECKOUT,
+    full: RESTAURANTES_BASE_CHECKOUT,
+    urlPlan: quickPlan ? "quick" : "full",
+    serverSellPackageKey: businessBasePlan?.sellPackageKey,
+  });
   // Both base keys are static matrix entries; the fallback preserves the historical Full value
   // and never invents a second price literal for Quick.
   const restaurantBaseCents =
@@ -156,7 +173,8 @@ export default function RestaurantePreviewClient() {
       },
       confirmations: RESTAURANTES_CHECKPOINT_CONFIRMATIONS,
       newsletterEligible: true,
-      promoEligible: true,
+      // The matrix marks the Quick packages promo-ineligible; offer only what the server honours.
+      promoEligible: getRevenuePackageDefinition(baseCheckout.packageKey)?.promoEligible ?? true,
       restaurantOffersAddonSelected: Boolean(normalizedDraft.couponUpgradeEnabled),
       returnPath: baseCheckout.returnPath,
     };

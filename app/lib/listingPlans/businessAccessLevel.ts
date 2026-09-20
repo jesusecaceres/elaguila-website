@@ -235,6 +235,23 @@ export function upgradeTargetPackageKey(category: string | null | undefined): st
 }
 
 /**
+ * The upgrade to offer a listing whose CURRENT base package is `heldPackageKey`, or null when
+ * there is nothing to offer (already Full, no base package, or a category outside the split).
+ *
+ * Owner surfaces call this with the package key the SERVER resolved for the row, so an upgrade
+ * button is shown from real entitlement truth rather than from anything the page inferred. Pure,
+ * so the same rule is testable and cannot be restated differently per dashboard.
+ */
+export function businessUpgradeOfferedForHeldPackageKey(
+  category: string | null | undefined,
+  heldPackageKey: string | null | undefined,
+): string | null {
+  const pair = BUSINESS_CATEGORY_PACKAGE_PAIR[String(category ?? "").trim().toLowerCase()];
+  if (!pair) return null;
+  return String(heldPackageKey ?? "").trim().toLowerCase() === pair.simple ? pair.full : null;
+}
+
+/**
  * Both base subscriptions a category sells, Full first.
  *
  * Quick and Full are two price/access levels of ONE product, not two products: they share the

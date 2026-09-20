@@ -58,7 +58,11 @@ import {
   validateRevenuePromoForCheckout,
 } from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
 import { SERVICIOS_BASE_CHECKOUT, SERVICIOS_QUICK_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
-import { businessPlanFromSearchParams } from "@/app/lib/listingPlans/businessQuickPlanSignal";
+import {
+  businessPlanFromSearchParams,
+  selectBusinessBaseCheckout,
+} from "@/app/lib/listingPlans/businessQuickPlanSignal";
+import { useBusinessBasePlanOffer } from "@/app/lib/listingPlans/businessBasePlanOfferClient";
 import {
   SERVICIOS_CHECKPOINT_CONFIRMATIONS,
   type PublishCheckpointConfig,
@@ -682,18 +686,32 @@ export function ClasificadosServiciosPreviewClient() {
   // update/republish button (already paid, no re-charge).
   const offersAddonSelected = Boolean(appState?.couponsAddOn);
   const serviciosPipeline = useProfessionalPreview ? "professional" : "trades";
+  // Quick Business intake hands off here with the Quick plan marker; the standard application
+  // arrives without it and keeps the Full package exactly as before. One preview, one draft, one
+  // publisher, one public listing — only the base package the customer pays for differs.
+  const quickPlan = businessPlanFromSearchParams(searchParams) === "quick";
+  // For a listing that already exists, the marker is not evidence: a Quick customer resuming an
+  // abandoned checkout arrives from the dashboard with no marker at all, and a paid SIMPLE
+  // customer upgrading is not asking for either package by URL. The server answers from the
+  // entitlement table and the payment ledger, and its answer wins over the marker.
+  const businessBasePlan = useBusinessBasePlanOffer({
+    category: SERVICIOS_BASE_CHECKOUT.category,
+    listingId,
+    enabled: listingBoundPreview,
+  });
+  const baseCheckout = selectBusinessBaseCheckout({
+    quick: SERVICIOS_QUICK_CHECKOUT,
+    full: SERVICIOS_BASE_CHECKOUT,
+    urlPlan: quickPlan ? "quick" : "full",
+    serverSellPackageKey: businessBasePlan?.sellPackageKey,
+  });
+
   const showFinalCheckout =
     !assistedUi &&
     (!listingBoundPreview || listingBoundAwaitsBasePurchase) &&
     source === "application" &&
     Boolean(profile) &&
     previewReadiness.ok;
-
-  // Quick Business intake hands off here with the Quick plan marker; the standard application
-  // arrives without it and keeps the Full package exactly as before. One preview, one draft, one
-  // publisher, one public listing — only the base package the customer pays for differs.
-  const quickPlan = businessPlanFromSearchParams(searchParams) === "quick";
-  const baseCheckout = quickPlan ? SERVICIOS_QUICK_CHECKOUT : SERVICIOS_BASE_CHECKOUT;
 
   // Package C Build 3 (C5/C6) — owner-locked: coupons/offers are included in the Full base
   // package. The toggle stays as content/setup intent only — never a checkout line item.
@@ -717,7 +735,9 @@ export function ClasificadosServiciosPreviewClient() {
       },
       confirmations: SERVICIOS_CHECKPOINT_CONFIRMATIONS,
       newsletterEligible: true,
-      promoEligible: true,
+      // Read from the package actually being sold: the matrix marks the Quick packages
+      // promo-ineligible, and offering a code the server would refuse is a broken promise.
+      promoEligible: getRevenuePackageDefinition(baseCheckout.packageKey)?.promoEligible ?? true,
       serviciosOffersAddonSelected: offersAddonSelected,
       pipeline: serviciosPipeline,
       returnPath: baseCheckout.returnPath,
@@ -794,7 +814,7 @@ export function ClasificadosServiciosPreviewClient() {
           preferredLanguage: lang,
           source: CHECKOUT_NEWSLETTER_SOURCES.servicios,
           // SVC-QA-29 — the retired Launch-25 interest tag is no longer attached to Servicios captures.
-          interests: ["package:servicios_base_monthly"],
+          interests: [`package:${baseCheckout.packageKey}`],
           checked: ctx.newsletterOptIn,
         });
 
