@@ -14,6 +14,9 @@ import { brAnalyticsContextFromListing } from "@/app/lib/clasificados/bienes-rai
 import { RelatedBrAgentProperties } from "@/app/clasificados/bienes-raices/components/RelatedBrAgentProperties";
 import { fetchBrRelatedInventoryListingsForDetail } from "@/app/clasificados/bienes-raices/lib/fetchBrRelatedInventoryListingsBrowser";
 import type { BrNegocioListing } from "@/app/clasificados/bienes-raices/resultados/cards/listingTypes";
+import { TranslateAdControl } from "@/app/components/translation/TranslateAdControl";
+import { requestAdTranslation } from "@/app/lib/translation/requestAdTranslation";
+import { useBienesNegocioShellTranslation } from "@/app/(site)/clasificados/bienes-raices/lib/useBienesNegocioShellTranslation";
 
 type Lang = "es" | "en";
 
@@ -174,11 +177,30 @@ export function BienesRaicesNegocioLiveDetailShell({
     [listing.id, listing.leonix_ad_id],
   );
 
+  const shellTx = useBienesNegocioShellTranslation(data, lang, listing.id);
+
+  const translateControl = shellTx.offerTranslate ? (
+    <div className="mb-3 flex justify-start" data-bienes-negocio-translate-ad="1">
+      <TranslateAdControl
+        siteLocale={lang}
+        originalLocale={shellTx.sourceLocale}
+        category="bienes-raices"
+        listingKey={listing.id}
+        version="bienes-negocio-t1-v1"
+        translatableContent={shellTx.translatableContent}
+        onTranslated={shellTx.onTranslated}
+        onShowOriginal={shellTx.onShowOriginal}
+        requestTranslation={requestAdTranslation}
+        className="w-full sm:w-auto"
+      />
+    </div>
+  ) : null;
+
   return (
     <BrAgenteResidencialLocaleProvider>
       <div className="bg-[#F9F6F1]">
         <AgenteIndividualResidencialPreviewPage
-          data={data}
+          data={shellTx.displayData}
           analyticsContext={analyticsContext}
           ownerId={listing.owner_id}
           publicChrome={{
@@ -192,6 +214,7 @@ export function BienesRaicesNegocioLiveDetailShell({
             ),
             meta: listing.leonix_ad_id ? `${listing.leonix_ad_id} · ${lang === "en" ? "Published listing" : "Anuncio publicado"}` : null,
             headerRight: <PublicChromeActions listingId={listing.id} lang={lang} ownerId={listing.owner_id} />,
+            beforeMainGrid: translateControl,
           }}
         />
         {!isChild && portfolio.length ? (

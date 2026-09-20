@@ -285,6 +285,11 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
     "app/(site)/dashboard/restaurantes/page.tsx",
     "app/(site)/clasificados/autos/dashboard/AutosDealerInventoryDashboardSection.tsx",
     "app/(site)/dashboard/components/LeonixRealEstateListingManageCard.tsx",
+    // Gate 2 corrective — TranslateAdControl wired into the Bienes Negocio public detail shell.
+    // Two new lib-only files (translate-ad module + hook); one existing shell updated.
+    "app/(site)/clasificados/bienes-raices/lib/bienesNegocioTranslateAd.ts",
+    "app/(site)/clasificados/bienes-raices/lib/useBienesNegocioShellTranslation.ts",
+    "app/(site)/clasificados/bienes-raices/listing/BienesRaicesNegocioLiveDetailShell.tsx",
   ]);
   const violations = touched.filter(
     (f) => f.startsWith("app/") && !MISSION_AUTHORIZED.has(f) && PROTECTED.some((re) => re.test(f)),
@@ -363,6 +368,28 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
   const esCount = (copy.match(/\bes: "/g) ?? []).length;
   const enCount = (copy.match(/\ben: "/g) ?? []).length;
   assert.equal(esCount, enCount, "every Quick Business copy entry has both ES and EN");
+}
+
+// 9. BIENES NEGOCIO TRANSLATION — TranslateAdControl wired in the public detail shell (Gate 2 corrective) -----------
+{
+  const SHELL_PATH = "app/(site)/clasificados/bienes-raices/listing/BienesRaicesNegocioLiveDetailShell.tsx";
+  const TRANSLATE_MODULE = "app/(site)/clasificados/bienes-raices/lib/bienesNegocioTranslateAd.ts";
+  const TRANSLATE_HOOK = "app/(site)/clasificados/bienes-raices/lib/useBienesNegocioShellTranslation.ts";
+  assert.ok(exists(SHELL_PATH), "BienesRaicesNegocioLiveDetailShell.tsx exists");
+  assert.ok(exists(TRANSLATE_MODULE), "bienesNegocioTranslateAd.ts module exists");
+  assert.ok(exists(TRANSLATE_HOOK), "useBienesNegocioShellTranslation hook exists");
+  const shell = read(SHELL_PATH);
+  assert.ok(shell.includes("TranslateAdControl"), "shell imports TranslateAdControl");
+  assert.ok(shell.includes("useBienesNegocioShellTranslation"), "shell imports useBienesNegocioShellTranslation");
+  assert.ok(shell.includes("requestAdTranslation"), "shell imports requestAdTranslation");
+  assert.ok(shell.includes("shellTx.displayData"), "shell passes shellTx.displayData (not bare data) to the preview page");
+  assert.ok(shell.includes("beforeMainGrid: translateControl"), "shell wires translateControl into publicChrome.beforeMainGrid");
+  // Translation module correctness: title, description, and locationNote map to the right canonical fields.
+  const mod = read(TRANSLATE_MODULE);
+  assert.ok(mod.includes("title: data.titulo"), "translate module maps título → title slot");
+  assert.ok(mod.includes("description: data.descripcionPrincipal"), "translate module maps descripcionPrincipal → description slot");
+  assert.ok(mod.includes("next = { ...next, titulo: translated.title"), "translate module applies title back to titulo");
+  assert.ok(mod.includes("next = { ...next, descripcionPrincipal: translated.description"), "translate module applies description back to descripcionPrincipal");
 }
 
 console.log("verify-quick-business-core-01: OK");
