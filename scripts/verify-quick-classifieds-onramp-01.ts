@@ -127,6 +127,24 @@ const ADAPTERS = `${QUICK_ROUTE}/_adapters`;
     "app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx",
     "app/(site)/clasificados/autos/negocios/lib/autosDealerRevenueCheckout.ts",
     "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewClient.tsx",
+    // Chunk 2 — the SIMPLE -> FULL upgrade, and the resume price. A paid Simple customer had no
+    // purchasable route to Full (a published listing has no checkout in its preview), and a Quick
+    // customer who abandoned Stripe was re-offered the Full package because the dashboard link
+    // carries no `?plan=quick` marker. Both are answered from server state, not from the URL.
+    // None of these adds a price, a Stripe id, a parallel checkout, a second listing table, a
+    // second public page, or a write to any listing row.
+    "app/lib/listingPlans/businessBasePlanOfferPolicy.ts", // the decision, pure
+    "app/lib/listingPlans/businessBasePlanOffer.ts", // its owner-verified server reads
+    "app/lib/listingPlans/businessBasePlanOfferClient.ts", // the read-only client hook
+    "app/api/revenue-os/business-base-plan/route.ts", // read-only, bearer-auth, no mutation
+    // The owner surfaces that carry the upgrade CTA. Each buys the category's EXISTING Full
+    // package for a listing that already exists, through the one Revenue OS checkout.
+    "app/(site)/dashboard/lib/businessSimpleToFullUpgradeCheckout.ts",
+    "app/(site)/dashboard/components/BusinessSimpleToFullUpgradePanel.tsx",
+    "app/(site)/dashboard/servicios/page.tsx",
+    "app/(site)/dashboard/restaurantes/page.tsx",
+    "app/(site)/clasificados/autos/dashboard/AutosDealerInventoryDashboardSection.tsx",
+    "app/(site)/dashboard/components/LeonixRealEstateListingManageCard.tsx",
   ]);
   const violations = touched.filter((f) => !MISSION_AUTHORIZED.has(f) && PROTECTED.some((re) => re.test(f)));
   assert.deepEqual(violations, [], `protected canonical surfaces must not change: ${violations.join(", ")}`);

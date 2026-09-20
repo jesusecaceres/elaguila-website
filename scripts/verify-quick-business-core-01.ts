@@ -265,6 +265,21 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
     "app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx",
     "app/(site)/clasificados/autos/negocios/lib/autosDealerRevenueCheckout.ts",
     "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewClient.tsx",
+    // Chunk 2 (Gate 3) — the SIMPLE -> FULL upgrade, and the resume price. A paid Simple customer
+    // had no purchasable route to Full, because a published listing has no checkout in its
+    // preview; and a Quick customer who abandoned Stripe was re-offered the FULL package, because
+    // the dashboard link carries no `?plan=quick` marker. Both are answered from server state.
+    // Nothing below writes to a listing row, so the upgrade cannot change identity.
+    "app/lib/listingPlans/businessBasePlanOfferPolicy.ts", // the decision, pure
+    "app/lib/listingPlans/businessBasePlanOffer.ts", // its owner-verified server reads
+    "app/lib/listingPlans/businessBasePlanOfferClient.ts", // the read-only client hook
+    "app/api/revenue-os/business-base-plan/route.ts", // read-only, bearer-auth, no mutation
+    "app/(site)/dashboard/lib/businessSimpleToFullUpgradeCheckout.ts", // the one upgrade starter
+    "app/(site)/dashboard/components/BusinessSimpleToFullUpgradePanel.tsx", // its shared CTA
+    "app/(site)/dashboard/servicios/page.tsx",
+    "app/(site)/dashboard/restaurantes/page.tsx",
+    "app/(site)/clasificados/autos/dashboard/AutosDealerInventoryDashboardSection.tsx",
+    "app/(site)/dashboard/components/LeonixRealEstateListingManageCard.tsx",
   ]);
   const violations = touched.filter(
     (f) => f.startsWith("app/") && !MISSION_AUTHORIZED.has(f) && PROTECTED.some((re) => re.test(f)),
