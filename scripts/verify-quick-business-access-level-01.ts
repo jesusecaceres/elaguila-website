@@ -159,6 +159,24 @@ check("no non-business package accidentally declares a business access level", (
   }
 });
 
+check("Comida Local keeps its own $129 product and stays out of the split", () => {
+  // Gate 7 deferral. Repository truth locks ONE Comida Local product and contains no owner
+  // decision for a cheaper Simple tier; `/publicar/comida-local/rapido` is a shorter intake
+  // form onto that same SKU, not a second commercial tier. Pulling it into the split would be a
+  // new commercial decision, so this asserts the deferral rather than implementing one.
+  const def = getRevenuePackageDefinition("comida_local_base_monthly");
+  assert.ok(def, "the Comida Local package must still exist");
+  assert.equal(def!.priceCents, 12900, "Comida Local stays $129/mo");
+  assert.equal(def!.businessAccessLevel, undefined, "Comida Local declares no access level");
+  assert.ok(!isBusinessAccessCategory("comida-local"), "Comida Local is not a split category");
+  assert.equal(businessAccessLevelForPackageKey("comida_local_base_monthly"), "none");
+  assert.deepEqual(
+    REVENUE_V1_PACKAGE_MATRIX.filter((p) => p.category === "comida-local").map((p) => p.packageKey),
+    ["comida_local_base_monthly"],
+    "no second Comida Local SKU may be invented by this mission",
+  );
+});
+
 // 3. CAPABILITY SEPARATION -----------------------------------------------------------------
 check("SIMPLE is denied every FULL-only capability and FULL is granted every one", () => {
   const simple = capabilitiesForBusinessAccessLevel("simple");
