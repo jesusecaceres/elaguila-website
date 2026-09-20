@@ -5,9 +5,9 @@ STATUS LINE
 - OWNER/HUMAN QA: **PENDING** (nothing below has been done by a person yet).
 
 PREVIEW
-- The Vercel project currently skips every non-production deployment (Ignored Build Step = `if [ "$VERCEL_ENV" == "production" ]; then exit 1; else exit 0; fi`).
-  Until the PM/owner relaxes that setting for this branch, there is no Preview URL. Once a READY Preview exists, use its
-  URL as `<PREVIEW>` below (branch alias: `leonix-media-git-claude-quick-cla-e4a3c0-jesus-caceres-projects.vercel.app`).
+- READY Preview (2026-09-20): `https://leonix-media-ez4w5ndvb-jesus-caceres-projects.vercel.app`
+  (deployment `dpl_6d6FQxhYmywSUsacmzs1XGwSns8H`, feature SHA `c3b85eea`; branch alias `https://leonix-media-git-claude-quick-cla-e4a3c0-jesus-caceres-projects.vercel.app` opens the same deployment).
+  The links below already use this URL.
 - Previews are behind Vercel login (SSO). Sign in with the Vercel account when asked, then continue.
 - Everything below is on a Preview, never Production. Paid flows: you may stop at the Stripe page unless you choose to test a real charge.
 
@@ -17,7 +17,7 @@ Use realistic multi-word values exactly as written (they test spaces, apostrophe
 
 ## 1. EN VENTA (free) — do this first
 
-START: `<PREVIEW>/publicar/rapido/en-venta?lang=es`
+START: `https://leonix-media-ez4w5ndvb-jesus-caceres-projects.vercel.app/publicar/rapido/en-venta?lang=es`
 LOGIN: if asked, sign in with your Leonix customer email (magic link). You must land back on the same Quick page.
 
 TYPE
@@ -40,7 +40,7 @@ EDIT/END: Mis Anuncios → open the ad → Editar works → "Ya se vendió" remo
 
 ## 2. RENTAS (paid, $24.99 / 30 días)
 
-START: `<PREVIEW>/publicar/rapido/rentas?lang=es`
+START: `https://leonix-media-ez4w5ndvb-jesus-caceres-projects.vercel.app/publicar/rapido/rentas?lang=es`
 
 TYPE
 - Tipo de renta: "Cuarto / recámara"
@@ -59,7 +59,7 @@ EDIT/END/RENEW: Mis Anuncios → Rentas → Editar re-opens the existing applica
 
 ## 3. EMPLEOS (paid, $24.99 / 30 días) — THE KEY CHECK
 
-START: `<PREVIEW>/publicar/rapido/empleos?lang=es`
+START: `https://leonix-media-ez4w5ndvb-jesus-caceres-projects.vercel.app/publicar/rapido/empleos?lang=es`
 
 TYPE
 - Puesto: `Cocinero de línea` · Empresa: `Taquería La Estrella`
@@ -79,7 +79,7 @@ EDIT/END: Mis Anuncios → Empleos → Editar keeps the photo; "Puesto ocupado" 
 
 ## 4. AUTOS (private seller, paid, $24.99 / 30 días)
 
-START: `<PREVIEW>/publicar/rapido/autos?lang=es`
+START: `https://leonix-media-ez4w5ndvb-jesus-caceres-projects.vercel.app/publicar/rapido/autos?lang=es`
 
 TYPE
 - Año: `2016` · Marca: `Toyota` · Modelo: `Camry` · Millas: `98000` · Precio: `11500`
@@ -98,7 +98,7 @@ END/RENEW: Mis Anuncios → Autos → "Vehículo vendido" removes it; "Renovar" 
 
 ## 5. STAFF PWA (Business Concierge)
 
-OPEN: `<PREVIEW>/admin/businesses` (staff login).
+OPEN: `https://leonix-media-ez4w5ndvb-jesus-caceres-projects.vercel.app/admin/businesses` (staff login).
 
 CONFIRM WITHOUT SCROLLING FAR
 - "⚡ Aplicaciones Rápidas / Quick Applications" is right under the Concierge header.
@@ -111,7 +111,7 @@ CONFIRM WITHOUT SCROLLING FAR
 
 ## 6. "MI ANUNCIO" DOORWAY
 
-OPEN: `<PREVIEW>/publicar/rapido/mi-anuncio?lang=es` → pick a category → buttons go to Mis Anuncios / Empleos dashboard / contact page. No new screens to learn.
+OPEN: `https://leonix-media-ez4w5ndvb-jesus-caceres-projects.vercel.app/publicar/rapido/mi-anuncio?lang=es` → pick a category → buttons go to Mis Anuncios / Empleos dashboard / contact page. No new screens to learn.
 
 ---
 
