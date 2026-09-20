@@ -88,7 +88,8 @@ check("a stamped Full package_key never upgrades a quarter-page row to FULL", ()
     assert.equal(decided.source, "print_package");
     assert.equal(decided.grants.length, 1, "one row is one purchase, so one grant");
     const badge = describeBusinessAccessRow({ packageKey: baseKey, packageTier: "quarter_page" });
-    assert.equal(badge?.label, "PRINT + SIMPLE", "staff must see the honest bundle");
+    assert.equal(badge?.label, "PRINT QUARTER + SIMPLE", "staff must see the honest bundle");
+    assert.equal(badge?.printTier, "quarter_page", "and the tier the badge is naming");
   }
 });
 
@@ -97,17 +98,33 @@ check("a stamped package_key still cannot downgrade a half-page row", () => {
   const stamped = printRow("half_page", { packageKey: "servicios_quick_monthly" });
   const decided = decideBusinessAccess({ rows: [stamped], nowMs: NOW });
   assert.equal(decided.level, "full");
-  assert.equal(describeBusinessAccessRow({ packageKey: "servicios_quick_monthly", packageTier: "half_page" })?.label, "PRINT + FULL");
+  assert.equal(
+    describeBusinessAccessRow({ packageKey: "servicios_quick_monthly", packageTier: "half_page" })?.label,
+    "PRINT HALF + FULL",
+  );
 });
 
-check("staff badges name the four commercial shapes distinctly", () => {
+check("staff badges name the six commercial shapes distinctly", () => {
+  // The six products a staff member has to be able to tell apart on a tracker row. A badge that
+  // read only "PRINT + FULL" for half page, full page and premium alike would leave staff
+  // correlating two fields to answer "what did this customer actually buy?".
   const labels = [
     describeBusinessAccessRow({ packageKey: "servicios_quick_monthly", packageTier: "digital_only" })?.label,
     describeBusinessAccessRow({ packageKey: "servicios_base_monthly", packageTier: "digital_only" })?.label,
     describeBusinessAccessRow({ packageKey: null, packageTier: "quarter_page" })?.label,
+    describeBusinessAccessRow({ packageKey: null, packageTier: "half_page" })?.label,
+    describeBusinessAccessRow({ packageKey: null, packageTier: "full_page" })?.label,
     describeBusinessAccessRow({ packageKey: null, packageTier: "premium" })?.label,
   ];
-  assert.deepEqual(labels, ["QUICK / SIMPLE", "FULL", "PRINT + SIMPLE", "PRINT + FULL"]);
+  assert.deepEqual(labels, [
+    "QUICK / SIMPLE",
+    "FULL",
+    "PRINT QUARTER + SIMPLE",
+    "PRINT HALF + FULL",
+    "PRINT FULL PAGE + FULL",
+    "PRINT PREMIUM + FULL",
+  ]);
+  assert.equal(new Set(labels).size, labels.length, "no two commercial shapes may share a label");
   assert.equal(
     describeBusinessAccessRow({ packageKey: null, packageTier: "classified_print" }),
     null,

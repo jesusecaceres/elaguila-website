@@ -350,6 +350,39 @@ check("the entitlement tracker shows staff every commercial fact about a row", (
   }
 });
 
+/**
+ * Reading a fact off one row and being able to FIND the rows are different capabilities. The tier
+ * filter cannot separate Quick from Full — a Quick row and a Full row are both `digital_only` —
+ * so the package key has to be searchable or "show me every Quick customer" is unanswerable.
+ */
+check("staff can search the tracker for the commercial product itself", () => {
+  // `packageEntitlementData.ts` is `server-only`, so this is asserted against its source rather
+  // than by calling the matcher. The shape being pinned is the whole mechanism: one haystack of
+  // row fields, joined and lowercased, matched by substring.
+  const data = codeOf("app/admin/_lib/packageEntitlementData.ts");
+  const haystack = data.match(/const hay = \[([\s\S]*?)\]\s*\n\s*\.filter\(Boolean\)/);
+  assert.ok(haystack, "the tracker search must still build one haystack of row fields");
+  assert.ok(
+    /row\.package_key,/.test(haystack![1]!),
+    "the package key must be searchable — the tier filter cannot separate Quick from Full",
+  );
+  // The pre-existing searchable fields must still be there. This is an addition, not a swap.
+  for (const field of ["row.entitlement_code", "row.business_name", "row.customer_name", "row.listing_id"]) {
+    assert.ok(haystack![1]!.includes(field), `${field} must remain searchable`);
+  }
+  assert.ok(
+    /\.join\(" "\)\s*\n?\s*\.toLowerCase\(\);[\s\S]{0,80}hay\.includes\(needle\)/.test(data),
+    "matching must stay a case-insensitive substring search over that haystack",
+  );
+  // And the page must tell staff the SKU is the field that separates them.
+  const page = read("app/admin/(dashboard)/workspace/package-entitlements/page.tsx");
+  assert.ok(/package SKU/.test(page), "the search help must name the SKU as searchable");
+  assert.ok(
+    /Quick from Full/.test(page),
+    "the search help must say the SKU is what separates Quick from Full",
+  );
+});
+
 check("the access badge is derived, never a stored account-wide tier", () => {
   const page = read("app/admin/(dashboard)/workspace/package-entitlements/page.tsx");
   // Admin must not relabel these rows with the old account-level Free/Pro vocabulary, which

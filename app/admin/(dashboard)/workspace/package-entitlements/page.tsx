@@ -223,8 +223,10 @@ export default async function AdminPackageEntitlementsPage(props: {
       <section className={`${adminCardBase} p-4 sm:p-6`}>
         <h2 className="text-sm font-bold text-[#1E1810]">Search & filter</h2>
         <p className="mt-1 text-xs text-[#7A7164]">
-          Search by code, contract, business, customer, listing ID, sales rep, or Leonix ad ID (metadata). Up to{" "}
-          {PACKAGE_ENTITLEMENT_TRACKER_FETCH_LIMIT} filas recientes.
+          Search by code, contract, business, customer, listing ID, package SKU, sales rep, or Leonix ad ID
+          (metadata). Search the SKU to separate Quick from Full — both carry tier{" "}
+          <span className="font-mono">digital_only</span>. Up to {PACKAGE_ENTITLEMENT_TRACKER_FETCH_LIMIT} filas
+          recientes.
         </p>
         <form method="get" className="mt-4 grid gap-3 sm:grid-cols-2">
           <label className="block text-xs font-semibold text-[#5C5346] sm:col-span-2">
@@ -233,7 +235,7 @@ export default async function AdminPackageEntitlementsPage(props: {
               name="q"
               defaultValue={filterQ}
               className={`${adminInputClass} mt-1`}
-              placeholder="LX-ENT-…, business, customer, sales rep…"
+              placeholder="LX-ENT-…, business, customer, servicios_quick_monthly, sales rep…"
             />
           </label>
           <label className="block text-xs font-semibold text-[#5C5346]">

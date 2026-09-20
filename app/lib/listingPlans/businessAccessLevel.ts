@@ -384,9 +384,36 @@ export type BusinessAccessBadge = {
   level: BusinessAccessLevel;
   /** Whether a print package is part of this row's grant. */
   fromPrint: boolean;
-  /** Staff-facing label: QUICK / SIMPLE, FULL, PRINT + SIMPLE, PRINT + FULL. */
+  /** The print tier behind the grant, for a print row. Null for a standalone digital row. */
+  printTier: PackageEntitlementTier | null;
+  /**
+   * Staff-facing label. One of exactly six, matching the six commercial products a staff member
+   * has to be able to tell apart: `QUICK / SIMPLE`, `FULL`, `PRINT QUARTER + SIMPLE`,
+   * `PRINT HALF + FULL`, `PRINT FULL PAGE + FULL`, `PRINT PREMIUM + FULL`.
+   */
   label: string;
 };
+
+/**
+ * The print tier, spelled the way staff say it out loud. Named here rather than in the admin page
+ * so the label a staff member reads and the level the server grants come from the same module and
+ * cannot drift — a badge reading "quarter" beside FULL access would be a lie about what the
+ * customer bought.
+ */
+function printTierStaffWord(tier: PackageEntitlementTier | null): string | null {
+  switch (tier) {
+    case "quarter_page":
+      return "QUARTER";
+    case "half_page":
+      return "HALF";
+    case "full_page":
+      return "FULL PAGE";
+    case "premium":
+      return "PREMIUM";
+    default:
+      return null;
+  }
+}
 
 /**
  * Describe ONE entitlement row for staff, from the two columns the row already carries.
@@ -405,12 +432,18 @@ export function describeBusinessAccessRow(input: {
   if (!grant) return null;
 
   const fromPrint = grant.kind === "print_package";
+  const digitalWord = grant.level === "full" ? "FULL" : "SIMPLE";
+  const printWord = fromPrint ? printTierStaffWord(grant.printTier) : null;
+  // The tier is named in the badge itself so "print quarter + Simple" and "print half + Full" are
+  // one glance apart. Falls back to the unqualified word rather than inventing a tier name.
   const label = fromPrint
-    ? `PRINT + ${grant.level === "full" ? "FULL" : "SIMPLE"}`
+    ? printWord
+      ? `PRINT ${printWord} + ${digitalWord}`
+      : `PRINT + ${digitalWord}`
     : grant.level === "full"
       ? "FULL"
       : "QUICK / SIMPLE";
-  return { level: grant.level, fromPrint, label };
+  return { level: grant.level, fromPrint, printTier: grant.printTier, label };
 }
 
 export type BusinessAccessCapabilityDecision = {

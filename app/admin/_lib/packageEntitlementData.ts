@@ -213,6 +213,10 @@ export function matchesEntitlementSearch(row: ListingPackageEntitlementRow, q: s
     row.business_name,
     row.customer_name,
     row.listing_id,
+    // The tracker already renders the SKU on every row, but it was not searchable — so staff
+    // could read "this one is Quick" and still had no way to ask "show me all the Quick ones".
+    // The tier filter cannot answer that: Quick and Full are both `digital_only`.
+    row.package_key,
     metadataStr(meta, "sales_rep_id"),
     metadataStr(meta, "sales_rep_name"),
     metadataStr(meta, "leonix_ad_id"),
