@@ -552,12 +552,91 @@ check("every business preview reads the marker and sells the matching package", 
     );
     assert.ok(src.includes(site.quickConst), `${key}: the preview must be able to select ${site.quickConst}`);
     assert.ok(src.includes(site.fullConst), `${key}: the preview must still select ${site.fullConst} by default`);
-    // The Quick constant may only be reached through the plan decision, never unconditionally.
+    // The Quick constant may only be reached through a plan decision, never unconditionally.
+    // Two decisions are accepted: the plain ternary on the URL marker, and
+    // `selectBusinessBaseCheckout`, which is the same decision plus the server's override for a
+    // listing that already exists. Nothing else may name the Quick constant at a call site.
+    const byMarker = new RegExp(`quickPlan[\\s\\S]{0,80}${site.quickConst}`).test(src);
+    const byResolver = new RegExp(
+      `selectBusinessBaseCheckout\\(\\{[\\s\\S]{0,120}quick:\\s*${site.quickConst}`,
+    ).test(src);
     assert.ok(
-      new RegExp(`quickPlan[\\s\\S]{0,80}${site.quickConst}`).test(src),
+      byMarker || byResolver,
       `${key}: ${site.quickConst} must be chosen by the plan decision, not hardcoded`,
     );
   }
+});
+
+/**
+ * The marker is a property of the HANDOFF URL, so it is only evidence for a listing that does not
+ * exist yet. A Quick customer who abandons Stripe comes back from the dashboard through
+ * `?listingId=…` with no marker at all — and a preview that still trusts the marker there would
+ * offer that customer the FULL package for the listing they already started, billing $399 for a
+ * $99 purchase. Any preview that can run a base checkout against an existing row must therefore
+ * ask the server which package that row should be sold.
+ */
+check("a preview that can check out an existing listing asks the server which package to sell", () => {
+  const listingBoundCheckout: QuickBusinessCategoryKey[] = ["servicios", "restaurantes", "autos-dealer"];
+  for (const key of listingBoundCheckout) {
+    const src = codeOf(QUICK_CHECKOUT_SITES[key].file);
+    assert.ok(
+      src.includes("useBusinessBasePlanOffer("),
+      `${key}: a listing-bound checkout must read the server's base-plan offer, not the URL marker`,
+    );
+    assert.ok(
+      /selectBusinessBaseCheckout\(\{[\s\S]{0,400}serverSellPackageKey:/.test(src),
+      `${key}: the server's answer must be the input that overrides the marker`,
+    );
+  }
+  // Bienes is the exception BY CONSTRUCTION, not by omission: its checkpoint is suppressed
+  // outright for a listing-bound preview, so no existing row can be re-priced there at all.
+  const bienes = codeOf(QUICK_CHECKOUT_SITES["bienes-negocio"].file);
+  assert.ok(
+    /listingBoundPreview\)\s*return null;/.test(bienes),
+    "bienes-negocio: the listing-bound preview must keep suppressing its checkout entirely",
+  );
+});
+
+/** The server side of that answer: owner-verified, ledger-derived, and never client-supplied. */
+check("the base-plan offer is resolved from owner-verified server state", () => {
+  const offer = codeOf("app/lib/listingPlans/businessBasePlanOffer.ts");
+  assert.ok(
+    offer.includes("isBusinessListingOwnedBy("),
+    "the resolver must verify the caller owns the listing before answering",
+  );
+  assert.ok(
+    /const owned = await isBusinessListingOwnedBy[\s\S]{0,160}if \(!owned\) return NOTHING_TO_SELL/.test(offer),
+    "an unverified owner must get no offer at all, not a defaulted one",
+  );
+  assert.ok(
+    offer.includes("resolveBusinessAccess("),
+    "the held level must come from the shared entitlement resolver, never a local re-derivation",
+  );
+  assert.ok(
+    offer.includes("upgradeTargetPackageKey(category)"),
+    "the upgrade target must be read from the single category/package pairing",
+  );
+  // No price is ever decided here, and no literal package key is ever written.
+  assert.ok(!/priceCents|39900|9900/.test(offer), "the resolver must not carry a price");
+  for (const pair of Object.values(BUSINESS_CATEGORY_PACKAGE_PAIR)) {
+    assert.ok(!offer.includes(`"${pair.simple}"`), `${pair.simple} must not be hardcoded in the resolver`);
+    assert.ok(!offer.includes(`"${pair.full}"`), `${pair.full} must not be hardcoded in the resolver`);
+  }
+
+  const route = codeOf("app/api/revenue-os/business-base-plan/route.ts");
+  assert.ok(route.includes("getBearerUserId(request)"), "the offer route must authenticate the caller");
+  assert.ok(
+    /if \(!ownerUserId\)[\s\S]{0,120}401/.test(route),
+    "an unauthenticated caller must be refused, not answered",
+  );
+  assert.ok(
+    !/POST|PATCH|PUT|DELETE|update\(|insert\(|upsert\(/.test(route),
+    "the offer route must be read-only",
+  );
+  assert.ok(
+    route.includes("getRevenuePackageDefinition(offer.sellPackageKey)?.priceCents"),
+    "the displayed price must come from the same server matrix the checkout charges from",
+  );
 });
 
 check("anything other than the exact Quick token checks out as Full", () => {

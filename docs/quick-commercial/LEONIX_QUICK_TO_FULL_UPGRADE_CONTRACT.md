@@ -61,6 +61,57 @@ No staff member re-creates the customer, and there is no "migrate to Full" data 
 
 ---
 
+## 3B. How the customer actually reaches it
+
+The upgrade is a **purchase of the category's existing Full package for the listing the owner
+already has**. It is deliberately not a fresh application: reopening the public intake would start a
+second listing, and the whole contract is that the customer keeps the one they have.
+
+**The offer.** Which base package a listing should be sold right now is decided server-side, from
+state the server already owns, by `decideBusinessBasePlanOffer()`
+(`app/lib/listingPlans/businessBasePlanOfferPolicy.ts`):
+
+| Listing state | Mode | What is offered |
+|---|---|---|
+| Holds the Full package | `settled` | Nothing. An upgrade is never offered twice. |
+| Holds the Quick package | `upgrade` | `upgradeTargetPackageKey(category)` — the category's existing Full package. |
+| Holds nothing, a base checkout is unresolved in `leonix_payment_records` | `resume` | **The same package that checkout was started for.** A $99 customer who abandoned Stripe is never re-offered at the Full price. |
+| Holds nothing, nothing in flight | `new` | Nothing. The caller keeps its own default (a fresh application's Quick/Full marker). |
+
+The fetch side (`businessBasePlanOffer.ts`) verifies that the caller owns the listing before it
+answers, and fails closed to `new` on every unknown — a wrong owner, an unreadable table, a category
+outside the split. `GET /api/revenue-os/business-base-plan` exposes it read-only to owner surfaces,
+behind bearer auth, with the price read from the same server matrix the checkout charges from.
+
+**The entry points.** One shared starter,
+`startBusinessSimpleToFullUpgradeCheckout()`
+(`app/(site)/dashboard/lib/businessSimpleToFullUpgradeCheckout.ts`), shaped exactly like the
+dashboard add-on checkouts that already exist. It buys a package for a listing that already exists
+through the same `/api/revenue-os/checkout`, with **no content save, no status change and no
+republish** — which is what makes the upgrade identity-preserving by construction. The caller never
+chooses the package: it is read from `upgradeTargetPackageKey()`.
+
+| Category | Owner surface carrying the CTA |
+|---|---|
+| Servicios | `/dashboard/servicios` — specialized tools group |
+| Restaurantes | `/dashboard/restaurantes` — specialized tools group |
+| Autos dealer | `AutosDealerInventoryDashboardSection` — dealer parent's owner tools |
+| Bienes Raíces negocio | `LeonixRealEstateListingManageCard` → `BusinessSimpleToFullUpgradePanel` |
+
+Every one of them is gated by `businessUpgradeOfferedForHeldPackageKey()`, reading the base package
+key the **server** resolved for that row, so the CTA cannot appear for a Full listing or for a
+listing with no base package.
+
+**The one relaxation.** An in-place upgrade must not run the first-purchase machinery. A live
+listing pushed back to `pending_payment` would take a paying customer's ad offline in order to
+charge them more, and the Autos "not payable status" pre-flight was written for drafts.
+`isBusinessBaseUpgradeInPlace()` answers that question server-side — it returns true only for the
+category's own Full target bought for a listing the entitlement table resolves as already holding
+SIMPLE — and `app/api/revenue-os/checkout/route.ts` skips exactly those two steps when it does.
+Nothing in the request can set that flag.
+
+---
+
 ## 4. Never downgrade
 
 The resolver takes the **highest** live grant
@@ -95,7 +146,7 @@ product or price id exists to drift.
 
 ## 6. What this contract does NOT do
 
-- It does not automate the upgrade as a one-click self-service flow. The upgrade is a purchase of
-  the category's existing Full package through the category's existing checkout.
+- It does not grant Full on click. The CTA opens the category's existing Revenue OS checkout; the
+  entitlement is granted by the verified Stripe webhook, exactly as a first purchase is.
 - It does not downgrade Full to Simple. No automatic downgrade path exists, by design.
 - It does not change any Full benefit, price, or capability.
