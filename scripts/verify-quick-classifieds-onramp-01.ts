@@ -78,7 +78,10 @@ const ADAPTERS = `${QUICK_ROUTE}/_adapters`;
     // Quick Business Core (Phase 2, branch claude/quick-business-core-build-2026-09): the additive
     // `/publicar/negocio-rapido/**` tree is the business intake sibling of `rapido/`; it never touches the
     // certified classifieds tree (asserted by scripts/verify-quick-business-core-01.ts §7).
-    /^app\/\(site\)\/publicar\/(?!rapido\/|negocio-rapido\/|PublicarGatewayClient\.tsx$|empleos\/shared\/publish\/empleosDraftMediaUpload\.ts$)/,
+    // Remaining-families mission (branch claude/quick-remaining-families-build-2026-09): the additive
+    // `/publicar/comida-local/rapido/**` tree is a standalone Quick front door onto the EXISTING Comida Local
+    // product — Comida Local cannot join the closed Quick Business Core registry, so it lives beside it.
+    /^app\/\(site\)\/publicar\/(?!rapido\/|negocio-rapido\/|comida-local\/|PublicarGatewayClient\.tsx$|empleos\/shared\/publish\/empleosDraftMediaUpload\.ts$)/,
     /^app\/admin\/(?!\(dashboard\)\/businesses\/(StaffCommandCenter|QuickApplicationsLaunchpad)\.tsx$)/,
     /^app\/manifest\.ts$/,
   ];

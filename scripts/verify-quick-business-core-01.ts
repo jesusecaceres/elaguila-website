@@ -213,7 +213,11 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
   const PROTECTED = [
     /^app\/lib\/listingIdentity\//, /^app\/lib\/listingPlans\//, /^app\/lib\/listingLifecycle\//, /^app\/lib\/media\//, /^app\/lib\/listingDrafts\//, /^app\/lib\/auth\//, /^app\/lib\/business\//,
     /^app\/components\//, /^app\/api\//, /^supabase\//, /^app\/\(site\)\/clasificados\//, /^app\/\(site\)\/dashboard\//,
-    /^app\/\(site\)\/publicar\/(?!negocio-rapido\/|PublicarGatewayClient\.tsx$)/,
+    // Remaining-families mission (branch claude/quick-remaining-families-build-2026-09, off this exact certified
+    // SHA): the additive `/publicar/comida-local/rapido/**` tree is a standalone Quick front door onto the
+    // EXISTING Comida Local product — it cannot join the closed, verifier-locked `quickBusinessRegistry.ts` union
+    // (asserted "exactly four live categories" above), so it lives beside it instead. Never widens this registry.
+    /^app\/\(site\)\/publicar\/(?!negocio-rapido\/|comida-local\/|PublicarGatewayClient\.tsx$)/,
     /^app\/admin\/(?!\(dashboard\)\/businesses\/QuickApplicationsLaunchpad\.tsx$)/,
     /^app\/lib\/quickClassifieds\//, /^app\/manifest\.ts$/,
   ];

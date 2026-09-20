@@ -22,6 +22,8 @@ import type { QuickClassifiedCategoryKey, QuickClassifiedDefinition } from "@/ap
 import { listQuickBusinessDefinitions } from "@/app/lib/quickBusiness/quickBusinessRegistry";
 import { quickBusinessCategoryPath, quickBusinessChooserPath, quickBusinessShareUrl } from "@/app/lib/quickBusiness/quickBusinessRoutes";
 import type { QuickBusinessDefinition } from "@/app/lib/quickBusiness/quickBusinessTypes";
+import { listQuickRemainingDefinitions } from "@/app/lib/quickRemaining/quickRemainingRegistry";
+import type { QuickRemainingDefinition } from "@/app/lib/quickRemaining/quickRemainingRegistry";
 
 /**
  * APLICACIONES RÁPIDAS / QUICK APPLICATIONS — the staff launchpad inside the ONE Business Concierge PWA.
@@ -82,6 +84,26 @@ function businessCustomerUrl(def: QuickBusinessDefinition | null, lang: LinkLang
   return `${origin().replace(/\/+$/, "")}${businessCustomerPath(def, lang)}`;
 }
 
+/** Lower-priority remaining families (Phase 3): `def.href` is already the technically correct
+ * destination per family (a new Quick form, the existing application, or a pure content directory)
+ * — never a wrapper. */
+function remainingCustomerUrl(def: QuickRemainingDefinition, lang: LinkLang): string {
+  return `${origin().replace(/\/+$/, "")}${withLang(def.href, lang)}`;
+}
+
+function remainingPriceBadge(def: QuickRemainingDefinition): string {
+  if (!def.pricing) return "";
+  const { priceCents } = getRevenuePackagePriceCents({ category: def.pricing.category, packageKey: def.pricing.packageKey });
+  return priceCents == null ? "" : `${formatRevenuePriceLabel(priceCents)}/mes · /month`;
+}
+
+/** Truthful verb per action kind — never "Crear" when nothing is created. */
+function remainingCtaLabel(def: QuickRemainingDefinition): string {
+  if (def.action === "quick_form") return "Crear con el cliente / Create with customer";
+  if (def.action === "direct_link") return "Abrir formulario / Open application";
+  return "Abrir directorio / Open directory";
+}
+
 export function QuickApplicationsLaunchpad() {
   const [linkLang, setLinkLang] = useState<LinkLang>("es");
   const [toast, setToast] = useState<string | null>(null);
@@ -135,7 +157,30 @@ export function QuickApplicationsLaunchpad() {
     [flash, linkLang],
   );
 
+  const copyRemainingLink = useCallback(
+    async (def: QuickRemainingDefinition) => {
+      const ok = await copyToClipboard(remainingCustomerUrl(def, linkLang));
+      flash(ok ? "Enlace copiado / Link copied" : "No se pudo copiar / Could not copy");
+    },
+    [flash, linkLang],
+  );
+
+  const shareRemainingLink = useCallback(
+    async (def: QuickRemainingDefinition) => {
+      const url = remainingCustomerUrl(def, linkLang);
+      const label = linkLang === "en" ? def.label.en : def.label.es;
+      const text = linkLang === "en" ? `Leonix: ${label}` : `Leonix: ${label}`;
+      const outcome = await tryWebShare({ title: label, text, url });
+      if (outcome === "unsupported") {
+        const ok = await copyToClipboard(url);
+        flash(ok ? "Enlace copiado / Link copied" : "No se pudo compartir / Could not share");
+      }
+    },
+    [flash, linkLang],
+  );
+
   const business = listQuickBusinessDefinitions();
+  const remaining = listQuickRemainingDefinitions();
 
   const tier1 = QUICK_TIER1_KEYS.map((k) => QUICK_CLASSIFIED_DEFINITIONS[k]);
   const fsbo = QUICK_CLASSIFIED_DEFINITIONS[FSBO];
@@ -324,6 +369,66 @@ export function QuickApplicationsLaunchpad() {
             Selector de negocio rápido / Quick business chooser
           </Link>
         </p>
+      </div>
+
+      {/* Más Opciones (Phase 3, lower priority): Comida Local, Ofertas Locales, Negocios Locales, Viajes,
+          Iglesias, Recursos. Each card performs the correct canonical action for its REAL current product —
+          a new Quick form only for Comida Local; the existing application for Ofertas/Viajes/Iglesias; a
+          directory open+share for Negocios Locales/Recursos. Never "Crear" wording where nothing is created. */}
+      <div id="quick-more-options" className="mt-6 scroll-mt-4 rounded-2xl border border-[#D6C7AD] bg-white/70 p-3 sm:p-4">
+        <h3 className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Más Opciones / More Options</h3>
+        <p className="mt-1 text-xs text-[#5C5346]">
+          Categorías de menor prioridad — cada una usa su destino existente correcto. / Lower-priority categories — each one uses its correct existing destination.
+        </p>
+        <ul className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {remaining.map((def) => {
+            const badge = remainingPriceBadge(def);
+            const openHref = withLang(def.href, linkLang);
+            return (
+              <li key={def.key} className="flex flex-col rounded-2xl border border-[#D6C7AD] bg-white p-3">
+                <div className="flex items-start gap-2">
+                  <span className="text-2xl leading-none" aria-hidden="true">{def.emoji}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-[#1E1810]">
+                      {def.label.es} / {def.label.en}
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-[#7A7164]">
+                      {def.action === "quick_form"
+                        ? `${badge} · ≈ ${def.essentialQuestionCount ?? ""} preguntas / questions`
+                        : def.action === "direct_link"
+                          ? "Aplicación existente / Existing application"
+                          : "Directorio / Directory"}
+                    </p>
+                    <p className="mt-1 text-[11px] text-[#7A7164]">{def.note.es} / {def.note.en}</p>
+                  </div>
+                </div>
+                <div className="mt-3 grid grid-cols-1 gap-2">
+                  <Link
+                    href={openHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[#7A1E2C]/40 bg-[#7A1E2C]/5 px-3 text-xs font-bold text-[#7A1E2C]"
+                  >
+                    {remainingCtaLabel(def)}
+                  </Link>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button type="button" onClick={() => void copyRemainingLink(def)} className={`${adminBtnSecondary} min-h-[44px] text-xs`}>
+                      🔗 Copiar / Copy
+                    </button>
+                    <button type="button" onClick={() => void shareRemainingLink(def)} className={`${adminBtnSecondary} min-h-[44px] text-xs`}>
+                      📤 Compartir / Share
+                    </button>
+                  </div>
+                  {def.manageHref ? (
+                    <Link href={withLang(def.manageHref, linkLang)} target="_blank" rel="noreferrer" className="text-center text-[11px] font-semibold text-[#7A1E2C] underline">
+                      Administrar / Manage
+                    </Link>
+                  ) : null}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
       </div>
 
       <div className="mt-4 flex flex-col gap-2 text-[11px] text-[#7A7164] sm:flex-row sm:items-center sm:justify-between">
