@@ -25,6 +25,8 @@ import { strict as assert } from "node:assert";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { execSync } from "node:child_process";
+import { decideBusinessBasePlanOffer } from "../app/lib/listingPlans/businessBasePlanOfferPolicy";
+import { businessBasePackageKeys } from "../app/lib/listingPlans/businessAccessLevel";
 
 const ROOT = process.cwd();
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
@@ -370,7 +372,63 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
   assert.equal(esCount, enCount, "every Quick Business copy entry has both ES and EN");
 }
 
-// 9. BIENES NEGOCIO TRANSLATION — TranslateAdControl wired in the public detail shell (Gate 2 corrective) -----------
+// 9. UPGRADE BILLING CONVERGENCE — Gate 4 corrective -----------------------------------------------------------
+// Verifies three linked correctness properties (all mock-based, no live DB/Stripe):
+//   a. billingHref is defined in all 4 registry manage blocks and points to the real Stripe portal path.
+//   b. The client doorway's billing section points to manage.billingHref (the real portal), not manageHref.
+//   c. The Pause section carries the REPAIR_REQUIRED comment and no longer labels the button "Pausar".
+//   d. decideBusinessBasePlanOffer (pure, no DB) correctly routes:
+//      "simple" → upgrade (sells full key), "full" → settled (nothing to sell).
+//   e. businessBasePackageKeys lists Full before Quick for each category — so a listing with both active
+//      resolves to Full, never to a false downgrade.
+{
+  // (a) billingHref in all 4 manage blocks
+  for (const catKey of ["servicios", "restaurantes", "autos-dealer", "bienes-negocio"] as const) {
+    const block = registryBlock(catKey.includes("-") ? `"${catKey}"` : catKey);
+    assert.ok(block.includes('billingHref: "/dashboard/perfil"'), `${catKey} manage block has billingHref → /dashboard/perfil`);
+  }
+  // (b) client component uses billingHref for the billing link
+  const myBiz = read(`${QB_COMPONENTS}/QuickBusinessMyBusinessClient.tsx`);
+  assert.ok(myBiz.includes("const billingHref = withLang(manage.billingHref"), "billing link built from manage.billingHref");
+  assert.ok(myBiz.includes("href={billingHref}"), "billing <Link> uses billingHref");
+  assert.ok(!myBiz.includes("href={manageHref}\n            {quickBusinessCopy(\"myBusinessBilling\"") &&
+    !myBiz.includes("href={manageHref}\n          {quickBusinessCopy(\"myBusinessBilling\""),
+    "billing link no longer points to manageHref");
+  // (c) Pause section is honest (REPAIR_REQUIRED comment + no 'Pausar o reactivar' as button label)
+  assert.ok(myBiz.includes("REPAIR_REQUIRED"), "Pause section carries REPAIR_REQUIRED comment");
+  assert.ok(myBiz.includes('"Go to dashboard"'), "Pause section uses honest navigation label (en)");
+  // (d) decideBusinessBasePlanOffer pure logic — tested inline without DB (imported statically above)
+  for (const cat of ["servicios", "restaurantes", "autos", "bienes-raices"] as const) {
+    const upgradeOffer = decideBusinessBasePlanOffer({
+      category: cat,
+      accessLevel: "simple",
+      heldPackageKey: "some_quick_key",
+      resumePackageKey: null,
+    });
+    assert.equal(upgradeOffer.mode, "upgrade", `decideBusinessBasePlanOffer(${cat}, simple) → upgrade`);
+    assert.ok(upgradeOffer.sellPackageKey !== null, `upgrade offer for ${cat} has a sellPackageKey`);
+
+    const settledOffer = decideBusinessBasePlanOffer({
+      category: cat,
+      accessLevel: "full",
+      heldPackageKey: "some_full_key",
+      resumePackageKey: null,
+    });
+    assert.equal(settledOffer.mode, "settled", `decideBusinessBasePlanOffer(${cat}, full) → settled`);
+    assert.equal(settledOffer.sellPackageKey, null, `settled offer for ${cat} sells nothing`);
+  }
+  // (e) businessBasePackageKeys — Full must come before Quick (imported statically above)
+  for (const cat of ["servicios", "restaurantes", "autos", "bienes-raices"] as const) {
+    const keys = businessBasePackageKeys(cat);
+    assert.ok(keys.length >= 2, `${cat} has at least two base package keys (Full + Quick)`);
+    const fullIdx = keys.findIndex((k) => !k.includes("quick"));
+    const quickIdx = keys.findIndex((k) => k.includes("quick"));
+    assert.ok(fullIdx >= 0 && quickIdx >= 0, `${cat} has both full and quick package keys`);
+    assert.ok(fullIdx < quickIdx, `${cat}: Full key comes before Quick in businessBasePackageKeys (dual-active resolves to Full)`);
+  }
+}
+
+// 10. (Gate 2 corrective) BIENES NEGOCIO TRANSLATION — TranslateAdControl wired in the public detail shell -----------
 {
   const SHELL_PATH = "app/(site)/clasificados/bienes-raices/listing/BienesRaicesNegocioLiveDetailShell.tsx";
   const TRANSLATE_MODULE = "app/(site)/clasificados/bienes-raices/lib/bienesNegocioTranslateAd.ts";

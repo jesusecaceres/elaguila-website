@@ -57,7 +57,7 @@ export type QuickBusinessManageAdapter = {
   endNote: QuickText;
   /** Billing posture (monthly subscription through the existing Revenue OS). */
   billingNote: QuickText;
-  /** Real billing management path — always /dashboard/perfil (Stripe customer portal). */
+  /** Real billing management path — always /dashboard/perfil (customer portal). */
   billingHref: string;
 };
 
