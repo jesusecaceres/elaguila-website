@@ -26,6 +26,16 @@ import {
   type BusinessAccessCapability,
 } from "../app/lib/listingPlans/businessAccessLevel";
 import {
+  businessPackageKeyForPlan,
+  businessPlanFromParam,
+  withQuickPlanParam,
+} from "../app/lib/listingPlans/businessQuickPlanSignal";
+import {
+  AUTOS_DEALER_BASE_INCLUDED_VEHICLES,
+  AUTOS_DEALER_QUICK_INCLUDED_VEHICLES,
+  BR_QUICK_INCLUDED_PROPERTIES,
+} from "../app/lib/listingPlans/publishCheckoutCheckpoint";
+import {
   getRevenuePackageDefinition,
   REVENUE_V1_PACKAGE_MATRIX,
 } from "../app/lib/listingPlans/revenuePricingMatrix";
@@ -33,7 +43,10 @@ import {
   computeRevenueCheckoutSubtotalCents,
   validateRevenueCheckoutAddOns,
 } from "../app/lib/listingPlans/revenueCheckout";
-import type { EntitlementRowFacts } from "../app/lib/listingPlans/categoryCommercialPlanPolicy";
+import {
+  decideCategoryListingPlan,
+  type EntitlementRowFacts,
+} from "../app/lib/listingPlans/categoryCommercialPlanPolicy";
 import { getLaneMediaRecords, type LaneMediaRecord } from "../app/lib/media/listingMediaConfigs";
 import type { CanonicalCategoryKey } from "../app/lib/listingIdentity/types";
 import { QUICK_BUSINESS_DEFINITIONS } from "../app/lib/quickBusiness/quickBusinessRegistry";
@@ -475,6 +488,216 @@ check("the final proof matrix covers every required feature with no repair outst
     assert.ok(
       !/^REPAIR_REQUIRED\b/.test(status) && !/^BLOCKED\b/.test(status),
       `no feature may close as ${status}: ${row.slice(0, 60)}`,
+    );
+  }
+});
+
+// ───────────────────────────────────────────────────────────────────────────────────────────────
+// The purchase circuit. Declaring a $99 package proves nothing if no flow sells it: before this
+// was closed, Quick intake handed off to the shared preview, the preview checked out the FULL
+// key, and a Quick payment would have been skipped by the webhook as "wrong package", leaving a
+// paying customer unpublished. These checks pin each link.
+// ───────────────────────────────────────────────────────────────────────────────────────────────
+
+const QUICK_ADAPTERS: Record<QuickBusinessCategoryKey, string> = {
+  servicios: "app/(site)/publicar/negocio-rapido/_adapters/serviciosQuickBusinessAdapter.ts",
+  restaurantes: "app/(site)/publicar/negocio-rapido/_adapters/restaurantesQuickBusinessAdapter.ts",
+  "autos-dealer": "app/(site)/publicar/negocio-rapido/_adapters/autosDealerQuickBusinessAdapter.ts",
+  "bienes-negocio": "app/(site)/publicar/negocio-rapido/_adapters/bienesNegocioQuickBusinessAdapter.ts",
+};
+
+/** The one checkout-building file per category that must choose between the two base packages. */
+const QUICK_CHECKOUT_SITES: Record<QuickBusinessCategoryKey, { file: string; quickConst: string; fullConst: string }> = {
+  servicios: {
+    file: "app/(site)/clasificados/publicar/servicios/preview/ClasificadosServiciosPreviewClient.tsx",
+    quickConst: "SERVICIOS_QUICK_CHECKOUT",
+    fullConst: "SERVICIOS_BASE_CHECKOUT",
+  },
+  restaurantes: {
+    file: "app/(site)/clasificados/restaurantes/preview/RestaurantePreviewClient.tsx",
+    quickConst: "RESTAURANTES_QUICK_CHECKOUT",
+    fullConst: "RESTAURANTES_BASE_CHECKOUT",
+  },
+  "autos-dealer": {
+    file: "app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx",
+    quickConst: "AUTOS_DEALER_QUICK_CHECKOUT",
+    fullConst: "AUTOS_DEALER_CHECKOUT",
+  },
+  "bienes-negocio": {
+    file: "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewClient.tsx",
+    quickConst: "BIENES_RAICES_NEGOCIO_QUICK_CHECKOUT",
+    fullConst: "BIENES_RAICES_NEGOCIO_CHECKOUT",
+  },
+};
+
+check("every Quick intake hands off carrying the Quick plan marker", () => {
+  for (const [key, file] of Object.entries(QUICK_ADAPTERS) as [QuickBusinessCategoryKey, string][]) {
+    const src = codeOf(file);
+    assert.ok(
+      src.includes("withQuickPlanParam("),
+      `${key}: the handoff must stamp the Quick plan marker, or the preview sells the Full package`,
+    );
+    const handoffAt = src.indexOf("handoff:");
+    const markerAt = src.indexOf("withQuickPlanParam(");
+    assert.ok(handoffAt > -1 && markerAt > -1, `${key}: both the handoff and the marker must be present`);
+  }
+});
+
+check("every business preview reads the marker and sells the matching package", () => {
+  for (const [key, site] of Object.entries(QUICK_CHECKOUT_SITES) as [QuickBusinessCategoryKey, (typeof QUICK_CHECKOUT_SITES)[QuickBusinessCategoryKey]][]) {
+    const src = codeOf(site.file);
+    assert.ok(
+      src.includes("businessPlanFromSearchParams("),
+      `${key}: the preview must read the plan from its own URL`,
+    );
+    assert.ok(src.includes(site.quickConst), `${key}: the preview must be able to select ${site.quickConst}`);
+    assert.ok(src.includes(site.fullConst), `${key}: the preview must still select ${site.fullConst} by default`);
+    // The Quick constant may only be reached through the plan decision, never unconditionally.
+    assert.ok(
+      new RegExp(`quickPlan[\\s\\S]{0,80}${site.quickConst}`).test(src),
+      `${key}: ${site.quickConst} must be chosen by the plan decision, not hardcoded`,
+    );
+  }
+});
+
+check("anything other than the exact Quick token checks out as Full", () => {
+  for (const raw of [null, undefined, "", "full", "quick!", "QUICKX", "simple", "99"]) {
+    assert.equal(
+      businessPlanFromParam(raw),
+      "full",
+      `"${String(raw)}" must not be read as a Quick purchase`,
+    );
+  }
+  // Only the exact token, case-insensitively and trimmed, buys Quick.
+  for (const raw of ["quick", "QUICK", " Quick "]) {
+    assert.equal(businessPlanFromParam(raw), "quick", `"${raw}" must select the Quick package`);
+  }
+  for (const category of Object.keys(BUSINESS_CATEGORY_PACKAGE_PAIR)) {
+    assert.equal(businessPackageKeyForPlan(category, "quick"), BUSINESS_CATEGORY_PACKAGE_PAIR[category].simple);
+    assert.equal(businessPackageKeyForPlan(category, "full"), BUSINESS_CATEGORY_PACKAGE_PAIR[category].full);
+  }
+  // The marker never replaces an existing query value the canonical preview depends on.
+  const href = withQuickPlanParam("/clasificados/publicar/servicios/preview?lang=en");
+  assert.ok(href.includes("lang=en") && href.includes("plan=quick"), `marker must preserve existing query: ${href}`);
+});
+
+check("a paid Quick purchase publishes through the same webhook as Full", () => {
+  const activators: Array<[string, string]> = [
+    ["app/lib/listingPlans/revenueServiciosFulfillment.ts", "servicios"],
+    ["app/lib/listingPlans/revenueRestaurantFulfillment.ts", "restaurantes"],
+    ["app/lib/listingPlans/revenueAutosDealerFulfillment.ts", "autos"],
+    ["app/lib/listingPlans/revenueBienesNegocioFulfillment.ts", "bienes-raices"],
+  ];
+  for (const [file, category] of activators) {
+    const src = codeOf(file);
+    assert.ok(
+      src.includes(`isBusinessBasePackageKey("${category}"`),
+      `${file}: activation must accept EITHER base key, or a paid Quick listing never publishes`,
+    );
+    // An exact compare against the Full key next to the skip is exactly the defect being fixed.
+    assert.ok(
+      !/packageKey !== [A-Z_]*BASE[A-Z_]*_PACKAGE_KEY|packageKey !== AUTOS_DEALER_MONTHLY_PACKAGE_KEY/.test(src),
+      `${file}: no exact Full-key compare may gate activation`,
+    );
+  }
+  const router = codeOf("app/lib/listingPlans/revenueFulfillment.ts");
+  for (const category of ["servicios", "restaurantes", "bienes-raices"]) {
+    assert.ok(
+      router.includes(`isBusinessBasePackageKey("${category}"`),
+      `the webhook router must route a Quick ${category} payment to its activator`,
+    );
+  }
+});
+
+check("a live Quick row is a real plan, and Full wins when a customer holds both", () => {
+  const row = (packageKey: string, id: string): EntitlementRowFacts => ({
+    id,
+    packageKey,
+    grantSource: "stripe_webhook",
+    packageTier: "digital_only",
+    status: "active",
+    startsAt: null,
+    endsAt: null,
+  });
+  const nowMs = Date.now();
+
+  for (const category of ["servicios", "restaurantes"]) {
+    const pair = BUSINESS_CATEGORY_PACKAGE_PAIR[category];
+
+    const quickOnly = decideCategoryListingPlan({ category, rows: [row(pair.simple, "q")], nowMs });
+    assert.equal(quickOnly.status, "active", `${category}: a paid Quick row must not resolve to "none"`);
+    assert.equal(quickOnly.packageKey, pair.simple, `${category}: the plan must name the Quick package honestly`);
+    assert.deepEqual(
+      quickOnly.capabilities,
+      [],
+      `${category}: Quick must confer no Full capability — it must never inherit the Full package's`,
+    );
+
+    const fullOnly = decideCategoryListingPlan({ category, rows: [row(pair.full, "f")], nowMs });
+    assert.equal(fullOnly.packageKey, pair.full, `${category}: Full must be unchanged`);
+    assert.ok(fullOnly.capabilities.includes("coupons_offers"), `${category}: Full must keep coupons_offers`);
+
+    // The upgrade window: the Full subscription is paid before the Quick one is cancelled.
+    const both = decideCategoryListingPlan({ category, rows: [row(pair.simple, "q"), row(pair.full, "f")], nowMs });
+    assert.equal(both.packageKey, pair.full, `${category}: holding both must resolve to Full, never to Quick`);
+    assert.ok(both.capabilities.includes("coupons_offers"), `${category}: an upgrade must not read as a downgrade`);
+  }
+});
+
+check("the Quick inventory allowance stated at checkout matches the package sold", () => {
+  // The checkout line item tells the customer how many vehicles/properties they get. That number
+  // must come from the package actually being sold, not from the Full allowance next to it.
+  const cases: Array<[string, number]> = [
+    ["autos_dealer_quick_monthly", AUTOS_DEALER_QUICK_INCLUDED_VEHICLES],
+    ["br_agent_quick_monthly", BR_QUICK_INCLUDED_PROPERTIES],
+  ];
+  for (const [key, stated] of cases) {
+    const def = getRevenuePackageDefinition(key);
+    assert.ok(def, `${key} must exist`);
+    const declared = Number((def.includedInventory ?? "").match(/\d+/)?.[0] ?? NaN);
+    assert.equal(declared, stated, `${key}: checkout states ${stated} but the package includes "${def.includedInventory}"`);
+    assert.ok(stated < AUTOS_DEALER_BASE_INCLUDED_VEHICLES, `${key}: Simple must stay smaller than Full`);
+  }
+  // Quick never offers the inventory pack at all, in either inventory category.
+  const autos = codeOf("app/(site)/clasificados/autos/negocios/lib/autosDealerRevenueCheckout.ts");
+  assert.ok(
+    /quickPlan\s*\n?\s*\?\s*\[\]/.test(autos),
+    "the Quick dealer checkout must offer no inventory add-on row at all",
+  );
+  const bienes = codeOf(
+    "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewClient.tsx",
+  );
+  assert.ok(
+    /!quickPlan && bundleCreatedCount > 0/.test(bienes),
+    "the Quick agent checkout must never attach the property inventory pack",
+  );
+  assert.ok(
+    /quickPlan \? 0 :/.test(bienes),
+    "the Quick agent checkout must never carry child inventory into the payload",
+  );
+});
+
+check("the Quick photo is a real photo of the thing being sold", () => {
+  // The Media Lock above proves one photo is REQUIRED. This proves the required photo is the
+  // customer's own upload landing on the canonical vehicle/property, with nothing synthesised.
+  const autos = codeOf(QUICK_ADAPTERS["autos-dealer"]);
+  assert.ok(/mediaImages:\s*MediaImageEntry\[\]\s*=\s*media\.map\(/.test(autos), "dealer photos map 1:1 from the customer's upload");
+  assert.ok(autos.includes("mediaImages,") && autos.includes("heroImages:"), "the photo must land on the vehicle itself");
+  assert.ok(/additionalInventoryVehicles:\s*\[\]/.test(autos), "Quick publishes the first real vehicle only");
+
+  const bienes = codeOf(QUICK_ADAPTERS["bienes-negocio"]);
+  assert.ok(/fotosDataUrls:\s*media\.map\(/.test(bienes), "property photos map 1:1 from the customer's upload");
+
+  for (const [key, file] of Object.entries(QUICK_ADAPTERS) as [QuickBusinessCategoryKey, string][]) {
+    const src = codeOf(file);
+    // Image sources only — `placeholder:` on a text field is intake copy, not a photo.
+    assert.ok(
+      !/(unsplash\.com|picsum\.photos|placehold\.co|via\.placeholder|data:image\/svg)/i.test(src),
+      `${key}: no generated or stock image may stand in for the customer's required photo`,
+    );
+    assert.ok(
+      !/(dataUrl|url|src):\s*["'`]\s*\//.test(src),
+      `${key}: no built-in asset path may be written into media`,
     );
   }
 });
