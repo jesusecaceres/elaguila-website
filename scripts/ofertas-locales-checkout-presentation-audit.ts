@@ -94,11 +94,15 @@ check("08", "Plan summary remains", () => {
   assert.match(checkoutSrc, /\{t\.planSummary\}/);
 });
 
-check("09", "$399 / 30 days remains (real product lookup, unchanged)", () => {
-  const product = getOfertaLocalCommercialProductForOfferType("weekly_flyer");
-  assert.equal(product!.amountCents, 39900);
-  assert.equal(product!.durationDays, 30);
-  assert.match(checkoutSrc, /\{offer\.commercialAmount\} \/ \{offer\.commercialDurationDays \?\? 30\}/);
+check("09", "Flyer stays $399 / 30 days and the rendered amount follows the live package, not a hardcoded lane", () => {
+  const flyer = getOfertaLocalCommercialProductForOfferType("weekly_flyer");
+  assert.equal(flyer!.amountCents, 39900);
+  assert.equal(flyer!.durationDays, 30);
+  const coupon = getOfertaLocalCommercialProductForOfferType("coupon");
+  assert.equal(coupon!.amountCents, 19900);
+  assert.equal(coupon!.durationDays, 30);
+  assert.match(checkoutSrc, /getOfertaLocalCommercialProductByPackageKey\(offer\.commercialProductKey\)/);
+  assert.match(checkoutSrc, /\{chargeLabel\} \/ \{durationDays\}/);
 });
 
 check("10", "IA included line remains", () => {

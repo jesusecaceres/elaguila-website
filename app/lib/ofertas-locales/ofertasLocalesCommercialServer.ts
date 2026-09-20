@@ -341,9 +341,9 @@ export async function validateOfertaLocalSubmissionEntitlement(input: {
 
   // Re-derived from the persisted parent row's own offer_type — never a
   // client-supplied flag. weekly_flyer always resolves to the $399 flyer
-  // product; only coupon/promotion offer_types can ever resolve to the free
-  // coupon product, so the free path below is structurally unreachable for
-  // the flyer lane regardless of any request body content.
+  // product; coupon/promotion offer_types resolve to the $199 coupon
+  // product. Both lanes are paid, so both go through the entitlement check
+  // below regardless of any request body content.
   const product = getOfertaLocalCommercialProductForOfferType(input.parent.offer_type);
   if (!product) {
     return { ok: false, status: 422, code: "commercial_product_missing", message: "Listing has no valid commercial product." };
@@ -354,11 +354,10 @@ export async function validateOfertaLocalSubmissionEntitlement(input: {
     return { ok: false, status: 422, code: "leonix_ad_id_missing", message: "Listing must have a stable Leonix Ad ID before submission." };
   }
 
-  // Cupones y Promociones is a free, manual-entry product by commercial
-  // definition (amountCents === 0 on its catalog entry) — no Stripe, no
-  // payment record, and no partner-courtesy assignment are required or
-  // consulted for it. This can never apply to a paid product (flyer is
-  // always $399 per its own catalog entry, checked above via `product`).
+  // Generic zero-amount guard: a catalog entry priced at 0 needs no Stripe
+  // payment record and no partner-courtesy assignment. Neither Ofertas lane
+  // takes this path today — flyer is $399 and coupons are $199 per the
+  // server package matrix — so both fall through to the entitlement check.
   if (product.amountCents === 0) {
     return { ok: true, source: "free", product, leonixAdId };
   }
