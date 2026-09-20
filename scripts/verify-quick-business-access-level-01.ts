@@ -523,6 +523,23 @@ check("the final proof matrix covers every required feature with no repair outst
       `no feature may close as ${status}: ${row.slice(0, 60)}`,
     );
   }
+  // §1 records what each level IS. The closeout records that the product OPERATES: a customer can
+  // buy, publish and upgrade; staff can find them; and nothing outside the split moved. A matrix
+  // that lost one of these would read as complete while leaving an operational area unproven.
+  for (const heading of [
+    "Publish pipeline",
+    "Simple media",
+    "Simple → Full upgrade",
+    "Admin / staff commercial truth",
+    "Quick Classifieds and the remaining families",
+    "Security / authority",
+  ]) {
+    assert.ok(doc.includes(`### 7.`) && doc.includes(heading), `the closeout must cover ${heading}`);
+  }
+  assert.ok(
+    /REPAIR_REQUIRED = 0/.test(doc) && /BLOCKED\s+= 0/.test(doc),
+    "the matrix must still close with no repair and no blocker outstanding",
+  );
 });
 
 // ───────────────────────────────────────────────────────────────────────────────────────────────
@@ -946,7 +963,7 @@ check("the browser sends identity, package and price to no one", () => {
 
 check("only the eight base packages can grant business access — no add-on, no classified", () => {
   const granting = REVENUE_V1_PACKAGE_MATRIX.filter((p) => p.businessAccessLevel);
-  const expected = [...QUICK_KEYS, ...FULL_KEYS].slice().sort();
+  const expected: string[] = [...QUICK_KEYS, ...FULL_KEYS].slice().sort();
   assert.deepEqual(
     granting.map((p) => p.packageKey).sort(),
     expected,

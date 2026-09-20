@@ -122,9 +122,11 @@ grants".
 
 **Staff could not tell a Quick row from a Full row.** Both are written with
 `package_tier: "digital_only"`, so the admin entitlement tracker showed them identically. Added
-the derived access badge (QUICK / SIMPLE, FULL, PRINT + SIMPLE, PRINT + FULL), the Revenue OS SKU
-the writer already stores, and the customer name the business-name headline was hiding. Locked by
-V1 → "the entitlement tracker shows staff every commercial fact about a row".
+the derived access badge, the Revenue OS SKU the writer already stores, and the customer name the
+business-name headline was hiding. The badge names the print tier, so the six commercial shapes
+read distinctly (`QUICK / SIMPLE`, `FULL`, `PRINT QUARTER + SIMPLE`, `PRINT HALF + FULL`,
+`PRINT FULL PAGE + FULL`, `PRINT PREMIUM + FULL`) — see §7.4. Locked by V1 → "the entitlement
+tracker shows staff every commercial fact about a row".
 
 ## 5. Deferred, with the owner decision named
 
@@ -204,3 +206,153 @@ authority here — a Simple owner does own their listing — so the route re-res
 capability with `resolveBusinessToolsAccess()` before writing. Quick packages declare no
 capabilities, so a Simple owner is refused. V4 now asserts the capability check exists and precedes
 the write.
+
+---
+
+## 7. Product-operational closeout
+
+§1–§6 prove what each level *is*. This section proves the product *operates*: that a Quick
+customer can buy, publish, upgrade, be found by staff, and that nothing else moved.
+
+### 7.1 Publish pipeline
+
+Each of the four categories runs the one canonical circuit. Quick changes which package is
+charged, and nothing else.
+
+```
+QUICK INTAKE → canonical draft → canonical preview → QUICK $99 PACKAGE
+             → /api/revenue-os/checkout → Stripe webhook → canonical publisher
+             → canonical listing row → canonical public detail page
+```
+
+| Category | Quick package charged | Full package preserved | Status |
+|---|---|---|---|
+| Servicios | `servicios_quick_monthly` | `servicios_base_monthly` $399 | PROVEN |
+| Restaurantes | `restaurantes_quick_monthly` | `restaurantes_base_monthly` $399 | PROVEN |
+| Autos dealer | `autos_dealer_quick_monthly` | `autos_dealer_monthly` $399 | PROVEN |
+| Bienes negocio / agent | `br_agent_quick_monthly` | `br_agent_monthly` $399 | PROVEN |
+
+The plan travels as a URL marker stamped by the intake adapter (`businessQuickPlanSignal.ts`), so
+the preview reads one token rather than four ad-hoc booleans, and anything that is not the exact
+token falls back to Full. For a listing that already exists the marker is not trusted at all: the
+preview asks `/api/revenue-os/business-base-plan`, so a Quick customer who abandoned Stripe and
+came back through their dashboard is re-offered the $99 package instead of the $399 one.
+
+Activation had to widen with it. Every webhook guard previously compared the paid package against
+the exact Full key and skipped anything else, which would have left a paying Quick customer
+unpublished. All four now ask `isBusinessBasePackageKey(category, key)`. Locked by V1 → "a paid
+Quick purchase publishes through the same webhook as Full".
+
+No new public detail page, no second business table, no migration, no parallel checkout. Price is
+server-side throughout: V1 walks every file under `app/` and fails on any `priceCents: 9900`
+outside the matrix.
+
+**Inventory does not leak.** Quick dealer includes 1 active vehicle against Full's 10; Quick agent
+includes 1 active property. Neither Quick package declares `addOnInventory`, the Quick checkouts
+attach no inventory pack row, and `CHECKOUT_ADDON_ALLOWLIST` is keyed to the Full base keys, so the
+server refuses the pack even if a client asked for it (§6.3).
+
+### 7.2 Simple media
+
+The Simple cap is one number per category in `QUICK_BUSINESS_DEFINITIONS[].media`, restated
+against the canonical lane contract in both directions by V1 → "the Simple media contract restates
+the canonical lane": the Quick cap may never exceed what the canonical lane accepts, and the lane's
+own minimum must still be met.
+
+| Category | Minimum | Simple allowance | Full |
+|---|---|---|---|
+| Servicios | 1 real image | capped | canonical lane |
+| Restaurantes | 1 real image | capped | canonical lane |
+| Autos dealer | 1 real vehicle image | capped | canonical lane |
+| Bienes negocio | 1 real property image | capped | canonical lane |
+
+The required image is the customer's own upload, mapped 1:1 onto the canonical vehicle / property
+media field. No stock host, no placeholder service, no data-URI SVG and no built-in asset path may
+appear in any Quick adapter — V1 → "the Quick photo is a real photo of the thing being sold". Video
+is untouched: it is a category property, identical at both levels, so no access-level dimension
+exists to gate.
+
+### 7.3 Simple → Full upgrade
+
+Purchasable today on all four owner surfaces — the Servicios and Restaurantes dashboards, the Autos
+dealer inventory section, and the shared real-estate manage card — through one starter,
+`startBusinessSimpleToFullUpgradeCheckout`.
+
+Identity survives by construction rather than by care: the upgrade is shaped like the existing
+dashboard add-on purchases. It buys a package for a listing that already exists, through the same
+`/api/revenue-os/checkout`, with no content save, no status change and no republish. Nothing on the
+path can write to the listing row, so the listing id, slug, media, owner and public URL cannot
+change. V5 asserts the starter contains no `PATCH`, `publish`, `insert(`, `update(`, `status:` or
+`slug`.
+
+The caller never names the package: it comes from `upgradeTargetPackageKey(category)`, so an
+upgrade can only land on the Full package the category already sells. Eligibility comes from the
+server-resolved held package key, not from anything the page inferred.
+
+One first-purchase behaviour had to be relaxed, narrowly. A live Simple listing buying Full would
+otherwise have been pushed back to `pending_payment` and refused by a "not payable status"
+pre-flight — taking a paying customer's ad offline in order to charge them more. The relaxation
+fires only when the server resolves the listing as already holding Simple *and* the package is that
+category's own Full target. The ownership check is untouched and still runs first.
+
+Holding both packages during the switchover resolves to FULL, so an upgrade can never read as a
+downgrade, and the pre-existing recharge guard covers both keys so it cannot double-charge.
+
+### 7.4 Admin / staff commercial truth
+
+The existing entitlement tracker was extended, not replaced. A row now reads: customer, business,
+category, package SKU, derived business access level, print tier, effective status, start/end, and
+sales attribution. The access badge is derived from the row's own two columns and names the print
+tier, so all six shapes are one glance apart:
+
+`QUICK / SIMPLE` · `FULL` · `PRINT QUARTER + SIMPLE` · `PRINT HALF + FULL` ·
+`PRINT FULL PAGE + FULL` · `PRINT PREMIUM + FULL`
+
+Reading a row and finding rows are different capabilities. The tier filter cannot separate Quick
+from Full — both are `digital_only` — so `package_key` was added to the tracker's search haystack
+and the search help names the SKU as the field that separates them. No second tracker, no redesign,
+and no account-level Free/Pro vocabulary reintroduced as commercial truth.
+
+### 7.5 Quick Classifieds and the remaining families
+
+Not preserved by inspection — preserved because nothing touched them. No file under any private
+classified category (En Venta, Rentas, Empleos, Autos privado, Bienes FSBO, Clases, Comunidad,
+Busco, Mascotas) was modified by this mission, and `verify-quick-remaining-families-01` asserts the
+certified Quick Classifieds tree is byte-unchanged against its certified SHA.
+
+The access model cannot bleed into them either. Exactly eight packages declare
+`businessAccessLevel` — the four Simple and four Full base subscriptions — and V1 asserts every
+other package in the matrix, classified and add-on alike, resolves to `none`. Categories outside
+`BUSINESS_CATEGORY_PACKAGE_PAIR` have no Simple/Full split at all, so `upgradeTargetPackageKey`
+returns null for them.
+
+| Family | State |
+|---|---|
+| Comida Local | $129/mo untouched; outside the split, mechanically locked (§5) |
+| Ofertas | flyer $399 / coupon $199 unchanged; the matrix may only be added to, and no Ofertas line may change |
+| Negocios Locales | discovery / aggregation; `content_link`, no product, no table |
+| Viajes | unresolved owner price preserved; no price invented, no Quick wrapper |
+| Iglesias | existing CMS submission; `direct_link`, no Quick form |
+| Recursos | editorial / content; no submission route of any kind |
+
+The revenue matrix diff against the certified SHA is additive only: four new $99 packages and an
+optional `businessAccessLevel` field. No line was removed.
+
+### 7.6 Security / authority
+
+Audited as assertions (V1 §9), not as a claim. Zero unresolved violations.
+
+| Vector | Finding |
+|---|---|
+| Client-supplied price | None. The checkout body builder carries no price field; every displayed amount is read from the server matrix; V1 fails on any `priceCents: 9900` outside it |
+| Client-supplied entitlement / access level | None. No module in the access model accepts a level; the resolver derives it from `listing_package_entitlements` |
+| Client-supplied owner id | None on the new path. `/api/revenue-os/business-base-plan` resolves the owner from a verified Bearer JWT and refuses an unauthenticated caller with 401 |
+| Listing-ID-only mutation | None. The base-plan route is GET-only and exposes no mutating handler; the upgrade starter writes nothing |
+| Direct Quick DB writes | None. No `insert`/`update`/`upsert`/`delete` and no mutating fetch exists in any access-model module |
+| Staff-as-customer / fake actor | None. No `is_admin`, impersonation or synthetic-actor symbol appears in the access model |
+| Auth bypass | None. Every read fails closed: an unverified owner, an unreadable table or an unknown category yields "nothing to sell", never an unguarded offer |
+| Simple reaching a Full API | Refused server-side. The private analytics route calls `resolveFullOnlyFeatureGate` and returns `403 upgrade_required`; the deny is narrow, so only a resolved `simple` is refused and an unreadable state never strips existing access |
+| Add-on granting Full | Impossible. No add-on or inventory pack declares `businessAccessLevel`, and the add-on allowlist is keyed to the Full base keys |
+| Print metadata granting an unrelated capability | Blocked. A print row yields one grant from its tier and reports `packageKey: null`, so the Package C bookkeeping stamp cannot be read as a purchase; FULL never invents `coupons_offers` for a category whose package never declared it |
+
+No auth was weakened to satisfy any of the above.
