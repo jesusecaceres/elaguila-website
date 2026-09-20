@@ -75,7 +75,10 @@ const ADAPTERS = `${QUICK_ROUTE}/_adapters`;
     // + its single call-site insertion in the quick preview checkout). Everything else under these trees stays locked.
     /^app\/\(site\)\/clasificados\/(?!empleos\/quick-preview\/EmpleoQuickPreviewClient\.tsx$)/,
     /^app\/\(site\)\/dashboard\//,
-    /^app\/\(site\)\/publicar\/(?!rapido\/|PublicarGatewayClient\.tsx$|empleos\/shared\/publish\/empleosDraftMediaUpload\.ts$)/,
+    // Quick Business Core (Phase 2, branch claude/quick-business-core-build-2026-09): the additive
+    // `/publicar/negocio-rapido/**` tree is the business intake sibling of `rapido/`; it never touches the
+    // certified classifieds tree (asserted by scripts/verify-quick-business-core-01.ts §7).
+    /^app\/\(site\)\/publicar\/(?!rapido\/|negocio-rapido\/|PublicarGatewayClient\.tsx$|empleos\/shared\/publish\/empleosDraftMediaUpload\.ts$)/,
     /^app\/admin\/(?!\(dashboard\)\/businesses\/(StaffCommandCenter|QuickApplicationsLaunchpad)\.tsx$)/,
     /^app\/manifest\.ts$/,
   ];

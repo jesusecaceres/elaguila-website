@@ -19,6 +19,9 @@ import {
   quickClassifiedsChooserPath,
 } from "@/app/lib/quickClassifieds/quickClassifiedRoutes";
 import type { QuickClassifiedCategoryKey, QuickClassifiedDefinition } from "@/app/lib/quickClassifieds/quickClassifiedTypes";
+import { listQuickBusinessDefinitions } from "@/app/lib/quickBusiness/quickBusinessRegistry";
+import { quickBusinessCategoryPath, quickBusinessChooserPath, quickBusinessShareUrl } from "@/app/lib/quickBusiness/quickBusinessRoutes";
+import type { QuickBusinessDefinition } from "@/app/lib/quickBusiness/quickBusinessTypes";
 
 /**
  * APLICACIONES RÁPIDAS / QUICK APPLICATIONS — the staff launchpad inside the ONE Business Concierge PWA.
@@ -62,6 +65,23 @@ function customerUrl(def: QuickClassifiedDefinition | null, lang: LinkLang): str
 
 const FSBO: QuickClassifiedCategoryKey = "bienes-raices";
 
+/** Quick Business (Phase 2 core): monthly price badge from the server pricing authority. */
+function businessPriceBadge(def: QuickBusinessDefinition): string {
+  const { priceCents } = getRevenuePackagePriceCents({ category: def.pricing.category, packageKey: def.pricing.packageKey });
+  return priceCents == null ? "" : `${formatRevenuePriceLabel(priceCents)}/mes · /month`;
+}
+
+/** Live business categories → Quick Business intake; "direct" ones (need real inventory) → the EXISTING application. */
+function businessCustomerPath(def: QuickBusinessDefinition, lang: LinkLang): string {
+  if (def.status === "direct") return withLang(def.standardApplicationPath, lang);
+  return quickBusinessCategoryPath(def.key, lang, "staff");
+}
+
+function businessCustomerUrl(def: QuickBusinessDefinition | null, lang: LinkLang): string {
+  if (!def) return quickBusinessShareUrl(origin(), null, lang);
+  return `${origin().replace(/\/+$/, "")}${businessCustomerPath(def, lang)}`;
+}
+
 export function QuickApplicationsLaunchpad() {
   const [linkLang, setLinkLang] = useState<LinkLang>("es");
   const [toast, setToast] = useState<string | null>(null);
@@ -92,6 +112,30 @@ export function QuickApplicationsLaunchpad() {
     },
     [flash, linkLang],
   );
+
+  const copyBusinessLink = useCallback(
+    async (def: QuickBusinessDefinition | null) => {
+      const ok = await copyToClipboard(businessCustomerUrl(def, linkLang));
+      flash(ok ? "Enlace copiado / Link copied" : "No se pudo copiar / Could not copy");
+    },
+    [flash, linkLang],
+  );
+
+  const shareBusinessLink = useCallback(
+    async (def: QuickBusinessDefinition | null) => {
+      const url = businessCustomerUrl(def, linkLang);
+      const label = def ? (linkLang === "en" ? def.label.en : def.label.es) : linkLang === "en" ? "Leonix quick business" : "Negocio rápido Leonix";
+      const text = linkLang === "en" ? `Publish your business on Leonix in minutes: ${label}` : `Publica tu negocio en Leonix en minutos: ${label}`;
+      const outcome = await tryWebShare({ title: label, text, url });
+      if (outcome === "unsupported") {
+        const ok = await copyToClipboard(url);
+        flash(ok ? "Enlace copiado / Link copied" : "No se pudo compartir / Could not share");
+      }
+    },
+    [flash, linkLang],
+  );
+
+  const business = listQuickBusinessDefinitions();
 
   const tier1 = QUICK_TIER1_KEYS.map((k) => QUICK_CLASSIFIED_DEFINITIONS[k]);
   const fsbo = QUICK_CLASSIFIED_DEFINITIONS[FSBO];
@@ -201,6 +245,75 @@ export function QuickApplicationsLaunchpad() {
         {renderCard(fsbo, "compact")}
         {community.map((def) => renderCard(def, "compact"))}
       </ul>
+
+      {/* Quick Business Core (Phase 2): clearly separated business section — same PWA, same launchpad, existing products. */}
+      <div id="quick-business" className="mt-6 scroll-mt-4 rounded-2xl border border-[#7A1E2C]/25 bg-white/70 p-3 sm:p-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <h3 className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Negocios Rápidos / Quick Business</h3>
+            <p className="mt-1 text-xs text-[#5C5346]">
+              Perfil de negocio en minutos con el paquete mensual existente. / Business profile in minutes on the existing monthly package.
+            </p>
+          </div>
+          <div className="grid shrink-0 grid-cols-2 gap-2">
+            <button type="button" onClick={() => void shareBusinessLink(null)} className={`${adminBtnSecondary} min-h-[44px] text-xs`}>
+              📤 Enviar enlace de negocio / Send business link
+            </button>
+            <Link href={ADMIN_DASHBOARD_ROUTES.classifiedsQueue} className={`${adminBtnSecondary} min-h-[44px] text-xs`}>
+              🗂️ Administrar negocio / Manage business
+            </Link>
+          </div>
+        </div>
+        <ul className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {business.map((def) => {
+            const direct = def.status === "direct";
+            const openHref = businessCustomerPath(def, linkLang);
+            return (
+              <li key={def.key} className="flex flex-col rounded-2xl border border-[#D6C7AD] bg-white p-3">
+                <div className="flex items-start gap-2">
+                  <span className="text-2xl leading-none" aria-hidden="true">{def.emoji}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-[#1E1810]">
+                      {def.label.es} / {def.label.en}
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-[#7A7164]">
+                      {direct ? "Aplicación completa / Full application" : `${businessPriceBadge(def)} · ≈ ${def.essentialQuestionCount} preguntas / questions`}
+                    </p>
+                    {direct && def.directReason ? <p className="mt-1 text-[11px] text-[#7A1E2C]">{def.directReason.reason.es} / {def.directReason.reason.en}</p> : null}
+                    {def.staff.publishForClientSupported ? (
+                      <p className="mt-1 text-[11px] text-[#2F6B3A]">{def.staff.note.es} / {def.staff.note.en}</p>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="mt-3 grid grid-cols-1 gap-2">
+                  <Link
+                    href={openHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[#7A1E2C]/40 bg-[#7A1E2C]/5 px-3 text-xs font-bold text-[#7A1E2C]"
+                  >
+                    {direct ? "Abrir aplicación completa / Open full application" : "Crear negocio rápido con el cliente / Create quick business with customer"}
+                  </Link>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button type="button" onClick={() => void copyBusinessLink(def)} className={`${adminBtnSecondary} min-h-[44px] text-xs`}>
+                      🔗 Copiar / Copy
+                    </button>
+                    <button type="button" onClick={() => void shareBusinessLink(def)} className={`${adminBtnSecondary} min-h-[44px] text-xs`}>
+                      📤 Compartir / Share
+                    </button>
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+        <p className="mt-3 text-[11px] text-[#7A7164]">
+          Perfil de Negocio completo: usa el botón de arriba. / Full Business Profile: use the button above.{" "}
+          <Link href={quickBusinessChooserPath(linkLang, "staff")} target="_blank" rel="noreferrer" className="font-semibold text-[#7A1E2C] underline">
+            Selector de negocio rápido / Quick business chooser
+          </Link>
+        </p>
+      </div>
 
       <div className="mt-4 flex flex-col gap-2 text-[11px] text-[#7A7164] sm:flex-row sm:items-center sm:justify-between">
         <p>

@@ -1,0 +1,111 @@
+/**
+ * LEONIX QUICK BUSINESS — shared contract (thin intake/orchestration layer only).
+ *
+ * Doctrine: "We are not creating simplified ads. We are creating simplified intake into the existing ads."
+ * For business categories: LESS INPUT → SAME existing canonical business draft → SAME existing preview →
+ * SAME existing payment → SAME existing public business page → SAME Business Hub / admin / lifecycle.
+ *
+ * This module is pure types (no `app/(site)` imports) so server pages and the staff launchpad can read the
+ * registry. It deliberately REUSES the certified Quick Classifieds field / step / media / confirmation types so
+ * the same field renderer, media step and pure validation serve both programs without touching them.
+ */
+
+import type {
+  QuickConfirmations,
+  QuickIntakeStep,
+  QuickIntakeValues,
+  QuickLang,
+  QuickMediaItem,
+  QuickText,
+  QuickClassifiedMediaContract,
+} from "@/app/lib/quickClassifieds/quickClassifiedTypes";
+
+export type { QuickLang, QuickText };
+
+/** The four Quick Business Core categories (owner priority order). */
+export const QUICK_BUSINESS_CATEGORY_KEYS = ["servicios", "restaurantes", "autos-dealer", "bienes-negocio"] as const;
+export type QuickBusinessCategoryKey = (typeof QUICK_BUSINESS_CATEGORY_KEYS)[number];
+
+/**
+ * `live`   — the shared Quick intake feeds this category's existing canonical draft → preview → checkout.
+ * `direct` — the existing canonical product cannot publish a profile-only presence (it REQUIRES structured
+ *            inventory: a real vehicle / a real property). Quick therefore does NOT open an intake; the chooser and
+ *            the staff launchpad link the existing application directly with honest copy (no fabricated inventory).
+ */
+export type QuickBusinessStatus = "live" | "direct";
+
+export type QuickBusinessDirectReason = {
+  code: "REQUIRES_VEHICLE_INVENTORY" | "REQUIRES_PROPERTY_INVENTORY";
+  reason: QuickText;
+};
+
+/** Display-only pricing posture. The amount is ALWAYS resolved from `revenuePricingMatrix` at render time. */
+export type QuickBusinessPricingPosture = {
+  kind: "monthly";
+  packageKey: string;
+  category: string;
+};
+
+/** Existing owner / management surfaces (links only — Quick never builds a dashboard). */
+export type QuickBusinessManageAdapter = {
+  /** Existing owner dashboard for this category. */
+  dashboardHref: string;
+  /** Existing edit posture, in words (which existing surface edits the profile). */
+  editNote: QuickText;
+  /** Existing pause / end posture, in words. */
+  endNote: QuickText;
+  /** Billing posture (monthly subscription through the existing Revenue OS). */
+  billingNote: QuickText;
+};
+
+export type QuickBusinessStaffCustody = {
+  /** True only where an EXISTING server path lets Leonix staff save/publish for a client (Servicios today). */
+  publishForClientSupported: boolean;
+  note: QuickText;
+};
+
+export type QuickBusinessDefinition = {
+  key: QuickBusinessCategoryKey;
+  status: QuickBusinessStatus;
+  directReason?: QuickBusinessDirectReason;
+  emoji: string;
+  label: QuickText;
+  tagline: QuickText;
+  /** Existing standard application / selector (never a Quick route). */
+  standardApplicationPath: string;
+  pricing: QuickBusinessPricingPosture;
+  media: QuickClassifiedMediaContract;
+  manage: QuickBusinessManageAdapter;
+  staff: QuickBusinessStaffCustody;
+  /** Rough "≈ N preguntas" shown on the chooser; derived from the adapter's steps. */
+  essentialQuestionCount: number;
+};
+
+/** Which existing confirmation component the review step renders. */
+export type QuickBusinessConfirmationSurface = { kind: "servicios" } | { kind: "none" };
+
+export type QuickBusinessHandoff = {
+  /** Language-tagged href of the EXISTING preview that continues the canonical pipeline. */
+  href: string;
+  kind: "preview";
+};
+
+export type QuickBusinessIntakeContext = { lang: QuickLang; routeLang: string };
+
+/**
+ * Category adapter — the ONLY per-category code. It must (1) map Quick values into the existing canonical draft
+ * shape through the category's own default/merge helpers, (2) run the category's OWN readiness validator and
+ * return its issues verbatim when it fails, (3) persist through the category's own draft store API, (4) return the
+ * existing preview href. It never inserts rows, uploads media, prices anything or writes an owner id.
+ */
+export type QuickBusinessCategoryAdapter = {
+  category: QuickBusinessCategoryKey;
+  steps: readonly QuickIntakeStep[];
+  confirmations: QuickBusinessConfirmationSurface;
+  buildAndWriteCanonicalDraft: (input: {
+    values: QuickIntakeValues;
+    media: readonly QuickMediaItem[];
+    confirmations: QuickConfirmations;
+    ctx: QuickBusinessIntakeContext;
+  }) => Promise<{ ok: true; handoff: QuickBusinessHandoff } | { ok: false; issues: string[] }>;
+};
