@@ -67,6 +67,13 @@ export const REVENUE_BASE_ENTITLEMENT_GUARD_PACKAGE_KEYS: ReadonlySet<string> = 
   "restaurantes_base_monthly",
   "servicios_base_monthly",
   "comida_local_base_monthly",
+  // The Quick ($99/mo SIMPLE) packages are base monthly subscriptions exactly like their Full
+  // counterparts, so the same "one live entitlement per listing, never recharge on edit" rule
+  // must govern them. Omitting them would let a Quick customer be charged again on every edit.
+  "autos_dealer_quick_monthly",
+  "br_agent_quick_monthly",
+  "restaurantes_quick_monthly",
+  "servicios_quick_monthly",
 ]);
 
 /** True when `packageKey` is one this shared guard applies to. Category is accepted defensively

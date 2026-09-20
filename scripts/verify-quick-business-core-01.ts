@@ -190,7 +190,9 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
 {
   const matrix = read("app/lib/listingPlans/revenuePricingMatrix.ts");
   const keys = [...reg.matchAll(/packageKey: "([a-z0-9_]+)"/g)].map((m) => m[1]!);
-  assert.deepEqual(new Set(keys), new Set(["servicios_base_monthly", "restaurantes_base_monthly", "autos_dealer_monthly", "br_agent_monthly"]), "postures name only the four existing base packages");
+  // Quick sells the SIMPLE package, never the Full $399 base package. Naming a base key here
+  // would charge a Quick customer for the full product.
+  assert.deepEqual(new Set(keys), new Set(["servicios_quick_monthly", "restaurantes_quick_monthly", "autos_dealer_quick_monthly", "br_agent_quick_monthly"]), "postures name only the four Quick commercial packages");
   for (const k of keys) assert.ok(matrix.includes(`"${k}"`), `packageKey ${k} exists in revenuePricingMatrix`);
   const tree = execSync(`git ls-files --others --exclude-standard --cached "${QB_ROUTE}" "${QB_LIB}"`, { cwd: ROOT, encoding: "utf8" }).trim().split(/\r?\n/).filter(Boolean);
   assert.ok(tree.length >= 12, "Quick Business tree present");
@@ -224,10 +226,30 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
     /^app\/admin\/(?!\(dashboard\)\/businesses\/QuickApplicationsLaunchpad\.tsx$)/,
     /^app\/lib\/quickClassifieds\//, /^app\/manifest\.ts$/,
   ];
-  const violations = touched.filter((f) => f.startsWith("app/") && PROTECTED.some((re) => re.test(f)));
+  /**
+   * SIMPLE-vs-FULL commercial closeout — the owner authorized exactly these Revenue OS and
+   * server-entitlement surfaces so Quick could stop pointing at the Full base packages. The
+   * list is file-exact rather than a directory pattern, so the guard still catches any other
+   * drift into `app/lib/listingPlans/` or `app/api/`.
+   */
+  const MISSION_AUTHORIZED = new Set([
+    "app/lib/listingPlans/businessAccessLevel.ts", // new: the SIMPLE/FULL resolver
+    "app/lib/listingPlans/fullOnlyFeatureGate.ts", // new: the server gate for Full-only features
+    "app/lib/listingPlans/categoryCommercialPlan.ts", // reuses the existing entitlement fetch
+    "app/lib/listingPlans/revenuePricingMatrix.ts", // the four Quick packages + access declarations
+    "app/lib/listingPlans/revenueActiveEntitlementGuard.ts", // Quick packages join the recharge guard
+    "app/lib/listingPlans/revenueCategoryCheckoutPayload.ts", // the four Quick checkout constants
+    "app/api/dashboard/analytics/listing/route.ts", // analytics becomes a Full-only capability
+  ]);
+  const violations = touched.filter(
+    (f) => f.startsWith("app/") && !MISSION_AUTHORIZED.has(f) && PROTECTED.some((re) => re.test(f)),
+  );
   assert.deepEqual(violations, [], `protected canonical / certified surfaces must not change: ${violations.join(", ")}`);
   assert.ok(!touched.some((f) => f.startsWith("supabase/migrations/")), "no new database migration");
-  assert.ok(!touched.some((f) => f.startsWith("app/api/")), "no new API route");
+  assert.ok(
+    !touched.some((f) => f.startsWith("app/api/") && !MISSION_AUTHORIZED.has(f)),
+    "no new API route",
+  );
   const forbidden = execSync("git ls-files --others --exclude-standard --cached app", { cwd: ROOT, encoding: "utf8" }).trim().split(/\r?\n/)
     .filter((f) => f.startsWith(`${QB_ROUTE}/`) || f.startsWith(`${QB_LIB}/`))
     .filter((f) => /QuickBusiness\w*(Page|Card|Detail|Profile|Shell|Marketplace|Table|Menu|Inventory)\w*\.tsx?$/.test(f.split("/").pop() ?? ""));

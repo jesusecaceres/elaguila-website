@@ -146,6 +146,44 @@ export function businessAccessLevelForPackageKey(
   return def.businessAccessLevel;
 }
 
+/**
+ * The Simple/Full package pair per business category — the ONE place that knows which package
+ * key a given access level buys. Quick intake reads `simple`, standard intake reads `full`, and
+ * the upgrade contract reads `full` as its target. Nothing else may pair these keys, so a Quick
+ * flow can never silently point at the Full package again.
+ *
+ * Categories absent from this map have no Simple/Full split (Comida Local, Viajes, every
+ * classified category) and are deliberately untouched by the access model.
+ */
+export const BUSINESS_CATEGORY_PACKAGE_PAIR: Readonly<
+  Record<string, { readonly simple: string; readonly full: string }>
+> = {
+  servicios: { simple: "servicios_quick_monthly", full: "servicios_base_monthly" },
+  restaurantes: { simple: "restaurantes_quick_monthly", full: "restaurantes_base_monthly" },
+  autos: { simple: "autos_dealer_quick_monthly", full: "autos_dealer_monthly" },
+  "bienes-raices": { simple: "br_agent_quick_monthly", full: "br_agent_monthly" },
+};
+
+/** True when a category participates in the Simple/Full split at all. */
+export function isBusinessAccessCategory(category: string | null | undefined): boolean {
+  return Boolean(BUSINESS_CATEGORY_PACKAGE_PAIR[String(category ?? "").trim().toLowerCase()]);
+}
+
+/** The package key a category sells at a given level. `none` never maps to a package. */
+export function businessPackageKeyForLevel(
+  category: string | null | undefined,
+  level: BusinessAccessLevel,
+): string | null {
+  const pair = BUSINESS_CATEGORY_PACKAGE_PAIR[String(category ?? "").trim().toLowerCase()];
+  if (!pair || level === "none") return null;
+  return level === "full" ? pair.full : pair.simple;
+}
+
+/** The Full package a Simple customer upgrades INTO. Null when the category has no split. */
+export function upgradeTargetPackageKey(category: string | null | undefined): string | null {
+  return businessPackageKeyForLevel(category, "full");
+}
+
 export type BusinessAccessGrantSourceKind = "digital_package" | "print_package" | "none";
 
 export type BusinessAccessDecision = {

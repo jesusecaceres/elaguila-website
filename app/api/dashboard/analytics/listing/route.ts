@@ -3,6 +3,10 @@ import { getBearerUserId } from "@/app/api/clasificados/_lib/bearerUser";
 import { buildAnalyticsKeySet } from "@/app/lib/analytics/listingAnalyticsIdentity";
 import { fetchListingDashboardAnalyticsServer } from "@/app/lib/analytics/server/fetchOwnerDashboardAnalyticsServer";
 import { resolveListingAnalyticsIdentity } from "@/app/lib/analytics/server/resolveListingAnalyticsIdentity";
+import {
+  fullOnlyFeatureDeniedBody,
+  resolveFullOnlyFeatureGate,
+} from "@/app/lib/listingPlans/fullOnlyFeatureGate";
 import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -47,6 +51,19 @@ export async function GET(req: NextRequest) {
 
   if (resolved.identity.ownerUserId !== ownerId) {
     return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
+  }
+
+  // Analytics is a FULL-only capability. Ownership is not entitlement: a Simple customer owns
+  // their listing and would otherwise read this route directly. Denies only `simple`, so every
+  // other listing — classifieds included — keeps the behaviour it has today.
+  const gate = await resolveFullOnlyFeatureGate({
+    category: resolved.identity.category,
+    listingSource: resolved.identity.sourceTable,
+    listingId: resolved.identity.sourceId,
+    capability: "analytics",
+  });
+  if (gate.denied) {
+    return NextResponse.json(fullOnlyFeatureDeniedBody(gate), { status: 403 });
   }
 
   const listingKeys = buildAnalyticsKeySet(resolved.identity);

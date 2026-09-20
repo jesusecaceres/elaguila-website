@@ -3,7 +3,11 @@
  *
  * Every value is repository truth cited in docs/quick-business/LEONIX_QUICK_BUSINESS_CORE_ARCHITECTURE_MATRIX.md.
  * Pricing here is POSTURE ONLY (`packageKey`); the amount is always resolved from
- * `app/lib/listingPlans/revenuePricingMatrix.ts` at render time. No Quick SKU, no Quick price.
+ * `app/lib/listingPlans/revenuePricingMatrix.ts` at render time. No Quick price is written here.
+ *
+ * Each posture names its category's SIMPLE package from BUSINESS_CATEGORY_PACKAGE_PAIR
+ * (businessAccessLevel.ts). Quick previously named the Full base keys, which would have sold the
+ * full product to a Quick customer.
  */
 
 import type { QuickClassifiedMediaContract } from "@/app/lib/quickClassifieds/quickClassifiedTypes";
@@ -22,8 +26,9 @@ export const QUICK_BUSINESS_DEFINITIONS: Record<QuickBusinessCategoryKey, QuickB
     label: { es: "Servicios", en: "Services" },
     tagline: { es: "Mecánicos, limpieza, contratistas, belleza, salud, asesorías y más.", en: "Mechanics, cleaning, contractors, beauty, health, consulting and more." },
     standardApplicationPath: "/publicar/servicios",
-    // Existing base package (revenuePricingMatrix.ts: servicios_base_monthly, monthly subscription; amount read at render time).
-    pricing: { kind: "monthly", packageKey: "servicios_base_monthly", category: "servicios" },
+    // Quick commercial package (revenuePricingMatrix.ts: servicios_quick_monthly, SIMPLE access;
+    // amount read at render time). servicios_base_monthly is the upgrade target, never the Quick sale.
+    pricing: { kind: "monthly", packageKey: "servicios_quick_monthly", category: "servicios" },
     media: media(null, { es: "Sube fotos reales de tu negocio o tu trabajo. La primera será la portada.", en: "Upload real photos of your business or your work. The first one is the cover." }),
     mediaIntro: {
       es: "Se necesita al menos una foto real de tu negocio (fachada, equipo o trabajo). La primera será la portada.",
@@ -49,7 +54,8 @@ export const QUICK_BUSINESS_DEFINITIONS: Record<QuickBusinessCategoryKey, QuickB
     label: { es: "Restaurantes", en: "Restaurants" },
     tagline: { es: "Restaurante, café, panadería, food truck o catering.", en: "Restaurant, café, bakery, food truck or catering." },
     standardApplicationPath: "/publicar/restaurantes",
-    pricing: { kind: "monthly", packageKey: "restaurantes_base_monthly", category: "restaurantes" },
+    // Quick commercial package (restaurantes_quick_monthly, SIMPLE access).
+    pricing: { kind: "monthly", packageKey: "restaurantes_quick_monthly", category: "restaurantes" },
     media: media(null, { es: "Sube fotos reales: fachada, platillos o interior. La primera será la portada.", en: "Upload real photos: storefront, dishes or interior. The first one is the cover." }),
     mediaIntro: {
       es: "Se necesita al menos una foto real de tu restaurante (fachada, platillos o interior). La primera será la portada.",
@@ -76,8 +82,9 @@ export const QUICK_BUSINESS_DEFINITIONS: Record<QuickBusinessCategoryKey, QuickB
     label: { es: "Autos (concesionario)", en: "Autos (dealer)" },
     tagline: { es: "Tu negocio + tu primer vehículo", en: "Your dealership + your first vehicle" },
     standardApplicationPath: "/publicar/autos/negocios",
-    // Existing dealer base package (revenuePricingMatrix.ts: autos_dealer_monthly, monthly subscription; amount read at render time).
-    pricing: { kind: "monthly", packageKey: "autos_dealer_monthly", category: "autos" },
+    // Quick commercial package (autos_dealer_quick_monthly, SIMPLE access): one active vehicle,
+    // no inventory pack — Simple never inherits the Full package's larger allowance.
+    pricing: { kind: "monthly", packageKey: "autos_dealer_quick_monthly", category: "autos" },
     media: media(null, { es: "Fotos reales de tu primer vehículo. La primera será la portada del vehículo.", en: "Real photos of your first vehicle. The first one is the vehicle cover." }),
     mediaIntro: {
       es: "Se necesita al menos una foto real del vehículo que publicas (no del negocio). La primera será la portada del vehículo.",
@@ -101,8 +108,9 @@ export const QUICK_BUSINESS_DEFINITIONS: Record<QuickBusinessCategoryKey, QuickB
     label: { es: "Bienes Raíces (agente / negocio)", en: "Real Estate (agent / business)" },
     tagline: { es: "Tu perfil + tu primera propiedad", en: "Your profile + your first property" },
     standardApplicationPath: "/publicar/bienes-raices",
-    // Existing agent base package (revenuePricingMatrix.ts: br_agent_monthly, monthly subscription; amount read at render time).
-    pricing: { kind: "monthly", packageKey: "br_agent_monthly", category: "bienes-raices" },
+    // Quick commercial package (br_agent_quick_monthly, SIMPLE access): one active property,
+    // no inventory pack.
+    pricing: { kind: "monthly", packageKey: "br_agent_quick_monthly", category: "bienes-raices" },
     media: media(40, { es: "Fotos reales de tu primera propiedad. La primera será la portada de la propiedad.", en: "Real photos of your first property. The first one is the property cover." }),
     mediaIntro: {
       es: "Se necesita al menos una foto real de la propiedad que publicas (no de tu oficina). La primera será la portada de la propiedad.",
