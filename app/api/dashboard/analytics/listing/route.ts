@@ -13,7 +13,10 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * GET /api/dashboard/analytics/listing?source_table=&source_id=&canonical_ad_id=&category=
+ * GET /api/dashboard/analytics/listing?source_table=&source_id=&canonical_ad_id=
+ *
+ * A `category` param is accepted by callers but deliberately ignored here — see the note at the
+ * identity resolution below. The category is always read from the row or fixed by the source table.
  */
 export async function GET(req: NextRequest) {
   const ownerId = await getBearerUserId(req);
@@ -24,7 +27,6 @@ export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   const sourceTable = sp.get("source_table")?.trim() ?? "";
   const sourceId = sp.get("source_id")?.trim() ?? "";
-  const category = sp.get("category")?.trim() || undefined;
   const canonicalAdId = sp.get("canonical_ad_id")?.trim() || undefined;
 
   if (!sourceTable || !sourceId) {
@@ -35,10 +37,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "db_not_configured" }, { status: 503 });
   }
 
+  // The `category` query param is deliberately NOT forwarded. For the multi-category `listings`
+  // table, a supplied hint overrides the stored category (resolveListingsRow), which is harmless
+  // for display but must never reach an entitlement decision: a Simple business owner could pass
+  // a classified category and open the FULL-only gate below on a listing they really do own.
+  // Without the hint every category here is read from the row or fixed by the source table.
   const resolved = await resolveListingAnalyticsIdentity({
     sourceTable,
     sourceId,
-    category,
     canonicalAdId,
   });
 

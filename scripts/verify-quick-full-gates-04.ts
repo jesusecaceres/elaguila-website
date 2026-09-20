@@ -104,6 +104,36 @@ check("the gate is given the real listing identity, not a client-supplied claim"
   );
 });
 
+check("the caller cannot pick the category the gate judges them by", () => {
+  // Reading `resolved.identity.category` is not sufficient on its own. For the multi-category
+  // `listings` table, resolveListingsRow lets a supplied hint OVERRIDE the stored category, so
+  // forwarding the query param would let a Simple bienes-raices owner pass a classified category,
+  // fall outside the split, and open this gate on a listing they legitimately own.
+  const code = codeOf(ANALYTICS_ROUTE);
+  const resolveCall = code.slice(
+    code.indexOf("resolveListingAnalyticsIdentity({"),
+    code.indexOf("if (!resolved.ok)"),
+  );
+  assert.ok(resolveCall.length > 0, "the route resolves a listing identity");
+  assert.ok(
+    !/\bcategory\b/.test(resolveCall),
+    "the client category hint must not be forwarded into identity resolution",
+  );
+  assert.ok(
+    !/sp\.get\(["']category["']\)/.test(code),
+    "the route must not read a category query param at all",
+  );
+
+  // And the override really does exist upstream, so this is guarding a live hazard rather than a
+  // hypothetical one. If that precedence is ever fixed at the source, this assertion should be
+  // revisited deliberately instead of silently passing.
+  const resolver = codeOf("app/lib/analytics/server/resolveListingAnalyticsIdentity.ts");
+  assert.ok(
+    resolver.includes("trim(categoryHint) || str(row.category)"),
+    "resolveListingsRow still prefers the caller hint; the route must keep withholding it",
+  );
+});
+
 // 3. THE DECISION ITSELF --------------------------------------------------------------------
 check("every FULL-only capability is denied at SIMPLE and allowed at FULL", () => {
   const fullOnly: BusinessAccessCapability[] = [
