@@ -98,7 +98,7 @@ const ADAPTERS = `${QUICK_ROUTE}/_adapters`;
     "app/lib/listingPlans/fullOnlyFeatureGate.ts", // the server gate for Full-only features
     "app/lib/listingPlans/businessAccessCopy.ts", // centralized ES/EN copy, no prices
     "app/lib/listingPlans/categoryCommercialPlan.ts", // reuses the existing entitlement fetch
-    "app/lib/listingPlans/revenuePricingMatrix.ts", // the four $99 packages + access declarations
+    "app/lib/listingPlans/revenuePricingMatrix.ts", // the four $249 packages + access declarations
     "app/lib/listingPlans/revenueActiveEntitlementGuard.ts", // Quick joins the recharge guard
     "app/lib/listingPlans/revenueCategoryCheckoutPayload.ts", // the four Quick checkout constants
     "app/api/dashboard/analytics/listing/route.ts", // analytics becomes a Full-only capability

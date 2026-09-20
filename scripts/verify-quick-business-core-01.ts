@@ -95,7 +95,8 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
   assert.deepEqual(contactKeys, ["phone", "whatsapp", "email", "website"], "shared business contact step declares phone / whatsapp / email / website");
   const hoursKeys = [...shared.matchAll(/key: "(hours[A-Za-z]+)"/g)].map((m) => m[1]!);
   assert.deepEqual(hoursKeys, ["hoursDays", "hoursOpen", "hoursClose"], "shared hours fields declared");
-  assert.ok(shared.includes('atLeastOne: { keys: ["phone", "whatsapp", "email", "website"]'), "contact step requires at least one channel");
+  // Bible §10.1: email and website cannot satisfy the direct-contact minimum.
+  assert.ok(shared.includes('atLeastOne: { keys: ["phone", "whatsapp"]'), "contact step requires at least one of phone or WhatsApp (email/website do not satisfy the direct-contact minimum)");
 
   // Self-test: a synthetic adapter with a decorative field and a phantom read must FAIL the detector.
   const synthetic = `{ key: "title", kind: "text" } { key: "ghost", kind: "text" } title: quickStr(values, "title"), extra: quickStr(values, "phantomKey"),`;
@@ -156,7 +157,7 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
 
 // 3. MEDIA LOCK ----------------------------------------------------------------------------------------------
 {
-  assert.ok(reg.includes("return { minImages: 1, maxImages, videoOptional: true, note };"), "every definition builds media with minImages 1");
+  assert.ok(reg.includes("return { minImages: 1, maxImages: 3, videoOptional: false, note };"), "Quick Business media: 3 max, no video");
   const intake = read(`${QB_COMPONENTS}/QuickBusinessIntakeClient.tsx`);
   assert.ok(intake.includes('from "@/app/publicar/rapido/_components/QuickMediaStep"') && intake.includes("validateQuickMedia(draft.media, definition.media, lang)"), "intake reuses the certified media step + media lock at Next and submit");
   const review = read(`${QB_COMPONENTS}/QuickBusinessReviewStep.tsx`);

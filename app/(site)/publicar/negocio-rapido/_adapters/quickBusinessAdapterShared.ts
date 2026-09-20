@@ -11,9 +11,10 @@ import { quickList, quickStr } from "@/app/lib/quickClassifieds/quickClassifiedV
 export const BUSINESS_DAY_ORDER = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 export type BusinessDayKey = (typeof BUSINESS_DAY_ORDER)[number];
 
+// Bible §10.1: at least one of Phone/SMS/WhatsApp required. Email/website cannot satisfy this.
 export const BUSINESS_CONTACT_AT_LEAST_ONE: QuickText = {
-  es: "Agrega al menos un medio de contacto (teléfono, WhatsApp, correo o sitio web).",
-  en: "Add at least one contact method (phone, WhatsApp, email or website).",
+  es: "Se requiere al menos un número de teléfono o WhatsApp.",
+  en: "At least one phone number or WhatsApp is required.",
 };
 
 /** Contact step shared by the business categories — keys map 1:1 onto each canonical draft's own contact fields. */
@@ -29,7 +30,8 @@ export function businessContactStep(intro?: QuickText): QuickIntakeStep {
     title: { es: "¿Cómo te contactan los clientes?", en: "How do customers reach you?" },
     intro: intro ?? { es: "Solo se muestra lo que escribas aquí.", en: "Only what you enter here is shown." },
     fields,
-    atLeastOne: { keys: ["phone", "whatsapp", "email", "website"], message: BUSINESS_CONTACT_AT_LEAST_ONE },
+    // Bible §10.1: email and website cannot satisfy the direct-contact minimum.
+    atLeastOne: { keys: ["phone", "whatsapp"], message: BUSINESS_CONTACT_AT_LEAST_ONE },
   };
 }
 

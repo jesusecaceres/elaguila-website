@@ -127,11 +127,11 @@ check("every category with a Quick package pairs it to that category's Full pack
 });
 
 // 2. PACKAGE DEFINITIONS -------------------------------------------------------------------
-check("each Quick package is a $99/mo subscription granting SIMPLE and no capabilities", () => {
+check("each Quick package is a $249/mo subscription granting SIMPLE and no capabilities", () => {
   for (const key of QUICK_KEYS) {
     const def = getRevenuePackageDefinition(key);
     assert.ok(def, `${key} must exist in the pricing matrix`);
-    assert.equal(def!.priceCents, 9900, `${key} price`);
+    assert.equal(def!.priceCents, 24900, `${key} price`);
     assert.equal(def!.billingMode, "monthly_subscription", `${key} billing`);
     assert.equal(def!.businessAccessLevel, "simple", `${key} access level`);
     assert.deepEqual(def!.capabilities ?? [], [], `${key} must declare no per-package capability`);
@@ -291,7 +291,7 @@ check("no new database migration was added for the access model", () => {
   );
 });
 
-check("the $99 amount is written once, in the pricing matrix", () => {
+check("the $249 amount is written once, in the pricing matrix", () => {
   const offenders: string[] = [];
   const walk = (dir: string): void => {
     for (const entry of fs.readdirSync(path.join(ROOT, dir), { withFileTypes: true })) {
@@ -306,9 +306,8 @@ check("the $99 amount is written once, in the pricing matrix", () => {
       // only so historical tier labels still resolve (see the Gate D18 note in the matrix).
       if (rel === "app/lib/clasificados/comida-local/comidaLocalPackages.ts") continue;
       const src = read(rel);
-      // 9900 also legitimately appears as the pre-existing br_inventory_pack price, which lives
-      // in the matrix; anywhere else a literal 9900 next to a price word is a scattered price.
-      if (/(priceCents|price_cents|unitAmount|unit_amount|amountCents)\s*[:=]\s*9900\b/.test(src)) {
+      // 24900 is the Quick Business price; anywhere else a literal 24900 next to a price word is a scattered price.
+      if (/(priceCents|price_cents|unitAmount|unit_amount|amountCents)\s*[:=]\s*24900\b/.test(src)) {
         offenders.push(rel);
       }
     }
@@ -398,42 +397,28 @@ check("the access badge is derived, never a stored account-wide tier", () => {
 });
 
 // 7. SIMPLE MEDIA CONTRACT --------------------------------------------------------------------
-// The Quick media contract must restate its category's canonical lane, never invent a Quick-only
-// allowance and never promise room the canonical lane will refuse. Servicios and Restaurantes
-// previously declared `maxImages: null` while their lanes cap at 24, which told a Simple customer
-// the gallery was unlimited. Asserted against the real registry so it cannot drift back.
-check("the Simple media contract restates the canonical lane, in both directions", () => {
-  const lanes: Record<QuickBusinessCategoryKey, { pipeline: CanonicalCategoryKey; lane: LaneMediaRecord["lane"] }> = {
-    servicios: { pipeline: "servicios", lane: "default" },
-    restaurantes: { pipeline: "restaurantes", lane: "default" },
-    "autos-dealer": { pipeline: "autos_negocios", lane: "parent" },
-    "bienes-negocio": { pipeline: "bienes_raices_negocio", lane: "parent" },
-  };
-  for (const [key, { pipeline, lane }] of Object.entries(lanes) as [QuickBusinessCategoryKey, { pipeline: CanonicalCategoryKey; lane: LaneMediaRecord["lane"] }][]) {
-    const record = getLaneMediaRecords(pipeline).find((r) => r.lane === lane);
-    assert.ok(record, `${key}: canonical lane ${pipeline}/${lane} must exist`);
-    const canonicalMax = record.images.kind === "counted" ? record.images.max : null;
-    const contract = QUICK_BUSINESS_DEFINITIONS[key].media;
-    assert.equal(
-      contract.maxImages,
-      canonicalMax,
-      `${key}: Quick declares maxImages ${contract.maxImages} but the canonical lane says ${canonicalMax}`,
+// Bible §11.1 (2026-09-20 owner lock): Quick Business is capped at 3 real images, no video.
+// This supersedes the previous doctrine that Quick restated the canonical lane cap. The Full lane
+// retains its own unchanged limits. Drift in either direction is caught here and in
+// verify-quick-business-core-01.ts (which checks the registry source literal).
+check("the Simple media contract enforces the Bible §11.1 cap: 3 images, no video", () => {
+  for (const key of QUICK_KEYS.filter((k) => k.endsWith("quick_monthly"))) {
+    // Map package key back to category key — the registry is keyed by category.
+    const categoryKey = (
+      key === "servicios_quick_monthly" ? "servicios"
+      : key === "restaurantes_quick_monthly" ? "restaurantes"
+      : key === "autos_dealer_quick_monthly" ? "autos-dealer"
+      : "bienes-negocio"
+    ) as QuickBusinessCategoryKey;
+    const contract = QUICK_BUSINESS_DEFINITIONS[categoryKey].media;
+    assert.equal(contract.minImages, 1, `${categoryKey}: every Quick ad needs one real photo`);
+    assert.equal(contract.maxImages, 3, `${categoryKey}: Quick Business max 3 images (Bible §11.1)`);
+    assert.equal(contract.videoOptional, false, `${categoryKey}: Quick Business includes no video (Bible §11.1)`);
+    // The cap must be stated to the customer in both languages.
+    assert.ok(
+      contract.note.es.includes("3") && contract.note.en.includes("3"),
+      `${categoryKey}: the media note must state the 3-photo cap in both languages`,
     );
-    // The Media Lock is the one place Quick is deliberately stricter than canonical.
-    assert.equal(contract.minImages, 1, `${key}: every Quick ad needs one real photo`);
-    // Video is offered only where the canonical lane actually accepts external video URLs.
-    assert.equal(
-      contract.videoOptional,
-      record.maxExternalVideos > 0,
-      `${key}: video offered but the canonical lane accepts ${record.maxExternalVideos} video URLs`,
-    );
-    // A stated cap must be stated to the customer, so "limited" is visible rather than implied.
-    if (canonicalMax != null) {
-      assert.ok(
-        contract.note.es.includes(String(canonicalMax)) && contract.note.en.includes(String(canonicalMax)),
-        `${key}: the media note must name the ${canonicalMax}-photo cap in both languages`,
-      );
-    }
   }
 });
 
@@ -486,7 +471,7 @@ check("the price a Simple customer is charged comes from the server matrix", () 
     const simple = getRevenuePackageDefinition(simpleKey)!;
     assert.equal(
       computeRevenueCheckoutSubtotalCents(simple, []),
-      9900,
+      24900,
       `${simpleKey} must check out at the matrix price`,
     );
   }

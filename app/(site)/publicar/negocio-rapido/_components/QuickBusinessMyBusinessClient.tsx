@@ -85,6 +85,9 @@ export function QuickBusinessMyBusinessClient() {
         <section className={quickCard}>
           <h2 className="text-base font-extrabold">✏️ {quickBusinessCopy("myBusinessEdit", lang)}</h2>
           <p className="mt-1 text-sm text-[#5D4A25]/90">{qt(manage.editNote, lang)}</p>
+          <Link href={manageHref} className={`${quickSecondaryBtn} mt-3`}>
+            {quickBusinessCopy("myBusinessEdit", lang)}
+          </Link>
         </section>
 
         <section className={quickCard}>
@@ -92,11 +95,17 @@ export function QuickBusinessMyBusinessClient() {
             ⏸️ {quickBusinessCopy("myBusinessPause", lang)} · {quickBusinessCopy("myBusinessEnd", lang)}
           </h2>
           <p className="mt-1 text-sm text-[#5D4A25]/90">{qt(manage.endNote, lang)}</p>
+          <Link href={manageHref} className={`${quickSecondaryBtn} mt-3`}>
+            {quickBusinessCopy("myBusinessPause", lang)}
+          </Link>
         </section>
 
         <section className={quickCard}>
           <h2 className="text-base font-extrabold">💳 {quickBusinessCopy("myBusinessBilling", lang)}</h2>
           <p className="mt-1 text-sm text-[#5D4A25]/90">{qt(manage.billingNote, lang)}</p>
+          <Link href={manageHref} className={`${quickSecondaryBtn} mt-3`}>
+            {quickBusinessCopy("myBusinessBilling", lang)}
+          </Link>
         </section>
 
         <section className={quickCard}>
