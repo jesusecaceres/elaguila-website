@@ -11,7 +11,7 @@ Companion documents: `LEONIX_QUICK_CLASSIFIEDS_EXECUTION_BLUEPRINT.md`, `LEONIX_
 | One shared Quick Intake framework | `app/lib/quickClassifieds/*` (types, metadata registry, routes, ES/EN copy, validation) + `app/(site)/publicar/rapido/*` (chooser → essentials → ≥1 photo → review → existing preview) |
 | En Venta / Varios | live adapter → `persistEnVentaPreviewHandoffAsync("pro")` → `/clasificados/en-venta/preview?plan=pro` |
 | Rentas (private lane) | live adapter → `saveRentasPrivadoDraft` → `/clasificados/rentas/preview/privado` (existing paid preview) |
-| Empleos (standard paid post) | **BLOCKED_BY_EXISTING_MEDIA_OUTPUT** — uploaded photos are dropped by the existing envelope mapper; Quick lists it honestly and links the existing standard application only |
+| Empleos (standard paid post) | Tier-1 mission: narrow media wiring repair (`empleosDraftMediaUpload.ts` + one call-site insertion in the quick preview checkout) + live adapter → `/clasificados/empleos/quick-preview?from=publicar` (existing paid preview). Source-proven; runtime QA pending |
 | Autos (private lane) | live adapter → `saveAutosPrivadoDraftResolved` + namespace hint → `/clasificados/autos/privado/preview` (existing paid preview) |
 | Bienes Raíces (FSBO lane) | live adapter → `saveBienesRaicesPrivadoDraft` → `/clasificados/bienes-raices/preview/privado` (existing paid preview) |
 | Clases / Comunidad | live adapters → shared community session draft → existing `/publicar/{clases,comunidad}/quick/preview` |
@@ -57,8 +57,8 @@ here. Owner's first-run checklist is in §5.
 
 ## 4. Known blockers / non-goals recorded
 
-- **Empleos**: BLOCKED_BY_EXISTING_MEDIA_OUTPUT (`buildEmpleosPublishEnvelope.ts` drops `data:`/`blob:` image
-  URLs; public page substitutes a stock hero). Fixing it is an Empleos media-output change, outside this mission.
+- **Empleos**: repaired in the Tier-1 mission (see `LEONIX_QUICK_TIER1_EXECUTION_LEDGER.md` Gate 5); the premium lane
+  still carries the original `data:`/`blob:` drop (out of Tier-1).
 - **Server-side staff-assisted (unclaimed) publishing** exists only for Servicios; not wired for any classified
   category. Left as an owner custody decision (which account, which status), exactly as
   `create-for-client/page.tsx` already states.
@@ -78,3 +78,8 @@ here. Owner's first-run checklist is in §5.
    preview) and Mascotas (expect ≥1 photo enforced).
 5. Empleos card → confirms it opens the standard hub, no Quick CTA.
 6. `/publicar/rapido/mi-anuncio` → Rentas → confirm links land on Mis Anuncios.
+
+
+## 6. Tier-1 mission addendum (2026-09-20)
+
+See `LEONIX_QUICK_TIER1_EXECUTION_LEDGER.md` and `LEONIX_QUICK_TIER1_PM_HANDOFF.md`. Full TypeScript / production build / runtime QA were deliberately deferred to the integration gate per the PM operating protocol; only focused validation ran.

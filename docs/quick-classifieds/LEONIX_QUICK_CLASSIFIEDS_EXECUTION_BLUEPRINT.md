@@ -202,7 +202,7 @@ Per-category feasibility is recorded in `LEONIX_QUICK_CLASSIFIEDS_CATEGORY_MATRI
 | --- | --- | --- |
 | En Venta / Varios | READY_BY_EXTRACTION | existing preview `/clasificados/en-venta/preview?plan=pro` (its "Publicar" nav returns to the existing application's publish bar) |
 | Rentas privado | NEEDS_THIN_ADAPTER | existing preview `/clasificados/rentas/preview/privado?propiedad=…` (owns pending insert + checkout) |
-| Empleos | **BLOCKED_BY_EXISTING_MEDIA_OUTPUT** | none — uploaded photos are dropped by `mapImagesForPublish` and replaced by a stock image on the public page; Quick exposes the existing standard application only |
+| Empleos | NEEDS_THIN_ADAPTER (repaired in Tier-1 mission) | existing preview `/clasificados/empleos/quick-preview?from=publicar` (checkout now hosts local photos in `listing-images` before the unchanged envelope mapper) |
 | Autos privado | NEEDS_THIN_ADAPTER | existing preview `/clasificados/autos/privado/preview` (draft mode via namespace hint; owns checkout) |
 | Bienes Raíces privado | NEEDS_THIN_ADAPTER | existing preview `/clasificados/bienes-raices/preview/privado?propiedad=…` (owns pending insert + checkout) |
 | Clases | READY_BY_EXTRACTION | existing preview `/publicar/clases/quick/preview?from=publicar` |

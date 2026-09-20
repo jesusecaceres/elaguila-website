@@ -123,6 +123,8 @@ export type QuickClassifiedFieldDefinition = {
   inputMode?: "text" | "numeric" | "decimal" | "tel" | "email";
   /** For `city`: whether the canonical category requires a NorCal canonical city (community family) or accepts free text. */
   cityMode?: "canonical" | "free";
+  /** Visible, editable prefill applied once when the field has no value yet (never a hidden fabricated default). */
+  defaultValue?: string;
 };
 
 export type QuickIntakeStep = {

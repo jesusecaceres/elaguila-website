@@ -34,7 +34,7 @@ const STEPS: readonly QuickIntakeStep[] = [
       { key: "price", kind: "currency", label: { es: "Precio (USD)", en: "Price (USD)" }, required: (v) => !quickBool(v, "priceIsFree"), showWhen: (v) => !quickBool(v, "priceIsFree"), inputMode: "decimal" },
       { key: "description", kind: "textarea", label: { es: "Descripción", en: "Description" }, hint: { es: "Qué es, cómo está y por qué lo vendes.", en: "What it is, its condition and why you are selling." }, required: true, maxLength: 2000 },
       cityField("free"),
-      { key: "zip", kind: "zip", label: { es: "Código postal", en: "ZIP code" }, required: true, inputMode: "numeric", autoComplete: "postal-code" },
+      { key: "zip", kind: "zip", label: { es: "Código postal", en: "ZIP code" }, hint: { es: "Opcional — ayuda a que te encuentren cerca.", en: "Optional — helps nearby buyers find you." }, inputMode: "numeric", autoComplete: "postal-code" },
     ],
   },
   contactStep({ nameKey: "displayName", nameLabel: { es: "Tu nombre (como aparecerá)", en: "Your name (as shown)" } }),

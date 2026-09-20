@@ -50,7 +50,7 @@ export const QUICK_CLASSIFIED_DEFINITIONS: Record<QuickClassifiedCategoryKey, Qu
       editSupported: true,
       note: { es: "Tu anuncio no vence. Puedes refrescar su visibilidad desde Mis Anuncios.", en: "Your ad does not expire. You can refresh its visibility from My Ads." },
     },
-    essentialQuestionCount: 9,
+    essentialQuestionCount: 8,
   },
   rentas: {
     key: "rentas",
@@ -72,25 +72,21 @@ export const QUICK_CLASSIFIED_DEFINITIONS: Record<QuickClassifiedCategoryKey, Qu
       editSupported: true,
       note: { es: "Tu anuncio dura 30 días. Puedes renovarlo desde Mis Anuncios sin perder su ID ni sus fotos.", en: "Your ad runs 30 days. You can renew it from My Ads without losing its ID or photos." },
     },
-    essentialQuestionCount: 10,
+    essentialQuestionCount: 9,
   },
   empleos: {
     key: "empleos",
     pipeline: "empleos",
-    status: "blocked",
-    blocker: {
-      code: "BLOCKED_BY_EXISTING_MEDIA_OUTPUT",
-      reason: {
-        es: "La aplicación estándar de Empleos no conserva fotos subidas desde el teléfono (solo enlaces de imagen). Usa la aplicación estándar.",
-        en: "The standard Empleos application does not keep phone-uploaded photos (image links only). Use the standard application.",
-      },
-    },
+    // Tier-1 Gate 5: unblocked by the narrow media wiring repair (empleosDraftMediaUpload.ts) — customer
+    // photos are now hosted in the existing listing-images bucket before the envelope is built.
+    status: "live",
     emoji: "💼",
     label: { es: "Empleos", en: "Jobs" },
-    tagline: { es: "Publica una vacante con la aplicación estándar.", en: "Post a job with the standard application." },
+    tagline: { es: "Publica una vacante en minutos.", en: "Post a job in minutes." },
     standardApplicationPath: "/publicar/empleos",
     pricing: { kind: "paid", packageKey: "empleos_job_post_paid", category: "empleos" },
-    media: media(null, { es: "Fotos según la aplicación estándar.", en: "Photos per the standard application." }),
+    // No enforced count cap for Empleos images (LANE_MEDIA_REGISTRY: uncapped).
+    media: media(null, { es: "Sube al menos una foto real del lugar o del equipo.", en: "Upload at least one real photo of the workplace or team." }),
     lifecycle: {
       manageHref: "/dashboard/empleos",
       endLabel: { es: "Puesto ocupado", en: "Position filled" },
@@ -100,7 +96,7 @@ export const QUICK_CLASSIFIED_DEFINITIONS: Record<QuickClassifiedCategoryKey, Qu
       editSupported: true,
       note: { es: "Cada vacante es un anuncio pagado independiente.", en: "Each job is its own paid listing." },
     },
-    essentialQuestionCount: 0,
+    essentialQuestionCount: 11,
   },
   autos: {
     key: "autos",
@@ -154,7 +150,7 @@ export const QUICK_CLASSIFIED_DEFINITIONS: Record<QuickClassifiedCategoryKey, Qu
     emoji: "🎓",
     label: { es: "Clases", en: "Classes" },
     tagline: { es: "Anuncia tu clase, curso o taller. Gratis.", en: "Announce your class, course or workshop. Free." },
-    standardApplicationPath: "/publicar/clases",
+    standardApplicationPath: "/publicar/clases/quick",
     pricing: { kind: "free" },
     media: media(null, { es: "Sube al menos una imagen o el flyer como foto.", en: "Upload at least one image or your flyer as a photo." }),
     lifecycle: {
@@ -174,7 +170,7 @@ export const QUICK_CLASSIFIED_DEFINITIONS: Record<QuickClassifiedCategoryKey, Qu
     emoji: "🎉",
     label: { es: "Comunidad y Eventos", en: "Community & Events" },
     tagline: { es: "Anuncia tu evento comunitario. Gratis.", en: "Announce your community event. Free." },
-    standardApplicationPath: "/publicar/comunidad",
+    standardApplicationPath: "/publicar/comunidad/quick",
     pricing: { kind: "free" },
     media: media(null, { es: "Sube al menos una imagen o el flyer como foto.", en: "Upload at least one image or your flyer as a photo." }),
     lifecycle: {
@@ -194,7 +190,7 @@ export const QUICK_CLASSIFIED_DEFINITIONS: Record<QuickClassifiedCategoryKey, Qu
     emoji: "🔎",
     label: { es: "Busco / Se Busca", en: "Wanted" },
     tagline: { es: "Pide lo que necesitas. Gratis.", en: "Ask for what you need. Free." },
-    standardApplicationPath: "/publicar/busco",
+    standardApplicationPath: "/publicar/busco/quick",
     pricing: { kind: "free" },
     // Busco stores a single image (imageDataUrl) — LANE_MEDIA_REGISTRY busco: single.
     media: media(1, { es: "Una foto que ayude a explicar lo que buscas.", en: "One photo that helps explain what you are looking for." }),
@@ -215,7 +211,7 @@ export const QUICK_CLASSIFIED_DEFINITIONS: Record<QuickClassifiedCategoryKey, Qu
     emoji: "🐾",
     label: { es: "Mascotas y Perdidos", en: "Pets & Lost" },
     tagline: { es: "Mascota u objeto perdido, encontrado o en adopción. Gratis.", en: "Lost, found or adoptable pet or item. Free." },
-    standardApplicationPath: "/publicar/mascotas-y-perdidos",
+    standardApplicationPath: "/publicar/mascotas-y-perdidos/quick",
     pricing: { kind: "free" },
     // MAX_MASCOTAS_PHOTOS = 4 (mascotasPerdidosQuickDraft.ts).
     media: media(4, { es: "Hasta 4 fotos. La primera será la portada.", en: "Up to 4 photos. The first one is the cover." }),
@@ -231,18 +227,24 @@ export const QUICK_CLASSIFIED_DEFINITIONS: Record<QuickClassifiedCategoryKey, Qu
   },
 };
 
-/** Chooser / launchpad order — free & simple first, paid lanes after; the blocked category stays visible last. */
+/** Owner priority order — Tier-1 (En Venta, Rentas, Empleos, Autos) first, then FSBO, then the community family. */
 export const QUICK_CLASSIFIED_ORDER: readonly QuickClassifiedCategoryKey[] = [
   "en-venta",
+  "rentas",
+  "empleos",
+  "autos",
+  "bienes-raices",
   "busco",
   "mascotas-y-perdidos",
   "comunidad",
   "clases",
-  "rentas",
-  "autos",
-  "bienes-raices",
-  "empleos",
 ];
+
+/** Tier-1 launch focus (PM Control Master §22). */
+export const QUICK_TIER1_KEYS: readonly QuickClassifiedCategoryKey[] = ["en-venta", "rentas", "empleos", "autos"];
+
+/** Community family — already short canonical forms; the staff launchpad shares their direct canonical link. */
+export const QUICK_COMMUNITY_KEYS: readonly QuickClassifiedCategoryKey[] = ["busco", "mascotas-y-perdidos", "comunidad", "clases"];
 
 export function getQuickClassifiedDefinition(key: QuickClassifiedCategoryKey): QuickClassifiedDefinition {
   return QUICK_CLASSIFIED_DEFINITIONS[key];

@@ -71,9 +71,11 @@ const ADAPTERS = `${QUICK_ROUTE}/_adapters`;
     /^app\/components\/auth\//,
     /^app\/api\//,
     /^supabase\//,
-    /^app\/\(site\)\/clasificados\//,
+    // Tier-1 Gate 5 — the ONE documented narrow exception: the Empleos media wiring repair (a new upload helper
+    // + its single call-site insertion in the quick preview checkout). Everything else under these trees stays locked.
+    /^app\/\(site\)\/clasificados\/(?!empleos\/quick-preview\/EmpleoQuickPreviewClient\.tsx$)/,
     /^app\/\(site\)\/dashboard\//,
-    /^app\/\(site\)\/publicar\/(?!rapido\/|PublicarGatewayClient\.tsx$)/,
+    /^app\/\(site\)\/publicar\/(?!rapido\/|PublicarGatewayClient\.tsx$|empleos\/shared\/publish\/empleosDraftMediaUpload\.ts$)/,
     /^app\/admin\/(?!\(dashboard\)\/businesses\/(StaffCommandCenter|QuickApplicationsLaunchpad)\.tsx$)/,
     /^app\/manifest\.ts$/,
   ];
@@ -116,10 +118,24 @@ const ADAPTERS = `${QUICK_ROUTE}/_adapters`;
   const types = read(`${QUICK_LIB}/quickClassifiedTypes.ts`);
   assert.ok(types.includes("minImages: 1;"), "media contract type pins minImages to 1");
   assert.ok(reg.includes("return { minImages: 1, maxImages, videoOptional: true, note };"), "every definition builds media with minImages 1");
-  assert.ok(reg.includes('code: "BLOCKED_BY_EXISTING_MEDIA_OUTPUT"'), "Empleos recorded as BLOCKED_BY_EXISTING_MEDIA_OUTPUT");
-  assert.ok(!exists(`${ADAPTERS}/empleosQuickAdapter.ts`), "no Empleos Quick adapter (blocked, not half-built)");
+  // Tier-1 Gate 5 — Empleos media wiring repair: local photos are hosted in the EXISTING listing-images bucket
+  // before the (unchanged) envelope mapper runs; the mapper's data:/blob: drop is preserved as the safety net.
+  const empleosUpload = read("app/(site)/publicar/empleos/shared/publish/empleosDraftMediaUpload.ts");
+  assert.ok(empleosUpload.includes('const BUCKET = "listing-images";'), "Empleos repair uses the existing listing-images bucket (no new storage)");
+  assert.ok(empleosUpload.includes("${input.userId}/empleos/"), "Empleos uploads live under the customer's own uid folder");
+  assert.ok(empleosUpload.includes("supabase.storage.from(BUCKET).upload("), "Empleos repair uploads with the customer's own Supabase session");
+  assert.ok(!/service_role|SUPABASE_SERVICE_ROLE_KEY|owner_user_id/.test(empleosUpload), "Empleos repair is client-session only, never privileged");
+  const envelopeSrc = read("app/(site)/publicar/empleos/shared/publish/buildEmpleosPublishEnvelope.ts");
+  assert.ok(envelopeSrc.includes('if (u.startsWith("blob:") || u.startsWith("data:")) continue;'), "envelope mapper unchanged (still refuses local refs at the boundary)");
+  const quickPreview = read("app/(site)/clasificados/empleos/quick-preview/EmpleoQuickPreviewClient.tsx");
+  const uploadIdx = quickPreview.indexOf("await resolveEmpleosQuickDraftMediaForPublish(current");
+  const envelopeIdx = quickPreview.indexOf("buildEmpleosPublishEnvelopeFromQuick(resolved.draft, lang)");
+  assert.ok(uploadIdx > 0 && envelopeIdx > uploadIdx, "quick preview checkout hosts photos BEFORE building the envelope");
+  assert.ok(quickPreview.includes("if (!resolved.ok) {"), "upload failure fails closed with a message (never silently drops)");
+  assert.ok(exists(`${ADAPTERS}/empleosQuickAdapter.ts`), "Empleos Quick adapter present after the repair");
   const idx = read(`${ADAPTERS}/index.ts`);
-  assert.ok(!/empleos:/.test(idx), "adapter registry has no Empleos entry");
+  assert.ok(/empleos:/.test(idx), "adapter registry has an Empleos entry");
+  assert.ok(!exists("app/(site)/publicar/empleos/feria/empleosDraftMediaUpload.ts") && !read("app/(site)/publicar/empleos/feria/EmpleoFeriaApplicationClient.tsx").includes("resolveEmpleosQuickDraftMediaForPublish"), "Feria untouched by the repair");
   const media = read(`${QUICK_ROUTE}/_components/QuickMediaStep.tsx`);
   assert.ok(media.includes("compressImageFileToJpegDataUrl"), "media step reuses the existing image compressor (no second media system)");
   assert.ok(!/unsplash|placeholder\.com|picsum|generateImage|dall-e|openai/i.test(media), "media step never generates or fakes images");
@@ -158,6 +174,7 @@ const ADAPTERS = `${QUICK_ROUTE}/_adapters`;
     "communityQuickAdapters.ts": { store: /flushCommunityDraftToSession\(COMMUNITY_SESSION_KEYS\.(clases|comunidad)/, gate: /gate(Clases|Comunidad)QuickPreview\(/, handoff: /communityHandoffPreviewUrl\(/ },
     "buscoQuickAdapter.ts": { store: /sessionStorage\.setItem\(BUSCO_QUICK_DRAFT_KEY/, gate: /gateBuscoQuickPreview\(/, handoff: /buscoHandoffPreviewUrl\(/ },
     "mascotasQuickAdapter.ts": { store: /sessionStorage\.setItem\(MASCOTAS_PERDIDOS_QUICK_DRAFT_KEY/, gate: /gateMascotasPerdidosQuickPreview\(/, handoff: /mascotasPerdidosHandoffPreviewUrl\(/ },
+    "empleosQuickAdapter.ts": { store: /flushEmpleosDraftToSession\(EMPLEOS_SESSION_KEYS\.quick/, gate: /gateEmpleosQuickPreview\(/, handoff: /empleosHandoffPreviewUrl\("quick"/ },
   };
   for (const [file, e] of Object.entries(expectations)) {
     const src = read(`${ADAPTERS}/${file}`);
@@ -166,14 +183,14 @@ const ADAPTERS = `${QUICK_ROUTE}/_adapters`;
     assert.ok(e.handoff.test(src), `${file}: hands off to the category's existing preview`);
   }
   const idx = read(`${ADAPTERS}/index.ts`);
-  for (const k of ['"en-venta"', "rentas", "autos", '"bienes-raices"', "clases", "comunidad", "busco", '"mascotas-y-perdidos"']) {
+  for (const k of ['"en-venta"', "rentas", "autos", '"bienes-raices"', "empleos", "clases", "comunidad", "busco", '"mascotas-y-perdidos"']) {
     assert.ok(idx.includes(`${k}:`), `adapter registry has ${k}`);
   }
   const reg = read(`${QUICK_LIB}/quickClassifiedRegistry.ts`);
   const liveCount = (reg.match(/status: "live"/g) ?? []).length;
   const blockedCount = (reg.match(/status: "blocked"/g) ?? []).length;
-  assert.equal(liveCount, 8, "eight live categories");
-  assert.equal(blockedCount, 1, "one blocked category (Empleos)");
+  assert.equal(liveCount, 9, "nine live categories (Empleos unblocked by the Gate 5 repair)");
+  assert.equal(blockedCount, 0, "no blocked category");
   // No parallel product architecture
   const forbidden = execSync("git ls-files --others --exclude-standard --cached app", { cwd: ROOT, encoding: "utf8" })
     .trim()
@@ -192,6 +209,35 @@ const ADAPTERS = `${QUICK_ROUTE}/_adapters`;
   // Docs present
   assert.ok(exists("docs/quick-classifieds/LEONIX_QUICK_CLASSIFIEDS_EXECUTION_BLUEPRINT.md"), "blueprint present");
   assert.ok(exists("docs/quick-classifieds/LEONIX_QUICK_CLASSIFIEDS_CATEGORY_MATRIX.md"), "category matrix present");
+}
+
+// 8. SHARED FORM INTERACTION CONTRACT (PM Control Master §20) ----------------------------------------------
+{
+  const renderer = read(`${QUICK_ROUTE}/_components/QuickFieldRenderer.tsx`);
+  // Every text-like control forwards the raw keystroke value; no per-keystroke normalization.
+  assert.ok(renderer.includes("onChange={(e) => onChange(field.key, e.target.value)}"), "text/number/phone/email/date inputs forward the raw value");
+  assert.ok(/<textarea[\s\S]*?onChange=\{\(e\) => onChange\(field\.key, e\.target\.value\)\}/.test(renderer), "textarea forwards the raw value (multiline, spaces, accents)");
+  const onChangeHandlers = renderer.match(/onChange=\{[^}]*\}/g) ?? [];
+  for (const h of onChangeHandlers) {
+    assert.ok(!/trim\(|toLowerCase\(|normalize\(|parseInt|parseFloat|Number\(|replace\(|slug/.test(h), `no destructive per-keystroke rewrite in handler: ${h}`);
+  }
+  assert.ok(!/\.trim\(\)/.test(renderer.replace(/typeof raw === "string" \? raw : ""/g, "")), "renderer never trims typed text");
+  // City: raw value on change; canonicalization only on blur/select inside the existing CityAutocomplete.
+  const city = read("app/components/CityAutocomplete.tsx");
+  assert.ok(city.includes("onChange(e.target.value);"), "CityAutocomplete forwards the raw keystroke");
+  assert.ok(city.includes("const handleBlur") || city.includes("onBlur={handleBlur}"), "CityAutocomplete canonicalizes on blur, not per keystroke");
+  // Normalization happens at the adapter boundary only.
+  const validation = read(`${QUICK_LIB}/quickClassifiedValidation.ts`);
+  assert.ok(validation.includes("export function quickStr(") && validation.includes("return typeof v === \"string\" ? v.trim() : \"\";"), "quickStr trims at the adapter/validation boundary");
+  // Chips write exact option values; a change never resets unrelated keys (spread-merge patch).
+  const intake = read(`${QUICK_ROUTE}/_components/QuickIntakeClient.tsx`);
+  assert.ok(intake.includes("setDraft((d) => ({ ...d, values: { ...d.values, [key]: value } }));"), "a field change patches only its own key");
+  assert.ok(intake.includes("stepIndex: index") && intake.includes("goTo(stepIndex - 1)"), "Back/Next move the step index without touching values");
+  assert.ok(intake.includes("saveQuickIntakeDraft(category, draftRef.current)"), "values + media + step persist to the tab draft (survives refresh and the same-tab login return)");
+  assert.ok(intake.includes("values: { ...missing, ...d.values }"), "visible defaultValue prefills never overwrite what the customer typed");
+  const media = read(`${QUICK_ROUTE}/_components/QuickMediaStep.tsx`);
+  assert.ok(media.includes('accept="image/*"') && media.includes('capture="environment"'), "image control offers gallery + camera");
+  assert.ok(media.includes("function makeCover(") && media.includes("function remove("), "cover + remove controls exist");
 }
 
 console.log("verify-quick-classifieds-onramp-01: OK");

@@ -38,7 +38,7 @@ const STEPS: readonly QuickIntakeStep[] = [
       { key: "direccionCruceCercano", kind: "text", label: { es: "Cruce de calles o referencia", en: "Cross streets or reference" }, hint: { es: "No pongas tu dirección exacta; solo una referencia pública.", en: "Do not enter your exact address; a public reference is enough." }, required: true, maxLength: 120 },
     ],
   },
-  contactStep({ nameKey: "nombre", nameLabel: { es: "Tu nombre (como particular)", en: "Your name (as a private party)" }, includeSms: true }),
+  contactStep({ nameKey: "nombre", nameLabel: { es: "Tu nombre (como particular)", en: "Your name (as a private party)" } }),
 ];
 
 export const rentasPrivadoQuickAdapter: QuickClassifiedCategoryAdapter = {

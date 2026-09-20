@@ -6,7 +6,7 @@ import { useMemo } from "react";
 import { resolveClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import { formatRevenuePriceLabel, getRevenuePackagePriceCents } from "@/app/lib/listingPlans/revenuePricingMatrix";
 import { qt, quickCopy } from "@/app/lib/quickClassifieds/quickClassifiedCopy";
-import { listQuickClassifiedDefinitions } from "@/app/lib/quickClassifieds/quickClassifiedRegistry";
+import { QUICK_COMMUNITY_KEYS, listQuickClassifiedDefinitions } from "@/app/lib/quickClassifieds/quickClassifiedRegistry";
 import { quickClassifiedCategoryPath, quickClassifiedMyAdPath } from "@/app/lib/quickClassifieds/quickClassifiedRoutes";
 import type { QuickClassifiedDefinition, QuickLang } from "@/app/lib/quickClassifieds/quickClassifiedTypes";
 import { QuickShell, quickCard } from "./QuickShell";
@@ -31,7 +31,9 @@ export function QuickCategoryChooser() {
       <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {definitions.map((def) => {
           const blocked = def.status === "blocked";
-          const href = blocked ? `${def.standardApplicationPath}?lang=${routeLang}` : quickClassifiedCategoryPath(def.key, routeLang, src);
+          // Community family: the existing short application IS the two-minute form — open it directly (PM §22).
+          const direct = blocked || (QUICK_COMMUNITY_KEYS as readonly string[]).includes(def.key);
+          const href = direct ? `${def.standardApplicationPath}?lang=${routeLang}` : quickClassifiedCategoryPath(def.key, routeLang, src);
           const badge = priceBadge(def, lang);
           return (
             <li key={def.key}>
@@ -46,7 +48,7 @@ export function QuickCategoryChooser() {
                   </span>
                   <span className="mt-0.5 block text-sm text-[#5D4A25]/90">{qt(def.tagline, lang)}</span>
                   <span className="mt-1 block text-[11px] font-semibold uppercase tracking-wide text-[#9A8B6A]">
-                    {blocked ? quickCopy("chooserStandard", lang) : `≈ ${def.essentialQuestionCount} ${quickCopy("chooserQuestions", lang)} · 📷`}
+                    {blocked ? quickCopy("chooserStandard", lang) : direct ? (lang === "en" ? "Short form · 📷" : "Formulario corto · 📷") : `≈ ${def.essentialQuestionCount} ${quickCopy("chooserQuestions", lang)} · 📷`}
                   </span>
                 </span>
               </Link>

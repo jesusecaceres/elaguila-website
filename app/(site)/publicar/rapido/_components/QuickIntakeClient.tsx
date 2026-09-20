@@ -54,6 +54,18 @@ export function QuickIntakeClient({ category }: { category: QuickClassifiedCateg
   }, [hydrated, category, draft]);
 
   const steps = adapter?.steps ?? [];
+
+  // Visible prefills (e.g. state "CA") — applied once after hydration, only where the customer typed nothing.
+  useEffect(() => {
+    if (!hydrated || !adapter) return;
+    const missing: Record<string, string> = {};
+    for (const s of adapter.steps) {
+      for (const f of s.fields) {
+        if (f.defaultValue != null && draftRef.current.values[f.key] === undefined) missing[f.key] = f.defaultValue;
+      }
+    }
+    if (Object.keys(missing).length) setDraft((d) => ({ ...d, values: { ...missing, ...d.values } }));
+  }, [hydrated, adapter]);
   const totalSteps = steps.length + 2; // fields… + media + review
   const mediaIndex = steps.length;
   const reviewIndex = steps.length + 1;

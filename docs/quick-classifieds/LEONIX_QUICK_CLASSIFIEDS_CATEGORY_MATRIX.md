@@ -120,7 +120,7 @@ category + paid preview).
 | Preview gate | `gateEmpleosQuickPreview`: title, businessName, city, state, country, jobType(+custom), schedule, pay, description, ≥1 image (URL present), ≥1 contact |
 | Renderer conditionals | schedule/videos/benefits/location/related omitted; **hero always renders (stock fallback)**; description/jobType/title/businessName use "—"/"Empleo"/"Empresa" placeholders |
 
-**Feasibility: BLOCKED_BY_EXISTING_MEDIA_OUTPUT.** The Media Lock requires at least one *real* customer image
+**Feasibility (Gate 0 of the first mission): BLOCKED_BY_EXISTING_MEDIA_OUTPUT.** **Tier-1 update (2026-09-20): NEEDS_THIN_ADAPTER → repaired and live** — see the Tier-1 ledger, Gate 5. The Media Lock requires at least one *real* customer image
 to reach the published ad. The existing Empleos pipeline has no image path for uploaded files (they are dropped
 at envelope build and replaced by a stock photo on the public page); only a pasted `https://` image URL persists,
 which low-tech Quick customers do not have. Fixing this means redesigning the Empleos media output (a bucket, an

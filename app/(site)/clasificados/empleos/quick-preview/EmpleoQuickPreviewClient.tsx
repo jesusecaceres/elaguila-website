@@ -28,6 +28,8 @@ import {
 } from "@/app/publicar/empleos/shared/types/empleosQuickDraft";
 import { buildEmpleosPublishEnvelopeFromQuick } from "@/app/publicar/empleos/shared/publish/buildEmpleosPublishEnvelope";
 import { saveEmpleosDraftAndStartPaidJobCheckout } from "@/app/publicar/empleos/shared/publish/empleosRevenueCheckout";
+import { resolveEmpleosQuickDraftMediaForPublish } from "@/app/publicar/empleos/shared/publish/empleosDraftMediaUpload";
+import { flushEmpleosDraftToSession } from "@/app/publicar/empleos/shared/lib/flushEmpleosDraftToSession";
 import { gateEmpleosQuickPreview } from "@/app/publicar/empleos/shared/required/empleosRequiredForPreview";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import {
@@ -149,7 +151,20 @@ export function EmpleoQuickPreviewClient() {
         checked: ctx.newsletterOptIn,
       });
 
-      const envelope = buildEmpleosPublishEnvelopeFromQuick(current, lang);
+      // Quick Tier-1 Gate 5 — media wiring repair: host the customer's local photos in the existing
+      // listing-images bucket BEFORE the envelope mapper runs (it keeps https refs and drops data:/blob:).
+      const resolved = await resolveEmpleosQuickDraftMediaForPublish(current, { userId: data.session.user.id, lang });
+      if (!resolved.ok) {
+        setCheckoutBusy(false);
+        setCheckoutErr(resolved.message);
+        return;
+      }
+      if (resolved.uploaded > 0) {
+        flushEmpleosDraftToSession(EMPLEOS_SESSION_KEYS.quick, resolved.draft);
+        setDraft(resolved.draft);
+      }
+
+      const envelope = buildEmpleosPublishEnvelopeFromQuick(resolved.draft, lang);
       const paid = await saveEmpleosDraftAndStartPaidJobCheckout({
         envelope,
         accessToken: data.session.access_token,

@@ -2,10 +2,16 @@
 
 import Link from "next/link";
 import { useCallback, useState } from "react";
-import { adminBtnSecondary } from "../../_components/adminTheme";
+import { adminBtnPrimary, adminBtnSecondary } from "../../_components/adminTheme";
+import { ADMIN_DASHBOARD_ROUTES } from "../../_lib/adminDashboardRoutes";
+import { buildConciergeInventoryHref } from "../../_lib/conciergeIntent";
 import { copyToClipboard, tryWebShare } from "@/app/components/cta/ctaLaunchers";
 import { formatRevenuePriceLabel, getRevenuePackagePriceCents } from "@/app/lib/listingPlans/revenuePricingMatrix";
-import { listQuickClassifiedDefinitions } from "@/app/lib/quickClassifieds/quickClassifiedRegistry";
+import {
+  QUICK_CLASSIFIED_DEFINITIONS,
+  QUICK_COMMUNITY_KEYS,
+  QUICK_TIER1_KEYS,
+} from "@/app/lib/quickClassifieds/quickClassifiedRegistry";
 import {
   quickClassifiedCategoryPath,
   quickClassifiedMyAdPath,
@@ -17,11 +23,13 @@ import type { QuickClassifiedCategoryKey, QuickClassifiedDefinition } from "@/ap
 /**
  * APLICACIONES RÁPIDAS / QUICK APPLICATIONS — the staff launchpad inside the ONE Business Concierge PWA.
  *
- * Additive only: sits directly under the Command Center header so staff never dig through notes, meetings,
- * research or Creative Studio to publish or help a customer. Every action is a link or a share of an EXISTING
- * public route (/publicar/rapido/*). Staff never publish under their own identity here: the customer signs in
- * with their own account on the existing publish gate, so the ad stays in the customer's name. Customers with a
- * Business record keep using the existing Create-for-Client handoff (linked below, unchanged).
+ * Additive only: sits directly under the Command Center header so a receptionist sees, within seconds, how to
+ * CREATE a quick ad, SEND a quick link, MANAGE an ad, or open the FULL business profile / full Concierge.
+ * Tier-1 lanes (En Venta, Rentas, Empleos, Autos — PM Control Master §22) come first and large; the community
+ * family (already short canonical forms) shares its DIRECT canonical application link instead of a wrapper.
+ * Every action is a link or a share of an EXISTING route. Staff never publish under their own identity here:
+ * the customer signs in with their own account on the existing publish gate, so the ad stays in the customer's
+ * name. Customers with a Business record keep using the existing Create-for-Client handoff (linked, unchanged).
  */
 
 type LinkLang = "es" | "en";
@@ -36,10 +44,27 @@ function origin(): string {
   return typeof window === "undefined" ? "" : window.location.origin;
 }
 
+function withLang(path: string, lang: LinkLang): string {
+  return path.includes("?") ? `${path}&lang=${lang}` : `${path}?lang=${lang}`;
+}
+
+/** Tier-1 → Quick intake route; community family → its existing short canonical application (direct link). */
+function customerPath(def: QuickClassifiedDefinition, lang: LinkLang): string {
+  const isCommunity = (QUICK_COMMUNITY_KEYS as readonly string[]).includes(def.key);
+  if (isCommunity || def.status === "blocked") return withLang(def.standardApplicationPath, lang);
+  return quickClassifiedCategoryPath(def.key, lang, "staff");
+}
+
+function customerUrl(def: QuickClassifiedDefinition | null, lang: LinkLang): string {
+  if (!def) return quickClassifiedShareUrl(origin(), null, lang);
+  return `${origin().replace(/\/+$/, "")}${customerPath(def, lang)}`;
+}
+
+const FSBO: QuickClassifiedCategoryKey = "bienes-raices";
+
 export function QuickApplicationsLaunchpad() {
   const [linkLang, setLinkLang] = useState<LinkLang>("es");
   const [toast, setToast] = useState<string | null>(null);
-  const definitions = listQuickClassifiedDefinitions();
 
   const flash = useCallback((msg: string) => {
     setToast(msg);
@@ -47,8 +72,8 @@ export function QuickApplicationsLaunchpad() {
   }, []);
 
   const copyLink = useCallback(
-    async (category: QuickClassifiedCategoryKey | null) => {
-      const ok = await copyToClipboard(quickClassifiedShareUrl(origin(), category, linkLang));
+    async (def: QuickClassifiedDefinition | null) => {
+      const ok = await copyToClipboard(customerUrl(def, linkLang));
       flash(ok ? "Enlace copiado / Link copied" : "No se pudo copiar / Could not copy");
     },
     [flash, linkLang],
@@ -56,7 +81,7 @@ export function QuickApplicationsLaunchpad() {
 
   const shareLink = useCallback(
     async (def: QuickClassifiedDefinition | null) => {
-      const url = quickClassifiedShareUrl(origin(), def?.key ?? null, linkLang);
+      const url = customerUrl(def, linkLang);
       const label = def ? (linkLang === "en" ? def.label.en : def.label.es) : linkLang === "en" ? "Leonix quick publish" : "Publicación rápida Leonix";
       const text = linkLang === "en" ? `Publish your ad on Leonix in minutes: ${label}` : `Publica tu anuncio en Leonix en minutos: ${label}`;
       const outcome = await tryWebShare({ title: label, text, url });
@@ -67,6 +92,51 @@ export function QuickApplicationsLaunchpad() {
     },
     [flash, linkLang],
   );
+
+  const tier1 = QUICK_TIER1_KEYS.map((k) => QUICK_CLASSIFIED_DEFINITIONS[k]);
+  const fsbo = QUICK_CLASSIFIED_DEFINITIONS[FSBO];
+  const community = QUICK_COMMUNITY_KEYS.map((k) => QUICK_CLASSIFIED_DEFINITIONS[k]);
+
+  const renderCard = (def: QuickClassifiedDefinition, size: "large" | "compact") => {
+    const blocked = def.status === "blocked";
+    const badge = priceBadge(def);
+    const openHref = customerPath(def, linkLang);
+    const isCommunity = (QUICK_COMMUNITY_KEYS as readonly string[]).includes(def.key);
+    return (
+      <li key={def.key} className={`flex flex-col rounded-2xl border bg-white ${size === "large" ? "border-[#C9A84A]/80 p-4" : "border-[#D6C7AD] p-3"}`}>
+        <div className="flex items-start gap-2">
+          <span className={size === "large" ? "text-3xl leading-none" : "text-2xl leading-none"} aria-hidden="true">{def.emoji}</span>
+          <div className="min-w-0 flex-1">
+            <p className={`${size === "large" ? "text-base" : "text-sm"} font-bold text-[#1E1810]`}>
+              {def.label.es} / {def.label.en}
+            </p>
+            <p className="mt-0.5 text-[11px] text-[#7A7164]">
+              {blocked ? "Aplicación estándar / Standard application" : isCommunity ? "Formulario corto existente / Existing short form" : `${badge}${def.essentialQuestionCount ? ` · ≈ ${def.essentialQuestionCount} preguntas / questions` : ""}`}
+            </p>
+            {blocked && def.blocker ? <p className="mt-1 text-[11px] text-[#7A1E2C]">{def.blocker.reason.es} / {def.blocker.reason.en}</p> : null}
+          </div>
+        </div>
+        <div className="mt-3 grid grid-cols-1 gap-2">
+          <Link
+            href={openHref}
+            target="_blank"
+            rel="noreferrer"
+            className={`inline-flex min-h-[44px] items-center justify-center rounded-xl px-3 text-xs font-bold ${size === "large" ? "bg-[#7A1E2C] text-white" : "border border-[#7A1E2C]/40 bg-[#7A1E2C]/5 text-[#7A1E2C]"}`}
+          >
+            {blocked ? "Abrir aplicación estándar / Open standard application" : "Abrir con el cliente / Open with customer"}
+          </Link>
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => void copyLink(def)} className={`${adminBtnSecondary} min-h-[44px] text-xs`}>
+              🔗 Copiar / Copy
+            </button>
+            <button type="button" onClick={() => void shareLink(def)} className={`${adminBtnSecondary} min-h-[44px] text-xs`}>
+              📤 Compartir / Share
+            </button>
+          </div>
+        </div>
+      </li>
+    );
+  };
 
   return (
     <section
@@ -81,8 +151,7 @@ export function QuickApplicationsLaunchpad() {
             ⚡ Aplicaciones Rápidas / Quick Applications
           </h2>
           <p className="mt-1 text-xs text-[#5C5346]">
-            Comparte el enlace o ábrelo con el cliente. El cliente inicia sesión con su correo y el anuncio queda a su nombre. /
-            Share the link or open it with the customer. The customer signs in with their email and the ad stays in their name.
+            El cliente inicia sesión con su correo y el anuncio queda a su nombre. / The customer signs in with their email and the ad stays in their name.
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1 rounded-xl border border-[#E8DFD0] bg-white p-1" role="group" aria-label="Idioma del enlace / Link language">
@@ -100,60 +169,37 @@ export function QuickApplicationsLaunchpad() {
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-2">
-        <button type="button" onClick={() => void copyLink(null)} className={`${adminBtnSecondary} min-h-[44px] border-[#C9A84A]/70 text-xs`}>
-          🔗 Copiar enlace general / Copy general link
+      {/* The four verbs a receptionist needs — nothing else to understand first. */}
+      <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <a href="#quick-tier1" className={`${adminBtnPrimary} min-h-[56px] flex-col gap-0.5 py-2`}>
+          <span>➕ Crear anuncio rápido / Create quick ad</span>
+          <span className="text-[10px] font-normal text-white/80">Elige la categoría abajo. / Pick the category below.</span>
+        </a>
+        <button type="button" onClick={() => void shareLink(null)} className={`${adminBtnSecondary} min-h-[56px] flex-col gap-0.5 border-[#C9A84A]/70 py-2`}>
+          <span>📤 Enviar enlace rápido / Send quick link</span>
+          <span className="text-[10px] font-normal text-[#7A7164]">Compartir o copiar el selector. / Share or copy the chooser.</span>
         </button>
-        <button type="button" onClick={() => void shareLink(null)} className={`${adminBtnSecondary} min-h-[44px] border-[#C9A84A]/70 text-xs`}>
-          📤 Compartir enlace general / Share general link
-        </button>
-        <Link href={quickClassifiedMyAdPath(linkLang)} target="_blank" rel="noreferrer" className={`${adminBtnSecondary} min-h-[44px] border-[#C9A84A]/70 text-xs`}>
-          🗂️ Mi anuncio (cliente) / Customer My-Ad page
+        <Link href={ADMIN_DASHBOARD_ROUTES.classifiedsQueue} className={`${adminBtnSecondary} min-h-[56px] flex-col gap-0.5 border-[#C9A84A]/70 py-2`}>
+          <span>🗂️ Administrar anuncio / Manage ad</span>
+          <span className="text-[10px] font-normal text-[#7A7164]">Cola de clasificados existente. / Existing classifieds queue.</span>
+        </Link>
+        <Link href={buildConciergeInventoryHref("business_profile")} className={`${adminBtnSecondary} min-h-[56px] flex-col gap-0.5 border-[#C9A84A]/70 py-2`}>
+          <span>🏢 Perfil de Negocio completo / Full Business Profile</span>
+          <span className="text-[10px] font-normal text-[#7A7164]">Business Concierge completo abajo. / Full Concierge below.</span>
         </Link>
       </div>
 
-      <ul className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {definitions.map((def) => {
-          const blocked = def.status === "blocked";
-          const badge = priceBadge(def);
-          const openHref = blocked ? `${def.standardApplicationPath}?lang=${linkLang}` : quickClassifiedCategoryPath(def.key, linkLang, "staff");
-          return (
-            <li key={def.key} className="flex flex-col rounded-2xl border border-[#D6C7AD] bg-white p-3">
-              <div className="flex items-start gap-2">
-                <span className="text-2xl leading-none" aria-hidden="true">{def.emoji}</span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-[#1E1810]">
-                    {def.label.es} / {def.label.en}
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-[#7A7164]">
-                    {blocked ? "Aplicación estándar / Standard application" : `${badge}${def.essentialQuestionCount ? ` · ≈ ${def.essentialQuestionCount} preguntas / questions` : ""}`}
-                  </p>
-                  {blocked && def.blocker ? <p className="mt-1 text-[11px] text-[#7A1E2C]">{def.blocker.reason.es} / {def.blocker.reason.en}</p> : null}
-                </div>
-              </div>
-              <div className="mt-3 grid grid-cols-1 gap-2">
-                <Link
-                  href={openHref}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#7A1E2C] px-3 text-xs font-bold text-white"
-                >
-                  {blocked ? "Abrir aplicación estándar / Open standard application" : "Abrir con el cliente / Open with customer"}
-                </Link>
-                {blocked ? null : (
-                  <div className="grid grid-cols-2 gap-2">
-                    <button type="button" onClick={() => void copyLink(def.key)} className={`${adminBtnSecondary} min-h-[44px] text-xs`}>
-                      🔗 Copiar / Copy
-                    </button>
-                    <button type="button" onClick={() => void shareLink(def)} className={`${adminBtnSecondary} min-h-[44px] text-xs`}>
-                      📤 Compartir / Share
-                    </button>
-                  </div>
-                )}
-              </div>
-            </li>
-          );
-        })}
+      <h3 id="quick-tier1" className="mt-5 scroll-mt-4 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">
+        Prioridad / Priority
+      </h3>
+      <ul className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">{tier1.map((def) => renderCard(def, "large"))}</ul>
+
+      <h3 className="mt-5 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">
+        Más categorías / More categories
+      </h3>
+      <ul className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        {renderCard(fsbo, "compact")}
+        {community.map((def) => renderCard(def, "compact"))}
       </ul>
 
       <div className="mt-4 flex flex-col gap-2 text-[11px] text-[#7A7164] sm:flex-row sm:items-center sm:justify-between">
@@ -163,9 +209,17 @@ export function QuickApplicationsLaunchpad() {
             Crear para el cliente / Create for Client
           </Link>
         </p>
-        <Link href={quickClassifiedsChooserPath(linkLang, "staff")} target="_blank" rel="noreferrer" className="font-semibold text-[#7A1E2C] underline">
-          Ver el selector rápido / View the quick chooser
-        </Link>
+        <span className="flex flex-wrap gap-3">
+          <Link href={quickClassifiedMyAdPath(linkLang)} target="_blank" rel="noreferrer" className="font-semibold text-[#7A1E2C] underline">
+            Mi anuncio (cliente) / Customer My-Ad page
+          </Link>
+          <Link href={quickClassifiedsChooserPath(linkLang, "staff")} target="_blank" rel="noreferrer" className="font-semibold text-[#7A1E2C] underline">
+            Selector rápido / Quick chooser
+          </Link>
+          <a href="#businesses-inventory" className="font-semibold text-[#7A1E2C] underline">
+            Concierge completo / Full Concierge
+          </a>
+        </span>
       </div>
 
       {toast ? (
