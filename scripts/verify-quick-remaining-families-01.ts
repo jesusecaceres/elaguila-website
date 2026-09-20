@@ -175,7 +175,7 @@ function defBlocksInclude(source: string, key: string, needle: string): boolean 
   // This guard exists because the Remaining Families repair had to fix the stale Ofertas coupon
   // price on the CLIENT rather than by rewriting the server matrix to match it. It originally
   // asserted the matrix file was byte-identical, which also forbids purely additive work on
-  // unrelated categories: the Quick SIMPLE vs FULL mission adds four $99 business packages and an
+  // unrelated categories: the Quick SIMPLE vs FULL mission adds four $249 business packages and an
   // optional businessAccessLevel field. Narrowed to the actual intent — the matrix may only be
   // ADDED to, and no Ofertas line may change. A rewrite that moved Ofertas pricing to the server,
   // which is what this guard was written to catch, still fails it.
