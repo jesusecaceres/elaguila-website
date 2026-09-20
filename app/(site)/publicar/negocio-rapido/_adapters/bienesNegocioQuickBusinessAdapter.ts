@@ -125,9 +125,6 @@ export const bienesNegocioQuickBusinessAdapter: QuickBusinessCategoryAdapter = {
   // Exactly the four booleans the Full agente application requires before it opens its preview (`confirmAll`).
   confirmations: { kind: "property_agent" },
   async buildAndWriteCanonicalDraft({ values, media, confirmations, ctx }) {
-    // Bible §10.1: explicit SMS field collected; AgenteIndividualResidencialFormState has no dedicated SMS field.
-    // SMS CTA auto-derives from agenteTelefonoPersonal. REPAIR_TARGET: add smsTelefono to the canonical model.
-    void quickStr(values, "sms");
     const catRaw = quickStr(values, "categoriaPropiedad");
     const categoriaPropiedad: BrNegocioCategoriaPropiedad = catRaw === "comercial" || catRaw === "terreno_lote" ? catRaw : "residencial";
     const condicionPropiedad = condicionOrUndefined(quickStr(values, "condicionPropiedad"));
@@ -157,6 +154,7 @@ export const bienesNegocioQuickBusinessAdapter: QuickBusinessCategoryAdapter = {
       marcaNombre: quickStr(values, "marcaNombre"),
       agenteTelefonoPersonal: quickStr(values, "phone"),
       agenteWhatsapp: quickStr(values, "whatsapp"),
+      agenteSmsPersonal: quickStr(values, "sms") || undefined,
       correoPrincipal: quickStr(values, "email"),
       agenteSitioWeb: quickStr(values, "website"),
       confirmListingAccurate: confirmations.infoTruthful,

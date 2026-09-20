@@ -243,6 +243,9 @@ export type AgenteIndividualResidencialFormState = {
   agenteTelefonoOficina: string;
   /** WhatsApp del agente principal (solo este número para el CTA WA si no hay override en paso 8). */
   agenteWhatsapp: string;
+  /** SMS del agente — número explícito para CTA de texto (Quick intake: nunca deriva de teléfono).
+   * Optional: no existe en borradores anteriores al Quick Business intake. */
+  agenteSmsPersonal?: string;
   /** Sitio web del agente (CTA «Ver sitio web» tras override del paso 8). */
   agenteSitioWeb: string;
   /** Número que alimenta «Llamar» cuando hay personal y oficina con dígitos válidos. */

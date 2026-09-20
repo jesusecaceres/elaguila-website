@@ -53,7 +53,7 @@ function registryBlock(key: string): string {
   assert.ok(!reg.includes("directReason:"), "no direct reason remains in the registry");
   assert.ok(reg.includes('standardApplicationPath: "/publicar/autos/negocios"') && reg.includes('standardApplicationPath: "/publicar/bienes-raices"'), "Dealer / Bienes still name their EXISTING full application / selector");
   assert.ok(reg.includes('standardApplicationPath: "/publicar/servicios"') && reg.includes('standardApplicationPath: "/publicar/restaurantes"'), "Servicios / Restaurantes name their EXISTING applications");
-  assert.ok(reg.includes("publishForClientSupported: true") && (reg.match(/publishForClientSupported: false/g) ?? []).length === 3, "publish-for-client is claimed for Servicios only (the one verified server path)");
+  assert.ok(reg.includes("publishForClientSupported: true") && (reg.match(/publishForClientSupported: false/g) ?? []).length === 2, "publish-for-client is wired for Servicios and Restaurantes (two verified server paths); Autos Dealer + Bienes Negocio remain false");
   assert.equal((reg.match(/mediaIntro: \{/g) ?? []).length, 4, "every definition carries its own truthful media wording");
   const dealer = registryBlock('"autos-dealer"');
   const bienes = registryBlock('"bienes-negocio"');
@@ -115,8 +115,8 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
     "restaurantesQuickBusinessAdapter.ts": {
       canonical: [
         'productType: "established_restaurant"', "businessName:", "businessType:", "businessTypeCustom:", "primaryCuisine:", "primaryCuisineCustom:", "shortSummary:", "serviceModes,", "cityCanonical: resolveCity(values)", "...weeklyHoursFrom(values)", "phoneNumber:", "whatsAppNumber:", "email:", "websiteUrl:", "heroImage:", "galleryImages:",
-        // Bible §10.1: SMS acknowledged; RestauranteListingDraft has no dedicated SMS field (REPAIR_TARGET).
-        'void quickStr(values, "sms")',
+        // Gate 1 wired: smsNumber propagated through RestauranteListingDraft → listing_json.
+        'smsNumber: quickStr(values, "sms")',
       ],
     },
     "autosDealerQuickBusinessAdapter.ts": {
@@ -127,8 +127,8 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
     "bienesNegocioQuickBusinessAdapter.ts": {
       canonical: [
         'sellerTipo: "agente_individual"', "categoriaPropiedad,", 'normalizeResidencialTipoPropiedadCodigo(quickStr(values, "tipoCodigo"))', 'normalizeComercialTipoCodigo(quickStr(values, "comercialTipoCodigo"))', 'normalizeTerrenoTipoCodigo(quickStr(values, "terrenoTipoCodigo"))', 'recamaras: categoriaPropiedad === "residencial" ? quickStr(values, "recamaras") : ""', 'banos: categoriaPropiedad === "residencial" ? quickStr(values, "banos") : ""', 'titulo: quickStr(values, "titulo")', "precio: quickWholeDollars(values.precio)", "...(condicionPropiedad ? { condicionPropiedad } : {})", 'descripcionPrincipal: quickStr(values, "descripcion")', "ciudad: resolveCity(values)", 'areaCiudad: quickStr(values, "areaCiudad")', 'direccionCodigoPostal: quickStr(values, "zip")', "fotosDataUrls: media.map((m) => m.dataUrl)", "fotoPortadaIndex: 0", 'agenteNombre: quickStr(values, "agenteNombre")', 'agenteTitulo: quickStr(values, "agenteTitulo")', 'agenteLicencia: quickStr(values, "agenteLicencia")', 'marcaNombre: quickStr(values, "marcaNombre")', 'agenteTelefonoPersonal: quickStr(values, "phone")', 'agenteWhatsapp: quickStr(values, "whatsapp")', 'correoPrincipal: quickStr(values, "email")', 'agenteSitioWeb: quickStr(values, "website")', "confirmListingAccurate: confirmations.infoTruthful", "confirmPhotosRepresentItem: confirmations.mediaAccurate", "confirmCommunityRules: confirmations.rulesAccepted", "confirmPaymentAfterPreview: confirmations.paymentAfterPreview",
-        // Bible §10.1: SMS acknowledged; AgenteIndividualResidencialFormState has no dedicated SMS field (REPAIR_TARGET).
-        'void quickStr(values, "sms")',
+        // Gate 1 wired: agenteSmsPersonal propagated through AgenteIndividualResidencialFormState → identityAgente.smsPersonal.
+        'agenteSmsPersonal: quickStr(values, "sms")',
       ],
     },
   };
@@ -292,6 +292,20 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
     "app/(site)/clasificados/bienes-raices/lib/bienesNegocioTranslateAd.ts",
     "app/(site)/clasificados/bienes-raices/lib/useBienesNegocioShellTranslation.ts",
     "app/(site)/clasificados/bienes-raices/listing/BienesRaicesNegocioLiveDetailShell.tsx",
+    // Gate 1 (SMS trace) — explicit smsNumber field added to Restaurantes model + contact hub; explicit
+    // agenteSmsPersonal propagated through Bienes agente form state → negocio form state → preview VM.
+    // No schema migration: smsNumber / smsPersonal persists in listing_json (JSONB). Backwards-compatible
+    // optional fields; legacy drafts without them fall back to phone-derived SMS.
+    "app/(site)/clasificados/restaurantes/application/restauranteListingApplicationModel.ts",
+    "app/(site)/clasificados/restaurantes/application/buildRestaurantContactHub.ts",
+    "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteIndividualResidencialFormState.ts",
+    "app/(site)/clasificados/publicar/bienes-raices/negocio/application/schema/bienesRaicesNegocioFormState.ts",
+    "app/(site)/clasificados/publicar/bienes-raices/negocio/application/mapping/mapAgenteResidencialFormStateToNegocioForPublish.ts",
+    "app/(site)/clasificados/publicar/bienes-raices/negocio/application/mapping/mapBienesRaicesNegocioStateToPreviewVm.ts",
+    // Gate 4 (Staff Operations — Restaurantes) — publish route accepts assistedAction following the
+    // Servicios golden pattern: HMAC-signed cookie, category guard, client-attributed row,
+    // linkAssistedListingToBusiness. The UI buttons in RestaurantePreviewClient.tsx remain REPAIR_REQUIRED.
+    "app/api/clasificados/restaurantes/publish/route.ts",
   ]);
   const violations = touched.filter(
     (f) => f.startsWith("app/") && !MISSION_AUTHORIZED.has(f) && PROTECTED.some((re) => re.test(f)),
@@ -452,20 +466,24 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
 
 // 11. STAFF OPERATIONS — Gate 5 corrective -------------------------------------------------------------------
 // Proves:
-//   a. publishForClientSupported: true for Servicios only (one verified server route).
-//   b. All three non-Servicios blocks carry REPAIR_REQUIRED in their staff notes (honest gap disclosure).
+//   a. publishForClientSupported: true for Servicios and Restaurantes (two verified server routes).
+//   b. The two remaining non-wired categories (Autos Dealer, Bienes Negocio) carry REPAIR_REQUIRED.
 //   c. The launchpad renders the staff note for ALL categories, not only supported ones.
 {
-  // (a) Servicios is the only supported category
-  assert.ok(reg.includes("publishForClientSupported: true"), "registry has publishForClientSupported: true (Servicios)");
-  assert.equal((reg.match(/publishForClientSupported: false/g) ?? []).length, 3, "exactly 3 categories have publishForClientSupported: false");
+  // (a) Servicios + Restaurantes are the supported categories; Autos Dealer + Bienes Negocio remain false
+  assert.equal((reg.match(/publishForClientSupported: true/g) ?? []).length, 2, "exactly 2 categories have publishForClientSupported: true (servicios + restaurantes)");
+  assert.equal((reg.match(/publishForClientSupported: false/g) ?? []).length, 2, "exactly 2 categories have publishForClientSupported: false (autos-dealer + bienes-negocio)");
 
-  // (b) Each non-Servicios staff block carries REPAIR_REQUIRED
-  for (const catKey of ["restaurantes", "autos-dealer", "bienes-negocio"] as const) {
-    const block = registryBlock(catKey.includes("-") ? `"${catKey}"` : catKey);
+  // (b) Autos Dealer and Bienes Negocio remain REPAIR_REQUIRED
+  for (const catKey of ["autos-dealer", "bienes-negocio"] as const) {
+    const block = registryBlock(`"${catKey}"`);
     assert.ok(block.includes("REPAIR_REQUIRED"), `${catKey} staff block carries REPAIR_REQUIRED gap disclosure`);
     assert.ok(block.includes("publishForClientSupported: false"), `${catKey} correctly declares publishForClientSupported: false`);
   }
+  // Restaurantes is now wired (no REPAIR_REQUIRED in its staff block)
+  const restaurantesBlock = registryBlock("restaurantes");
+  assert.ok(restaurantesBlock.includes("publishForClientSupported: true"), "restaurantes staff block now wired: publishForClientSupported: true");
+  assert.ok(!restaurantesBlock.includes("publishForClientSupported: false"), "restaurantes staff block does NOT incorrectly declare false");
 
   // (c) Launchpad renders staff note for ALL categories (not gated on publishForClientSupported: true)
   const launchpad = read("app/admin/(dashboard)/businesses/QuickApplicationsLaunchpad.tsx");
@@ -523,20 +541,20 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
 // Self-tests: key assertions in this verifier must ACTUALLY FAIL on broken inputs.
 // Without negative tests a passing verifier is indistinguishable from one that trivially returns true.
 {
-  // (a) Staff: verifier catches a registry with only one publishForClientSupported: false (2 missing)
+  // (a) Staff: verifier catches a registry where one of the 2 false entries is incorrectly wired
   const regMissingRepair = reg.replace(/publishForClientSupported: false/g, (m, offset) => {
-    // Replace only the first two occurrences with "true" — simulates 2 unrepaired gaps
+    // Replace the first occurrence with "true" — simulates 1 unrepaired gap that incorrectly claims true
     const before = reg.slice(0, offset);
     const occurrencesSoBefore = (before.match(/publishForClientSupported: false/g) ?? []).length;
-    return occurrencesSoBefore < 2 ? "publishForClientSupported: true" : m;
+    return occurrencesSoBefore < 1 ? "publishForClientSupported: true" : m;
   });
   let caught = false;
   try {
-    assert.equal((regMissingRepair.match(/publishForClientSupported: false/g) ?? []).length, 3, "self-test: should fail with fewer than 3 false entries");
+    assert.equal((regMissingRepair.match(/publishForClientSupported: false/g) ?? []).length, 2, "self-test: should fail with fewer than 2 false entries");
   } catch {
     caught = true;
   }
-  assert.ok(caught, "Gate 7 self-test (a): publishForClientSupported count assertion catches a registry with fewer than 3 false entries");
+  assert.ok(caught, "Gate 7 self-test (a): publishForClientSupported count assertion catches a registry with fewer than 2 false entries");
 
   // (b) Media: verifier catches a contract with minImages: 0 (Media Lock violated)
   const regBrokenMin = reg.replace("return { minImages: 1, maxImages: 3, videoOptional: false, note };", "return { minImages: 0, maxImages: 3, videoOptional: false, note };");

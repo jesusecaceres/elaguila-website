@@ -328,6 +328,10 @@ export type RestauranteOperatingModel = {
 export type RestauranteContactCta = {
   websiteUrl?: string;
   phoneNumber?: string;
+  /** Explicit SMS number — distinct from phoneNumber; Quick intake collects this separately.
+   * When present, the contact hub builds the SMS CTA from this field instead of deriving it
+   * from phoneNumber. Stored in listing_json (no schema migration needed). */
+  smsNumber?: string;
   email?: string;
   whatsAppNumber?: string;
   instagramUrl?: string;

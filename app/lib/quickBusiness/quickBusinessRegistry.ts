@@ -85,12 +85,11 @@ export const QUICK_BUSINESS_DEFINITIONS: Record<QuickBusinessCategoryKey, QuickB
       billingHref: "/dashboard/perfil",
     },
     staff: {
-      // REPAIR_REQUIRED: save_for_client / publish_for_client not yet wired into
-      // app/api/clasificados/restaurantes/publish/route.ts. Needs: (1) import readAssistedPublishingContext,
-      // (2) handle assistedAction:"save_for_client"|"publish_for_client" with category="restaurantes" check,
-      // (3) add staff buttons to RestaurantePreviewClient.tsx. Servicios publish route is the golden pattern.
-      publishForClientSupported: false,
-      note: { es: "REPAIR_REQUIRED: La ruta de publicación de Restaurantes todavía no acepta assistedAction. Ver comentario de código.", en: "REPAIR_REQUIRED: The Restaurantes publish route does not yet accept assistedAction. See the code comment." },
+      // Wired: assistedAction:"save_for_client"|"publish_for_client" wired into
+      // app/api/clasificados/restaurantes/publish/route.ts following the Servicios golden pattern.
+      // Staff buttons in RestaurantePreviewClient.tsx still REPAIR_REQUIRED (UI layer only).
+      publishForClientSupported: true,
+      note: { es: "La ruta de publicación de Restaurantes acepta assistedAction (save_for_client / publish_for_client). Botones de staff en RestaurantePreviewClient.tsx pendientes.", en: "The Restaurantes publish route accepts assistedAction (save_for_client / publish_for_client). Staff buttons in RestaurantePreviewClient.tsx still pending." },
     },
     essentialQuestionCount: 11,
   },

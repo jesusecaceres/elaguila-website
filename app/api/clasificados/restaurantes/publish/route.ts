@@ -34,6 +34,8 @@ import {
   validateProposedFinalMediaSet,
   warnDroppedUnpersistableMedia,
 } from "@/app/lib/media/listingMediaContract";
+import { readAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
+import { linkAssistedListingToBusiness } from "@/app/lib/business/assistedListingCustody";
 
 /** Gallery cap mirrors MAX_GALLERY in RestaurantePublishMediaStrip.tsx:29 (local, unexported). */
 const RESTAURANTE_GALLERY_MAX = 24;
@@ -231,7 +233,23 @@ export async function POST(req: Request) {
   const strict = isRestaurantesStrictPublishEnvironment();
   const verifiedOwnerId = await restauranteOwnerIdFromBearer(req);
 
-  if (strict && !verifiedOwnerId) {
+  // Staff-assisted publishing (mirrors servicios publish route Gate 5 pattern).
+  // An HMAC-signed cookie from `createAssistedPublishingSession` authorizes a staff actor to
+  // save or publish a draft on behalf of a client. The client's `owner_user_id` is intentionally
+  // null so the client can claim the listing through the normal Leonix-signup flow.
+  const assistedContext = readAssistedPublishingContext(req.cookies);
+  const assistedActionRaw = typeof b.assistedAction === "string" ? b.assistedAction.trim() : "";
+  const isAssistedSaveForClient = assistedActionRaw === "save_for_client";
+  const isAssistedPublishForClient = assistedActionRaw === "publish_for_client";
+  const isAssistedRequest =
+    (isAssistedSaveForClient || isAssistedPublishForClient) &&
+    assistedContext !== null &&
+    assistedContext.category === "restaurantes";
+  if ((isAssistedSaveForClient || isAssistedPublishForClient) && !isAssistedRequest) {
+    return NextResponse.json({ ok: false, error: "assisted_context_required" }, { status: 403 });
+  }
+
+  if (strict && !verifiedOwnerId && !isAssistedRequest) {
     return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
   }
 
@@ -318,7 +336,8 @@ export async function POST(req: Request) {
   }
 
   // Owner identity is server-verified only — the client-supplied owner_user_id is never trusted.
-  const ownerUserId = verifiedOwnerId;
+  // Assisted requests intentionally leave owner_user_id null so the client claims the listing later.
+  const ownerUserId = isAssistedRequest ? null : verifiedOwnerId;
   const pendingPayment =
     b.activation_mode === "pending_payment" || b.activationMode === "pending_payment";
   const requestedLane = normalizePublicPublishPackageTier(
@@ -546,6 +565,16 @@ export async function POST(req: Request) {
       { ok: false, error: "publish_exception", detail: e instanceof Error ? e.message : "unknown" },
       { status: 500 },
     );
+  }
+
+  // Assisted request: link the saved listing to the business in the custody ledger.
+  if (isAssistedRequest && assistedContext && listingIdOut) {
+    await linkAssistedListingToBusiness({
+      businessId: assistedContext.businessId,
+      listingSource: "restaurantes_public_listings",
+      listingId: listingIdOut,
+      linkedByAuthUserId: assistedContext.authUserId,
+    });
   }
 
   const deep = restaurantesDiscoveryParamsForRowDeepLink({

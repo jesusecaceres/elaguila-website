@@ -192,6 +192,8 @@ export type BienesRaicesNegocioFormState = {
     licencia: string;
     telDirecto: string;
     telOficina: string;
+    /** Explicit SMS number — Quick intake writes this; empty string means derive from telDirecto. */
+    smsPersonal?: string;
     email: string;
     sitioWeb: string;
     redes: string[];
