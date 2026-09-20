@@ -186,6 +186,32 @@ check("the Simple doorway hides Full modules AND the server refuses them", () =>
   );
 });
 
+check("the one route that switches a Full capability on re-checks it server-side", () => {
+  // Advanced Full business tools are capability rows, and this is the only customer-reachable
+  // mutation that turns one on. A Quick package grants no capabilities, so a Simple owner must
+  // be refused here — but only if the route resolves the capability itself instead of believing
+  // the caller. Ownership alone is not enough: a Simple owner does own their listing.
+  const route = codeOf("app/api/dashboard/enable-included-capability/route.ts");
+  assert.ok(route.includes("getBearerUserId("), "the route authenticates the caller");
+  assert.ok(route.includes("resolveOwnedListingIdentityKeys("), "the route proves ownership");
+  assert.ok(
+    route.includes("resolveBusinessToolsAccess("),
+    "the route must resolve real commercial capability server-side",
+  );
+  // The capability check must gate the write, not merely be computed near it.
+  const accessAt = route.indexOf("resolveBusinessToolsAccess(");
+  const denyAt = route.indexOf("access.allowed");
+  const writeAt = route.indexOf("enableRestauranteCouponModuleFromCapability(");
+  assert.ok(accessAt > -1 && denyAt > accessAt, "the resolved access must be acted on");
+  assert.ok(writeAt > denyAt, "nothing may be written before the capability is verified");
+  // And the capability it guards is one Simple genuinely cannot hold.
+  assert.equal(
+    decideBusinessAccessCapability({ level: "simple", capability: "coupons_offers" }).allowed,
+    false,
+    "coupons_offers must stay denied at SIMPLE",
+  );
+});
+
 check("Full behaviour is unchanged: the route still serves a FULL customer", () => {
   const code = codeOf(ANALYTICS_ROUTE);
   // The gate's only early return is the denial; every other path falls through to the original

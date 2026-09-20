@@ -182,4 +182,25 @@ splits the print ladder at exactly the same place the owner lock does: quarter p
 tier, half page and above is the full one. The print bridge in `businessAccessLevelForPrintTier` is
 therefore not a new policy invented here — it restates policy the repository already enforced. V2
 now asserts the two resolvers agree, so a future edit that moves the split in one of them fails
-rather than silently producing two contradictory definitions of what a quarter page buys.
+rather than silently producing two contradictory definitions of what a quarter page buys. V2 also
+pins the two outcomes the pilot ships, so the agreement stays meaningful only while the Concierge
+still acts on that split.
+
+### 6.3 The two remaining ways Simple could have become Full
+
+Both were audited at closeout, found already correct, and are now locked by assertion rather than
+left to convention.
+
+**Checkout add-ons.** `CHECKOUT_ADDON_ALLOWLIST` in `revenueCheckout.ts` is keyed to each
+category's FULL base package key, so a Quick base key matches no entry and every add-on is refused
+with `add_ons_not_supported`. This is what keeps a $99 dealer from buying the Full inventory pack.
+Nothing stated that intent before, so adding a Quick key to the allowlist would have looked like an
+ordinary product change. V1 now sells every add-on package in the matrix against every Quick base
+key and requires all four to be refused.
+
+**Capability activation.** `api/dashboard/enable-included-capability/route.ts` is the only
+customer-reachable mutation that switches a Full capability on. Ownership is not sufficient
+authority here — a Simple owner does own their listing — so the route re-resolves real commercial
+capability with `resolveBusinessToolsAccess()` before writing. Quick packages declare no
+capabilities, so a Simple owner is refused. V4 now asserts the capability check exists and precedes
+the write.

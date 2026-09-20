@@ -29,6 +29,10 @@ import {
   getRevenuePackageDefinition,
   REVENUE_V1_PACKAGE_MATRIX,
 } from "../app/lib/listingPlans/revenuePricingMatrix";
+import {
+  computeRevenueCheckoutSubtotalCents,
+  validateRevenueCheckoutAddOns,
+} from "../app/lib/listingPlans/revenueCheckout";
 import type { EntitlementRowFacts } from "../app/lib/listingPlans/categoryCommercialPlanPolicy";
 import { getLaneMediaRecords, type LaneMediaRecord } from "../app/lib/media/listingMediaConfigs";
 import type { CanonicalCategoryKey } from "../app/lib/listingIdentity/types";
@@ -37,6 +41,9 @@ import type { QuickBusinessCategoryKey } from "../app/lib/quickBusiness/quickBus
 
 const ROOT = process.cwd();
 const read = (p: string) => fs.readFileSync(path.join(ROOT, p), "utf8");
+/** Executable code only: a rule stated in a comment must not satisfy a search for its violation. */
+const codeOf = (p: string): string =>
+  read(p).replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
 
 let failures = 0;
 function check(name: string, fn: () => void): void {
@@ -395,6 +402,54 @@ check("Simple never buys a larger inventory allowance than Full", () => {
     // Quick dealer the Full allowance.
     assert.ok(!simple.addOnInventory, `${category}: Simple must not carry an inventory add-on`);
   }
+});
+
+check("checkout refuses to sell a Simple customer any Full add-on", () => {
+  // The declaration above says Simple carries no add-on inventory; this proves the checkout
+  // agrees. The allowlist is keyed to the FULL base package key, so a Quick base key matches no
+  // entry and every add-on is refused. Adding a Quick key to CHECKOUT_ADDON_ALLOWLIST would hand
+  // a $99 dealer the Full inventory pack, which is exactly the accidental upgrade this locks out.
+  const addOnKeys = REVENUE_V1_PACKAGE_MATRIX
+    .filter((p) => /inventory_pack|offers_addon/.test(p.packageKey))
+    .map((p) => p.packageKey);
+  assert.ok(addOnKeys.length > 0, "the matrix must still define add-on packages to test against");
+
+  for (const category of Object.keys(BUSINESS_CATEGORY_PACKAGE_PAIR)) {
+    const simpleKey = BUSINESS_CATEGORY_PACKAGE_PAIR[category].simple;
+    const simple = getRevenuePackageDefinition(simpleKey);
+    assert.ok(simple, `${simpleKey} must exist`);
+    for (const addOn of addOnKeys) {
+      const result = validateRevenueCheckoutAddOns({
+        category: simple.category,
+        basePackageKey: simpleKey,
+        addOns: [{ key: addOn }],
+      });
+      assert.equal(
+        result.ok,
+        false,
+        `${simpleKey} must not be sellable with ${addOn}: Simple would inherit a Full allowance`,
+      );
+    }
+  }
+});
+
+check("the price a Simple customer is charged comes from the server matrix", () => {
+  // The checkout subtotal is computed from the package definition, never from a request field.
+  for (const category of Object.keys(BUSINESS_CATEGORY_PACKAGE_PAIR)) {
+    const simpleKey = BUSINESS_CATEGORY_PACKAGE_PAIR[category].simple;
+    const simple = getRevenuePackageDefinition(simpleKey)!;
+    assert.equal(
+      computeRevenueCheckoutSubtotalCents(simple, []),
+      9900,
+      `${simpleKey} must check out at the matrix price`,
+    );
+  }
+  // No request-shaped amount field is read anywhere in checkout resolution.
+  const checkout = codeOf("app/lib/listingPlans/revenueCheckout.ts");
+  assert.ok(
+    !/\binput\.(amountCents|priceCents|unitAmount)\b/.test(checkout),
+    "checkout must never read a caller-supplied amount",
+  );
 });
 
 // 8. CLOSURE ARTIFACT ------------------------------------------------------------------------
