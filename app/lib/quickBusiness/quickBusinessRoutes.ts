@@ -29,6 +29,11 @@ export function quickBusinessCategoryPath(category: QuickBusinessCategoryKey, la
   return withQuery(`${QUICK_BUSINESS_BASE_PATH}/${category}`, { lang, src });
 }
 
+/** Simple control doorway. `cat` selects one business; omitted, the doorway lists them. */
+export function quickBusinessMyBusinessPath(lang: string, category?: QuickBusinessCategoryKey): string {
+  return withQuery(`${QUICK_BUSINESS_BASE_PATH}/mi-negocio`, { lang, cat: category });
+}
+
 /** Absolute URL for Copy / Share (staff launchpad). `origin` = `window.location.origin` at click time. */
 export function quickBusinessShareUrl(origin: string, category: QuickBusinessCategoryKey | null, lang: string): string {
   const base = origin.replace(/\/+$/, "");

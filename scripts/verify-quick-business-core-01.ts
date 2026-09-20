@@ -239,6 +239,7 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
     "app/lib/listingPlans/revenuePricingMatrix.ts", // the four Quick packages + access declarations
     "app/lib/listingPlans/revenueActiveEntitlementGuard.ts", // Quick packages join the recharge guard
     "app/lib/listingPlans/revenueCategoryCheckoutPayload.ts", // the four Quick checkout constants
+    "app/lib/listingPlans/businessAccessCopy.ts", // new: centralized ES/EN Simple/Full copy, no prices
     "app/api/dashboard/analytics/listing/route.ts", // analytics becomes a Full-only capability
   ]);
   const violations = touched.filter(
