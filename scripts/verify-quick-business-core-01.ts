@@ -212,7 +212,10 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
   const touched = [...new Set([...changed, ...untracked])].map((f) => f.replace(/\\/g, "/"));
   const PROTECTED = [
     /^app\/lib\/listingIdentity\//, /^app\/lib\/listingPlans\//, /^app\/lib\/listingLifecycle\//, /^app\/lib\/media\//, /^app\/lib\/listingDrafts\//, /^app\/lib\/auth\//, /^app\/lib\/business\//,
-    /^app\/components\//, /^app\/api\//, /^supabase\//, /^app\/\(site\)\/clasificados\//, /^app\/\(site\)\/dashboard\//,
+    /^app\/components\//, /^app\/api\//, /^supabase\//, /^app\/\(site\)\/clasificados\//,
+    // Remaining-families closeout: Ofertas coupon checkout consent was cross-wired to the flyer $399.
+    // The one dashboard file below is aligned to the existing server package; no other dashboard path is opened.
+    /^app\/\(site\)\/dashboard\/(?!ofertas-locales\/\[id\]\/checkout\/page\.tsx$)/,
     // Remaining-families mission (branch claude/quick-remaining-families-build-2026-09, off this exact certified
     // SHA): the additive `/publicar/comida-local/rapido/**` tree is a standalone Quick front door onto the
     // EXISTING Comida Local product — it cannot join the closed, verifier-locked `quickBusinessRegistry.ts` union

@@ -13,7 +13,8 @@
  *  4. no generic Negocios Locales table/migration was introduced.
  *  5. Viajes and Iglesias were not forced into Quick Classifieds or given a Quick form.
  *  6. Recursos was not given a fake form.
- *  7. Ofertas Locales pricing/packages are byte-unchanged by this mission (pre-existing bug untouched).
+ *  7. Ofertas Locales client constants and checkout consent match the existing server packages
+ *     (`ofertas_locales_flyer_30d` $399, `ofertas_locales_coupons_30d` $199); no Quick SKU.
  *  8. no new Quick SKU / package key, no migration, no parallel public detail template for Comida Local.
  *  9. core Quick Business (exactly 4 live) and certified Quick Classifieds trees are untouched.
  * 10. staff launchpad: core priorities (Tier-1, Quick Business) render before the new lower-priority
@@ -83,6 +84,7 @@ function phantomWrite(w: { declared: Set<string>; written: Set<string> }): strin
   assert.ok(cl.includes("saveComidaLocalDraftToStorage(canonical)"), "submit hands off through the EXISTING default-key draft store the EXISTING preview reads");
   assert.ok(cl.includes('/clasificados/comida-local/preview'), "submit routes to the EXISTING preview, not a new page");
   assert.ok(cl.includes("uploadComidaLocalDraftImage"), "media exception: uses the EXISTING upload helper");
+  assert.ok(cl.includes('if (!first) throw') && cl.includes("if (!galleryUploaded.ok) throw"), "Comida Local Quick upload failures fail closed (main + gallery)");
   assert.ok(!/\.from\(|\.insert\(|\.update\(|\.upsert\(/.test(cl.replace(/\/\*[\s\S]*?\*\//g, "")), "Comida Local Quick client never inserts/updates a row directly (comments stripped before the check)");
   const directFetchApi = [...cl.matchAll(/fetch\(\s*["'`](\/api\/[^"'`]*)["'`]/g)].map((m) => m[1]!);
   assert.deepEqual(directFetchApi, [], "Comida Local Quick client never POSTs an API route literally (the one upload call goes through the existing helper function, not a literal fetch string here)");
@@ -154,11 +156,21 @@ function defBlocksInclude(source: string, key: string, needle: string): boolean 
   assert.ok(!existsSync(join(ROOT, "app/(site)/publicar/recursos")), "no publish/submission route of any kind exists for Recursos");
 }
 
-// 7. OFERTAS LOCALES PRICING / PACKAGES UNCHANGED --------------------------------------------------------------
+// 7. OFERTAS LOCALES PRICING ALIGNED TO SERVER AUTHORITY -------------------------------------------------------
 {
-  const pricingDiff = execSync(`git diff --name-only ${CERTIFIED_CORE_SHA} HEAD -- app/lib/listingPlans/revenuePricingMatrix.ts app/lib/clasificados/ofertas-locales`, { cwd: ROOT, encoding: "utf8" }).trim();
-  assert.equal(pricingDiff, "", "Ofertas Locales pricing files untouched by this mission (the 3-way inconsistency is a pre-existing defect, filed separately, not patched here)");
-  assert.ok(!reg.includes("ofertas_locales") || defBlocksInclude(reg, "ofertas-locales", "pricing: null"), "Ofertas Locales Quick registry entry surfaces no price badge (the existing numbers disagree with each other)");
+  const matrix = read("app/lib/listingPlans/revenuePricingMatrix.ts");
+  const constants = read("app/lib/ofertas-locales/ofertasLocalesConstants.ts");
+  const checkout = read("app/(site)/dashboard/ofertas-locales/[id]/checkout/page.tsx");
+  assert.ok(/packageKey:\s*OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY[\s\S]{0,220}priceCents:\s*39900/.test(matrix), "server flyer package remains $399");
+  assert.ok(/packageKey:\s*OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY[\s\S]{0,220}priceCents:\s*19900/.test(matrix), "server coupon package remains $199");
+  assert.ok(constants.includes("OFERTAS_LOCALES_FLYER_PRICE_CENTS = 39900"), "client flyer constant matches server $399");
+  assert.ok(constants.includes("OFERTAS_LOCALES_COUPONS_PRICE_CENTS = 19900"), "client coupon constant matches server $199 (repaired from stale $0)");
+  assert.ok(/coupons:[\s\S]*displayPriceUsd:\s*199/.test(constants), "coupon catalog display matches $199");
+  assert.ok(checkout.includes("ofertaLocalChargeConsentCopy"), "checkout consent is derived from the live commercial package");
+  assert.ok(!/autorizo el cobro de \$399/.test(checkout), "coupon checkout consent no longer hardcodes the flyer $399");
+  assert.ok(defBlocksInclude(reg, "ofertas-locales", "pricing: null"), "Ofertas Locales Quick registry still surfaces no Quick price badge / SKU");
+  const matrixDiff = execSync(`git diff --name-only ${CERTIFIED_CORE_SHA} HEAD -- app/lib/listingPlans/revenuePricingMatrix.ts`, { cwd: ROOT, encoding: "utf8" }).trim();
+  assert.equal(matrixDiff, "", "server revenue matrix was not rewritten — client constants were aligned to it");
 }
 
 // 8. NO NEW SKU / MIGRATION / PARALLEL PUBLIC TEMPLATE FOR COMIDA LOCAL -----------------------------------------

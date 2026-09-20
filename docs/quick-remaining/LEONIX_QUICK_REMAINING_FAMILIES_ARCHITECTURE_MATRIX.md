@@ -40,10 +40,10 @@ Columns condensed to what actually differs per family; `—` means not applicabl
 | PUBLIC ENTRY | `/ofertas-locales` |
 | CURRENT SUBMISSION ROUTE | `/publicar/ofertas-locales` (single existing form, lane picked inside it) |
 | PAYMENT — flyer | `ofertas_locales_flyer_30d`, $399 one-time / 30 days |
-| PAYMENT — coupon | `ofertas_locales_coupons_30d` declared $199 in `revenuePricingMatrix.ts`, but `OFERTAS_LOCALES_COUPONS_PRICE_CENTS = 0` in `ofertasLocalesConstants.ts`, and checkout consent copy hardcodes "$399" — **live 3-way pricing inconsistency, pre-existing, unrelated to this mission** (flagged separately, not fixed here) |
+| PAYMENT — coupon | `ofertas_locales_coupons_30d`, $199 one-time / 30 days (`revenuePricingMatrix.ts` server authority). Client constant `OFERTAS_LOCALES_COUPONS_PRICE_CENTS` and checkout consent were repaired in the Cursor closeout to match this package (see `LEONIX_OFERTAS_LOCALES_PRICING_RECONCILIATION.md`). |
 | FLYER STRATEGY | Flyer submission runs through **AI review** before publish — this step cannot be shortened or bypassed by a Quick wrapper without changing product behavior |
-| COUPON STRATEGY | Coupon lane shares the same form/route as the flyer lane; no standalone short form exists to wrap, and the price is not currently trustworthy enough to surface in a fresh Quick price badge |
-| QUICK_FIT | NO — both lanes are already inside one existing paid, AI-reviewed or price-ambiguous flow; wrapping either would either strip the AI review step or amplify a live pricing bug |
+| COUPON STRATEGY | Coupon lane shares the same form/route as the flyer lane; no standalone short form exists to wrap. Price is the existing server package `$199 / 30 days` (client constant + consent aligned in Cursor closeout). |
+| QUICK_FIT | NO — both lanes are already inside one existing paid form; wrapping the flyer would strip the AI review step |
 | RECOMMENDED ACTION | **C. DIRECT_CANONICAL_LINK** — staff opens `/publicar/ofertas-locales` directly with the customer |
 
 ## 3. Negocios Locales
@@ -96,14 +96,14 @@ Columns condensed to what actually differs per family; `—` means not applicabl
 | Family | Action | Route Quick Hands Off To | Pricing Surfaced | Manage Href |
 |---|---|---|---|---|
 | Comida Local | A. QUICK_INTAKE_BUILT | `/publicar/comida-local/rapido` → existing preview/publish | `comida_local_base_monthly` ($129/mo) | `/dashboard/mis-anuncios?cat=comida-local` |
-| Ofertas Locales | C. DIRECT_CANONICAL_LINK | `/publicar/ofertas-locales` | none (pricing ambiguous, not surfaced) | `/dashboard/ofertas-locales` |
+| Ofertas Locales | C. DIRECT_CANONICAL_LINK | `/publicar/ofertas-locales` | flyer $399 / coupon $199 (server packages; no Quick badge) | `/dashboard/ofertas-locales` |
 | Negocios Locales | D. NOT_AN_AD_PRODUCT_NO_QUICK_FORM | `/negocios-locales` (content) | — | — |
 | Viajes | C. DIRECT_CANONICAL_LINK | `/publicar/viajes` | none (owner pricing unresolved) | `/dashboard/viajes` |
 | Iglesias | C. DIRECT_CANONICAL_LINK | `/iglesias/registrar` | none (free) | — |
 | Recursos | D. NOT_AN_AD_PRODUCT_NO_QUICK_FORM | `/recursos-comunitarios` (content) | — | — |
 
 No family used **E. BLOCKED_REQUIRES_OWNER_PRODUCT_DECISION** — every family's correct action was
-determinable from its existing, real architecture without a new owner product decision (the Ofertas
-Locales coupon pricing defect is a pre-existing bug to fix separately, not a blocker to this mission's
-classification work: DIRECT_CANONICAL_LINK is correct regardless of which of the three conflicting
-numbers is eventually the real one).
+determinable from its existing, real architecture without a new owner product decision. The Ofertas
+Locales coupon pricing defect is **CLOSED** (client constants + consent aligned to the existing
+`$199` server package; flyer remains `$399`). DIRECT_CANONICAL_LINK remains correct because the
+flyer lane still requires mandatory AI review.
