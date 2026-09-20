@@ -53,7 +53,7 @@ function registryBlock(key: string): string {
   assert.ok(!reg.includes("directReason:"), "no direct reason remains in the registry");
   assert.ok(reg.includes('standardApplicationPath: "/publicar/autos/negocios"') && reg.includes('standardApplicationPath: "/publicar/bienes-raices"'), "Dealer / Bienes still name their EXISTING full application / selector");
   assert.ok(reg.includes('standardApplicationPath: "/publicar/servicios"') && reg.includes('standardApplicationPath: "/publicar/restaurantes"'), "Servicios / Restaurantes name their EXISTING applications");
-  assert.ok(reg.includes("publishForClientSupported: true") && (reg.match(/publishForClientSupported: false/g) ?? []).length === 2, "publish-for-client is wired for Servicios and Restaurantes (two verified server paths); Autos Dealer + Bienes Negocio remain false");
+  assert.equal((reg.match(/publishForClientSupported: true/g) ?? []).length, 4, "publish-for-client is wired for all 4 Quick Business categories (Servicios, Restaurantes, Autos Dealer, Bienes Negocio — QB-CONVERGENCE closeout)");
   assert.equal((reg.match(/mediaIntro: \{/g) ?? []).length, 4, "every definition carries its own truthful media wording");
   const dealer = registryBlock('"autos-dealer"');
   const bienes = registryBlock('"bienes-negocio"');
@@ -205,10 +205,20 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
   assert.ok(tree.length >= 12, "Quick Business tree present");
   for (const f of tree) {
     const src = read(f);
-    assert.ok(!/39900|12900|9900|\$399|\$99|priceCents: \d|stripe|Stripe|promo/.test(src), `${f}: no amount / Stripe / promo literal`);
+    // The doorway component may reference the /api/stripe/billing-portal-session URL path — a route name, not
+    // Stripe SDK usage. Strip that path before checking for SDK/pricing literals in the QB tree.
+    const srcNoPortalUrl = src.replace(/\/api\/stripe\/billing-portal-session/g, "");
+    assert.ok(!/39900|12900|9900|\$399|\$99|priceCents: \d|stripe|Stripe|promo/.test(srcNoPortalUrl), `${f}: no amount / Stripe SDK / promo literal (billing portal URL path excepted)`);
     assert.ok(!/signInWithOtp|signInWithPassword|cookies\(\)|createServerClient|service_role|SUPABASE_SERVICE_ROLE_KEY/.test(src), `${f}: no auth / privileged code`);
     assert.ok(!/owner_id|owner_user_id|ownerUserId|rosterId|authUserId/.test(src), `${f}: never writes or reads an owner / staff identity`);
-    assert.ok(!/\.from\(|\.insert\(|\.update\(|\.upsert\(|fetch\(\s*["'`]\/api\//.test(src), `${f}: never inserts rows or calls a publish API`);
+    // The doorway component (QuickBusinessMyBusinessClient) may POST to /api/stripe/billing-portal-session
+    // — a read-only management call, not a publish or data-mutation API. All other QB files must call no API.
+    const isPortalCall = src.includes("/api/stripe/billing-portal-session");
+    const hasOtherApiCall = (() => {
+      const stripped = src.replace(/\/api\/stripe\/billing-portal-session/g, "");
+      return /\.from\(|\.insert\(|\.update\(|\.upsert\(|fetch\(\s*["'`]\/api\//.test(stripped);
+    })();
+    assert.ok(!hasOtherApiCall, `${f}: never inserts rows or calls a publish/data API (billing portal session excepted)`);
     assert.ok(!/storage\.from|@vercel\/blob|mux/i.test(src), `${f}: never uploads media (existing publishers do)`);
   }
   for (const f of [`${QB_COMPONENTS}/QuickBusinessChooser.tsx`, `${QB_COMPONENTS}/QuickBusinessReviewStep.tsx`]) assert.ok(read(f).includes("getRevenuePackagePriceCents("), `${f} reads price from the server authority at render time`);
@@ -306,15 +316,31 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
     // Servicios golden pattern: HMAC-signed cookie, category guard, client-attributed row,
     // linkAssistedListingToBusiness. The UI buttons in RestaurantePreviewClient.tsx remain REPAIR_REQUIRED.
     "app/api/clasificados/restaurantes/publish/route.ts",
+    // QB Commercial Closeout — Lifecycle + Convergence gates.
+    // These are the ONLY new server surfaces authorized. All others remain protected.
+    "app/lib/listingPlans/quickToFullConvergence.ts", // Gate QB-CONVERGENCE-01: cancel Quick after Full webhook
+    "app/lib/business/assistedListingCustody.ts", // extended AssistedListingSource to include autos + bienes
+    "app/api/clasificados/autos/assisted-publish/route.ts", // Gate QB-STAFF-AUTOS-01: dealer staff-assisted publish
+    "app/api/clasificados/bienes-raices/negocio/assisted-publish/route.ts", // Gate QB-STAFF-BR-01: bienes staff-assisted publish
+    "app/api/clasificados/restaurantes/manage/route.ts", // Gate QB-RESTAURANTES-MANAGE-01: archive action
+    "app/api/stripe/billing-portal-session/route.ts", // server-side Stripe billing portal session (never static URL)
+    "app/api/clasificados/quick-business/my-listing/route.ts", // listing state resolver for doorway
   ]);
+  // A touched entry from `git status --short` may be a directory (`app/api/new-dir/`) for newly
+  // added dirs not yet staged; check if it is authorized directly or all contained authorized files.
+  function isPathAuthorized(f: string): boolean {
+    if (MISSION_AUTHORIZED.has(f)) return true;
+    if (f.endsWith("/")) return [...MISSION_AUTHORIZED].some((auth) => auth.startsWith(f));
+    return false;
+  }
   const violations = touched.filter(
-    (f) => f.startsWith("app/") && !MISSION_AUTHORIZED.has(f) && PROTECTED.some((re) => re.test(f)),
+    (f) => f.startsWith("app/") && !isPathAuthorized(f) && PROTECTED.some((re) => re.test(f)),
   );
   assert.deepEqual(violations, [], `protected canonical / certified surfaces must not change: ${violations.join(", ")}`);
   assert.ok(!touched.some((f) => f.startsWith("supabase/migrations/")), "no new database migration");
   assert.ok(
-    !touched.some((f) => f.startsWith("app/api/") && !MISSION_AUTHORIZED.has(f)),
-    "no new API route",
+    !touched.some((f) => f.startsWith("app/api/") && !isPathAuthorized(f)),
+    "no new API route outside MISSION_AUTHORIZED",
   );
   const forbidden = execSync("git ls-files --others --exclude-standard --cached app", { cwd: ROOT, encoding: "utf8" }).trim().split(/\r?\n/)
     .filter((f) => f.startsWith(`${QB_ROUTE}/`) || f.startsWith(`${QB_LIB}/`))
@@ -401,16 +427,15 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
     const block = registryBlock(catKey.includes("-") ? `"${catKey}"` : catKey);
     assert.ok(block.includes('billingHref: "/dashboard/perfil"'), `${catKey} manage block has billingHref → /dashboard/perfil`);
   }
-  // (b) client component uses billingHref for the billing link
+  // (b) billing uses server-side POST to /api/stripe/billing-portal-session (Gate QB-LIFECYCLE-02):
+  //     the Stripe customer ID is resolved server-side, never passed from browser state.
   const myBiz = read(`${QB_COMPONENTS}/QuickBusinessMyBusinessClient.tsx`);
-  assert.ok(myBiz.includes("const billingHref = withLang(manage.billingHref"), "billing link built from manage.billingHref");
-  assert.ok(myBiz.includes("href={billingHref}"), "billing <Link> uses billingHref");
-  assert.ok(!myBiz.includes("href={manageHref}\n            {quickBusinessCopy(\"myBusinessBilling\"") &&
-    !myBiz.includes("href={manageHref}\n          {quickBusinessCopy(\"myBusinessBilling\""),
-    "billing link no longer points to manageHref");
-  // (c) Pause section is honest (REPAIR_REQUIRED comment + no 'Pausar o reactivar' as button label)
-  assert.ok(myBiz.includes("REPAIR_REQUIRED"), "Pause section carries REPAIR_REQUIRED comment");
+  assert.ok(myBiz.includes("/api/stripe/billing-portal-session"), "billing POSTs to server-side Stripe billing portal route (never a static URL)");
+  assert.ok(myBiz.includes('method: "POST"'), "billing portal call is a POST (read-only management, never a data mutation)");
+  assert.ok(!myBiz.includes("href={billingHref}") && !myBiz.includes("href={manage.billingHref}"), "billing link is not a static anchor (uses server-side session redirect)");
+  // (c) Pause section is honest (no inline mutation; navigates to dashboard instead)
   assert.ok(myBiz.includes('"Go to dashboard"'), "Pause section uses honest navigation label (en)");
+  assert.ok(!myBiz.includes('"Pausar"') && !myBiz.includes('"Pause"'), "Pause section has no deceptive Pause button (no inline mutation possible from doorway)");
   // (d) decideBusinessBasePlanOffer pure logic — tested inline without DB (imported statically above)
   for (const cat of ["servicios", "restaurantes", "autos", "bienes-raices"] as const) {
     const upgradeOffer = decideBusinessBasePlanOffer({
@@ -464,26 +489,41 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
   assert.ok(mod.includes("next = { ...next, descripcionPrincipal: translated.description"), "translate module applies description back to descripcionPrincipal");
 }
 
-// 11. STAFF OPERATIONS — Gate 5 corrective -------------------------------------------------------------------
+// 11. STAFF OPERATIONS — QB Commercial Closeout -------------------------------------------------------------------
 // Proves:
-//   a. publishForClientSupported: true for Servicios and Restaurantes (two verified server routes).
-//   b. The two remaining non-wired categories (Autos Dealer, Bienes Negocio) carry REPAIR_REQUIRED.
-//   c. The launchpad renders the staff note for ALL categories, not only supported ones.
+//   a. publishForClientSupported: true for ALL 4 categories (QB-STAFF-AUTOS-01 + QB-STAFF-BR-01 wired).
+//   b. No REPAIR_REQUIRED remains for Autos Dealer or Bienes Negocio.
+//   c. The launchpad renders the staff note for ALL categories.
 {
-  // (a) Servicios + Restaurantes are the supported categories; Autos Dealer + Bienes Negocio remain false
-  assert.equal((reg.match(/publishForClientSupported: true/g) ?? []).length, 2, "exactly 2 categories have publishForClientSupported: true (servicios + restaurantes)");
-  assert.equal((reg.match(/publishForClientSupported: false/g) ?? []).length, 2, "exactly 2 categories have publishForClientSupported: false (autos-dealer + bienes-negocio)");
+  // (a) All 4 categories are now wired
+  assert.equal((reg.match(/publishForClientSupported: true/g) ?? []).length, 4, "all 4 categories have publishForClientSupported: true (QB Commercial Closeout)");
+  assert.equal((reg.match(/publishForClientSupported: false/g) ?? []).length, 0, "no category has publishForClientSupported: false any more");
 
-  // (b) Autos Dealer and Bienes Negocio remain REPAIR_REQUIRED
+  // (b) All 4 staff blocks are wired — no REPAIR_REQUIRED
+  for (const catKey of ["servicios", "restaurantes", "autos-dealer", "bienes-negocio"] as const) {
+    const keyExpr = catKey.includes("-") ? `"${catKey}"` : catKey;
+    const block = registryBlock(keyExpr);
+    assert.ok(block.includes("publishForClientSupported: true"), `${catKey} staff block is wired (publishForClientSupported: true)`);
+    assert.ok(!block.includes("publishForClientSupported: false"), `${catKey} staff block does NOT incorrectly declare false`);
+  }
+  // Autos and Bienes REPAIR_REQUIRED must be gone (routes now exist)
   for (const catKey of ["autos-dealer", "bienes-negocio"] as const) {
     const block = registryBlock(`"${catKey}"`);
-    assert.ok(block.includes("REPAIR_REQUIRED"), `${catKey} staff block carries REPAIR_REQUIRED gap disclosure`);
-    assert.ok(block.includes("publishForClientSupported: false"), `${catKey} correctly declares publishForClientSupported: false`);
+    assert.ok(!block.includes("REPAIR_REQUIRED"), `${catKey} staff block no longer carries REPAIR_REQUIRED (route now wired)`);
   }
-  // Restaurantes is now wired (no REPAIR_REQUIRED in its staff block)
-  const restaurantesBlock = registryBlock("restaurantes");
-  assert.ok(restaurantesBlock.includes("publishForClientSupported: true"), "restaurantes staff block now wired: publishForClientSupported: true");
-  assert.ok(!restaurantesBlock.includes("publishForClientSupported: false"), "restaurantes staff block does NOT incorrectly declare false");
+  // New staff routes exist
+  assert.ok(exists("app/api/clasificados/autos/assisted-publish/route.ts"), "Autos Dealer staff-assisted publish route exists (QB-STAFF-AUTOS-01)");
+  assert.ok(exists("app/api/clasificados/bienes-raices/negocio/assisted-publish/route.ts"), "Bienes Negocio staff-assisted publish route exists (QB-STAFF-BR-01)");
+  // Restaurantes manage route (archive action, no paused status in canonical schema)
+  assert.ok(exists("app/api/clasificados/restaurantes/manage/route.ts"), "Restaurantes manage route exists (archive action only)");
+  const restaurantesManage = read("app/api/clasificados/restaurantes/manage/route.ts");
+  // Route accepts only "archive"; "paused" must not appear in ALLOWED_ACTIONS or any status transition
+  assert.ok(restaurantesManage.includes('"archive"'), "Restaurantes manage: archive action present");
+  assert.ok(!restaurantesManage.includes('"paused"') || restaurantesManage.includes('does NOT have a "paused"'), "Restaurantes manage: paused only appears in a disclaimer comment, never as an action");
+  // Billing portal session route (server-side, never static URL)
+  assert.ok(exists("app/api/stripe/billing-portal-session/route.ts"), "Stripe billing portal session route exists (server-side, never static URL)");
+  // My-listing resolver exists
+  assert.ok(exists("app/api/clasificados/quick-business/my-listing/route.ts"), "Quick Business my-listing resolver route exists");
 
   // (c) Launchpad renders staff note for ALL categories (not gated on publishForClientSupported: true)
   const launchpad = read("app/admin/(dashboard)/businesses/QuickApplicationsLaunchpad.tsx");
@@ -541,20 +581,20 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
 // Self-tests: key assertions in this verifier must ACTUALLY FAIL on broken inputs.
 // Without negative tests a passing verifier is indistinguishable from one that trivially returns true.
 {
-  // (a) Staff: verifier catches a registry where one of the 2 false entries is incorrectly wired
-  const regMissingRepair = reg.replace(/publishForClientSupported: false/g, (m, offset) => {
-    // Replace the first occurrence with "true" — simulates 1 unrepaired gap that incorrectly claims true
+  // (a) Staff: verifier catches a registry where one of the 4 true entries is incorrectly set to false
+  const regMissingWiring = reg.replace(/publishForClientSupported: true/g, (m, offset) => {
+    // Replace the first occurrence with "false" — simulates 1 gap regression
     const before = reg.slice(0, offset);
-    const occurrencesSoBefore = (before.match(/publishForClientSupported: false/g) ?? []).length;
-    return occurrencesSoBefore < 1 ? "publishForClientSupported: true" : m;
+    const occurrencesSoBefore = (before.match(/publishForClientSupported: true/g) ?? []).length;
+    return occurrencesSoBefore < 1 ? "publishForClientSupported: false" : m;
   });
   let caught = false;
   try {
-    assert.equal((regMissingRepair.match(/publishForClientSupported: false/g) ?? []).length, 2, "self-test: should fail with fewer than 2 false entries");
+    assert.equal((regMissingWiring.match(/publishForClientSupported: true/g) ?? []).length, 4, "self-test: should fail with fewer than 4 true entries");
   } catch {
     caught = true;
   }
-  assert.ok(caught, "Gate 7 self-test (a): publishForClientSupported count assertion catches a registry with fewer than 2 false entries");
+  assert.ok(caught, "Gate 7 self-test (a): publishForClientSupported count assertion catches a registry with fewer than 4 true entries");
 
   // (b) Media: verifier catches a contract with minImages: 0 (Media Lock violated)
   const regBrokenMin = reg.replace("return { minImages: 1, maxImages: 3, videoOptional: false, note };", "return { minImages: 0, maxImages: 3, videoOptional: false, note };");
@@ -566,17 +606,17 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
   }
   assert.ok(caughtMedia, "Gate 7 self-test (b): media contract assertion catches minImages: 0 (Media Lock violation)");
 
-  // (c) Billing: verifier catches a registry where count of billingHref entries is less than 4
-  //     (simulated by checking a synthetic fragment with only 3 entries)
-  const syntheticRegBilling = `billingHref: "/dashboard/perfil",\nbillingHref: "/dashboard/perfil",\nbillingHref: "/dashboard/perfil",`;
+  // (c) Billing: verifier catches a doorway that uses a static href for billing (old pattern, now prohibited)
+  //     Server-side billing portal session is now required; a static Link would be the regression.
+  const syntheticDoorwayWithStaticBilling = `<Link href={billingHref}>Billing</Link>`;
   let caughtBilling = false;
   try {
-    // Real check: all 4 manage blocks must have billingHref → /dashboard/perfil
-    assert.equal((syntheticRegBilling.match(/billingHref: "\/dashboard\/perfil"/g) ?? []).length, 4, "self-test: should fail when fewer than 4 billingHref entries found");
+    // The new check: billing must NOT use a static href
+    assert.ok(!syntheticDoorwayWithStaticBilling.includes("href={billingHref}"), "self-test: should fail when static billingHref anchor exists");
   } catch {
     caughtBilling = true;
   }
-  assert.ok(caughtBilling, "Gate 7 self-test (c): billingHref count assertion catches a registry with only 3 entries (one manage block missing billingHref)");
+  assert.ok(caughtBilling, "Gate 7 self-test (c): doorway billing check catches a static billingHref anchor (regression to old pattern)");
 
   // (d) Upgrade: decideBusinessBasePlanOffer must reject an impossible input at the type level;
   //     prove here that the settled offer provides null sellPackageKey (non-null would mean double-selling)

@@ -21,7 +21,11 @@ import "server-only";
  */
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
-export type AssistedListingSource = "servicios_public_listings" | "restaurantes_public_listings";
+export type AssistedListingSource =
+  | "servicios_public_listings"
+  | "restaurantes_public_listings"
+  | "autos_classifieds_listings"
+  | "listings";
 
 /**
  * True when `listing_id` is already linked (status='verified') to `businessId` under

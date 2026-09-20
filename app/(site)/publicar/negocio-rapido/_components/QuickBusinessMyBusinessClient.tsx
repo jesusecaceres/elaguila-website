@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { resolveClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import { businessAccessCopy } from "@/app/lib/listingPlans/businessAccessCopy";
 import { quickBusinessCopy } from "@/app/lib/quickBusiness/quickBusinessCopy";
@@ -15,17 +15,19 @@ function withLang(path: string, lang: string): string {
   return path.includes("?") ? `${path}&lang=${lang}` : `${path}?lang=${lang}`;
 }
 
+/** Maps Quick Business category key to the billing-portal-session API category param. */
+function toBillingApiCategory(catKey: string): string {
+  if (catKey === "autos-dealer") return "autos-dealer";
+  if (catKey === "bienes-negocio") return "bienes-negocio";
+  return catKey; // servicios, restaurantes
+}
+
 /**
  * SIMPLE business control doorway — VIEW / EDIT / PAUSE / END / BILLING / HELP / UPGRADE.
  *
- * The Quick Classifieds doorway (QuickMyAdClient) in spirit, for a business. Every verb is a
- * link into the category's EXISTING owner surface, taken from the registry's `manage` block —
- * nothing here mutates a listing, calls an API, or reads a commercial state of its own. That is
- * what keeps this a doorway rather than a second dashboard.
- *
- * Deliberately absent: analytics widgets, Business Hub modules, growth tools, reporting, a
- * sidebar. Those are FULL, they are enforced on the server, and showing them here would promise
- * a Simple customer something the server will refuse.
+ * Billing: uses a server-side billing portal session (POST /api/stripe/billing-portal-session)
+ * so the customer ID is resolved server-side and never exposed to the browser.
+ * The billing section uses a POST request + redirect, not a static href.
  */
 export function QuickBusinessMyBusinessClient() {
   const searchParams = useSearchParams();
@@ -35,6 +37,42 @@ export function QuickBusinessMyBusinessClient() {
   );
   const catParam = searchParams?.get("cat");
   const category = isQuickBusinessCategoryKey(catParam) ? catParam : null;
+
+  const [billingLoading, setBillingLoading] = useState(false);
+  const [billingError, setBillingError] = useState<string | null>(null);
+
+  async function handleBillingPortal(catKey: string) {
+    setBillingLoading(true);
+    setBillingError(null);
+    try {
+      const res = await fetch("/api/stripe/billing-portal-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category: toBillingApiCategory(catKey),
+          returnPath: `/publicar/negocio-rapido/mi-negocio?cat=${catKey}&lang=${routeLang}`,
+        }),
+      });
+      const data = (await res.json()) as { ok: boolean; url?: string; error?: string };
+      if (data.ok && data.url) {
+        window.location.href = data.url;
+      } else {
+        setBillingError(
+          lang === "en"
+            ? "Could not open billing portal. Please try again or contact support."
+            : "No se pudo abrir el portal de facturación. Inténtalo de nuevo o contacta soporte.",
+        );
+      }
+    } catch {
+      setBillingError(
+        lang === "en"
+          ? "Network error. Please try again."
+          : "Error de red. Inténtalo de nuevo.",
+      );
+    } finally {
+      setBillingLoading(false);
+    }
+  }
 
   if (!category) {
     return (
@@ -68,7 +106,6 @@ export function QuickBusinessMyBusinessClient() {
   const def = getQuickBusinessDefinition(category);
   const manage = def.manage;
   const manageHref = withLang(manage.dashboardHref, routeLang);
-  const billingHref = withLang(manage.billingHref, routeLang);
 
   return (
     <QuickShell
@@ -91,10 +128,6 @@ export function QuickBusinessMyBusinessClient() {
           </Link>
         </section>
 
-        {/* REPAIR_REQUIRED: Direct pause/resume mutation requires listing ID + auth state that this
-            doorway page does not hold. Removed the misleading "Pausar o reactivar" button; the
-            canonical pause action lives in the existing dashboard for this category. The link below
-            is honest navigation: it routes the owner to the surface that can actually act. */}
         <section className={quickCard}>
           <h2 className="text-base font-extrabold">
             ⏸️ {quickBusinessCopy("myBusinessPause", lang)} · {quickBusinessCopy("myBusinessEnd", lang)}
@@ -108,9 +141,19 @@ export function QuickBusinessMyBusinessClient() {
         <section className={quickCard}>
           <h2 className="text-base font-extrabold">💳 {quickBusinessCopy("myBusinessBilling", lang)}</h2>
           <p className="mt-1 text-sm text-[#5D4A25]/90">{qt(manage.billingNote, lang)}</p>
-          <Link href={billingHref} className={`${quickSecondaryBtn} mt-3`}>
-            {quickBusinessCopy("myBusinessBilling", lang)}
-          </Link>
+          {billingError && (
+            <p className="mt-2 text-sm text-red-600">{billingError}</p>
+          )}
+          <button
+            type="button"
+            disabled={billingLoading}
+            onClick={() => void handleBillingPortal(category)}
+            className={`${quickSecondaryBtn} mt-3 disabled:opacity-60`}
+          >
+            {billingLoading
+              ? lang === "en" ? "Opening…" : "Abriendo…"
+              : quickBusinessCopy("myBusinessBilling", lang)}
+          </button>
         </section>
 
         <section className={quickCard}>
@@ -121,11 +164,6 @@ export function QuickBusinessMyBusinessClient() {
           </Link>
         </section>
 
-        {/* Upgrade is an offer, not a nag: it states what stays the same, which is the customer's
-            real worry. It routes to the dashboard rather than the category's public intake,
-            because reopening the intake would start a SECOND listing — the dashboard reopens the
-            existing application against the existing listing id, and its preview leads to the
-            Full checkout for that same id. Said out loud so the destination is not a surprise. */}
         <section className={quickCard}>
           <h2 className="text-base font-extrabold">⬆️ {businessAccessCopy("upgradeCta", lang)}</h2>
           <p className="mt-1 text-sm text-[#5D4A25]/90">{businessAccessCopy("upgradeReassurance", lang)}</p>
