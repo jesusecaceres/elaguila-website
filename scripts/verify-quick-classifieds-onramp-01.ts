@@ -87,7 +87,25 @@ const ADAPTERS = `${QUICK_ROUTE}/_adapters`;
     /^app\/admin\/(?!\(dashboard\)\/businesses\/(StaffCommandCenter|QuickApplicationsLaunchpad)\.tsx$)/,
     /^app\/manifest\.ts$/,
   ];
-  const violations = touched.filter((f) => PROTECTED.some((re) => re.test(f)));
+  // Quick SIMPLE vs FULL commercial closeout (branch
+  // cursor/quick-simple-vs-full-commercial-closeout-2026-09): the owner authorized a new SIMPLE
+  // business access level sold at $99 beside the existing $399 Full packages. It is file-exact on
+  // purpose — every other file under the trees above stays locked, and the blast radius of this
+  // mission is asserted independently by scripts/verify-quick-business-access-level-01.ts and
+  // scripts/verify-quick-business-core-01.ts.
+  const MISSION_AUTHORIZED = new Set([
+    "app/lib/listingPlans/businessAccessLevel.ts", // the SIMPLE/FULL resolver
+    "app/lib/listingPlans/fullOnlyFeatureGate.ts", // the server gate for Full-only features
+    "app/lib/listingPlans/businessAccessCopy.ts", // centralized ES/EN copy, no prices
+    "app/lib/listingPlans/categoryCommercialPlan.ts", // reuses the existing entitlement fetch
+    "app/lib/listingPlans/revenuePricingMatrix.ts", // the four $99 packages + access declarations
+    "app/lib/listingPlans/revenueActiveEntitlementGuard.ts", // Quick joins the recharge guard
+    "app/lib/listingPlans/revenueCategoryCheckoutPayload.ts", // the four Quick checkout constants
+    "app/api/dashboard/analytics/listing/route.ts", // analytics becomes a Full-only capability
+    "app/admin/(dashboard)/workspace/package-entitlements/page.tsx", // staff can see the access level
+    "app/admin/_lib/packageEntitlementData.ts", // surfaces the package_key the writer already stores
+  ]);
+  const violations = touched.filter((f) => !MISSION_AUTHORIZED.has(f) && PROTECTED.some((re) => re.test(f)));
   assert.deepEqual(violations, [], `protected canonical surfaces must not change: ${violations.join(", ")}`);
   assert.ok(!touched.some((f) => f.startsWith("supabase/migrations/")), "no new database migration");
   // Gateway change is additive (one link + one import)

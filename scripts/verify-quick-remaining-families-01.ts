@@ -172,8 +172,28 @@ function defBlocksInclude(source: string, key: string, needle: string): boolean 
   assert.ok(checkout.includes("ofertaLocalChargeConsentCopy"), "checkout consent is derived from the live commercial package");
   assert.ok(!/autorizo el cobro de \$399/.test(checkout), "coupon checkout consent no longer hardcodes the flyer $399");
   assert.ok(defBlocksInclude(reg, "ofertas-locales", "pricing: null"), "Ofertas Locales Quick registry still surfaces no Quick price badge / SKU");
-  const matrixDiff = execSync(`git diff --name-only ${CERTIFIED_CORE_SHA} HEAD -- app/lib/listingPlans/revenuePricingMatrix.ts`, { cwd: ROOT, encoding: "utf8" }).trim();
-  assert.equal(matrixDiff, "", "server revenue matrix was not rewritten — client constants were aligned to it");
+  // This guard exists because the Remaining Families repair had to fix the stale Ofertas coupon
+  // price on the CLIENT rather than by rewriting the server matrix to match it. It originally
+  // asserted the matrix file was byte-identical, which also forbids purely additive work on
+  // unrelated categories: the Quick SIMPLE vs FULL mission adds four $99 business packages and an
+  // optional businessAccessLevel field. Narrowed to the actual intent — the matrix may only be
+  // ADDED to, and no Ofertas line may change. A rewrite that moved Ofertas pricing to the server,
+  // which is what this guard was written to catch, still fails it.
+  const matrixDiff = execSync(
+    `git diff -U0 ${CERTIFIED_CORE_SHA} HEAD -- app/lib/listingPlans/revenuePricingMatrix.ts`,
+    { cwd: ROOT, encoding: "utf8" },
+  );
+  const changedLines = matrixDiff
+    .split(/\r?\n/)
+    .filter((l) => /^[+-]/.test(l) && !/^(\+\+\+|---)/.test(l));
+  const removed = changedLines.filter((l) => l.startsWith("-"));
+  assert.deepEqual(removed, [], `server revenue matrix may only be added to, never rewritten: ${removed.join(" | ")}`);
+  const ofertasTouched = changedLines.filter((l) => /ofertas/i.test(l));
+  assert.deepEqual(
+    ofertasTouched,
+    [],
+    `server Ofertas pricing was not rewritten — client constants were aligned to it: ${ofertasTouched.join(" | ")}`,
+  );
 }
 
 // 8. NO NEW SKU / MIGRATION / PARALLEL PUBLIC TEMPLATE FOR COMIDA LOCAL -----------------------------------------
@@ -188,8 +208,23 @@ function defBlocksInclude(source: string, key: string, needle: string): boolean 
 {
   const qbReg = read("app/lib/quickBusiness/quickBusinessRegistry.ts");
   assert.equal((qbReg.match(/status: "live"/g) ?? []).length, 4, "Quick Business Core still has exactly four live categories");
-  const qbDiff = execSync(`git diff --name-only ${CERTIFIED_CORE_SHA} HEAD -- app/lib/quickBusiness "app/(site)/publicar/negocio-rapido"`, { cwd: ROOT, encoding: "utf8" }).trim();
-  assert.equal(qbDiff, "", "certified Quick Business Core tree byte-unchanged vs. the certified SHA");
+  // The Quick SIMPLE vs FULL mission is authorized to rewire Quick Business onto the new $99
+  // packages and to add the Simple control doorway, so this tree is no longer byte-frozen. It is
+  // a file-exact allowlist: any OTHER file in the Quick Business tree still fails here. The Quick
+  // Classifieds tree below stays byte-unchanged with no exception at all.
+  const QUICK_BUSINESS_AUTHORIZED = new Set([
+    "app/lib/quickBusiness/quickBusinessRegistry.ts", // Quick packages + the Simple media contract
+    "app/lib/quickBusiness/quickBusinessRoutes.ts", // the mi-negocio doorway path
+    "app/lib/quickBusiness/quickBusinessCopy.ts", // doorway copy
+    "app/(site)/publicar/negocio-rapido/mi-negocio/page.tsx", // the Simple doorway route
+    "app/(site)/publicar/negocio-rapido/_components/QuickBusinessMyBusinessClient.tsx",
+  ]);
+  const qbDiff = execSync(`git diff --name-only ${CERTIFIED_CORE_SHA} HEAD -- app/lib/quickBusiness "app/(site)/publicar/negocio-rapido"`, { cwd: ROOT, encoding: "utf8" })
+    .trim()
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .filter((f) => !QUICK_BUSINESS_AUTHORIZED.has(f.replace(/\\/g, "/")));
+  assert.deepEqual(qbDiff, [], `certified Quick Business Core tree changed outside the authorized set: ${qbDiff.join(", ")}`);
   const qcDiff = execSync(`git diff --name-only ${CERTIFIED_CORE_SHA} HEAD -- "app/(site)/publicar/rapido" app/lib/quickClassifieds`, { cwd: ROOT, encoding: "utf8" }).trim();
   assert.equal(qcDiff, "", "certified Quick Classifieds tree byte-unchanged vs. the certified SHA");
   const dirty = execSync(`git status --short -- app/lib/quickBusiness "app/(site)/publicar/negocio-rapido" "app/(site)/publicar/rapido" app/lib/quickClassifieds`, { cwd: ROOT, encoding: "utf8" }).trim();
