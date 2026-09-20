@@ -4,6 +4,13 @@ import {useEffect, useMemo, useState, Suspense } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { listLocalServiciosPublishSummaries } from "@/app/clasificados/servicios/lib/localServiciosPublishStorage";
+import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { businessUpgradeOfferedForHeldPackageKey } from "@/app/lib/listingPlans/businessAccessLevel";
+import {
+  businessUpgradeBusyLabel,
+  businessUpgradeCtaLabel,
+  redirectBusinessSimpleToFullUpgradeCheckout,
+} from "../lib/businessSimpleToFullUpgradeCheckout";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import {
   fetchOwnerEngagementDashboard,
@@ -29,6 +36,7 @@ import {
 import { resolveListingUiStatus, listingUiStatusLabel, listingUiStatusChipClass } from "../lib/listingDisplayStatus";
 import { resolveOwnerDashboardStatusDisplay, ownerDashboardStatusLabel } from "../lib/dashboardOwnerStatusDisplay";
 import {
+  dashboardEntitlementBadgeForKey,
   dashboardHasCapabilityForKey,
   fetchDashboardListingPackageEntitlementBadges,
   type DashboardEntitlementBadgePayload,
@@ -162,6 +170,7 @@ function DashboardServiciosPageContent() {
   >([]);
   const [manageBusy, setManageBusy] = useState<string | null>(null);
   const [manageNotice, setManageNotice] = useState<string | null>(null);
+  const [upgradeBusyId, setUpgradeBusyId] = useState<string | null>(null);
   const [communityTrustById, setCommunityTrustById] = useState<
     Record<string, { key: string; es: string; en: string; count: number }[]>
   >({});
@@ -447,6 +456,28 @@ function DashboardServiciosPageContent() {
     }
   }
 
+  /**
+   * SIMPLE -> FULL. Buys the category's EXISTING Full package for the listing the owner already
+   * has: no content save, no status change, no second listing. Identity survives because nothing
+   * in this path writes to the listing row.
+   */
+  async function startUpgrade(listingId: string, leonixAdId: string | null) {
+    setUpgradeBusyId(listingId);
+    setManageNotice(null);
+    const result = await redirectBusinessSimpleToFullUpgradeCheckout({
+      category: "servicios",
+      listingId,
+      leonixAdId,
+      lang,
+      customerEmail: email,
+      returnPath: appendLangToPath("/dashboard/servicios", lang),
+    });
+    if (!result.ok) {
+      setManageNotice(result.userMessage);
+      setUpgradeBusyId(null);
+    }
+  }
+
   const accountRef = userId ? accountRefFromId(userId) : null;
 
   const sourceLabel = (r: MergedRow) => {
@@ -604,6 +635,17 @@ function DashboardServiciosPageContent() {
                   capabilities.specialized.offers !== "unsupported" && specializedActions.length === 0
                     ? serviciosOffersInactiveDashboardHint(lang)
                     : null;
+                // SIMPLE -> FULL, from the package key the SERVER resolved for this row. Null
+                // for a Full listing and for a listing with no base package, so the offer is
+                // never shown to an owner it does not apply to.
+                const upgradeToFullPackageKey = businessUpgradeOfferedForHeldPackageKey(
+                  "servicios",
+                  dashboardEntitlementBadgeForKey(entitlementBadges, [
+                    r.id ?? "",
+                    r.slug,
+                    r.leonixAdId ?? "",
+                  ])?.revenuePackageKey ?? null,
+                );
                 const rowLeads = leads.filter((l) => l.listing_slug === r.slug);
                 const activityItems: OwnerEntityActivityItem[] = rowLeads.map((l) => ({
                   id: l.id,
@@ -642,6 +684,22 @@ function DashboardServiciosPageContent() {
                     specialized={[
                       capabilities.specialized.offers !== "unsupported"
                         ? { title: serviciosOffersEditLabel(lang), actions: specializedActions }
+                        : null,
+                      upgradeToFullPackageKey && r.id
+                        ? {
+                            title: businessUpgradeCtaLabel(lang),
+                            actions: [
+                              {
+                                label:
+                                  upgradeBusyId === r.id
+                                    ? businessUpgradeBusyLabel(lang)
+                                    : businessUpgradeCtaLabel(lang),
+                                onClick: () => void startUpgrade(r.id as string, r.leonixAdId ?? null),
+                                disabled: upgradeBusyId === r.id,
+                                tone: "premium" as const,
+                              },
+                            ],
+                          }
                         : null,
                       ownerBusinessToolsSpecializedGroup(capabilities.specialized.businessTools, lang),
                     ].filter((group): group is OwnerEntitySpecializedGroup => group !== null)}

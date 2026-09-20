@@ -31,6 +31,12 @@ import {
   type DashboardEntitlementBadgePayload,
 } from "../lib/dashboardPackageEntitlementBadges";
 import { RESTAURANTES_COUPON_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
+import { businessUpgradeOfferedForHeldPackageKey } from "@/app/lib/listingPlans/businessAccessLevel";
+import {
+  businessUpgradeBusyLabel,
+  businessUpgradeCtaLabel,
+  redirectBusinessSimpleToFullUpgradeCheckout,
+} from "../lib/businessSimpleToFullUpgradeCheckout";
 import { buildRestaurantesEligibilityInput } from "@/app/lib/listingIdentity/restaurantesLifecycleAdapter";
 import { resolveAttentionState, resolveOwnerFacingStatus } from "@/app/lib/listingIdentity";
 import {
@@ -156,6 +162,8 @@ function DashboardRestaurantesPageContent() {
   const [hydrateErr, setHydrateErr] = useState<string | null>(null);
   const [couponEditBusyId, setCouponEditBusyId] = useState<string | null>(null);
   const [couponErr, setCouponErr] = useState<string | null>(null);
+  const [upgradeBusyId, setUpgradeBusyId] = useState<string | null>(null);
+  const [upgradeErr, setUpgradeErr] = useState<string | null>(null);
   const [entitlementBadges, setEntitlementBadges] = useState<
     Record<string, DashboardEntitlementBadgePayload>
   >({});
@@ -359,9 +367,34 @@ function DashboardRestaurantesPageContent() {
     [lang, router],
   );
 
+  /**
+   * SIMPLE -> FULL. Buys the category's EXISTING Full package for the listing the owner already
+   * has: no content save, no status change, no second listing. Identity survives because nothing
+   * in this path writes to the listing row.
+   */
+  const startUpgrade = useCallback(
+    async (row: DashboardRestaurantRow) => {
+      setUpgradeBusyId(row.id);
+      setUpgradeErr(null);
+      const result = await redirectBusinessSimpleToFullUpgradeCheckout({
+        category: "restaurantes",
+        listingId: row.id,
+        leonixAdId: row.leonix_ad_id,
+        lang,
+        customerEmail: email,
+        returnPath: appendLangToPath("/dashboard/restaurantes", lang),
+      });
+      if (!result.ok) {
+        setUpgradeErr(result.userMessage);
+        setUpgradeBusyId(null);
+      }
+    },
+    [email, lang],
+  );
+
   const publishHref = appendLangToPath("/publicar/restaurantes", lang);
   const categoryResultsHref = `/clasificados/restaurantes/resultados?${q}`;
-  const frameError = fetchErr || hydrateErr || couponErr || null;
+  const frameError = fetchErr || hydrateErr || couponErr || upgradeErr || null;
 
   return (
     <LeonixDashboardShell
@@ -478,6 +511,17 @@ function DashboardRestaurantesPageContent() {
                   { href: resultsHref, label: publicResultsListingLabel(lang), tone: "subtle" },
                   { href: `/dashboard/analytics?${q}`, label: analyticsLabel(lang), tone: "subtle" },
                 ];
+                // SIMPLE -> FULL, from the package key the SERVER resolved for this row. Absent
+                // for a Full listing and for a listing with no base package, so the offer can
+                // never be shown to someone it does not apply to.
+                const upgradeToFullPackageKey = businessUpgradeOfferedForHeldPackageKey(
+                  "restaurantes",
+                  dashboardEntitlementBadgeForKey(entitlementBadges, [
+                    r.id,
+                    r.slug ?? "",
+                    r.leonix_ad_id ?? "",
+                  ])?.revenuePackageKey ?? null,
+                );
                 const specializedActions: ActionItem[] = couponEditEligible
                   ? [
                       {
@@ -493,6 +537,14 @@ function DashboardRestaurantesPageContent() {
                       },
                     ]
                   : [];
+                if (upgradeToFullPackageKey) {
+                  specializedActions.push({
+                    label: upgradeBusyId === r.id ? businessUpgradeBusyLabel(lang) : businessUpgradeCtaLabel(lang),
+                    onClick: () => void startUpgrade(r),
+                    disabled: upgradeBusyId === r.id,
+                    tone: "premium",
+                  });
+                }
                 const couponFooterHint = couponUpgradeEligible
                   ? restauranteCouponInactiveDashboardHint(lang)
                   : couponEditEligible
