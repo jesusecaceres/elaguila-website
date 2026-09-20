@@ -139,6 +139,24 @@ check("every destination is an existing canonical owner surface from the registr
   );
 });
 
+check("the upgrade never routes to the public intake, which would start a second listing", () => {
+  const src = codeOf(CLIENT);
+  // `/publicar/servicios` and friends create a NEW application. Sending a Simple customer there
+  // to upgrade is exactly how a second identity gets born. The dashboard reopens the EXISTING
+  // application against the existing listing id, and its preview checks out that same id.
+  assert.ok(
+    !src.includes("standardApplicationPath"),
+    "the doorway must never send an existing customer back through the public intake",
+  );
+  for (const lang of ["es", "en"] as const) {
+    assert.ok(
+      businessAccessCopy("upgradeWhere", lang).length > 0,
+      `${lang} must state where the upgrade happens`,
+    );
+  }
+  assert.ok(src.includes('businessAccessCopy("upgradeWhere"'), "and the doorway must render it");
+});
+
 check("the upgrade offer is honest in both languages", () => {
   for (const lang of ["es", "en"] as const) {
     const cta = businessAccessCopy("upgradeCta", lang);

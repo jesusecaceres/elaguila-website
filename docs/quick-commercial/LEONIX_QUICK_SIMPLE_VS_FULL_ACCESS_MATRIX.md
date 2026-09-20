@@ -72,8 +72,23 @@ pre-existing `concierge_eligible` print benefit, which is not the same thing as 
 
 ## 3. Combination rule
 
-A customer's access level is the **highest** live grant across every dimension
-(`maxBusinessAccessLevel`, applied in `decideBusinessAccess`).
+Two steps, in order.
+
+**Per row** (`businessAccessGrantForRow`): one entitlement row is one purchase, so it yields at
+most one grant. If the row carries a print tier, the **tier decides** and the row's `package_key`
+is ignored for access purposes. Otherwise the package key decides.
+
+That precedence is load-bearing, not cosmetic. Package C Build 3 stamps the category **base
+(Full)** package key onto print-tier admin grants in Restaurantes and Servicios so the
+pre-existing capability resolver can find the catalog entry by exact key. The stamp records which
+catalog row to read; it is not evidence the customer paid $399. Taking the maximum of tier and
+key at row level would have handed every quarter-page advertiser in those two categories FULL
+access off a bookkeeping field, silently breaking the `QUARTER_PAGE = SIMPLE` lock. Locked by
+`verify-quick-print-bundle-access-02.ts` → "a stamped Full package_key never upgrades a
+quarter-page row to FULL".
+
+**Across rows** (`maxBusinessAccessLevel`, applied in `decideBusinessAccess`): a customer's access
+level is the **highest** live grant. This can only ever raise a level, never lower one.
 
 | Holding | Resolves to |
 |---|---|

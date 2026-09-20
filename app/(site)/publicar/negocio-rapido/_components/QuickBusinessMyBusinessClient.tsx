@@ -108,10 +108,14 @@ export function QuickBusinessMyBusinessClient() {
         </section>
 
         {/* Upgrade is an offer, not a nag: it states what stays the same, which is the customer's
-            real worry. The Full purchase itself happens on the category's existing checkout. */}
+            real worry. It routes to the dashboard rather than the category's public intake,
+            because reopening the intake would start a SECOND listing — the dashboard reopens the
+            existing application against the existing listing id, and its preview leads to the
+            Full checkout for that same id. Said out loud so the destination is not a surprise. */}
         <section className={quickCard}>
           <h2 className="text-base font-extrabold">⬆️ {businessAccessCopy("upgradeCta", lang)}</h2>
           <p className="mt-1 text-sm text-[#5D4A25]/90">{businessAccessCopy("upgradeReassurance", lang)}</p>
+          <p className="mt-1 text-sm text-[#5D4A25]/90">{businessAccessCopy("upgradeWhere", lang)}</p>
           <Link href={manageHref} className={`${quickSecondaryBtn} mt-3`}>
             {businessAccessCopy("upgradeCta", lang)}
           </Link>

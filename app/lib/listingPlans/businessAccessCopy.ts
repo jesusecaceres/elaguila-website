@@ -66,6 +66,18 @@ const UPGRADE_REASSURANCE: Bilingual = {
   en: "Your listing, your photos and your web address stay the same. Everything else simply opens up.",
 };
 
+/**
+ * Where the upgrade actually happens. Named explicitly because the upgrade is deliberately NOT a
+ * fresh application: reopening the category's public intake would start a second listing, and the
+ * whole contract is that the customer keeps the one they have. The identity-preserving route is
+ * the owner dashboard, where editing reopens the existing application against the existing
+ * listing id and its preview leads to the Full checkout for that same id.
+ */
+const UPGRADE_WHERE: Bilingual = {
+  es: "Se hace desde tu panel, con el mismo anuncio que ya tienes. No vuelvas a empezar uno nuevo.",
+  en: "You do it from your dashboard, with the listing you already have. Don't start a new one.",
+};
+
 const UPGRADE_LOCKED_FEATURE: Bilingual = {
   es: "Esta sección es parte de Full. Mejora tu plan y se abre al instante, sin volver a crear tu anuncio.",
   en: "This section is part of Full. Upgrade your plan and it opens right away, without recreating your listing.",
@@ -91,6 +103,7 @@ export type BusinessAccessCopyKey =
   | "fullBody"
   | "upgradeCta"
   | "upgradeReassurance"
+  | "upgradeWhere"
   | "upgradeLockedFeature"
   | "printQuarterBundle"
   | "printFullBundle";
@@ -104,6 +117,7 @@ const COPY: Record<BusinessAccessCopyKey, Bilingual> = {
   fullBody: FULL_BODY,
   upgradeCta: UPGRADE_CTA,
   upgradeReassurance: UPGRADE_REASSURANCE,
+  upgradeWhere: UPGRADE_WHERE,
   upgradeLockedFeature: UPGRADE_LOCKED_FEATURE,
   printQuarterBundle: PRINT_QUARTER,
   printFullBundle: PRINT_FULL_TIERS,
