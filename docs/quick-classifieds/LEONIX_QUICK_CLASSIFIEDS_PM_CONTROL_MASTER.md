@@ -962,6 +962,92 @@ Claude does not self-authorize a main merge or Production release.
 
 ---
 
+
+## 22. Owner Priority Order — Delivery Sequence
+
+The owner has set the practical delivery priority for Quick work.
+
+### Tier 1 — Must finish first
+
+These are the highest-priority Quick Classifieds:
+
+1. **En Venta / Varios**
+2. **Rentas**
+3. **Empleos**
+4. **Autos Privado**
+
+These categories receive the first engineering attention, blocker repair, interaction QA, lifecycle proof and release readiness.
+
+Bienes Raíces Privado / FSBO remains in Classifieds scope, but the four categories above are the immediate launch focus.
+
+### Tier 2 — Community categories
+
+The community-family applications are already intentionally short/minimal:
+
+- Clases
+- Comunidad / Eventos
+- Busco / Se Busca
+- Mascotas y Perdidos
+
+PM rule:
+
+> Do not spend engineering time rebuilding or re-simplifying forms that are already short.
+
+For these categories, the near-term goal is primarily:
+
+- expose/send the existing direct publication link cleanly from the staff launchpad;
+- preserve the existing short application;
+- later remove dependence on a full Owner Dashboard by giving the customer only the lightweight ad-control path needed to View / Edit / End / Renew where the canonical lifecycle supports it.
+
+If the existing application is already effectively the two-minute form, Quick should **reuse it directly** rather than wrapping it in another unnecessary form.
+
+### Tier 3 — Quick Business priority immediately after core Classifieds
+
+The highest-priority Quick Business families are:
+
+1. **Servicios**
+2. **Restaurantes**
+3. **Autos Dealer**
+4. **Bienes Raíces Negocio / Agent**
+
+These are commercially important and already have rich existing public outputs. The future Quick Business mission should therefore focus on extracting the smallest useful subset of their existing application data while keeping their current public shell untouched.
+
+Core rule remains:
+
+```
+LESS INPUT
+→ SAME EXISTING APPLICATION DATA MODEL
+→ SAME EXISTING PREVIEW
+→ SAME EXISTING PUBLIC PROFILE
+```
+
+The Quick Business product should become shorter because optional/full-only data is absent or plan-gated, not because the existing public design is redesigned.
+
+### Lower priority for now
+
+These are intentionally deferred until the higher-priority categories above are stable:
+
+- Viajes
+- Recursos
+- Iglesias
+
+They are not cancelled; they simply do not compete for current engineering time.
+
+### PM sequencing rule
+
+Future Claude prompts should be issued in large guarded chunks, not one tiny prompt per file or field.
+
+Each prompt should contain several dependency-ordered gates and should:
+
+- finish a meaningful product chunk;
+- preserve all existing canonical systems;
+- use focused validation during implementation;
+- return a durable gate-by-gate evidence report;
+- stop only for a genuine architectural/security/owner-decision blocker.
+
+The owner will copy the PM prompt into Claude, return Claude's output to the PM, and the PM will issue the next prompt.
+
+
 **Control statement**
 
 > Leonix Quick Classifieds must make publishing easier without making Leonix architecture weaker. Simplicity belongs in the intake and staff doorway; truth, ownership, payment, lifecycle, and public output remain canonical.
