@@ -27,6 +27,10 @@ import {
   isAutosClassifiedsDbConfigured,
 } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
+import {
+  extractSemanticMediaItems,
+  validateQuickBusinessMediaForCategory,
+} from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -65,6 +69,21 @@ export async function POST(request: NextRequest) {
   const dealerListing = body.dealerListing as AutoDealerListing | null | undefined;
   if (!dealerListing || typeof dealerListing !== "object") {
     return NextResponse.json({ ok: false, error: "dealer_listing_required" }, { status: 400 });
+  }
+
+  // Gate QB-MEDIA-02 — a dealer listing must carry at least one real VEHICLE photo. A dealership
+  // logo is an identity asset and can never satisfy that slot. Enforced here on the server so the
+  // rule holds regardless of what the client sent; the media set is read from the vehicle listing
+  // because the vehicle, not the business, is what this listing is about.
+  if (isAssistedPublish) {
+    const vehicleMedia = extractSemanticMediaItems(body.vehicleListing);
+    const mediaIssues = validateQuickBusinessMediaForCategory("autos-dealer", vehicleMedia);
+    if (mediaIssues && mediaIssues.length) {
+      return NextResponse.json(
+        { ok: false, error: "media_contract_violation", issues: mediaIssues.map((i) => i.code), message: mediaIssues[0]!.messageEn },
+        { status: 422 },
+      );
+    }
   }
 
   const lang = body.lang === "en" ? "en" as const : "es" as const;

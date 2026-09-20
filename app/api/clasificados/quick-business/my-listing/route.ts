@@ -1,84 +1,76 @@
 /**
- * Gate QB-LIFECYCLE-01 — Quick Business canonical listing resolution.
+ * Gate QB-IDENTITY-01 — Quick Business canonical listing resolution.
  *
  * GET ?category=servicios|restaurantes|autos-dealer|bienes-negocio
+ * Requires `Authorization: Bearer <supabase access token>`.
  *
- * Returns the authenticated user's listing for the requested category, resolved
- * server-side by owner_user_id. Never trusts a browser-supplied listing ID.
- * The response is used by QuickBusinessMyBusinessClient to wire live Pause /
- * Reactivate / Billing actions without shipping a second listing-truth system.
+ * IDENTITY CONTRACT (changed in QB-IDENTITY-01):
+ * Resolution is LINK-FIRST. The durable `business_listing_links` relationship is the primary
+ * identity contract; the owner-column scan is only a guarded repair fallback for listings
+ * published before link write-back existed.
+ *
+ * The previous implementation scanned the owner column directly and took
+ * `.order(...).limit(1)` — which silently picked an ARBITRARY listing when a user had more than
+ * one. Every downstream lifecycle control then acted on whichever row happened to sort first.
+ * Ambiguity is now an explicit 409 rather than a guess: the doorway must never pause or archive
+ * a listing the customer did not choose.
  */
 import { NextResponse, type NextRequest } from "next/server";
 import { getBearerUserId } from "@/app/api/clasificados/_lib/bearerUser";
+import {
+  resolveCanonicalListingForUser,
+  type CanonicalListingSource,
+} from "@/app/lib/business/canonicalListingLink";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { QUICK_BUSINESS_LIFECYCLE_CAPABILITIES } from "@/app/lib/quickBusiness/quickBusinessLifecycleCapabilities";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type ListingResolveResult =
-  | { ok: true; listing: { id: string; status: string; slug?: string } }
-  | { ok: false; error: string };
-
-async function resolveServiciosListing(ownerUserId: string): Promise<ListingResolveResult> {
-  const db = getAdminSupabase();
-  const { data, error } = await db
-    .from("servicios_public_listings")
-    .select("id, slug, listing_status")
-    .eq("owner_user_id", ownerUserId)
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (error) return { ok: false, error: "lookup_failed" };
-  if (!data) return { ok: false, error: "not_found" };
-  return { ok: true, listing: { id: String(data.id), status: String(data.listing_status ?? ""), slug: String(data.slug ?? "") } };
-}
-
-async function resolveRestaurantesListing(ownerUserId: string): Promise<ListingResolveResult> {
-  const db = getAdminSupabase();
-  const { data, error } = await db
-    .from("restaurantes_public_listings")
-    .select("id, slug, status")
-    .eq("owner_user_id", ownerUserId)
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (error) return { ok: false, error: "lookup_failed" };
-  if (!data) return { ok: false, error: "not_found" };
-  return { ok: true, listing: { id: String(data.id), status: String(data.status ?? ""), slug: String(data.slug ?? "") } };
-}
-
-async function resolveAutosDealerListing(ownerUserId: string): Promise<ListingResolveResult> {
-  const db = getAdminSupabase();
-  // Dealer "main" row is the identity — vehicle children are managed separately.
-  const { data, error } = await db
-    .from("autos_classifieds_listings")
-    .select("id, status")
-    .eq("owner_user_id", ownerUserId)
-    .eq("lane", "negocios")
-    .eq("inventory_role", "main")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (error) return { ok: false, error: "lookup_failed" };
-  if (!data) return { ok: false, error: "not_found" };
-  return { ok: true, listing: { id: String(data.id), status: String(data.status ?? "") } };
-}
-
-async function resolveBienesNegocioListing(ownerUserId: string): Promise<ListingResolveResult> {
-  const db = getAdminSupabase();
-  // Bienes Negocio: the agent/business parent row is inventory_role = "main" in the listings table.
-  const { data, error } = await db
-    .from("listings")
-    .select("id, listing_status")
-    .eq("owner_id", ownerUserId)
-    .eq("inventory_role", "main")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (error) return { ok: false, error: "lookup_failed" };
-  if (!data) return { ok: false, error: "not_found" };
-  return { ok: true, listing: { id: String(data.id), status: String(data.listing_status ?? "") } };
-}
+/**
+ * Per-family canonical wiring. `statusColumn` differs by family and is NOT guessable — reading
+ * `listing_status` from `listings` (which uses `status`) was a real defect in the prior version.
+ */
+const CATEGORY_WIRING: Record<
+  string,
+  {
+    source: CanonicalListingSource;
+    statusColumn: string;
+    hasSlug: boolean;
+    hasIsPublished: boolean;
+    fallbackFilters: Record<string, string>;
+  }
+> = {
+  servicios: {
+    source: "servicios_public_listings",
+    statusColumn: "listing_status",
+    hasSlug: true,
+    hasIsPublished: false,
+    fallbackFilters: {},
+  },
+  restaurantes: {
+    source: "restaurantes_public_listings",
+    statusColumn: "status",
+    hasSlug: true,
+    hasIsPublished: false,
+    fallbackFilters: {},
+  },
+  "autos-dealer": {
+    source: "autos_classifieds_listings",
+    statusColumn: "status",
+    hasSlug: false,
+    hasIsPublished: false,
+    // The dealer identity row, never an inventory vehicle child.
+    fallbackFilters: { lane: "negocios", inventory_role: "main" },
+  },
+  "bienes-negocio": {
+    source: "listings",
+    statusColumn: "status",
+    hasSlug: false,
+    hasIsPublished: true,
+    fallbackFilters: { category: "bienes-raices", seller_type: "business", inventory_role: "main" },
+  },
+};
 
 export async function GET(request: NextRequest) {
   if (!isSupabaseAdminConfigured()) {
@@ -91,28 +83,64 @@ export async function GET(request: NextRequest) {
   }
 
   const category = (request.nextUrl.searchParams.get("category") ?? "").trim().toLowerCase();
-
-  let result: ListingResolveResult;
-  switch (category) {
-    case "servicios":
-      result = await resolveServiciosListing(ownerUserId);
-      break;
-    case "restaurantes":
-      result = await resolveRestaurantesListing(ownerUserId);
-      break;
-    case "autos-dealer":
-      result = await resolveAutosDealerListing(ownerUserId);
-      break;
-    case "bienes-negocio":
-      result = await resolveBienesNegocioListing(ownerUserId);
-      break;
-    default:
-      return NextResponse.json({ ok: false, error: "unknown_category" }, { status: 400 });
+  const wiring = CATEGORY_WIRING[category];
+  if (!wiring) {
+    return NextResponse.json({ ok: false, error: "unknown_category" }, { status: 400 });
   }
 
-  if (!result.ok) {
-    const status = result.error === "not_found" ? 404 : 500;
-    return NextResponse.json({ ok: false, error: result.error }, { status });
+  const resolved = await resolveCanonicalListingForUser({
+    userId: ownerUserId,
+    listingSource: wiring.source,
+    fallbackFilters: wiring.fallbackFilters,
+  });
+
+  if (!resolved.found) {
+    if (resolved.reason === "ambiguous") {
+      // Several candidate listings and no single canonical link to disambiguate. Refusing is the
+      // whole point: acting on an arbitrary one is how the wrong listing gets paused.
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "ambiguous_listing",
+          message: "More than one listing matched. Open the full dashboard to choose which one to manage.",
+        },
+        { status: 409 },
+      );
+    }
+    const status = resolved.reason === "db_not_configured" ? 503 : 404;
+    return NextResponse.json({ ok: false, error: resolved.reason === "none" ? "not_found" : resolved.reason }, { status });
   }
-  return NextResponse.json({ ok: true, listing: result.listing });
+
+  // Read the current state of the resolved row from its own canonical status column.
+  const db = getAdminSupabase();
+  const columns = ["id", wiring.statusColumn]
+    .concat(wiring.hasSlug ? ["slug"] : [])
+    .concat(wiring.hasIsPublished ? ["is_published"] : [])
+    .join(", ");
+  const { data, error } = await db
+    .from(wiring.source)
+    .select(columns)
+    .eq("id", resolved.listingId)
+    .maybeSingle();
+
+  if (error) return NextResponse.json({ ok: false, error: "lookup_failed" }, { status: 500 });
+  if (!data) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
+
+  const row = data as unknown as Record<string, unknown>;
+  const statusValue = row[wiring.statusColumn];
+
+  return NextResponse.json({
+    ok: true,
+    listing: {
+      id: String(row.id),
+      status: typeof statusValue === "string" ? statusValue : "",
+      ...(wiring.hasSlug ? { slug: typeof row.slug === "string" ? row.slug : "" } : {}),
+      ...(wiring.hasIsPublished ? { isPublished: row.is_published !== false } : {}),
+    },
+    /** How identity was established. `owner_fallback` means this listing predates link write-back. */
+    resolvedVia: resolved.via,
+    businessId: resolved.businessId,
+    /** What the doorway may honestly offer for this family — see the capability matrix. */
+    capabilities: QUICK_BUSINESS_LIFECYCLE_CAPABILITIES[category] ?? null,
+  });
 }

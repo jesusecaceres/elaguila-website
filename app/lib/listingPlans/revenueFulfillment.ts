@@ -5,7 +5,7 @@
 
 import "server-only";
 import { isBusinessBasePackageKey } from "./businessAccessLevel";
-import { scheduleQuickCancellationAfterFullPayment } from "./quickToFullConvergence";
+import { convergeQuickToFullAfterPayment } from "./quickToFullConvergence";
 import type Stripe from "stripe";
 import { isPaymentCleared } from "./paymentTracking";
 import { activateEntitlementsForPayment } from "./revenueEntitlementFulfillment";
@@ -2050,35 +2050,35 @@ export async function fulfillCheckoutSessionCompleted(input: {
     };
   }
 
-  // Gate QB-CONVERGENCE-01 — schedule Quick subscription cancellation when the user just
-  // purchased a Full base plan for the same category. Best-effort: never blocks the main
-  // fulfillment return (a Stripe or DB error here does not fail the webhook).
+  // Gate QB-CONVERGENCE-02 — the customer just paid for a Full base plan, so any Quick
+  // subscription this Full plan supersedes is cancelled IMMEDIATELY (with proration), not at
+  // period end: a period-end cancellation would bill both plans concurrently for up to a month.
+  //
+  // This runs only AFTER the payment has been marked paid above, which is what makes the Full
+  // payment authoritative — an abandoned or failed checkout never reaches here, so Quick is
+  // preserved. The convergence module itself writes the attempted/completed/skipped/failed audit
+  // trail; a `failed` outcome is recorded as retryable rather than swallowed. It never throws,
+  // and its result deliberately does not gate the fulfillment return: a settled payment must not
+  // be reported as failed because a downstream cancellation had trouble.
   if (refreshed.owner_user_id && refreshed.category && refreshed.package_key) {
-    const convergenceResult = await scheduleQuickCancellationAfterFullPayment({
-      ownerUserId: String(refreshed.owner_user_id),
-      category: String(refreshed.category),
-      newPackageKey: String(refreshed.package_key),
+    await convergeQuickToFullAfterPayment({
+      full: {
+        ownerUserId: String(refreshed.owner_user_id),
+        category: String(refreshed.category),
+        packageKey: String(refreshed.package_key),
+        paid: true,
+        stripeCustomerId: refreshed.stripe_customer_id ? String(refreshed.stripe_customer_id) : null,
+        stripeSubscriptionId: refreshed.stripe_subscription_id ? String(refreshed.stripe_subscription_id) : null,
+      },
       eventId,
+      paymentRecordId: paymentRecord.id,
     }).catch((err: unknown) => {
-      console.error("[fulfillment] convergence best-effort failed", { paymentRecordId: paymentRecord.id, error: err instanceof Error ? err.message : String(err) });
+      console.error("[fulfillment] convergence threw", {
+        paymentRecordId: paymentRecord.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
       return null;
     });
-    if (convergenceResult && !convergenceResult.ok) {
-      console.error("[fulfillment] convergence non-fatal error", { paymentRecordId: paymentRecord.id, error: convergenceResult.error });
-    }
-    if (convergenceResult && convergenceResult.ok && !convergenceResult.skipped) {
-      await writeRevenueAuditLog({
-        action: "revenue_quick_to_full_convergence",
-        targetType: "leonix_payment_records",
-        targetId: paymentRecord.id,
-        meta: {
-          quick_subscription_id: convergenceResult.stripeSubscriptionId,
-          new_package_key: refreshed.package_key,
-          cancel_at_period_end: convergenceResult.cancelledAtPeriodEnd,
-          stripe_event_id: eventId,
-        },
-      }).catch(() => undefined);
-    }
   }
 
   return {

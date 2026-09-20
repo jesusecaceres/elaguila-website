@@ -31,19 +31,30 @@ async function listPreparedServiciosListings(businessId: string): Promise<Prepar
   const admin = getAdminSupabase();
   const { data: links } = await admin
     .from("business_listing_links")
-    .select("listing_id")
+    .select("listing_id, linked_by")
     .eq("business_id", businessId)
     .eq("listing_source", "servicios_public_listings")
     .eq("status", "verified");
-  const listingIds = ((links ?? []) as { listing_id: string }[]).map((l) => l.listing_id);
+  const linkRows = (links ?? []) as { listing_id: string; linked_by: string }[];
+  const listingIds = linkRows.map((l) => l.listing_id);
   if (!listingIds.length) return [];
+  const linkedByByListingId = new Map(linkRows.map((l) => [l.listing_id, l.linked_by]));
 
   const { data: rows } = await admin
     .from("servicios_public_listings")
-    .select("id, business_name, listing_status, updated_at")
+    .select("id, business_name, listing_status, updated_at, owner_user_id")
     .in("id", listingIds);
 
-  return ((rows ?? []) as { id: string; business_name: string; listing_status: string; updated_at: string }[])
+  return ((rows ?? []) as { id: string; business_name: string; listing_status: string; updated_at: string; owner_user_id: string | null }[])
+    // Gate QB-IDENTITY-01 — self-service publishing now writes the same verified link that
+    // staff-assisted publishing does, so this strip must distinguish them or its "Leonix-prepared"
+    // label becomes false. A link whose `linked_by` IS the listing's own owner was created by the
+    // customer for themselves; only a link created by someone OTHER than the owner is
+    // Leonix-prepared. `linked_by` is attribution ("who linked this record"), never ownership.
+    .filter((r) => {
+      const linkedBy = linkedByByListingId.get(r.id);
+      return !linkedBy || !r.owner_user_id || linkedBy !== r.owner_user_id;
+    })
     .map((r) => ({
       listingId: r.id,
       businessName: r.business_name,

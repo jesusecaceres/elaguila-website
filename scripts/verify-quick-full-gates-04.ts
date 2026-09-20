@@ -205,10 +205,22 @@ check("the one route that switches a Full capability on re-checks it server-side
   assert.ok(accessAt > -1 && denyAt > accessAt, "the resolved access must be acted on");
   assert.ok(writeAt > denyAt, "nothing may be written before the capability is verified");
   // And the capability it guards is one Simple genuinely cannot hold.
+  // `coupons_offers` was never a member of BusinessAccessCapability, so this assertion did not
+  // typecheck and could not have been exercising the resolver as intended. It is replaced by the
+  // two checks it was reaching for: a REAL Full-only capability is denied at SIMPLE, and an
+  // unrecognized capability fails closed rather than defaulting to allowed.
   assert.equal(
-    decideBusinessAccessCapability({ level: "simple", capability: "coupons_offers" }).allowed,
+    decideBusinessAccessCapability({ level: "simple", capability: "business_hub" }).allowed,
     false,
-    "coupons_offers must stay denied at SIMPLE",
+    "a FULL-only capability must stay denied at SIMPLE",
+  );
+  assert.equal(
+    decideBusinessAccessCapability({
+      level: "simple",
+      capability: "coupons_offers" as unknown as Parameters<typeof decideBusinessAccessCapability>[0]["capability"],
+    }).allowed,
+    false,
+    "an unrecognized capability fails closed at SIMPLE, never defaults to allowed",
   );
 });
 

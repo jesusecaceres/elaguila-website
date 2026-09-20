@@ -40,6 +40,7 @@ import {
   isListingLinkedToBusiness,
   linkAssistedListingToBusiness,
 } from "@/app/lib/business/assistedListingCustody";
+import { linkSelfServiceListingToBusiness } from "@/app/lib/business/canonicalListingLink";
 import { resolveServiciosReactivationAuthority } from "@/app/clasificados/servicios/lib/serviciosReactivationAuthorityServer";
 import { resolveBusinessToolsAccess } from "@/app/lib/listingPlans/categoryCommercialPlan";
 import {
@@ -935,6 +936,18 @@ export async function POST(req: NextRequest) {
       publishedAt: now,
     });
     persistedToDevWorkspace = upsertServiciosDevPublishRow(row);
+  }
+
+  // Gate QB-IDENTITY-01 — a listing the CUSTOMER published for themselves gets the same durable
+  // business↔listing relationship the staff-assisted branch already writes, so "My Business" can
+  // resolve it canonically instead of scanning owner columns. Additive and idempotent; ownership
+  // is re-proven server-side inside the helper, and a failure here never fails the publish.
+  if (persistedToDatabase && persistedListingId && ownerUserId && !isAssistedRequest) {
+    await linkSelfServiceListingToBusiness({
+      userId: ownerUserId,
+      listingSource: "servicios_public_listings",
+      listingId: persistedListingId,
+    }).catch(() => undefined);
   }
 
   const persistence: ServiciosPublishPersistence = persistedToDatabase

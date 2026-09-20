@@ -12,6 +12,7 @@ import { countActiveDealerVehicles, summarizeDealerInventory, isDealerInventoryM
 import { AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY, AUTOS_DEALER_TOTAL_WITH_INVENTORY_PACK_LIMIT } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import { isListingPackageEntitlementRowActive } from "@/app/lib/listingPlans/listingPackageEntitlementPlacement";
 import { assertCommercialCapacityForWrite } from "@/app/lib/listingPlans/commercialWriteGuard";
+import { linkSelfServiceListingToBusiness } from "@/app/lib/business/canonicalListingLink";
 import type { AutosClassifiedsLane, AutosClassifiedsLang } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 import {
   AUTOS_LISTING_API_MAX_BODY_BYTES,
@@ -258,6 +259,18 @@ export async function POST(request: Request) {
       }),
       { status: errorCode === "AUTOS_SUPABASE_INSERT_FAILED" ? 500 : 500 },
     );
+  }
+
+  // Gate QB-IDENTITY-01 — record the canonical business↔listing relationship for a dealer
+  // identity row the customer created themselves, matching what the staff-assisted route writes.
+  // Only the dealer MAIN row is linked: an inventory vehicle is a child of that identity, not a
+  // second business listing. Idempotent, ownership re-proven server-side, never fails the create.
+  if (result.row.lane === "negocios" && !parentListingId) {
+    await linkSelfServiceListingToBusiness({
+      userId: createInput.ownerUserId,
+      listingSource: "autos_classifieds_listings",
+      listingId: result.row.id,
+    }).catch(() => undefined);
   }
 
   return NextResponse.json(

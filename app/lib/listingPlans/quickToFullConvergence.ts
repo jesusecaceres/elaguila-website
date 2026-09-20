@@ -1,59 +1,40 @@
 /**
- * Gate QB-CONVERGENCE-01 — Quick→Full subscription convergence.
+ * Gate QB-CONVERGENCE-02 — Quick→Full convergence, production adapter.
  *
- * Owner decision (Option C): when a Full subscription is confirmed via webhook,
- * cancel the user's existing Quick subscription for the same category ONLY after
- * authoritative Full payment confirmation. The cancellation is scheduled at
- * period-end (cancel_at_period_end = true) so the customer is never double-charged
- * and retains Quick access until the period ends.
+ * This file is the THIN server-only edge of the subsystem. It owns no policy:
+ *  - every decision lives in `quickToFullConvergencePure.ts` (pure, test-importable)
+ *  - the orchestration lives in `quickToFullConvergenceCore.ts` (port-injected, test-importable)
+ *  - this file only builds the real Stripe / Supabase / audit ports and delegates.
  *
- * Idempotent, retry-safe, out-of-order-safe, duplicate-safe:
- *  - Detects whether a Quick subscription exists before calling Stripe.
- *  - The Stripe `cancel_at_period_end` flag is idempotent (setting it twice is a no-op).
- *  - If the Quick sub is already cancelled, the result is ok: true (nothing to do).
- *
- * Pure classification lives in `quickToFullConvergencePure.ts`; Stripe I/O lives here.
+ * WHAT CHANGED VS THE PREVIOUS IMPLEMENTATION, AND WHY:
+ * The prior version set `cancel_at_period_end = true`. That is not convergence — it leaves the
+ * customer paying BOTH the Quick and the Full subscription for up to a full month. The owner
+ * policy is immediate convergence once the Full payment is authoritative, so this version
+ * cancels the superseded Quick subscription now, with proration so the customer is credited for
+ * the unused remainder rather than forfeiting it.
  */
 import "server-only";
 
 import Stripe from "stripe";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { writeRevenueAuditLog } from "./revenueAuditLog";
+import {
+  executeQuickToFullConvergence,
+  type ConvergenceAuditEntry,
+  type ConvergenceAuditPort,
+  type ConvergenceExecutionResult,
+  type ConvergenceLedgerPort,
+  type ConvergenceStripePort,
+} from "./quickToFullConvergenceCore";
+import type { FullPaymentFact } from "./quickToFullConvergencePure";
 
-/**
- * Maps Quick package key → Full package prefix for convergence eligibility check.
- * Each entry lists the Quick subscription package keys; when the incoming FULL
- * package key shares the same category root, convergence fires.
- */
-export const QUICK_PACKAGE_KEYS_BY_CATEGORY: Readonly<Record<string, string>> = {
-  servicios: "servicios_quick_monthly",
-  restaurantes: "restaurantes_quick_monthly",
-  autos: "autos_dealer_quick_monthly",
-  "bienes-raices": "br_agent_quick_monthly",
-};
-
-/**
- * The Full base package key prefixes that trigger convergence.
- * If the new package key starts with one of these, a Quick cancellation is scheduled.
- */
-export const FULL_BASE_PACKAGE_PREFIXES: readonly string[] = [
-  "servicios_base",
-  "restaurantes_base",
-  "autos_dealer_base",
-  "br_agent_base",
-];
-
-export function isFullBasePackageKey(packageKey: string): boolean {
-  return FULL_BASE_PACKAGE_PREFIXES.some((prefix) => packageKey.startsWith(prefix));
-}
-
-export function quickPackageKeyForCategory(category: string): string | null {
-  return QUICK_PACKAGE_KEYS_BY_CATEGORY[category] ?? null;
-}
-
-export type QuickToFullConvergenceResult =
-  | { ok: true; skipped: true; reason: string }
-  | { ok: true; skipped: false; cancelledAtPeriodEnd: boolean; stripeSubscriptionId: string }
-  | { ok: false; error: string };
+// Re-exported so existing importers of these names keep working.
+export {
+  FULL_BASE_PACKAGE_PREFIXES,
+  QUICK_PACKAGE_KEYS_BY_CATEGORY,
+  isFullBasePackageKey,
+  quickPackageKeyForCategory,
+} from "./quickToFullConvergencePure";
 
 function getStripeClient(): Stripe | null {
   const key = process.env.STRIPE_SECRET_KEY?.trim();
@@ -61,102 +42,152 @@ function getStripeClient(): Stripe | null {
   return new Stripe(key, { typescript: true });
 }
 
+function buildStripePort(stripe: Stripe): ConvergenceStripePort {
+  return {
+    async retrieveSubscription(subscriptionId) {
+      try {
+        const sub = await stripe.subscriptions.retrieve(subscriptionId);
+        const customer = sub.customer;
+        const customerId = typeof customer === "string" ? customer : (customer?.id ?? null);
+        return {
+          ok: true,
+          status: String(sub.status),
+          cancelAtPeriodEnd: Boolean(sub.cancel_at_period_end),
+          customerId,
+        };
+      } catch (e) {
+        return { ok: false, error: e instanceof Error ? e.message.slice(0, 300) : "unknown" };
+      }
+    },
+    async cancelSubscriptionImmediately(subscriptionId, opts) {
+      try {
+        // `subscriptions.cancel` ends the subscription NOW. `prorate` credits the unused
+        // remainder of the period the customer already paid for. The idempotency key makes a
+        // redelivered webhook replay the original response instead of cancelling twice.
+        const cancelled = await stripe.subscriptions.cancel(
+          subscriptionId,
+          { prorate: opts.prorate },
+          { idempotencyKey: opts.idempotencyKey },
+        );
+        // Metadata is recorded separately: `cancel` does not accept a metadata update, and a
+        // failure to annotate must never make a successful cancellation look failed.
+        try {
+          await stripe.subscriptions.update(subscriptionId, { metadata: opts.metadata });
+        } catch {
+          /* annotation is best-effort */
+        }
+        return { ok: true, status: String(cancelled.status) };
+      } catch (e) {
+        return { ok: false, error: e instanceof Error ? e.message.slice(0, 300) : "unknown" };
+      }
+    },
+  };
+}
+
+function buildLedgerPort(): ConvergenceLedgerPort {
+  return {
+    async findPaidQuickSubscription(query) {
+      if (!isSupabaseAdminConfigured()) return { ok: false, error: "db_not_configured" };
+      const db = getAdminSupabase();
+      const { data, error } = await db
+        .from("leonix_payment_records")
+        .select("owner_user_id, category, package_key, stripe_subscription_id, stripe_customer_id")
+        .eq("owner_user_id", query.ownerUserId)
+        .eq("category", query.category)
+        .eq("package_key", query.quickPackageKey)
+        .eq("billing_mode", "subscription")
+        .eq("payment_status", "paid")
+        .not("stripe_subscription_id", "is", null)
+        .order("paid_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) return { ok: false, error: error.message.slice(0, 300) };
+      if (!data?.stripe_subscription_id) return { ok: true, record: null };
+      const row = data as {
+        owner_user_id: string;
+        category: string;
+        package_key: string;
+        stripe_subscription_id: string;
+        stripe_customer_id: string | null;
+      };
+      return {
+        ok: true,
+        record: {
+          ownerUserId: String(row.owner_user_id),
+          category: String(row.category),
+          packageKey: String(row.package_key),
+          stripeSubscriptionId: String(row.stripe_subscription_id),
+          stripeCustomerId: row.stripe_customer_id ? String(row.stripe_customer_id) : null,
+        },
+      };
+    },
+  };
+}
+
+const AUDIT_ACTION_BY_OUTCOME = {
+  attempted: "revenue_quick_to_full_convergence_attempted",
+  completed: "revenue_quick_to_full_convergence_completed",
+  skipped: "revenue_quick_to_full_convergence_skipped",
+  refused: "revenue_quick_to_full_convergence_failed",
+  failed: "revenue_quick_to_full_convergence_failed",
+} as const;
+
+function buildAuditPort(paymentRecordId: string): ConvergenceAuditPort {
+  return {
+    async record(entry: ConvergenceAuditEntry) {
+      await writeRevenueAuditLog({
+        action: AUDIT_ACTION_BY_OUTCOME[entry.outcome],
+        targetType: "leonix_payment_records",
+        targetId: paymentRecordId,
+        meta: {
+          convergence_outcome: entry.outcome,
+          convergence_reason: entry.reason ?? null,
+          quick_subscription_id: entry.quickSubscriptionId ?? null,
+          new_package_key: entry.newPackageKey,
+          owner_user_id: entry.ownerUserId,
+          category: entry.category,
+          stripe_event_id: entry.eventId,
+          error: entry.error ?? null,
+          // `failed` is the only retryable state; surfaced explicitly so an operator can query it.
+          retryable: entry.outcome === "failed",
+        },
+      }).catch(() => undefined);
+    },
+  };
+}
+
 /**
- * Finds the active Quick subscription for the user+category and schedules it for
- * cancellation at period end via Stripe. Best-effort and non-blocking: failures are
- * logged but never propagate to the main fulfillment return.
+ * Converge a customer's superseded Quick subscription after an authoritative Full payment.
+ *
+ * Returns a structured result rather than throwing: the caller (webhook fulfillment) must never
+ * fail a settled payment because convergence had trouble. A `failed` outcome is recorded as
+ * retryable in the audit log so it stays visible instead of being silently swallowed.
  */
-export async function scheduleQuickCancellationAfterFullPayment(input: {
-  ownerUserId: string;
-  category: string;
-  newPackageKey: string;
+export async function convergeQuickToFullAfterPayment(input: {
+  full: FullPaymentFact;
   eventId: string;
-}): Promise<QuickToFullConvergenceResult> {
-  const { ownerUserId, category, newPackageKey, eventId } = input;
-
-  // Only trigger for Full base packages
-  if (!isFullBasePackageKey(newPackageKey)) {
-    return { ok: true, skipped: true, reason: "not_full_base_package" };
-  }
-
-  const quickPackageKey = quickPackageKeyForCategory(category);
-  if (!quickPackageKey) {
-    return { ok: true, skipped: true, reason: "no_quick_package_for_category" };
-  }
-
-  if (!isSupabaseAdminConfigured()) {
-    return { ok: false, error: "db_not_configured" };
-  }
-
+  paymentRecordId: string;
+}): Promise<ConvergenceExecutionResult> {
   const stripe = getStripeClient();
   if (!stripe) {
-    return { ok: false, error: "stripe_not_configured" };
-  }
-
-  // Look up active Quick subscription for this user+category
-  const db = getAdminSupabase();
-  const { data, error: lookupError } = await db
-    .from("leonix_payment_records")
-    .select("id, stripe_subscription_id")
-    .eq("owner_user_id", ownerUserId)
-    .eq("category", category)
-    .eq("package_key", quickPackageKey)
-    .eq("billing_mode", "subscription")
-    .eq("payment_status", "paid")
-    .not("stripe_subscription_id", "is", null)
-    .order("paid_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (lookupError) {
-    console.error("[quickToFullConvergence] lookup error", { ownerUserId, category, eventId, error: lookupError.message });
-    return { ok: false, error: "lookup_failed" };
-  }
-
-  if (!data || !data.stripe_subscription_id) {
-    return { ok: true, skipped: true, reason: "no_quick_subscription_found" };
-  }
-
-  const stripeSubscriptionId = String(data.stripe_subscription_id);
-
-  // Check current Stripe subscription state before attempting cancellation
-  let sub: Stripe.Subscription;
-  try {
-    sub = await stripe.subscriptions.retrieve(stripeSubscriptionId);
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : "unknown";
-    console.error("[quickToFullConvergence] retrieve error", { stripeSubscriptionId, eventId, error: msg });
-    return { ok: false, error: "stripe_retrieve_failed" };
-  }
-
-  // Already cancelled or in a terminal state — nothing to do
-  if (sub.status === "canceled" || sub.cancel_at_period_end) {
-    return { ok: true, skipped: false, cancelledAtPeriodEnd: sub.cancel_at_period_end, stripeSubscriptionId };
-  }
-
-  // Schedule cancellation at period end (idempotent: setting this twice is a no-op in Stripe)
-  try {
-    const updated = await stripe.subscriptions.update(stripeSubscriptionId, {
-      cancel_at_period_end: true,
-      metadata: {
-        leonix_convergence_event_id: eventId.slice(0, 255),
-        leonix_convergence_reason: "quick_to_full_upgrade",
-        leonix_new_package_key: newPackageKey.slice(0, 100),
-      },
+    await buildAuditPort(input.paymentRecordId).record({
+      outcome: "failed",
+      eventId: input.eventId,
+      ownerUserId: input.full.ownerUserId,
+      category: input.full.category,
+      newPackageKey: input.full.packageKey,
+      reason: "stripe_not_configured",
     });
-    console.info("[quickToFullConvergence] scheduled Quick cancellation at period end", {
-      stripeSubscriptionId,
-      ownerUserId,
-      category,
-      quickPackageKey,
-      newPackageKey,
-      eventId,
-      cancel_at: updated.cancel_at,
-    });
-    return { ok: true, skipped: false, cancelledAtPeriodEnd: true, stripeSubscriptionId };
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : "unknown";
-    console.error("[quickToFullConvergence] cancel update error", { stripeSubscriptionId, eventId, error: msg });
-    return { ok: false, error: "stripe_update_failed" };
+    return { ok: false, outcome: "failed", reason: "stripe_not_configured", retryable: true };
   }
+
+  return executeQuickToFullConvergence({
+    full: input.full,
+    eventId: input.eventId,
+    ports: {
+      stripe: buildStripePort(stripe),
+      ledger: buildLedgerPort(),
+      audit: buildAuditPort(input.paymentRecordId),
+    },
+  });
 }

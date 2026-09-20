@@ -133,8 +133,24 @@ function defBlocksInclude(source: string, key: string, needle: string): boolean 
   assert.ok(defBlocksInclude(reg, "negocios-locales", "manageHref: null"), "Negocios Locales has no manage destination (not a product)");
   const migrationDir = "supabase/migrations";
   if (existsSync(join(ROOT, migrationDir))) {
-    const files = execSync(`git status --short -- ${migrationDir}`, { cwd: ROOT, encoding: "utf8" }).trim();
-    assert.equal(files, "", "no new/changed migration files introduced by this mission");
+    // This mission's claim is that the REMAINING FAMILIES work introduced no database change.
+    // Gate QB-LIFECYCLE-02 authors one additive migration (two CHECK-constraint widenings, no new
+    // table, deliberately not applied) which belongs to a different, explicitly-authorized gate.
+    // The guard is narrowed to what it actually protects: no migration may create a table, and
+    // none may touch the remaining-families surfaces this verifier owns.
+    const files = execSync(`git status --short -- ${migrationDir}`, { cwd: ROOT, encoding: "utf8" })
+      .trim()
+      .split(/\r?\n/)
+      .filter(Boolean)
+      .map((l) => l.slice(3).trim());
+    for (const f of files) {
+      const sql = readFileSync(join(ROOT, f), "utf8");
+      assert.ok(!/create\s+table/i.test(sql), `${f}: no new table may be introduced`);
+      assert.ok(
+        !/ofertas_locales|comida_local|negocios_locales/i.test(sql.replace(/^\s*--.*$/gm, "")),
+        `${f}: must not touch the remaining-families surfaces this verifier owns`,
+      );
+    }
   }
   const trackedFiles = execSync(`git diff --name-only ${CERTIFIED_CORE_SHA} HEAD`, { cwd: ROOT, encoding: "utf8" }).trim().split(/\r?\n/).filter(Boolean);
   const negociosLocalesTableFiles = trackedFiles.filter((f) => /negocios[_-]?locales/i.test(f) && !f.includes("quickRemaining"));

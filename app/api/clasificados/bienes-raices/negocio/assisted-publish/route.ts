@@ -26,6 +26,10 @@ import {
   linkAssistedListingToBusiness,
 } from "@/app/lib/business/assistedListingCustody";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import {
+  extractSemanticMediaItems,
+  validateQuickBusinessMediaForCategory,
+} from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -89,6 +93,27 @@ export async function POST(request: NextRequest) {
   }
 
   const existingListingId = typeof body.existingListingId === "string" ? body.existingListingId.trim() : "";
+
+  // Gate QB-MEDIA-02 — a property listing must carry at least one real PROPERTY photo. An agent
+  // headshot and a brokerage logo are identity assets and can never satisfy that slot. Checked on
+  // publish only: a save_for_client draft is allowed to be incomplete.
+  if (isAssistedPublish) {
+    const mediaIssues = validateQuickBusinessMediaForCategory(
+      "bienes-negocio",
+      extractSemanticMediaItems(listingRowRaw),
+    );
+    if (mediaIssues && mediaIssues.length) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "media_contract_violation",
+          issues: mediaIssues.map((i) => i.code),
+          message: mediaIssues[0]!.messageEn,
+        },
+        { status: 422 },
+      );
+    }
+  }
 
   // If updating an existing listing, verify it is linked to the business
   if (existingListingId) {

@@ -776,6 +776,27 @@ export async function publishLeonixRealEstateListingCore(
   });
   if (sellerPhotoWarning) warnings.push(sellerPhotoWarning);
 
+  // Gate QB-IDENTITY-01 — Bienes Negocio is the one family that publishes from the browser, and
+  // `business_listing_links` has no authenticated INSERT policy by design. Record the canonical
+  // business↔listing relationship through the server seam so this path converges with the three
+  // server-published families. Business rows only; ownership is re-proven server-side. Silent on
+  // failure: the listing is already live and must not be reported as failed over a link write.
+  if (category === "bienes-raices" && sellerType === "business") {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (accessToken) {
+        await fetch("/api/business/listing-link", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+          body: JSON.stringify({ listingSource: "listings", listingId }),
+        });
+      }
+    } catch {
+      /* link write-back is additive; never blocks a successful publish */
+    }
+  }
+
   devLog("publish ok", listingId, "warnings", warnings.length);
   if ((category === "rentas" || category === "bienes-raices") && (!persistedLeonixAdId || !persistedListingStatus)) {
     const { data: finalIdentity } = await supabase

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import type { RestauranteListingDraft } from "@/app/clasificados/restaurantes/application/restauranteDraftTypes";
@@ -36,6 +36,7 @@ import {
 } from "@/app/lib/media/listingMediaContract";
 import { readAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
 import { linkAssistedListingToBusiness } from "@/app/lib/business/assistedListingCustody";
+import { linkSelfServiceListingToBusiness } from "@/app/lib/business/canonicalListingLink";
 
 /** Gallery cap mirrors MAX_GALLERY in RestaurantePublishMediaStrip.tsx:29 (local, unexported). */
 const RESTAURANTE_GALLERY_MAX = 24;
@@ -135,7 +136,7 @@ async function allocateSlug(base: string): Promise<string> {
   return `${base}-${Date.now()}`;
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   let body: unknown;
   try {
     body = await req.json();
@@ -575,6 +576,17 @@ export async function POST(req: Request) {
       listingId: listingIdOut,
       linkedByAuthUserId: assistedContext.authUserId,
     });
+  }
+
+  // Gate QB-IDENTITY-01 — the self-service counterpart of the write above, so both publishing
+  // modes converge on one canonical business↔listing relationship. Idempotent; ownership is
+  // re-proven server-side; a failure never fails the publish.
+  if (!isAssistedRequest && ownerUserId && listingIdOut) {
+    await linkSelfServiceListingToBusiness({
+      userId: ownerUserId,
+      listingSource: "restaurantes_public_listings",
+      listingId: listingIdOut,
+    }).catch(() => undefined);
   }
 
   const deep = restaurantesDiscoveryParamsForRowDeepLink({

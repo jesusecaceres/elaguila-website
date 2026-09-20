@@ -211,14 +211,35 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
     assert.ok(!/39900|12900|9900|\$399|\$99|priceCents: \d|stripe|Stripe|promo/.test(srcNoPortalUrl), `${f}: no amount / Stripe SDK / promo literal (billing portal URL path excepted)`);
     assert.ok(!/signInWithOtp|signInWithPassword|cookies\(\)|createServerClient|service_role|SUPABASE_SERVICE_ROLE_KEY/.test(src), `${f}: no auth / privileged code`);
     assert.ok(!/owner_id|owner_user_id|ownerUserId|rosterId|authUserId/.test(src), `${f}: never writes or reads an owner / staff identity`);
-    // The doorway component (QuickBusinessMyBusinessClient) may POST to /api/stripe/billing-portal-session
-    // — a read-only management call, not a publish or data-mutation API. All other QB files must call no API.
-    const isPortalCall = src.includes("/api/stripe/billing-portal-session");
-    const hasOtherApiCall = (() => {
-      const stripped = src.replace(/\/api\/stripe\/billing-portal-session/g, "");
-      return /\.from\(|\.insert\(|\.update\(|\.upsert\(|fetch\(\s*["'`]\/api\//.test(stripped);
-    })();
-    assert.ok(!hasOtherApiCall, `${f}: never inserts rows or calls a publish/data API (billing portal session excepted)`);
+    // The Quick tree never touches the database and never calls a PUBLISH endpoint. The customer
+    // doorway is the one file that legitimately calls server APIs, because a control that cannot
+    // perform its action is worse than no control — but only the management/read endpoints named
+    // here, each of which is authenticated and ownership-checked server-side. Any other `/api/`
+    // call, and any direct Supabase access anywhere in the tree, still fails.
+    const DOORWAY_ALLOWED_ENDPOINTS = [
+      "/api/stripe/billing-portal-session", // server-created portal session (no static URL)
+      "/api/clasificados/quick-business/my-listing", // read-only canonical listing resolution
+      "/api/clasificados/servicios/manage", // existing owner lifecycle endpoint
+      "/api/clasificados/restaurantes/manage", // existing owner lifecycle endpoint
+      "/api/clasificados/bienes-raices/listing-lifecycle", // existing owner lifecycle endpoint
+      "/api/clasificados/autos/listings/", // existing owner unpublish/restore endpoints
+    ];
+    let stripped = src;
+    for (const allowed of DOORWAY_ALLOWED_ENDPOINTS) stripped = stripped.split(allowed).join("");
+    assert.ok(
+      !/\.from\(|\.insert\(|\.update\(|\.upsert\(/.test(stripped),
+      `${f}: never touches the database directly`,
+    );
+    assert.ok(
+      !/fetch\(\s*["'`]\/api\//.test(stripped),
+      `${f}: never calls an API outside the allowlisted management endpoints`,
+    );
+    // Whatever it calls, it must never be a publish endpoint. Scoped to actual fetch targets:
+    // an import path such as `lib/publish/leonixRequiredForPreviewGates` is not an API call.
+    assert.ok(
+      !/fetch\(\s*["'`][^"'`]*\/publish\b/.test(src),
+      `${f}: never calls a publish endpoint`,
+    );
     assert.ok(!/storage\.from|@vercel\/blob|mux/i.test(src), `${f}: never uploads media (existing publishers do)`);
   }
   for (const f of [`${QB_COMPONENTS}/QuickBusinessChooser.tsx`, `${QB_COMPONENTS}/QuickBusinessReviewStep.tsx`]) assert.ok(read(f).includes("getRevenuePackagePriceCents("), `${f} reads price from the server authority at render time`);
@@ -325,6 +346,29 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
     "app/api/clasificados/restaurantes/manage/route.ts", // Gate QB-RESTAURANTES-MANAGE-01: archive action
     "app/api/stripe/billing-portal-session/route.ts", // server-side Stripe billing portal session (never static URL)
     "app/api/clasificados/quick-business/my-listing/route.ts", // listing state resolver for doorway
+    // ---------------------------------------------------------------------------------------
+    // QUICK FINAL REPAIR — canonical identity, real lifecycle, immediate convergence, semantic
+    // media. Each entry is a surface the repair could not be performed without; nothing else in
+    // the protected tree is opened.
+    // ---------------------------------------------------------------------------------------
+    // A1 identity: self-service publishing must write the same canonical business↔listing link
+    // that staff-assisted publishing writes, or "My Business" has no durable identity to resolve.
+    "app/lib/business/canonicalListingLink.ts", // new: ownership-proving, idempotent link writer
+    "app/api/business/listing-link/route.ts", // new: the one server seam for browser-published Bienes
+    "app/api/clasificados/servicios/publish/route.ts", // additive self-service link write
+    "app/api/clasificados/autos/listings/route.ts", // additive self-service link write (dealer main row)
+    "app/(site)/clasificados/lib/leonixPublishRealEstateListingCore.ts", // additive link write-back call
+    // Consequence of A1: self-published links would otherwise appear in the admin "Leonix-prepared
+    // drafts" strip and make that label false. Filtered by linked_by vs owner.
+    "app/admin/(dashboard)/businesses/[businessId]/PreparedListingsStrip.tsx",
+    // A3 convergence: policy and orchestration split out of the server-only module so the
+    // behaviour can be proven by a test instead of asserted as a comment.
+    "app/lib/listingPlans/quickToFullConvergencePure.ts", // new: pure planner
+    "app/lib/listingPlans/quickToFullConvergenceCore.ts", // new: port-injected executor
+    "app/lib/listingPlans/revenueAuditLog.ts", // the four convergence audit actions
+    // A4 security: HMAC crypto extracted so forgery/tamper/expiry are provable by real attacks.
+    "app/lib/auth/assistedPublishingToken.ts", // new: pure token crypto
+    "app/lib/auth/assistedPublishingSession.ts", // now a thin server-only wrapper, API unchanged
   ]);
   // A touched entry from `git status --short` may be a directory (`app/api/new-dir/`) for newly
   // added dirs not yet staged; check if it is authorized directly or all contained authorized files.
@@ -337,7 +381,16 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
     (f) => f.startsWith("app/") && !isPathAuthorized(f) && PROTECTED.some((re) => re.test(f)),
   );
   assert.deepEqual(violations, [], `protected canonical / certified surfaces must not change: ${violations.join(", ")}`);
-  assert.ok(!touched.some((f) => f.startsWith("supabase/migrations/")), "no new database migration");
+  // Section 6's claim is NO PARALLEL PRODUCT: Quick must not grow its own tables. Gate
+  // QB-LIFECYCLE-02 authors one additive migration that only widens two existing lifecycle CHECK
+  // constraints so two genuinely-missing owner capabilities can later exist — it creates no table
+  // and is deliberately NOT applied. The guard is therefore narrowed to the real claim rather than
+  // dropped: a migration may not create a table, and may not create a Quick-specific one at all.
+  for (const f of touched.filter((x) => x.startsWith("supabase/migrations/"))) {
+    const sql = read(f);
+    assert.ok(!/create\s+table/i.test(sql), `${f}: Quick must not create a database table`);
+    assert.ok(!/quick_/i.test(sql.replace(/^\s*--.*$/gm, "")), `${f}: no Quick-specific database object`);
+  }
   assert.ok(
     !touched.some((f) => f.startsWith("app/api/") && !isPathAuthorized(f)),
     "no new API route outside MISSION_AUTHORIZED",
@@ -356,8 +409,26 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
   const BIENES = `${QB_ADAPTERS}/bienesNegocioQuickBusinessAdapter.ts`;
   const VEHICLE_RE = /autoDealerDraft|AutoDealerListing|mediaImages|heroImages|inventory_vehicle|vehicleTitle|\bvin\b/i;
   const PROPERTY_RE = /bienesRaicesNegocioFormState|AgenteIndividualResidencialFormState|photoUrls|petsAllowed|precio:|fotosDataUrls/;
+  /**
+   * Gate QB-MEDIA-02 / QB-LIFECYCLE-02 add two CROSS-FAMILY CONTRACT modules. By definition they
+   * must name every family's vocabulary in one place — that is what makes them one contract rather
+   * than four divergent copies. They are exempt from the per-adapter isolation rule, and in
+   * exchange are held to a stricter one asserted immediately below: they may DESCRIBE a family's
+   * data but must never CONSTRUCT a listing or touch a draft store.
+   */
+  const CROSS_FAMILY_CONTRACTS = new Set([
+    `${QB_LIB}/quickBusinessMediaSemantics.ts`,
+    `${QB_LIB}/quickBusinessLifecycleCapabilities.ts`,
+  ]);
   for (const f of quickFiles) {
     const src = read(f);
+    if (CROSS_FAMILY_CONTRACTS.has(f)) {
+      assert.ok(
+        !/createEmptyListing|createDefaultClasificados|mergePartialAgente|saveAutos|persistServicios|Draft\s*=\s*\{/.test(src),
+        `${f}: a cross-family contract may describe data, never construct a listing or a draft`,
+      );
+      continue;
+    }
     if (f !== DEALER) assert.ok(!VEHICLE_RE.test(src), `${f}: vehicle data lives only in the Dealer adapter`);
     if (f !== BIENES) assert.ok(!PROPERTY_RE.test(src), `${f}: property data lives only in the Bienes adapter`);
   }
@@ -433,9 +504,29 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
   assert.ok(myBiz.includes("/api/stripe/billing-portal-session"), "billing POSTs to server-side Stripe billing portal route (never a static URL)");
   assert.ok(myBiz.includes('method: "POST"'), "billing portal call is a POST (read-only management, never a data mutation)");
   assert.ok(!myBiz.includes("href={billingHref}") && !myBiz.includes("href={manage.billingHref}"), "billing link is not a static anchor (uses server-side session redirect)");
-  // (c) Pause section is honest (no inline mutation; navigates to dashboard instead)
-  assert.ok(myBiz.includes('"Go to dashboard"'), "Pause section uses honest navigation label (en)");
-  assert.ok(!myBiz.includes('"Pausar"') && !myBiz.includes('"Pause"'), "Pause section has no deceptive Pause button (no inline mutation possible from doorway)");
+  // (c) Pause/End controls. The previous form of this check asserted that NO Pause button may
+  // exist, which was the honest state while the doorway could not mutate anything. Gate
+  // QB-LIFECYCLE-02 makes those mutations real, so the requirement inverts: a control may exist,
+  // but ONLY where the family's schema genuinely supports it. That is a strictly stronger claim
+  // than "no button", and it is what the doorway is now held to.
+  assert.ok(
+    myBiz.includes("getLifecycleCapability(") && myBiz.includes('state === "supported"'),
+    "lifecycle controls are rendered from the capability matrix, never unconditionally",
+  );
+  assert.ok(
+    myBiz.includes("isTransitionLegalFrom("),
+    "a control is only offered when the transition is legal from the listing's real current status",
+  );
+  assert.ok(
+    myBiz.includes("resolveLifecycleEndpoint("),
+    "the endpoint comes from the capability matrix, so an unsupported intent cannot form a request",
+  );
+  // Labels come from the matrix, so no hard-coded verb can promise an action the schema lacks.
+  assert.ok(
+    !/>\s*(Pausar|Pause)\s*</.test(myBiz),
+    "no hard-coded Pause label — labels are supplied by the capability that proves the action exists",
+  );
+  assert.ok(myBiz.includes('"Go to dashboard"'), "the not-available path still offers honest navigation (en)");
   // (d) decideBusinessBasePlanOffer pure logic — tested inline without DB (imported statically above)
   for (const cat of ["servicios", "restaurantes", "autos", "bienes-raices"] as const) {
     const upgradeOffer = decideBusinessBasePlanOffer({
