@@ -14,6 +14,17 @@ import type { QuickClassifiedMediaContract } from "@/app/lib/quickClassifieds/qu
 import type { QuickBusinessCategoryKey, QuickBusinessDefinition } from "./quickBusinessTypes";
 import { QUICK_BUSINESS_CATEGORY_KEYS } from "./quickBusinessTypes";
 
+/**
+ * SIMPLE media contract. `maxImages` always restates the category's canonical lane cap from
+ * LANE_MEDIA_REGISTRY (app/lib/media/listingMediaConfigs.ts), never a Quick-only number — the same
+ * documented-literal + mechanical-drift-assertion convention that registry uses for itself and
+ * that Quick Classifieds uses for every one of its lanes. `null` therefore means "the canonical
+ * lane enforces no count cap", not "Quick chose unlimited".
+ *
+ * Quick is stricter than canonical in exactly one direction, the Media Lock: `minImages: 1`, so a
+ * Quick ad can never publish without one real photo even where the canonical lane allows zero.
+ * Drift in either direction is caught by verify-quick-business-access-level-01.ts.
+ */
 function media(maxImages: number | null, note: { es: string; en: string }): QuickClassifiedMediaContract {
   return { minImages: 1, maxImages, videoOptional: true, note };
 }
@@ -29,7 +40,8 @@ export const QUICK_BUSINESS_DEFINITIONS: Record<QuickBusinessCategoryKey, QuickB
     // Quick commercial package (revenuePricingMatrix.ts: servicios_quick_monthly, SIMPLE access;
     // amount read at render time). servicios_base_monthly is the upgrade target, never the Quick sale.
     pricing: { kind: "monthly", packageKey: "servicios_quick_monthly", category: "servicios" },
-    media: media(null, { es: "Sube fotos reales de tu negocio o tu trabajo. La primera será la portada.", en: "Upload real photos of your business or your work. The first one is the cover." }),
+    // LANE_MEDIA_REGISTRY servicios/default: counted max 24 (GALLERY_MAX, ClasificadosServiciosApplication.tsx).
+    media: media(24, { es: "Hasta 24 fotos reales de tu negocio o tu trabajo. La primera será la portada.", en: "Up to 24 real photos of your business or your work. The first one is the cover." }),
     mediaIntro: {
       es: "Se necesita al menos una foto real de tu negocio (fachada, equipo o trabajo). La primera será la portada.",
       en: "At least one real photo of your business is required (storefront, team or work). The first one is the cover.",
@@ -56,7 +68,8 @@ export const QUICK_BUSINESS_DEFINITIONS: Record<QuickBusinessCategoryKey, QuickB
     standardApplicationPath: "/publicar/restaurantes",
     // Quick commercial package (restaurantes_quick_monthly, SIMPLE access).
     pricing: { kind: "monthly", packageKey: "restaurantes_quick_monthly", category: "restaurantes" },
-    media: media(null, { es: "Sube fotos reales: fachada, platillos o interior. La primera será la portada.", en: "Upload real photos: storefront, dishes or interior. The first one is the cover." }),
+    // LANE_MEDIA_REGISTRY restaurantes/default: counted max 24 (MAX_GALLERY, RestaurantePublishMediaStrip.tsx).
+    media: media(24, { es: "Hasta 24 fotos reales: fachada, platillos o interior. La primera será la portada.", en: "Up to 24 real photos: storefront, dishes or interior. The first one is the cover." }),
     mediaIntro: {
       es: "Se necesita al menos una foto real de tu restaurante (fachada, platillos o interior). La primera será la portada.",
       en: "At least one real photo of your restaurant is required (storefront, dishes or interior). The first one is the cover.",
@@ -85,6 +98,8 @@ export const QUICK_BUSINESS_DEFINITIONS: Record<QuickBusinessCategoryKey, QuickB
     // Quick commercial package (autos_dealer_quick_monthly, SIMPLE access): one active vehicle,
     // no inventory pack — Simple never inherits the Full package's larger allowance.
     pricing: { kind: "monthly", packageKey: "autos_dealer_quick_monthly", category: "autos" },
+    // LANE_MEDIA_REGISTRY autos_negocios/parent: uncapped. Documented category exception — the
+    // canonical dealer lane enforces no photo count, so Quick states no count it cannot honour.
     media: media(null, { es: "Fotos reales de tu primer vehículo. La primera será la portada del vehículo.", en: "Real photos of your first vehicle. The first one is the vehicle cover." }),
     mediaIntro: {
       es: "Se necesita al menos una foto real del vehículo que publicas (no del negocio). La primera será la portada del vehículo.",
@@ -111,7 +126,8 @@ export const QUICK_BUSINESS_DEFINITIONS: Record<QuickBusinessCategoryKey, QuickB
     // Quick commercial package (br_agent_quick_monthly, SIMPLE access): one active property,
     // no inventory pack.
     pricing: { kind: "monthly", packageKey: "br_agent_quick_monthly", category: "bienes-raices" },
-    media: media(40, { es: "Fotos reales de tu primera propiedad. La primera será la portada de la propiedad.", en: "Real photos of your first property. The first one is the property cover." }),
+    // LANE_MEDIA_REGISTRY bienes_raices_negocio/parent: counted max 40 (steps01-03.tsx).
+    media: media(40, { es: "Hasta 40 fotos reales de tu primera propiedad. La primera será la portada de la propiedad.", en: "Up to 40 real photos of your first property. The first one is the property cover." }),
     mediaIntro: {
       es: "Se necesita al menos una foto real de la propiedad que publicas (no de tu oficina). La primera será la portada de la propiedad.",
       en: "At least one real photo of the property you are listing is required (not of your office). The first one is the property cover.",

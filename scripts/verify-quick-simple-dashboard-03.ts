@@ -193,6 +193,43 @@ check("the upgrade offer is honest in both languages", () => {
   }
 });
 
+check("no control is dead: every button leads somewhere real", () => {
+  const src = codeOf(CLIENT);
+  // A button-styled element that is not a Link is a control the customer will press and nothing
+  // will happen. The doorway has no state, so there is no legitimate <button> in it at all.
+  assert.ok(!/<button/i.test(src), "the doorway routes; it never renders a bare button");
+  for (const [, cls] of src.matchAll(/className=\{[^}]*?(quickPrimaryBtn|quickSecondaryBtn)[^}]*?\}/g)) {
+    assert.ok(cls, "button classes are only used on elements");
+  }
+  // Every button-styled element must be a Link carrying an href.
+  const buttonish = [...src.matchAll(/<(\w+)([^>]*?)(quickPrimaryBtn|quickSecondaryBtn)([^>]*?)>/g)];
+  assert.ok(buttonish.length >= 4, "the doorway offers its primary controls");
+  for (const [tag, before, , after] of buttonish.map((m) => [m[1], m[2], m[3], m[4]] as const)) {
+    assert.equal(tag, "Link", `a button-styled ${tag} must be a Link with a destination`);
+    assert.ok(/href=/.test(`${before}${after}`), "every Link must carry an href");
+  }
+  // No placeholder affordances anywhere.
+  for (const placeholder of ['href="#"', "href={'#'}", "TODO", "coming soon", "Próximamente", "proximamente", "disabled"]) {
+    assert.ok(!src.toLowerCase().includes(placeholder.toLowerCase()), `no placeholder control (${placeholder})`);
+  }
+});
+
+check("every canonical destination the doorway names is a route that exists", () => {
+  // The doorway is only as honest as its destinations. A registry href pointing at a route that
+  // was renamed would send a Simple customer to a 404 with no server error to catch it.
+  const routeFor = (href: string): string => {
+    const clean = href.split("?")[0]!.replace(/^\//, "");
+    return `app/(site)/${clean}/page.tsx`;
+  };
+  for (const def of listQuickBusinessDefinitions()) {
+    const target = routeFor(def.manage.dashboardHref);
+    assert.ok(exists(target), `${def.key}: ${def.manage.dashboardHref} must resolve to ${target}`);
+  }
+  for (const shared of ["/dashboard/mis-anuncios", "/contact"]) {
+    assert.ok(exists(routeFor(shared)), `${shared} must resolve to a real page`);
+  }
+});
+
 check("the doorway is mobile-first and adds no second dashboard route tree", () => {
   const src = codeOf(CLIENT);
   assert.ok(src.includes("grid-cols-2"), "the chooser is a simple two-up grid, not a table");

@@ -30,6 +30,10 @@ import {
   REVENUE_V1_PACKAGE_MATRIX,
 } from "../app/lib/listingPlans/revenuePricingMatrix";
 import type { EntitlementRowFacts } from "../app/lib/listingPlans/categoryCommercialPlanPolicy";
+import { getLaneMediaRecords, type LaneMediaRecord } from "../app/lib/media/listingMediaConfigs";
+import type { CanonicalCategoryKey } from "../app/lib/listingIdentity/types";
+import { QUICK_BUSINESS_DEFINITIONS } from "../app/lib/quickBusiness/quickBusinessRegistry";
+import type { QuickBusinessCategoryKey } from "../app/lib/quickBusiness/quickBusinessTypes";
 
 const ROOT = process.cwd();
 const read = (p: string) => fs.readFileSync(path.join(ROOT, p), "utf8");
@@ -340,7 +344,60 @@ check("the access badge is derived, never a stored account-wide tier", () => {
   }
 });
 
-// 7. CLOSURE ARTIFACT ------------------------------------------------------------------------
+// 7. SIMPLE MEDIA CONTRACT --------------------------------------------------------------------
+// The Quick media contract must restate its category's canonical lane, never invent a Quick-only
+// allowance and never promise room the canonical lane will refuse. Servicios and Restaurantes
+// previously declared `maxImages: null` while their lanes cap at 24, which told a Simple customer
+// the gallery was unlimited. Asserted against the real registry so it cannot drift back.
+check("the Simple media contract restates the canonical lane, in both directions", () => {
+  const lanes: Record<QuickBusinessCategoryKey, { pipeline: CanonicalCategoryKey; lane: LaneMediaRecord["lane"] }> = {
+    servicios: { pipeline: "servicios", lane: "default" },
+    restaurantes: { pipeline: "restaurantes", lane: "default" },
+    "autos-dealer": { pipeline: "autos_negocios", lane: "parent" },
+    "bienes-negocio": { pipeline: "bienes_raices_negocio", lane: "parent" },
+  };
+  for (const [key, { pipeline, lane }] of Object.entries(lanes) as [QuickBusinessCategoryKey, { pipeline: CanonicalCategoryKey; lane: LaneMediaRecord["lane"] }][]) {
+    const record = getLaneMediaRecords(pipeline).find((r) => r.lane === lane);
+    assert.ok(record, `${key}: canonical lane ${pipeline}/${lane} must exist`);
+    const canonicalMax = record.images.kind === "counted" ? record.images.max : null;
+    const contract = QUICK_BUSINESS_DEFINITIONS[key].media;
+    assert.equal(
+      contract.maxImages,
+      canonicalMax,
+      `${key}: Quick declares maxImages ${contract.maxImages} but the canonical lane says ${canonicalMax}`,
+    );
+    // The Media Lock is the one place Quick is deliberately stricter than canonical.
+    assert.equal(contract.minImages, 1, `${key}: every Quick ad needs one real photo`);
+    // Video is offered only where the canonical lane actually accepts external video URLs.
+    assert.equal(
+      contract.videoOptional,
+      record.maxExternalVideos > 0,
+      `${key}: video offered but the canonical lane accepts ${record.maxExternalVideos} video URLs`,
+    );
+    // A stated cap must be stated to the customer, so "limited" is visible rather than implied.
+    if (canonicalMax != null) {
+      assert.ok(
+        contract.note.es.includes(String(canonicalMax)) && contract.note.en.includes(String(canonicalMax)),
+        `${key}: the media note must name the ${canonicalMax}-photo cap in both languages`,
+      );
+    }
+  }
+});
+
+check("Simple never buys a larger inventory allowance than Full", () => {
+  for (const category of Object.keys(BUSINESS_CATEGORY_PACKAGE_PAIR)) {
+    const pair = BUSINESS_CATEGORY_PACKAGE_PAIR[category];
+    const simple = getRevenuePackageDefinition(pair.simple);
+    const full = getRevenuePackageDefinition(pair.full);
+    assert.ok(simple && full, `${category}: both levels must exist`);
+    // Inventory is the real "smaller product" lever and it is a package entitlement, unlike media
+    // count. Simple must never carry an inventory add-on, which is what would silently hand a
+    // Quick dealer the Full allowance.
+    assert.ok(!simple.addOnInventory, `${category}: Simple must not carry an inventory add-on`);
+  }
+});
+
+// 8. CLOSURE ARTIFACT ------------------------------------------------------------------------
 check("the final proof matrix covers every required feature with no repair outstanding", () => {
   const doc = read("docs/quick-commercial/LEONIX_QUICK_SIMPLE_VS_FULL_FINAL_PROOF_MATRIX.md");
   const required = [
