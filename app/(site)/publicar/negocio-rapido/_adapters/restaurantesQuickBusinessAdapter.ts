@@ -87,6 +87,9 @@ export const restaurantesQuickBusinessAdapter: QuickBusinessCategoryAdapter = {
     const base = createEmptyRestauranteDraft();
     const [hero, ...rest] = media.map((m) => m.dataUrl);
     const serviceModes = quickList(values, "serviceModes").filter((m): m is RestauranteServiceMode => RESTAURANTE_SERVICE_MODES.some((o) => o.key === m));
+    // Bible §10.1: explicit SMS field collected; RestauranteListingDraft has no dedicated SMS field.
+    // SMS CTA auto-derives from phoneNumber. REPAIR_TARGET: add smsPhone to the canonical model.
+    void quickStr(values, "sms");
     const draft: RestauranteListingDraft = {
       ...base,
       // Canonical default the existing application assigns when no `?product=` is present (single real base price).

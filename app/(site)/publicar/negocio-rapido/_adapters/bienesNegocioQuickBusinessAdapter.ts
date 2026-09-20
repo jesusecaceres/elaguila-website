@@ -83,11 +83,15 @@ const STEPS: readonly QuickIntakeStep[] = [
       { key: "agenteLicencia", kind: "text", label: { es: "Licencia DRE (opcional)", en: "DRE license (optional)" }, maxLength: 40 },
       { key: "marcaNombre", kind: "text", label: { es: "Brokerage / oficina (opcional)", en: "Brokerage / office (optional)" }, maxLength: 80 },
       { key: "phone", kind: "phone", label: { es: "Teléfono", en: "Phone" }, placeholder: { es: "(408) 555-0123", en: "(408) 555-0123" }, autoComplete: "tel", inputMode: "tel" },
+      // Bible §10.1: SMS explicit — distinct from phone; canonical model derives SMS CTA from agenteTelefonoPersonal
+      // (no separate SMS field in AgenteIndividualResidencialFormState), so this collected value is advisory only.
+      { key: "sms", kind: "phone", label: { es: "SMS / mensajes de texto", en: "SMS / text messages" }, hint: { es: "Número para mensajes de texto (si es distinto al teléfono).", en: "Number for text messages (if different from your phone)." }, inputMode: "tel" },
       { key: "whatsapp", kind: "phone", label: { es: "WhatsApp", en: "WhatsApp" }, hint: { es: "Si es el mismo número, escríbelo también aquí.", en: "If it is the same number, enter it here too." }, inputMode: "tel" },
       { key: "email", kind: "email", label: { es: "Correo electrónico", en: "Email" }, autoComplete: "email", inputMode: "email" },
       { key: "website", kind: "text", label: { es: "Sitio web (opcional)", en: "Website (optional)" }, placeholder: { es: "https://…", en: "https://…" }, autoComplete: "url", maxLength: 200 },
     ],
-    atLeastOne: { keys: ["phone", "whatsapp", "email", "website"], message: BUSINESS_CONTACT_AT_LEAST_ONE },
+    // Bible §10.1: email and website cannot satisfy the direct-contact minimum; SMS is independent of phone.
+    atLeastOne: { keys: ["phone", "sms", "whatsapp"], message: BUSINESS_CONTACT_AT_LEAST_ONE },
   },
   {
     id: "property",
@@ -121,6 +125,9 @@ export const bienesNegocioQuickBusinessAdapter: QuickBusinessCategoryAdapter = {
   // Exactly the four booleans the Full agente application requires before it opens its preview (`confirmAll`).
   confirmations: { kind: "property_agent" },
   async buildAndWriteCanonicalDraft({ values, media, confirmations, ctx }) {
+    // Bible §10.1: explicit SMS field collected; AgenteIndividualResidencialFormState has no dedicated SMS field.
+    // SMS CTA auto-derives from agenteTelefonoPersonal. REPAIR_TARGET: add smsTelefono to the canonical model.
+    void quickStr(values, "sms");
     const catRaw = quickStr(values, "categoriaPropiedad");
     const categoriaPropiedad: BrNegocioCategoriaPropiedad = catRaw === "comercial" || catRaw === "terreno_lote" ? catRaw : "residencial";
     const condicionPropiedad = condicionOrUndefined(quickStr(values, "condicionPropiedad"));

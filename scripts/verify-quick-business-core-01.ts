@@ -92,11 +92,11 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
 {
   const shared = read(`${QB_ADAPTERS}/quickBusinessAdapterShared.ts`);
   const contactKeys = [...shared.matchAll(/\{ key: "([A-Za-z]+)", kind: "(?:phone|email|text)"/g)].map((m) => m[1]!);
-  assert.deepEqual(contactKeys, ["phone", "whatsapp", "email", "website"], "shared business contact step declares phone / whatsapp / email / website");
+  assert.deepEqual(contactKeys, ["phone", "sms", "whatsapp", "email", "website"], "shared business contact step declares phone / sms / whatsapp / email / website (Bible §10.1)");
   const hoursKeys = [...shared.matchAll(/key: "(hours[A-Za-z]+)"/g)].map((m) => m[1]!);
   assert.deepEqual(hoursKeys, ["hoursDays", "hoursOpen", "hoursClose"], "shared hours fields declared");
-  // Bible §10.1: email and website cannot satisfy the direct-contact minimum.
-  assert.ok(shared.includes('atLeastOne: { keys: ["phone", "whatsapp"]'), "contact step requires at least one of phone or WhatsApp (email/website do not satisfy the direct-contact minimum)");
+  // Bible §10.1: email and website cannot satisfy the direct-contact minimum; SMS is explicit, not derived from phone.
+  assert.ok(shared.includes('atLeastOne: { keys: ["phone", "sms", "whatsapp"]'), "contact step requires at least one of phone/SMS/WhatsApp (email/website cannot satisfy; SMS is independent of phone)");
 
   // Self-test: a synthetic adapter with a decorative field and a phantom read must FAIL the detector.
   const synthetic = `{ key: "title", kind: "text" } { key: "ghost", kind: "text" } title: quickStr(values, "title"), extra: quickStr(values, "phantomKey"),`;
@@ -107,22 +107,26 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
   const adapters: Record<string, { canonical: string[]; allowedReads?: string[] }> = {
     "serviciosQuickBusinessAdapter.ts": {
       canonical: [
-        "businessTypeId,", "customServiceDescription:", "businessName:", "selectedServiceIds:", "customServicesOffered:", "aboutText:", "city: resolveCity(values)", "hours: hoursFrom(values", "phone:", "whatsapp:", "email:", "website:", "coverUrl:", "gallery,", "featuredGalleryIds:", "confirmListingAccurate:", "confirmPhotosRepresentBusiness:", "confirmCommunityRules:",
+        "businessTypeId,", "customServiceDescription:", "businessName:", "selectedServiceIds:", "customServicesOffered:", "aboutText:", "city: resolveCity(values)", "hours: hoursFrom(values", "phone:", "quoteMessagePhone:", "whatsapp:", "email:", "website:", "coverUrl:", "gallery,", "featuredGalleryIds:", "confirmListingAccurate:", "confirmPhotosRepresentBusiness:", "confirmCommunityRules:",
       ],
     },
     "restaurantesQuickBusinessAdapter.ts": {
       canonical: [
         'productType: "established_restaurant"', "businessName:", "businessType:", "businessTypeCustom:", "primaryCuisine:", "primaryCuisineCustom:", "shortSummary:", "serviceModes,", "cityCanonical: resolveCity(values)", "...weeklyHoursFrom(values)", "phoneNumber:", "whatsAppNumber:", "email:", "websiteUrl:", "heroImage:", "galleryImages:",
+        // Bible §10.1: SMS acknowledged; RestauranteListingDraft has no dedicated SMS field (REPAIR_TARGET).
+        'void quickStr(values, "sms")',
       ],
     },
     "autosDealerQuickBusinessAdapter.ts": {
       canonical: [
-        'autosLane: "negocios"', "vehicleTitle: buildVehicleTitle(year, make, model, trim) || undefined", "year,", "make,", "model,", "trim,", 'condition: conditionOrUndefined(quickStr(values, "condition"))', "mileage: numberOrUndefined(quickWholeDollars(values.mileage))", "price: numberOrUndefined(quickWholeDollars(values.price))", 'vin: quickStr(values, "vin") || undefined', 'description: quickStr(values, "description") || undefined', "city,", "zip,", 'dealerName: quickStr(values, "dealerName") || undefined', 'dealerPhoneOffice: quickStr(values, "phone") || undefined', 'dealerWhatsapp: quickStr(values, "whatsapp") || undefined', 'dealerEmail: quickStr(values, "email") || undefined', 'dealerWebsite: quickStr(values, "website") || undefined', "dealerAddressCity: city", "dealerAddressZip: zip", "mediaImages,", "heroImages: mediaImages.map((m) => m.url)",
+        'autosLane: "negocios"', "vehicleTitle: buildVehicleTitle(year, make, model, trim) || undefined", "year,", "make,", "model,", "trim,", 'condition: conditionOrUndefined(quickStr(values, "condition"))', "mileage: numberOrUndefined(quickWholeDollars(values.mileage))", "price: numberOrUndefined(quickWholeDollars(values.price))", 'vin: quickStr(values, "vin") || undefined', 'description: quickStr(values, "description") || undefined', "city,", "zip,", 'dealerName: quickStr(values, "dealerName") || undefined', 'dealerPhoneOffice: quickStr(values, "phone") || undefined', 'dealerSmsPhone: quickStr(values, "sms") || undefined', 'dealerWhatsapp: quickStr(values, "whatsapp") || undefined', 'dealerEmail: quickStr(values, "email") || undefined', 'dealerWebsite: quickStr(values, "website") || undefined', "dealerAddressCity: city", "dealerAddressZip: zip", "mediaImages,", "heroImages: mediaImages.map((m) => m.url)",
       ],
     },
     "bienesNegocioQuickBusinessAdapter.ts": {
       canonical: [
         'sellerTipo: "agente_individual"', "categoriaPropiedad,", 'normalizeResidencialTipoPropiedadCodigo(quickStr(values, "tipoCodigo"))', 'normalizeComercialTipoCodigo(quickStr(values, "comercialTipoCodigo"))', 'normalizeTerrenoTipoCodigo(quickStr(values, "terrenoTipoCodigo"))', 'recamaras: categoriaPropiedad === "residencial" ? quickStr(values, "recamaras") : ""', 'banos: categoriaPropiedad === "residencial" ? quickStr(values, "banos") : ""', 'titulo: quickStr(values, "titulo")', "precio: quickWholeDollars(values.precio)", "...(condicionPropiedad ? { condicionPropiedad } : {})", 'descripcionPrincipal: quickStr(values, "descripcion")', "ciudad: resolveCity(values)", 'areaCiudad: quickStr(values, "areaCiudad")', 'direccionCodigoPostal: quickStr(values, "zip")', "fotosDataUrls: media.map((m) => m.dataUrl)", "fotoPortadaIndex: 0", 'agenteNombre: quickStr(values, "agenteNombre")', 'agenteTitulo: quickStr(values, "agenteTitulo")', 'agenteLicencia: quickStr(values, "agenteLicencia")', 'marcaNombre: quickStr(values, "marcaNombre")', 'agenteTelefonoPersonal: quickStr(values, "phone")', 'agenteWhatsapp: quickStr(values, "whatsapp")', 'correoPrincipal: quickStr(values, "email")', 'agenteSitioWeb: quickStr(values, "website")', "confirmListingAccurate: confirmations.infoTruthful", "confirmPhotosRepresentItem: confirmations.mediaAccurate", "confirmCommunityRules: confirmations.rulesAccepted", "confirmPaymentAfterPreview: confirmations.paymentAfterPreview",
+        // Bible §10.1: SMS acknowledged; AgenteIndividualResidencialFormState has no dedicated SMS field (REPAIR_TARGET).
+        'void quickStr(values, "sms")',
       ],
     },
   };

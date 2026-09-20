@@ -82,6 +82,8 @@ export const serviciosQuickBusinessAdapter: QuickBusinessCategoryAdapter = {
     const gallery = galleryFrom(media);
     const contact = {
       phone: quickStr(values, "phone"),
+      // Bible §10.1: SMS explicit — maps to the canonical quoteMessagePhone CTA field.
+      quoteMessagePhone: quickStr(values, "sms"),
       whatsapp: quickStr(values, "whatsapp"),
       email: quickStr(values, "email"),
       website: quickStr(values, "website"),

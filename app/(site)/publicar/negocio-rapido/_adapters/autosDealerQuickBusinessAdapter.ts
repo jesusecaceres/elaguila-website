@@ -49,11 +49,14 @@ const STEPS: readonly QuickIntakeStep[] = [
       cityField("free", { es: "Ciudad del negocio", en: "Business city" }),
       { key: "zip", kind: "zip", label: { es: "Código postal del negocio", en: "Business ZIP code" }, required: true, inputMode: "numeric", autoComplete: "postal-code" },
       { key: "phone", kind: "phone", label: { es: "Teléfono del negocio", en: "Business phone" }, placeholder: { es: "(408) 555-0123", en: "(408) 555-0123" }, autoComplete: "tel", inputMode: "tel" },
+      // Bible §10.1: SMS explicit — maps to dealerSmsPhone, distinct from phone/WhatsApp.
+      { key: "sms", kind: "phone", label: { es: "SMS / mensajes de texto", en: "SMS / text messages" }, hint: { es: "Número para mensajes de texto (si es distinto al teléfono).", en: "Number for text messages (if different from your phone)." }, inputMode: "tel" },
       { key: "whatsapp", kind: "phone", label: { es: "WhatsApp", en: "WhatsApp" }, hint: { es: "Si es el mismo número, escríbelo también aquí.", en: "If it is the same number, enter it here too." }, inputMode: "tel" },
       { key: "email", kind: "email", label: { es: "Correo electrónico", en: "Email" }, autoComplete: "email", inputMode: "email" },
       { key: "website", kind: "text", label: { es: "Sitio web (opcional)", en: "Website (optional)" }, placeholder: { es: "https://…", en: "https://…" }, autoComplete: "url", maxLength: 200 },
     ],
-    atLeastOne: { keys: ["phone", "whatsapp", "email", "website"], message: BUSINESS_CONTACT_AT_LEAST_ONE },
+    // Bible §10.1: email and website cannot satisfy the direct-contact minimum; SMS is independent of phone.
+    atLeastOne: { keys: ["phone", "sms", "whatsapp"], message: BUSINESS_CONTACT_AT_LEAST_ONE },
   },
   {
     id: "vehicle",
@@ -136,6 +139,8 @@ export const autosDealerQuickBusinessAdapter: QuickBusinessCategoryAdapter = {
       country: AUTOS_DEFAULT_COUNTRY,
       dealerName: quickStr(values, "dealerName") || undefined,
       dealerPhoneOffice: quickStr(values, "phone") || undefined,
+      // Bible §10.1: explicit SMS — maps to dealerSmsPhone (distinct from phone/WhatsApp per autoDealerListing.ts §241).
+      dealerSmsPhone: quickStr(values, "sms") || undefined,
       dealerWhatsapp: quickStr(values, "whatsapp") || undefined,
       dealerEmail: quickStr(values, "email") || undefined,
       dealerWebsite: quickStr(values, "website") || undefined,

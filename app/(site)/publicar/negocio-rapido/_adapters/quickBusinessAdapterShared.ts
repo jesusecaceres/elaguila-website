@@ -13,14 +13,16 @@ export type BusinessDayKey = (typeof BUSINESS_DAY_ORDER)[number];
 
 // Bible §10.1: at least one of Phone/SMS/WhatsApp required. Email/website cannot satisfy this.
 export const BUSINESS_CONTACT_AT_LEAST_ONE: QuickText = {
-  es: "Se requiere al menos un número de teléfono o WhatsApp.",
-  en: "At least one phone number or WhatsApp is required.",
+  es: "Se requiere al menos un número de teléfono, SMS o WhatsApp.",
+  en: "At least one phone, SMS, or WhatsApp number is required.",
 };
 
 /** Contact step shared by the business categories — keys map 1:1 onto each canonical draft's own contact fields. */
 export function businessContactStep(intro?: QuickText): QuickIntakeStep {
   const fields: QuickClassifiedFieldDefinition[] = [
     { key: "phone", kind: "phone", label: { es: "Teléfono", en: "Phone" }, placeholder: { es: "(408) 555-0123", en: "(408) 555-0123" }, autoComplete: "tel", inputMode: "tel" },
+    // Bible §10.1: SMS is a separate explicit field — cannot be derived from phone automatically.
+    { key: "sms", kind: "phone", label: { es: "SMS / mensajes de texto", en: "SMS / text messages" }, hint: { es: "Número para mensajes de texto (si es distinto al teléfono).", en: "Number for text messages (if different from your phone)." }, inputMode: "tel" },
     { key: "whatsapp", kind: "phone", label: { es: "WhatsApp", en: "WhatsApp" }, hint: { es: "Si es el mismo número, escríbelo también aquí.", en: "If it is the same number, enter it here too." }, inputMode: "tel" },
     { key: "email", kind: "email", label: { es: "Correo electrónico", en: "Email" }, autoComplete: "email", inputMode: "email" },
     { key: "website", kind: "text", label: { es: "Sitio web (opcional)", en: "Website (optional)" }, placeholder: { es: "https://…", en: "https://…" }, autoComplete: "url", maxLength: 200 },
@@ -30,8 +32,8 @@ export function businessContactStep(intro?: QuickText): QuickIntakeStep {
     title: { es: "¿Cómo te contactan los clientes?", en: "How do customers reach you?" },
     intro: intro ?? { es: "Solo se muestra lo que escribas aquí.", en: "Only what you enter here is shown." },
     fields,
-    // Bible §10.1: email and website cannot satisfy the direct-contact minimum.
-    atLeastOne: { keys: ["phone", "whatsapp"], message: BUSINESS_CONTACT_AT_LEAST_ONE },
+    // Bible §10.1: email and website cannot satisfy the direct-contact minimum; SMS is independent of phone.
+    atLeastOne: { keys: ["phone", "sms", "whatsapp"], message: BUSINESS_CONTACT_AT_LEAST_ONE },
   };
 }
 
