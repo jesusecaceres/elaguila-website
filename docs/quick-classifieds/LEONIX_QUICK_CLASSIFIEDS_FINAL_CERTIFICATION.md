@@ -3,7 +3,9 @@
 Branch `claude/quick-classifieds-master-build-0j5p30` · code SHA `1a801e91` · `origin/main` `fd909499` (0 behind).
 Scope: Phase 1 Quick Classifieds, Tier-1 focus (En Venta, Rentas Privado, Empleos standard post, Autos Privado).
 
-## Automated technical status — PASS
+## Automated technical status — PASS (summary; evidence rows EV/RE/AU/EM/SQ/FW/NR in the Final Proof Matrix)
+
+> Proof pointer (2026-09-20 pre-QA forensic gate): the evidence of record for every technical claim in this file is `LEONIX_QUICK_CLASSIFIEDS_FINAL_PROOF_MATRIX.md` (row ids) and `LEONIX_QUICK_CLASSIFIEDS_VERIFIER_DRIFT_LEDGER.md`; a status word here is a summary of those rows, not evidence by itself.
 
 | Gate | Result |
 | --- | --- |

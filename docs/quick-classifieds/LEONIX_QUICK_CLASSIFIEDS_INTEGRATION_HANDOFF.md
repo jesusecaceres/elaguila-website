@@ -1,5 +1,7 @@
 # LEONIX QUICK CLASSIFIEDS — INTEGRATION HANDOFF (2026-09-20)
 
+> Proof pointer (2026-09-20 pre-QA forensic gate): the evidence of record for every technical claim in this file is `LEONIX_QUICK_CLASSIFIEDS_FINAL_PROOF_MATRIX.md` (row ids) and `LEONIX_QUICK_CLASSIFIEDS_VERIFIER_DRIFT_LEDGER.md`; a status word here is a summary of those rows, not evidence by itself.
+
 FINAL FEATURE SHA: the commit that adds this file (`git log -1 -- docs/quick-classifieds/LEONIX_QUICK_CLASSIFIEDS_INTEGRATION_HANDOFF.md`); last CODE SHA `1a801e91702c9f0c10466726d57a30cfc7921cee`; Owner-QA packet SHA `eb6bf5893ab67df29055dce338f090f2f4aae4dd`. Docs-only commits after `1a801e91`.
 CURRENT ORIGIN MAIN SHA: `fd9094994aa2a63fdcea49f24b2435300a7b49a4`
 AHEAD/BEHIND: 9 / 0 after this handoff commit (7 / 0 at gate start)
@@ -22,12 +24,12 @@ PRE-EXISTING/STALE VERIFIER CLASSIFICATION (all reproduce identically on pristin
 - autos-privado-dealers-public-split-audit
 - rentas-field-contract-selftest, rentas-publish-parity-audit
 
-EN VENTA TECHNICAL STATUS: PASS (free; real-image chain; edit + sold canonical)
-RENTAS TECHNICAL STATUS: PASS (existing `rentas_30d` checkout; expiration; rented/end; same-row renewal; real-image chain)
-AUTOS TECHNICAL STATUS: PASS (existing `autos_privado_30d` checkout; sold/unpublish; same-row renewal; no active edit by canonical rule; real-image chain; Dealer untouched)
-EMPLEOS TECHNICAL STATUS: PASS source-proven after the narrow media repair (upload to existing `listing-images` before the unchanged envelope mapper); Feria + premium + public job design untouched; runtime proof of the real photo on the public ad is the key owner-QA item
-STAFF PWA TECHNICAL STATUS: PASS (one PWA; launchpad additive with four verbs; Tier-1 priority; community direct links; Copy/Share of real routes; no messaging infrastructure)
-MY-AD TECHNICAL STATUS: PASS (links-only doorway into existing owner surfaces; no new lifecycle engine; ownership stays in existing guards)
+EN VENTA TECHNICAL STATUS: PASS (free; real-image chain; edit + sold canonical) — Proof Matrix EV-01…EV-16
+RENTAS TECHNICAL STATUS: PASS (Proof Matrix RE-01…RE-17; existing `rentas_30d` checkout; expiration; rented/end; same-row renewal; real-image chain)
+AUTOS TECHNICAL STATUS: PASS (Proof Matrix AU-01…AU-16; existing `autos_privado_30d` checkout; sold/unpublish; same-row renewal; no active edit by canonical rule; real-image chain; Dealer untouched)
+EMPLEOS TECHNICAL STATUS: PASS source-proven (Proof Matrix EM-01…EM-16; premium EM-17 BLOCKED out of scope) after the narrow media repair (upload to existing `listing-images` before the unchanged envelope mapper); Feria + premium + public job design untouched; runtime proof of the real photo on the public ad is the key owner-QA item
+STAFF PWA TECHNICAL STATUS: PASS (Proof Matrix SL-01…SL-09; staff-only publish / unclaimed custody NOT supported = SL-05/SL-06; one PWA; launchpad additive with four verbs; Tier-1 priority; community direct links; Copy/Share of real routes; no messaging infrastructure)
+MY-AD TECHNICAL STATUS: PASS (Proof Matrix CC-01…CC-06, classification FUNCTIONAL_BUT_NOT_LIGHTWEIGHT; links-only doorway into existing owner surfaces; no new lifecycle engine; ownership stays in existing guards)
 
 KNOWN BLOCKERS:
 - RESOLVED 2026-09-20: Vercel Preview READY (`dpl_6d6FQxhYmywSUsacmzs1XGwSns8H`); project Ignored Build Step back to its original value, so any further push to this branch is skipped again by design (re-run the same temporary change if a new Preview is ever needed)

@@ -42,6 +42,8 @@
     "verify:p0-sales-ad-creation-flow": "npx tsx scripts/verify-p0-sales-ad-creation-flow-01.ts",
     "verify:p0-staff-assisted-category-access": "npx tsx scripts/verify-p0-staff-assisted-category-access-01.ts",
     "verify:quick-classifieds-onramp": "npx tsx scripts/verify-quick-classifieds-onramp-01.ts",
+    "verify:quick-classifieds-interaction": "npx tsx scripts/verify-quick-classifieds-interaction-02.ts",
+    "verify:quick-classifieds-proof-matrix": "npx tsx scripts/verify-quick-classifieds-proof-matrix-03.ts",
     "verify:program7": "npx tsx scripts/program7-verifier.ts",
     "test:program7": "npx tsx scripts/program7-business-concierge-tests.ts",
     "verify:br": "npx tsx scripts/br-launch-selftest.ts",

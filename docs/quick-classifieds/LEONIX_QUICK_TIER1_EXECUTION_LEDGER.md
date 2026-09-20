@@ -7,6 +7,8 @@ remote's three docs-only commits; `origin/main` still `fd909499`, 0 behind).
 Statuses are re-derived from current source in this mission, not carried over from prior documents.
 Legend: PASS · REPAIR · BLOCKED · N/A.
 
+> Proof pointer (2026-09-20 pre-QA forensic gate): the evidence of record for every technical claim in this file is `LEONIX_QUICK_CLASSIFIEDS_FINAL_PROOF_MATRIX.md` (row ids) and `LEONIX_QUICK_CLASSIFIEDS_VERIFIER_DRIFT_LEDGER.md`; a status word here is a summary of those rows, not evidence by itself.
+
 ## Gate 0 — cold audit (before this mission's repairs)
 
 | Column | EN VENTA | RENTAS | EMPLEOS | AUTOS PRIVADO |
@@ -20,7 +22,7 @@ Legend: PASS · REPAIR · BLOCKED · N/A.
 | PREVIEW HANDOFF | PASS — `/clasificados/en-venta/preview?plan=pro` | PASS — `/clasificados/rentas/preview/privado?propiedad=…` (client loads draft, re-gates, uploads, publishes pending, checkout: `RentasPrivadoPreviewClient.tsx:141-207`) | N/A | PASS — `/clasificados/autos/privado/preview` (draft mode via hint) |
 | PAYMENT | N/A (free `en_venta_free_v1`) | PASS — existing `rentas_30d` via `/api/revenue-os/checkout` from the existing preview | N/A | PASS — existing `autos_privado_30d` via existing preview |
 | PUBLIC OUTPUT | PASS — `/clasificados/anuncio/[id]` (`EnVentaAnuncioLayout`) | PASS — `/clasificados/rentas/listing/[id]` | BLOCKED — stock `FALLBACK_IMG` when no https image | PASS — `AutoPrivadoPreviewPage` live |
-| EDIT | PASS — generic owner editor | PASS — existing listing-edit route | N/A | N/A — active rows not editable (pre-existing) |
+| EDIT | PASS — generic owner editor (`app/(site)/dashboard/mis-anuncios/[id]/editar/categoryLifecycleAdapters.ts` `en-venta` adapter) | PASS — existing listing-edit route (`app/api/clasificados/rentas/listing-edit/route.ts`, owner + category + lane checks) | N/A | N/A — active rows not editable (`app/lib/clasificados/autos/autosClassifiedsListingService.ts` `updateAutosClassifiedsListingDraft`: privado editable only while draft / pending_payment / payment_failed) |
 | END | PASS — `mark_sold` | PASS — `estadoAnuncio: rentado` via edit API; pause/archive | N/A | PASS — `unpublish` (removed) |
 | RENEW | N/A (no renewal SKU; visibility refresh exists) | PASS — `startRentasRenewal` same row | N/A | PASS — `startListingRenewalCheckout` same row |
 | KNOWN BLOCKER | none | none | BLOCKED_BY_EXISTING_MEDIA_OUTPUT | none |
