@@ -53,6 +53,7 @@ export const QUICK_BUSINESS_DEFINITIONS: Record<QuickBusinessCategoryKey, QuickB
       editNote: { es: "Editas tu perfil desde Mis Servicios (abre la aplicación existente con tus datos).", en: "Edit your profile from My Services (opens the existing application with your data)." },
       endNote: { es: "Pausar / reactivar desde Mis Servicios.", en: "Pause / resume from My Services." },
       billingNote: { es: "Suscripción mensual; se administra desde tu panel.", en: "Monthly subscription; managed from your dashboard." },
+      billingHref: "/dashboard/perfil",
     },
     staff: {
       // Existing verified server path: api/clasificados/servicios/publish assistedAction save_for_client / publish_for_client.
@@ -81,6 +82,7 @@ export const QUICK_BUSINESS_DEFINITIONS: Record<QuickBusinessCategoryKey, QuickB
       editNote: { es: "Editas tu ficha desde Mis Restaurantes (abre la aplicación existente con tus datos).", en: "Edit your listing from My Restaurants (opens the existing application with your data)." },
       endNote: { es: "Pausar / reactivar desde Mis Restaurantes.", en: "Pause / resume from My Restaurants." },
       billingNote: { es: "Suscripción mensual; se administra desde tu panel.", en: "Monthly subscription; managed from your dashboard." },
+      billingHref: "/dashboard/perfil",
     },
     staff: {
       publishForClientSupported: false,
@@ -111,6 +113,7 @@ export const QUICK_BUSINESS_DEFINITIONS: Record<QuickBusinessCategoryKey, QuickB
       editNote: { es: "Inventario y perfil desde Mis Anuncios (abre la aplicación de dealer existente con tus datos).", en: "Inventory and profile from My Ads (opens the existing dealer application with your data)." },
       endNote: { es: "Retirar / restaurar vehículos desde Mis Anuncios.", en: "Unpublish / restore vehicles from My Ads." },
       billingNote: { es: "Suscripción mensual + paquete de inventario opcional.", en: "Monthly subscription + optional inventory pack." },
+      billingHref: "/dashboard/perfil",
     },
     staff: { publishForClientSupported: false, note: { es: "El cliente inicia sesión con su correo y publica a su nombre.", en: "The customer signs in with their email and publishes in their own name." } },
     essentialQuestionCount: 16,
@@ -138,6 +141,7 @@ export const QUICK_BUSINESS_DEFINITIONS: Record<QuickBusinessCategoryKey, QuickB
       editNote: { es: "Propiedades y perfil desde Mis Anuncios (abre la aplicación de agente existente con tus datos).", en: "Properties and profile from My Ads (opens the existing agent application with your data)." },
       endNote: { es: "Pausar / reactivar propiedades desde Mis Anuncios.", en: "Pause / resume properties from My Ads." },
       billingNote: { es: "Suscripción mensual + paquete de inventario opcional.", en: "Monthly subscription + optional inventory pack." },
+      billingHref: "/dashboard/perfil",
     },
     staff: { publishForClientSupported: false, note: { es: "El cliente inicia sesión con su correo y publica a su nombre.", en: "The customer signs in with their email and publishes in their own name." } },
     essentialQuestionCount: 19,

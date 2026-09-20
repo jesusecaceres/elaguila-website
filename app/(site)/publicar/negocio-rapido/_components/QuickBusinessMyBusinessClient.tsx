@@ -68,6 +68,7 @@ export function QuickBusinessMyBusinessClient() {
   const def = getQuickBusinessDefinition(category);
   const manage = def.manage;
   const manageHref = withLang(manage.dashboardHref, routeLang);
+  const billingHref = withLang(manage.billingHref, routeLang);
 
   return (
     <QuickShell
@@ -90,20 +91,24 @@ export function QuickBusinessMyBusinessClient() {
           </Link>
         </section>
 
+        {/* REPAIR_REQUIRED: Direct pause/resume mutation requires listing ID + auth state that this
+            doorway page does not hold. Removed the misleading "Pausar o reactivar" button; the
+            canonical pause action lives in the existing dashboard for this category. The link below
+            is honest navigation: it routes the owner to the surface that can actually act. */}
         <section className={quickCard}>
           <h2 className="text-base font-extrabold">
             ⏸️ {quickBusinessCopy("myBusinessPause", lang)} · {quickBusinessCopy("myBusinessEnd", lang)}
           </h2>
           <p className="mt-1 text-sm text-[#5D4A25]/90">{qt(manage.endNote, lang)}</p>
           <Link href={manageHref} className={`${quickSecondaryBtn} mt-3`}>
-            {quickBusinessCopy("myBusinessPause", lang)}
+            {lang === "en" ? "Go to dashboard" : "Ir al panel"}
           </Link>
         </section>
 
         <section className={quickCard}>
           <h2 className="text-base font-extrabold">💳 {quickBusinessCopy("myBusinessBilling", lang)}</h2>
           <p className="mt-1 text-sm text-[#5D4A25]/90">{qt(manage.billingNote, lang)}</p>
-          <Link href={manageHref} className={`${quickSecondaryBtn} mt-3`}>
+          <Link href={billingHref} className={`${quickSecondaryBtn} mt-3`}>
             {quickBusinessCopy("myBusinessBilling", lang)}
           </Link>
         </section>
