@@ -276,6 +276,33 @@ export function decideBusinessAccess(input: {
   };
 }
 
+/**
+ * The body every denied Full-only route returns. Pure and defined here rather than beside the
+ * server gate so it stays directly testable — importing the gate pulls in `server-only`, which
+ * by design cannot load outside a server context.
+ */
+export function fullOnlyFeatureDeniedBody(input: {
+  level: BusinessAccessLevel;
+  capability: BusinessAccessCapability;
+  upgradePackageKey: string | null;
+}): {
+  ok: false;
+  error: "upgrade_required";
+  required_level: "full";
+  business_access_level: BusinessAccessLevel;
+  capability: BusinessAccessCapability;
+  upgrade_package_key: string | null;
+} {
+  return {
+    ok: false,
+    error: "upgrade_required",
+    required_level: "full",
+    business_access_level: input.level,
+    capability: input.capability,
+    upgrade_package_key: input.upgradePackageKey,
+  };
+}
+
 export type BusinessAccessCapabilityDecision = {
   allowed: boolean;
   level: BusinessAccessLevel;

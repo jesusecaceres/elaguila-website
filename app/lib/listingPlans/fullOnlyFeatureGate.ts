@@ -75,21 +75,5 @@ export async function resolveFullOnlyFeatureGate(input: {
   };
 }
 
-/** The response body every denied Full-only route returns, so the client can offer the upgrade. */
-export function fullOnlyFeatureDeniedBody(gate: FullOnlyFeatureGateResult): {
-  ok: false;
-  error: "upgrade_required";
-  required_level: "full";
-  business_access_level: BusinessAccessLevel;
-  capability: BusinessAccessCapability;
-  upgrade_package_key: string | null;
-} {
-  return {
-    ok: false,
-    error: "upgrade_required",
-    required_level: "full",
-    business_access_level: gate.level,
-    capability: gate.capability,
-    upgrade_package_key: gate.upgradePackageKey,
-  };
-}
+/** Re-exported so a route needs one import to gate and to answer. The body itself is pure. */
+export { fullOnlyFeatureDeniedBody } from "./businessAccessLevel";
