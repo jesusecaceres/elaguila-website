@@ -189,8 +189,7 @@ The current remote feature branch exists:
 
 Independent GitHub comparison against `main` verified:
 
-- branch is **3 commits ahead**
-- branch is **0 commits behind**
+- branch was independently verified ahead of main with **0 commits behind**; exact ahead count must be re-checked at each gate because this control file itself is versioned on the branch
 - merge base is `fd9094994aa2a63fdcea49f24b2435300a7b49a4`
 - no merge to main has occurred
 
@@ -708,6 +707,258 @@ Phase 1 is truly DONE only when:
 13. final branch is reconciled with latest main;
 14. PM/Chief Engineer issues a merge-ready verdict;
 15. Production release occurs only after explicit release decision.
+
+---
+
+
+## 19. Ultimate Coverage Lock — All Leonix Ads
+
+The owner's ultimate product vision is broader than Phase 1:
+
+> **Every Leonix ad family should eventually have a true two-minute Quick intake where technically and commercially appropriate, built by extracting from the ad system that already exists.**
+
+Current execution remains intentionally phased:
+
+### Phase 1 — current branch
+
+Quick Classifieds:
+
+- En Venta / Varios
+- Rentas
+- Empleos
+- Autos Privado
+- Bienes Raíces Privado / FSBO
+- Clases
+- Comunidad / Eventos
+- Busco / Se Busca
+- Mascotas y Perdidos
+
+### Phase 2 — later controlled branch after Phase 1 proof
+
+Quick Business / other ad families:
+
+- Servicios
+- Restaurantes
+- Comida Local
+- Autos Dealer
+- Bienes Raíces Negocio / Agent
+- Viajes
+- Iglesias
+- Negocios Locales
+- Ofertas Locales
+
+The Phase 2 implementation must follow the same extraction doctrine.
+
+No existing ad should be redesigned merely to gain Quick.
+
+For every future category:
+
+```
+EXISTING CATEGORY
+→ identify the minimum useful customer inputs
+→ map those inputs into the existing canonical data model
+→ use the existing preview
+→ use the existing payment/lifecycle
+→ use the existing public output
+```
+
+The Quick experience is a two-minute **front door**, not a second house.
+
+---
+
+## 20. Owner-Locked Form Interaction / Wiring Contract
+
+A Quick form is not accepted merely because the fields render.
+
+Every field must be genuinely usable by a normal customer on desktop and mobile.
+
+### Text-entry acceptance
+
+Every text-like field must support normal human typing, including:
+
+- multi-word values with spaces
+- repeated spaces while the user is still typing
+- backspace/delete
+- cursor movement
+- selecting/replacing text
+- copy/paste
+- mobile keyboard entry
+- Spanish accents and ñ where relevant
+- apostrophes, hyphens and ordinary punctuation where valid
+- phone-number entry without destructive per-keystroke rewriting
+- email entry without destructive per-keystroke rewriting
+- multiline description entry with natural spaces and line breaks
+
+No controlled input may behave as if each keystroke is a final submitted value.
+
+Do not trim, normalize, slugify, parse, coerce or rewrite user text destructively on every keystroke if doing so prevents natural typing.
+
+Normalization belongs at the appropriate boundary:
+
+- blur,
+- step transition,
+- review,
+- canonical adapter,
+- or final validation,
+
+according to the existing category contract.
+
+### Selection/control acceptance
+
+Buttons, chips, selects, radios, checkboxes, date/time inputs, image controls and optional fields must:
+
+- respond to click/tap
+- visibly reflect the selected value
+- persist when moving forward/back between Quick steps
+- preserve valid state across auth return where the existing draft architecture supports it
+- write the exact intended canonical value
+- not silently reset unrelated fields
+
+### Wiring acceptance
+
+For every Quick field, prove:
+
+```
+VISIBLE CONTROL
+→ USER CAN ENTER/SELECT VALUE
+→ QUICK STATE UPDATES
+→ VALUE PERSISTS
+→ CATEGORY ADAPTER MAPS IT
+→ CANONICAL DRAFT RECEIVES IT
+→ EXISTING PREVIEW READS IT
+→ EXISTING PUBLISHER USES IT
+→ EXISTING PUBLIC OUTPUT SURFACES IT WHEN THAT MODULE IS SUPPORTED
+```
+
+A field that looks correct but does not survive this chain is **NOT DONE**.
+
+### Required interaction test cases
+
+At minimum, field-level QA must include representative strings such as:
+
+- `San Jose`
+- `East San Jose`
+- `Joe's Landscaping`
+- `María López`
+- `2 bedroom apartment`
+- `Call after 5 pm`
+
+These are intended to catch broken controlled inputs, whitespace stripping, punctuation issues and accidental per-keystroke normalization.
+
+### Media interaction
+
+The owner-locked minimum-one-real-image rule remains.
+
+The image must not merely preview inside Quick. It must survive:
+
+```
+SELECT FILE
+→ QUICK MEDIA STATE
+→ CANONICAL MEDIA DRAFT
+→ EXISTING PREVIEW
+→ EXISTING PUBLISH
+→ ACTUAL PUBLIC AD
+```
+
+This is especially important for Empleos, which remains blocked until its real customer image survives the canonical publish/output path.
+
+---
+
+## 21. Claude Operating Protocol for This Project
+
+The owner supplied a standing Claude workflow protocol. Apply it to all future prompts and implementation-review cycles for this project.
+
+### Resource control
+
+Multiple Leonix worktrees may be active simultaneously.
+
+Normal implementation gates use:
+
+- source inspection
+- targeted search/grep
+- focused file reads
+- file-scoped or focused lint/type checks when supported
+- existing targeted tests
+
+Normal implementation gates do **not** run:
+
+- background TypeScript checks
+- background builds
+- detached validation
+- watch mode
+- dev servers merely for confidence
+- full-repo test suites
+- full production builds
+
+Before any potentially heavy command:
+
+1. check whether a Node/TypeScript/build/test process is already active for that worktree;
+2. if one is active, do not start another;
+3. keep implementation moving with lightweight source proof.
+
+Only an explicitly designated integration/release gate may run:
+
+- full typecheck
+- full production build
+- broader test pass
+
+Use **one heavy validation stream at a time**.
+
+Never leave a heavy validation task running in the background while continuing other work.
+
+If heavy validation is deferred, the Claude result must contain:
+
+`DEFERRED TO INTEGRATION GATE:`
+
+### Prompt architecture
+
+For substantial Claude build/audit prompts:
+
+- use clear XML-style sections such as `<context>`, `<instructions>`, `<scope>`, `<verification_criteria>`, `<return_format>`;
+- state the desired action directly;
+- use current code/source as truth instead of assumptions;
+- use high adaptive effort for long-horizon architecture/build work and lower effort for narrow repairs;
+- do not rely on deprecated assistant-response prefilling;
+- avoid blanket anti-laziness language that causes unnecessary subagents or tool calls;
+- damp overengineering and over-verification;
+- use subagents only for genuinely independent workstreams;
+- preserve progress in durable repo files and git rather than relying on chat memory.
+
+### Long-context grounding
+
+When a task depends on large documents or prior artifacts:
+
+- read the relevant source first;
+- ground decisions in exact source evidence;
+- for a forensic/audit task, extract the relevant evidence before drawing conclusions;
+- do not speculate about code that has not been opened.
+
+### Implementation style
+
+Prefer the minimum correct change.
+
+Do not:
+
+- clean unrelated code,
+- create speculative abstractions,
+- create helper systems for hypothetical future needs,
+- modify tests merely to obtain a PASS,
+- hard-code around a verifier instead of fixing the real product behavior.
+
+Tests verify the implementation; they do not define a fake implementation.
+
+### PM handoff format
+
+Every material Claude output returns to the PM / Chief Engineer for review.
+
+The PM determines:
+
+- whether the claim is actually proven,
+- whether another focused repair is required,
+- whether the project advances to the next gate,
+- whether integration validation is authorized.
+
+Claude does not self-authorize a main merge or Production release.
 
 ---
 
