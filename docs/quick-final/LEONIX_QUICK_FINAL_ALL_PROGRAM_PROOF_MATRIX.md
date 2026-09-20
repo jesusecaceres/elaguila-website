@@ -7,7 +7,9 @@ certified in their own artifacts and are re-proved here against current source.
 
 - Branch: `cursor/remaining-families-closeout-cb29`
 - Final application code SHA: `80808e2fd3dd57e71fd921b0f50e85886f4ee6f2`
-- Base: `origin/main` `fd9094994aa2a63fdcea49f24b2435300a7b49a4` (behind 0, ahead 17)
+- Base: `origin/main` `fd9094994aa2a63fdcea49f24b2435300a7b49a4`, behind 0. The application
+  code SHA above is 17 commits ahead of base; every commit after it changes only `docs/` and
+  `scripts/`, so `app/` is byte-identical to that SHA.
 - Machine checker: `scripts/verify-quick-final-all-program-proof-01.ts`
 
 Every row is validated mechanically: unique ids, allowed statuses, all 19 families present, all
@@ -63,6 +65,7 @@ Entry strategies: `QUICK_FORM`, `EXISTING_SHORT_FORM`, `DIRECT_CANONICAL_LINK`,
 | XC-17 | CLASSIFIEDS CERTIFICATION PRESERVATION | CROSS_CUTTING | The certified Quick Classifieds stack must remain intact | Not applicable | Not applicable | Not applicable | Not applicable | Not applicable | Commit `7555fb64` remains an ancestor | Not applicable | Not applicable | Not applicable | Not applicable | Not applicable | Not applicable | Not applicable | Not applicable | Not applicable | Not applicable | Not applicable | `scripts/verify-quick-classifieds-proof-matrix-03.ts` | 136 rows, 129 PROVEN, 4 PROVEN_NA, 3 BLOCKED, verifier green on this SHA | PROVEN | Ancestry confirmed by `git merge-base --is-ancestor` |
 | XC-18 | BUSINESS CORE CERTIFICATION PRESERVATION | CROSS_CUTTING | The certified Quick Business Core stack must remain intact | Not applicable | Not applicable | Not applicable | Not applicable | Not applicable | Commit `b66322ba` remains an ancestor | Not applicable | Not applicable | Not applicable | Not applicable | Not applicable | Not applicable | Not applicable | Not applicable | Not applicable | Not applicable | Not applicable | `scripts/verify-quick-business-proof-matrix-02.ts` | 138 rows, 132 PROVEN, 2 PROVEN_NA, 4 BLOCKED, required blockers 0, verifier green on this SHA | PROVEN | Ancestry confirmed by `git merge-base --is-ancestor` |
 | XC-19 | REMAINING FAMILY COVERAGE | CROSS_CUTTING | All six remaining families must carry an explicit, source-grounded strategy | Staff launchpad More Options section | Not applicable | Not applicable | Not applicable | `app/lib/quickRemaining/quickRemainingRegistry.ts` | Existing destinations per family | Not applicable | Not applicable | Not applicable | Not applicable | Not applicable | Registry adds no table | Existing public pages | Existing dashboards where they exist | Not applicable | Not applicable | Registry is server-safe and imports no certified registry | `scripts/verify-quick-remaining-families-01.ts` | `quickRemainingRegistryIsComplete()` plus six entries covering comida-local, ofertas-locales, negocios-locales, viajes, iglesias, recursos | PROVEN | Registry deliberately does not widen the certified Classifieds or Business key unions |
+| XC-20 | AUTHORIZED MEDIA API SURFACE | CROSS_CUTTING | The one internal API route Quick is allowed to call must grant the client no authority | Comida Local Quick media step calls `uploadComidaLocalDraftImage`, the only Quick-to-API call in the program | Customer's own image file | Not applicable | Draft image URL returned to the Quick draft | Existing helper `app/lib/clasificados/comida-local/comidaLocalDraftMediaUpload.ts` | Existing `app/api/clasificados/comida-local/draft-media-upload/route.ts`, byte-unchanged | Server enforces the MIME allowlist and byte cap, `COMIDA_LOCAL_ACCEPTED_IMAGE_MIME` and `COMIDA_LOCAL_IMAGE_MAX_BYTES` | Not applicable, the route returns a URL and nothing is submitted | Stores bytes in Vercel Blob at a server-derived path, no DB row | No payment symbol exists in the route | No publish, the route cannot reach the publish path | Vercel Blob object storage only, no table write | Draft image URL consumed by the existing preview | Not applicable | Draft media, superseded at publish | Uploader identity comes from the Bearer JWT verified by `sb.auth.getUser(token)` in `app/lib/clasificados/comida-local/comidaLocalPublishServerAuth.ts`, never from the request body | The client-supplied `draftListingId` never decides the storage path, the anonymous fallback segment is a server-minted httpOnly UUID from `app/api/clasificados/_lib/anonUploadSession.ts` | `scripts/verify-quick-remaining-families-01.ts` | Section 11 asserts the blob pathname template contains no `draftListingId`, and the assertion was mutation-tested by injecting the client id into the path, which failed the verifier | PROVEN | Closes the one item a cold read of Quick source alone could not settle: the documented media-upload exception to the no-API-call invariant is authority-free |
 
 ## PREVIEW IDENTITY
 
@@ -83,8 +86,8 @@ proven against the identical compiled output that a Preview of this SHA would se
 
 | Metric | Value |
 |---|---|
-| TOTAL REQUIREMENTS | 39 |
-| PROVEN | 34 |
+| TOTAL REQUIREMENTS | 40 |
+| PROVEN | 35 |
 | PROVEN_NA | 3 |
 | BLOCKED | 2 |
 | REPAIR_REQUIRED | 0 |

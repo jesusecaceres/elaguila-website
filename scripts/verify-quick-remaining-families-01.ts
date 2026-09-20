@@ -19,6 +19,9 @@
  *  9. core Quick Business (exactly 4 live) and certified Quick Classifieds trees are untouched.
  * 10. staff launchpad: core priorities (Tier-1, Quick Business) render before the new lower-priority
  *     "Más Opciones" section.
+ * 11. the single authorized Quick media API (Comida Local draft upload) grants the client no authority:
+ *     the client-supplied draftListingId never decides the storage path, identity comes from a verified
+ *     Bearer JWT or a server-minted httpOnly session, and the route writes no row and charges nothing.
  */
 import { strict as assert } from "node:assert";
 import { existsSync, readFileSync } from "node:fs";
@@ -205,6 +208,35 @@ function defBlocksInclude(source: string, key: string, needle: string): boolean 
   assert.ok(lp.includes("listQuickRemainingDefinitions()"), "launchpad renders the registry's six remaining families");
   assert.ok(!/Crear con el cliente \/ Create with customer/.test(lp) || lp.includes('def.action === "quick_form"'), "the only 'create' verb used is gated to the one family that is actually a quick_form");
   assert.ok(lp.includes('"Abrir formulario / Open application"') && lp.includes('"Abrir directorio / Open directory"'), "truthful non-create verbs exist for direct_link and content_link families");
+}
+
+// 11. THE ONE AUTHORIZED QUICK MEDIA API CARRIES NO CLIENT AUTHORITY -----------------------------------------
+// Comida Local Quick is the only Quick surface that reaches an internal API route. The client sends a
+// self-generated `draftListingId`, so that value must never decide where bytes land or who owns them.
+function blobPathnameTemplate(src: string): string {
+  const m = src.match(/const pathname = `([^`]*)`/);
+  assert.ok(m, "draft-media-upload route declares a single blob pathname template");
+  return m![1]!;
+}
+{
+  const ROUTE = "app/api/clasificados/comida-local/draft-media-upload/route.ts";
+  const route = read(ROUTE);
+  const session = read("app/api/clasificados/_lib/anonUploadSession.ts");
+
+  // Self-test #5: a route that interpolated the client's draft id into the storage path must be caught.
+  const syntheticLeak = "const pathname = `clasificados/comida-local/drafts/${draftListingId}/${role}/x`";
+  assert.ok(blobPathnameTemplate(syntheticLeak).includes("draftListingId"), "detector self-test: a client-supplied draft id in the storage path is detectable");
+
+  assert.ok(!blobPathnameTemplate(route).includes("draftListingId"), "client-supplied draftListingId never decides the storage path — it is validated as non-empty and otherwise carries no authority");
+  assert.ok(route.includes("comidaLocalOwnerIdFromBearer(req)"), "uploader identity is resolved server-side from the Bearer JWT");
+  assert.ok(read("app/lib/clasificados/comida-local/comidaLocalPublishServerAuth.ts").includes("sb.auth.getUser(token)"), "that Bearer resolution actually verifies the token against Supabase, it does not decode it locally");
+  assert.ok(route.includes("anonUploadPathSegment(anonSessionId)") || route.includes("anonUploadPathSegment(anonSession"), "the anonymous fallback segment comes from the server-issued session helper");
+  assert.ok(session.includes("randomUUID()") && session.includes("httpOnly: true"), "that anonymous session id is server-minted and httpOnly, so the client cannot choose its own path segment");
+  assert.ok(route.includes("COMIDA_LOCAL_ACCEPTED_IMAGE_MIME") && route.includes("COMIDA_LOCAL_IMAGE_MAX_BYTES"), "content type allowlist and byte cap are enforced on the server, not only in the browser");
+  assert.ok(!/\.from\(\s*["'`]|\.insert\(|\.update\(|\.upsert\(|\.delete\(/.test(route), "the upload route writes no database row — it stores bytes and returns a URL");
+  assert.ok(!/stripe|checkout|priceCents|amountCents/i.test(route), "the upload route charges nothing — no payment symbol appears in it");
+  assert.ok(route.includes('from "@vercel/blob"') && /await put\(pathname, file/.test(route), "its only persistence is a Vercel Blob object write at the server-derived path");
+  assert.deepEqual([...route.matchAll(/fetch\(\s*["'`](\/[^"'`]*)["'`]/g)].map((m) => m[1]!), [], "the upload route calls no other internal route, so it cannot reach the publish or payment path");
 }
 
 console.log("verify-quick-remaining-families-01: OK");
