@@ -814,5 +814,201 @@ check("the Quick photo is a real photo of the thing being sold", () => {
   }
 });
 
+// ───────────────────────────────────────────────────────────────────────────────────────────────
+// 9. AUTHORITY. Every question the Simple/Full split introduced is a question about who decides:
+// which package is sold, which level is held, whose listing it is. If any of those can be
+// asserted by the caller, the cheaper package becomes a way to buy the expensive product.
+// ───────────────────────────────────────────────────────────────────────────────────────────────
+
+/** Every module added or rewired by the Simple-vs-Full split. */
+const ACCESS_MODEL_FILES = [
+  "app/lib/listingPlans/businessAccessLevel.ts",
+  "app/lib/listingPlans/businessBasePlanOfferPolicy.ts",
+  "app/lib/listingPlans/businessBasePlanOffer.ts",
+  "app/lib/listingPlans/businessBasePlanOfferClient.ts",
+  "app/lib/listingPlans/businessQuickPlanSignal.ts",
+  "app/lib/listingPlans/fullOnlyFeatureGate.ts",
+  "app/api/revenue-os/business-base-plan/route.ts",
+  "app/(site)/dashboard/lib/businessSimpleToFullUpgradeCheckout.ts",
+  "app/(site)/dashboard/components/BusinessSimpleToFullUpgradePanel.tsx",
+] as const;
+
+check("nothing in the access model writes a row, mints an actor or reads a secret", () => {
+  for (const file of ACCESS_MODEL_FILES) {
+    const src = codeOf(file);
+    assert.ok(
+      !/\.insert\(|\.upsert\(|\.update\(|\.delete\(/.test(src),
+      `${file}: the access model resolves entitlement, it must never write one`,
+    );
+    assert.ok(
+      !/method:\s*["'`](POST|PUT|PATCH|DELETE)/.test(src),
+      `${file}: no mutating request may originate here`,
+    );
+    assert.ok(
+      !/process\.env|service_role|SERVICE_ROLE/.test(src),
+      `${file}: no secret or service-role key may be referenced`,
+    );
+    assert.ok(
+      !/is_admin|isAdmin|impersonat|actingAs|asCustomer/.test(src),
+      `${file}: no staff-as-customer or synthetic actor may appear`,
+    );
+  }
+});
+
+check("the base-plan route answers only the authenticated owner, and only by reading", () => {
+  const src = codeOf("app/api/revenue-os/business-base-plan/route.ts");
+  assert.ok(/export async function GET\(/.test(src), "it must be a read endpoint");
+  for (const verb of ["POST", "PUT", "PATCH", "DELETE"]) {
+    assert.ok(!src.includes(`export async function ${verb}(`), `it must expose no ${verb} handler`);
+  }
+  assert.ok(
+    /getBearerUserId\(request\)[\s\S]{0,200}status:\s*401/.test(src),
+    "an unauthenticated caller must be refused, not answered",
+  );
+  assert.ok(
+    /resolveBusinessBasePlanOffer\(\{[\s\S]{0,140}ownerUserId\s*\}/.test(src),
+    "the offer must be scoped to the bearer-resolved owner",
+  );
+  assert.ok(
+    !/ownerUserId\s*=\s*(params|searchParams|body)/.test(src),
+    "the owner must never come from the query string",
+  );
+  // The price it returns is for rendering; it must be the same matrix the checkout charges from.
+  assert.ok(
+    /getRevenuePackageDefinition\(offer\.sellPackageKey\)\?\.priceCents/.test(src),
+    "any price returned must be read from the server matrix, never accepted or computed",
+  );
+});
+
+check("the offer resolver fails closed: no ownership proof, no offer", () => {
+  const src = codeOf("app/lib/listingPlans/businessBasePlanOffer.ts");
+  assert.ok(
+    /const owned = await isBusinessListingOwnedBy\([\s\S]{0,140}if \(!owned\) return NOTHING_TO_SELL/.test(src),
+    "ownership must be verified before any offer is produced, and failure must offer nothing",
+  );
+  // Every read is wrapped so an unreadable table yields "no offer", never an unguarded offer.
+  const catches = src.match(/catch\s*\{[\s\S]*?\n  \}/g) ?? [];
+  assert.ok(catches.length >= 3, "each Supabase read must have its own catch");
+  for (const block of catches) {
+    assert.ok(
+      /return (false|null);/.test(block),
+      `an unreadable state must resolve to "no offer", not fall through: ${block.replace(/\s+/g, " ")}`,
+    );
+  }
+  assert.ok(
+    /select\(`id, \$\{source\.ownerColumn\}`\)[\s\S]{0,200}owner\.trim\(\) === ownerUserId/.test(src),
+    "ownership must be an exact match against the listing's own owner column",
+  );
+  // The decision itself is pure, so it cannot smuggle a read or a write in behind the rule.
+  const policy = codeOf("app/lib/listingPlans/businessBasePlanOfferPolicy.ts");
+  for (const symbol of ["supabase", "fetch(", "process.env", '.from("']) {
+    assert.ok(!policy.includes(symbol), `the offer decision must stay pure (${symbol})`);
+  }
+});
+
+check("the browser sends identity, package and price to no one", () => {
+  const hook = codeOf("app/lib/listingPlans/businessBasePlanOfferClient.ts");
+  assert.ok(/Authorization: `Bearer \$\{token\}`/.test(hook), "the hook must present the user's own token");
+  assert.ok(!/method:\s*["'`]/.test(hook), "the hook must issue a plain GET");
+  for (const forbidden of ["ownerUserId", "accessLevel=", "priceCents="]) {
+    assert.ok(!hook.includes(forbidden), `the hook must not send ${forbidden}`);
+  }
+
+  // The upgrade starter chooses nothing: not the package, not the price, not the entitlement.
+  // Read the argument it actually hands the checkout, so an import path cannot read as a field.
+  const starter = codeOf("app/(site)/dashboard/lib/businessSimpleToFullUpgradeCheckout.ts");
+  const sent = starter.match(/startRevenueCategoryCheckout\(\{[\s\S]*?\n  \}\);/)?.[0] ?? "";
+  assert.ok(sent.length > 0, "the upgrade starter's checkout call must be found");
+  for (const forbidden of ["ownerUserId", "accessLevel", "priceCents", "amountCents", "entitlement"]) {
+    assert.ok(!sent.includes(forbidden), `the upgrade starter must not send ${forbidden}`);
+  }
+  assert.ok(
+    /packageKey,\n/.test(sent) && /const packageKey = upgradeTargetPackageKey\(category\);/.test(starter),
+    "the package it sends must be the one the category pairing resolved, not a caller's choice",
+  );
+
+  // And the one checkout body builder every business flow uses carries no such field either.
+  const payload = codeOf("app/lib/listingPlans/revenueCategoryCheckoutPayload.ts");
+  const body = payload.match(/export function buildRevenueCategoryCheckoutBody\([\s\S]*?\n\}/)?.[0] ?? "";
+  assert.ok(body.length > 0, "the checkout body builder must be found");
+  for (const forbidden of [
+    "priceCents",
+    "amountCents",
+    "unitAmount",
+    "ownerUserId",
+    "accessLevel",
+    "businessAccessLevel",
+    "entitlement",
+  ]) {
+    assert.ok(!body.includes(forbidden), `the checkout body must not carry ${forbidden}`);
+  }
+});
+
+check("only the eight base packages can grant business access — no add-on, no classified", () => {
+  const granting = REVENUE_V1_PACKAGE_MATRIX.filter((p) => p.businessAccessLevel);
+  const expected = [...QUICK_KEYS, ...FULL_KEYS].slice().sort();
+  assert.deepEqual(
+    granting.map((p) => p.packageKey).sort(),
+    expected,
+    "exactly the four Simple and four Full packages may declare an access level",
+  );
+  // Stated the other way round, against the resolver rather than the data: any other package —
+  // an add-on, an inventory pack, a placement, a classified listing — resolves to `none`.
+  for (const def of REVENUE_V1_PACKAGE_MATRIX) {
+    if (expected.includes(def.packageKey)) continue;
+    assert.equal(
+      businessAccessLevelForPackageKey(def.packageKey),
+      "none",
+      `${def.packageKey} must confer no business access`,
+    );
+  }
+  for (const junk of ["", "   ", "not_a_package", "SERVICIOS_QUICK_MONTHLY; drop"]) {
+    assert.equal(businessAccessLevelForPackageKey(junk), "none", `"${junk}" must confer nothing`);
+  }
+});
+
+check("a print row grants print access only — it cannot carry a capability across", () => {
+  // Package C stamps the category's Full package key onto print-tier grants for bookkeeping. If
+  // the resolver took the max of tier and key, a $499 quarter-page advertiser would silently hold
+  // the $399 Full digital product. The tier must win, and the stamped key must not leak through.
+  const quarterWithFullStamp = decideBusinessAccess({
+    rows: [row({ packageKey: "servicios_base_monthly", packageTier: "quarter_page" })],
+    nowMs: NOW,
+  });
+  assert.equal(quarterWithFullStamp.level, "simple", "quarter page includes SIMPLE, stamp or no stamp");
+  assert.equal(quarterWithFullStamp.packageKey, null, "the bookkeeping stamp must not be reported as a purchase");
+
+  // And the capability dimension stays disjoint: FULL never invents a per-package capability.
+  const fullCaps = capabilitiesForBusinessAccessLevel("full") as string[];
+  assert.ok(!fullCaps.includes("coupons_offers"), "coupons_offers stays a per-package grant, not an access level");
+});
+
+check("Full-only features are refused on the server, and the refusal is narrow", () => {
+  const gate = codeOf("app/lib/listingPlans/fullOnlyFeatureGate.ts");
+  assert.ok(gate.includes('import "server-only"'), "the gate must be unusable from the browser");
+  assert.ok(
+    /if \(level !== "simple"\) return \{ \.\.\.open, level \};/.test(gate),
+    "only a resolved SIMPLE may be denied — an unreadable state must never strip existing access",
+  );
+  assert.ok(
+    /catch \{[\s\S]{0,140}return open;/.test(gate),
+    "a failed entitlement read must not deny a customer who already had the feature",
+  );
+  assert.ok(
+    !/req|request|body|searchParams/.test(gate),
+    "the gate must derive the level from the listing, never from the request",
+  );
+  // A Simple customer hitting the Full-only route directly is refused by that route, not by CSS.
+  const analytics = codeOf("app/api/dashboard/analytics/listing/route.ts");
+  assert.ok(
+    /resolveFullOnlyFeatureGate\(\{[\s\S]{0,260}capability: "analytics"/.test(analytics),
+    "the private analytics route must call the gate",
+  );
+  assert.ok(
+    /\.denied[\s\S]{0,200}fullOnlyFeatureDeniedBody\(/.test(analytics),
+    "and must answer with the shared refusal body when denied",
+  );
+});
+
 console.log(failures === 0 ? "\nOK — business access level proven" : `\n${failures} FAILED`);
 process.exit(failures === 0 ? 0 : 1);
