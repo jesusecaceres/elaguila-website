@@ -22,7 +22,7 @@ type SupabaseHarness = {
   __rpcCalls(fn?: string): { fn: string; params: Record<string, unknown> }[];
   __onRpc(handler: (fn: string, params: Record<string, unknown>) => unknown): void;
   __setAuthUsers(users: { id: string; email: string }[]): void;
-  __failReadsOn(table?: string, selectEquals?: string): void;
+  __failReadsOn(table?: string, selector?: { requires?: string[]; excludes?: string[] }): void;
 };
 
 type HeadersHarness = { __setCookies(entries: Record<string, string>): void };

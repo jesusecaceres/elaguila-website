@@ -261,6 +261,38 @@ export async function findOpenRefundResolution(
  * The consequence the caller owes: EVERY refusal must happen before this call. A validation that
  * runs afterwards closes the row while moving nothing, which destroys the obligation outright.
  */
+/**
+ * CORRECT THE AUDIT ROW WHEN THE MOVEMENT DID NOT HAPPEN.
+ *
+ * The claim closes the row BEFORE the money moves, which is the mutual exclusion that stops two
+ * staff both moving it. When the movement then fails or deduplicates, the row is re-filed — but
+ * the closed row still read `resolution_outcome = 'reversed'` with `resolved_ledger_id = null`,
+ * so an auditor reading this table alone counted a reversal that never happened. The re-file is
+ * the repair for the OBLIGATION; this is the repair for the RECORD.
+ */
+export async function recordResolutionMovedNothing(
+  id: string,
+  actorAuthUserId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!isSupabaseAdminConfigured()) return { ok: false, error: "supabase_not_configured" };
+  const { data: current } = await getAdminSupabase()
+    .from("leonix_rewards_refund_resolutions")
+    .select("resolution_note")
+    .eq("id", id)
+    .maybeSingle();
+  const existingNote = String((current as { resolution_note?: string | null } | null)?.resolution_note ?? "");
+  const { error } = await getAdminSupabase()
+    .from("leonix_rewards_refund_resolutions")
+    .update({
+      resolution_outcome: "no_action_required",
+      resolution_note: `${existingNote} [moved nothing; re-filed. Recorded by ${actorAuthUserId}.]`.trim().slice(0, 1000),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+  if (error) return { ok: false, error: error.message.slice(0, 300) };
+  return { ok: true };
+}
+
 export async function closeRefundResolution(input: {
   id: string;
   outcome: RefundResolutionOutcome;

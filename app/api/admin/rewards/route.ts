@@ -43,6 +43,7 @@ import {
   RESTORATION_WORK_REASON_PREFIX,
   closeRefundResolution,
   enqueueUnattributableRefund,
+  recordResolutionMovedNothing,
   findOpenRefundResolution,
   listRefundResolutions,
 } from "@/app/lib/rewards/rewardsRefundResolutionQueue";
@@ -144,6 +145,16 @@ export async function POST(request: NextRequest) {
     const id = typeof body.resolutionId === "string" ? body.resolutionId.trim() : "";
     const note = typeof body.note === "string" ? body.note.trim() : "";
     const outcome = body.outcome === "no_action_required" ? "no_action_required" : "reversed";
+    // AN EXPLICIT, SEPARATELY-AUDITED DISMISSAL.
+    //
+    // `closeRefundResolution` has always supported a `dismissed` status and no route ever passed
+    // it, so a row whose obligation genuinely cannot be settled — a dispute whose
+    // `dispute.created` was lost to a webhook outage, a payment predating rewards — had no control
+    // that would close it, on a screen where every button returned a raw error code. This is that
+    // control. It is NOT `no_action_required`: it lands as `dismissed` rather than `resolved`, so
+    // an auditor reading the table can tell a judgement call from a settlement, and it demands a
+    // longer note because it is the one outcome that closes an obligation nobody discharged.
+    const wantsDismiss = body.outcome === "dismissed";
     // A row filed by the ORDERING case records credits the customer is OWED, not a clawback to
     // apply. Settling it with a reversal moves nothing (its basis is zero), and settling it with
     // `adjust` credits `available` while leaving `lifetime_restored` untouched — so the SQL
@@ -164,10 +175,13 @@ export async function POST(request: NextRequest) {
     // they got back. Two validations used to sit on the wrong side of that line: the canonical
     // refund id for a reversal, and the dispute id for a restoration. Both are pure checks on the
     // request, so both belong here, where a refusal costs nothing.
+    if (wantsDismiss && note.length < 12) {
+      return NextResponse.json({ ok: false, error: "dismissal_reason_required" }, { status: 400 });
+    }
     if (wantsRestore && disputeId.length < 4) {
       return NextResponse.json({ ok: false, error: "dispute_id_required" }, { status: 400 });
     }
-    if (!wantsRestore && outcome === "reversed" && (!refundExternalId || refundExternalId.length < 4)) {
+    if (!wantsRestore && !wantsDismiss && outcome === "reversed" && (!refundExternalId || refundExternalId.length < 4)) {
       // Without a canonical refund id there is no stable idempotency anchor, and the whole reason
       // this row exists is that the payload did not carry one.
       return NextResponse.json({ ok: false, error: "refund_external_id_required" }, { status: 400 });
@@ -194,7 +208,7 @@ export async function POST(request: NextRequest) {
     // row stayed open for ever. What must be refused is `reversed`, which files a CLAWBACK as the
     // resolution of an obligation to give credits BACK; an audited, noted decision to close it
     // moving nothing is a legitimate staff outcome.
-    if (row.isRestorationWork && !wantsRestore && outcome !== "no_action_required") {
+    if (row.isRestorationWork && !wantsRestore && !wantsDismiss && outcome !== "no_action_required") {
       return NextResponse.json(
         { ok: false, error: "row_requires_restoration_outcome" },
         { status: 409 },
@@ -209,7 +223,7 @@ export async function POST(request: NextRequest) {
     // it, and 900 credits the customer was owed simply gone. The two paths must be equally hard to
     // get wrong, so this one asks the ledger the same question the restore path answers with money:
     // is any of this payment's chargeback still unrestored?
-    if (row.isRestorationWork && outcome === "no_action_required") {
+    if (row.isRestorationWork && !wantsDismiss && outcome === "no_action_required") {
       // FAIL CLOSED. Both reads are OPTIONAL on `RewardsStorePort`, and `?? 0` for a missing one
       // would make this guard agree that nothing is outstanding on a store that simply cannot
       // answer — a dismissal button that quietly works again on any port that drops a method. A
@@ -236,12 +250,6 @@ export async function POST(request: NextRequest) {
       const thisDispute = await ports.findLedgerEntryByIdempotencyKey(
         reversalIdempotencyKey("chargeback", row.externalRef),
       );
-      if (!thisDispute) {
-        return NextResponse.json(
-          { ok: false, error: "restoration_still_outstanding", reason: "clawback_has_not_landed" },
-          { status: 409 },
-        );
-      }
       const [clawedBack, givenBack] = await Promise.all([
         ports.sumReversedForPaymentByKind(row.paymentRecordId, "chargeback"),
         ports.sumRestoredForPayment(row.paymentRecordId),
@@ -250,6 +258,19 @@ export async function POST(request: NextRequest) {
       // outstanding" from two queries that never ran. The sentinel only helps if it is checked.
       if (clawedBack < 0 || givenBack < 0) {
         return NextResponse.json({ ok: false, error: "restoration_state_unavailable" }, { status: 503 });
+      }
+      // A CLAWBACK THAT HAS NOT LANDED IS OUTSTANDING, AND STAYS SO.
+      //
+      // "The clawback is still in flight" and "it will never come" are indistinguishable from the
+      // ledger, and the two mistakes are not symmetric: dismissing a clawback that then lands takes
+      // the customer's credits with no key that can ever restore them, while refusing costs an
+      // operator a click. So this refuses — and the escape hatch for the genuine never-coming case
+      // is the explicit, separately-audited `dismissed` outcome below, not a weaker rule here.
+      if (!thisDispute) {
+        return NextResponse.json(
+          { ok: false, error: "restoration_still_outstanding", reason: "clawback_has_not_landed" },
+          { status: 409 },
+        );
       }
       const outstandingCents = Math.max(0, Math.floor(clawedBack) - Math.floor(givenBack));
       if (outstandingCents > 0) {
@@ -284,7 +305,7 @@ export async function POST(request: NextRequest) {
     // a reversal — which is the same "row that can never be closed" defect this file was repaired
     // for on the won-dispute branch, reintroduced on the other one.
     let resolutionExternalId = "";
-    if (wantsRestore || outcome === "reversed") {
+    if (!wantsDismiss && (wantsRestore || outcome === "reversed")) {
       const anchor = resolutionIdempotencyAnchor(row, wantsRestore ? disputeId : refundExternalId, {
         wantsRestore,
       });
@@ -333,7 +354,8 @@ export async function POST(request: NextRequest) {
       id,
       // A RESTORATION IS RECORDED AS A RESTORATION. Collapsing it into `reversed` made the audit
       // record state the opposite of the movement: credits given back, filed as clawed back.
-      outcome: wantsRestore ? "restored" : outcome,
+      outcome: wantsDismiss ? "no_action_required" : wantsRestore ? "restored" : outcome,
+      dismissed: wantsDismiss,
       note,
       actorAuthUserId,
       actorRosterId,
@@ -345,6 +367,9 @@ export async function POST(request: NextRequest) {
 
     let movedCents = 0;
     let recoveryAccruedCents = 0;
+    if (wantsDismiss) {
+      return NextResponse.json({ ok: true, outcome: "dismissed", movedCents: 0, movedDisplay: formatCreditsCents(0) });
+    }
     if (wantsRestore) {
       const restored = await restoreCreditsForWonDispute({
         paymentRecordId: row.paymentRecordId,
@@ -477,9 +502,28 @@ export async function POST(request: NextRequest) {
       // for in the other direction.
       const reversalDeduplicated =
         reversed.outcome === "reversed" && reversed.deduplicated === true && reversed.reversedCents === 0;
+      const reversalAlreadySatisfied = async (): Promise<boolean> => {
+        const existing = await ports.findLedgerEntryByIdempotencyKey(
+          reversalIdempotencyKey(row.kind, resolutionExternalId),
+        );
+        if (!existing) return false;
+        const owner = await ports.findPaymentRecordIdForLedgerEntry?.(existing.id);
+        if (owner !== row.paymentRecordId) return false;
+        const basis = await ports.sumReversalBasisForPayment(row.paymentRecordId, row.kind);
+        return basis >= 0 && basis >= Math.floor(row.cumulativeRefundedCents);
+      };
       if (reversed.outcome === "reversed" && !reversalDeduplicated) {
         movedCents = reversed.reversedCents;
         recoveryAccruedCents = reversed.recoveryAccruedCents ?? 0;
+      } else if (reversalDeduplicated && (await reversalAlreadySatisfied())) {
+        // THE RAIL GOT THERE FIRST, AND THAT DISCHARGES THE OBLIGATION.
+        //
+        // A deduplicated call means this key's movement was made by something else. When that
+        // something else was the rail's own delivery of the SAME refund on the SAME payment, and
+        // the money-returned position it recorded already covers this row's figure, the row IS
+        // settled — refusing it re-filed a fresh open row on every attempt, for ever, and the only
+        // control that would close it was a dismissal of an obligation that had in fact been met.
+        movedCents = 0;
       } else if (reversalDeduplicated) {
         const refiled = await enqueueUnattributableRefund({
           paymentRecordId: row.paymentRecordId,
@@ -489,6 +533,7 @@ export async function POST(request: NextRequest) {
           stripeChargeId: row.stripeChargeId,
           externalRef: refiledRefundResolution(row, refundExternalId).externalRef,
         }).catch(() => ({ ok: false as const, error: "enqueue_threw" }));
+        await recordResolutionMovedNothing(id, actorAuthUserId);
         return NextResponse.json(
           {
             ok: false,

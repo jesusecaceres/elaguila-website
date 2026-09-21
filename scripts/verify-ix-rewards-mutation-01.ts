@@ -177,7 +177,7 @@ const MUTATIONS: readonly Mutation[] = [
       "A queue row is CLOSED before the refund id is validated, so an operator who leaves the box " +
       "empty destroys the obligation: the row reads resolved and nothing moved.",
     file: ADMIN,
-    find: "    if (!wantsRestore && outcome === \"reversed\" && (!refundExternalId || refundExternalId.length < 4)) {\n      // Without a canonical refund id there is no stable idempotency anchor, and the whole reason\n      // this row exists is that the payload did not carry one.\n      return NextResponse.json({ ok: false, error: \"refund_external_id_required\" }, { status: 400 });\n    }",
+    find: "    if (!wantsRestore && !wantsDismiss && outcome === \"reversed\" && (!refundExternalId || refundExternalId.length < 4)) {\n      // Without a canonical refund id there is no stable idempotency anchor, and the whole reason\n      // this row exists is that the payload did not carry one.\n      return NextResponse.json({ ok: false, error: \"refund_external_id_required\" }, { status: 400 });\n    }",
     replace: "    // MUTATED: the refund id is validated after the claim instead.",
     suite: "route",
     expect: ["Y1"],
@@ -301,7 +301,7 @@ const MUTATIONS: readonly Mutation[] = [
       "The queue's refund-id guard is disabled while its message and its position stay put, so an " +
       "operator who leaves the box empty closes the obligation with nothing moved.",
     file: ADMIN,
-    find: "    if (!wantsRestore && outcome === \"reversed\" && (!refundExternalId || refundExternalId.length < 4)) {",
+    find: "    if (!wantsRestore && !wantsDismiss && outcome === \"reversed\" && (!refundExternalId || refundExternalId.length < 4)) {",
     replace: "    if (false) {",
     suite: "route",
     expect: ["Y1"],
@@ -321,7 +321,7 @@ const MUTATIONS: readonly Mutation[] = [
       "The queue accepts an outcome that contradicts the row: a won-dispute row settled as a " +
       "reversal, which moves nothing and destroys the obligation.",
     file: ADMIN,
-    find: "    if (row.isRestorationWork && !wantsRestore && outcome !== \"no_action_required\") {",
+    find: "    if (row.isRestorationWork && !wantsRestore && !wantsDismiss && outcome !== \"no_action_required\") {",
     replace: "    if (false) {",
     suite: "route",
     expect: ["Y2"],
@@ -557,7 +557,7 @@ const MUTATIONS: readonly Mutation[] = [
       "A won-dispute row can no longer be closed at all: Restore moves nothing and No-action is refused, " +
       "so the row stays open for ever and the operator only ever reads an error code.",
     file: ADMIN,
-    find: "    if (row.isRestorationWork && !wantsRestore && outcome !== \"no_action_required\") {",
+    find: "    if (row.isRestorationWork && !wantsRestore && !wantsDismiss && outcome !== \"no_action_required\") {",
     replace: "    if (row.isRestorationWork && !wantsRestore) {",
     suite: "route",
     expect: ["Y3"],
@@ -815,8 +815,8 @@ const MUTATIONS: readonly Mutation[] = [
       "The idempotency anchor is derived for EVERY outcome again, so every truncated-payload row — the " +
       "whole reason this queue exists — becomes unclosable through the screen.",
     file: ADMIN,
-    find: "    if (wantsRestore || outcome === \"reversed\") {",
-    replace: "    if (true) {",
+    find: "    if (!wantsDismiss && (wantsRestore || outcome === \"reversed\")) {",
+    replace: "    if (!wantsDismiss) {",
     suite: "route",
     expect: ["Y3d"],
   },
@@ -880,6 +880,28 @@ const MUTATIONS: readonly Mutation[] = [
     replace: "      return ((data ?? []) as { amount_cents: number }[]).reduce((a, r) => a + Number(r.amount_cents ?? 0), 0);\n    },\n\n    async sumReversalBasisForPayment",
     suite: "route",
     expect: ["Z18"],
+  },
+  {
+    defect:
+      "The per-dispute restoration bound is bypassed for PRODUCTION-LENGTH dispute ids only. A payment " +
+      "disputed twice at $50.00, with one won, then restores the full 900 instead of 450: 450 credits " +
+      "from nothing, in the authoritative engine, invisible to any fixture shorter than a real Stripe id.",
+    file: MIGRATION,
+    find: "        IF p_amount_cents > v_dispute_claimed THEN",
+    replace: "        IF p_amount_cents > v_dispute_claimed AND length(p_source_id) < 12 THEN",
+    suite: "sql",
+    expect: ["S5"],
+  },
+  {
+    defect:
+      "A CUMULATIVE queue amount is passed as a per-event contribution, so it is ADDED to the prior " +
+      "basis: two truncated rows on one payment claw back 675 where 450 is owed. The mirror of the " +
+      "defect `Y13` covers, and it had no check at all.",
+    file: ADMIN,
+    find: "        cumulativeRefundedCents: perEvent ? null : row.cumulativeRefundedCents,",
+    replace: "        cumulativeRefundedCents: null,",
+    suite: "route",
+    expect: ["Y16b"],
   },
 ];
 

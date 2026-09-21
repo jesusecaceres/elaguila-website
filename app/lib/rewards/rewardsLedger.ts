@@ -365,6 +365,17 @@ export function buildRewardsStorePort(): RewardsStorePort {
     // permissive as the whole clawback, and the staff dismissal guard agreed that no obligation
     // was outstanding. `-1` can never be a real sum, so a caller can tell "nothing" from "we do
     // not know" and refuse rather than proceed.
+    async findPaymentRecordIdForLedgerEntry(entryId: string) {
+      const { data, error } = await db
+        .from("leonix_rewards_ledger")
+        .select("payment_record_id")
+        .eq("id", entryId)
+        .maybeSingle();
+      if (error) return null;
+      const row = data as { payment_record_id?: string | null } | null;
+      return row?.payment_record_id ? String(row.payment_record_id) : null;
+    },
+
     async sumRestoredForPayment(paymentRecordId: string) {
       const { data, error } = await db
         .from("leonix_rewards_ledger")
@@ -678,16 +689,22 @@ async function releaseRevokedBusinessBinding(businessId: string, userId: string)
     await getAdminSupabase()
       .from("leonix_rewards_wallets")
       .update({ bound_user_id: null, updated_at: new Date().toISOString() })
-      // BOTH SCOPES, AND ONE OF THEM IS UNPROVEN BY TEST — SAID PLAINLY.
+      // BOTH SCOPES, AND WHICH ONE IS LOAD-BEARING — SAID PLAINLY, AND CORRECTED ONCE.
       //
-      // The business scope is exercised (`Z16`). The `bound_user_id` compare-and-set is NOT: this
-      // function is only ever reached from a branch that has just read `bound_user_id = userId`,
-      // so in a single resolution the two scopes select the same row and no test can tell them
-      // apart. It defends a narrow concurrent window — a second, stale resolution for this user
-      // arriving after the binding was released AND re-bound to a successor — which cannot be
-      // staged from outside the module. It stays because it costs one predicate and the failure it
-      // prevents is somebody else's wallet identity; it is recorded as unproven rather than
-      // counted as evidence.
+      // The `bound_user_id` compare-and-set is the one that matters, and it IS exercised: `Z16`
+      // seeds a successor bound to the SAME business and requires their identity to survive.
+      // Dropping it releases that successor's binding.
+      //
+      // The `business_id` predicate is REDUNDANT while `leonix_rewards_wallets_bound_user_idx`
+      // stays globally unique — one wallet per bound user means the user scope already selects at
+      // most one row — so no test can distinguish dropping it, and none pretends to. It stays
+      // because the redundancy is the index's property, not this function's, and an index that
+      // later becomes per-business would make this the only thing standing between one customer's
+      // revocation and another customer's wallet identity.
+      //
+      // An earlier version of this comment claimed the reverse — that the business scope was
+      // proven and the user scope was not. It was written before `Z16` had the fixture to tell
+      // them apart, and a certification that reads comments as evidence cannot carry a false one.
       .eq("business_id", businessId)
       .eq("bound_user_id", userId);
   } catch {

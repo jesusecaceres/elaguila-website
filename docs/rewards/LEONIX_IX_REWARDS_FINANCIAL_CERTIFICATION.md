@@ -28,11 +28,16 @@ checks then in place could see in either direction. Round 4 then verified Round 
 **nine more** (§3e), including **two BLOCKERs that Round 3's own repairs had introduced** — a staff
 write-off that creates credits when a dispute is later won, and a fixture so much shorter than a
 real Stripe refund id that the double clawback could be put straight back with all four suites
-green. Every one is repaired or, where repairing it would ship money-creating code, **removed**.
+green. Every one is repaired or, where repairing it would ship money-creating code, **removed**. Round 5
+verified Round 4 and found **nine more** (§3f), two of them blind spots rather than defects: places
+where a change that CREATES MONEY passed the entire certification, one of them in the authoritative
+SQL engine, hidden behind test fixtures shorter than a real Stripe id.
 
 That is the shape of this whole mission, said once: **every round's repairs introduced defects that
-the round's own tests could not see — without exception, in four rounds.** Six of Round 1's
-nineteen findings were mine; Round 3's BLOCKER was mine; both of Round 4's were mine. The only
+the round's own tests could not see — without exception, in five rounds.** Six of Round 1's
+nineteen findings were mine; Round 3's BLOCKER was mine; both of Round 4's were mine; and Round 5
+found two more of mine, one of which creates money inside the database function everything else
+defers to. The only
 reason none of them is in the shipped code is that each round's reviewers were given the complete
 diff and told nothing had been fixed.
 
@@ -56,9 +61,9 @@ Two structural changes carry this certification:
    grants.
 2. **The HTTP layer is proven by execution too.** The route handlers are CALLED — the customer
    wallet read, the staff API, the CSV reconciliation and the customer checkout — against stubs the
-   test drives, with a Stripe recorder in place of any call. 47 checks, no text matching.
+   test drives, with a Stripe recorder in place of any call. 50 checks, no text matching.
 
-The mutation harness reintroduces **85 defects** and requires a NAMED check to fail for each. Every
+The mutation harness reintroduces **87 defects** and requires a NAMED check to fail for each. Every
 one of the nineteen that previously survived is now caught.
 
 ---
@@ -264,7 +269,7 @@ certification is the real one.
 `scripts/verify-ix-rewards-route-behavior-01.ts` (35 checks) calls `GET /api/rewards/wallet`,
 `GET`/`POST /api/admin/rewards`, `POST /api/admin/rewards/reconciliation` and
 `POST /api/revenue-os/checkout`, and asserts the answers and the writes. The mutation harness now
-carries **85 mutations, up from 45**, and **every one of the nineteen survivors is caught**, each by
+carries **87 mutations, up from 45**, and **every one of the nineteen survivors is caught**, each by
 a named check that fails for the defect and passes for the rename.
 
 The one exception is recorded rather than quietly dropped: quadrupling the ceiling passed to
@@ -387,6 +392,48 @@ behaviour-preserving refactors produced **0 false reds** — the suites are no l
 in the places the earlier rounds' reviewers broke. No path was found where
 `reversal_key_belongs_to_another_wallet` refuses a legitimate retry: `findEarnForPayment` returns
 the earn's own `wallet_id`, which is stable across binding changes.
+
+---
+
+## 3f. Round 5 — verifying Round 4, and the fixture that hid money creation in the SQL engine
+
+The fifth reviewer was given Round 4's diff and the same warning its predecessors had earned: that
+every round's repairs introduce defects its own tests cannot see. Two of their findings were about
+**blind spots rather than defects** — places where a money-creating change passes the entire
+certification — which is the harder and more important kind.
+
+| # | Finding | Severity | Demonstrated | Disposition |
+|---|---|---|---|---|
+| V1 | **Two failed-read sentinels were declared and never applied.** Round 4's comment made `-1` the rule; `sumReversedForPayment` and `sumReversalBasisForPayment` still returned `0`, and the promotion sweep used `.catch(() => 0)`. | **BLOCKER** | With one read failing: a second $25.00 refund reversed 450 instead of 225, **675 total where 450 is owed**; and the sweep promoted **900 where 450 is correct**, under the idempotent `promote:payment:<id>` key, so no later sweep corrects it. | **Already repaired** in the commit that landed during the review — found by tracing the fix to its neighbours rather than by the reviewer, and recorded here as confirmation, not as a catch. |
+| V2 | **The SQL suite's Stripe ids are 4–8 characters.** Round 4 fixed fixture length in the ROUTE suite and left the authoritative engine's fixtures untouched. Conditioning the per-dispute restoration bound on `length(p_source_id) < 12` — so it applies only to test-shaped ids — left **all 373 assertions green**. | **HIGH** | Against real PostgreSQL with a 27-character dispute id: a payment disputed twice at $50.00, one won, restored **900 instead of 450**. **450 credits from nothing**, in the bound the migration's own comment says exists to prevent exactly that. | **Repaired.** Every `dp_*`/`re_*` fixture in the SQL suite is now a deterministic 27-character production-shaped id, and a mutation conditions that bound on `length(p_source_id)` and requires `S5` to fail. |
+| V3 | **The over-clawback direction of the queue's amount semantics had no check at all.** `cumulativeRefundedCents: perEvent ? null : …` → `cumulativeRefundedCents: null` is one token and left every suite green; the mutation suite covered only the mirror (under-reversal, `Y13`), and `Y16` is blind because it resolves both rows with the SAME refund id, so the second call deduplicates before any arithmetic runs. | **HIGH** | Two truncated rows on one $100.00 payment, each with its own real refund id: **675 clawed back where 450 is owed.** | **Repaired.** `Y16b` resolves them with two distinct production-length ids and requires 450, and the mirror mutation is added. |
+| V4 | **A won-dispute row whose clawback never arrives can be closed by nothing.** A dispute whose `dispute.created` was lost to a webhook outage produces no `chargeback_reversal` ever, and Round 4's guard refused every control on the screen — the third appearance of the "row nobody can close" defect. | **MEDIUM** | All three outcomes 409 against the real route; the row stays open for ever. | **Repaired, without weakening the guard.** "The clawback is in flight" and "it will never come" are indistinguishable from the ledger, and the mistakes are not symmetric, so `no_action_required` still refuses. The exit is a new, explicitly audited `dismissed` outcome: it lands as `dismissed` rather than `resolved`, so an auditor can tell a judgement call from a settlement, and it demands a longer note than any other outcome. `Y3e` proves both halves. |
+| V5 | **The deduplicated re-file cycles for ever when the rail settled it first.** A truncated row whose refund the rail later delivered properly was re-filed on every attempt — the obligation WAS discharged, so refusing was wrong. | **MEDIUM** | Three attempts, three fresh open rows, attempts reset each time. | **Repaired.** The row closes when the entry holding the key is on THIS payment and the money-returned position it recorded already covers the row's figure; otherwise it still re-files. `Y17` proves both branches, including that a key spent by a DIFFERENT payment is refused before the claim, so that row is never closed at all. |
+| V6 | **A closed row claimed an outcome it did not achieve.** The claim precedes the movement — that is the mutual exclusion — so a movement that then deduplicated left `resolution_outcome = 'reversed'` with a null ledger id. An auditor reading the table alone counted a reversal that never happened. | **LOW** | Read back from the table after a re-file. | **Repaired.** `recordResolutionMovedNothing` rewrites the outcome and appends what actually happened to the note. Asserted inside `Y16`. |
+| V7 | **`Z18` was coupled to the SPELLING of a select string.** Widening `.select("amount_cents")` to `.select("id, amount_cents")` — behaviour-identical — turned it RED. The same mechanism is what hid V1: injecting on one exact column list made the check structurally unable to reach two reads whose lists merely differed. | **LOW (evidence integrity)** | Executed. | **Repaired.** Failure injection targets a query by the columns it ASKS FOR (`{requires, excludes}`), which is insensitive to order, whitespace and additions and still specific enough to break one read without breaking the lookup before it. The widening now leaves the suite green, and the two reads V1 was about are reachable. |
+| V8 | **`Z16`'s fixture proved neither predicate, and the comment beside the code stated the opposite of the truth.** | **LOW** | Two mutations, both green at the time. | **Repaired, and the comment corrected in both directions.** `Z16` now seeds a successor bound to the SAME business, so dropping the user scope is caught. The `business_id` predicate is **redundant while `bound_user_id` is globally unique** — one wallet per bound user means the user scope already selects at most one row — so no test can distinguish dropping it, and the comment now says that instead of claiming coverage it does not have. |
+| V9 | **The harness generated non-UUID row ids**, so no check could drive a route action against a row the SYSTEM created — every route gate starts with `isUuid`. A whole class of follow-through was untestable. | **LOW** | Executed. | **Repaired.** `__nextId` emits UUID-shaped ids. |
+
+### One incident worth recording, because it is the same lesson
+
+While repairing V7, a `git checkout --` used to undo an experiment silently discarded **uncommitted
+work in the same file** — an adapter method added minutes earlier. Nothing announced it. The route
+suite caught it on the next run, by failing the one check that needed that method.
+
+That is the argument for the mutation harness working on a disposable copy rather than the live
+tree (§3c), made again from the other direction: a tool that reaches into the working tree to undo
+something is a tool that can undo something else.
+
+### Negative results
+
+**500 trials × 12 random operations = 6000 posts** against real PostgreSQL 16.13, covering all
+eleven entry types and the full redemption lifecycle, with 2489 refusals by the engine: **0 replay
+mismatches** across all ten balance fields, **0 negative buckets**, **0 payments where the net
+clawback exceeded that payment's earn**, and `recovery = accrued − offset` in all 500. **12 trials
+× 6 genuinely concurrent psql sessions** reversing one payment at six cumulative positions with a
+CAS-retry loop: all twelve converged on **exactly 900**, six rows each, no over- or under-reversal.
+Ten independently written text-preserving mutations of this round's new checks: **10/10 caught.**
+Four behaviour-preserving refactors: three green, one false red (V7, now repaired).
 
 ---
 
@@ -753,7 +800,7 @@ It runs on a **disposable copy of the tree**, never on the repository — an ear
 the live working tree, and an interrupted run was shown to leave money-moving source files
 defective on disk.
 
-The harness carries **85** mutations. They fall into five groups, and the groups matter more than
+The harness carries **87** mutations. They fall into five groups, and the groups matter more than
 the individual rows:
 
 1. **The original repairs** (#1–15) — each money defect from §3, put back.
@@ -869,9 +916,9 @@ Run at the final committed state. `PGHOST`/`PGPORT`/`PGUSER` point at a throwawa
 | Command | Exit |
 |---|---|
 | `npx tsx scripts/verify-ix-rewards-behavior-01.ts` — 182 behavioural checks | 0 |
-| `npx tsx --tsconfig scripts/lib/tsconfig.harness.json scripts/verify-ix-rewards-route-behavior-01.ts` — 47 checks that EXECUTE the route handlers and the production adapter | 0 |
+| `npx tsx --tsconfig scripts/lib/tsconfig.harness.json scripts/verify-ix-rewards-route-behavior-01.ts` — 50 checks that EXECUTE the route handlers and the production adapter | 0 |
 | `bash scripts/verify-ix-rewards-sql-behavior-01.sh` — 142 in-session assertions + 2 **timed** cross-session concurrency proofs, against real PostgreSQL 16.13 | 0 |
-| `npx tsx scripts/verify-ix-rewards-mutation-01.ts` — 85 defects reintroduced, each caught by a named check, on a disposable copy of the tree | 0 |
+| `npx tsx scripts/verify-ix-rewards-mutation-01.ts` — 87 defects reintroduced, each caught by a named check, on a disposable copy of the tree | 0 |
 | `npx tsx scripts/verify-quick-product-boundary-01.ts` — 52 checks | 0 |
 | `npx tsx scripts/verify-quick-business-core-01.ts` | 0 |
 | `npx tsx scripts/verify-quick-lifecycle-media-behavior-01.ts` — 35 checks | 0 |

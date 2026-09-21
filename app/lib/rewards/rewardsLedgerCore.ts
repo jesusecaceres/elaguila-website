@@ -243,6 +243,14 @@ export type RewardsStorePort = {
    */
   sumRestoredForPayment?(paymentRecordId: string): Promise<number>;
   /**
+   * Which payment a ledger entry belongs to, when the caller holds only its id.
+   *
+   * `reverse:<kind>:<id>` is globally unique, so a deduplicated reversal may have been made by a
+   * movement on an ENTIRELY DIFFERENT payment. Telling those apart is what separates "the rail
+   * already settled this row" from "this row's key was spent by somebody else".
+   */
+  findPaymentRecordIdForLedgerEntry?(entryId: string): Promise<string | null>;
+  /**
    * What a payment's reversals of ONE KIND have claimed. A dispute restoration must be bounded by
    * what the DISPUTE took, never by what a separate refund took on the same payment.
    */

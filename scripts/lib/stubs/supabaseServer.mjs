@@ -52,15 +52,22 @@ export function __setAuthUsers(users) {
  * produce a read error can never reach them, and the comments claiming they are load-bearing go
  * unverified.
  */
-export function __failReadsOn(table, selectEquals) {
+export function __failReadsOn(table, selector) {
   if (!table) {
     failingReads.clear();
     return;
   }
-  // `selectEquals` narrows the failure to reads that request EXACTLY that column list, so a test
-  // can break one query without breaking every other read of the same table. Without it, a check
-  // meant to exercise one sentinel fails an earlier lookup instead and never reaches it.
-  failingReads.set(table, selectEquals ?? null);
+  // TARGETED BY COLUMNS, NOT BY SPELLING.
+  //
+  // Matching the select STRING was wrong twice over: a harmless `.select("id, amount_cents")`
+  // widening turned a check RED, and — far worse — a check that injected on `"amount_cents"` was
+  // structurally unable to reach two other reads whose column lists merely differed, which is how
+  // two unapplied failed-read sentinels passed a suite written to catch exactly that.
+  //
+  // `{ requires, excludes }` says which query is meant in terms of what it ASKS FOR, so it is
+  // insensitive to order, whitespace and additions, and still specific enough to break one read
+  // without breaking the lookup that runs before it.
+  failingReads.set(table, selector ?? null);
 }
 
 export function __seed(table, rows) {
@@ -76,8 +83,23 @@ export function __onRpc(handler) {
   rpcHandler = handler;
 }
 export function __nextId(prefix) {
+  // UUID-SHAPED, because the routes gate on `isUuid` before anything else. Ids like
+  // `leonix_rewards_refund_resolutions-00000001` meant no check could ever drive a route action
+  // against a row the SYSTEM created — only against hand-seeded fixtures — so a whole class of
+  // follow-through (resolve a re-filed row) was untestable. The prefix is kept in a comment-free
+  // way: the sequence is encoded in the last field so a failure message is still readable.
   idSeq += 1;
-  return `${prefix}-${String(idSeq).padStart(8, "0")}`;
+  const tag = String(idSeq).padStart(12, "0");
+  const lane = String(Math.abs(hashString(prefix)) % 0xffff).padStart(4, "0");
+  return `ffffffff-${lane}-4fff-8fff-${tag}`;
+}
+
+function hashString(value) {
+  let h = 0;
+  for (let i = 0; i < String(value).length; i += 1) {
+    h = (Math.imul(31, h) + String(value).charCodeAt(i)) | 0;
+  }
+  return h;
 }
 
 /** Column defaults the migration declares, for the tables whose inserts omit them. */
@@ -297,10 +319,19 @@ class Query {
       tables.set(this.table, store.filter((r) => !ids.has(r.id)));
       return { data: targets, error: null };
     }
-    if (
-      failingReads.has(this.table) &&
-      (failingReads.get(this.table) === null || failingReads.get(this.table) === this.selectedColumns)
-    ) {
+    // MATCHED ON THE COLUMNS, NOT ON THE SPELLING. Comparing the select STRING made a test that
+    // exists to catch a fail-open go red for a harmless `.select("id, amount_cents")` widening —
+    // and, worse, structurally unable to see two other reads whose column lists differed. Both
+    // halves of that were real: the false red, and the two unapplied sentinels it hid.
+    const wanted = failingReads.get(this.table);
+    const requested = new Set(
+      String(this.selectedColumns ?? "").split(",").map((c) => c.trim()).filter(Boolean),
+    );
+    const matchesWanted =
+      !wanted ||
+      ((wanted.requires ?? []).every((c) => requested.has(c)) &&
+        (wanted.excludes ?? []).every((c) => !requested.has(c)));
+    if (failingReads.has(this.table) && matchesWanted) {
       return { data: null, count: null, error: { code: "57014", message: "harness: read failed" } };
     }
     const data = this._matching();
