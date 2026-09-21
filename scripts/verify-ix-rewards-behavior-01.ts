@@ -2800,6 +2800,73 @@ async function main() {
     assert.equal(end.lifetimeEarnedCents, 1_800, "and it is still not counted as new earning");
   });
 
+  await check("P4c: the in-memory store handles EXACTLY the entry types the SQL does", () => {
+    // THE FAILURE MODE THIS CLOSES. A money-creating bug shipped here once because the store
+    // modelled only bucket arithmetic while the database enforced more, so the tests passed
+    // against a store that disagreed with production. Adding an arm to one side and forgetting
+    // the other is the same mistake in slower motion, so the two sets are compared directly.
+    const sql = readFileSync(MIGRATION_PATH, "utf8");
+    const postFn = sql.slice(sql.indexOf("CREATE OR REPLACE FUNCTION public.leonix_rewards_post_entry"));
+    const postCase = postFn.slice(postFn.indexOf("CASE p_entry_type"), postFn.indexOf("END CASE;"));
+    const sqlTypes = new Set(
+      [...postCase.matchAll(/WHEN ((?:'[a-z_]+'(?:, )?)+) THEN/g)]
+        .flatMap((m) => m[1]!.split(",").map((t) => t.trim().replace(/'/g, ""))),
+    );
+
+    const self = readFileSync("scripts/verify-ix-rewards-behavior-01.ts", "utf8");
+    const deltas = self.slice(self.indexOf("const recoveryNow = w.recoveryCents"), self.indexOf("default: throw new Error(`unsupported entry_type"));
+    const mockTypes = new Set([...deltas.matchAll(/case "([a-z_]+)":/g)].map((m) => m[1]!));
+
+    const core = readFileSync("app/lib/rewards/rewardsLedgerCore.ts", "utf8");
+    const union = core.slice(core.indexOf("export type LedgerEntryInput"), core.indexOf("amountCents: number;", core.indexOf("export type LedgerEntryInput")));
+    const tsTypes = new Set([...union.matchAll(/\| "([a-z_]+)"/g)].map((m) => m[1]!));
+
+    assert.ok(sqlTypes.size >= 12, `the SQL CASE was parsed (${sqlTypes.size} arms)`);
+    const missingFromMock = [...sqlTypes].filter((t) => !mockTypes.has(t)).sort();
+    const missingFromSql = [...mockTypes].filter((t) => !sqlTypes.has(t)).sort();
+    const missingFromUnion = [...sqlTypes].filter((t) => !tsTypes.has(t)).sort();
+    assert.deepEqual(missingFromMock, [], "every SQL entry type is modelled by the store");
+    assert.deepEqual(missingFromSql, [], "the store models nothing the database would refuse");
+    assert.deepEqual(missingFromUnion, [], "and the TypeScript union names them all");
+
+    // The stored VOCABULARY and the handled arms must be the same set too. A type the CHECK
+    // accepts but the CASE does not handle falls through to `unsupported entry_type` — safe, but
+    // it means a row shape exists that nothing can ever post, which is drift worth catching.
+    const typeChk = /entry_type IN \(([\s\S]*?)\)\),/.exec(sql)?.[1] ?? "";
+    const vocabulary = new Set([...typeChk.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]!));
+    assert.ok(vocabulary.size >= 12, `the entry_type CHECK was parsed (${vocabulary.size} values)`);
+    assert.deepEqual(
+      [...vocabulary].filter((t) => !sqlTypes.has(t)).sort(),
+      [],
+      "every storable entry type is handled by the posting function",
+    );
+    assert.deepEqual(
+      [...sqlTypes].filter((t) => !vocabulary.has(t)).sort(),
+      [],
+      "and the posting function handles nothing the CHECK would reject",
+    );
+
+    // Every REFUSAL the SQL states by name must also be modelled, or the store would let through
+    // a movement the database aborts — which is how the tests came to certify a wallet the
+    // database would never have produced.
+    const sqlRefusals = [
+      ["exceeds pending", "promotion_exceeds_pending"],
+      ["has an outstanding recovery balance", "recovery_outstanding"],
+      ["redemption of % exceeds available", "redemption_exceeds_available"],
+      ["commit of % exceeds reserved", "commit_exceeds_reserved"],
+      ["release of % exceeds reserved", "release_exceeds_reserved"],
+      ["re-debit of % exceeds available", "recommit_exceeds_available"],
+      ["restoration of % exceeds what was reversed", "restoration_exceeds_reversed"],
+      ["offset of % exceeds recovery", "offset_exceeds_recovery"],
+      ["adjustment of % exceeds available", "adjustment_exceeds_balance"],
+      ["expiry of % exceeds available", "expiry_exceeds_available"],
+    ] as const;
+    for (const [inSql, inMock] of sqlRefusals) {
+      assert.ok(postCase.includes(inSql) || postFn.includes(inSql), `SQL refuses: ${inSql}`);
+      assert.ok(deltas.includes(inMock), `and the store models it: ${inMock}`);
+    }
+  });
+
   await check("P5: recovery copy is honest in both languages and never claims expiry", () => {
     for (const lang of ["es", "en"] as const) {
       const copy = recoveryBalanceCopy(lang, { recoveryCents: 3_232 });
