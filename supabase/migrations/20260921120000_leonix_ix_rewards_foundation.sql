@@ -832,7 +832,10 @@ BEGIN
     SELECT *
     FROM public.leonix_rewards_ledger
     WHERE wallet_id = p_wallet_id
-    ORDER BY entry_seq ASC NULLS LAST, created_at ASC, id ASC
+    -- NULLS FIRST: a row written before the sequence existed is chronologically EARLIER than any
+    -- sequenced row, so sorting it last would replay history out of order on a table this
+    -- migration is written to be re-appliable over.
+    ORDER BY entry_seq ASC NULLS FIRST, created_at ASC, id ASC
   LOOP
     CASE v_entry.entry_type
       WHEN 'reversal_restoration' THEN
@@ -880,10 +883,16 @@ BEGIN
         v_redeemed := v_redeemed + v_entry.amount_cents;
       WHEN 'refund_reversal', 'chargeback_reversal' THEN
         -- Pending first, then available — the posting rule, replayed against the balances as they
-        -- stood at this point in the history. `amount_cents` is what the reversal ACTUALLY moved,
-        -- so a clawback that outran the wallet is replayed as the partial movement it was; the
-        -- shortfall it recorded is carried by its own `recovery_accrue` entry, not re-derived
-        -- here. Deriving it twice would double the debt on every recomputation.
+        -- stood at this point in the history.
+        --
+        -- THE SHORTFALL IS RE-DERIVED HERE, and it has to be. The posting arm folds the debt into
+        -- the SAME statement that writes this row: `amount_cents` is the CLAIMED amount and there
+        -- is no separate `recovery_accrue` entry to carry the remainder. An earlier version of
+        -- this comment said there was, and the replay trusted it — so recomputation reconstructed
+        -- a wallet with the debt ERASED. That is not a cosmetic drift: a zero `recovery_cents`
+        -- also lifts the redemption block, so one reconciliation call handed the customer back
+        -- credits they owed and let them spend them. Mirroring the posting arm exactly is the
+        -- whole contract of this function.
         v_cover := LEAST(v_entry.amount_cents, v_pending + v_available);
         IF v_pending >= v_cover THEN
           v_pending := v_pending - v_cover;
@@ -892,6 +901,8 @@ BEGIN
           v_pending := 0;
         END IF;
         v_reversed := v_reversed + v_cover;
+        v_recovery := v_recovery + (v_entry.amount_cents - v_cover);
+        v_recovery_accrued := v_recovery_accrued + (v_entry.amount_cents - v_cover);
       WHEN 'manual_adjustment' THEN
         IF v_entry.amount_cents > 0 THEN
           v_available := v_available + v_entry.amount_cents;

@@ -54,7 +54,9 @@ function toSnapshot(row: WalletRow): WalletSnapshot {
 }
 
 const WALLET_COLUMNS =
-  "id, pending_cents, available_cents, reserved_cents, lifetime_earned_cents, lifetime_redeemed_cents, lifetime_reversed_cents";
+  "id, pending_cents, available_cents, reserved_cents, lifetime_earned_cents, lifetime_redeemed_cents, " +
+  "lifetime_reversed_cents, recovery_cents, lifetime_recovery_accrued_cents, lifetime_recovery_offset_cents, " +
+  "lifetime_restored_cents, bound_user_id";
 
 /** Postgres unique violation — a concurrent create that lost the race is still the desired state. */
 const PG_UNIQUE_VIOLATION = "23505";
@@ -303,6 +305,15 @@ export function buildRewardsStorePort(): RewardsStorePort {
       return ((data ?? []) as { amount_cents: number }[]).reduce((a, r) => a + Number(r.amount_cents ?? 0), 0);
     },
 
+    async sumReversedForPaymentByKind(paymentRecordId: string, kind: "refund" | "chargeback") {
+      const { data } = await db
+        .from("leonix_rewards_ledger")
+        .select("amount_cents")
+        .eq("payment_record_id", paymentRecordId)
+        .eq("entry_type", kind === "refund" ? "refund_reversal" : "chargeback_reversal");
+      return ((data ?? []) as { amount_cents: number }[]).reduce((a, r) => a + Number(r.amount_cents ?? 0), 0);
+    },
+
     async sumReversedForPayment(paymentRecordId: string) {
       const { data } = await db
         .from("leonix_rewards_ledger")
@@ -445,6 +456,17 @@ export async function resolveWalletOwnerForPayment(input: {
   const paymentRecordId = input.paymentRecordId.trim();
   if (!paymentRecordId) return resolveWalletOwnerForUser(input.ownerUserId);
 
+  // THE CUSTOMER'S BINDING OUTRANKS A PAYMENT-LEVEL LINK.
+  //
+  // This link is staff-created. Consulting it first meant a customer already bound to their
+  // personal wallet EARNED into a business wallet they could never spend from at checkout, because
+  // redemption resolves through the binding. Earn and spend have to land on one wallet, so the
+  // binding is checked first and the link only decides a customer who has no wallet identity yet.
+  if (input.ownerUserId) {
+    const bound = await resolveWalletOwnerForUser(input.ownerUserId);
+    if (bound) return bound;
+  }
+
   const { data: link } = await db
     .from("business_external_links")
     .select("business_id")
@@ -454,7 +476,11 @@ export async function resolveWalletOwnerForPayment(input: {
     .limit(1)
     .maybeSingle();
   const businessId = (link as { business_id?: string } | null)?.business_id;
-  if (businessId) return { kind: "business", businessId: String(businessId) };
+  if (businessId) {
+    // Carry the payer through so this first resolution PINS the identity, instead of leaving the
+    // next lookup to re-derive a different answer.
+    return { kind: "business", businessId: String(businessId), boundUserId: input.ownerUserId ?? null };
+  }
 
   // No payment-level link: fall back to who the payer is.
   return resolveWalletOwnerForUser(input.ownerUserId);

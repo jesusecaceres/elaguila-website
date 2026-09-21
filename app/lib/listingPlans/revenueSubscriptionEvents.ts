@@ -755,10 +755,36 @@ export async function handleDisputeClosed(input: { dispute: Stripe.Dispute; even
   // fact paid. Bounded by what was reversed, keyed on the dispute, landing on the wallet that was
   // debited. Best-effort, like every other rewards hook: a rewards problem never fails a webhook.
   if (won) {
-    await restoreCreditsForWonDispute({
+    const restored = await restoreCreditsForWonDispute({
       paymentRecordId: String(paymentRecord.id),
       externalId: input.dispute.id,
-    }).catch(() => null);
+    }).catch((e: unknown) => ({
+      ok: false as const,
+      outcome: "failed" as const,
+      reason: e instanceof Error ? e.message.slice(0, 200) : "threw",
+      retryable: true as const,
+    }));
+
+    // A DROPPED RESTORATION IS MONEY THE CUSTOMER IS OWED. Swallowing the failure lost it for
+    // good: `restore:<disputeId>` is never retried on its own, and nothing else would notice.
+    //
+    // `nothing_to_restore` is queued too, because the commonest cause is ORDER: if
+    // `dispute.closed(won)` is processed before `dispute.created`, there is no clawback to undo
+    // yet and the one that lands afterwards would stand permanently.
+    const needsAPerson =
+      !restored.ok || (restored.outcome === "skipped" && restored.reason !== "payment_earned_nothing");
+    if (needsAPerson) {
+      await enqueueUnattributableRefund({
+        paymentRecordId: String(paymentRecord.id),
+        kind: "chargeback",
+        cumulativeRefundedCents: 0,
+        reason: !restored.ok
+          ? `won_dispute_restoration_failed: ${"reason" in restored ? restored.reason : "unknown"}`
+          : "won_dispute_restoration_found_nothing_to_restore",
+        stripeChargeId: typeof input.dispute.charge === "string" ? input.dispute.charge : input.dispute.charge?.id ?? null,
+        stripeEventId: input.eventId,
+      }).catch(() => undefined);
+    }
   }
 
   await writeRevenueAuditLog({

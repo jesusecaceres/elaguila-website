@@ -204,6 +204,11 @@ export type RewardsStorePort = {
    */
   sumRestoredForPayment?(paymentRecordId: string): Promise<number>;
   /**
+   * What a payment's reversals of ONE KIND have claimed. A dispute restoration must be bounded by
+   * what the DISPUTE took, never by what a separate refund took on the same payment.
+   */
+  sumReversedForPaymentByKind?(paymentRecordId: string, kind: "refund" | "chargeback"): Promise<number>;
+  /**
    * The earn entry originally produced by this payment, if any — INCLUDING the wallet it credited.
    *
    * `walletId` is the whole reason this returns a record rather than two numbers. A reversal must
@@ -389,10 +394,29 @@ export async function runPendingPromotionSweep(input: {
       continue;
     }
 
+    // PROMOTE WHAT IS ACTUALLY THERE.
+    //
+    // A reversal takes PENDING FIRST, and `pending` is one bucket shared by every payment on the
+    // wallet — so a clawback on payment B can consume payment A's pending credits. Asking to
+    // promote A's full earn then failed with `negative_balance_refused` on that sweep, and on
+    // every sweep after it, forever: the customer lost credits earned on a payment that was never
+    // refunded and the failure repeated silently at every run.
+    //
+    // Clamping to the wallet's live pending balance is what the promotion can honestly do. It is
+    // never more than this payment earned, and never more than the wallet holds.
+    const walletNow = await input.ports.getWalletById(candidate.walletId);
+    const pendingNow = Math.max(0, Number(walletNow?.pendingCents ?? 0) || 0);
+    const promoteNowCents = Math.min(promotableCents, pendingNow);
+    if (promoteNowCents <= 0) {
+      // Another payment's clawback already consumed it. Not a failure to retry forever.
+      out.skippedIneligible += 1;
+      continue;
+    }
+
     const res = await promotePendingForPayment({
       walletId: candidate.walletId,
       paymentRecordId: candidate.paymentRecordId,
-      amountCents: promotableCents,
+      amountCents: promoteNowCents,
       ports: input.ports,
     });
     if (!res.ok) {
@@ -405,7 +429,7 @@ export async function runPendingPromotionSweep(input: {
       continue;
     }
     out.promoted += 1;
-    out.promotedCents += promotableCents;
+    out.promotedCents += promoteNowCents;
   }
 
   return out;
@@ -549,11 +573,20 @@ export async function reverseForRefundOrChargeback(input: {
   const idempotencyKey = reversalIdempotencyKey(input.kind, input.externalId);
   const otherKind = input.kind === "refund" ? "chargeback" : "refund";
 
-  const [priorBasisSameKind, priorBasisOtherKind, alreadyReversedCents] = await Promise.all([
+  const [priorBasisSameKind, priorBasisOtherKind, reversedSoFarCents, restoredSoFarCents] = await Promise.all([
     input.ports.sumReversalBasisForPayment(input.paymentRecordId, input.kind),
     input.ports.sumReversalBasisForPayment(input.paymentRecordId, otherKind),
     input.ports.sumReversedForPayment(input.paymentRecordId),
+    input.ports.sumRestoredForPayment?.(input.paymentRecordId) ?? Promise.resolve(0),
   ]);
+
+  // A RESTORATION PUTS CREDITS BACK, SO IT UNDOES PART OF THE REVERSED POSITION.
+  //
+  // Without subtracting it, a refund arriving after a won dispute clawed back NOTHING: the
+  // position still read "already fully reversed", the delta came out zero, and the customer kept
+  // both the money and the rewards. A dispute won and then refunded in full returned 900 cents of
+  // credits the customer was no longer entitled to.
+  const alreadyReversedCents = Math.max(0, Math.floor(reversedSoFarCents) - Math.floor(restoredSoFarCents));
 
   // What THIS event adds to the money-returned position. A cumulative rail figure is converted to
   // a contribution by subtracting what is already accounted for; a per-event figure is taken as-is.
@@ -984,13 +1017,22 @@ export async function restoreReversedCredits(input: {
     return { ok: true, outcome: "nothing_to_restore", restoredCents: 0, recoveryOffsetCents: 0, reason: "payment_earned_nothing", deduplicated: false };
   }
 
+  // THE BOUND IS THIS KIND'S CLAWBACK, NOT EVERY CLAWBACK ON THE PAYMENT.
+  //
+  // `sumReversedForPayment` counts refunds AND chargebacks. Using it here meant a WON DISPUTE gave
+  // back the credits a separate, entirely genuine REFUND had taken: a $100 payment refunded $50
+  // (450 reversed) and then disputed (450 reversed) restored the full 900 when the dispute was
+  // won, leaving the customer with full rewards on $50 they had been refunded. 450 cents from
+  // nothing, scaling with the refund.
+  const kind: "refund" | "chargeback" = "chargeback";
   const [reversedCents, restoredCents] = await Promise.all([
-    input.ports.sumReversedForPayment(input.paymentRecordId),
+    input.ports.sumReversedForPaymentByKind?.(input.paymentRecordId, kind) ??
+      input.ports.sumReversedForPayment(input.paymentRecordId),
     input.ports.sumRestoredForPayment?.(input.paymentRecordId) ?? Promise.resolve(0),
   ]);
 
-  // The bound. `reversed` counts what reversals actually MOVED; a clawback that outran the wallet
-  // recorded the rest as recovery, and the recovery entry carries its own restoration path.
+  // The bound. `reversed` counts what THIS KIND of reversal claimed; a clawback that outran the
+  // wallet recorded the rest as recovery, and the restoration cancels that debt first.
   const outstanding = Math.max(0, Math.floor(reversedCents) - Math.floor(restoredCents));
   const requested =
     typeof input.requestedCents === "number" && Number.isFinite(input.requestedCents)

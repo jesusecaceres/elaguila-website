@@ -363,6 +363,12 @@ function makeStore(opts?: { now?: () => number }) {
       const e = entries.find((x) => x.id === id)!;
       return { id: e.id, walletId: e.walletId, entryType: e.entryType, amountCents: e.amountCents };
     },
+    async sumReversedForPaymentByKind(paymentRecordId, kind) {
+      const entryType = kind === "refund" ? "refund_reversal" : "chargeback_reversal";
+      return entries
+        .filter((e) => e.paymentRecordId === paymentRecordId && e.entryType === entryType)
+        .reduce((a, e) => a + e.amountCents, 0);
+    },
     async sumRestoredForPayment(paymentRecordId) {
       return entries
         .filter((e) => e.paymentRecordId === paymentRecordId && e.entryType === "reversal_restoration")
@@ -1711,6 +1717,17 @@ async function main() {
           .replace(/v_redeemed_delta|v_redeemed/g, "REDEEMED")
           .replace(/v_reversed_delta|v_reversed/g, "REVERSED")
           .replace(/v_draw|v_take/g, "DRAW")
+          // Recovery and restoration, normalized the same way. These were missing entirely, which
+          // is why the one check built to compare the two CASE blocks could not see that the
+          // replay skipped the debt the posting arm accrued.
+          .replace(/v_recovery_accrued_delta|v_recovery_accrued/g, "RECOVERY_ACCRUED")
+          .replace(/v_recovery_offset_delta|v_recovery_offset/g, "RECOVERY_OFFSET")
+          .replace(/v_restored_delta|v_restored/g, "RESTORED")
+          // The refusal guard reads `v_wallet.recovery_cents`; that is a CONDITION, not a
+          // movement, so it is renamed apart from the delta it guards. Comparing the two would
+          // report a false disagreement on every arm that merely checks the debt before acting.
+          .replace(/v_wallet\.recovery_cents/g, "RECOVERY_READ")
+          .replace(/v_recovery_delta|v_recovery\b/g, "RECOVERY")
           .replace(/\s+/g, " ")
           .trim();
         for (const t of types) arms.set(t, bodyText);
@@ -1736,7 +1753,13 @@ async function main() {
     for (const [type, postBody] of postArms) {
       const replayBody = replayArms.get(type);
       assert.ok(replayBody !== undefined, `the replay must handle ${type}`);
-      for (const bucket of ["pending", "available", "reserved", "EARNED", "REDEEMED", "REVERSED"]) {
+      // RECOVERY IS IN THIS LIST NOW. It was the one field where the two CASE blocks actually
+      // disagreed — the replay skipped it entirely and erased a real debt — and the check written
+      // to compare them arm by arm could not see it, because the list stopped at the buckets.
+      for (const bucket of [
+        "pending", "available", "reserved", "EARNED", "REDEEMED", "REVERSED",
+        "RECOVERY", "RECOVERY_ACCRUED", "RECOVERY_OFFSET", "RESTORED",
+      ]) {
         const re = new RegExp(`\\b${bucket}\\b`);
         assert.equal(
           re.test(replayBody!),
@@ -1763,7 +1786,7 @@ async function main() {
     // lock, so it IS the serialization order; the timestamp survives only as a tie-break for rows
     // written before the sequence existed.
     assert.ok(
-      /FOR v_entry IN[\s\S]{0,600}ORDER BY entry_seq ASC NULLS LAST, created_at ASC, id ASC/.test(fn),
+      /FOR v_entry IN[\s\S]{0,600}ORDER BY entry_seq ASC NULLS FIRST, created_at ASC, id ASC/.test(fn),
       "entries are replayed in canonical sequence order",
     );
     assert.ok(
@@ -2865,6 +2888,232 @@ async function main() {
       assert.ok(postCase.includes(inSql) || postFn.includes(inSql), `SQL refuses: ${inSql}`);
       assert.ok(deltas.includes(inMock), `and the store models it: ${inMock}`);
     }
+  });
+
+  await check("P10 BLOCKER: a won dispute restores only what the DISPUTE took", async () => {
+    // AN ADVERSARIAL REVIEW PRODUCED 450 CENTS FROM NOTHING HERE. The bound summed refunds AND
+    // chargebacks, so winning a dispute also gave back the credits a separate, entirely genuine
+    // refund had clawed back — leaving the customer with full rewards on money they were refunded.
+    const { port } = makeStore();
+    await earnFromSettledPayment({ owner: OWNER, paymentRecordId: "p10", facts: settled({ amountPaidCents: 10_000 }), sourceKind: "stripe_payment", pendingUntilSettlementFinal: false, ports: port });
+    assert.equal((await walletOf(port, OWNER)).availableCents, 900);
+
+    // A real $50 refund takes half.
+    await reverseForRefundOrChargeback({ paymentRecordId: "p10", eventRefundedCents: 5_000, kind: "refund", externalId: "re_p10", ports: port });
+    assert.equal((await walletOf(port, OWNER)).availableCents, 450, "the refund took its proportional half");
+
+    // The customer then disputes the charge; the dispute takes the rest.
+    await reverseForRefundOrChargeback({ paymentRecordId: "p10", eventRefundedCents: 10_000, kind: "chargeback", externalId: "dp_p10", ports: port });
+    assert.equal((await walletOf(port, OWNER)).availableCents, 0);
+
+    // Leonix WINS the dispute. Only the DISPUTE's clawback comes back.
+    const res = await restoreReversedCredits({ paymentRecordId: "p10", externalId: "dp_p10", ports: port });
+    assert.equal(res.ok, true);
+    assert.equal(
+      (res as { restoredCents: number }).restoredCents,
+      450,
+      "exactly what the dispute took — NOT the refund's 450 as well",
+    );
+    assert.equal(
+      (await walletOf(port, OWNER)).availableCents,
+      450,
+      "the customer keeps rewards on the $50 they actually paid, and none on the $50 refunded",
+    );
+  });
+
+  await check("P11 BLOCKER: a refund AFTER a restoration still claws back", async () => {
+    // The reversed position counted restorations as if they were still reversed, so a refund
+    // following a won dispute computed a delta of zero: the customer got the money back AND kept
+    // every credit. 900 cents from nothing.
+    const { port } = makeStore();
+    await earnFromSettledPayment({ owner: OWNER, paymentRecordId: "p11", facts: settled({ amountPaidCents: 10_000 }), sourceKind: "stripe_payment", pendingUntilSettlementFinal: false, ports: port });
+    await reverseForRefundOrChargeback({ paymentRecordId: "p11", eventRefundedCents: 10_000, kind: "chargeback", externalId: "dp_p11", ports: port });
+    await restoreReversedCredits({ paymentRecordId: "p11", externalId: "dp_p11", ports: port });
+    assert.equal((await walletOf(port, OWNER)).availableCents, 900, "dispute won, credits back");
+
+    // Leonix now refunds the charge anyway.
+    const refund = await reverseForRefundOrChargeback({ paymentRecordId: "p11", eventRefundedCents: 10_000, kind: "refund", externalId: "re_p11", ports: port });
+    assert.equal(refund.ok, true);
+    const moved =
+      (refund as { reversedCents: number }).reversedCents +
+      (refund as { recoveryAccruedCents: number }).recoveryAccruedCents;
+    assert.equal(moved, 900, "the refund claws back the full award, not zero");
+    assert.equal((await walletOf(port, OWNER)).availableCents, 0, "no credits survive a full refund");
+  });
+
+  await check("P12 BLOCKER: recomputation RECONSTRUCTS the debt, it does not erase it", () => {
+    // The SQL replay skipped the recovery deltas entirely, on the strength of a comment claiming a
+    // separate `recovery_accrue` row carried them. No such row is ever emitted: the posting arm
+    // folds the shortfall into the same statement that writes the reversal. So one reconciliation
+    // call wrote `recovery_cents = 0` over a real debt — which also lifts the redemption block,
+    // handing the customer credits they owed and letting them spend them.
+    const sql = readFileSync(MIGRATION_PATH, "utf8");
+    const replay = sql.slice(sql.indexOf("FUNCTION public.leonix_rewards_recompute_wallet"));
+    const arm = replay.slice(replay.indexOf("WHEN 'refund_reversal', 'chargeback_reversal' THEN"), replay.indexOf("WHEN 'manual_adjustment' THEN", replay.indexOf("WHEN 'refund_reversal', 'chargeback_reversal' THEN")));
+    assert.ok(
+      /v_recovery := v_recovery \+ \(v_entry\.amount_cents - v_cover\);/.test(arm),
+      "the replay re-derives the shortfall the posting arm folded in",
+    );
+    assert.ok(
+      /v_recovery_accrued := v_recovery_accrued \+ \(v_entry\.amount_cents - v_cover\);/.test(arm),
+      "and the monotonic accrual the restoration bound depends on",
+    );
+    // There is genuinely no separate accrual row to rely on: the posting arm emits ONE entry.
+    const postArm = sql.slice(sql.indexOf("WHEN 'refund_reversal', 'chargeback_reversal' THEN"), sql.indexOf("WHEN 'manual_adjustment' THEN"));
+    assert.ok(
+      /v_recovery_accrued_delta := p_amount_cents - v_cover;/.test(postArm),
+      "the posting arm accrues the debt inline",
+    );
+    assert.ok(!/INSERT INTO public\.leonix_rewards_ledger/.test(postArm), "and emits no second ledger row");
+  });
+
+  await check("P13: the SQL rules this system depends on are asserted, not assumed", () => {
+    // EIGHT INDEPENDENT MUTATIONS of this migration once left the whole suite green: deleting the
+    // debt repayment from both earn arms, the redemption debt-block, the restoration bound, the
+    // reservation status guard, the sequence assignment and the queue's RLS. Those are the rules
+    // the money depends on, so each is now pinned to the CONDITION rather than to a message.
+    const sql = readFileSync(MIGRATION_PATH, "utf8");
+    const post = sql.slice(sql.indexOf("CREATE OR REPLACE FUNCTION public.leonix_rewards_post_entry"));
+    const armOf = (name: string) => {
+      const at = post.indexOf(`WHEN '${name}' THEN`);
+      assert.ok(at > 0, `the ${name} arm exists`);
+      return post.slice(at, post.indexOf("    WHEN ", at + 10));
+    };
+
+    // Earnings repay the debt before anything becomes spendable — BOTH arms.
+    for (const [arm, bucket] of [["earn_pending", "v_pending_delta"], ["earn_available", "v_available_delta"]] as const) {
+      const body = armOf(arm);
+      assert.ok(/v_offset := LEAST\(p_amount_cents, v_wallet\.recovery_cents\);/.test(body), `${arm} computes the repayment`);
+      assert.ok(new RegExp(`${bucket} := p_amount_cents - v_offset;`).test(body), `${arm} credits only the remainder`);
+      assert.ok(/v_recovery_delta := -v_offset;/.test(body), `${arm} reduces the debt`);
+      assert.ok(/v_earned_delta := p_amount_cents;/.test(body), `${arm} still counts the full amount as earned`);
+    }
+
+    // No spending while a debt stands.
+    const reserve = armOf("redeem_reserve");
+    assert.ok(
+      /IF v_wallet\.recovery_cents > 0 THEN[\s\S]{0,300}RAISE EXCEPTION/.test(reserve),
+      "redeem_reserve REFUSES while a recovery balance is outstanding",
+    );
+
+    // The restoration bound, as a live condition.
+    const restore = armOf("reversal_restoration");
+    assert.ok(
+      /IF p_amount_cents > v_wallet\.lifetime_reversed_cents \+ v_wallet\.lifetime_recovery_accrued_cents[\s\S]{0,120}RAISE EXCEPTION/.test(restore),
+      "a restoration cannot exceed what the clawback took, in either form",
+    );
+
+    // The reservation guard — the defect that once produced 2000 cents from nothing.
+    const claim = sql.slice(sql.indexOf("CREATE OR REPLACE FUNCTION public.leonix_rewards_claim_redemption"), sql.indexOf("CREATE OR REPLACE FUNCTION public.leonix_rewards_post_entry"));
+    assert.ok(/FOR UPDATE/.test(claim), "the redemption row is locked");
+    assert.ok(
+      /IF v_redemption\.status <> 'reserved' THEN[\s\S]{0,200}RAISE EXCEPTION/.test(claim),
+      "and a commit or release against a non-reserved hold is refused",
+    );
+    assert.ok(
+      /IF v_redemption\.status NOT IN \('released', 'expired'\) THEN[\s\S]{0,200}RAISE EXCEPTION/.test(claim),
+      "and a re-debit is restricted to a hold that was actually returned",
+    );
+    assert.ok(/IF v_redemption\.wallet_id <> p_wallet_id THEN/.test(claim), "and a hold cannot be claimed across wallets");
+
+    // The sequence is assigned in the INSERT, not merely mentioned somewhere in the file.
+    const insert = post.slice(post.indexOf("INSERT INTO public.leonix_rewards_ledger"), post.indexOf("RETURNING", post.indexOf("INSERT INTO public.leonix_rewards_ledger")));
+    assert.ok(
+      /nextval\('public\.leonix_rewards_ledger_seq'\)/.test(insert),
+      "entry_seq is drawn inside the posting statement, under the wallet lock",
+    );
+
+    // The staff-only queue is RLS-enabled and reachable by no browser role.
+    assert.ok(
+      /ALTER TABLE public\.leonix_rewards_refund_resolutions ENABLE ROW LEVEL SECURITY;/.test(sql),
+      "the refund queue has RLS enabled",
+    );
+    assert.ok(
+      /REVOKE ALL ON TABLE public\.leonix_rewards_refund_resolutions FROM anon, authenticated;/.test(sql),
+      "and is revoked from every browser role",
+    );
+  });
+
+  await check("P14: one payment's clawback cannot strand another payment's promotion forever", async () => {
+    // `pending` is ONE bucket shared by every payment on the wallet, and a reversal takes pending
+    // first — so a clawback on payment B consumes payment A's pending credits. Asking to promote
+    // A's full earn then failed `negative_balance_refused` on that sweep and on every sweep after
+    // it, forever: credits lost on a payment that was never refunded, failing silently each run.
+    let clock = Date.parse("2026-01-01T00:00:00.000Z");
+    const { port } = makeStore({ now: () => clock });
+
+    // A: card money, pending. B: cash money, immediately spendable, and spent.
+    await earnFromSettledPayment({ owner: OWNER, paymentRecordId: "p14_A", facts: settled({ amountPaidCents: 10_000 }), sourceKind: "stripe_payment", pendingUntilSettlementFinal: true, ports: port });
+    await earnFromSettledPayment({ owner: OWNER, paymentRecordId: "p14_B", facts: settled({ amountPaidCents: 10_000 }), sourceKind: "manual_payment", pendingUntilSettlementFinal: false, ports: port });
+    await reserveCreditsForPurchase({ owner: OWNER, requestedCents: 900, amountDueCents: 90_000, redemptionRef: "p14_spend", contextKind: "stripe_checkout", ports: port });
+    await commitReservedCredits({ redemptionRef: "p14_spend", ports: port });
+    assert.deepEqual(
+      [(await walletOf(port, OWNER)).pendingCents, (await walletOf(port, OWNER)).availableCents],
+      [900, 0],
+      "A is pending, B is spent",
+    );
+
+    // B is refunded in full. Pending-first means it takes A's credits.
+    await reverseForRefundOrChargeback({ paymentRecordId: "p14_B", eventRefundedCents: 10_000, kind: "refund", externalId: "re_p14_B", ports: port });
+    assert.equal((await walletOf(port, OWNER)).pendingCents, 0, "A's pending credits absorbed B's clawback");
+
+    // A's window passes. The sweep must not fail — there is simply nothing left to promote.
+    clock += 31 * DAY;
+    const sweep = await runPendingPromotionSweep({ nowMs: clock, settlementDays: 30, limit: 50, ports: port, isPaymentStillEligible: async () => true });
+    assert.equal(sweep.failed, 0, "the sweep does not fail, this run or any run after it");
+    assert.equal(sweep.promotedCents, 0, "and it promotes only what is actually there");
+
+    // And a later sweep is equally quiet, rather than retrying the same impossible promotion.
+    const again = await runPendingPromotionSweep({ nowMs: clock + DAY, settlementDays: 30, limit: 50, ports: port, isPaymentStillEligible: async () => true });
+    assert.equal(again.failed, 0, "no permanent failure loop");
+  });
+
+  await check("P15: EARNING resolves through the same binding as redemption", () => {
+    const adapter = readFileSync("app/lib/rewards/rewardsLedger.ts", "utf8");
+    const fn = adapter.slice(
+      adapter.indexOf("export async function resolveWalletOwnerForPayment"),
+      adapter.indexOf("export async function resolveWalletOwnerForUser"),
+    );
+    const bindingAt = fn.indexOf("resolveWalletOwnerForUser(input.ownerUserId)");
+    const linkAt = fn.indexOf('.from("business_external_links")');
+    assert.ok(linkAt > 0, "the payment link is still consulted for a customer with no identity yet");
+    assert.ok(
+      bindingAt > 0,
+      "the payer's canonical binding is consulted AT ALL — deleting this call is what sent a " +
+        "customer's 9% into a business wallet they could never spend from",
+    );
+    assert.ok(
+      /if \(bound\) return bound;/.test(fn),
+      "and its answer is returned, rather than computed and discarded",
+    );
+    assert.ok(
+      bindingAt < linkAt,
+      "the customer's binding is checked BEFORE the staff-created payment link — otherwise a " +
+        "customer earns into a business wallet they can never spend from at checkout",
+    );
+    assert.ok(
+      /boundUserId: input\.ownerUserId \?\? null/.test(fn),
+      "and a link-resolved business carries the payer through, so the identity is pinned once",
+    );
+  });
+
+  await check("P16: a failed or out-of-order won-dispute restoration is QUEUED, not dropped", () => {
+    const src = readFileSync("app/lib/listingPlans/revenueSubscriptionEvents.ts", "utf8");
+    const fn = src.slice(src.indexOf("export async function handleDisputeClosed"));
+    assert.ok(fn.includes("restoreCreditsForWonDispute("), "a won dispute restores");
+    assert.ok(
+      fn.includes("enqueueUnattributableRefund("),
+      "and a failure lands in the queue — `restore:<disputeId>` is never retried on its own",
+    );
+    assert.ok(
+      /won_dispute_restoration_found_nothing_to_restore/.test(fn),
+      "including the ORDERING case: closed-won processed before dispute-created has no clawback " +
+        "to undo yet, and the one that lands afterwards would stand permanently",
+    );
+    assert.ok(
+      /!restored\.ok \|\| \(restored\.outcome === "skipped"/.test(fn),
+      "both the failure and the nothing-to-restore case are caught",
+    );
   });
 
   await check("P5: recovery copy is honest in both languages and never claims expiry", () => {

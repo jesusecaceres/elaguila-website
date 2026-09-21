@@ -4,7 +4,7 @@ Branch: `claude/leonix-ix-rewards-global-2026-09`
 Branched from QUICK_FREEZE_SHA: `4cb34be6d519b541606eecf9ff4afa3d0824814b`
 
 Nothing in this document describes intent. Every invariant listed here is either enforced by a
-database constraint or proven by `scripts/verify-ix-rewards-behavior-01.ts` (141 behavioral checks,
+database constraint or proven by `scripts/verify-ix-rewards-behavior-01.ts` (150 behavioral checks,
 no database, no network, no Stripe).
 
 ---
@@ -361,10 +361,13 @@ Genuine limits, each with its blast radius stated. None blocks launch.
    serializes event processing in practice, and the `reverse:<kind>:<externalId>` key means a
    duplicate delivery still cannot double-move. The exposure is a rounding cent under a race the
    claim already prevents.
-3. **A reversed or failed refund leaves its clawback standing.** When `amount_refunded` returns to
+3. **An out-of-order dispute pair needs a person.** If `dispute.closed(won)` is processed before
+   `dispute.created`, there is no clawback to undo yet; the restoration finds nothing, the event is
+   queued for staff, and the clawback that lands afterwards stands until someone resolves it.
+4. **A reversed or failed refund leaves its clawback standing.** When `amount_refunded` returns to
    zero, nothing restores the credits automatically. A WON DISPUTE now does restore them
    (`reversal_restoration`); the refund-reversal case needs a staff `manual_adjustment`.
-4. **No Vercel deployment, no live Stripe call, no remote Supabase mutation, no live data import**
+5. **No Vercel deployment, no live Stripe call, no remote Supabase mutation, no live data import**
    occurred at any point. Every CSV fixture in the verifier is invented.
 
 ---
