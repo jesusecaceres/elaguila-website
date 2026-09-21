@@ -336,11 +336,19 @@ check("B14 WIRING: ALL FOUR customer self-service publish paths invoke the canon
     assert.ok(src.includes(CANONICAL_VALIDATOR), `${p} must call the canonical validator`);
     assert.ok(src.includes(category), `${p} must enforce its own family's contract (${category})`);
   }
-  // The superseded two-step gate route must be GONE, not merely unused.
-  assert.throws(
-    () => read("app/api/clasificados/bienes-raices/negocio/publish-media-gate/route.ts"),
-    "the bypassable ask-a-gate-then-insert route is deleted",
-  );
+  // ROUND-3 CORRECTION. This used to require the older media-gate route to be DELETED, on the
+  // reasoning that the atomic publish endpoint superseded it. An adversarial review showed what
+  // deleting it cost: the atomic endpoint is reached only when the BROWSER declares the Quick
+  // package key, so omitting that one field dropped the publish into the plain browser insert
+  // with no media check at all — weaker than before either seam existed.
+  //
+  // Both seams now exist and are exhaustive. The gate is therefore required to be PRESENT, to
+  // run the canonical validator, and to resolve the product from the bearer rather than the body.
+  const gate = read("app/api/clasificados/bienes-raices/negocio/publish-media-gate/route.ts");
+  assert.ok(gate.includes(CANONICAL_VALIDATOR), "the non-custody gate runs the canonical validator");
+  assert.ok(gate.includes('"bienes-negocio"'), "against the Bienes family's own contract");
+  assert.ok(gate.includes("getBearerUserId(request)"), "identity is the bearer, never the body");
+  assert.ok(gate.includes("ownerUserId: userId"), "and the product resolution is owner-scoped");
 });
 
 check("B14b BOUNDARY: the two SHARED seams run the contract only for a VERIFIED QUICK product", () => {
@@ -380,9 +388,20 @@ check("B15 WIRING: a QUICK Bienes publish is written by the SERVER, and cannot f
     core.includes("publishQuickBienesThroughServerCustody"),
     "that call is a named, single-purpose seam, not an inline fetch",
   );
+  // ROUND-3 CORRECTION, same reasoning as B14: the core must call BOTH seams, because the custody
+  // branch is chosen by a client-held package key and cannot be the only thing standing between a
+  // business publish and an unchecked insert.
   assert.ok(
-    !core.includes("/api/clasificados/bienes-raices/negocio/publish-media-gate"),
-    "the bypassable gate-then-insert sequence is gone from the core",
+    core.includes("/api/clasificados/bienes-raices/negocio/publish-media-gate"),
+    "every NON-custody business publish is gated too",
+  );
+  const gateGuardAt = core.indexOf('category === "bienes-raices" && sellerType === "business" && !quickBienesPublish');
+  const insertAt = core.indexOf("insertListingsRowResilient(supabase, insertPayload)");
+  assert.ok(gateGuardAt > -1, "the non-custody gate is guarded to exactly that case");
+  assert.ok(gateGuardAt < insertAt, "and it runs before the browser insert it protects");
+  assert.ok(
+    core.includes("if (!gate.ok) return { ok: false, error: gate.error };"),
+    "a gate refusal aborts the publish, fail-closed",
   );
   assert.ok(
     core.includes("if (!custody.ok) return { ok: false, error: custody.error };"),

@@ -95,7 +95,10 @@ async function sectionA() {
     for (const category of ["autos-privado", "rentas", "empleos", "comida-local", ""]) {
       const d = resolveQuickBusinessProduct({ category, declaredPackageKey: QUICK_AUTOS });
       assert.equal(d.product, "unverified", `${category || "<empty>"} must stay outside the split`);
-      assert.equal(quickContractAppliesTo(d.product), false);
+      // A distinct source, so "no Quick product exists here" is never confused with "this Quick
+      // category's product could not be determined" — the first skips, the second enforces.
+      assert.equal(d.source, "no_quick_product", `${category || "<empty>"} has no Quick product at all`);
+      assert.equal(quickContractAppliesTo(d), false);
     }
   });
 
@@ -122,7 +125,7 @@ async function sectionA() {
       ],
     });
     assert.equal(d.product, "full");
-    assert.equal(quickContractAppliesTo(d.product), false);
+    assert.equal(quickContractAppliesTo(d), false);
   });
 
   await check("A5: the server-minted checkout ledger answers before payment resolves", () => {
@@ -163,7 +166,7 @@ async function sectionA() {
       declaredPackageKey: FULL_BIENES,
     });
     assert.deepEqual([escapeAttempt.product, escapeAttempt.source], ["quick", "checkout_ledger"]);
-    assert.equal(quickContractAppliesTo(escapeAttempt.product), true);
+    assert.equal(quickContractAppliesTo(escapeAttempt), true);
 
     // Forging "I am Quick" while the entitlement says Full does NOT impose Quick limits on Full.
     const captureAttempt = resolveQuickBusinessProduct({
@@ -172,14 +175,39 @@ async function sectionA() {
       declaredPackageKey: QUICK_BIENES,
     });
     assert.deepEqual([captureAttempt.product, captureAttempt.source], ["full", "live_entitlement"]);
-    assert.equal(quickContractAppliesTo(captureAttempt.product), false);
+    assert.equal(quickContractAppliesTo(captureAttempt), false);
   });
 
-  await check("A9: `unverified` does NOT enforce — that is the blocker being closed", () => {
-    const { enforce, decision } = shouldEnforceQuickBusinessContract({ category: "autos" });
-    assert.equal(decision.product, "unverified");
-    assert.equal(decision.source, "none");
-    assert.equal(enforce, false);
+  await check("A9 FAIL SAFE: an UNDETERMINED product ENFORCES; only a PROVEN Full skips", () => {
+    // THE ROUND-3 REPAIR. This check previously asserted the opposite, and the opposite was
+    // falsifiable: a first publish always precedes payment, so every server leg is silent and the
+    // only remaining signal is a declaration the browser can simply omit. Skipping on
+    // `unverified` therefore made the whole contract opt-in from the browser — omitting one field
+    // published a Quick listing with a logo and no subject photo.
+    const undetermined = shouldEnforceQuickBusinessContract({ category: "autos" });
+    assert.equal(undetermined.decision.product, "unverified");
+    assert.equal(undetermined.decision.source, "none");
+    assert.equal(undetermined.enforce, true, "an undetermined product must land on the STRICT side");
+
+    // Both business categories, and with an unusable declaration, behave the same way.
+    for (const category of ["autos", "bienes-raices"]) {
+      for (const declared of [null, undefined, "", "   ", "not_a_package", FULL_AUTOS, FULL_BIENES]) {
+        const r = shouldEnforceQuickBusinessContract({ category, declaredPackageKey: declared as string });
+        assert.equal(r.enforce, true, `${category} + declared ${JSON.stringify(declared)} must enforce`);
+      }
+    }
+
+    // The ONLY skips: a proven Full, and a category with no Quick product at all.
+    for (const facts of [
+      { category: "autos", liveEntitlementRows: [{ packageKey: FULL_AUTOS, packageTier: "digital_only" }] },
+      { category: "autos", checkoutLedgerPackageKey: FULL_AUTOS },
+      { category: "bienes-raices", assistedPackageKey: FULL_BIENES },
+    ]) {
+      const r = shouldEnforceQuickBusinessContract(facts);
+      assert.equal(r.decision.product, "full", "proven Full");
+      assert.equal(r.enforce, false, "a PROVEN Full is the blocker this module closes");
+    }
+    assert.equal(shouldEnforceQuickBusinessContract({ category: "rentas" }).enforce, false);
   });
 
   await check("A10: a PRINT quarter-page grant is SIMPLE, a print half-page and up is FULL", () => {
@@ -504,16 +532,17 @@ async function sectionC() {
     assert.equal(refused.ok, false);
     assert.equal(db.inserts + db.updates, 0, "a refusal writes nothing at all");
 
-    // Wiring: the browser publish core has NO insert path for this product, and the superseded
-    // two-step gate route no longer exists.
+    // Wiring: the two browser seams are EXHAUSTIVE.
+    //
+    // Round-3 repair. This check used to assert only that the browser insert was the ELSE of the
+    // custody branch, and that the older media-gate route was deleted. Both were true while the
+    // product was wide open: `quickBienesPublish` is chosen by a CLIENT-HELD package key, so
+    // omitting it dropped the request into that ELSE — a browser INSERT with no media check at
+    // all, weaker than the behaviour before either gate existed.
     const core = read("app/(site)/clasificados/lib/leonixPublishRealEstateListingCore.ts");
     assert.ok(
       core.includes("publishQuickBienesThroughServerCustody"),
-      "the core delegates the whole Quick Bienes publish to the server",
-    );
-    assert.ok(
-      !core.includes("/api/clasificados/bienes-raices/negocio/publish-media-gate"),
-      "the ask-a-gate-then-insert-anyway sequence is gone",
+      "a declared Quick publish goes through server custody",
     );
     assert.ok(
       core.includes("if (!custody.ok) return { ok: false, error: custody.error };"),
@@ -522,10 +551,31 @@ async function sectionC() {
     const custodyIdx = core.indexOf("if (quickBienesPublish) {");
     const browserInsertIdx = core.indexOf("insertListingsRowResilient(supabase, insertPayload)");
     assert.ok(custodyIdx > -1 && browserInsertIdx > custodyIdx, "the browser insert is the ELSE of the Quick branch");
-    assert.throws(
-      () => read("app/api/clasificados/bienes-raices/negocio/publish-media-gate/route.ts"),
-      "the superseded media-gate route is deleted",
+
+    // ...and that ELSE is itself gated, fail-closed, BEFORE the row is built.
+    const gateCallIdx = core.indexOf('category === "bienes-raices" && sellerType === "business" && !quickBienesPublish');
+    assert.ok(gateCallIdx > -1, "every NON-custody business publish is gated too");
+    const payloadIdx = core.indexOf("const insertPayload = buildListingsInsertRowForLeonixPublish(");
+    assert.ok(gateCallIdx < payloadIdx, "the gate runs before the row is even built");
+    assert.ok(gateCallIdx < browserInsertIdx, "and before the browser insert");
+    assert.ok(
+      core.includes("if (!gate.ok) return { ok: false, error: gate.error };"),
+      "a gate refusal aborts the publish",
     );
+
+    // The gate route exists again, fails closed, and resolves the product server-side.
+    const gate = read("app/api/clasificados/bienes-raices/negocio/publish-media-gate/route.ts");
+    assert.ok(gate.includes("getBearerUserId(request)"), "identity is the bearer, never the body");
+    assert.ok(gate.includes("resolveQuickBusinessPublishIdentity("), "the gate resolves the product itself");
+    assert.ok(gate.includes("ownerUserId: userId"), "and scopes that resolution to the bearer");
+    assert.ok(gate.includes("enforceQuickBusinessPublishMedia("), "and runs the real contract");
+    // The browser-side helper must treat every non-2xx and every throw as a refusal.
+    const helperAt = core.indexOf("async function enforceBienesNegocioPublishMediaOnServer(");
+    assert.ok(helperAt > -1, "the fail-closed helper exists");
+    const helper = core.slice(helperAt, core.indexOf("async function publishQuickBienesThroughServerCustody(", helperAt));
+    assert.ok(helper.includes("if (res.ok) return { ok: true };"), "ONLY a 2xx is a pass");
+    assert.ok(/catch\s*\{[\s\S]*?return \{ ok: false/.test(helper), "a thrown error is a refusal");
+    assert.ok(helper.includes("if (!accessToken) return { ok: false, error: generic };"), "no session is a refusal");
   });
 
   await check("C3 REQUIREMENT 10: missing / invalid bearer identity fails, and writes nothing", async () => {
@@ -968,11 +1018,164 @@ async function sectionD() {
   });
 }
 
+// =================================================================================================
+// SECTION E — THE ROUND-3 ADVERSARIAL REPAIRS
+//
+// Every check here exists because an independent review FALSIFIED a claim Sections A–D had
+// certified. Each one is written to fail if the repair is reverted.
+// =================================================================================================
+
+async function sectionE() {
+  await check("E1: EXTERNAL VIDEO is refused — not just a video MIME in the gallery", () => {
+    // "Quick includes no video" was enforced only against `video/*` MIMEs on gallery items. Every
+    // family that sells video sells it as an external LINK LIST, which carries no MIME at all, so
+    // three of four seams could attach video freely.
+    for (const [category, subjectRole] of [
+      ["autos-dealer", "vehicle"],
+      ["bienes-negocio", "property"],
+      ["servicios", "business"],
+      ["restaurantes", "business"],
+    ] as const) {
+      const good = enforceQuickBusinessPublishMedia({ category, items: [{ role: subjectRole, mime: null }] });
+      assert.equal(good?.ok, true, `${category}: a compliant photo set passes`);
+
+      for (const count of [1, 4, 8]) {
+        const withVideo = enforceQuickBusinessPublishMedia({
+          category,
+          items: [{ role: subjectRole, mime: null }],
+          externalVideoCount: count,
+        });
+        assert.equal(withVideo?.ok, false, `${category}: ${count} external video(s) must be refused`);
+        assert.ok(
+          !withVideo?.ok && withVideo!.issues.some((i) => i.code === "video_not_allowed"),
+          `${category}: and refused AS video, not as some other issue`,
+        );
+      }
+      // Zero is not a refusal, so the rule cannot be satisfied by always failing.
+      const none = enforceQuickBusinessPublishMedia({
+        category,
+        items: [{ role: subjectRole, mime: null }],
+        externalVideoCount: 0,
+      });
+      assert.equal(none?.ok, true, `${category}: zero external video still passes`);
+    }
+  });
+
+  await check("E2: every self-service seam COUNTS its own external video list", () => {
+    // A contract that can see video is worthless if no seam tells it. Each assertion names the
+    // real field that family stores its links in.
+    const autos = read("app/api/clasificados/autos/listings/route.ts");
+    assert.ok(/externalVideoCount: dealerExternalVideoCount/.test(autos), "autos passes a count");
+    assert.ok(/videoUrls/.test(autos), "derived from the dealer lane's own videoUrls");
+
+    const servicios = read("app/api/clasificados/servicios/publish/route.ts");
+    assert.ok(/externalVideoCount: serviciosExternalVideoCount/.test(servicios), "servicios passes a count");
+    assert.ok(/state\.videos/.test(servicios), "derived from the Servicios video list");
+
+    const restaurantes = read("app/api/clasificados/restaurantes/publish/route.ts");
+    assert.ok(/externalVideoCount: restauranteExternalVideoCount/.test(restaurantes), "restaurantes passes a count");
+    assert.ok(
+      /collectRestauranteExternalVideoUrls\(draft\)/.test(restaurantes),
+      "derived from the canonical Restaurantes collector",
+    );
+
+    // Quick Bienes needs no count: its contract whitelists no video column at all.
+    const contract = read("app/lib/clasificados/bienes-raices/quickBienesPublishContract.ts");
+    assert.ok(!/video/i.test(contract.replace(/\/\*[\s\S]*?\*\//g, "")), "Quick Bienes has no video column to carry one");
+  });
+
+  await check("E3: the entitlement read is OWNER-SCOPED and the ledger leg is SETTLED-ONLY", () => {
+    const server = read("app/lib/listingPlans/quickBusinessProductIdentityServer.ts");
+    const entAt = server.indexOf('.from("listing_package_entitlements")');
+    assert.ok(entAt > 0, "the entitlement read exists");
+    const entBlock = server.slice(entAt, server.indexOf(".limit(", entAt));
+    assert.ok(
+      entBlock.includes('.eq("owner_user_id", input.ownerUserId)'),
+      "a body-supplied listingId cannot name ANOTHER customer's Full entitlement",
+    );
+    assert.ok(entBlock.includes('.eq("listing_id", input.listingId)'), "still scoped to the listing");
+
+    // The ledger leg must not let an ABANDONED Quick attempt out-rank a real Full purchase.
+    const ledgerAt = server.indexOf("async function readCheckoutLedgerBasePackageKey(");
+    assert.ok(ledgerAt > 0, "the ledger leg exists");
+    const ledgerBlock = server.slice(ledgerAt, server.indexOf("export type QuickBusinessPublishIdentityInput", ledgerAt));
+    assert.ok(
+      ledgerBlock.includes('const key = String(settled?.package_key ?? "").trim();'),
+      "only a SETTLED row names a product",
+    );
+    assert.ok(!ledgerBlock.includes("settled ?? rows[0]"), "the most-recent-open-attempt fallback is gone");
+  });
+
+  await check("E4: role/URL pairing is compared BEFORE empties are dropped", async () => {
+    // Filtering first let roles=[logo, property] pair with urls=["", a, b]: the counts matched
+    // after the filter while every role described a different photo than the one declared.
+    const db = newDb();
+    const shifted = await run(db, {
+      listingRow: GOOD_ROW,
+      mediaRoles: ["logo", "property"],
+      mediaUrls: ["", "https://cdn.test/a.jpg", "https://cdn.test/b.jpg"],
+      declaredPackageKey: QUICK_BIENES,
+    });
+    assert.equal(shifted.ok, false, "a padded URL list is refused, not silently re-indexed");
+    assert.equal(db.inserts + db.updates, 0, "and writes nothing");
+
+    // The honest matching case still publishes, so this is not a blanket refusal.
+    const db2 = newDb();
+    const okRun = await run(db2, {
+      listingRow: GOOD_ROW,
+      mediaRoles: ["property", "logo"],
+      mediaUrls: ["https://cdn.test/a.jpg", "https://cdn.test/b.jpg"],
+      declaredPackageKey: QUICK_BIENES,
+    });
+    assert.equal(okRun.ok, true, "a correctly paired set still publishes");
+    assert.equal(db2.inserts, 1);
+  });
+
+  await check("E5: the assisted UPDATE path never demotes an already-live listing", () => {
+    const src = read("app/api/clasificados/bienes-raices/negocio/assisted-publish/route.ts");
+    const updateAt = src.indexOf("if (listingId) {");
+    assert.ok(updateAt > 0, "the update path exists");
+    const updateBlock = src.slice(updateAt, src.indexOf("} else {", updateAt));
+    for (const field of ["status", "is_published", "published_at"]) {
+      assert.ok(
+        updateBlock.includes(`delete patch.${field};`),
+        `the update must not carry ${field} — a Stripe-paid live listing was being taken dark`,
+      );
+    }
+    assert.ok(updateBlock.includes("delete patch.owner_id;"), "and still never rewrites ownership");
+
+    // The INSERT path must still be born pending — the original blocker stays closed.
+    const insertRowAt = src.indexOf("const insertRow: Record<string, unknown> = {");
+    const insertRowBlock = src.slice(insertRowAt, src.indexOf("};", insertRowAt));
+    assert.ok(insertRowBlock.includes('status: "pending"'), "a new row is born pending");
+    assert.ok(insertRowBlock.includes("is_published: false"), "and unpublished");
+
+    // Activation is still the only way to live, and still after the payment check.
+    const checkAt = src.indexOf("hasClearedManualPaymentForListing({");
+    const activateAt = src.indexOf('.update({ status: "active", is_published: true');
+    assert.ok(checkAt > 0 && activateAt > checkAt, "activation happens only AFTER the payment check");
+    assert.ok(activateAt > updateAt, "and after the row write");
+  });
+
+  await check("E6: the Servicios seam names the canonical ROW, not the public slug", () => {
+    const servicios = read("app/api/clasificados/servicios/publish/route.ts");
+    const resolveAt = servicios.indexOf("const serviciosProduct = await resolveQuickBusinessPublishIdentity({");
+    assert.ok(resolveAt > 0, "the seam resolves a product");
+    const block = servicios.slice(resolveAt, servicios.indexOf("});", resolveAt));
+    assert.ok(
+      block.includes("b.existingListingId"),
+      "listingId is the canonical row UUID — a slug matched no entitlement and no payment record",
+    );
+    assert.ok(!block.includes("existingPublicSlug"), "the slug is never passed as a listing id");
+  });
+}
+
 (async () => {
   await sectionA();
   await sectionB();
   await sectionC();
   await sectionD();
+  await sectionE();
   console.log(`\nverify-quick-product-boundary-01: OK (${checks} behavioral checks — no DB, no network, no Stripe)`);
 })().catch(() => {
   console.error("\nverify-quick-product-boundary-01: FAILED");

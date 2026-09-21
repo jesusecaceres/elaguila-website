@@ -362,19 +362,32 @@ export async function POST(req: NextRequest) {
     category: "servicios",
     ownerUserId: ownerUserId ?? "",
     // The listing this publish is amending, when there is one; a first publish has none.
-    listingId: typeof b.existingPublicSlug === "string" ? b.existingPublicSlug.trim() || null : null,
+    // THE CANONICAL ROW UUID, never the public slug. `listing_id` on both
+    // `listing_package_entitlements` and `leonix_payment_records` is the row's id; passing a
+    // name-derived slug matched nothing, so BOTH server legs answered empty on every republish
+    // and the product was permanently `unverified`.
+    listingId: typeof b.existingListingId === "string" ? b.existingListingId.trim() || null : null,
     declaredPackageKey: typeof b.basePackageKey === "string" ? b.basePackageKey : null,
   });
   const serviciosMediaItems = [
-    ...(state.coverUrl
-      ? [{ role: (state as { coverRole?: string }).coverRole ?? null, mime: null }]
-      : []),
+    // Servicios keeps identity media in its own non-gallery `logoUrl` field (`logoAllowed: false`
+    // on this route), so a cover or gallery item is subject media by construction — which is
+    // exactly what `SUBJECT_ATTRIBUTION.servicios === "structural"` states. There is no per-item
+    // role on this state to read, and inventing one would be a false declaration.
+    ...(state.coverUrl ? [{ role: null, mime: null }] : []),
     ...state.gallery.map((g) => ({ role: (g as { role?: string }).role ?? null, mime: null })),
   ];
+  // Servicios keeps external video in its own link list (up to SERVICIOS_MAX_VIDEO_URLS), which
+  // never carries a `video/*` MIME, so the contract could not see it and "Quick includes no
+  // video" went unenforced on this seam.
+  const serviciosExternalVideoCount = Array.isArray(state.videos)
+    ? state.videos.filter((v) => typeof v?.url === "string" && v.url.trim().length > 0).length
+    : 0;
   const serviciosSemanticMedia = serviciosProduct.enforceQuickContract
     ? enforceQuickBusinessPublishMedia({
         category: "servicios",
         items: serviciosMediaItems,
+        externalVideoCount: serviciosExternalVideoCount,
       })
     : null;
   if (serviciosSemanticMedia && !serviciosSemanticMedia.ok) {

@@ -603,8 +603,21 @@ declaring Quick buys the cheaper, LESSER product:
 This is what separates the change from R.9's option 3. Option 3 was "trust the Quick mark".
 This is "server records decide; a mark may only make you stricter."
 
-`unverified` does **not** enforce. Imposing Quick limits on a publish no server record names is
-exactly blocker 1, so an unverified publish keeps its family's own Full validators untouched.
+`unverified` **does** enforce. The first revision of this gate had it skip, and an independent
+adversarial review falsified that: a customer's first publish always precedes their payment, so
+every server leg is silent by construction and the only remaining signal is a declaration the
+browser can simply omit. Skipping on `unverified` did not protect Full dealers — it made the whole
+contract **opt-in from the browser**, which is weaker than the behaviour that shipped before the
+gate existed.
+
+The contract is therefore skipped on exactly two answers: a **proven** `full`, named by a
+server-owned record, and `no_quick_product`, a category with no Simple/Full split at all. Blocker 1
+stays closed for the customer it was about — a $399 dealer whose entitlement, settled checkout or
+assisted context names the Full package — while an absent or unreadable signal lands on the strict
+side. The publish-seam contract imposes **no count cap** in any family
+(`QUICK_BUSINESS_PUBLISH_MAX_IMAGES` is `null` throughout), only "at least one image declared to
+depict the subject, and no video", which every seam already enforced on every publish before any of
+this existed.
 
 Proof: `scripts/verify-quick-product-boundary-01.ts` §A1–A10, §D3.
 
@@ -620,7 +633,7 @@ Proof: `scripts/verify-quick-product-boundary-01.ts` §A1–A10, §D3.
 | `app/api/clasificados/restaurantes/publish/route.ts` | unchanged | unchanged |
 | `app/api/clasificados/autos/assisted-publish/route.ts` | unchanged — **unconditional** | always (staff-assisted) |
 | `app/api/clasificados/bienes-raices/negocio/assisted-publish/route.ts` | unchanged — **unconditional** | always (staff-assisted) |
-| `app/api/clasificados/bienes-raices/negocio/publish-media-gate/route.ts` | **DELETED** — superseded by the custody route | — |
+| `app/api/clasificados/bienes-raices/negocio/publish-media-gate/route.ts` | **RESTORED, product-aware** — the custody route is reached only when the browser declares the Quick key, so this gate covers every other business publish, fail-closed | §C2, §E |
 
 The two staff-assisted routes are deliberately left **unconditional**: a staff actor publishing on
 a customer's behalf is held to the subject-photo rule whatever the package, so this mission's
@@ -667,7 +680,7 @@ it. Its pure contract (column whitelist, server-owned columns, field rules, reus
 | writes only after all validation succeeds | order asserted call-by-call: identity → product → media → lookup → write → group → link | §C12 |
 | returns the canonical listing ID | `{ ok: true, listingId }` | §C1 |
 | writes or preserves the canonical business-listing link | `linkSelfServiceListingToBusiness` (ownership re-proven, idempotent, never fatal) | §C9, §C10 |
-| cannot be bypassed by the former browser insert path | the browser insert is the **ELSE** of the Quick branch in the publish core; the gate route is deleted; a custody refusal aborts with no fall-through | §C2 |
+| cannot be bypassed by the former browser insert path | the two seams are **exhaustive**: a declared Quick publish goes through server custody, and every other `bienes-raices` + `business` publish passes the restored media gate fail-closed before the row is built. A custody refusal or a gate refusal both abort with no fall-through | §C2 |
 | cannot publish as another owner | `owner_id` is server-written; the update port is scoped by `id` **and** `owner_id` | §C5, §C6 |
 | cannot convert a Full or FSBO listing into Quick | `category` / `seller_type` are server constants; a FULL product answer is refused 409; reuse only ever matches the caller's own pending Quick-shaped row | §C4, §C5, §B8 |
 | handles retries safely without duplicates | reuse key = owner + category + seller_type + pending + not published + `inventory_role=main` + title; a FAILED lookup is a hard stop, never an insert | §C7, §C8 |
@@ -768,7 +781,8 @@ tree; the PASS/FAIL lines are **identical**. They are reported red, not claimed 
 ## S.7 — HONEST RESIDUAL (requires a migration this mission may not apply)
 
 Blocker 2 is closed **at the application layer**: there is no longer any code path in the product
-by which a Quick Bienes row is written from a browser, and the two-step gate route is deleted
+by which a Quick Bienes row is written from a browser, and every non-custody business publish is
+still gated fail-closed by the restored media-gate route
 rather than merely unused.
 
 **What is still open:** `listings` remains writable by an authenticated browser session under RLS,

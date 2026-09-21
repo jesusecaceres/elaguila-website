@@ -171,6 +171,21 @@ export async function POST(request: NextRequest) {
     // Update existing listing (idempotent re-save)
     const patch = { ...insertRow };
     delete patch.owner_id; // never overwrite ownership on update
+    // NEVER DEMOTE AN EXISTING ROW FROM HERE.
+    //
+    // Forcing `pending` / `is_published: false` onto every write is right for an INSERT — an
+    // unpaid listing must not be born live — but on an UPDATE it took a listing that was ALREADY
+    // live DARK. `hasClearedManualPaymentForListing` is true only for a cleared MANUAL payment,
+    // so a Stripe-paid listing fails it: staff opening the assisted tool to fix a typo on a live,
+    // fully-paid listing unpublished it and got a 402 with no rollback. That hit Full agents as
+    // well as Quick.
+    //
+    // Lifecycle is not this route's to change on an existing row. A pending row stays pending, a
+    // live row stays live, and the ONLY transition to live remains the post-payment activation
+    // below — which is exactly the guarantee the pending-insert change was made to establish.
+    delete patch.status;
+    delete patch.is_published;
+    delete patch.published_at;
     const { error: updateError } = await db
       .from("listings")
       .update(patch)

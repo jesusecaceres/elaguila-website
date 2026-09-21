@@ -396,6 +396,49 @@ export type PublishLeonixRealEstateListingCoreResult =
   | { ok: false; error: string };
 
 /**
+ * Gate QB-BOUNDARY-04 — the server media gate for a business Bienes publish that does NOT go
+ * through Quick server custody.
+ *
+ * FAILS CLOSED: no session, a non-200, a network error or a malformed answer all abort the
+ * publish. That posture is the whole point — this runs on the path where the browser still holds
+ * the pen, so an unreachable gate must never read as permission.
+ */
+async function enforceBienesNegocioPublishMediaOnServer(
+  supabase: ReturnType<typeof createSupabaseBrowserClient>,
+  input: {
+    roles: readonly (string | null)[];
+    listingId: string | null;
+    declaredPackageKey: string | null;
+    lang: "es" | "en";
+  },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const generic =
+    input.lang === "es"
+      ? "No se pudo verificar tus fotos con el servidor. Inténtalo de nuevo."
+      : "Your photos could not be verified with the server. Please try again.";
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
+    if (!accessToken) return { ok: false, error: generic };
+    const res = await fetch("/api/clasificados/bienes-raices/negocio/publish-media-gate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({
+        roles: input.roles,
+        listingId: input.listingId,
+        basePackageKey: input.declaredPackageKey,
+      }),
+    });
+    if (res.ok) return { ok: true };
+    const payload = (await res.json().catch(() => null)) as { message?: unknown; messageEs?: unknown } | null;
+    const message = input.lang === "es" ? payload?.messageEs : payload?.message;
+    return { ok: false, error: typeof message === "string" && message.trim() ? message : generic };
+  } catch {
+    return { ok: false, error: generic };
+  }
+}
+
+/**
  * Gate QB-BOUNDARY-02 — hand a QUICK Bienes Negocio publish to the server, whole.
  *
  * WHAT THIS REPLACES: `enforceBienesNegocioPublishMediaOnServer`, which asked a server gate for a
@@ -532,6 +575,35 @@ export async function publishLeonixRealEstateListingCore(
     Boolean(quickBienesBaseKey) &&
     String(params.quickBasePackageKey ?? "").trim().toLowerCase() ===
       String(quickBienesBaseKey ?? "").trim().toLowerCase();
+
+  /**
+   * THE TWO SEAMS ARE EXHAUSTIVE.
+   *
+   * `quickBienesPublish` above routes a DECLARED Quick publish into server custody. That
+   * declaration comes from the browser, so it cannot be the only thing standing between a
+   * business publish and an unchecked insert: omitting it used to drop the request straight into
+   * `insertListingsRowResilient` with no media check at all, which was weaker than the behaviour
+   * that shipped before any of this existed.
+   *
+   * So every OTHER business publish passes the server media gate here first, fail-closed, exactly
+   * as it did before the custody route was introduced. The gate resolves the product itself and
+   * skips only a PROVEN Full agent, so the blocker that work closed stays closed.
+   */
+  if (category === "bienes-raices" && sellerType === "business" && !quickBienesPublish) {
+    const gateRoles = imageSources
+      .filter((u): u is string => typeof u === "string" && u.trim().length > 0)
+      .map((u) => params.mediaRoles?.[u] ?? null);
+    const gate = await enforceBienesNegocioPublishMediaOnServer(supabase, {
+      roles: gateRoles,
+      // No listing id is passed: this seam runs BEFORE the pending-row reuse lookup, so there is
+      // no server-verified row to name yet. The gate therefore resolves from the owner's own
+      // entitlement and settled-checkout records, and an undetermined answer enforces.
+      listingId: null,
+      declaredPackageKey: params.quickBasePackageKey ?? null,
+      lang,
+    });
+    if (!gate.ok) return { ok: false, error: gate.error };
+  }
 
   const insertPayload = buildListingsInsertRowForLeonixPublish(userId, paramsForRow, {
     listingDescriptionForDb: descriptionForDb,
