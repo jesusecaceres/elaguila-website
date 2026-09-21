@@ -1744,6 +1744,31 @@ async function main() {
       "COMMENT ON FUNCTION public.leonix_rewards_recompute_wallet",
     );
 
+    // THE COMPARATOR'S OWN COVERAGE IS PINNED. This check only speaks when the two arms disagree,
+    // so narrowing its field list is silent — and narrowing it is exactly what let the replay skip
+    // the recovery deltas and erase a real debt. The list is asserted here so it cannot shrink.
+    const comparatorSource = readFileSync("scripts/verify-ix-rewards-behavior-01.ts", "utf8");
+    const j4 = comparatorSource.slice(
+      comparatorSource.indexOf('await check("J4:'),
+      comparatorSource.indexOf('await check("J5:'),
+    );
+    // Scoped to the LIST ITSELF, not to J4 at large: an assertion that names the fields it is
+    // checking for would otherwise match its own text and pass after the list was emptied.
+    // Anchored on the multi-line form in the WHOLE file, which only the real loop has: the flat
+    // string would match this very expression, and the J4 slice above does not reach the loop.
+    const bucketListAt = comparatorSource.indexOf("for (const bucket of [\n");
+    assert.ok(bucketListAt > 0, "the arm comparator uses an explicit field list");
+    const bucketList = comparatorSource.slice(bucketListAt, comparatorSource.indexOf("]", bucketListAt));
+    for (const field of ["RECOVERY", "RECOVERY_ACCRUED", "RECOVERY_OFFSET", "RESTORED", "REVERSED", "EARNED", "REDEEMED"]) {
+      assert.ok(
+        new RegExp(`"${field}"`).test(bucketList),
+        `J4's comparison list must include ${field} — every money field the two CASE blocks touch`,
+      );
+    }
+    for (const rename of ["RECOVERY_READ", "v_recovery_delta"]) {
+      assert.ok(j4.includes(rename), `J4 keeps the guard/delta distinction (${rename})`);
+    }
+
     assert.ok(postArms.size >= 9, `the posting CASE was parsed (${postArms.size} arms)`);
     assert.ok(replayArms.size >= 9, `the replay CASE was parsed (${replayArms.size} arms)`);
 
@@ -3083,8 +3108,9 @@ async function main() {
         "customer's 9% into a business wallet they could never spend from",
     );
     assert.ok(
-      /if \(bound\) return bound;/.test(fn),
-      "and its answer is returned, rather than computed and discarded",
+      /const bound = await resolveWalletOwnerForUser\(input\.ownerUserId\);[\s\S]{0,120}if \(bound\) return bound;/.test(fn),
+      "and the RESOLVED value is what gets returned — assigning a constant and returning that " +
+        "satisfies a text match while sending the customer's 9% to the wrong wallet",
     );
     assert.ok(
       bindingAt < linkAt,
@@ -3114,6 +3140,56 @@ async function main() {
       /!restored\.ok \|\| \(restored\.outcome === "skipped"/.test(fn),
       "both the failure and the nothing-to-restore case are caught",
     );
+  });
+
+  await check("P17: the adapter SELECTS every column its snapshot reads", () => {
+    // THE DEFECT THIS EXISTS FOR. `WALLET_COLUMNS` omitted the recovery columns while
+    // `toSnapshot` read them, so `recoveryCents` was a hardcoded zero for every TypeScript
+    // observer: a clawback that moved NOTHING and accrued a 900-cent debt was audited, and shown
+    // to staff, as "reversed 900, recovery 0". It shipped because an edit silently never landed
+    // and nothing asserted the select — a grep for the column name in the file would have passed.
+    //
+    // So the required set is DERIVED from what the snapshot actually reads, not hand-listed here:
+    // a future field added to the snapshot and forgotten in the select fails this check by itself.
+    const adapter = readFileSync("app/lib/rewards/rewardsLedger.ts", "utf8");
+
+    const colsAt = adapter.indexOf("const WALLET_COLUMNS =");
+    assert.ok(colsAt > 0, "WALLET_COLUMNS exists");
+    const columnsLiteral = adapter.slice(colsAt, adapter.indexOf(";", colsAt));
+    const selected = new Set(
+      [...columnsLiteral.matchAll(/([a-z_]+_cents|id|bound_user_id)/g)].map((m) => m[1]!),
+    );
+
+    const snapAt = adapter.indexOf("function toSnapshot(");
+    const snapshot = adapter.slice(snapAt, adapter.indexOf("\n}", snapAt));
+    const read = [...snapshot.matchAll(/row\.([a-z_]+)/g)].map((m) => m[1]!);
+    assert.ok(read.length >= 7, `the snapshot reads columns (${read.length} found)`);
+
+    const missing = [...new Set(read)].filter((c) => !selected.has(c)).sort();
+    assert.deepEqual(
+      missing,
+      [],
+      `every column the snapshot reads must be SELECTed, or it silently reads zero: ${missing.join(", ")}`,
+    );
+
+    // The recovery mechanism specifically: these five are what make the debt visible to every
+    // TypeScript observer and every audit line.
+    for (const col of [
+      "recovery_cents",
+      "lifetime_recovery_accrued_cents",
+      "lifetime_recovery_offset_cents",
+      "lifetime_restored_cents",
+      "bound_user_id",
+    ]) {
+      assert.ok(selected.has(col), `WALLET_COLUMNS must select ${col}`);
+    }
+
+    // And the binding guard reads a column it selects, rather than always seeing undefined.
+    const resolveAt = adapter.indexOf("async resolveWallet(owner: WalletOwnerRef)");
+    const resolveBlock = adapter.slice(resolveAt, adapter.indexOf("async getWalletById", resolveAt));
+    if (/row\.bound_user_id/.test(resolveBlock)) {
+      assert.ok(selected.has("bound_user_id"), "the binding guard reads a column that is selected");
+    }
   });
 
   await check("P5: recovery copy is honest in both languages and never claims expiry", () => {
