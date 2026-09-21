@@ -39,6 +39,7 @@ import {
 import { enforceQuickBusinessPublishMedia } from "../app/lib/quickBusiness/quickBusinessMediaSemantics";
 import {
   QUICK_BIENES_ALLOWED_COLUMNS,
+  QUICK_BIENES_SERVER_OWNED_COLUMNS,
   buildQuickBienesListingRow,
   buildQuickBienesReuseKey,
   validateQuickBienesListingFields,
@@ -351,6 +352,7 @@ async function sectionB() {
       ownerUserId: "owner-1",
       quickPackageKey: QUICK_BIENES,
       nowIso: "2026-09-21T00:00:00.000Z",
+      mediaUrls: ["https://cdn.test/p1.jpg"],
     });
     assert.equal(row.seller_type, "business", "seller_type is a server constant");
     assert.equal(row.category, "bienes-raices", "category is a server constant");
@@ -457,18 +459,31 @@ const GOOD_ROW = {
   detail_pairs: [{ label: "Tipo", value: "Casa" }],
 };
 
+/**
+ * Drive the real operation.
+ *
+ * `mediaUrls` defaults to one URL per declared role, so a fixture testing something OTHER than the
+ * media pairing does not have to restate it — and a fixture that deliberately sends a malformed
+ * `mediaRoles` still reaches the malformed-descriptor path rather than failing the pairing check
+ * first. A fixture that cares about the pairing passes both explicitly.
+ */
 function run(
   db: FakeDb,
-  request: Parameters<typeof executeQuickBienesPublish>[0],
+  request: Omit<Parameters<typeof executeQuickBienesPublish>[0], "mediaUrls"> & { mediaUrls?: readonly string[] },
   overrides: Partial<QuickBienesPublishPorts> = {},
 ): Promise<QuickBienesPublishResult> {
-  return executeQuickBienesPublish(request, ports(db, overrides), { quickPackageKey: QUICK_BIENES });
+  const roles = Array.isArray(request.mediaRoles) ? request.mediaRoles : [];
+  const withMedia = {
+    ...request,
+    mediaUrls: request.mediaUrls ?? roles.map((_, i) => `https://cdn.test/auto-${i + 1}.jpg`),
+  };
+  return executeQuickBienesPublish(withMedia, ports(db, overrides), { quickPackageKey: QUICK_BIENES });
 }
 
 async function sectionC() {
   await check("C1: a valid Quick Bienes publish writes exactly one row and returns its id", async () => {
     const db = newDb();
-    const r = await run(db, { listingRow: GOOD_ROW, mediaRoles: ["property"], declaredPackageKey: QUICK_BIENES });
+    const r = await run(db, { listingRow: GOOD_ROW, mediaRoles: ["property"], mediaUrls: ["https://cdn.test/p1.jpg"], declaredPackageKey: QUICK_BIENES });
     assert.equal(r.ok, true);
     assert.equal(db.inserts, 1);
     assert.ok(r.ok && r.listingId);
@@ -485,7 +500,7 @@ async function sectionC() {
   await check("C2 REQUIREMENT 9: the former browser-only direct insert cannot publish Quick Bienes", async () => {
     // Behaviour: the operation is the ONLY writer, and every pre-write refusal leaves no row.
     const db = newDb();
-    const refused = await run(db, { listingRow: GOOD_ROW, mediaRoles: ["headshot"] });
+    const refused = await run(db, { listingRow: GOOD_ROW, mediaRoles: ["headshot"], mediaUrls: ["https://cdn.test/p1.jpg"] });
     assert.equal(refused.ok, false);
     assert.equal(db.inserts + db.updates, 0, "a refusal writes nothing at all");
 
@@ -516,7 +531,7 @@ async function sectionC() {
   await check("C3 REQUIREMENT 10: missing / invalid bearer identity fails, and writes nothing", async () => {
     for (const subject of [null, "", "   "]) {
       const db = newDb();
-      const r = await run(db, { listingRow: GOOD_ROW, mediaRoles: ["property"] }, { resolveOwnerUserId: async () => subject });
+      const r = await run(db, { listingRow: GOOD_ROW, mediaRoles: ["property"], mediaUrls: ["https://cdn.test/p1.jpg"] }, { resolveOwnerUserId: async () => subject });
       assert.equal(r.ok, false);
       assert.ok(!r.ok && r.status === 401 && r.body.error === "auth_required", JSON.stringify(r));
       assert.equal(db.inserts + db.updates, 0);
@@ -529,7 +544,7 @@ async function sectionC() {
     const db = newDb();
     const r = await run(
       db,
-      { listingRow: GOOD_ROW, mediaRoles: ["property"], declaredPackageKey: QUICK_BIENES },
+      { listingRow: GOOD_ROW, mediaRoles: ["property"], mediaUrls: ["https://cdn.test/p1.jpg"], declaredPackageKey: QUICK_BIENES },
       { resolveProduct: async () => ({ product: "full", source: "live_entitlement" }) },
     );
     assert.equal(r.ok, false);
@@ -540,7 +555,7 @@ async function sectionC() {
     const db2 = newDb();
     const r2 = await run(
       db2,
-      { listingRow: GOOD_ROW, mediaRoles: ["property"] },
+      { listingRow: GOOD_ROW, mediaRoles: ["property"], mediaUrls: ["https://cdn.test/p1.jpg"] },
       { resolveProduct: async () => ({ product: "unverified", source: "none" }) },
     );
     assert.equal(r2.ok, false);
@@ -549,7 +564,7 @@ async function sectionC() {
     // And forging "I am Full" cannot escape: the product comes from the server, so the media
     // contract still runs and still refuses a headshot-only gallery.
     const db3 = newDb();
-    const r3 = await run(db3, { listingRow: GOOD_ROW, mediaRoles: ["headshot"], declaredPackageKey: FULL_BIENES });
+    const r3 = await run(db3, { listingRow: GOOD_ROW, mediaRoles: ["headshot"], mediaUrls: ["https://cdn.test/p1.jpg"], declaredPackageKey: FULL_BIENES });
     assert.equal(r3.ok, false);
     assert.ok(!r3.ok && r3.body.error === "media_contract_violation");
   });
@@ -558,7 +573,7 @@ async function sectionC() {
     const db = newDb();
     const r = await run(db, {
       listingRow: { ...GOOD_ROW, owner_id: "victim", category: "empleos", seller_type: "private", status: "active", is_published: true, inventory_role: "inventory_property" },
-      mediaRoles: ["property"],
+      mediaRoles: ["property"], mediaUrls: ["https://cdn.test/p1.jpg"],
     });
     assert.equal(r.ok, true);
     const row = db.rows.get(r.ok ? r.listingId : "")!;
@@ -579,7 +594,7 @@ async function sectionC() {
     });
     const r = await run(
       db,
-      { listingRow: GOOD_ROW, mediaRoles: ["property"] },
+      { listingRow: GOOD_ROW, mediaRoles: ["property"], mediaUrls: ["https://cdn.test/p1.jpg"] },
       {
         // Force the lookup to hand back the victim's row, the worst case this guard exists for.
         findReusablePendingListing: async () => ({ ok: true, row: { id: "victim-row", listingJson: null } }),
@@ -592,7 +607,7 @@ async function sectionC() {
 
   await check("C7 REQUIREMENT 12: a duplicate retry does not create a second listing", async () => {
     const db = newDb();
-    const req = { listingRow: GOOD_ROW, mediaRoles: ["property"], declaredPackageKey: QUICK_BIENES };
+    const req = { listingRow: GOOD_ROW, mediaRoles: ["property"], mediaUrls: ["https://cdn.test/p1.jpg"], declaredPackageKey: QUICK_BIENES };
     const first = await run(db, req);
     const second = await run(db, req);
     const third = await run(db, { ...req, listingRow: { ...GOOD_ROW, price: 749000 } });
@@ -608,7 +623,7 @@ async function sectionC() {
   await check("C8: a FAILED reuse lookup is a hard stop, never a duplicate insert", async () => {
     const db = newDb();
     db.lookupFails = true;
-    const r = await run(db, { listingRow: GOOD_ROW, mediaRoles: ["property"] });
+    const r = await run(db, { listingRow: GOOD_ROW, mediaRoles: ["property"], mediaUrls: ["https://cdn.test/p1.jpg"] });
     assert.equal(r.ok, false);
     assert.ok(!r.ok && r.body.error === "reuse_lookup_failed");
     assert.equal(db.inserts, 0);
@@ -616,7 +631,7 @@ async function sectionC() {
 
   await check("C9 REQUIREMENT 13: the canonical business-listing link is written, once, for the owner", async () => {
     const db = newDb();
-    const req = { listingRow: GOOD_ROW, mediaRoles: ["property"] };
+    const req = { listingRow: GOOD_ROW, mediaRoles: ["property"], mediaUrls: ["https://cdn.test/p1.jpg"] };
     const first = await run(db, req);
     await run(db, req);
     assert.ok(first.ok && first.businessLinked === true && first.businessId === "business-1");
@@ -629,7 +644,7 @@ async function sectionC() {
     const db = newDb();
     const r = await run(
       db,
-      { listingRow: GOOD_ROW, mediaRoles: ["property"] },
+      { listingRow: GOOD_ROW, mediaRoles: ["property"], mediaUrls: ["https://cdn.test/p1.jpg"] },
       { linkListingToBusiness: async () => ({ ok: false, businessId: null }) },
     );
     assert.equal(r.ok, true, "a link failure never fails a publish that already wrote the row");
@@ -645,12 +660,12 @@ async function sectionC() {
       [{ ...GOOD_ROW, price: "abc" }, "price_invalid"],
       [null, "listing_row_required"],
     ] as [unknown, string][]) {
-      const r = await run(db, { listingRow: row, mediaRoles: ["property"] });
+      const r = await run(db, { listingRow: row, mediaRoles: ["property"], mediaUrls: ["https://cdn.test/p1.jpg"] });
       assert.equal(r.ok, false, `${code} must refuse`);
       assert.ok(!r.ok && r.body.issues?.includes(code), `${code}: ${JSON.stringify(!r.ok && r.body)}`);
     }
     // No media at all is refused by the media contract before the field rules are even consulted.
-    const empty = await run(db, { listingRow: GOOD_ROW, mediaRoles: [] });
+    const empty = await run(db, { listingRow: GOOD_ROW, mediaRoles: [], mediaUrls: [] });
     assert.equal(empty.ok, false);
     assert.equal(db.inserts + db.updates, 0);
   });
@@ -660,7 +675,7 @@ async function sectionC() {
     const db = newDb();
     await run(
       db,
-      { listingRow: GOOD_ROW, mediaRoles: ["property"] },
+      { listingRow: GOOD_ROW, mediaRoles: ["property"], mediaUrls: ["https://cdn.test/p1.jpg"] },
       {
         resolveOwnerUserId: async () => {
           calls.push("identity");
@@ -701,7 +716,7 @@ async function sectionC() {
     const db = newDb();
     const r = await run(db, {
       listingRow: { ...GOOD_ROW, listing_json: { br_payment: { payment_status: "paid", lane: "privado" } } },
-      mediaRoles: ["property"],
+      mediaRoles: ["property"], mediaUrls: ["https://cdn.test/p1.jpg"],
     });
     assert.ok(r.ok);
     const row = db.rows.get(r.ok ? r.listingId : "")!;
@@ -717,7 +732,7 @@ async function sectionC() {
     const db = newDb();
     const r = await run(db, {
       listingRow: { ...GOOD_ROW, leonix_ad_id: "forged", published_at: "2020-01-01", br_inventory_parent_listing_id: "x", arbitrary: 1 },
-      mediaRoles: ["property"],
+      mediaRoles: ["property"], mediaUrls: ["https://cdn.test/p1.jpg"],
     });
     assert.ok(r.ok);
     const row = db.rows.get(r.ok ? r.listingId : "")!;
@@ -731,7 +746,7 @@ async function sectionC() {
 
   await check("C15: an unconfigured database refuses instead of pretending to publish", async () => {
     const db = newDb();
-    const r = await run(db, { listingRow: GOOD_ROW, mediaRoles: ["property"] }, { isDatabaseConfigured: () => false });
+    const r = await run(db, { listingRow: GOOD_ROW, mediaRoles: ["property"], mediaUrls: ["https://cdn.test/p1.jpg"] }, { isDatabaseConfigured: () => false });
     assert.equal(r.ok, false);
     assert.ok(!r.ok && r.status === 503 && r.body.error === "db_not_configured");
     assert.equal(db.inserts, 0);
@@ -846,6 +861,110 @@ async function sectionD() {
     // And every enforcement call site is now behind a product check or a staff context.
     const autos = read("app/api/clasificados/autos/listings/route.ts");
     assert.ok(autos.indexOf("identity.enforceQuickContract") < autos.indexOf("enforceQuickBusinessPublishMedia("));
+  });
+
+  await check("D7: EVERY self-service enforcement call site is product-gated, not just Autos", () => {
+    // THE DEFECT THIS EXISTS FOR: the product-boundary work gated Autos and Bienes and left
+    // Servicios and Restaurantes enforcing unconditionally — and BOTH sell a Quick package AND a
+    // Full one through the same seam. A Full Servicios or Restaurantes customer was therefore
+    // still being held to a $99 product's media rule, which is the blocker, not a variant of it.
+    //
+    // D6 above only ever inspected the Autos route, so it could not see this. Every family in the
+    // Simple/Full split is now checked, by iterating the split itself rather than a hand-written
+    // list that can fall behind it.
+    const CALL_SITES: Readonly<Record<string, string>> = {
+      autos: "app/api/clasificados/autos/listings/route.ts",
+      servicios: "app/api/clasificados/servicios/publish/route.ts",
+      restaurantes: "app/api/clasificados/restaurantes/publish/route.ts",
+    };
+    for (const [family, file] of Object.entries(CALL_SITES)) {
+      const src = read(file);
+      const enforceAt = src.indexOf("enforceQuickBusinessPublishMedia(");
+      if (enforceAt < 0) continue; // this family does not run the contract here at all
+      assert.ok(
+        src.includes("resolveQuickBusinessPublishIdentity("),
+        `${family}: runs the Quick contract but resolves no product — a Full customer is held to it`,
+      );
+      assert.ok(
+        src.indexOf("resolveQuickBusinessPublishIdentity(") < enforceAt,
+        `${family}: the product must be resolved BEFORE the contract runs`,
+      );
+      assert.ok(
+        /enforceQuickContract\s*\n?\s*\?\s*enforceQuickBusinessPublishMedia\(|enforceQuickContract$/m.test(src) ||
+          /\.enforceQuickContract/.test(src.slice(Math.max(0, enforceAt - 400), enforceAt)),
+        `${family}: the contract must be conditional on the resolved product`,
+      );
+    }
+  });
+
+  await check("D8: the Quick Bienes operation WRITES the media it validated", () => {
+    // Validating a list of role descriptors and letting the browser write the gallery separately
+    // left the check and the persisted media with no relationship: a request declaring
+    // ["property"] and uploading nothing produced a listing with zero images, from the endpoint
+    // whose whole purpose is to guarantee a real photo of the property.
+    const contract = read("app/lib/clasificados/bienes-raices/quickBienesPublishContract.ts");
+    assert.ok(contract.includes("mediaUrls: readonly string[];"), "the row builder takes the validated URLs");
+    assert.ok(/images: \[\.\.\.input\.mediaUrls\]/.test(contract), "and writes them");
+    // Asserted on the EXPORTED ARRAYS, not on source text: a regex over the file would pass or
+    // fail on comment wording, which is not the property that matters.
+    assert.ok(
+      QUICK_BIENES_SERVER_OWNED_COLUMNS.includes("images"),
+      "images is SERVER-owned, so a caller cannot supply a gallery that skipped the check",
+    );
+    assert.ok(
+      !QUICK_BIENES_ALLOWED_COLUMNS.includes("images"),
+      "and is not caller-contributable",
+    );
+    // Proven by RUNNING the whitelist: a caller-sent gallery is dropped entirely.
+    const forged = buildQuickBienesListingRow({
+      listingRow: { title: "t", city: "c", price: 1, images: ["https://evil.test/not-checked.jpg"] },
+      ownerUserId: "owner-1",
+      quickPackageKey: QUICK_BIENES,
+      nowIso: "2026-09-21T00:00:00.000Z",
+      mediaUrls: ["https://cdn.test/validated.jpg"],
+    });
+    assert.deepEqual(forged.images, ["https://cdn.test/validated.jpg"], "only the validated list is written");
+
+    const op = read("app/lib/clasificados/bienes-raices/quickBienesPublishOperation.ts");
+    assert.ok(
+      /mediaUrls\.length !== request\.mediaRoles\.length/.test(op),
+      "the roles and the URLs must correspond one-for-one",
+    );
+    assert.ok(/mediaCount: mediaUrls\.length/.test(op), "the field rule counts REAL media");
+  });
+
+  await check("D9: a retry finds its own row even when the title carried whitespace", () => {
+    // The reuse key trimmed the title; the row builder spread the caller's raw value. A title with
+    // a trailing space was stored untrimmed and searched for trimmed, so the lookup missed and a
+    // SECOND pending listing was created — silently defeating the duplicate protection.
+    const row = buildQuickBienesListingRow({
+      listingRow: { title: "  Casa en Gilroy  ", city: "Gilroy", price: 749000 },
+      ownerUserId: "owner-1",
+      quickPackageKey: QUICK_BIENES,
+      nowIso: "2026-09-21T00:00:00.000Z",
+      mediaUrls: ["https://cdn.test/p1.jpg"],
+    });
+    const key = buildQuickBienesReuseKey({ ownerUserId: "owner-1", title: "  Casa en Gilroy  " });
+    assert.equal(row.title, key.title, "the row is written exactly as the reuse key looks it up");
+    assert.equal(row.title, "Casa en Gilroy");
+  });
+
+  await check("D10: assisted Bienes never publishes a live listing before the payment clears", () => {
+    // `publish_for_client` inserted with status active / is_published true / published_at set and
+    // only THEN checked for a cleared manual payment, returning 402 with the listing already
+    // public and no rollback. `is_published = true AND status = 'active'` is the public read
+    // predicate, so staff saw "clear the payment first" while the unpaid listing was live.
+    const src = read("app/api/clasificados/bienes-raices/negocio/assisted-publish/route.ts");
+    const writeAt = src.indexOf('status: "pending"');
+    const checkAt = src.indexOf("hasClearedManualPaymentForListing(");
+    const activateAt = src.indexOf('status: "active", is_published: true');
+    assert.ok(writeAt > 0, "the row is written PENDING");
+    assert.ok(checkAt > writeAt, "the payment is checked after the row exists");
+    assert.ok(activateAt > checkAt, "and activation happens only AFTER that check");
+    assert.ok(
+      !/status: isAssistedPublish \? "active" : "pending"/.test(src),
+      "no path writes the row live on insert",
+    );
   });
 }
 

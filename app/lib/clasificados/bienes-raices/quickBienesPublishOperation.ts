@@ -26,6 +26,11 @@ export type QuickBienesPublishRequest = {
   listingRow: unknown;
   /** Declared semantic role per gallery image, in gallery order. Never bytes, never a URL. */
   mediaRoles: readonly (string | null)[];
+  /**
+   * The image URLs those roles describe, in the same order. The operation WRITES these, so the
+   * media it validated and the media that ends up on the row are the same list.
+   */
+  mediaUrls: readonly string[];
   /** The caller's word about its base package. Authority belongs to `ports.resolveProduct`. */
   declaredPackageKey?: string | null;
   lang?: "es" | "en";
@@ -153,7 +158,22 @@ export async function executeQuickBienesPublish(
     );
   }
 
-  // 3. SEMANTIC MEDIA — the canonical Quick contract, on the descriptor that actually arrived.
+  // 3. SEMANTIC MEDIA — the canonical Quick contract, on the media that will actually be written.
+  //
+  // The roles and the URLs must line up one-for-one. Validating N descriptors and persisting a
+  // different list (or none) would make this check decorative, which is exactly what it replaced.
+  const mediaUrls = (Array.isArray(request.mediaUrls) ? request.mediaUrls : [])
+    .filter((u): u is string => typeof u === "string" && u.trim().length > 0)
+    .map((u) => u.trim());
+  if (mediaUrls.length !== request.mediaRoles.length) {
+    return fail(
+      422,
+      quickBienesRefusal("invalid_body", {
+        en: "Each declared photo role must correspond to exactly one uploaded photo.",
+        es: "Cada rol de foto declarado debe corresponder a exactamente una foto subida.",
+      }),
+    );
+  }
   const items = request.mediaRoles.map((r) => ({ role: typeof r === "string" ? r : null, mime: null }));
   const mediaRefusal = ports.validateMedia(items);
   if (mediaRefusal) {
@@ -170,7 +190,7 @@ export async function executeQuickBienesPublish(
   // 4. CANONICAL FIELDS.
   const fieldIssues = validateQuickBienesListingFields({
     listingRow: request.listingRow,
-    mediaCount: items.length,
+    mediaCount: mediaUrls.length,
   });
   if (fieldIssues.length) {
     return fail(
@@ -206,6 +226,7 @@ export async function executeQuickBienesPublish(
     ownerUserId,
     quickPackageKey: options.quickPackageKey,
     nowIso: ports.nowIso(),
+    mediaUrls,
     listingJsonBase: reusable?.listingJson ?? null,
   });
 

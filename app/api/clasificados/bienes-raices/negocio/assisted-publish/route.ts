@@ -133,16 +133,24 @@ export async function POST(request: NextRequest) {
   }
 
   const nowIso = new Date().toISOString();
+  // THE ROW IS NEVER WRITTEN LIVE BEFORE THE PAYMENT IS VERIFIED.
+  //
+  // `publish_for_client` used to insert with `status: "active"`, `is_published: true` and a
+  // `published_at`, and only THEN check for a cleared manual payment — returning 402 with the
+  // listing already public and no rollback. `is_published = true AND status = 'active'` is
+  // exactly the public read predicate, so staff saw "record and clear the payment first" while
+  // the unpaid listing was live to the world.
+  //
+  // Every write below lands as PENDING. Activation is a separate step that happens only after
+  // `hasClearedManualPaymentForListing` says the money is in, which is the same order the Autos
+  // assisted route already used.
   const insertRow: Record<string, unknown> = {
     ...filteredRow,
     owner_id: clientUserId,
-    status: isAssistedPublish ? "active" : "pending",
-    is_published: isAssistedPublish,
+    status: "pending",
+    is_published: false,
     updated_at: nowIso,
   };
-  if (isAssistedPublish) {
-    insertRow.published_at = nowIso;
-  }
   // Ensure category is bienes-raices for this route
   if (!insertRow.category) {
     insertRow.category = "bienes-raices";
@@ -200,13 +208,15 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  // publish_for_client: verify cleared manual payment before activating
+  // publish_for_client: verify cleared manual payment, and ONLY THEN activate.
   if (isAssistedPublish) {
     const cleared = await hasClearedManualPaymentForListing({
       listingSource: "listings",
       listingId,
     });
     if (!cleared) {
+      // The row exists but is PENDING and unpublished, so nothing is public. Staff can clear the
+      // payment and re-run this action, which will find the same row and activate it.
       return NextResponse.json(
         {
           ok: false,
@@ -215,6 +225,19 @@ export async function POST(request: NextRequest) {
           listingId,
         },
         { status: 402 },
+      );
+    }
+
+    const activatedAt = new Date().toISOString();
+    const { error: activateError } = await db
+      .from("listings")
+      .update({ status: "active", is_published: true, published_at: activatedAt, updated_at: activatedAt })
+      .eq("id", listingId)
+      .eq("owner_id", clientUserId);
+    if (activateError) {
+      return NextResponse.json(
+        { ok: false, error: "listing_activate_failed", listingId },
+        { status: 500 },
       );
     }
   }

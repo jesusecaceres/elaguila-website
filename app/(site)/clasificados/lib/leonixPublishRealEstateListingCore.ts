@@ -417,6 +417,8 @@ async function publishQuickBienesThroughServerCustody(
   input: {
     listingRow: Record<string, unknown>;
     mediaRoles: readonly (string | null)[];
+    /** The image URLs those roles describe, in the same order. The server writes these. */
+    mediaUrls: readonly string[];
     basePackageKey: string;
     lang: "es" | "en";
   },
@@ -435,6 +437,7 @@ async function publishQuickBienesThroughServerCustody(
       body: JSON.stringify({
         listingRow: input.listingRow,
         mediaRoles: input.mediaRoles,
+        mediaUrls: input.mediaUrls,
         basePackageKey: input.basePackageKey,
         lang: input.lang,
       }),
@@ -668,12 +671,14 @@ export async function publishLeonixRealEstateListingCore(
      * A refusal, a non-200, or an unreachable server all abort the publish — there is no
      * fall-through to `insertListingsRowResilient`, at any point, for this product.
      */
-    const roles = imageSources
-      .filter((u) => typeof u === "string" && u.trim())
-      .map((u) => params.mediaRoles?.[u] ?? null);
+    // The URLs and their declared roles travel together, so the server validates and writes the
+    // SAME gallery. Sending roles alone let a request declare "property" and persist no photo.
+    const quickMediaUrls = imageSources.filter((u): u is string => typeof u === "string" && u.trim().length > 0);
+    const roles = quickMediaUrls.map((u) => params.mediaRoles?.[u] ?? null);
     const custody = await publishQuickBienesThroughServerCustody(supabase, {
       listingRow: insertPayload,
       mediaRoles: roles,
+      mediaUrls: quickMediaUrls,
       basePackageKey: quickBienesBaseKey!,
       lang,
     });

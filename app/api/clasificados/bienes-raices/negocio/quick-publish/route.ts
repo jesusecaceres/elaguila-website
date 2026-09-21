@@ -146,7 +146,7 @@ export function buildQuickBienesPublishPorts(request: NextRequest): QuickBienesP
 }
 
 export async function POST(request: NextRequest) {
-  let body: { listingRow?: unknown; mediaRoles?: unknown; basePackageKey?: unknown; lang?: unknown } = {};
+  let body: { listingRow?: unknown; mediaRoles?: unknown; mediaUrls?: unknown; basePackageKey?: unknown; lang?: unknown } = {};
   try {
     body = (await request.json()) as typeof body;
   } catch {
@@ -162,6 +162,9 @@ export async function POST(request: NextRequest) {
       // Passed through as-is: a non-array is refused by the operation as `invalid_body`,
       // never quietly coerced into "no photos".
       mediaRoles: body.mediaRoles as (string | null)[],
+      // The URLs those roles describe. The operation writes them, so the gallery it validated is
+      // the gallery the row ends up with.
+      mediaUrls: Array.isArray(body.mediaUrls) ? (body.mediaUrls as string[]) : [],
       declaredPackageKey: typeof body.basePackageKey === "string" ? body.basePackageKey : null,
       lang: body.lang === "en" ? "en" : "es",
     },

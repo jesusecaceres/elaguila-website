@@ -59,6 +59,7 @@ import {
 } from "@/app/lib/media/listingMediaContract";
 import { normalizeStrictExternalVideoUrl } from "@/app/lib/media/externalVideoUrlValidation";
 import { enforceQuickBusinessPublishMedia } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
+import { resolveQuickBusinessPublishIdentity } from "@/app/lib/listingPlans/quickBusinessProductIdentityServer";
 import { SERVICIOS_MAX_VIDEO_URLS } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
 
 /** Gallery cap mirrors GALLERY_MAX in ClasificadosServiciosApplication.tsx:141 (local, unexported). */
@@ -338,15 +339,44 @@ export async function POST(req: NextRequest) {
   }
 
   // Gate QB-MEDIA-03 — the canonical Quick Business semantic media contract, run on the SERVER
-  // for a listing the CUSTOMER published for themselves. Until this gate, only the two
+  // for a listing the CUSTOMER published for themselves. Until that gate, only the two
   // staff-assisted routes enforced it, so every self-service path was protected by browser code
   // alone. The count/video truths above stay Servicios' own (gallery cap 24, its own video
   // validator) — this guard adds only the semantic one: at least one image that actually depicts
   // the business, with a declared logo never able to satisfy it.
-  const serviciosSemanticMedia = enforceQuickBusinessPublishMedia({
+  //
+  // Gate QB-BOUNDARY-03 — IT RUNS FOR QUICK PRODUCTS ONLY.
+  //
+  // Servicios sells BOTH a Quick base package and a Full one, and this seam is shared by both.
+  // Running the contract unconditionally held a FULL customer to a $99 product's rule — the exact
+  // blocker the product-boundary work closed for Autos and Bienes, still open here and in
+  // Restaurantes. The product comes from the same server-owned resolver those two use: a verified
+  // assisted context, a live entitlement, the checkout ledger, and only then a declaration that
+  // can restrict its sender and never relax anything.
+  //
+  // The GALLERY IS NOT THE WHOLE GALLERY. Servicios' own readiness rule accepts a cover image with
+  // an empty gallery, so passing `state.gallery` alone refused a Quick customer who had in fact
+  // uploaded a photo of their business. The cover is included, and declared first, because it is
+  // the image the customer chose to lead with.
+  const serviciosProduct = await resolveQuickBusinessPublishIdentity({
     category: "servicios",
-    items: state.gallery.map((g) => ({ role: (g as { role?: string }).role ?? null, mime: null })),
+    ownerUserId: ownerUserId ?? "",
+    // The listing this publish is amending, when there is one; a first publish has none.
+    listingId: typeof b.existingPublicSlug === "string" ? b.existingPublicSlug.trim() || null : null,
+    declaredPackageKey: typeof b.basePackageKey === "string" ? b.basePackageKey : null,
   });
+  const serviciosMediaItems = [
+    ...(state.coverUrl
+      ? [{ role: (state as { coverRole?: string }).coverRole ?? null, mime: null }]
+      : []),
+    ...state.gallery.map((g) => ({ role: (g as { role?: string }).role ?? null, mime: null })),
+  ];
+  const serviciosSemanticMedia = serviciosProduct.enforceQuickContract
+    ? enforceQuickBusinessPublishMedia({
+        category: "servicios",
+        items: serviciosMediaItems,
+      })
+    : null;
   if (serviciosSemanticMedia && !serviciosSemanticMedia.ok) {
     await insertServiciosAnalyticsEvent({
       listingSlug: null,

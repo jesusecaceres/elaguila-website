@@ -38,6 +38,7 @@ import { readActiveAssistedPublishingContext } from "@/app/lib/auth/assistedPubl
 import { linkAssistedListingToBusiness } from "@/app/lib/business/assistedListingCustody";
 import { linkSelfServiceListingToBusiness } from "@/app/lib/business/canonicalListingLink";
 import { enforceQuickBusinessPublishMedia } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
+import { resolveQuickBusinessPublishIdentity } from "@/app/lib/listingPlans/quickBusinessProductIdentityServer";
 
 /** Gallery cap mirrors MAX_GALLERY in RestaurantePublishMediaStrip.tsx:29 (local, unexported). */
 const RESTAURANTE_GALLERY_MAX = 24;
@@ -333,13 +334,34 @@ export async function POST(req: NextRequest) {
   // for a listing the CUSTOMER published for themselves. Restaurantes' own count/video truths
   // above are untouched; this adds only the semantic one — at least one image that actually
   // depicts the restaurant, with a declared logo never able to satisfy it.
-  const restauranteSemanticMedia = enforceQuickBusinessPublishMedia({
+  //
+  // Gate QB-BOUNDARY-03 — IT RUNS FOR QUICK PRODUCTS ONLY.
+  //
+  // Restaurantes sells BOTH a Quick base package and a Full one through this same seam. Running
+  // the contract unconditionally held a FULL customer to a $99 product's rule — the blocker the
+  // product-boundary work closed for Autos and Bienes but not here. The product comes from the
+  // same server-owned resolver those two use, so there is one product fact in this codebase and
+  // not a second one invented per category.
+  const restauranteRequestBody = body as Record<string, unknown>;
+  const restauranteProductListingId =
+    typeof restauranteRequestBody.listingId === "string" ? restauranteRequestBody.listingId.trim() || null : null;
+  const restauranteDeclaredPackageKey =
+    typeof restauranteRequestBody.basePackageKey === "string" ? restauranteRequestBody.basePackageKey : null;
+  const restauranteProduct = await resolveQuickBusinessPublishIdentity({
     category: "restaurantes",
-    items: [
-      ...(restauranteHeroUrl ? [{ role: null, mime: null }] : []),
-      ...restauranteGalleryUrls.map(() => ({ role: null, mime: null })),
-    ],
+    ownerUserId: verifiedOwnerId ?? "",
+    listingId: restauranteProductListingId,
+    declaredPackageKey: restauranteDeclaredPackageKey,
   });
+  const restauranteSemanticMedia = restauranteProduct.enforceQuickContract
+    ? enforceQuickBusinessPublishMedia({
+        category: "restaurantes",
+        items: [
+          ...(restauranteHeroUrl ? [{ role: null, mime: null }] : []),
+          ...restauranteGalleryUrls.map(() => ({ role: null, mime: null })),
+        ],
+      })
+    : null;
   if (restauranteSemanticMedia && !restauranteSemanticMedia.ok) {
     return NextResponse.json(restauranteSemanticMedia.body, { status: restauranteSemanticMedia.status });
   }

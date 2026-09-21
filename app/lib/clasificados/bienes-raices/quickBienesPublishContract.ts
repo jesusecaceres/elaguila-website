@@ -54,6 +54,9 @@ export const QUICK_BIENES_ALLOWED_COLUMNS: readonly string[] = [
 
 /** Columns the SERVER always writes itself, whatever the caller sent. */
 export const QUICK_BIENES_SERVER_OWNED_COLUMNS: readonly string[] = [
+  // `images` is server-written from the SAME list the semantic contract validated. It is not in
+  // the caller whitelist, so a caller cannot supply a gallery that bypasses the check.
+  "images",
   "owner_id",
   "category",
   "seller_type",
@@ -149,6 +152,16 @@ export function buildQuickBienesListingRow(input: {
   ownerUserId: string;
   quickPackageKey: string;
   nowIso: string;
+  /**
+   * The image URLs whose roles the semantic contract just validated, in the same order.
+   *
+   * THE OPERATION WRITES THE MEDIA IT CHECKED. Validating a list of role descriptors and then
+   * leaving the browser to write the gallery separately meant the check and the persisted media
+   * had no relationship at all: a request declaring `["property"]` and uploading nothing produced
+   * a published Quick listing with zero images, from the very endpoint whose purpose is to
+   * guarantee at least one real photo of the property.
+   */
+  mediaUrls: readonly string[];
   /** Pre-existing `listing_json` content to preserve, when amending a reused pending row. */
   listingJsonBase?: Record<string, unknown> | null;
 }): Record<string, unknown> {
@@ -161,6 +174,16 @@ export function buildQuickBienesListingRow(input: {
     status: "pending",
     is_published: false,
     inventory_role: QUICK_BIENES_INVENTORY_ROLE,
+    // The validated gallery, written by the server in the same operation that checked it.
+    images: [...input.mediaUrls],
+    // THE TITLE IS WRITTEN EXACTLY AS THE REUSE KEY LOOKS IT UP.
+    //
+    // `buildQuickBienesReuseKey` trims the title; this builder used to spread the caller's raw
+    // value. A title with a trailing space was therefore STORED untrimmed and SEARCHED FOR
+    // trimmed, so the retry lookup missed its own row and inserted a second pending listing —
+    // silently defeating the duplicate protection this operation exists to provide. The two must
+    // normalize identically, so they now share one function.
+    title: trimmed((contributed as { title?: unknown }).title),
     listing_json: buildQuickBienesListingJson({
       base: input.listingJsonBase ?? null,
       quickPackageKey: input.quickPackageKey,
