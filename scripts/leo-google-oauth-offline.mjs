@@ -12,9 +12,16 @@
  * Requires a Google Cloud OAuth client that allows loopback redirect:
  *   http://127.0.0.1:<port>/oauth/callback
  *
- * Scopes (read-only only):
+ * Scopes (LEO FINAL-02: read + connected-action write):
  *   https://www.googleapis.com/auth/gmail.readonly
  *   https://www.googleapis.com/auth/calendar.readonly
+ *   https://www.googleapis.com/auth/gmail.compose
+ *   https://www.googleapis.com/auth/calendar.events
+ *   https://www.googleapis.com/auth/contacts.readonly
+ *
+ * Running this script mints a NEW refresh token carrying all scopes below —
+ * an existing read-only token is not upgraded by this change alone. This is
+ * a FINAL-03 owner action; FINAL-02 does not run this script or obtain a token.
  *
  * Does NOT write tokens to disk. Does NOT print access tokens or client secrets.
  */
@@ -22,9 +29,18 @@
 import http from "node:http";
 import { URL } from "node:url";
 
-const GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
-const CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.readonly";
-const SCOPES = `${GMAIL_SCOPE} ${CALENDAR_SCOPE}`;
+const GMAIL_READONLY_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
+const CALENDAR_READONLY_SCOPE = "https://www.googleapis.com/auth/calendar.readonly";
+const GMAIL_COMPOSE_SCOPE = "https://www.googleapis.com/auth/gmail.compose";
+const CALENDAR_EVENTS_SCOPE = "https://www.googleapis.com/auth/calendar.events";
+const CONTACTS_READONLY_SCOPE = "https://www.googleapis.com/auth/contacts.readonly";
+const SCOPES = [
+  GMAIL_READONLY_SCOPE,
+  CALENDAR_READONLY_SCOPE,
+  GMAIL_COMPOSE_SCOPE,
+  CALENDAR_EVENTS_SCOPE,
+  CONTACTS_READONLY_SCOPE,
+].join(" ");
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const LISTEN_HOST = "127.0.0.1";

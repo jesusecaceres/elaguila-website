@@ -25,6 +25,47 @@ const PREPARE_TYPES = new Set(["PREPARE_DRAFT", "PREPARE_FOLLOWUP", "CREATE_COMM
 
 const INTERNAL_TYPES = new Set(["ACKNOWLEDGE", "DISMISS", "REMIND_LATER"]);
 
+/** LEO FINAL-02: consequential connected actions — real provider execution. */
+const EXECUTE_TYPES = new Set([
+  "CREATE_EMAIL_DRAFT",
+  "SEND_EMAIL",
+  "REPLY_EMAIL",
+  "CREATE_CALENDAR_EVENT",
+  "UPDATE_CALENDAR_EVENT",
+]);
+
+type LeoActionExecState =
+  | { status: "idle" }
+  | { status: "executing" }
+  | { status: "succeeded"; label: string }
+  | { status: "failed"; message: string };
+
+/** Truthful terminal label — only shown after real provider success. */
+function successLabelForAction(type: string): string {
+  switch (type) {
+    case "SEND_EMAIL":
+      return "Sent";
+    case "REPLY_EMAIL":
+      return "Sent";
+    case "CREATE_EMAIL_DRAFT":
+      return "Draft created";
+    case "CREATE_CALENDAR_EVENT":
+      return "Event scheduled";
+    case "UPDATE_CALENDAR_EVENT":
+      return "Event updated";
+    default:
+      return "Done";
+  }
+}
+
+function messageForExecutionState(state: string, errorMessage: string | null): string {
+  if (state === "UNAVAILABLE") return "Provider unavailable";
+  if (state === "DUPLICATE_REPLAY") return "Already executed";
+  if (state === "AMBIGUOUS") return "Needs clarification";
+  if (state === "DENIED") return "This confirmation is no longer valid — please re-prepare.";
+  return errorMessage || "Failed";
+}
+
 function isUsableNavigateUrl(action: LeoExecutiveAction): boolean {
   if (!action.enabled) return false;
   if (action.governanceLevel === "RED" || action.governanceLevel === "NEVER") return false;
@@ -75,6 +116,7 @@ export function LeoActionBar({
 }) {
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [execState, setExecState] = useState<Record<string, LeoActionExecState>>({});
 
   const visible = actions.filter((a) => a.governanceLevel !== "NEVER");
   if (visible.length === 0) return null;
@@ -84,6 +126,15 @@ export function LeoActionBar({
   const shown = moreOpen ? visible : primary;
 
   function effectiveEnabled(action: LeoExecutiveAction): { enabled: boolean; reason: string | null } {
+    const exec = execState[action.actionId];
+    if (exec?.status === "executing") {
+      return { enabled: false, reason: "Executing…" };
+    }
+    if (exec?.status === "succeeded" || exec?.status === "failed") {
+      // Terminal for this render — a fresh action card (new actionId) is
+      // required to try again, matching the deterministic proposal identity.
+      return { enabled: false, reason: exec.status === "succeeded" ? exec.label : exec.message };
+    }
     if (action.governanceLevel === "RED") {
       return { enabled: false, reason: "Approval required before this action can run." };
     }
@@ -105,6 +156,45 @@ export function LeoActionBar({
     return { enabled: true, reason: null };
   }
 
+  async function executeConnectedAction(action: LeoExecutiveAction) {
+    setExecState((prev) => ({ ...prev, [action.actionId]: { status: "executing" } }));
+    try {
+      const res = await fetch("/api/leo/action/execute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          proposalId: action.targetRef.id,
+          fingerprint: action.targetRef.meta?.fingerprint ?? "",
+          toolId: action.toolId,
+          confirm: true,
+        }),
+      });
+      const json = (await res.json().catch(() => null)) as
+        | { ok: boolean; result?: { state: string; message: string } }
+        | null;
+      const result = json?.result;
+      if (result?.state === "SUCCEEDED") {
+        setExecState((prev) => ({
+          ...prev,
+          [action.actionId]: { status: "succeeded", label: successLabelForAction(action.type) },
+        }));
+      } else {
+        setExecState((prev) => ({
+          ...prev,
+          [action.actionId]: {
+            status: "failed",
+            message: messageForExecutionState(result?.state ?? "FAILED", result?.message ?? null),
+          },
+        }));
+      }
+    } catch {
+      setExecState((prev) => ({
+        ...prev,
+        [action.actionId]: { status: "failed", message: "Network error — action was not confirmed as sent." },
+      }));
+    }
+  }
+
   function run(action: LeoExecutiveAction) {
     const gate = effectiveEnabled(action);
     if (!gate.enabled || pending) return;
@@ -114,6 +204,11 @@ export function LeoActionBar({
       return;
     }
     setConfirmId(null);
+
+    if (EXECUTE_TYPES.has(action.type)) {
+      void executeConnectedAction(action);
+      return;
+    }
 
     if (NAVIGATE_TYPES.has(action.type) && isUsableNavigateUrl(action)) {
       window.open(action.targetRef.url!, "_blank", "noopener,noreferrer");
@@ -135,8 +230,18 @@ export function LeoActionBar({
       <div className="flex min-w-0 flex-wrap gap-2">
         {shown.map((action) => {
           const gate = effectiveEnabled(action);
+          const exec = execState[action.actionId];
           const confirming = confirmId === action.actionId;
-          const label = confirming ? `Confirm ${action.label}?` : action.label;
+          const label =
+            exec?.status === "executing"
+              ? "Executing…"
+              : exec?.status === "succeeded"
+                ? exec.label
+                : exec?.status === "failed"
+                  ? action.label
+                  : confirming
+                    ? `Confirm ${action.label}?`
+                    : action.label;
           return (
             <button
               key={action.actionId}
@@ -171,6 +276,17 @@ export function LeoActionBar({
           Acknowledge / Dismiss / Remind later need a dedicated owner route — not wired in this panel yet.
         </p>
       ) : null}
+      {shown
+        .filter((a) => execState[a.actionId]?.status === "failed")
+        .map((a) => {
+          const exec = execState[a.actionId];
+          if (exec?.status !== "failed") return null;
+          return (
+            <p key={`${a.actionId}-error`} className="text-[11px] text-[#8A3B2E]">
+              {a.label}: {exec.message}
+            </p>
+          );
+        })}
     </div>
   );
 }

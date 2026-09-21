@@ -4,6 +4,12 @@
  */
 import "server-only";
 
+import type {
+  LeoGoogleCapabilityDiagnostic,
+  LeoGoogleReadCapabilityState,
+  LeoGoogleWriteCapabilityState,
+} from "@/app/leo/_lib/leoTypes";
+
 /** Read-only Gmail scope — no send/modify. */
 export const LEO_GMAIL_READONLY_SCOPE =
   "https://www.googleapis.com/auth/gmail.readonly" as const;
@@ -12,9 +18,35 @@ export const LEO_GMAIL_READONLY_SCOPE =
 export const LEO_CALENDAR_READONLY_SCOPE =
   "https://www.googleapis.com/auth/calendar.readonly" as const;
 
+/** LEO FINAL-02: draft/send scope. Supports both draft management and sending. */
+export const LEO_GMAIL_COMPOSE_SCOPE =
+  "https://www.googleapis.com/auth/gmail.compose" as const;
+
+/** LEO FINAL-02: event create/update scope. */
+export const LEO_CALENDAR_EVENTS_SCOPE =
+  "https://www.googleapis.com/auth/calendar.events" as const;
+
+/** LEO FINAL-02: saved-contact lookup scope. */
+export const LEO_CONTACTS_READONLY_SCOPE =
+  "https://www.googleapis.com/auth/contacts.readonly" as const;
+
+/** Scopes required for existing LEO-13 read behavior. Unchanged by FINAL-02. */
 export const LEO_GOOGLE_EXPECTED_SCOPES = [
   LEO_GMAIL_READONLY_SCOPE,
   LEO_CALENDAR_READONLY_SCOPE,
+] as const;
+
+/**
+ * LEO FINAL-02: minimum additional scopes required for connected-action writes.
+ * The refresh token currently in LEO_GOOGLE_REFRESH_TOKEN was minted under
+ * LEO_GOOGLE_EXPECTED_SCOPES only and must NOT be assumed to carry these —
+ * the owner must complete a new consent flow (FINAL-03) before any of these
+ * scopes are actually granted. See scripts/LEO_GOOGLE_OAUTH_SETUP.md.
+ */
+export const LEO_GOOGLE_WRITE_SCOPES = [
+  LEO_GMAIL_COMPOSE_SCOPE,
+  LEO_CALENDAR_EVENTS_SCOPE,
+  LEO_CONTACTS_READONLY_SCOPE,
 ] as const;
 
 export const LEO_GOOGLE_BOUNDS = {
@@ -70,6 +102,53 @@ export function isLeoGoogleWorkspaceConfigured(): boolean {
   return Boolean(
     getLeoGoogleClientId() && getLeoGoogleClientSecret() && getLeoGoogleRefreshToken(),
   );
+}
+
+/**
+ * LEO FINAL-02 rollout gate. Server-only, default FALSE, absence = FALSE.
+ * The browser cannot read or control this — it is never sent to the client.
+ * This flag is NEVER sufficient authorization by itself; every write path
+ * still requires owner_admin, explicit confirmation, and a successful
+ * provider call before any receipt can reach EXECUTED/VERIFIED.
+ */
+export function isLeoGoogleWriteEnabled(): boolean {
+  return process.env.LEO_GOOGLE_WRITE_ENABLED?.trim().toLowerCase() === "true";
+}
+
+/**
+ * Truthful Google capability diagnostic for connected-action gating.
+ * Distinguishes CONFIG_MISSING / TOKEN_UNAVAILABLE / SCOPE_MISSING /
+ * WRITE_DISABLED / WRITE_READY (write) and CONFIG_MISSING / TOKEN_UNAVAILABLE /
+ * READ_READY (read). Never hardcodes success — read/write readiness reflect
+ * only what is actually configured, never an assumed scope grant.
+ */
+export function getLeoGoogleCapabilityDiagnostic(input: {
+  tokenAvailable: boolean;
+}): LeoGoogleCapabilityDiagnostic {
+  const configured = isLeoGoogleWorkspaceConfigured();
+  const writeEnabledFlag = isLeoGoogleWriteEnabled();
+
+  const read: LeoGoogleReadCapabilityState = !configured
+    ? "CONFIG_MISSING"
+    : !input.tokenAvailable
+      ? "TOKEN_UNAVAILABLE"
+      : "READ_READY";
+
+  let write: LeoGoogleWriteCapabilityState;
+  if (!configured) {
+    write = "CONFIG_MISSING";
+  } else if (!input.tokenAvailable) {
+    write = "TOKEN_UNAVAILABLE";
+  } else if (!writeEnabledFlag) {
+    write = "WRITE_DISABLED";
+  } else {
+    // Eligible to attempt — actual scope possession is proven only by a real
+    // provider call (see leoGmailWriteAdapter.ts / leoCalendarWriteAdapter.ts),
+    // which downgrades this to SCOPE_MISSING truth at the point of failure.
+    write = "WRITE_READY";
+  }
+
+  return { read, write, writeEnabledFlag };
 }
 
 /**
