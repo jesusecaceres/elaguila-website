@@ -90,4 +90,10 @@ COMMENT ON CONSTRAINT restaurantes_public_listings_status_check
   ON public.restaurantes_public_listings IS
   'Gate QB-LIFECYCLE-02 added ''paused'' as the owner-facing pause state, distinct from ''suspended'' which remains staff moderation. Public reads filter status = ''published'', so a paused row is hidden with no reader change.';
 
+-- PostgREST caches the schema (including CHECK constraint bodies it reports on violation).
+-- Without this notify, the first write using a newly-permitted value after this migration is
+-- applied can still be rejected against the cached definition until the pooler recycles. Safe to
+-- run unconditionally and a no-op where PostgREST is not listening.
+NOTIFY pgrst, 'reload schema';
+
 COMMIT;

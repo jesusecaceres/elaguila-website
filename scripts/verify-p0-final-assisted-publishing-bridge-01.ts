@@ -89,7 +89,11 @@ assert.ok(custodySrc.includes('.eq("manual_state", "cleared")'), "Publish for Cl
 
 // 4. Publish route — assisted branch isolated from the customer owner-mutation policy -------------
 const publishSrc = read("app/api/clasificados/servicios/publish/route.ts");
-assert.ok(publishSrc.includes("readAssistedPublishingContext(req.cookies)"), "publish route resolves assisted context server-side from signed cookies only");
+// Gate QB-STAFF-03 (2026-09-21) — the publish route redeems through the STRICTER reader: same
+// signed-cookie resolution, plus a live staff-roster re-check at redemption. `my-listing` below
+// is a READ and deliberately keeps the cheap synchronous reader.
+assert.ok(publishSrc.includes("readActiveAssistedPublishingContext(req.cookies)"), "publish route resolves assisted context server-side from signed cookies only");
+assert.ok(!/[^e]readAssistedPublishingContext\(/.test(publishSrc), "the publish route never redeems a write with the unchecked reader");
 assert.ok(publishSrc.includes('assistedActionRaw === "save_for_client"') && publishSrc.includes('assistedActionRaw === "publish_for_client"'), "two explicit, named assisted actions — no implicit/inferred assisted mode");
 assert.ok(publishSrc.includes('return NextResponse.json({ ok: false, error: "assisted_context_required" }, { status: 403 });'), "an assistedAction without a valid server-verified assisted context is refused, never silently ignored or silently treated as a normal save");
 

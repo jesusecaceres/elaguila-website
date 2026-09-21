@@ -28,7 +28,7 @@ import type { QuickBusinessCategoryAdapter } from "@/app/lib/quickBusiness/quick
 import type { QuickIntakeStep, QuickIntakeValues } from "@/app/lib/quickClassifieds/quickClassifiedTypes";
 import { quickList, quickStr } from "@/app/lib/quickClassifieds/quickClassifiedValidation";
 import { cityField, resolveCity } from "@/app/publicar/rapido/_adapters/quickAdapterShared";
-import { BUSINESS_DAY_ORDER, businessContactStep, businessHoursFields, optionsFromKeyLabel, readBusinessHours, type BusinessDayKey } from "./quickBusinessAdapterShared";
+import { BUSINESS_DAY_ORDER, businessContactStep, businessHoursFields, optionsFromKeyLabel, readBusinessHours, type BusinessDayKey, galleryMediaOnly } from "./quickBusinessAdapterShared";
 
 const BUSINESS_TYPE_OPTIONS = optionsFromKeyLabel(RESTAURANTE_BUSINESS_TYPES, (k) => labelForBusinessType(k, "en"));
 const CUISINE_OPTIONS = optionsFromKeyLabel(RESTAURANTE_CUISINES, (k) => labelForCuisine(k, "en"));
@@ -85,7 +85,10 @@ export const restaurantesQuickBusinessAdapter: QuickBusinessCategoryAdapter = {
   confirmations: { kind: "none" },
   async buildAndWriteCanonicalDraft({ values, media, ctx }) {
     const base = createEmptyRestauranteDraft();
-    const [hero, ...rest] = media.map((m) => m.dataUrl);
+    // Gate QB-MEDIA-03 — a logo never becomes the hero or a gallery photo. Restaurantes keeps its
+    // logo in its own non-gallery field, so what reaches the publish route is restaurant media by
+    // construction (`SUBJECT_ATTRIBUTION.restaurantes === "structural"`).
+    const [hero, ...rest] = galleryMediaOnly(media).map((m) => m.dataUrl);
     const serviceModes = quickList(values, "serviceModes").filter((m): m is RestauranteServiceMode => RESTAURANTE_SERVICE_MODES.some((o) => o.key === m));
     const draft: RestauranteListingDraft = {
       ...base,

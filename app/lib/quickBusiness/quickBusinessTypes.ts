@@ -19,8 +19,21 @@ import type {
   QuickText,
   QuickClassifiedMediaContract,
 } from "@/app/lib/quickClassifieds/quickClassifiedTypes";
+import type { QuickMediaRole } from "./quickBusinessMediaSemantics";
 
 export type { QuickLang, QuickText };
+
+/**
+ * Gate QB-MEDIA-03 — the Quick Business media item, which unlike the certified Quick Classifieds
+ * `QuickMediaItem` CARRIES AN EXPLICIT SEMANTIC ROLE.
+ *
+ * `QuickMediaItem` lives in the byte-frozen Quick Classifieds tree and is shared by every Quick
+ * Classifieds lane, none of which has a subject/identity distinction to make. Quick Business does:
+ * a dealer logo is not a vehicle photo and an agent headshot is not a property photo. So Quick
+ * Business extends the certified shape here rather than mutating it, and `role` is REQUIRED — the
+ * type system, not a convention, is what stops a producer from emitting an unroled item.
+ */
+export type QuickBusinessMediaItem = QuickMediaItem & { role: QuickMediaRole };
 
 /** The four Quick Business Core categories (owner priority order). */
 export const QUICK_BUSINESS_CATEGORY_KEYS = ["servicios", "restaurantes", "autos-dealer", "bienes-negocio"] as const;
@@ -136,7 +149,7 @@ export type QuickBusinessCategoryAdapter = {
   confirmations: QuickBusinessConfirmationSurface;
   buildAndWriteCanonicalDraft: (input: {
     values: QuickIntakeValues;
-    media: readonly QuickMediaItem[];
+    media: readonly QuickBusinessMediaItem[];
     confirmations: QuickBusinessConfirmations;
     ctx: QuickBusinessIntakeContext;
   }) => Promise<{ ok: true; handoff: QuickBusinessHandoff } | { ok: false; issues: string[] }>;

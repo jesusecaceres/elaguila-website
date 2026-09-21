@@ -34,9 +34,10 @@ import {
   validateProposedFinalMediaSet,
   warnDroppedUnpersistableMedia,
 } from "@/app/lib/media/listingMediaContract";
-import { readAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
+import { readActiveAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
 import { linkAssistedListingToBusiness } from "@/app/lib/business/assistedListingCustody";
 import { linkSelfServiceListingToBusiness } from "@/app/lib/business/canonicalListingLink";
+import { enforceQuickBusinessPublishMedia } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
 
 /** Gallery cap mirrors MAX_GALLERY in RestaurantePublishMediaStrip.tsx:29 (local, unexported). */
 const RESTAURANTE_GALLERY_MAX = 24;
@@ -238,7 +239,10 @@ export async function POST(req: NextRequest) {
   // An HMAC-signed cookie from `createAssistedPublishingSession` authorizes a staff actor to
   // save or publish a draft on behalf of a client. The client's `owner_user_id` is intentionally
   // null so the client can claim the listing through the normal Leonix-signup flow.
-  const assistedContext = readAssistedPublishingContext(req.cookies);
+  // Gate QB-STAFF-03 — the roster is re-checked HERE, at redemption, not only at mint time. A
+  // staff member deactivated or removed after their token was issued can no longer publish on a
+  // customer's behalf with it. Fails closed on an unreachable database.
+  const assistedContext = await readActiveAssistedPublishingContext(req.cookies);
   const assistedActionRaw = typeof b.assistedAction === "string" ? b.assistedAction.trim() : "";
   const isAssistedSaveForClient = assistedActionRaw === "save_for_client";
   const isAssistedPublishForClient = assistedActionRaw === "publish_for_client";
@@ -323,6 +327,21 @@ export async function POST(req: NextRequest) {
       { ok: false, error: "media_invalid", issues: restauranteMediaValidation.issues },
       { status: 422 },
     );
+  }
+
+  // Gate QB-MEDIA-03 — the canonical Quick Business semantic media contract, run on the SERVER
+  // for a listing the CUSTOMER published for themselves. Restaurantes' own count/video truths
+  // above are untouched; this adds only the semantic one — at least one image that actually
+  // depicts the restaurant, with a declared logo never able to satisfy it.
+  const restauranteSemanticMedia = enforceQuickBusinessPublishMedia({
+    category: "restaurantes",
+    items: [
+      ...(restauranteHeroUrl ? [{ role: null, mime: null }] : []),
+      ...restauranteGalleryUrls.map(() => ({ role: null, mime: null })),
+    ],
+  });
+  if (restauranteSemanticMedia && !restauranteSemanticMedia.ok) {
+    return NextResponse.json(restauranteSemanticMedia.body, { status: restauranteSemanticMedia.status });
   }
 
   if (!isSupabaseAdminConfigured()) {

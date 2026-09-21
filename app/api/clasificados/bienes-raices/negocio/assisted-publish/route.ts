@@ -19,7 +19,7 @@
  * separately via the existing listing-edit endpoints.
  */
 import { NextResponse, type NextRequest } from "next/server";
-import { readAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
+import { readActiveAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
 import {
   hasClearedManualPaymentForListing,
   isListingLinkedToBusiness,
@@ -27,8 +27,8 @@ import {
 } from "@/app/lib/business/assistedListingCustody";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import {
+  enforceQuickBusinessPublishMedia,
   extractSemanticMediaItems,
-  validateQuickBusinessMediaForCategory,
 } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
 
 export const runtime = "nodejs";
@@ -59,7 +59,10 @@ const ALLOWED_LISTING_COLUMNS = new Set([
 ]);
 
 export async function POST(request: NextRequest) {
-  const assistedContext = readAssistedPublishingContext(request.cookies);
+  // Gate QB-STAFF-03 — the roster is re-checked HERE, at redemption, not only at mint time. A
+  // staff member deactivated or removed after their token was issued can no longer publish on a
+  // customer's behalf with it. Fails closed on an unreachable database.
+  const assistedContext = await readActiveAssistedPublishingContext(request.cookies);
   if (!assistedContext || assistedContext.category !== "bienes-raices") {
     return NextResponse.json({ ok: false, error: "assisted_context_required" }, { status: 403 });
   }
@@ -98,20 +101,14 @@ export async function POST(request: NextRequest) {
   // headshot and a brokerage logo are identity assets and can never satisfy that slot. Checked on
   // publish only: a save_for_client draft is allowed to be incomplete.
   if (isAssistedPublish) {
-    const mediaIssues = validateQuickBusinessMediaForCategory(
-      "bienes-negocio",
-      extractSemanticMediaItems(listingRowRaw),
-    );
-    if (mediaIssues && mediaIssues.length) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "media_contract_violation",
-          issues: mediaIssues.map((i) => i.code),
-          message: mediaIssues[0]!.messageEn,
-        },
-        { status: 422 },
-      );
+    // Gate QB-MEDIA-03 — the SAME canonical entry point the four self-service seams call, so the
+    // assisted and self-service paths cannot drift into two different contracts.
+    const semanticMedia = enforceQuickBusinessPublishMedia({
+      category: "bienes-negocio",
+      items: extractSemanticMediaItems(listingRowRaw),
+    });
+    if (semanticMedia && !semanticMedia.ok) {
+      return NextResponse.json(semanticMedia.body, { status: semanticMedia.status });
     }
   }
 

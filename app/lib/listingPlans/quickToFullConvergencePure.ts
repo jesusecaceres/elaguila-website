@@ -92,7 +92,8 @@ export type ConvergenceRefusalReason =
   | "owner_mismatch"
   | "category_mismatch"
   | "package_mismatch"
-  | "customer_mismatch";
+  | "customer_mismatch"
+  | "customer_unverified";
 
 export type ConvergencePlan =
   | { action: "skip"; reason: ConvergenceSkipReason }
@@ -133,6 +134,31 @@ export function planQuickToFullConvergence(
     full.stripeCustomerId !== quick.stripeCustomerId
   ) {
     return { action: "refuse", reason: "customer_mismatch" };
+  }
+  /**
+   * 2026-09-21 audit follow-up — an UNVERIFIABLE customer is not a matching customer.
+   *
+   * Previously the guard above simply fell through when the Quick snapshot carried no customer
+   * id, and the subscription was cancelled anyway. That state is genuinely anomalous rather than
+   * routine: `quickToFullConvergenceCore` already fails (retryably) when the Stripe retrieve
+   * fails, so reaching here with a null means the retrieve SUCCEEDED and returned no customer AND
+   * the ledger has no copy either. The one guard written to stop this code touching the wrong
+   * customer's subscription was therefore silently disabled in exactly the case where the data is
+   * least trustworthy.
+   *
+   * THE DECISION: refuse. A refusal is non-destructive — the Quick subscription keeps running,
+   * the attempt is recorded as `refused` with this reason, and an operator resolves it from the
+   * audit log. Cancelling an unattributable subscription is the irreversible direction, and the
+   * cost of being wrong there is a stranger's live product. The customer may briefly hold both
+   * Quick and Full; that is visible, auditable and refundable.
+   *
+   * SCOPED DELIBERATELY: this fires only when the FULL payment DOES carry a customer id, so the
+   * comparison was actually possible and one side is missing. When neither side has one, the
+   * guard was never evaluable in this environment at all (a webhook payload shape, not a Quick
+   * anomaly) and behaviour is unchanged — refusing there would block every convergence.
+   */
+  if (full.stripeCustomerId && !quick.stripeCustomerId) {
+    return { action: "refuse", reason: "customer_unverified" };
   }
 
   // Never cancel the very subscription that was just purchased.

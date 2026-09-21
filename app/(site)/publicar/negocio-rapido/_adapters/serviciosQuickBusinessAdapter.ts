@@ -19,11 +19,11 @@ import { evaluateServiciosPublishReadiness } from "@/app/clasificados/publicar/s
 import { withClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import { withQuickPlanParam } from "@/app/lib/listingPlans/businessQuickPlanSignal";
 import type { SupportedLang } from "@/app/lib/language";
-import type { QuickBusinessCategoryAdapter } from "@/app/lib/quickBusiness/quickBusinessTypes";
-import type { QuickFieldOption, QuickIntakeStep, QuickIntakeValues, QuickMediaItem } from "@/app/lib/quickClassifieds/quickClassifiedTypes";
+import type { QuickBusinessCategoryAdapter, QuickBusinessMediaItem } from "@/app/lib/quickBusiness/quickBusinessTypes";
+import type { QuickFieldOption, QuickIntakeStep, QuickIntakeValues } from "@/app/lib/quickClassifieds/quickClassifiedTypes";
 import { quickList, quickStr } from "@/app/lib/quickClassifieds/quickClassifiedValidation";
 import { cityField, resolveCity } from "@/app/publicar/rapido/_adapters/quickAdapterShared";
-import { BUSINESS_DAY_ORDER, businessContactStep, businessHoursFields, readBusinessHours, splitFreeTextList } from "./quickBusinessAdapterShared";
+import { BUSINESS_DAY_ORDER, businessContactStep, businessHoursFields, readBusinessHours, splitFreeTextList, galleryMediaOnly } from "./quickBusinessAdapterShared";
 
 /** The 77 existing business-type presets (one universal Servicios application, many presets). */
 const BUSINESS_TYPE_OPTIONS: QuickFieldOption[] = BUSINESS_TYPE_PRESETS.map((p) => ({ value: p.id, label: { es: p.labelEs, en: p.labelEn } }));
@@ -68,8 +68,14 @@ function hoursFrom(values: QuickIntakeValues, base: DayHoursRow[]): DayHoursRow[
   });
 }
 
-function galleryFrom(media: readonly QuickMediaItem[]): GalleryItem[] {
-  return media.map((m) => ({ id: m.id, url: m.dataUrl, source: "file" as const }));
+/**
+ * Gate QB-MEDIA-03 — identity assets (a logo) never enter the business gallery. Servicios keeps
+ * its logo in its own non-gallery field, so the gallery that reaches the publish route is
+ * business media by construction; the server attributes the `business` subject role to it on
+ * exactly that basis (`SUBJECT_ATTRIBUTION.servicios === "structural"`).
+ */
+function galleryFrom(media: readonly QuickBusinessMediaItem[]): GalleryItem[] {
+  return galleryMediaOnly(media).map((m) => ({ id: m.id, url: m.dataUrl, source: "file" as const }));
 }
 
 export const serviciosQuickBusinessAdapter: QuickBusinessCategoryAdapter = {

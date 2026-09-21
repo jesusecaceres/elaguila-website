@@ -138,7 +138,11 @@ for (const f of [
 {
   const pubSrc = read("app/api/clasificados/servicios/publish/route.ts");
   assert.ok(pubSrc.includes("save_for_client") && pubSrc.includes("publish_for_client"), "both assisted actions intact");
-  assert.ok(pubSrc.includes("readAssistedPublishingContext("), "assisted mode still requires the signed server-minted cookie");
+  // Gate QB-STAFF-03 (2026-09-21) — the publish seam redeems through the STRICTER reader, which
+  // verifies the same signed server-minted cookie AND re-resolves the live staff roster at
+  // redemption. The bare reader would now be a weakening here, so it is forbidden outright.
+  assert.ok(pubSrc.includes("readActiveAssistedPublishingContext("), "assisted mode still requires the signed server-minted cookie");
+  assert.ok(!/[^e]readAssistedPublishingContext\(/.test(pubSrc), "a write seam never redeems with the unchecked reader");
   assert.ok(pubSrc.includes("hasClearedManualPaymentForListing("), "Publish for Client still gated on a real cleared manual payment");
   assert.ok(pubSrc.includes("linkAssistedListingToBusiness("), "assisted custody write intact");
   assert.ok(

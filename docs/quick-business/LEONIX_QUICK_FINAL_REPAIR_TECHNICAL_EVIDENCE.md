@@ -1,9 +1,29 @@
 # Leonix Quick — Final Repair Technical Evidence
 
 Branch: `cursor/quick-simple-vs-full-commercial-closeout-2026-09`
-Starting SHA: `883467d253e4c14d9d26c71ca9b35eacfe1054b7`
-**QUICK_FREEZE_SHA: `4cb34be6d519b541606eecf9ff4afa3d0824814b`**
+Mission base SHA: `883467d253e4c14d9d26c71ca9b35eacfe1054b7`
 Merge-base with `origin/main`: `fd9094994aa2a63fdcea49f24b2435300a7b49a4`
+
+> ## ⚠️ CORRECTION NOTICE — 2026-09-21
+>
+> An independent audit of the 2026-09-20 freeze found this document asserting things that were
+> not true. **Section R at the end of this file is the authoritative record**; where anything
+> earlier in this document conflicts with Section R, Section R wins. The specific corrections
+> are listed in **R.1**.
+>
+> **THE ONE QUICK FREEZE SHA.** Two different SHAs previously appeared in this repository as
+> "the" freeze: `4cb34be6d519b541606eecf9ff4afa3d0824814b` (this file's old header) and
+> `8e9ecc139731e2bfc4d6f75d0350d1d886783a43` (the later "record the freeze SHA" commit).
+> **Both are retired.** Neither is a Quick freeze any longer: the freeze they describe exited
+> RED on a required verifier.
+>
+> The single current Quick freeze is **the audit-repair commit on this branch — the one commit
+> whose parent is `8e9ecc139731e2bfc4d6f75d0350d1d886783a43`** — i.e.
+> `git rev-parse cursor/quick-simple-vs-full-commercial-closeout-2026-09`. That commit's exact
+> SHA is reported in the mission return as `FINAL_QUICK_FREEZE_SHA`. It is named by its parent
+> rather than by its own hash here for the obvious reason: a commit cannot contain its own SHA,
+> and the previous attempt to write one in produced exactly the stale-SHA inconsistency this
+> notice corrects. There is one freeze identity and it is this one.
 
 This document records what was repaired, the evidence for each claim, and what remains
 open. Claims here are backed by executable tests or by named source locations — not by
@@ -201,25 +221,26 @@ stronger claim, not deleted.
 
 ---
 
-## Verification results
+## Verification results (2026-09-20 run — SUPERSEDED, see Section R)
+
+> **This section is retained for history and is NOT current.** Three of its claims were false or
+> unverifiable; they are corrected in **R.1** and the real, re-run results are in **R.7**.
 
 - **Full TypeScript check: CLEAN (exit 0).** All four errors present at the starting SHA are
   fixed.
 - **Focused lint:** clean, zero warnings, across every changed file.
-- **Quick + assisted verifier sweep:** 17 pass, 2 fail — both **byte-identical to their failure at
-  the starting SHA**, verified by running them in a clean worktree at `883467d2`.
+- **Quick + assisted verifier sweep:** 17 pass, 2 fail — both claimed "byte-identical to their
+  failure at the starting SHA". **That claim was false for
+  `verify-quick-remaining-families-01`** — see R.1.
 - **Adjacent-area verifiers:** `verify-concierge-assisted-publishing-01`,
   `verify-business-identity-core-01`, `verify-revenue-write-security-hardening-01`,
   `verify-revenue-os-stripe-golden-contract`, `verify-launch-truth-01` — all pass.
-- **New behavioral tests: 68 checks**, all passing, none touching a database, a network or Stripe:
-  - `verify-quick-convergence-behavior-01.ts` — 18
-  - `verify-quick-lifecycle-media-behavior-01.ts` — 28
-  - `verify-quick-assisted-operations-01.ts` — 22 (including 12 real token attacks)
+- **New behavioral tests: 68 checks** (counts superseded by R.7).
 
 ### Local production build — ENVIRONMENTAL FAILURE, not a regression
 
-`npm run build` reaches **"Compiled successfully in 3.1min"** and passes type-checking, then fails
-at prerender:
+`npm run build` reaches **"Compiled successfully"** and passes type-checking, then fails at
+prerender:
 
 ```
 Export encountered an error on /(site)/dashboard/page: /dashboard, exiting the build.
@@ -240,13 +261,6 @@ Evidence it is not caused by this work:
 This cannot be resolved by a code change in this environment; it needs the Supabase public
 environment variables to be present at build time.
 
-### Pre-existing failures (evidence-backed, not regressions)
-
-1. `verify-quick-classifieds-onramp-01` — fails on three Bienes translate files from a prior
-   mission. Identical at baseline.
-2. `verify-quick-remaining-families-01` — fails on `quickBusinessTypes.ts` from a prior mission.
-   Failure message **byte-identical** at baseline.
-
 ### A note on one error that was fixed, reverted, then fixed differently
 
 `quickBusinessRegistry.ts(31,40)` (`Type 'false' is not assignable to type 'true'`) blocked the
@@ -254,11 +268,260 @@ production build's type-check. The one-line fix mutates `quickClassifiedTypes.ts
 **certified-frozen** — two verifiers assert that tree is byte-identical to SHA `7555fb64`. That
 change was made, then deliberately reverted. The shipped fix instead gives Quick Business its own
 `QuickBusinessMediaContract` and its own intake validator, leaving the certified tree untouched.
-The intake narrows its contract when handing it to the certified `QuickMediaStep`; that narrowing
-is sound only because `QuickMediaStep` never reads `videoOptional`, so **that precondition is now
-asserted mechanically** in the core verifier rather than trusted to the comment stating it.
 
 ### Not performed (per mission constraints)
 
 No Vercel Preview, no deployment, no dev server, no browser QA, no live Stripe call, no remote
 Supabase mutation. The authored migration was **not** applied anywhere.
+
+---
+
+# Section R — 2026-09-21 audit repair (AUTHORITATIVE)
+
+Everything in this section supersedes anything earlier in this document that conflicts with it.
+
+Mission base: `883467d253e4c14d9d26c71ca9b35eacfe1054b7`
+Previous (retired) freeze: `8e9ecc139731e2bfc4d6f75d0350d1d886783a43`
+Current Quick freeze: the single commit on this branch whose parent is `8e9ecc13` (see the
+correction notice at the top of this file).
+
+---
+
+## R.1 — False claims in this document, corrected
+
+| # | What this document claimed | The truth | Correction |
+|---|---|---|---|
+| 1 | `verify-quick-remaining-families-01` "fails on `quickBusinessTypes.ts` from a prior mission. Failure message **byte-identical** at baseline." | **False.** At the mission base `883467d2` the failure names **one** file (`app/lib/quickBusiness/quickBusinessTypes.ts`). At the retired freeze `8e9ecc13` it names **four** — the three extra (`QuickBusinessIntakeClient.tsx`, `quickBusinessLifecycleCapabilities.ts`, `quickBusinessMediaSemantics.ts`) were introduced by that mission itself. The failure was not byte-identical and was not entirely inherited. | Both baseline and repaired verifier truth recorded in **R.2**. The verifier is now GREEN (**R.7**). |
+| 2 | `QUICK_FREEZE_SHA: 4cb34be6d…` in the header, while the branch tip and the later commit message named `8e9ecc13…` | Two different SHAs were circulating as "the" freeze. | Both retired. One freeze identity, defined in the correction notice at the top. |
+| 3 | "Full TypeScript check: CLEAN (exit 0)" stated without naming the environmental precondition | `tsc --noEmit` exits **2** with 12 `Cannot find module '…/public/*.png'` errors in a container that has never run a Next build, because `next-env.d.ts` is generated by the build and is gitignored. With that file present it exits **0**. | Stated with its precondition in **R.7**. |
+| 4 | The semantic media contract was presented as enforcement | It was **declared** but operationally inert — no producer emitted roles, a missing role was resolved to the required subject role, and only the two staff-assisted routes ran it. | The contract is now real; see **R.3**–**R.5**. |
+
+---
+
+## R.2 — Verifier authorization repair (`verify-quick-remaining-families-01.ts`)
+
+**Baseline truth.** At `883467d2` the verifier already exited **1**:
+
+```
+certified Quick Business Core tree changed outside the authorized set:
+  app/lib/quickBusiness/quickBusinessTypes.ts
+```
+
+At the retired freeze `8e9ecc13` it exited **1** naming **four** files. So the freeze was
+declared over a **red required verifier**, and three of the four names were this mission's own
+work, not inherited debt.
+
+**Repair.** The four legitimate Quick files were added to `QUICK_BUSINESS_AUTHORIZED`, each by
+exact path with an explicit rationale. No directory entry, no glob, no wildcard exemption. Two
+further files are listed for the QB-MEDIA-03 producer work in this repair.
+
+| File | Why it is authorized |
+|---|---|
+| `app/lib/quickBusiness/quickBusinessTypes.ts` | Quick Business permits **no** video in any family, but `QuickClassifiedMediaContract.videoOptional` is the literal `true`. The registry was returning `false` for a field typed `true` — a real type error that blocked the production build. Quick Business carries its own contract type rather than misreporting the certified Classifieds one. It now also declares `QuickBusinessMediaItem`, whose semantic `role` is **required**. |
+| `app/lib/quickBusiness/quickBusinessMediaSemantics.ts` | The cross-family semantic media contract: the role vocabulary, which roles depict the listed thing, and the one canonical function every server publish seam calls. Four families and six server routes share it; anywhere else would mean four divergent copies of one rule. |
+| `app/lib/quickBusiness/quickBusinessLifecycleCapabilities.ts` | The cross-family lifecycle capability matrix, including the honest `unsupported_by_schema` state while the QB-LIFECYCLE-02 migration is authored-but-unapplied. Same one-contract reason. |
+| `app/(site)/publicar/negocio-rapido/_components/QuickBusinessIntakeClient.tsx` | The **producer** half of the media contract. The semantic rule is unprovable unless the producer emits a role, and the certified Quick Classifieds media step emits role-less items. |
+| `app/(site)/publicar/negocio-rapido/_components/QuickBusinessMediaStep.tsx` *(new, this repair)* | The role-aware media step. Lives inside the Quick Business tree; the certified `QuickMediaStep` and `QuickMediaItem` stay byte-unchanged. |
+| `app/(site)/publicar/negocio-rapido/_components/quickBusinessDraftStore.ts` *(this repair)* | Must persist a declared role, and must re-open a pre-roles draft as **undeclared** rather than silently treating it as a vehicle/property photo. |
+
+The certified **Quick Classifieds** tree (`app/lib/quickClassifieds`, `app/(site)/publicar/rapido`)
+remains byte-unchanged with **no exception at all** — unchanged from before this repair.
+
+---
+
+## R.3 — Semantic media: what was inert, and what is now real
+
+The 2026-09-20 contract failed for four separate reasons. Each is addressed:
+
+| Audit finding | Repair |
+|---|---|
+| Producers did not emit media roles | `QuickBusinessMediaItem.role` is **required** by the type. The Quick Business intake renders its own role-aware media step; every adapter stamps or carries the declared role. |
+| A missing role defaulted to the required subject role | `effectiveRole` returns `"unspecified"` for a missing role. There is no implicit upgrade anywhere in the module. A family whose gallery is structurally single-purpose gets its role by an **explicit, per-family attribution** (`SUBJECT_ATTRIBUTION`), which is available to `business` only — never to `vehicle` or `property`. |
+| Customer self-service publish paths were unprotected server-side | All four now call `enforceQuickBusinessPublishMedia` (**R.4**). |
+| Only two staff-assisted paths invoked the validator | Both assisted routes now call the **same** canonical entry point, so assisted and self-service cannot drift into two contracts (**R.5**). |
+
+**Producer → transport → server, per family**
+
+| Family | Producer | Transport | Server |
+|---|---|---|---|
+| Servicios | `QuickBusinessMediaStep` (business / logo) | `galleryMediaOnly(media)` → `gallery` (logo excluded by construction; `logoAllowed: false` on the publish route) | `servicios/publish` → canonical validator, structural attribution |
+| Restaurantes | `QuickBusinessMediaStep` (restaurant / logo) | `galleryMediaOnly(media)` → `heroImage` + `galleryImages` | `restaurantes/publish` → canonical validator, structural attribution |
+| Autos Dealer | `QuickBusinessMediaStep` (**vehicle / dealer logo / dealership-general**), new photo starts **unmarked** | `MediaImageEntry.role` (additive optional field) — identity assets never enter the vehicle gallery | `autos/listings` (`lane === "negocios"`) → canonical validator, **declared** attribution |
+| Bienes Negocio | `QuickBusinessMediaStep` (**property / headshot / office-general / logo**), new photo starts **unmarked** | `fotoMediaRoles` on the agente draft → `media.photoMediaRoles` on the negocio state → `mediaRoles` on the publish core params, keyed by image source so reordering cannot misalign a role | `bienes-raices/negocio/publish-media-gate` → canonical validator, **declared** attribution, called **fail-closed before any row write** |
+
+**Existing drafts fail safely.** A pre-roles draft re-opens with every photo undeclared and is
+refused with a distinct `role_declaration_required` code whose message names the family's own
+subject ("Tell us which of your photos is the real photo of the vehicle…"). It is never silently
+misclassified.
+
+**No video was added to Quick.** The new media step has no video affordance of any kind
+(`accept="image/*"` only, asserted mechanically), and the contract rejects any `video/*` MIME.
+
+---
+
+## R.4 — Self-service coverage
+
+| Family | Route | Validator | Behavior on violation |
+|---|---|---|---|
+| Servicios | `app/api/clasificados/servicios/publish/route.ts` | `enforceQuickBusinessPublishMedia({ category: "servicios" })` | `422 media_contract_violation`, logged as `publish_validation_failed`. Gallery cap 24 and the category's own video validator are untouched. |
+| Restaurantes | `app/api/clasificados/restaurantes/publish/route.ts` | `enforceQuickBusinessPublishMedia({ category: "restaurantes" })` | `422 media_contract_violation`. Hero-or-gallery minimum and cap 24 untouched. |
+| Autos Dealer | `app/api/clasificados/autos/listings/route.ts` (`lane === "negocios"`) | `enforceQuickBusinessPublishMedia({ category: "autos-dealer" })` | `422` with `errorCode: "MEDIA_CONTRACT_VIOLATION"`. The `privado` lane is deliberately untouched. |
+| Bienes Negocio | `app/api/clasificados/bienes-raices/negocio/publish-media-gate/route.ts`, called from `publishLeonixRealEstateListingCore` **before** the insert | `enforceQuickBusinessPublishMedia({ category: "bienes-negocio" })` | `422`. The caller **fails closed**: a refusal, a non-200, a missing session, a malformed answer and a network error all abort the publish. |
+
+**Browser validation is not the boundary.** The intake runs the same contract for UX, and the
+server re-runs it on the payload that actually arrives. A client that skips the intake gains
+nothing on the three server-published families.
+
+**Honest limitation, stated rather than papered over.** For Bienes Negocio the `listings` INSERT
+itself is still a browser→Postgres write governed by RLS, exactly as before. The gate is a real
+server decision made from server-held rules, and the browser cannot see the rules or reinterpret a
+refusal — but a client that bypassed `publishLeonixRealEstateListingCore` entirely and spoke to
+Supabase directly would not pass through it. Closing that last gap needs a database-side CHECK or
+RLS policy, i.e. a migration, which this mission is explicitly not authorized to apply.
+
+---
+
+## R.5 — Assisted coverage
+
+| Family | Route | Validator | Behavior |
+|---|---|---|---|
+| Autos Dealer | `app/api/clasificados/autos/assisted-publish/route.ts` | `enforceQuickBusinessPublishMedia({ category: "autos-dealer" })` on `body.vehicleListing`, on `publish_for_client` only | `422` with the canonical refusal body. A `save_for_client` draft may still be incomplete. |
+| Bienes Negocio | `app/api/clasificados/bienes-raices/negocio/assisted-publish/route.ts` | `enforceQuickBusinessPublishMedia({ category: "bienes-negocio" })` on `body.listingRow`, on `publish_for_client` only | `422` with the canonical refusal body. |
+
+Both previously called `validateQuickBusinessMediaForCategory` directly. They now call the same
+canonical entry point as the four self-service seams, so the two modes cannot diverge.
+
+---
+
+## R.6 — Migration guard
+
+**What was wrong.** The guard read `git status --short -- supabase/migrations`, i.e. the working
+tree only. Once a migration was committed — the normal end state of every mission — `git status`
+reported nothing, the loop body never executed, and the guard reported OK for a repository it had
+not inspected. A destructive committed migration would have passed silently.
+
+**What it does now.** It inspects the **committed diff** `883467d253e4c14d9d26c71ca9b35eacfe1054b7..HEAD`
+**and** the working tree, so a migration escapes by neither route. Concretely:
+
+1. **Inertness self-test first.** If this mission's own authored migration is not visible in the
+   range, the guard fails loudly rather than reporting OK — it cannot go inert a second time.
+2. **Exact path, no wildcard.** Exactly one migration may appear:
+   `supabase/migrations/20260920120000_quick_business_lifecycle_capability_parity.sql`. Any other
+   file fails by name before its contents are read. There is no directory exemption and no glob.
+3. **Nothing destructive.** `DROP TABLE`, `DROP SCHEMA`, `DROP COLUMN`, `DROP INDEX`, `DROP TYPE`,
+   `DROP POLICY`, `DROP FUNCTION`, `DROP TRIGGER`, `TRUNCATE`, `DELETE FROM`, `CASCADE` — all
+   refused. Comments are stripped first, so the file's own rollback prose is not a hit.
+4. **No table creation**, of any name, related or unrelated.
+5. **Exact permitted constraint changes.** The only constraints the migration may drop are the two
+   it re-adds (`servicios_public_listings_listing_status_chk`,
+   `restaurantes_public_listings_status_check`); it must re-add both; the `IN (...)` value set of
+   each must equal the authorized list exactly (a smuggled extra value fails); and the set of
+   `ALTER TABLE` targets must be exactly those two tables.
+6. **Still not applied.** The file must still declare `NOT APPLIED`.
+7. **Self-tested.** Every rule is exercised against synthetic SQL it must reject, including a
+   `CASCADE` riding on an otherwise-permitted `DROP CONSTRAINT` and a third altered table.
+
+A parsing defect in the old code was also fixed: `git status --short` prefixes each line with a
+**two-character** status field whose first character is a space for an unstaged change, so
+trimming the whole output before slicing a fixed offset ate a character of the path.
+
+**The migration was not applied.** `MIGRATIONS_APPLIED: NO`.
+
+---
+
+## R.7 — Test results (this repair)
+
+Run from a clean worktree at the freeze commit.
+
+| Command | Exit | Result |
+|---|---|---|
+| `npx tsx scripts/verify-quick-lifecycle-media-behavior-01.ts` | 0 | OK — 34 checks (was 28) |
+| `npx tsx scripts/verify-quick-remaining-families-01.ts` | 0 | OK — **repaired from a red exit at both `883467d2` and `8e9ecc13`** |
+| `npx tsx scripts/verify-quick-business-core-01.ts` | 0 | OK |
+| `npx tsx scripts/verify-quick-assisted-operations-01.ts` | 0 | OK — 23 checks (was 22), 12 real token attacks |
+| `npx tsx scripts/verify-quick-convergence-behavior-01.ts` | 0 | OK — 19 checks (was 18) |
+| `npx tsx scripts/verify-quick-full-gates-04.ts` | 0 | OK |
+| `npx tsx scripts/verify-p0-assisted-servicios-navigation-01.ts` | 0 | PASS (7 contracts) |
+| `npx tsx scripts/verify-p0-final-assisted-publishing-bridge-01.ts` | 0 | PASS (8 contracts) |
+| `npx tsx scripts/verify-p0-staff-assisted-category-access-01.ts` | 0 | PASS (7 contracts) |
+| `npx tsx scripts/verify-concierge-assisted-publishing-01.ts` | 0 | PASS (7 contracts) |
+| `npx tsx scripts/verify-business-identity-core-01.ts` | 0 | PASS |
+| `npx tsx scripts/verify-revenue-write-security-hardening-01.ts` | 0 | PASS |
+| `npx tsc --noEmit --incremental false` | 0 | CLEAN — see the precondition below |
+| `npx eslint <every changed app file> --max-warnings 0` | 0 | clean, zero warnings |
+
+**TypeScript precondition, stated honestly.** `next-env.d.ts` is generated by `next build` and is
+gitignored, so a container that has never built reports **12** `Cannot find module
+'…/public/*.png'` errors and exits 2. That count is **identical at the retired freeze
+`8e9ecc13`** (verified by stashing this work and re-running), so none of it is attributable to
+this repair. With `next-env.d.ts` present, `tsc --noEmit --incremental false` exits **0** with no
+errors at all. At the mission base `883467d2` the same command reported **16** (those 12 plus 4
+real errors that the 2026-09-20 mission fixed).
+
+**Lint scope note.** `npm run lint`, `npm run lint:br` and `npm run lint:servicios` cover broad
+pre-existing trees and report pre-existing problems. None of them is in a file this mission
+changed: the file lists were compared directly (`comm -12`) and the intersection is empty, and
+every changed file lints clean with `--max-warnings 0`.
+
+---
+
+## R.8 — Low-risk corrections taken in this repair
+
+1. **Redemption-time staff roster re-check.** The assisted-publishing token was minted after a
+   full `requireStaffWorkspaceWriteAccess()` check, but that check ran **once**; afterwards only
+   the signature and expiry were verified. A staff member deactivated or removed kept a working
+   write token for the rest of `ASSISTED_PUBLISH_MAX_AGE_SEC`. All four seams that **write** on a
+   customer's behalf now redeem through `readActiveAssistedPublishingContext`, which re-resolves
+   the roster row by `auth_user_id`, requires it to still be active, and requires it to still be
+   the row the token names. Fail-closed on an unreachable database. Read-only surfaces (the UI
+   gate, `my-listing`) keep the cheap synchronous read deliberately — they render, they do not
+   write. Two P0 verifiers that asserted the bare reader on the Servicios publish seam were
+   updated to require the **stricter** one and to forbid the bare one on a write seam —
+   a strengthening, not a relaxation.
+2. **`NOTIFY pgrst, 'reload schema';`** added to the authored Quick lifecycle migration, inside
+   its existing transaction, so the first write using a newly-permitted status value is not
+   rejected against PostgREST's cached schema. The migration is still **not applied**.
+3. **A missing Quick Stripe customer id now refuses convergence.** Decision and reasoning: the
+   customer guard previously fell through when the Quick snapshot carried no customer id, so the
+   one check written to stop this code touching the wrong customer's subscription was disabled in
+   exactly the case where the data is least trustworthy. (Reaching the planner at all means the
+   Stripe retrieve **succeeded** and returned no customer **and** the ledger has no copy — a
+   retrieve failure already fails retryably upstream.) The plan now returns
+   `refuse / customer_unverified`. A refusal is non-destructive: the Quick subscription keeps
+   running, the attempt is audited, and an operator resolves it. Cancelling an unattributable
+   subscription is the irreversible direction. **Scoped deliberately:** it fires only when the
+   Full payment *does* carry a customer id, so the comparison was genuinely possible and one side
+   is missing; when neither side has one the guard was never evaluable in that environment and
+   behaviour is unchanged, or every convergence would be blocked.
+
+---
+
+## R.9 — ⚠️ COMPATIBILITY IMPACT REQUIRING AN OWNER DECISION BEFORE ANY DEPLOY
+
+This is the one consequence of the mission as specified that an owner must decide on. It is
+stated here rather than buried.
+
+The mission requires that **an absent role can never satisfy a vehicle or property requirement**,
+and that existing drafts "fail safely with a clear correction message rather than being silently
+misclassified". That has been implemented exactly. The Autos Dealer and Bienes Negocio publish
+seams are **shared with those categories' FULL applications**, whose media editors do **not**
+declare roles.
+
+**Therefore, once deployed:** a Full dealer publishing to `lane === "negocios"`, and a Full agent
+publishing a `seller_type = 'business'` listing, will be refused with
+`role_declaration_required` until their own media editors emit roles. The blast radius is bounded
+(the Autos `privado` lane and FSBO Bienes listings are untouched) and the refusal is a correction,
+not data loss — but it is a real behaviour change for a live product.
+
+**Options, for the owner:**
+
+1. **Ship as specified** and accept that Full dealer/agent publishing is gated until (2).
+2. **Run a short follow-on mission** adding the same role control to the Full dealer media editor
+   and the Full agente photo step, then deploy both together. This is the recommended order and is
+   why `MediaImageEntry.role` and `fotoMediaRoles` were added as **optional, additive** fields:
+   the Full editors can populate them with no schema change and no migration.
+3. **Narrow the guard's scope** to Quick-marked submissions only — which reintroduces exactly the
+   hole the audit found, and is recorded here only for completeness.
+
+Nothing was deployed, no Vercel Preview was created, no PR was touched, and the Rewards branch was
+not read or modified.

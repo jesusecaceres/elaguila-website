@@ -13,6 +13,7 @@ import { AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY, AUTOS_DEALER_TOTAL_WITH_INVENT
 import { isListingPackageEntitlementRowActive } from "@/app/lib/listingPlans/listingPackageEntitlementPlacement";
 import { assertCommercialCapacityForWrite } from "@/app/lib/listingPlans/commercialWriteGuard";
 import { linkSelfServiceListingToBusiness } from "@/app/lib/business/canonicalListingLink";
+import { enforceQuickBusinessPublishMedia } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
 import type { AutosClassifiedsLane, AutosClassifiedsLang } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 import {
   AUTOS_LISTING_API_MAX_BODY_BYTES,
@@ -228,6 +229,37 @@ export async function POST(request: Request) {
           legacyError: guard.code,
         }),
         { status: guard.code === "parent_not_owned" ? 403 : 409 },
+      );
+    }
+  }
+
+  // Gate QB-MEDIA-03 — the canonical Quick Business semantic media contract, run on the SERVER
+  // for a dealer listing the CUSTOMER created for themselves. Until this gate only the
+  // staff-assisted dealer route enforced it, so the self-service path was protected by browser
+  // code alone and a dealership LOGO satisfied "at least one real photo of the vehicle".
+  //
+  // Scope is the DEALER lane only: the privado (private-seller) lane is a different product with
+  // its own rules and is deliberately untouched. Counts are NOT imposed here — the Autos lane is
+  // uncapped by design — only the semantic requirement: at least one image DECLARED to depict the
+  // vehicle. An unroled dealer gallery is answered with `role_declaration_required`, a correction,
+  // not a bare rejection.
+  if (body.lane === "negocios") {
+    const semanticMedia = enforceQuickBusinessPublishMedia({
+      category: "autos-dealer",
+      payload: body.listing as unknown,
+    });
+    if (semanticMedia && !semanticMedia.ok) {
+      return NextResponse.json(
+        {
+          ...buildAutosListingApiErrorPayload({
+            errorCode: "MEDIA_CONTRACT_VIOLATION",
+            message: lang === "es" ? semanticMedia.body.messageEs : semanticMedia.body.message,
+            details: semanticMedia.body.issues.join("; "),
+            legacyError: "media_contract_violation",
+          }),
+          ...semanticMedia.body,
+        },
+        { status: semanticMedia.status },
       );
     }
   }

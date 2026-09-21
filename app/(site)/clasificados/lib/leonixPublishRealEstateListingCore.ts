@@ -334,6 +334,16 @@ export type PublishLeonixRealEstateListingCoreParams = {
   contactEmail: string | null;
   /** Ordered gallery: data URLs or http(s) URLs (cover first). */
   imageSources: string[];
+  /**
+   * Gate QB-MEDIA-03 — declared semantic role per image source (`"property"`, `"headshot"`, …),
+   * keyed by the same string that appears in `imageSources`. Optional and additive.
+   *
+   * A BUSINESS Bienes Raíces publish is checked against the Quick Business semantic media contract
+   * by a SERVER route before any row is written; this map is what that route is told. A caller
+   * that supplies nothing declares nothing, and the server answers with a correction rather than
+   * inventing a role — a missing role never becomes "property".
+   */
+  mediaRoles?: Readonly<Record<string, string>> | null;
   lang: "es" | "en";
   /** Rentas publish-time Mux (optional; omitted when listing has link-only video or no video). */
   muxAssetId?: string | null;
@@ -373,6 +383,42 @@ export type PublishLeonixRealEstateListingCoreResult =
       listingStatus?: string | null;
     }
   | { ok: false; error: string };
+
+/**
+ * Ask the server whether this media set satisfies the Bienes Negocio semantic media contract.
+ *
+ * Only a role descriptor crosses the wire — never bytes, never a URL. Every failure mode
+ * (no session, non-200, network error, malformed answer) resolves to REFUSED, so there is no
+ * input and no outage under which the publish proceeds unchecked.
+ */
+async function enforceBienesNegocioPublishMediaOnServer(
+  supabase: ReturnType<typeof createSupabaseBrowserClient>,
+  roles: readonly (string | null)[],
+  lang: "es" | "en",
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const generic =
+    lang === "es"
+      ? "No se pudo verificar tus fotos con el servidor. Inténtalo de nuevo."
+      : "Your photos could not be verified with the server. Please try again.";
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
+    if (!accessToken) return { ok: false, error: generic };
+    const res = await fetch("/api/clasificados/bienes-raices/negocio/publish-media-gate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({ roles }),
+    });
+    if (res.ok) return { ok: true };
+    const payload = (await res.json().catch(() => null)) as
+      | { message?: unknown; messageEs?: unknown }
+      | null;
+    const message = lang === "es" ? payload?.messageEs : payload?.message;
+    return { ok: false, error: typeof message === "string" && message.trim() ? message : generic };
+  } catch {
+    return { ok: false, error: generic };
+  }
+}
 
 export async function publishLeonixRealEstateListingCore(
   params: PublishLeonixRealEstateListingCoreParams
@@ -433,6 +479,27 @@ export async function publishLeonixRealEstateListingCore(
     };
   }
   const userId = auth.user.id;
+
+  /**
+   * Gate QB-MEDIA-03 — SERVER enforcement of the semantic media contract for a BUSINESS Bienes
+   * Raíces listing, before any row is written.
+   *
+   * Bienes Negocio is the one Quick Business family that publishes from the browser, so there is
+   * no server publish handler to host the check; `/api/clasificados/bienes-raices/negocio/publish-media-gate`
+   * is that handler's stand-in. It FAILS CLOSED: a refusal, a non-200, or an unreachable gate all
+   * abort the publish, because browser-side validation is UX and must never be the boundary.
+   *
+   * Honest scope: the `listings` INSERT below remains a browser→Postgres write governed by RLS.
+   * A client that never called this function at all would not pass through here; closing that
+   * requires a database-side constraint, i.e. a migration, which this mission may not apply.
+   */
+  if (category === "bienes-raices" && sellerType === "business") {
+    const roles = imageSources
+      .filter((u) => typeof u === "string" && u.trim())
+      .map((u) => params.mediaRoles?.[u] ?? null);
+    const gate = await enforceBienesNegocioPublishMediaOnServer(supabase, roles, lang);
+    if (!gate.ok) return { ok: false, error: gate.error };
+  }
 
   const insertPayload = buildListingsInsertRowForLeonixPublish(userId, paramsForRow, {
     listingDescriptionForDb: descriptionForDb,

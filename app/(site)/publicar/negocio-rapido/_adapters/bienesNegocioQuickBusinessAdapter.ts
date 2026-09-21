@@ -45,7 +45,7 @@ import type { QuickBusinessCategoryAdapter } from "@/app/lib/quickBusiness/quick
 import type { QuickIntakeStep, QuickIntakeValues } from "@/app/lib/quickClassifieds/quickClassifiedTypes";
 import { quickStr, quickWholeDollars } from "@/app/lib/quickClassifieds/quickClassifiedValidation";
 import { cityField, resolveCity } from "@/app/publicar/rapido/_adapters/quickAdapterShared";
-import { BUSINESS_CONTACT_AT_LEAST_ONE } from "./quickBusinessAdapterShared";
+import { BUSINESS_CONTACT_AT_LEAST_ONE, declaredMediaRoleMap, galleryMediaOnly } from "./quickBusinessAdapterShared";
 
 /** Existing preview route (`AgenteIndividualResidencialApplication.tsx` BR_AGENTE_RES_PREVIEW_ROUTE). */
 const BR_AGENTE_PREVIEW_ROUTE = "/clasificados/publicar/bienes-raices/negocio/agente-individual/preview";
@@ -145,7 +145,14 @@ export const bienesNegocioQuickBusinessAdapter: QuickBusinessCategoryAdapter = {
       areaCiudad: quickStr(values, "areaCiudad"),
       direccionCodigoPostal: quickStr(values, "zip"),
       // Existing property media shape: `fotosDataUrls` + cover index (offloaded to IndexedDB by the canonical store).
-      fotosDataUrls: media.map((m) => m.dataUrl),
+      //
+      // Gate QB-MEDIA-03 — the agent's HEADSHOT and any brokerage logo are identity assets and
+      // never enter the property gallery, and every photo that does enter it carries the
+      // customer's own declared role in the additive `fotoMediaRoles` map. The business publish
+      // seam re-reads those roles server-side, so "a headshot is not a property photo" is
+      // enforced on what actually arrives instead of trusted from the browser.
+      fotosDataUrls: galleryMediaOnly(media).map((m) => m.dataUrl),
+      fotoMediaRoles: declaredMediaRoleMap(galleryMediaOnly(media)),
       fotoPortadaIndex: 0,
       // Agent card (customer's own answers; license / brokerage stay empty unless typed).
       agenteNombre: quickStr(values, "agenteNombre"),

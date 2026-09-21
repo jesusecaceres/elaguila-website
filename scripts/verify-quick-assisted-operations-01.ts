@@ -200,7 +200,8 @@ check("B1 WIRING: all four families accept both assisted actions", () => {
 check("B2 WIRING: all four verify the HMAC assisted context", () => {
   for (const r of ASSISTED_ROUTES) {
     const code = readCode(r.path);
-    assert.ok(code.includes("readAssistedPublishingContext("), `${r.family} must verify the signed cookie`);
+    // The checked reader verifies the signed cookie AND re-resolves the roster (see B10).
+    assert.ok(code.includes("readActiveAssistedPublishingContext("), `${r.family} must verify the signed cookie`);
   }
 });
 
@@ -284,7 +285,40 @@ check("B9: the registry's staff flags match the routes that actually exist", () 
   // A flag is only honest if the route it implies is real AND verifies the assisted context.
   for (const r of ASSISTED_ROUTES) {
     const code = readCode(r.path);
-    assert.ok(code.length > 0 && code.includes("readAssistedPublishingContext("), `${r.family}'s claim is backed by a real route`);
+    assert.ok(
+      code.length > 0 && code.includes("readActiveAssistedPublishingContext("),
+      `${r.family}'s claim is backed by a real route that verifies the assisted context`,
+    );
+  }
+});
+
+check("B10: the assisted token is re-checked against the LIVE roster at redemption", () => {
+  // 2026-09-21 audit follow-up. The token is minted only after a full
+  // requireStaffWorkspaceWriteAccess() check — but that check happens ONCE. Signature + expiry
+  // were all that a redemption verified, so a staff member deactivated after minting kept a
+  // working write token for the rest of ASSISTED_PUBLISH_MAX_AGE_SEC.
+  const session = readCode("app/lib/auth/assistedPublishingSession.ts");
+  assert.ok(session.includes("export async function readActiveAssistedPublishingContext("), "the redemption-time check exists");
+  assert.ok(session.includes("lookupActiveAdminRosterByAuthUserId(ctx.authUserId)"), "it re-resolves the roster row by auth user id");
+  assert.ok(session.includes("if (!roster.ok) return null;"), "an absent, inactive or unreadable roster row refuses");
+  assert.ok(
+    session.includes("if (roster.rosterMemberId !== ctx.rosterId) return null;"),
+    "a DIFFERENT roster row for the same Auth user is a different actor and refuses",
+  );
+  // Fail-closed: the underlying lookup reports db_error (not ok) when Supabase is unreachable,
+  // so an outage refuses rather than passing an unverified actor through.
+  const adminSession = readCode("app/lib/supabase/adminSession.ts");
+  assert.ok(
+    adminSession.includes('return { ok: false, code: "db_error" };'),
+    "the roster lookup itself fails closed on an unreachable database",
+  );
+  // Every WRITE seam redeems through the checked reader; no write seam keeps the bare one.
+  for (const r of ASSISTED_ROUTES) {
+    const code = readCode(r.path);
+    assert.ok(
+      !/[^e]readAssistedPublishingContext\(/.test(code),
+      `${r.family} must not redeem a write with the unchecked reader`,
+    );
   }
 });
 

@@ -34,7 +34,7 @@ import {
   SERVICIOS_LEONIX_LOCKED_STATUSES,
   serviciosSaveAwaitsBasePurchase,
 } from "@/app/clasificados/servicios/lib/serviciosOwnerMutationPolicy";
-import { readAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
+import { readActiveAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
 import {
   hasClearedManualPaymentForListing,
   isListingLinkedToBusiness,
@@ -58,6 +58,7 @@ import {
   warnDroppedUnpersistableMedia,
 } from "@/app/lib/media/listingMediaContract";
 import { normalizeStrictExternalVideoUrl } from "@/app/lib/media/externalVideoUrlValidation";
+import { enforceQuickBusinessPublishMedia } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
 import { SERVICIOS_MAX_VIDEO_URLS } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
 
 /** Gallery cap mirrors GALLERY_MAX in ClasificadosServiciosApplication.tsx:141 (local, unexported). */
@@ -262,7 +263,10 @@ export async function POST(req: NextRequest) {
    * two new, explicitly-declared request shapes (`assistedAction`), each handled by its own
    * dedicated, isolated code path below, never interleaved with the customer owner-mutation policy.
    */
-  const assistedContext = readAssistedPublishingContext(req.cookies);
+  // Gate QB-STAFF-03 — the roster is re-checked HERE, at redemption, not only at mint time. A
+  // staff member deactivated or removed after their token was issued can no longer publish on a
+  // customer's behalf with it. Fails closed on an unreachable database.
+  const assistedContext = await readActiveAssistedPublishingContext(req.cookies);
   const assistedActionRaw = typeof b.assistedAction === "string" ? b.assistedAction.trim() : "";
   const isAssistedSaveForClient = assistedActionRaw === "save_for_client";
   const isAssistedPublishForClient = assistedActionRaw === "publish_for_client";
@@ -331,6 +335,25 @@ export async function POST(req: NextRequest) {
       { ok: false, error: "media_invalid", issues: serviciosMediaValidation.issues },
       { status: 422 },
     );
+  }
+
+  // Gate QB-MEDIA-03 — the canonical Quick Business semantic media contract, run on the SERVER
+  // for a listing the CUSTOMER published for themselves. Until this gate, only the two
+  // staff-assisted routes enforced it, so every self-service path was protected by browser code
+  // alone. The count/video truths above stay Servicios' own (gallery cap 24, its own video
+  // validator) — this guard adds only the semantic one: at least one image that actually depicts
+  // the business, with a declared logo never able to satisfy it.
+  const serviciosSemanticMedia = enforceQuickBusinessPublishMedia({
+    category: "servicios",
+    items: state.gallery.map((g) => ({ role: (g as { role?: string }).role ?? null, mime: null })),
+  });
+  if (serviciosSemanticMedia && !serviciosSemanticMedia.ok) {
+    await insertServiciosAnalyticsEvent({
+      listingSlug: null,
+      eventType: "publish_validation_failed",
+      meta: { mediaIssues: serviciosSemanticMedia.body.issues },
+    });
+    return NextResponse.json(serviciosSemanticMedia.body, { status: serviciosSemanticMedia.status });
   }
 
   const baseSlug = slugifyServiciosBusinessName(state.businessName || "borrador");

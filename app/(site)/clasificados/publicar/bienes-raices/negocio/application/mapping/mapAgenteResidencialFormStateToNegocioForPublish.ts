@@ -215,6 +215,9 @@ export function mapAgenteResidencialFormStateToNegocioForPublish(
 ): BienesRaicesNegocioFormState {
   const base = createEmptyBienesRaicesNegocioFormState();
   const photos = (Array.isArray(s.fotosDataUrls) ? s.fotosDataUrls : []).map((u) => trim(String(u))).filter(Boolean);
+  // Gate QB-MEDIA-03 — the declared photo roles travel with the photos. Keyed by source string,
+  // so trimming/filtering above cannot knock a role out of alignment with its image.
+  const photoMediaRoles = s.fotoMediaRoles && Object.keys(s.fotoMediaRoles).length ? { ...s.fotoMediaRoles } : undefined;
   const primaryIdx = Math.min(Math.max(0, s.fotoPortadaIndex), Math.max(0, photos.length - 1));
   const tourUrl = durableHttpUrl(s.tourUrl);
   // BR-INV-WAVE1-GATE1: was capped at 4, silently truncating the schema's own 8-URL allowance
@@ -299,6 +302,7 @@ export function mapAgenteResidencialFormStateToNegocioForPublish(
     media: {
       ...base.media,
       photoUrls: photos,
+      ...(photoMediaRoles ? { photoMediaRoles } : {}),
       primaryImageIndex: primaryIdx,
       virtualTourUrl: tourUrl,
       floorPlanUrls: brochureUrl ? [brochureUrl] : [],

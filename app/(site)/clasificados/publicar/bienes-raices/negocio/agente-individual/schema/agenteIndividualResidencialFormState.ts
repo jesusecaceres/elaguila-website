@@ -173,6 +173,17 @@ export type AgenteIndividualResidencialFormState = {
 
   fotosDataUrls: string[];
   fotoPortadaIndex: number;
+  /**
+   * Gate QB-MEDIA-03 — declared semantic role per photo, keyed by the photo's own source string
+   * (the same value stored in `fotosDataUrls`). Optional and additive: a draft written before
+   * roles existed simply has no entry, every existing reader ignores the field, and nothing in
+   * the Full application is required to populate it.
+   *
+   * It exists because `fotosDataUrls` is a bare string array, so "at least one real photo of the
+   * PROPERTY, not of the agent" cannot otherwise be checked: a headshot and a house are the same
+   * string. The business publish seam re-reads these roles server-side.
+   */
+  fotoMediaRoles?: Record<string, string>;
 
   videoUrl: string;
   /** External video links shown as clean media CTAs; first item mirrors legacy `videoUrl`. */

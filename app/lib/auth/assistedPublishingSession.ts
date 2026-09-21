@@ -96,6 +96,43 @@ export function applyAssistedPublishingCookie(
   return true;
 }
 
+/**
+ * Gate QB-STAFF-03 (2026-09-21 audit repair) — REDEMPTION-TIME roster re-check.
+ *
+ * THE GAP THIS CLOSES: the token is minted only after a full
+ * `requireStaffWorkspaceWriteAccess("assisted_category_publishing")` check, but that check happens
+ * ONCE, at mint time. The signature and expiry are all that `readAssistedPublishingContext`
+ * verifies afterwards, so a staff member deactivated, removed from the roster, or unlinked from
+ * their Auth user keeps a fully valid write token for the remainder of
+ * `ASSISTED_PUBLISH_MAX_AGE_SEC` and can still publish on a customer's behalf.
+ *
+ * WHAT THIS ADDS: every seam that WRITES on a customer's behalf re-resolves the roster row at
+ * redemption and refuses unless it is still active AND still the same row the token names.
+ * Cryptographic validity is necessary and no longer sufficient.
+ *
+ * FAIL-CLOSED, deliberately: a missing secret, a bad signature, an expired token, a roster row
+ * that is absent, inactive, or whose id no longer matches the token, and a database that cannot
+ * be reached all resolve to `null`. There is no branch in which an unverifiable roster is treated
+ * as an active one.
+ *
+ * Read-only surfaces (the UI gate, `my-listing`) deliberately keep the cheap synchronous read:
+ * they render a screen, they do not write, and adding a database round-trip to every render would
+ * buy nothing this check does not already deliver at the write boundary.
+ */
+export async function readActiveAssistedPublishingContext(
+  cookies: CookieStore,
+): Promise<AssistedPublishingContext | null> {
+  const ctx = readAssistedPublishingContext(cookies);
+  if (!ctx) return null;
+  const { lookupActiveAdminRosterByAuthUserId } = await import("@/app/lib/supabase/adminSession");
+  const roster = await lookupActiveAdminRosterByAuthUserId(ctx.authUserId);
+  if (!roster.ok) return null;
+  // The token names a specific roster row. A different row for the same Auth user (a re-invite,
+  // a re-created member) is a different actor and must re-authenticate.
+  if (roster.rosterMemberId !== ctx.rosterId) return null;
+  return ctx;
+}
+
 export function clearAssistedPublishingCookie(res: { cookies: { set: (name: string, value: string, opts: Record<string, unknown>) => void } }) {
   const secure = process.env.NODE_ENV === "production";
   res.cookies.set(LEONIX_ASSISTED_PUBLISH_COOKIE, "", { path: "/", httpOnly: true, sameSite: "strict", secure, maxAge: 0 });

@@ -28,7 +28,7 @@ import type { QuickIntakeStep, QuickLang } from "@/app/lib/quickClassifieds/quic
 import { quickStr, quickWholeDollars } from "@/app/lib/quickClassifieds/quickClassifiedValidation";
 import { buildVehicleTitle } from "@/app/publicar/autos/negocios/lib/autoDealerTitle";
 import { cityField, resolveCity } from "@/app/publicar/rapido/_adapters/quickAdapterShared";
-import { BUSINESS_CONTACT_AT_LEAST_ONE } from "./quickBusinessAdapterShared";
+import { BUSINESS_CONTACT_AT_LEAST_ONE, galleryMediaOnly } from "./quickBusinessAdapterShared";
 
 /** Existing preview route (registry `AUTOS_NEGOCIOS_ADAPTER` preview / `AutosNegociosApplication.tsx` previewHref). */
 const AUTOS_DEALER_PREVIEW_ROUTE = "/clasificados/autos/negocios/preview";
@@ -109,7 +109,19 @@ export const autosDealerQuickBusinessAdapter: QuickBusinessCategoryAdapter = {
   async buildAndWriteCanonicalDraft({ values, media, ctx }) {
     // Existing vehicle media shape (`MediaImageEntry`, `sourceType: "file"`): the preview's existing
     // `resolveAutosDraftPhotosForPublish` uploads these exactly as it does for the Full application.
-    const mediaImages: MediaImageEntry[] = media.map((m, i) => ({ id: m.id, url: m.dataUrl, sourceType: "file", isPrimary: i === 0, sortOrder: i }));
+    //
+    // Gate QB-MEDIA-03 — the dealer's LOGO is an identity asset and never enters the vehicle
+    // gallery, and every image that does enter it carries the customer's own declared role. The
+    // dealer publish seam re-reads those roles server-side, so "a logo is not a vehicle photo" is
+    // enforced on the payload that actually arrives rather than trusted from the browser.
+    const mediaImages: MediaImageEntry[] = galleryMediaOnly(media).map((m, i) => ({
+      id: m.id,
+      url: m.dataUrl,
+      sourceType: "file",
+      isPrimary: i === 0,
+      sortOrder: i,
+      role: m.role,
+    }));
     const year = numberOrUndefined(quickStr(values, "year"));
     const make = quickStr(values, "make") || undefined;
     const model = quickStr(values, "model") || undefined;

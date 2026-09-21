@@ -483,6 +483,11 @@ export async function publishLeonixListingFromBienesRaicesNegocioDraft(
   if ("params" in built) {
     return publishLeonixRealEstateListingCore({
       ...built.params,
+      // Gate QB-MEDIA-03 — carry the customer's own declared photo roles to the server gate.
+      // Keyed by image source, so the builder is free to reorder, drop or dedupe the gallery
+      // without the roles drifting out of alignment. Absent on a draft written before roles
+      // existed, in which case the server answers with a correction instead of a guess.
+      mediaRoles: state.media.photoMediaRoles ?? null,
       activationMode: opts?.activationMode,
       brPaymentLane: "negocio",
     });
@@ -522,6 +527,11 @@ export async function publishLeonixListingFromAgenteResidencialDraft(
   if ("params" in built) {
     return publishLeonixRealEstateListingCore({
       ...built.params,
+      // Gate QB-MEDIA-03 — carry the customer's own declared photo roles to the server gate.
+      // Keyed by image source, so the builder is free to reorder, drop or dedupe the gallery
+      // without the roles drifting out of alignment. Absent on a draft written before roles
+      // existed, in which case the server answers with a correction instead of a guess.
+      mediaRoles: state.fotoMediaRoles ?? null,
       activationMode: opts?.activationMode,
       brPaymentLane: "negocio",
     });

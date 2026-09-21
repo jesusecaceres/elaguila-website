@@ -15,7 +15,7 @@
  *    to business, then requires a cleared manual payment before going live
  */
 import { NextResponse, type NextRequest } from "next/server";
-import { readAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
+import { readActiveAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
 import {
   hasClearedManualPaymentForListing,
   isListingLinkedToBusiness,
@@ -28,15 +28,18 @@ import {
 } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import {
+  enforceQuickBusinessPublishMedia,
   extractSemanticMediaItems,
-  validateQuickBusinessMediaForCategory,
 } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
-  const assistedContext = readAssistedPublishingContext(request.cookies);
+  // Gate QB-STAFF-03 — the roster is re-checked HERE, at redemption, not only at mint time. A
+  // staff member deactivated or removed after their token was issued can no longer publish on a
+  // customer's behalf with it. Fails closed on an unreachable database.
+  const assistedContext = await readActiveAssistedPublishingContext(request.cookies);
   if (!assistedContext || assistedContext.category !== "autos") {
     return NextResponse.json({ ok: false, error: "assisted_context_required" }, { status: 403 });
   }
@@ -76,13 +79,14 @@ export async function POST(request: NextRequest) {
   // rule holds regardless of what the client sent; the media set is read from the vehicle listing
   // because the vehicle, not the business, is what this listing is about.
   if (isAssistedPublish) {
+    // Gate QB-MEDIA-03 — the SAME canonical entry point the four self-service seams call, so the
+    // assisted and self-service paths cannot drift into two different contracts. The previous
+    // per-route `validateQuickBusinessMediaForCategory` call is still exercised directly by the
+    // behavioral verifier; here the canonical function owns extraction and the refusal shape.
     const vehicleMedia = extractSemanticMediaItems(body.vehicleListing);
-    const mediaIssues = validateQuickBusinessMediaForCategory("autos-dealer", vehicleMedia);
-    if (mediaIssues && mediaIssues.length) {
-      return NextResponse.json(
-        { ok: false, error: "media_contract_violation", issues: mediaIssues.map((i) => i.code), message: mediaIssues[0]!.messageEn },
-        { status: 422 },
-      );
+    const semanticMedia = enforceQuickBusinessPublishMedia({ category: "autos-dealer", items: vehicleMedia });
+    if (semanticMedia && !semanticMedia.ok) {
+      return NextResponse.json(semanticMedia.body, { status: semanticMedia.status });
     }
   }
 

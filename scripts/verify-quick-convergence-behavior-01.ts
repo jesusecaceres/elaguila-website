@@ -172,6 +172,30 @@ async function main() {
     );
   });
 
+  await check("planner: an UNVERIFIABLE Quick customer refuses — it is not a matching customer", () => {
+    // 2026-09-21 audit follow-up. Reaching the planner with a null customer means the Stripe
+    // retrieve SUCCEEDED and returned no customer AND the ledger has no copy — the one guard that
+    // stops this code touching the wrong customer's subscription would otherwise be silently
+    // disabled in exactly the case where the data is least trustworthy.
+    const base: QuickSubscriptionSnapshot = { ...QUICK_RECORD, status: "active", cancelAtPeriodEnd: false };
+    assert.deepEqual(
+      planQuickToFullConvergence(FULL_PAID, { ...base, stripeCustomerId: null }),
+      { action: "refuse", reason: "customer_unverified" },
+      "a Quick subscription whose customer cannot be established is never cancelled",
+    );
+    // Scoped: when the FULL side has no customer id either, the guard was never evaluable in this
+    // environment and behaviour is unchanged — otherwise every convergence would be blocked.
+    assert.deepEqual(
+      planQuickToFullConvergence(
+        { ...FULL_PAID, stripeCustomerId: null },
+        { ...base, stripeCustomerId: null },
+      ),
+      { action: "cancel_quick_immediately", quickSubscriptionId: base.stripeSubscriptionId, prorate: true },
+      "a webhook shape that carries no customer at all does not block convergence",
+    );
+    // (A refusal is never retried; that invariant is asserted by the executor scenarios below.)
+  });
+
   await check("planner: already-cancelled Quick is a skip, not an error (scenario 3)", () => {
     for (const status of ["canceled", "incomplete_expired"]) {
       const plan = planQuickToFullConvergence(FULL_PAID, { ...QUICK_RECORD, status, cancelAtPeriodEnd: false });

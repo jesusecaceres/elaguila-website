@@ -7,6 +7,7 @@
 import { QUICK_BUSINESS_COPY, QUICK_BUSINESS_DAY_LABELS } from "@/app/lib/quickBusiness/quickBusinessCopy";
 import type { QuickClassifiedFieldDefinition, QuickIntakeStep, QuickIntakeValues, QuickText } from "@/app/lib/quickClassifieds/quickClassifiedTypes";
 import { quickList, quickStr } from "@/app/lib/quickClassifieds/quickClassifiedValidation";
+import { isIdentityRole } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
 
 export const BUSINESS_DAY_ORDER = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 export type BusinessDayKey = (typeof BUSINESS_DAY_ORDER)[number];
@@ -78,4 +79,32 @@ export function splitFreeTextList(raw: string, max = 12): string[] {
 
 export function optionsFromKeyLabel(list: readonly { key: string; labelEs: string }[], labelEn: (key: string) => string) {
   return list.map((o) => ({ value: o.key, label: { es: o.labelEs, en: labelEn(o.key) } }));
+}
+
+/**
+ * Gate QB-MEDIA-03 — the producer half of the semantic media contract.
+ *
+ * Every Quick Business photo arrives carrying an explicit role. These two helpers are the only
+ * way an adapter is allowed to turn that role into canonical media, so the same two rules hold in
+ * all four families:
+ *
+ *  1. IDENTITY ASSETS NEVER ENTER THE GALLERY. A dealer logo, a brokerage logo and an agent
+ *     headshot are legitimate uploads and legitimate identity fields, but they are not photos of
+ *     the thing being sold. Keeping them out of the canonical gallery is what makes the server's
+ *     "a logo can never satisfy the vehicle requirement" refusal structurally true rather than a
+ *     claim: there is no path by which one reaches the subject slot.
+ *  2. THE DECLARED ROLE TRAVELS WITH THE PHOTO wherever the canonical shape can carry it, so the
+ *     server re-runs the same contract on what actually arrives instead of trusting the browser.
+ */
+export function galleryMediaOnly<T extends { role: string }>(media: readonly T[]): T[] {
+  return media.filter((m) => !isIdentityRole(m.role));
+}
+
+/** Declared role per image source (url / data URL), for canonical shapes that carry only strings. */
+export function declaredMediaRoleMap<T extends { role: string; dataUrl: string }>(
+  media: readonly T[],
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const m of media) out[m.dataUrl] = m.role;
+  return out;
 }
