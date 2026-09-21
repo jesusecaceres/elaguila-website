@@ -20,6 +20,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import {
   getCurrentAdminAccessContext,
+  hasPaymentTrackerAccess,
   requireRevenueProtectedWriteAccess,
   revenueWriteDenialStatusCode,
 } from "@/app/admin/_lib/adminAccessControl";
@@ -37,12 +38,49 @@ import { formatCreditsCents } from "@/app/lib/rewards/rewardsPolicy";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** A wallet is addressed by a canonical uuid. Anything else is refused before it reaches a query. */
+function isUuid(value: string): boolean {
+  return UUID_RE.test(value);
+}
+
+/**
+ * The owner a staff action targets.
+ *
+ * Both ids must be canonical uuids: these values flow into wallet lookups, and a wallet is never
+ * addressable by anything a human typed. An unparseable id is a refusal, not a best-effort match.
+ */
 function ownerFromBody(body: Record<string, unknown>): WalletOwnerRef | null {
   const businessId = typeof body.businessId === "string" ? body.businessId.trim() : "";
   const ownerUserId = typeof body.ownerUserId === "string" ? body.ownerUserId.trim() : "";
-  if (businessId) return { kind: "business", businessId };
-  if (ownerUserId) return { kind: "user", ownerUserId };
+  if (businessId) return isUuid(businessId) ? { kind: "business", businessId } : null;
+  if (ownerUserId) return isUuid(ownerUserId) ? { kind: "user", ownerUserId } : null;
   return null;
+}
+
+/**
+ * Make a human-typed search term safe to place inside a PostgREST `.or()` filter string.
+ *
+ * `.or()` takes a single string whose grammar uses `,` to separate conditions, `.` to separate
+ * operator from operand, and `()` to group. Interpolating a raw term into it is not a SQL
+ * injection — Supabase still parameterizes — but it IS a FILTER injection: a term containing a
+ * comma adds a condition the server never intended, and one containing `)` can close the group
+ * early. A term of `a,status.eq.deleted` would have widened the result set past the `status`
+ * filter applied beside it.
+ *
+ * So: drop every character that carries meaning in that grammar, collapse the `%` and `_` LIKE
+ * wildcards to literals, and bound the length. What survives is a plain substring to match on.
+ * Returns null when nothing usable is left, and the caller refuses rather than searching for "".
+ */
+function sanitizeSearchTerm(raw: string): string | null {
+  const cleaned = raw
+    .replace(/[(),.*"'\\]/g, " ")
+    .replace(/[%_]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 60);
+  return cleaned.length >= 2 ? cleaned : null;
 }
 
 export async function POST(request: NextRequest) {
@@ -77,8 +115,15 @@ export async function POST(request: NextRequest) {
   // canonical business/user id that the search resolves to, never on the phone.
   // -------------------------------------------------------------------------
   if (action === "search") {
-    const q = typeof body.query === "string" ? body.query.trim() : "";
-    if (q.length < 2) return NextResponse.json({ ok: false, error: "query_too_short" }, { status: 400 });
+    const raw = typeof body.query === "string" ? body.query.trim() : "";
+    if (raw.length < 2) return NextResponse.json({ ok: false, error: "query_too_short" }, { status: 400 });
+
+    // The term is stripped of every character that means something to the PostgREST `.or()`
+    // grammar before it is interpolated. Without this, a comma in the term adds a condition of
+    // the caller's choosing to the filter, and the `status = active` restriction beside it stops
+    // being a restriction.
+    const q = sanitizeSearchTerm(raw);
+    if (!q) return NextResponse.json({ ok: false, error: "query_unusable" }, { status: 400 });
 
     const { data: businesses } = await db
       .from("businesses")
@@ -140,13 +185,44 @@ export async function POST(request: NextRequest) {
       owner,
       requestedCents: Math.floor(requestedCents),
       amountDueCents: Math.floor(amountDueCents),
+      // An office payment is taken at the counter and can settle at zero, so no rail floor
+      // applies; the $1 minimum and the 50% ceiling still do.
+      allowZeroCharge: true,
       redemptionRef,
       contextKind: "manual_payment",
       paymentRecordId: typeof body.paymentRecordId === "string" ? body.paymentRecordId : null,
       actorAuthUserId,
       ports,
     });
-    if (!reserved.ok) return NextResponse.json({ ok: false, error: reserved.reason }, { status: 409 });
+    if (!reserved.ok) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: reserved.reason,
+          // What the customer COULD apply, so staff can correct the figure instead of guessing.
+          maxRedeemableCents: reserved.maxRedeemableCents ?? 0,
+          maxRedeemableDisplay: formatCreditsCents(reserved.maxRedeemableCents ?? 0),
+        },
+        { status: 409 },
+      );
+    }
+
+    // A REUSED reference is not a second redemption. It matched a hold that already exists, so
+    // nothing new was reserved and nothing new may be committed — reporting `redeemedCents` here
+    // as though it were fresh is exactly how a reused reference becomes a phantom discount, with
+    // staff handing the customer money off a second time against one movement of credits.
+    if (reserved.deduplicated) {
+      return NextResponse.json({
+        ok: true,
+        deduplicated: true,
+        movedCents: 0,
+        redemptionId: reserved.redemptionId,
+        alreadyAppliedCents: reserved.redeemCents,
+        alreadyAppliedDisplay: formatCreditsCents(reserved.redeemCents),
+        message:
+          "This redemption reference was already used. No new credits were applied; the amount shown is the existing redemption.",
+      });
+    }
 
     // An office payment is taken in person, so it settles in the same interaction: commit at once.
     const committed = await commitReservedCredits({
@@ -160,6 +236,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       ok: true,
+      deduplicated: false,
+      movedCents: reserved.redeemCents,
       redemptionId: reserved.redemptionId,
       redeemedCents: reserved.redeemCents,
       redeemedDisplay: formatCreditsCents(reserved.redeemCents),
@@ -193,13 +271,31 @@ export async function POST(request: NextRequest) {
     });
     if (!res.ok) {
       const status = res.error === "negative_balance_refused" ? 409 : 400;
-      return NextResponse.json({ ok: false, error: res.error }, { status });
+      return NextResponse.json(
+        {
+          ok: false,
+          error: res.error,
+          // A negative adjustment draws from available first, then pending, and is REFUSED when
+          // it exceeds both. It cannot drive a wallet negative, and it cannot bypass the balance
+          // constraints; the remainder is a conversation with the customer, not a negative wallet.
+          ...(res.error === "negative_balance_refused"
+            ? { message: "The adjustment is larger than the wallet's available plus pending balance and was refused." }
+            : {}),
+        },
+        { status },
+      );
     }
+    // A reused adjustment reference moved nothing. Saying so is the difference between an
+    // idempotent retry and a staff member believing they applied a second correction.
     return NextResponse.json({
       ok: true,
+      deduplicated: res.deduplicated,
+      movedCents: res.deduplicated ? 0 : res.amountCents,
       amountCents: res.amountCents,
       amountDisplay: formatCreditsCents(res.amountCents),
-      deduplicated: res.deduplicated,
+      ...(res.deduplicated
+        ? { message: "This adjustment reference was already applied. No new movement was recorded." }
+        : {}),
     });
   }
 
@@ -217,16 +313,32 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ ok: false, error: "unsupported_action" }, { status: 400 });
 }
 
-/** Read-only wallet + ledger view for a staff member inspecting one customer. */
+/**
+ * Read-only wallet + ledger view for a staff member inspecting one customer.
+ *
+ * GATED LIKE THE PAYMENT TRACKER, because that is what it is: a view of money-equivalent value
+ * held for a named customer. `getCurrentAdminAccessContext()` on its own was NOT that gate — it
+ * resolves a context for any admin session and defaults an unresolved roster to `owner_admin` for
+ * navigation, so by itself it let any authenticated admin read any customer's balance and their
+ * entire credit history. `hasPaymentTrackerAccess()` is the same READ authority the
+ * payment-tracker workspace page requires, and it is the correct one here.
+ */
 export async function GET(request: NextRequest) {
   if (!isSupabaseAdminConfigured()) {
     return NextResponse.json({ ok: false, error: "db_not_configured" }, { status: 503 });
   }
   const ctx = await getCurrentAdminAccessContext();
-  if (!ctx) return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
+  if (!ctx || !hasPaymentTrackerAccess(ctx)) {
+    return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
+  }
 
   const businessId = (request.nextUrl.searchParams.get("businessId") ?? "").trim();
   if (!businessId) return NextResponse.json({ ok: false, error: "businessId_required" }, { status: 400 });
+  // The wallet is addressed by a canonical uuid and nothing else. Refusing a malformed id here
+  // keeps a crafted value out of the query layer entirely, rather than trusting it to escape.
+  if (!isUuid(businessId)) {
+    return NextResponse.json({ ok: false, error: "businessId_invalid" }, { status: 400 });
+  }
 
   const db = getAdminSupabase();
   const { data: wallet } = await db
@@ -240,7 +352,12 @@ export async function GET(request: NextRequest) {
   const w = wallet as unknown as { id: string } & Record<string, number>;
   const { data: activity } = await db
     .from("leonix_rewards_ledger")
-    .select("id, entry_type, amount_cents, source_kind, reason, actor_auth_user_id, created_at, balance_available_after")
+    // `actor_auth_user_id` is deliberately NOT selected, and neither is `meta`. Staff reviewing a
+    // balance need to see WHAT moved and WHY; which colleague's auth id signed it, and the
+    // internal reconciliation fields in meta, are not part of that job. Both remain on the
+    // immutable ledger row and in the revenue audit log, where an investigation reaches them
+    // under its own authorization instead of every reviewer receiving them in a browser response.
+    .select("id, entry_type, amount_cents, source_kind, reason, created_at, balance_available_after")
     .eq("wallet_id", w.id)
     .order("created_at", { ascending: false })
     .limit(100);

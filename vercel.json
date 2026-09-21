@@ -3,6 +3,10 @@
     {
       "path": "/api/revenue-os/admin/subscription-sweep",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/revenue-os/admin/rewards-sweep",
+      "schedule": "*/15 * * * *"
     }
   ]
 }
