@@ -5138,6 +5138,23 @@ async function main() {
       encoding: "utf8",
     });
     assert.equal(degenerate.status, 1, "a degenerate timing floor is refused outright");
+
+    // AND THE SUITE'S FIXTURES MUST BE THE SHAPE PRODUCTION USES.
+    //
+    // Its Stripe ids were four to eight characters. A reviewer conditioned the per-dispute
+    // restoration bound on `length(p_source_id) < 12` — so it applied to test-shaped ids and not to
+    // real ones — and all 373 assertions stayed green while a payment disputed twice, with one won,
+    // restored 900 instead of 450. 450 credits from nothing, in the authoritative engine. A fixture
+    // shorter than production is a fixture a defect can hide behind, so the shape is pinned here.
+    const sqlIds = [...suite.matchAll(/\b(?:dp|re)_[A-Za-z0-9_]+/g)].map((m) => m[0]);
+    assert.ok(sqlIds.length >= 20, `the SQL suite names a meaningful number of rail ids (${sqlIds.length})`);
+    for (const id of new Set(sqlIds)) {
+      assert.equal(
+        id.length,
+        27,
+        `the SQL fixture ${id} is ${id.length} characters; every genuine Stripe id is 27`,
+      );
+    }
     assert.ok(
       /degenerate concurrency timing floor/.test(`${degenerate.stdout ?? ""}${degenerate.stderr ?? ""}`),
       "and says so by name rather than passing quietly",

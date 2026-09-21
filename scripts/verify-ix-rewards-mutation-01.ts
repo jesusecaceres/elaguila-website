@@ -903,6 +903,16 @@ const MUTATIONS: readonly Mutation[] = [
     suite: "route",
     expect: ["Y16b"],
   },
+  {
+    defect:
+      "A SQL fixture reverts to a test-shaped Stripe id, so any bound conditioned on id LENGTH — the " +
+      "shape a reviewer used to bypass the per-dispute restoration bound — becomes invisible again.",
+    file: "scripts/sql/verify-ix-rewards-sql-behavior-01.sql",
+    find: "'chargeback_reversal',450,'stripe_dispute','cb10b','dp_7JePqYqEdi5npQiNQZ1ghT88'",
+    replace: "'chargeback_reversal',450,'stripe_dispute','cb10b','dp_10b'",
+    suite: "behavior",
+    expect: ["R9"],
+  },
 ];
 
 function runBehavior(): { ok: boolean; output: string } {
