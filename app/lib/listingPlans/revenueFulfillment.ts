@@ -6,6 +6,8 @@
 import "server-only";
 import { isBusinessBasePackageKey } from "./businessAccessLevel";
 import { convergeQuickToFullAfterPayment } from "./quickToFullConvergence";
+import { awardCreditsForSettledPayment, earnBaseFromPaymentMetadata } from "@/app/lib/rewards/rewardsFulfillment";
+import { commitCheckoutCredits, releaseCheckoutCredits } from "@/app/lib/rewards/rewardsCheckoutRedemption";
 import type Stripe from "stripe";
 import { isPaymentCleared } from "./paymentTracking";
 import { activateEntitlementsForPayment } from "./revenueEntitlementFulfillment";
@@ -2050,6 +2052,65 @@ export async function fulfillCheckoutSessionCompleted(input: {
     };
   }
 
+  // LEONIX IX REWARDS — COMMIT the credits this checkout held.
+  //
+  // The hold was taken at checkout creation, keyed on THIS payment record's id, and has been
+  // sitting in `reserved` ever since. Only now, with the payment marked paid, is it actually
+  // SPENT. Committing earlier would let an abandoned checkout consume a balance.
+  //
+  // If the 30-minute hold expired before the customer finished paying — a Stripe session lives
+  // far longer than the hold does — `commitCheckoutCredits` RE-DEBITS the credits rather than
+  // reporting success over a hold that is no longer there. A failure to do so is logged as
+  // retryable: at that point the customer has a discount their balance no longer covers, which
+  // needs a person, not a silent pass.
+  const creditCommit = await commitCheckoutCredits({
+    paymentRecordId: paymentRecord.id,
+  }).catch((err: unknown) => {
+    console.error("[fulfillment] rewards redemption commit threw", {
+      paymentRecordId: paymentRecord.id,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return { committed: false, amountCents: 0, reason: "threw" as string | undefined };
+  });
+  if (creditCommit && !creditCommit.committed && creditCommit.reason && creditCommit.reason !== "no_hold") {
+    console.error("[fulfillment] rewards redemption commit did not settle", {
+      paymentRecordId: paymentRecord.id,
+      reason: creditCommit.reason,
+    });
+  }
+
+  // LEONIX IX REWARDS — award 9% back in Leonix Credits for this settled payment.
+  //
+  // Runs only AFTER the payment is marked paid above, so an abandoned or failed checkout never
+  // earns. Card money is awarded as PENDING because it can still be refunded or disputed; it is
+  // promoted to spendable once the settlement window passes. Best-effort by contract: a rewards
+  // problem must never fail a payment that actually settled, so this never throws and its result
+  // does not gate the fulfillment return. A failure is recorded as retryable in the audit log.
+  if (refreshed.owner_user_id) {
+    await awardCreditsForSettledPayment({
+      paymentRecordId: paymentRecord.id,
+      ownerUserId: String(refreshed.owner_user_id),
+      // Credits spent on this purchase must not themselves earn credits — and must not be
+      // subtracted twice. This record's total is already net of them, which the shared helper
+      // reads off the row rather than inferring.
+      ...earnBaseFromPaymentMetadata({
+        amountPaidCents: Number(refreshed.amount_total_cents ?? refreshed.amount_cents ?? 0),
+        metadata: refreshed.metadata as Record<string, unknown> | null,
+      }),
+      promoDiscountCents: Number(refreshed.amount_discount_cents ?? 0),
+      source: "stripe",
+      sourceKind: "stripe_payment",
+      sourceId: eventId,
+      pendingUntilSettlementFinal: true,
+    }).catch((err: unknown) => {
+      console.error("[fulfillment] rewards earn threw", {
+        paymentRecordId: paymentRecord.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return null;
+    });
+  }
+
   // Gate QB-CONVERGENCE-02 — the customer just paid for a Full base plan, so any Quick
   // subscription this Full plan supersedes is cancelled IMMEDIATELY (with proration), not at
   // period end: a period-end cancellation would bill both plans concurrently for up to a month.
@@ -2162,6 +2223,17 @@ export async function markCheckoutSessionExpired(input: {
         stripe_event_id: eventId,
       },
     });
+  }
+
+  // LEONIX IX REWARDS — the session expired, so the purchase will not happen and the credits it
+  // was holding go straight back to the customer. Released here on the event rather than left to
+  // the 30-minute sweep, so the balance is spendable again the moment Stripe says the checkout is
+  // over. Idempotent through `release:<ref>`, and a hold already committed is left alone.
+  {
+    await releaseCheckoutCredits({
+      reason: "checkout_session_expired",
+      paymentRecordId: paymentRecord.id,
+    }).catch(() => null);
   }
 
   const promoRedemptionId = paymentRecord.promo_redemption_id ?? metadata.promoRedemptionId;

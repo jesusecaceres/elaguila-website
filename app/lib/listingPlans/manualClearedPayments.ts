@@ -23,6 +23,7 @@ import { applyPaymentSuspension } from "./subscriptionLifecycle";
 export type ManualPaymentMethod = "cash" | "check" | "zelle" | "ach" | "money_order" | "other";
 export { canTransitionManualState, type ManualPaymentState } from "./refundDisputePolicy";
 import { canTransitionManualState, type ManualPaymentState } from "./refundDisputePolicy";
+import { awardCreditsForSettledPayment, earnBaseFromPaymentMetadata } from "@/app/lib/rewards/rewardsFulfillment";
 
 export type RecordManualPaymentInput = {
   adminUserId: string;
@@ -109,7 +110,7 @@ export async function verifyManualPaymentCleared(input: {
 
   const { data: record } = await supabase
     .from("leonix_payment_records")
-    .select("id, category, package_key, listing_id, owner_user_id, leonix_ad_id, billing_mode, placement_tier, promo_code_id, promo_redemption_id, package_entitlement_id, placement_entitlement_id, stripe_checkout_session_id, manual_state, source, metadata")
+    .select("id, category, package_key, listing_id, owner_user_id, leonix_ad_id, billing_mode, placement_tier, promo_code_id, promo_redemption_id, package_entitlement_id, placement_entitlement_id, stripe_checkout_session_id, manual_state, source, metadata, amount_cents, amount_paid_cents, amount_total_cents, amount_discount_cents")
     .eq("id", input.paymentRecordId)
     .maybeSingle();
   if (!record) return { ok: false, code: "record_not_found", message: "Payment record not found." };
@@ -136,6 +137,25 @@ export async function verifyManualPaymentCleared(input: {
   if (!claimed?.length) {
     return { ok: true, idempotent: true, packageEntitlementId: record.package_entitlement_id ?? null };
   }
+
+  // LEONIX IX REWARDS — a cleared manual payment is FINAL on clearance (there is no card
+  // settlement window to wait out), so its credits are awarded as immediately spendable rather
+  // than pending. Best-effort: never fails the clearance that just succeeded.
+  await awardCreditsForSettledPayment({
+    paymentRecordId: input.paymentRecordId,
+    ownerUserId: record.owner_user_id ? String(record.owner_user_id) : null,
+    // The shared helper decides whether the stored total is already net of the credits applied,
+    // so a credit-funded purchase is never charged its own loyalty value twice.
+    ...earnBaseFromPaymentMetadata({
+      amountPaidCents: Number(record.amount_paid_cents ?? record.amount_total_cents ?? record.amount_cents ?? 0),
+      metadata: record.metadata as Record<string, unknown> | null,
+    }),
+    promoDiscountCents: Number(record.amount_discount_cents ?? 0),
+    source: "admin_manual",
+    sourceKind: "manual_payment",
+    sourceId: `manual:${input.paymentRecordId}`,
+    pendingUntilSettlementFinal: false,
+  }).catch(() => null);
 
   const packageDef = getRevenuePackageDefinition(String(record.package_key ?? ""));
   let packageEntitlementId: string | null = null;
