@@ -1,0 +1,331 @@
+"use client";
+
+/**
+ * The staff-facing half of the Quick assisted sale. Every button here calls a real, authenticated
+ * server route; nothing on this screen decides anything by itself.
+ *
+ * In particular: this component never holds the authority for the row it is working on. It shows
+ * whatever the server's custody status reports, and when it sends a listing id it is sending an
+ * agreement, not an instruction — the server refuses a disagreement rather than following it.
+ */
+import { useCallback, useEffect, useState } from "react";
+import { QUICK_SALES_CATEGORIES, QUICK_SALES_CATEGORY_MAP, type QuickSalesCategory } from "@/app/lib/sales/quickSalesCategories";
+
+type BusinessRow = { id: string; name: string; city?: string | null };
+
+type CustodyStatus = {
+  category: QuickSalesCategory;
+  businessId: string;
+  listingId: string | null;
+  listingSource: string;
+  intakePath: string;
+  saveEndpoint: string;
+  assistedAction: string | null;
+  expiresAtMs: number;
+  paymentState: string;
+  publishReady: boolean;
+} | null;
+
+async function postJson(url: string, body: unknown): Promise<{ status: number; json: Record<string, unknown> }> {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body ?? {}),
+    cache: "no-store",
+  });
+  let json: Record<string, unknown> = {};
+  try {
+    json = (await res.json()) as Record<string, unknown>;
+  } catch {
+    json = {};
+  }
+  return { status: res.status, json };
+}
+
+export function QuickSalesWorkspaceClient({ actorEmail }: { actorEmail: string }) {
+  const [category, setCategory] = useState<QuickSalesCategory>("servicios");
+  const [query, setQuery] = useState("");
+  const [businesses, setBusinesses] = useState<BusinessRow[]>([]);
+  const [businessId, setBusinessId] = useState("");
+  const [clientUserId, setClientUserId] = useState("");
+  const [reopenListingId, setReopenListingId] = useState("");
+  const [status, setStatus] = useState<CustodyStatus>(null);
+  const [previewLink, setPreviewLink] = useState<string | null>(null);
+  const [previewExpiresAt, setPreviewExpiresAt] = useState<number | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const descriptor = QUICK_SALES_CATEGORY_MAP[category];
+
+  const refreshStatus = useCallback(async () => {
+    const res = await fetch("/api/admin/sales-preview/custody", { cache: "no-store" });
+    if (!res.ok) return;
+    const json = (await res.json()) as { context?: CustodyStatus };
+    setStatus(json.context ?? null);
+  }, []);
+
+  useEffect(() => {
+    void refreshStatus();
+  }, [refreshStatus]);
+
+  const searchBusinesses = useCallback(async () => {
+    setMessage(null);
+    const res = await fetch(`/api/admin/businesses?q=${encodeURIComponent(query)}&limit=20`, { cache: "no-store" });
+    if (!res.ok) {
+      setMessage("No se pudo buscar / Search failed");
+      return;
+    }
+    const json = (await res.json()) as { items?: Record<string, unknown>[] };
+    const rows = (json.items ?? []).map((item) => ({
+      id: String(item.id ?? ""),
+      name: String(item.business_name ?? item.name ?? item.legal_name ?? "(sin nombre)"),
+      city: (item.city as string | null) ?? null,
+    }));
+    setBusinesses(rows.filter((r) => r.id));
+  }, [query]);
+
+  const establishCustody = useCallback(
+    async (listingId?: string) => {
+      setBusy(true);
+      setMessage(null);
+      setPreviewLink(null);
+      const { status: code, json } = await postJson("/api/admin/sales-preview/custody", {
+        category,
+        businessId,
+        clientUserId: clientUserId || undefined,
+        listingId: listingId || undefined,
+      });
+      setBusy(false);
+      if (code !== 200 || json.ok !== true) {
+        setMessage(`Rechazado / Refused (${code}): ${String(json.error ?? "unknown")}`);
+        await refreshStatus();
+        return;
+      }
+      setMessage("Custodia establecida / Custody established");
+      await refreshStatus();
+    },
+    [category, businessId, clientUserId, refreshStatus],
+  );
+
+  const issuePreview = useCallback(async () => {
+    setBusy(true);
+    setMessage(null);
+    const { status: code, json } = await postJson("/api/admin/sales-preview/preview-link", {});
+    setBusy(false);
+    if (code !== 200 || json.ok !== true) {
+      setMessage(`Sin vista previa / No preview (${code}): ${String(json.error ?? "unknown")}`);
+      return;
+    }
+    setPreviewLink(String(json.previewPath ?? ""));
+    setPreviewExpiresAt(typeof json.expiresAtMs === "number" ? json.expiresAtMs : null);
+  }, []);
+
+  const publishNow = useCallback(async () => {
+    setBusy(true);
+    setMessage(null);
+    const { status: code, json } = await postJson("/api/admin/sales-preview/publish", {});
+    setBusy(false);
+    if (code !== 200 || json.ok !== true) {
+      setMessage(`No publicado / Not published (${code}): ${String(json.error ?? "unknown")}`);
+      await refreshStatus();
+      return;
+    }
+    setMessage(`Publicado / Published — ${String(json.listingId ?? "")}`);
+    await refreshStatus();
+  }, [refreshStatus]);
+
+  const absolutePreview = previewLink
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}${previewLink}`
+    : null;
+
+  return (
+    <div className="space-y-5 text-sm text-[#2F2A1F]">
+      <p className="text-xs text-[#5D4A25]">Operador / Operator: {actorEmail}</p>
+
+      <section className="rounded-xl border border-[#E6DCC6] bg-white p-4">
+        <h2 className="mb-2 font-bold">1. Categoría / Category</h2>
+        <div className="flex flex-wrap gap-2">
+          {QUICK_SALES_CATEGORIES.map((key) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setCategory(key)}
+              className={`rounded-lg border px-3 py-2 text-xs font-semibold ${
+                category === key ? "border-[#B8860B] bg-[#FFF6E7]" : "border-[#E6DCC6] bg-white"
+              }`}
+            >
+              {QUICK_SALES_CATEGORY_MAP[key].labelEs} / {QUICK_SALES_CATEGORY_MAP[key].labelEn}
+            </button>
+          ))}
+        </div>
+        {descriptor.requiresClientUserId ? (
+          <p className="mt-2 text-xs text-[#5D4A25]">
+            Esta categoría guarda el anuncio en la cuenta del cliente, así que requiere su usuario. ·
+            This category saves the ad into the customer&apos;s account, so it requires their user.
+          </p>
+        ) : null}
+      </section>
+
+      <section className="rounded-xl border border-[#E6DCC6] bg-white p-4">
+        <h2 className="mb-2 font-bold">2. Negocio del cliente / Customer business</h2>
+        <div className="flex gap-2">
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar negocio / Search business"
+            className="flex-1 rounded-lg border border-[#E6DCC6] px-3 py-2"
+          />
+          <button type="button" onClick={() => void searchBusinesses()} className="rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold">
+            Buscar / Search
+          </button>
+        </div>
+        {businesses.length ? (
+          <ul className="mt-3 max-h-56 space-y-1 overflow-auto">
+            {businesses.map((b) => (
+              <li key={b.id}>
+                <button
+                  type="button"
+                  onClick={() => setBusinessId(b.id)}
+                  className={`w-full rounded-lg border px-3 py-2 text-left text-xs ${
+                    businessId === b.id ? "border-[#B8860B] bg-[#FFF6E7]" : "border-[#E6DCC6]"
+                  }`}
+                >
+                  <span className="font-semibold">{b.name}</span>
+                  {b.city ? <span className="text-[#5D4A25]"> · {b.city}</span> : null}
+                  <span className="block font-mono text-[10px] text-[#8B7355]">{b.id}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        <input
+          value={clientUserId}
+          onChange={(e) => setClientUserId(e.target.value)}
+          placeholder={
+            descriptor.requiresClientUserId
+              ? "Usuario del cliente (requerido) / Customer user id (required)"
+              : "Usuario del cliente (opcional) / Customer user id (optional)"
+          }
+          className="mt-3 w-full rounded-lg border border-[#E6DCC6] px-3 py-2 font-mono text-xs"
+        />
+      </section>
+
+      <section className="rounded-xl border border-[#E6DCC6] bg-white p-4">
+        <h2 className="mb-2 font-bold">3. Custodia asistida / Assisted custody</h2>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={busy || !businessId}
+            onClick={() => void establishCustody()}
+            className="rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold disabled:opacity-40"
+          >
+            Empezar anuncio nuevo / Start a new ad
+          </button>
+          <input
+            value={reopenListingId}
+            onChange={(e) => setReopenListingId(e.target.value)}
+            placeholder="ID del borrador / Draft id"
+            className="rounded-lg border border-[#E6DCC6] px-3 py-2 font-mono text-xs"
+          />
+          <button
+            type="button"
+            disabled={busy || !businessId || !reopenListingId.trim()}
+            onClick={() => void establishCustody(reopenListingId.trim())}
+            className="rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold disabled:opacity-40"
+          >
+            Reabrir el mismo borrador / Reopen the same draft
+          </button>
+        </div>
+        {status ? (
+          <div className="mt-3 rounded-lg bg-[#FFF6E7] p-3 text-xs">
+            <p>
+              Categoría / Category: <strong>{status.category}</strong>
+            </p>
+            <p>
+              Negocio / Business: <span className="font-mono">{status.businessId}</span>
+            </p>
+            <p>
+              Anuncio canónico / Canonical listing:{" "}
+              <span className="font-mono">{status.listingId ?? "— (aún no guardado / not saved yet)"}</span>
+            </p>
+            <p>
+              Pago / Payment: <strong>{status.paymentState}</strong>
+            </p>
+          </div>
+        ) : (
+          <p className="mt-3 text-xs text-[#5D4A25]">Sin custodia activa / No active custody</p>
+        )}
+      </section>
+
+      <section className="rounded-xl border border-[#E6DCC6] bg-white p-4">
+        <h2 className="mb-2 font-bold">4. Armar el anuncio / Build the ad</h2>
+        <p className="text-xs text-[#5D4A25]">
+          Se usa la herramienta de la categoría — no hay un formulario aparte aquí. · The category&apos;s
+          own tool is used — there is no separate form here.
+        </p>
+        <a
+          href={status?.intakePath ?? descriptor.intakePath}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-2 inline-block rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold"
+        >
+          Abrir {descriptor.labelEs} / Open {descriptor.labelEn}
+        </a>
+      </section>
+
+      <section className="rounded-xl border border-[#E6DCC6] bg-white p-4">
+        <h2 className="mb-2 font-bold">5. Vista previa privada / Private preview</h2>
+        <button
+          type="button"
+          disabled={busy || !status?.listingId}
+          onClick={() => void issuePreview()}
+          className="rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold disabled:opacity-40"
+        >
+          Generar enlace / Generate link
+        </button>
+        {absolutePreview ? (
+          <div className="mt-3 space-y-2">
+            <code className="block break-all rounded-lg bg-[#F6F1E4] p-2 text-[11px]">{absolutePreview}</code>
+            <button
+              type="button"
+              onClick={() => void navigator.clipboard?.writeText(absolutePreview)}
+              className="rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold"
+            >
+              Copiar / Copy
+            </button>
+            {previewExpiresAt ? (
+              <p className="text-xs text-[#5D4A25]">
+                Expira / Expires: {new Date(previewExpiresAt).toLocaleString()}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+      </section>
+
+      <section className="rounded-xl border border-[#E6DCC6] bg-white p-4">
+        <h2 className="mb-2 font-bold">6. Publicar / Publish</h2>
+        <p className="text-xs text-[#5D4A25]">
+          Solo después de un pago confirmado por el servidor. Se publica el MISMO anuncio que el
+          cliente revisó. · Only after a payment the server itself confirmed. It publishes the SAME
+          listing the customer reviewed.
+        </p>
+        <button
+          type="button"
+          disabled={busy || !status?.listingId}
+          onClick={() => void publishNow()}
+          className="mt-2 rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold disabled:opacity-40"
+        >
+          Publicar ahora / Publish now
+        </button>
+        {status && status.listingId && !status.publishReady ? (
+          <p className="mt-2 text-xs text-[#8B4513]">
+            El pago aún no está confirmado; publicar será rechazado. · Payment is not confirmed yet;
+            publishing will be refused.
+          </p>
+        ) : null}
+      </section>
+
+      {message ? <p className="rounded-lg bg-[#FFF6E7] p-3 text-xs">{message}</p> : null}
+    </div>
+  );
+}

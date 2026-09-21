@@ -9,6 +9,7 @@ import {
 } from "./assistedPublishingToken";
 
 export type { AssistedPublishingContext } from "./assistedPublishingToken";
+export { ASSISTED_PUBLISH_MAX_AGE_SEC } from "./assistedPublishingToken";
 
 /**
  * P0 Staff-Assisted Category Access — the ONE reusable "is this specific render authorized for a
@@ -54,6 +55,10 @@ export function createAssistedPublishingToken(input: {
   category: string;
   rosterId: string;
   authUserId: string;
+  /** Same-row server authority — see AssistedPublishingContext.listingId. */
+  listingId?: string | null;
+  clientUserId?: string | null;
+  assistedAction?: string | null;
 }): string | null {
   const secret = getAssistedPublishingSecret();
   if (!secret) return null;
@@ -83,7 +88,15 @@ export function readAssistedPublishingContext(cookies: CookieStore): AssistedPub
  */
 export function applyAssistedPublishingCookie(
   res: { cookies: { set: (name: string, value: string, opts: Record<string, unknown>) => void } },
-  input: { businessId: string; category: string; rosterId: string; authUserId: string },
+  input: {
+    businessId: string;
+    category: string;
+    rosterId: string;
+    authUserId: string;
+    listingId?: string | null;
+    clientUserId?: string | null;
+    assistedAction?: string | null;
+  },
 ): boolean {
   const secure = process.env.NODE_ENV === "production";
   const base = { path: "/", httpOnly: true, sameSite: "strict" as const, secure };

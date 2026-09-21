@@ -27,6 +27,12 @@ import {
 } from "@/app/lib/business/assistedListingCustody";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import {
+  assertAssistedIdentity,
+  resolveAssistedRowBinding,
+} from "@/app/lib/sales/assistedSameRowBinding";
+import { isClientAuthorizedForBusiness } from "@/app/lib/sales/assistedClientAuthorization";
+import { recordSalesWorkspaceAudit } from "@/app/lib/sales/salesWorkspaceAudit";
+import {
   enforceQuickBusinessPublishMedia,
   extractSemanticMediaItems,
 } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
@@ -63,8 +69,16 @@ export async function POST(request: NextRequest) {
   // staff member deactivated or removed after their token was issued can no longer publish on a
   // customer's behalf with it. Fails closed on an unreachable database.
   const assistedContext = await readActiveAssistedPublishingContext(request.cookies);
-  if (!assistedContext || assistedContext.category !== "bienes-raices") {
+  if (!assistedContext) {
     return NextResponse.json({ ok: false, error: "assisted_context_required" }, { status: 403 });
+  }
+  const identityRefusal = assertAssistedIdentity({
+    contextCategory: assistedContext.category,
+    expectedCategory: "bienes-raices",
+    contextBusinessId: assistedContext.businessId,
+  });
+  if (identityRefusal) {
+    return NextResponse.json({ ok: false, error: identityRefusal.error }, { status: identityRefusal.status });
   }
 
   if (!isSupabaseAdminConfigured()) {
@@ -85,9 +99,44 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "invalid_assisted_action" }, { status: 400 });
   }
 
+  // REQUIRED REPAIR 5 — see the Autos route for the full argument. `clientUserId` is written into
+  // `listings.owner_id`, so it is proven against the canonical membership table for the business
+  // this assisted context is bound to before anything is written. A staff cookie authenticates the
+  // staff member; it does not vouch for a customer id typed next to it.
   const clientUserId = typeof body.clientUserId === "string" ? body.clientUserId.trim() : "";
   if (!clientUserId) {
     return NextResponse.json({ ok: false, error: "client_user_id_required" }, { status: 400 });
+  }
+  // When custody was established for a specific customer, the body may only agree with it. This
+  // is the stronger half of repair 5: membership proves the id COULD own a listing here; the bound
+  // id proves it is the customer this staff session was actually authorized for.
+  if (typeof assistedContext.clientUserId === "string" && assistedContext.clientUserId !== clientUserId) {
+    await recordSalesWorkspaceAudit({
+      action: "quick_sales_save_for_client",
+      actorRosterId: assistedContext.rosterId,
+      businessId: assistedContext.businessId,
+      clientUserId,
+      category: "bienes-raices",
+      listingSource: "listings",
+      outcome: "assisted_client_mismatch",
+    });
+    return NextResponse.json({ ok: false, error: "assisted_client_mismatch" }, { status: 409 });
+  }
+  const clientAuthorized = await isClientAuthorizedForBusiness({
+    businessId: assistedContext.businessId,
+    clientUserId,
+  });
+  if (!clientAuthorized) {
+    await recordSalesWorkspaceAudit({
+      action: "quick_sales_save_for_client",
+      actorRosterId: assistedContext.rosterId,
+      businessId: assistedContext.businessId,
+      clientUserId,
+      category: "bienes-raices",
+      listingSource: "listings",
+      outcome: "client_not_authorized_for_business",
+    });
+    return NextResponse.json({ ok: false, error: "client_not_authorized_for_business" }, { status: 403 });
   }
 
   const listingRowRaw = body.listingRow as Record<string, unknown> | null | undefined;
@@ -95,7 +144,28 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "listing_row_required" }, { status: 400 });
   }
 
-  const existingListingId = typeof body.existingListingId === "string" ? body.existingListingId.trim() : "";
+  // REQUIRED REPAIR 4 — the canonical row comes from the server-issued context once it exists; a
+  // body id may only agree with it. Reopening a draft therefore recovers the same row even when
+  // the browser has forgotten which one it was.
+  const binding = resolveAssistedRowBinding({
+    contextListingId: assistedContext.listingId,
+    contextAssistedAction: assistedContext.assistedAction,
+    requestedAction: assistedActionRaw,
+    bodyListingId: typeof body.existingListingId === "string" ? body.existingListingId : null,
+  });
+  if (!binding.ok) {
+    await recordSalesWorkspaceAudit({
+      action: "quick_sales_save_for_client",
+      actorRosterId: assistedContext.rosterId,
+      businessId: assistedContext.businessId,
+      clientUserId,
+      category: "bienes-raices",
+      listingSource: "listings",
+      outcome: binding.error,
+    });
+    return NextResponse.json({ ok: false, error: binding.error }, { status: binding.status });
+  }
+  const existingListingId = binding.listingId;
 
   // Gate QB-MEDIA-02 — a property listing must carry at least one real PROPERTY photo. An agent
   // headshot and a brokerage logo are identity assets and can never satisfy that slot. Checked on
@@ -241,6 +311,17 @@ export async function POST(request: NextRequest) {
       listingId,
     });
     if (!cleared) {
+      await recordSalesWorkspaceAudit({
+        action: "quick_sales_publish_attempted",
+        actorRosterId: assistedContext.rosterId,
+        businessId: assistedContext.businessId,
+        clientUserId,
+        category: "bienes-raices",
+        listingSource: "listings",
+        listingId,
+        paymentState: "manual_payment_not_cleared",
+        outcome: "manual_payment_not_cleared",
+      });
       // The row exists but is PENDING and unpublished, so nothing is public. Staff can clear the
       // payment and re-run this action, which will find the same row and activate it.
       return NextResponse.json(
@@ -277,6 +358,19 @@ export async function POST(request: NextRequest) {
       );
     }
   }
+
+  await recordSalesWorkspaceAudit({
+    action: isAssistedPublish ? "quick_sales_publish_completed" : "quick_sales_save_for_client",
+    actorRosterId: assistedContext.rosterId,
+    businessId: assistedContext.businessId,
+    clientUserId,
+    category: "bienes-raices",
+    listingSource: "listings",
+    listingId,
+    paymentState: isAssistedPublish ? "manual_payment_cleared" : "unpaid_draft",
+    outcome: "ok",
+    detail: { server_bound_row: binding.serverBound },
+  });
 
   return NextResponse.json({
     ok: true,

@@ -409,6 +409,33 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
     // verified-intro discount already uses — so the line item, and therefore every renewal, is
     // untouched. One new module plus the checkout route that mints and attaches it.
     "app/lib/listingPlans/rewardsFirstInvoiceStripeCoupon.ts", // new: the amount_off once-coupon
+    // ---------------------------------------------------------------------------------------
+    // FINAL QUICK SALES PREVIEW WORKSPACE (2026-09-21).
+    //
+    // One secure sales motion for the four paid Quick categories: establish server-issued assisted
+    // custody for a real customer/business, build the ad in the category's EXISTING intake, save it
+    // as one canonical non-public draft, show the prospect an expiring read-only preview, revise
+    // the same draft, and publish that same row only after the server itself confirms payment.
+    //
+    // The guard is unchanged: no pattern relaxed, no protected path removed. Every entry below is
+    // a surface the outcome could not be reached without, and no entry introduces a parallel
+    // product, a new lifecycle vocabulary, a fifth intake, or a Quick-specific table.
+    "app/lib/auth/prospectPreviewToken.ts", // new: pure HMAC crypto for the expiring preview link
+    "app/lib/auth/prospectPreviewSession.ts", // new: its server-only secret holder, fail-closed
+    "app/lib/sales/assistedSameRowBinding.ts", // new: pure same-row authority decision
+    "app/lib/sales/assistedClientAuthorization.ts", // new: customer↔business proof, server-side
+    "app/lib/sales/salesWorkspaceAudit.ts", // new: staff audit via the EXISTING admin_audit_log
+    "app/lib/sales/quickSalesCategories.ts", // new: the four categories → existing tables/intakes
+    "app/lib/sales/prospectPreviewReader.ts", // new: whitelisted, read-only preview fields
+    "app/lib/sales/assistedSaveForClientClient.ts", // new: the one client caller, four contracts
+    "app/api/admin/sales-preview/", // new: custody, preview-link and post-payment publish routes
+    "app/admin/(dashboard)/workspace/quick-sales/", // new: the staff workspace screen
+    "app/(site)/vista-previa/", // new: the prospect's read-only preview page
+    "app/(site)/clasificados/components/AssistedSaveForClientBar.tsx", // new: the shared staff strip
+    // The two existing intakes that mount that shared strip. Neither gains a field, a draft store,
+    // or a publish path of its own — see verify-p0-staff-assisted-category-access-01.ts.
+    "app/(site)/publicar/restaurantes/RestauranteApplicationClient.tsx",
+    "app/(site)/publicar/autos/shared/components/AutosPublishConfirmCore.tsx",
     // SALES PREVIEWS. Three server defects found by mapping the staff-assisted workflow, each of
     // which put an unpaid or mis-attributed listing in front of a customer:
     //  - Restaurantes `save_for_client` inserted `status: "published"` — the exact public predicate

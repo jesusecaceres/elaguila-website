@@ -41,6 +41,7 @@ import { RestauranteMediaPreviewImg } from "@/app/clasificados/restaurantes/appl
 import { RestaurantePublishMediaBuckets } from "@/app/clasificados/restaurantes/application/RestaurantePublishMediaBuckets";
 import { mergeRestauranteDraft } from "@/app/clasificados/restaurantes/application/createEmptyRestauranteDraft";
 import { buildRestaurantePublishPayload } from "@/app/clasificados/restaurantes/application/buildRestaurantePublishPayload";
+import { AssistedSaveForClientBar } from "@/app/clasificados/components/AssistedSaveForClientBar";
 import { resolveRestauranteDraftMediaToRemoteUrls } from "@/app/clasificados/restaurantes/application/restauranteDraftPublishPrepare";
 import {
   redirectRestauranteDashboardCouponAddonCheckout,
@@ -916,6 +917,25 @@ export default function RestauranteApplicationClient() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 pb-24 sm:py-10">
+      {/* Leonix assisted sale — visible only when the SERVER confirms a live Restaurantes custody
+          context. The body is built through the SAME canonical payload builder the customer's own
+          publish uses (heavy-media blocking included), so the assisted and self-service paths can
+          never drift into two different contracts. */}
+      <AssistedSaveForClientBar
+        category="restaurantes"
+        lang={lang === "en" ? "en" : "es"}
+        buildPayload={() => {
+          const built = buildRestaurantePublishPayload(
+            mergeRestauranteDraft(draftRef.current),
+            undefined,
+            undefined,
+            lang,
+            { activationMode: "pending_payment" },
+          );
+          const draftForSave = (built.draft ?? built) as Record<string, unknown>;
+          return { category: "restaurantes", draft: draftForSave, lang: lang === "en" ? "en" : "es" };
+        }}
+      />
       <div className="mb-8">
         <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">{fc.header.brand}</p>
         <h1 className="mt-2 text-2xl font-bold text-[color:var(--lx-text)] sm:text-3xl">{fc.header.title}</h1>

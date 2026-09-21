@@ -1,3 +1,5 @@
+import { resolveAssistedRowBinding } from "@/app/lib/sales/assistedSameRowBinding";
+import { recordSalesWorkspaceAudit } from "@/app/lib/sales/salesWorkspaceAudit";
 import { NextResponse, type NextRequest } from "next/server";
 import { randomUUID } from "node:crypto";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
@@ -278,7 +280,31 @@ export async function POST(req: NextRequest) {
   if ((isAssistedSaveForClient || isAssistedPublishForClient) && !isAssistedRequest) {
     return NextResponse.json({ ok: false, error: "assisted_context_required" }, { status: 403 });
   }
-  if (isAssistedPublishForClient && !(typeof b.existingListingId === "string" && b.existingListingId.trim())) {
+  // REQUIRED REPAIR 4 — same-row server authority. Once the draft exists the server-issued
+  // assisted context carries its canonical id, and it — not the tab's memory of it — decides which
+  // row this request writes. A body id is accepted only as agreement; disagreement is refused
+  // rather than resolved, because a mismatch means one of the two parties has the wrong ad.
+  const assistedBinding = isAssistedRequest
+    ? resolveAssistedRowBinding({
+        contextListingId: assistedContext!.listingId,
+        contextAssistedAction: assistedContext!.assistedAction,
+        requestedAction: assistedActionRaw,
+        bodyListingId: typeof b.existingListingId === "string" ? b.existingListingId : null,
+      })
+    : null;
+  if (assistedBinding && !assistedBinding.ok) {
+    await recordSalesWorkspaceAudit({
+      action: "quick_sales_save_for_client",
+      actorRosterId: assistedContext!.rosterId,
+      businessId: assistedContext!.businessId,
+      category: "servicios",
+      listingSource: "servicios_public_listings",
+      outcome: assistedBinding.error,
+    });
+    return NextResponse.json({ ok: false, error: assistedBinding.error }, { status: assistedBinding.status });
+  }
+  const assistedBoundListingId = assistedBinding?.ok ? assistedBinding.listingId : "";
+  if (isAssistedPublishForClient && !assistedBoundListingId) {
     return NextResponse.json({ ok: false, error: "existing_listing_required" }, { status: 400 });
   }
 
@@ -401,7 +427,10 @@ export async function POST(req: NextRequest) {
 
   const baseSlug = slugifyServiciosBusinessName(state.businessName || "borrador");
   const existingSlugRaw = typeof b.existingPublicSlug === "string" ? b.existingPublicSlug.trim() : "";
-  const existingListingIdRaw = typeof b.existingListingId === "string" ? b.existingListingId.trim() : "";
+  // The server-bound id wins outright for an assisted request: reopening a draft recovers the same
+  // canonical row even when the browser has forgotten which one it was.
+  const existingListingIdRaw =
+    assistedBoundListingId || (typeof b.existingListingId === "string" ? b.existingListingId.trim() : "");
 
   /**
    * Gate SERVICIOS-1 / SRV-GOLDEN-01 — CANONICAL REPUBLISH IDENTITY.
@@ -812,6 +841,19 @@ export async function POST(req: NextRequest) {
             listingSource: "servicios_public_listings",
             listingId: persistedListingId,
             linkedByAuthUserId: assistedContext!.authUserId,
+          });
+          // REQUIRED REPAIR 6 — the staff actor, the row, and the lifecycle state this write
+          // actually left behind. `listingStatus` is the server's own decision, not the caller's.
+          await recordSalesWorkspaceAudit({
+            action: isAssistedPublishForClient ? "quick_sales_publish_completed" : "quick_sales_save_for_client",
+            actorRosterId: assistedContext!.rosterId,
+            businessId: assistedContext!.businessId,
+            category: "servicios",
+            listingSource: "servicios_public_listings",
+            listingId: persistedListingId,
+            paymentState: listingStatus === "published" ? "entitled" : "unpaid_draft",
+            outcome: "ok",
+            detail: { listing_status: listingStatus, server_bound_row: assistedBinding?.ok ? assistedBinding.serverBound : false },
           });
         }
       } else if (existing) {

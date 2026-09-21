@@ -26,7 +26,14 @@ import {
   createAutosClassifiedsListing,
   createAutosClassifiedsListingWithInventoryParent,
   isAutosClassifiedsDbConfigured,
+  updateAutosClassifiedsListingDraft,
 } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
+import {
+  assertAssistedIdentity,
+  resolveAssistedRowBinding,
+} from "@/app/lib/sales/assistedSameRowBinding";
+import { isClientAuthorizedForBusiness } from "@/app/lib/sales/assistedClientAuthorization";
+import { recordSalesWorkspaceAudit } from "@/app/lib/sales/salesWorkspaceAudit";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import {
   enforceQuickBusinessPublishMedia,
@@ -41,8 +48,16 @@ export async function POST(request: NextRequest) {
   // staff member deactivated or removed after their token was issued can no longer publish on a
   // customer's behalf with it. Fails closed on an unreachable database.
   const assistedContext = await readActiveAssistedPublishingContext(request.cookies);
-  if (!assistedContext || assistedContext.category !== "autos") {
+  if (!assistedContext) {
     return NextResponse.json({ ok: false, error: "assisted_context_required" }, { status: 403 });
+  }
+  const identityRefusal = assertAssistedIdentity({
+    contextCategory: assistedContext.category,
+    expectedCategory: "autos",
+    contextBusinessId: assistedContext.businessId,
+  });
+  if (identityRefusal) {
+    return NextResponse.json({ ok: false, error: identityRefusal.error }, { status: identityRefusal.status });
   }
 
   if (!isAutosClassifiedsDbConfigured()) {
@@ -63,17 +78,77 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "invalid_assisted_action" }, { status: 400 });
   }
 
-  // clientUserId is trusted: it comes from the staff actor who authenticated via the cookie.
-  // The staff actor is responsible for providing the correct client user ID.
+  // REQUIRED REPAIR 5 — clientUserId is NOT trusted for having arrived alongside a valid staff
+  // cookie. Authenticating the staff actor proves who is asking; it says nothing about whether
+  // this user id belongs to the business the assisted context is bound to. It is written into
+  // `owner_user_id`, which every later authorization check reads, so it is proven server-side
+  // against the canonical membership table before a single column is written.
   const clientUserId = typeof body.clientUserId === "string" ? body.clientUserId.trim() : "";
   if (!clientUserId) {
     return NextResponse.json({ ok: false, error: "client_user_id_required" }, { status: 400 });
+  }
+  // When custody was established for a specific customer, the body may only agree with it. This
+  // is the stronger half of repair 5: membership proves the id COULD own a listing here; the bound
+  // id proves it is the customer this staff session was actually authorized for.
+  if (typeof assistedContext.clientUserId === "string" && assistedContext.clientUserId !== clientUserId) {
+    await recordSalesWorkspaceAudit({
+      action: "quick_sales_save_for_client",
+      actorRosterId: assistedContext.rosterId,
+      businessId: assistedContext.businessId,
+      clientUserId,
+      category: "autos",
+      listingSource: "autos_classifieds_listings",
+      outcome: "assisted_client_mismatch",
+    });
+    return NextResponse.json({ ok: false, error: "assisted_client_mismatch" }, { status: 409 });
+  }
+  const clientAuthorized = await isClientAuthorizedForBusiness({
+    businessId: assistedContext.businessId,
+    clientUserId,
+  });
+  if (!clientAuthorized) {
+    await recordSalesWorkspaceAudit({
+      action: "quick_sales_save_for_client",
+      actorRosterId: assistedContext.rosterId,
+      businessId: assistedContext.businessId,
+      clientUserId,
+      category: "autos",
+      listingSource: "autos_classifieds_listings",
+      outcome: "client_not_authorized_for_business",
+    });
+    return NextResponse.json({ ok: false, error: "client_not_authorized_for_business" }, { status: 403 });
   }
 
   const dealerListing = body.dealerListing as AutoDealerListing | null | undefined;
   if (!dealerListing || typeof dealerListing !== "object") {
     return NextResponse.json({ ok: false, error: "dealer_listing_required" }, { status: 400 });
   }
+
+  const lang = body.lang === "en" ? "en" as const : "es" as const;
+
+  // REQUIRED REPAIR 4 — the row this request may write is decided by the SERVER-ISSUED context,
+  // not by whatever `existingMainListingId` the tab still had in memory. Once the draft exists the
+  // context carries its id and a body id may only agree with it; disagreement is a refusal, never
+  // a second listing.
+  const binding = resolveAssistedRowBinding({
+    contextListingId: assistedContext.listingId,
+    contextAssistedAction: assistedContext.assistedAction,
+    requestedAction: assistedActionRaw,
+    bodyListingId: typeof body.existingMainListingId === "string" ? body.existingMainListingId : null,
+  });
+  if (!binding.ok) {
+    await recordSalesWorkspaceAudit({
+      action: "quick_sales_save_for_client",
+      actorRosterId: assistedContext.rosterId,
+      businessId: assistedContext.businessId,
+      clientUserId,
+      category: "autos",
+      listingSource: "autos_classifieds_listings",
+      outcome: binding.error,
+    });
+    return NextResponse.json({ ok: false, error: binding.error }, { status: binding.status });
+  }
+  const existingMainListingId = binding.listingId;
 
   // Gate QB-MEDIA-02 — a dealer listing must carry at least one real VEHICLE photo. A dealership
   // logo is an identity asset and can never satisfy that slot. Enforced here on the server so the
@@ -91,10 +166,9 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const lang = body.lang === "en" ? "en" as const : "es" as const;
-  const existingMainListingId = typeof body.existingMainListingId === "string" ? body.existingMainListingId.trim() : "";
 
-  // If this is an existing listing, verify it is linked to the business (idempotent re-save)
+  // Custody is re-proven at every write, including for a server-bound id: a signature minted
+  // earlier cannot prove the relationship it describes still holds.
   if (existingMainListingId) {
     const linked = await isListingLinkedToBusiness({
       businessId: assistedContext.businessId,
@@ -106,8 +180,35 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Create or confirm the dealer main row
+  // Create the dealer main row, or UPDATE the canonical one.
+  //
+  // A REPEAT SAVE THAT WRITES NOTHING IS NOT A SAVE. This branch previously reused the existing id
+  // and skipped straight past it, so the second and every subsequent "save for client" returned
+  // `{ ok: true, mainListingId }` having persisted not one edited field. Staff corrected a phone
+  // number, saw success, reopened the draft and found the old number.
   let mainListingId = existingMainListingId;
+  if (mainListingId) {
+    const updated = await updateAutosClassifiedsListingDraft(mainListingId, clientUserId, {
+      listing: dealerListing,
+      lang,
+    });
+    if (!updated.row) {
+      await recordSalesWorkspaceAudit({
+        action: "quick_sales_save_for_client",
+        actorRosterId: assistedContext.rosterId,
+        businessId: assistedContext.businessId,
+        clientUserId,
+        category: "autos",
+        listingSource: "autos_classifieds_listings",
+        listingId: mainListingId,
+        outcome: updated.errorCode ?? "main_listing_update_failed",
+      });
+      return NextResponse.json(
+        { ok: false, error: "main_listing_update_failed", detail: updated.errorCode ?? null },
+        { status: updated.errorCode === "AUTOS_LISTING_NOT_FOUND_OR_FORBIDDEN" ? 409 : 500 },
+      );
+    }
+  }
   if (!mainListingId) {
     const mainResult = await createAutosClassifiedsListing({
       ownerUserId: clientUserId,
@@ -134,23 +235,45 @@ export async function POST(request: NextRequest) {
   let vehicleListingId: string | null = null;
 
   if (vehicleListing && typeof vehicleListing === "object") {
-    const vehicleResult = await createAutosClassifiedsListingWithInventoryParent({
-      ownerUserId: clientUserId,
-      lane: "negocios",
-      lang,
-      listing: vehicleListing,
-      parentListingId: mainListingId,
-    });
-    if (!vehicleResult.row) {
-      return NextResponse.json({ ok: false, error: "vehicle_listing_create_failed" }, { status: 500 });
+    // ONE VEHICLE CHILD PER ASSISTED DRAFT, NOT ONE PER SAVE.
+    //
+    // This insert was unconditional. Every repeat save that carried `vehicleListing` — which the
+    // staff tool sends on every save — created ANOTHER inventory child under the same dealer
+    // parent, so a draft revised four times published four copies of the same car. The existing
+    // child is now found first and UPDATED through the owner-scoped draft updater; only a parent
+    // with no child yet inserts one.
+    const existingChildId = await findExistingAssistedVehicleChildId(mainListingId);
+    if (existingChildId) {
+      const updatedChild = await updateAutosClassifiedsListingDraft(existingChildId, clientUserId, {
+        listing: vehicleListing,
+        lang,
+      });
+      if (!updatedChild.row) {
+        return NextResponse.json(
+          { ok: false, error: "vehicle_listing_update_failed", detail: updatedChild.errorCode ?? null },
+          { status: 500 },
+        );
+      }
+      vehicleListingId = existingChildId;
+    } else {
+      const vehicleResult = await createAutosClassifiedsListingWithInventoryParent({
+        ownerUserId: clientUserId,
+        lane: "negocios",
+        lang,
+        listing: vehicleListing,
+        parentListingId: mainListingId,
+      });
+      if (!vehicleResult.row) {
+        return NextResponse.json({ ok: false, error: "vehicle_listing_create_failed" }, { status: 500 });
+      }
+      vehicleListingId = vehicleResult.row.id;
+      await linkAssistedListingToBusiness({
+        businessId: assistedContext.businessId,
+        listingSource: "autos_classifieds_listings",
+        listingId: vehicleListingId,
+        linkedByAuthUserId: assistedContext.authUserId,
+      });
     }
-    vehicleListingId = vehicleResult.row.id;
-    await linkAssistedListingToBusiness({
-      businessId: assistedContext.businessId,
-      listingSource: "autos_classifieds_listings",
-      listingId: vehicleListingId,
-      linkedByAuthUserId: assistedContext.authUserId,
-    });
   } else if (isAssistedPublish) {
     return NextResponse.json({ ok: false, error: "vehicle_listing_required_for_publish" }, { status: 400 });
   }
@@ -162,6 +285,17 @@ export async function POST(request: NextRequest) {
       listingId: mainListingId,
     });
     if (!cleared) {
+      await recordSalesWorkspaceAudit({
+        action: "quick_sales_publish_attempted",
+        actorRosterId: assistedContext.rosterId,
+        businessId: assistedContext.businessId,
+        clientUserId,
+        category: "autos",
+        listingSource: "autos_classifieds_listings",
+        listingId: mainListingId,
+        paymentState: "manual_payment_not_cleared",
+        outcome: "manual_payment_not_cleared",
+      });
       return NextResponse.json(
         { ok: false, error: "manual_payment_not_cleared", message: "Record and clear the manual payment in the Payment Tracker first." },
         { status: 402 },
@@ -203,6 +337,19 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  await recordSalesWorkspaceAudit({
+    action: isAssistedPublish ? "quick_sales_publish_completed" : "quick_sales_save_for_client",
+    actorRosterId: assistedContext.rosterId,
+    businessId: assistedContext.businessId,
+    clientUserId,
+    category: "autos",
+    listingSource: "autos_classifieds_listings",
+    listingId: mainListingId,
+    paymentState: isAssistedPublish ? "manual_payment_cleared" : "unpaid_draft",
+    outcome: "ok",
+    detail: { vehicle_listing_id: vehicleListingId, server_bound_row: binding.serverBound },
+  });
+
   return NextResponse.json({
     ok: true,
     action: assistedActionRaw,
@@ -210,4 +357,29 @@ export async function POST(request: NextRequest) {
     vehicleListingId,
     businessId: assistedContext.businessId,
   });
+}
+
+/**
+ * The inventory child already prepared under this dealer parent, if any. Ordered oldest-first so
+ * a draft that somehow acquired more than one child (from before this repair) keeps converging on
+ * the same row rather than walking through them.
+ */
+async function findExistingAssistedVehicleChildId(parentListingId: string): Promise<string | null> {
+  if (!parentListingId) return null;
+  try {
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase
+      .from("autos_classifieds_listings")
+      .select("id")
+      .eq("dealer_inventory_parent_listing_id", parentListingId)
+      .eq("inventory_role", "inventory_vehicle")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (error) return null;
+    const id = (data as { id?: string } | null)?.id;
+    return id ? String(id) : null;
+  } catch {
+    return null;
+  }
 }

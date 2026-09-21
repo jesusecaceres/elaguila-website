@@ -206,10 +206,16 @@ check("B2 WIRING: all four verify the HMAC assisted context", () => {
 });
 
 check("B3 WIRING: the two dedicated assisted routes bind to their own category", () => {
+  // The inline `assistedContext.category !== "<cat>"` comparison this used to match was replaced
+  // by the shared `assertAssistedIdentity()` gate, which checks the SAME thing for all four
+  // categories plus the business the request names. The guarantee is unchanged and is now proven
+  // by EXECUTION — scripts/verify-quick-sales-preview-01.ts calls the gate with every ordered
+  // category pair and calls each route with a foreign-category context — so this check asserts the
+  // route is wired to that gate with its own category, which is what remains wiring.
   for (const r of ASSISTED_ROUTES.filter((x) => x.category)) {
     const code = readCode(r.path);
     assert.ok(
-      code.includes(`assistedContext.category !== ${r.category}`),
+      code.includes("assertAssistedIdentity(") && code.includes(`expectedCategory: ${r.category}`),
       `${r.family} must refuse a token minted for a different category (${r.category})`,
     );
   }

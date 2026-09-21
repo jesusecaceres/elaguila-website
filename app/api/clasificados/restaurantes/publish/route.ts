@@ -1,3 +1,5 @@
+import { resolveAssistedRowBinding } from "@/app/lib/sales/assistedSameRowBinding";
+import { recordSalesWorkspaceAudit } from "@/app/lib/sales/salesWorkspaceAudit";
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
@@ -258,6 +260,28 @@ export async function POST(req: NextRequest) {
   if ((isAssistedSaveForClient || isAssistedPublishForClient) && !isAssistedRequest) {
     return NextResponse.json({ ok: false, error: "assisted_context_required" }, { status: 403 });
   }
+  // REQUIRED REPAIR 4 — the assisted context authorizes ONE action. A context minted to prepare a
+  // draft is not authority for a different assisted operation.
+  const assistedBinding = isAssistedRequest
+    ? resolveAssistedRowBinding({
+        contextListingId: assistedContext!.listingId,
+        contextAssistedAction: assistedContext!.assistedAction,
+        requestedAction: assistedActionRaw,
+        bodyListingId: null,
+      })
+    : null;
+  if (assistedBinding && !assistedBinding.ok) {
+    await recordSalesWorkspaceAudit({
+      action: "quick_sales_save_for_client",
+      actorRosterId: assistedContext!.rosterId,
+      businessId: assistedContext!.businessId,
+      category: "restaurantes",
+      listingSource: "restaurantes_public_listings",
+      outcome: assistedBinding.error,
+    });
+    return NextResponse.json({ ok: false, error: assistedBinding.error }, { status: assistedBinding.status });
+  }
+  const assistedBoundListingId = assistedBinding?.ok ? assistedBinding.listingId : "";
 
   if (strict && !verifiedOwnerId && !isAssistedRequest) {
     return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
@@ -450,6 +474,34 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // EVERY REPEATED SAVE MUST UPDATE THE SAME CANONICAL ROW.
+  //
+  // This route resolves its row by `draft.draftListingId` — a key the BROWSER mints. When that key
+  // is absent or changed (a reloaded tab, a re-opened intake, a second staff device) the lookup
+  // finds nothing and the write below INSERTS, so the client ends up with two half-finished
+  // restaurant listings and only one of them is the row custody and payment know about.
+  //
+  // Once the server-issued assisted context carries the canonical id, that id is the authority:
+  // the row the browser's draft key resolved to must BE that row, and resolving to nothing (which
+  // would insert a second one) is refused just as loudly as resolving to a different one.
+  if (isAssistedRequest && assistedBoundListingId) {
+    const resolvedByDraft = (existingByDraft as { id?: string } | null)?.id
+      ? String((existingByDraft as { id: string }).id)
+      : "";
+    if (resolvedByDraft !== assistedBoundListingId) {
+      await recordSalesWorkspaceAudit({
+        action: "quick_sales_save_for_client",
+        actorRosterId: assistedContext!.rosterId,
+        businessId: assistedContext!.businessId,
+        category: "restaurantes",
+        listingSource: "restaurantes_public_listings",
+        listingId: assistedBoundListingId,
+        outcome: "assisted_listing_mismatch",
+      });
+      return NextResponse.json({ ok: false, error: "assisted_listing_mismatch" }, { status: 409 });
+    }
+  }
+
   // PUBLISHING ON A CLIENT'S BEHALF REQUIRES AUTHORITATIVE PAYMENT.
   //
   // Every other assisted category checks this; this one did not check it at all, so
@@ -465,6 +517,16 @@ export async function POST(req: NextRequest) {
       listingId: String((existingByDraft as { id: string }).id),
     });
     if (!cleared) {
+      await recordSalesWorkspaceAudit({
+        action: "quick_sales_publish_attempted",
+        actorRosterId: assistedContext!.rosterId,
+        businessId: assistedContext!.businessId,
+        category: "restaurantes",
+        listingSource: "restaurantes_public_listings",
+        listingId: String((existingByDraft as { id: string }).id),
+        paymentState: "manual_payment_not_cleared",
+        outcome: "manual_payment_not_cleared",
+      });
       return NextResponse.json({ ok: false, error: "manual_payment_not_cleared" }, { status: 402 });
     }
   }
@@ -679,6 +741,17 @@ export async function POST(req: NextRequest) {
 
   // Assisted request: link the saved listing to the business in the custody ledger.
   if (isAssistedRequest && assistedContext && listingIdOut) {
+    await recordSalesWorkspaceAudit({
+      action: isAssistedPublishForClient ? "quick_sales_publish_completed" : "quick_sales_save_for_client",
+      actorRosterId: assistedContext.rosterId,
+      businessId: assistedContext.businessId,
+      category: "restaurantes",
+      listingSource: "restaurantes_public_listings",
+      listingId: listingIdOut,
+      paymentState: isAssistedPublishForClient ? "manual_payment_cleared" : "unpaid_draft",
+      outcome: "ok",
+      detail: { server_bound_row: !!assistedBoundListingId },
+    });
     await linkAssistedListingToBusiness({
       businessId: assistedContext.businessId,
       listingSource: "restaurantes_public_listings",

@@ -1047,7 +1047,23 @@ async function main() {
   const behaviourSource = readFileSync(BEHAVIOR, "utf8");
   const routeSource = readFileSync(ROUTE, "utf8");
   const sqlSource = readFileSync("scripts/sql/verify-ix-rewards-sql-behavior-01.sql", "utf8");
-  for (const m of MUTATIONS) {
+  // BOUNDED RE-RUNS.
+  //
+  // The full matrix is ninety-plus mutations, each of which runs a whole suite — far beyond the
+  // time budget of a targeted re-verification. `--last=N` re-proves the N most recently added
+  // mutations (the ones a new change introduced), and `--grep=<text>` selects by defect text.
+  // Neither can ADD a mutation, only narrow which of the real ones run, and the run still refuses
+  // to start unless the baseline suites are green.
+  const onlyLast = Number(process.argv.find((a) => a.startsWith("--last="))?.slice(7) ?? "0");
+  const grep = process.argv.find((a) => a.startsWith("--grep="))?.slice(7) ?? "";
+  let selected: readonly Mutation[] = MUTATIONS;
+  if (grep) selected = selected.filter((m) => m.defect.includes(grep) || m.file.includes(grep));
+  if (onlyLast > 0) selected = selected.slice(-onlyLast);
+  if (selected.length !== MUTATIONS.length) {
+    console.log(`— running ${selected.length} of ${MUTATIONS.length} mutations (narrowed by CLI selection)`);
+  }
+
+  for (const m of selected) {
     for (const name of m.expect) {
       const exists =
         m.suite === "behavior"

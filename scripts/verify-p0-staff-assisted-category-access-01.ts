@@ -195,8 +195,28 @@ for (const f of allTouched.filter((x) => x.startsWith("supabase/migrations/"))) 
 // mission) legitimately touches ClasificadosServiciosApplication.tsx for a persistent assisted
 // header + extracted step-transition callbacks — no new field, no new persistence, no duplicate
 // application. See verify-p0-assisted-servicios-navigation-01.ts for the dedicated proof.
+// LEONIX FINAL QUICK SALES PREVIEW WORKSPACE (later, explicitly-authorized mission) mounts the
+// SHARED staff save-for-client strip inside the Restaurantes application, exactly as the Servicios
+// preview already carried one. The contract this assertion exists to protect is "no new or
+// duplicated application", not "this file is frozen": so the file may be touched, and what is
+// asserted is that the touch adds the shared component and nothing that looks like a second
+// application — no new draft persistence, no forked publish endpoint, no new form state.
 for (const f of ["app/(site)/publicar/restaurantes/RestauranteApplicationClient.tsx"]) {
-  assert.ok(!allTouched.includes(f), `${f} (a category's own form component) was not touched — no new/duplicate application`);
+  if (!allTouched.includes(f)) continue;
+  const src = read(f);
+  assert.ok(
+    src.includes("AssistedSaveForClientBar"),
+    `${f} may only gain the SHARED assisted strip — a bespoke staff form here would be a duplicate application`,
+  );
+  assert.equal(
+    (src.match(/useRestauranteDraft\(/g) ?? []).length,
+    1,
+    `${f} must still hold exactly one application draft — a second one would be a duplicate application`,
+  );
+  assert.ok(
+    !/fetch\(\s*"\/api\/clasificados\/restaurantes\/publish"[\s\S]{0,400}assistedAction/.test(src),
+    `${f} must not fork its own assisted publish call — the shared caller owns that contract`,
+  );
 }
 const returnCtxSrc = read("app/lib/business/applicationContext/conciergeReturnContext.ts");
 assert.ok(returnCtxSrc.includes('managementMode: "leonix_assisted"') && returnCtxSrc.includes("customerOwner: null") && returnCtxSrc.includes("createdByStaffActor"), "draft custody metadata (Gate 3) lives in the existing sessionStorage context, not a new DB row");

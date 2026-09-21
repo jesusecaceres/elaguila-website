@@ -30,6 +30,32 @@ export type AssistedPublishingContext = {
    * Never written to any listing's customer-ownership column.
    */
   authUserId: string;
+  /**
+   * REQUIRED REPAIR 4 (same-row server authority) — the canonical listing/draft row this assisted
+   * context is bound to, when one exists yet.
+   *
+   * Optional ONLY because the first save is the call that CREATES the row: before it there is no
+   * id to bind. From the moment the row exists the custody endpoint re-mints the cookie carrying
+   * it, and every assisted write that follows must agree with this value. A browser-supplied
+   * listing id is then no longer trusted input — it is a claim that must MATCH the server-issued
+   * one, and a mismatch fails closed rather than silently writing somewhere else.
+   */
+  listingId?: string;
+  /**
+   * REQUIRED REPAIR 5 — the customer this context was established for, proven server-side against
+   * the business's active memberships at the moment custody was granted.
+   *
+   * Present for the categories that attribute a listing to a customer account. Once it is here, a
+   * request body's `clientUserId` is no longer the answer to "whose listing is this" — it is a
+   * claim that must match this one.
+   */
+  clientUserId?: string;
+  /**
+   * The one assisted action this context authorizes (today always "save_for_client"). Named
+   * explicitly so a context minted to prepare a draft can never be replayed as authority for a
+   * different assisted operation that may be added later.
+   */
+  assistedAction?: string;
   issuedAtMs: number;
   expiresAtMs: number;
 };
@@ -51,18 +77,32 @@ export function safeEqualHex(a: string, b: string): boolean {
  * manipulating the system clock.
  */
 export function createAssistedPublishingTokenWithSecret(
-  input: { businessId: string; category: string; rosterId: string; authUserId: string },
+  input: {
+    businessId: string;
+    category: string;
+    rosterId: string;
+    authUserId: string;
+    listingId?: string | null;
+    clientUserId?: string | null;
+    assistedAction?: string | null;
+  },
   secret: string,
   nowMs: number = Date.now(),
 ): string | null {
   if (!secret) return null;
   const issuedAtMs = nowMs;
   const expiresAtMs = issuedAtMs + ASSISTED_PUBLISH_MAX_AGE_SEC * 1000;
+  const boundListingId = typeof input.listingId === "string" ? input.listingId.trim() : "";
+  const boundClientUserId = typeof input.clientUserId === "string" ? input.clientUserId.trim() : "";
+  const boundAction = typeof input.assistedAction === "string" ? input.assistedAction.trim() : "";
   const payloadObj: AssistedPublishingContext = {
     businessId: input.businessId,
     category: input.category,
     rosterId: input.rosterId,
     authUserId: input.authUserId,
+    ...(boundListingId ? { listingId: boundListingId } : {}),
+    ...(boundClientUserId ? { clientUserId: boundClientUserId } : {}),
+    ...(boundAction ? { assistedAction: boundAction } : {}),
     issuedAtMs,
     expiresAtMs,
   };
@@ -105,13 +145,26 @@ export function verifyAssistedPublishingTokenWithSecret(
   ) {
     return null;
   }
+  if (parsed.listingId !== undefined && (typeof parsed.listingId !== "string" || !parsed.listingId)) {
+    return null;
+  }
+  if (parsed.clientUserId !== undefined && (typeof parsed.clientUserId !== "string" || !parsed.clientUserId)) {
+    return null;
+  }
+  if (parsed.assistedAction !== undefined && (typeof parsed.assistedAction !== "string" || !parsed.assistedAction)) {
+    return null;
+  }
   if (parsed.issuedAtMs > nowMs) return null;
   if (parsed.expiresAtMs <= nowMs) return null;
+  if (parsed.expiresAtMs - parsed.issuedAtMs > ASSISTED_PUBLISH_MAX_AGE_SEC * 1000) return null;
   return {
     businessId: parsed.businessId,
     category: parsed.category,
     rosterId: parsed.rosterId,
     authUserId: parsed.authUserId,
+    ...(parsed.listingId ? { listingId: parsed.listingId } : {}),
+    ...(parsed.clientUserId ? { clientUserId: parsed.clientUserId } : {}),
+    ...(parsed.assistedAction ? { assistedAction: parsed.assistedAction } : {}),
     issuedAtMs: parsed.issuedAtMs,
     expiresAtMs: parsed.expiresAtMs,
   };

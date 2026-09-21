@@ -50,6 +50,7 @@
     "verify:quick-product-boundary": "npx tsx scripts/verify-quick-product-boundary-01.ts",
     "verify:ix-rewards-behavior": "npx tsx scripts/verify-ix-rewards-behavior-01.ts",
     "verify:ix-rewards-sql": "bash scripts/verify-ix-rewards-sql-behavior-01.sh",
+    "verify:quick-sales-preview": "npx tsx --tsconfig scripts/lib/tsconfig.harness.json scripts/verify-quick-sales-preview-01.ts",
     "verify:ix-rewards-route": "npx tsx --tsconfig scripts/lib/tsconfig.harness.json scripts/verify-ix-rewards-route-behavior-01.ts",
     "verify:ix-rewards-mutation": "npx tsx scripts/verify-ix-rewards-mutation-01.ts",
     "verify:ofertas-pricing-consistency": "npx tsx scripts/verify-ofertas-pricing-consistency-01.ts",
