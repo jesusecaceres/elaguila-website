@@ -4,7 +4,7 @@ Branch: `claude/leonix-ix-rewards-global-2026-09`
 Branched from QUICK_FREEZE_SHA: `4cb34be6d519b541606eecf9ff4afa3d0824814b`
 
 Nothing in this document describes intent. Every invariant listed here is either enforced by a
-database constraint or proven by `scripts/verify-ix-rewards-behavior-01.ts` (151 behavioral checks,
+database constraint or proven by `scripts/verify-ix-rewards-behavior-01.ts` (153 behavioral checks,
 no database, no network, no Stripe).
 
 ---
@@ -330,6 +330,10 @@ shipped came from one layer disagreeing with another:
 - **The SQL, the TypeScript union and the in-memory test store** must handle the same 14 entry
   types, and the stored `entry_type` vocabulary must match the handled arms. Adding a rule to one
   side and forgetting another fails by itself.
+- **The two SQL CASE blocks' ARITHMETIC, not just their field names.** Presence alone cannot see a
+  wrong sign or a wrong operand: changing the replay's `earn_pending` arm to credit the full earn
+  while still discharging the debt created 500 cents per recompute with every check green. The
+  assigned expression is compared, normalized for the two functions' shapes.
 - **The Supabase adapter's `SELECT` vs what its snapshot reads.** The required set is derived from
   the snapshot, so a column read but not selected — which silently returns zero, as
   `recovery_cents` once did for every TypeScript observer — fails by itself.
@@ -380,13 +384,26 @@ Genuine limits, each with its blast radius stated. None blocks launch.
    serializes event processing in practice, and the `reverse:<kind>:<externalId>` key means a
    duplicate delivery still cannot double-move. The exposure is a rounding cent under a race the
    claim already prevents.
-3. **An out-of-order dispute pair needs a person.** If `dispute.closed(won)` is processed before
+3. **A clawback still collects PENDING credits across payments.** A reversal takes pending first,
+   and `pending` is one bucket shared by every payment on the wallet, so a refund on payment B can
+   consume payment A's pending credits instead of accruing a debt against the spent ones. The
+   promotion sweep then has nothing to promote for A and skips it quietly. Scoping reversals per
+   payment is the honest fix and is larger than a repair pass should carry.
+4. **The in-memory store's replay tie-breaks on entry id, the database on a monotonic sequence.**
+   On a same-millisecond tie the store orders `e10` before `e9`. Checks that advance their own
+   clock are unaffected; the parity claims are asserted against the store's ordering, not the
+   database's.
+5. **The restoration bound is asymmetric, and its kind-scoped port method is optional.** The
+   minuend counts chargebacks only while the subtrahend counts all restorations, and a store that
+   omits `sumReversedForPaymentByKind` silently falls back to the all-kinds sum. Harmless today —
+   only the dispute path emits a restoration — but undefended.
+6. **An out-of-order dispute pair needs a person.** If `dispute.closed(won)` is processed before
    `dispute.created`, there is no clawback to undo yet; the restoration finds nothing, the event is
    queued for staff, and the clawback that lands afterwards stands until someone resolves it.
-4. **A reversed or failed refund leaves its clawback standing.** When `amount_refunded` returns to
+7. **A reversed or failed refund leaves its clawback standing.** When `amount_refunded` returns to
    zero, nothing restores the credits automatically. A WON DISPUTE now does restore them
    (`reversal_restoration`); the refund-reversal case needs a staff `manual_adjustment`.
-5. **No Vercel deployment, no live Stripe call, no remote Supabase mutation, no live data import**
+8. **No Vercel deployment, no live Stripe call, no remote Supabase mutation, no live data import**
    occurred at any point. Every CSV fixture in the verifier is invented.
 
 ---
