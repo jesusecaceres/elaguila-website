@@ -69,6 +69,7 @@ import {
   type WalletSnapshot,
 } from "../app/lib/rewards/rewardsLedgerCore";
 import { isUuid, sanitizeSearchTerm } from "../app/lib/rewards/rewardsStaffQuery";
+import { decideInvoiceRenewalEarn } from "../app/lib/listingPlans/invoiceRenewalEarnPolicy";
 import {
   CSV_MAX_ROWS,
   CSV_REQUIRED_HEADERS,
@@ -1821,13 +1822,61 @@ async function main() {
     // `checkout.session.completed` and `invoice.paid` both fire for a signup, against DIFFERENT
     // payment records — the checkout record carries no stripe_invoice_id, so the unique index
     // cannot collapse them. Awarding on both earned 9% twice on one payment, every signup.
+    //
+    // EXECUTABLE TRUTH TABLE against the real decision function, not a source-string match: an
+    // inverted or loosened comparison changes an answer below and fails this check.
+    const decide = (billingReason: string | null | undefined, amountPaidCents = 5000, paymentRecordId: string | null = "pay_1") =>
+      decideInvoiceRenewalEarn({ paymentRecordId, billingReason, amountPaidCents });
+
+    const signup = decide("subscription_create");
+    assert.equal(signup.earn, false, "the signup invoice earns NOTHING here — checkout already awarded it");
+    assert.equal(signup.reason, "signup_invoice_earned_at_checkout");
+    assert.equal(signup.audit, false, "and that is not a gap worth auditing");
+
+    for (const renewal of ["subscription_cycle", "subscription_update", "manual", "upcoming"]) {
+      const d = decide(renewal);
+      assert.equal(d.earn, true, `${renewal} is money the checkout path never saw, so it earns`);
+      assert.equal(d.reason, "eligible_renewal");
+    }
+
+    // FAIL CLOSED: an absent signal is not evidence of a renewal.
+    for (const absent of [null, undefined, "", "   "]) {
+      const d = decide(absent);
+      assert.equal(d.earn, false, `billing_reason ${JSON.stringify(absent)} must NOT award`);
+      assert.equal(d.reason, "invoice_billing_reason_unknown");
+      assert.equal(d.audit, true, "and the skip is audited as a visible, retryable gap");
+    }
+
+    // No money and no record earn nothing, and are not reported as gaps.
+    for (const [amount, reason] of [[0, "no_amount_paid"], [-100, "no_amount_paid"]] as const) {
+      const d = decide("subscription_cycle", amount);
+      assert.equal(d.earn, false, `amount_paid ${amount} earns nothing`);
+      assert.equal(d.reason, reason);
+      assert.equal(d.audit, false);
+    }
+    for (const missing of [null, "", "   "]) {
+      const d = decide("subscription_cycle", 5000, missing);
+      assert.equal(d.earn, false, "no payment record, no earn");
+      assert.equal(d.reason, "no_payment_record");
+    }
+
+    // WIRING: the webhook handler must actually route through that decision, and must have no
+    // second, ungated award path.
     const src = readFileSync("app/lib/listingPlans/revenueSubscriptionEvents.ts", "utf8");
     const paid = src.slice(src.indexOf("export async function handleInvoicePaid"));
-    assert.ok(paid.includes("subscription_create"), "the signup invoice is recognized by billing_reason");
-    assert.ok(paid.includes("isSubscriptionCreateInvoice"), "and named");
+    assert.ok(paid.includes("decideInvoiceRenewalEarn("), "handleInvoicePaid asks the policy");
     assert.ok(
-      /!isSubscriptionCreateInvoice &&[\s\S]{0,80}awardCreditsForSettledPayment|if \(renewalPaymentRecordId && !isSubscriptionCreateInvoice/.test(paid),
-      "and excluded from the renewal award",
+      /if \(renewalEarnDecision\.earn && renewalPaymentRecordId\) \{[\s\S]{0,400}?awardCreditsForSettledPayment\(/.test(paid),
+      "and awards only when the policy says earn",
+    );
+    assert.equal(
+      paid.split("awardCreditsForSettledPayment(").length - 1,
+      1,
+      "exactly one award call in the invoice.paid path",
+    );
+    assert.ok(
+      !/billing_reason[\s\S]{0,200}awardCreditsForSettledPayment/.test(paid.replace(/decideInvoiceRenewalEarn\([\s\S]*?\}\);/, "")),
+      "the handler does not re-derive the signup test inline",
     );
   });
 
@@ -1905,27 +1954,61 @@ async function main() {
   });
 
   await check("N5: a reservation whose ledger post is refused does not survive as a live hold", async () => {
+    // THE FAULT IS INJECTED, not arranged by balance.
+    //
+    // The first version of this check seeded 1000, reserved all of it, then reserved again and
+    // expected the LEDGER POST to be refused after the row was created. It never got that far:
+    // `planRedemption` saw a zero balance and refused at the PLANNING step, before
+    // `createRedemption` ran at all. No row was created, the `if (orphan)` guard skipped the only
+    // assertion that tested the fix, and deleting the fix entirely left this check passing.
+    //
+    // The window being tested is narrow and real: `createRedemption` must run first (the ledger
+    // entry needs its id), so anything that fails the post AFTERWARDS leaves a row in `reserved`
+    // holding nothing. Only a fault injected at exactly that point exercises it.
     const { port, redemptions } = makeStore();
-    await seedAvailable(port, OWNER, 1000, "n5");
-    // Hold everything, so the second reserve's ledger post is refused after its row is created.
-    await reserveCreditsForPurchase({ owner: OWNER, requestedCents: 1000, amountDueCents: 9000, redemptionRef: "n5_first", contextKind: "stripe_checkout", ports: port });
-    const second = await reserveCreditsForPurchase({ owner: OWNER, requestedCents: 1000, amountDueCents: 9000, redemptionRef: "n5_second", contextKind: "stripe_checkout", ports: port });
-    assert.equal(second.ok, false, "refused: the balance is already held");
+    await seedAvailable(port, OWNER, 5000, "n5_seed");
 
-    const orphan = redemptions.get(reserveIdempotencyKey("n5_second"));
-    if (orphan) {
-      assert.notEqual(orphan.status, "reserved", "a row that holds nothing must not look like a live hold");
-    }
+    const realPostEntry = port.postEntry.bind(port);
+    let failNextReserve = false;
+    port.postEntry = async (input) => {
+      if (failNextReserve && input.entryType === "redeem_reserve") {
+        return { ok: false, error: "injected_post_failure" };
+      }
+      return realPostEntry(input);
+    };
 
-    // The sweep must not 'release' it and conjure credits that were never held.
+    failNextReserve = true;
+    const refused = await reserveCreditsForPurchase({
+      owner: OWNER, requestedCents: 1000, amountDueCents: 9000,
+      redemptionRef: "n5_orphan", contextKind: "stripe_checkout", ports: port,
+    });
+    failNextReserve = false;
+    assert.equal(refused.ok, false, "the reserve is refused");
+
+    // The row WAS created before the post failed. It must not be left looking like a live hold.
+    const orphan = redemptions.get(reserveIdempotencyKey("n5_orphan"));
+    assert.ok(orphan, "the fixture must actually reach createRedemption, or it proves nothing");
+    assert.notEqual(orphan!.status, "reserved", "a row that holds nothing must not look like a live hold");
+
+    // And the sweep must not 'release' it, conjuring credits that were never held.
     const before = await walletOf(port, OWNER);
-    const out = await runReservationExpirySweep({ nowMs: Date.now() + 3600_000, limit: 10, ports: port });
+    const out = await runReservationExpirySweep({ nowMs: Date.now() + 3_600_000, limit: 10, ports: port });
     const after = await walletOf(port, OWNER);
+    assert.equal(out.released, 0, "there is no live hold to release");
     assert.equal(
       after.availableCents + after.reservedCents,
       before.availableCents + before.reservedCents,
-      `the sweep must not create value (released ${out.released})`,
+      "the sweep must not create value",
     );
+    assert.equal(after.availableCents, 5000, "the balance is untouched by the refused reserve");
+  });
+
+  await check("N5b: a deduplicated row is never retired out from under a concurrent request", async () => {
+    // A row returned as `deduplicated` belongs to another request that may hold LIVE credits.
+    // Releasing it on this request's failure would destroy that hold.
+    const src = readFileSync("app/lib/rewards/rewardsLedgerCore.ts", "utf8");
+    assert.ok(/if \(!created\.deduplicated\) \{/.test(src), "only a row THIS call created is retired");
+    assert.ok(src.includes("orphaned_reservation_not_retired"), "a failed retirement is named, not swallowed");
   });
 
   await check("N6: the CSV fingerprint binds the customer-visible REASON text", () => {

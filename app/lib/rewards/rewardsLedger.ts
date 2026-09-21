@@ -238,14 +238,16 @@ export function buildRewardsStorePort(): RewardsStorePort {
       return toRedemption(data as unknown as RedemptionRow);
     },
 
-    async setRedemptionStatus({ redemptionId, status, settleLedgerId }) {
-      // Compare-and-set from 'reserved' so a late release cannot undo a commit.
-      const { data, error } = await db
+    async setRedemptionStatus({ redemptionId, status, settleLedgerId, fromAnyStatus }) {
+      // Compare-and-set from 'reserved' so a late release cannot undo a commit. The re-debit path
+      // opts out explicitly: it is finalising a row that is already released or expired, having
+      // just taken the credits again, and there is no `reserved` state left to compare against.
+      let q = db
         .from("leonix_rewards_redemptions")
         .update({ status, settle_ledger_id: settleLedgerId ?? null, updated_at: new Date().toISOString() })
-        .eq("id", redemptionId)
-        .eq("status", "reserved")
-        .select("id");
+        .eq("id", redemptionId);
+      if (!fromAnyStatus) q = q.eq("status", "reserved");
+      const { data, error } = await q.select("id");
       if (error) return { ok: false, error: error.message.slice(0, 300) };
       if (!data?.length) return { ok: false, error: "redemption_not_reserved" };
       return { ok: true };
