@@ -36,6 +36,26 @@ import { REVENUE_BASE_ENTITLEMENT_GUARD_PACKAGE_KEYS } from "../app/lib/listingP
 // cannot be imported directly into a plain tsx script — those two checks below use source-text
 // assertions instead, the same way every other server-only file in this suite is verified.
 
+// The failure branch is extracted by BRACE MATCHING, not by slicing a fixed number of characters.
+// A fixed window silently changes what it proves whenever the branch grows or shrinks: the three
+// checks below began failing purely because a legitimate release call was added inside the branch
+// and pushed the 502 response past the character count, while the branch itself remained correct.
+// Matching braces pins the assertions to the ACTUAL branch — it cannot run past the branch into
+// unrelated code the way a fixed window can, and it cannot stop short of the branch's own end.
+function branchBlock(route: string, marker: string): string {
+  const start = route.indexOf(marker);
+  assert.ok(start > 0, `the ${marker} branch still exists`);
+  let depth = 0;
+  for (let i = start; i < route.length; i += 1) {
+    if (route[i] === "{") depth += 1;
+    else if (route[i] === "}") {
+      depth -= 1;
+      if (depth === 0) return route.slice(start, i + 1);
+    }
+  }
+  throw new Error(`unterminated block for ${marker}`);
+}
+
 const failures: string[] = [];
 function check(name: string, fn: () => void) {
   try {
@@ -183,9 +203,7 @@ check("Servicios base package stays guarded by the active-entitlement gate — e
  * ────────────────────────────────────────────────────────────────────────────────────────── */
 check("failed Stripe session creation releases the staff promo reservation (never permanently consumes the per-customer slot)", () => {
   const route = raw("app/api/revenue-os/checkout/route.ts");
-  const failIdx = route.indexOf("if (!stripeResult.ok) {");
-  assert.ok(failIdx > 0, "the failure branch still exists");
-  const failBlock = route.slice(failIdx, failIdx + 1400);
+  const failBlock = branchBlock(route, "if (!stripeResult.ok) {");
   assert.ok(failBlock.includes("if (promoRedemptionId) {"), "promo reservation is checked on the failure path");
   assert.ok(
     failBlock.includes("await markPromoRedemptionExpiredOrCancelled({"),
@@ -195,8 +213,7 @@ check("failed Stripe session creation releases the staff promo reservation (neve
 });
 check("failed Stripe session creation releases the verified-intro reservation (never permanently consumes it)", () => {
   const route = raw("app/api/revenue-os/checkout/route.ts");
-  const failIdx = route.indexOf("if (!stripeResult.ok) {");
-  const failBlock = route.slice(failIdx, failIdx + 1400);
+  const failBlock = branchBlock(route, "if (!stripeResult.ok) {");
   assert.ok(failBlock.includes("if (verifiedIntroDiscountRedemptionId) {"), "verified-intro reservation is checked on the failure path");
   assert.ok(
     failBlock.includes("await releaseVerifiedIntroDiscountReservation(checkoutAttemptKey)"),
