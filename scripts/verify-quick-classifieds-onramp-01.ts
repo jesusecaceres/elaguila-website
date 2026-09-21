@@ -202,6 +202,28 @@ const ADAPTERS = `${QUICK_ROUTE}/_adapters`;
     "app/lib/listingPlans/quickBusinessProductIdentity.ts", // the pure product rule
     "app/lib/listingPlans/quickBusinessProductIdentityServer.ts", // its server-owned reads
     "app/api/clasificados/bienes-raices/negocio/quick-publish/route.ts", // atomic Quick Bienes custody
+    // -----------------------------------------------------------------------
+    // LEONIX IX REWARDS (branch claude/leonix-ix-rewards-global-2026-09) — a SECOND authorized
+    // mission, converged into this branch. Its surfaces are listed FILE-EXACT so this guard keeps
+    // catching unexpected drift instead of being switched off: none of them is a classifieds
+    // on-ramp surface, and the Quick on-ramp itself is unchanged by every one of them.
+    // -----------------------------------------------------------------------
+    "app/(site)/dashboard/page.tsx", // mounts the customer wallet panel
+    "app/(site)/dashboard/components/LeonixCreditsPanel.tsx", // the wallet panel itself
+    "app/admin/(dashboard)/workspace/rewards/page.tsx", // staff wallet workspace
+    "app/admin/(dashboard)/workspace/rewards/RewardsWorkspaceClient.tsx",
+    "app/api/rewards/wallet/route.ts", // the customer's own wallet read
+    "app/api/admin/rewards/route.ts", // staff money writes, super-admin gated
+    "app/api/admin/rewards/reconciliation/route.ts", // staff-only CSV preview -> commit
+    "app/api/revenue-os/admin/rewards-sweep/route.ts", // the protected promotion + expiry seam
+    // Payment-pipeline touch points. Each is additive and runs AFTER the payment is settled;
+    // none changes payment behaviour, and none is reachable from a Quick publish.
+    "app/lib/listingPlans/invoiceRenewalEarnPolicy.ts", // the pure renewal-earn decision
+    "app/lib/listingPlans/manualClearedPayments.ts",
+    "app/lib/listingPlans/revenuePaymentRecords.ts",
+    "app/lib/listingPlans/revenueSubscriptionEvents.ts",
+    "app/lib/listingPlans/subscriptionLifecycle.ts",
+    "supabase/migrations/20260921120000_leonix_ix_rewards_foundation.sql", // authored, NOT applied
   ]);
   const violations = touched.filter((f) => !MISSION_AUTHORIZED.has(f) && PROTECTED.some((re) => re.test(f)));
   assert.deepEqual(violations, [], `protected canonical surfaces must not change: ${violations.join(", ")}`);
@@ -219,6 +241,10 @@ const ADAPTERS = `${QUICK_ROUTE}/_adapters`;
   const AUTHORIZED_MIGRATIONS = new Set([
     // Quick lifecycle + capability parity. Authored by an authorized Quick gate; NOT applied.
     "supabase/migrations/20260920120000_quick_business_lifecycle_capability_parity.sql",
+    // LEONIX IX REWARDS foundation. Authored by the SECOND authorized mission converged into this
+    // branch; NOT applied. It creates only `leonix_rewards_*` wallet/ledger/redemption tables —
+    // no Quick product or listing table — which the per-migration check below still proves.
+    "supabase/migrations/20260921120000_leonix_ix_rewards_foundation.sql",
   ]);
   const migrationsTouched = touched.filter((f) => f.startsWith("supabase/migrations/"));
   const unexpectedMigrations = migrationsTouched.filter((f) => !AUTHORIZED_MIGRATIONS.has(f));

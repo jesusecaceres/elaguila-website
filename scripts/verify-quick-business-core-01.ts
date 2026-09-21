@@ -508,6 +508,9 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
     // beside the existing earn hook.
     "app/lib/listingPlans/revenuePaymentRecords.ts",
     "app/lib/listingPlans/subscriptionLifecycle.ts",
+    // The pure renewal-earn decision, extracted so a truth table can prove it rather than a
+    // source-string match. No Stripe client, no Supabase, no Quick surface.
+    "app/lib/listingPlans/invoiceRenewalEarnPolicy.ts",
     // The owner dashboard, which now MOUNTS the customer wallet panel. One import, one element;
     // no Quick surface on this page changes.
     "app/(site)/dashboard/page.tsx",
