@@ -126,7 +126,7 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
     },
     "bienesNegocioQuickBusinessAdapter.ts": {
       canonical: [
-        'sellerTipo: "agente_individual"', "categoriaPropiedad,", 'normalizeResidencialTipoPropiedadCodigo(quickStr(values, "tipoCodigo"))', 'normalizeComercialTipoCodigo(quickStr(values, "comercialTipoCodigo"))', 'normalizeTerrenoTipoCodigo(quickStr(values, "terrenoTipoCodigo"))', 'recamaras: categoriaPropiedad === "residencial" ? quickStr(values, "recamaras") : ""', 'banos: categoriaPropiedad === "residencial" ? quickStr(values, "banos") : ""', 'titulo: quickStr(values, "titulo")', "precio: quickWholeDollars(values.precio)", "...(condicionPropiedad ? { condicionPropiedad } : {})", 'descripcionPrincipal: quickStr(values, "descripcion")', "ciudad: resolveCity(values)", 'areaCiudad: quickStr(values, "areaCiudad")', 'direccionCodigoPostal: quickStr(values, "zip")', "fotosDataUrls: media.map((m) => m.dataUrl)", "fotoPortadaIndex: 0", 'agenteNombre: quickStr(values, "agenteNombre")', 'agenteTitulo: quickStr(values, "agenteTitulo")', 'agenteLicencia: quickStr(values, "agenteLicencia")', 'marcaNombre: quickStr(values, "marcaNombre")', 'agenteTelefonoPersonal: quickStr(values, "phone")', 'agenteWhatsapp: quickStr(values, "whatsapp")', 'correoPrincipal: quickStr(values, "email")', 'agenteSitioWeb: quickStr(values, "website")', "confirmListingAccurate: confirmations.infoTruthful", "confirmPhotosRepresentItem: confirmations.mediaAccurate", "confirmCommunityRules: confirmations.rulesAccepted", "confirmPaymentAfterPreview: confirmations.paymentAfterPreview",
+        'sellerTipo: "agente_individual"', "categoriaPropiedad,", 'normalizeResidencialTipoPropiedadCodigo(quickStr(values, "tipoCodigo"))', 'normalizeComercialTipoCodigo(quickStr(values, "comercialTipoCodigo"))', 'normalizeTerrenoTipoCodigo(quickStr(values, "terrenoTipoCodigo"))', 'recamaras: categoriaPropiedad === "residencial" ? quickStr(values, "recamaras") : ""', 'banos: categoriaPropiedad === "residencial" ? quickStr(values, "banos") : ""', 'titulo: quickStr(values, "titulo")', "precio: quickWholeDollars(values.precio)", "...(condicionPropiedad ? { condicionPropiedad } : {})", 'descripcionPrincipal: quickStr(values, "descripcion")', "ciudad: resolveCity(values)", 'areaCiudad: quickStr(values, "areaCiudad")', 'direccionCodigoPostal: quickStr(values, "zip")', "fotosDataUrls: galleryMediaOnly(media).map((m) => m.dataUrl)", "fotoPortadaIndex: 0", 'agenteNombre: quickStr(values, "agenteNombre")', 'agenteTitulo: quickStr(values, "agenteTitulo")', 'agenteLicencia: quickStr(values, "agenteLicencia")', 'marcaNombre: quickStr(values, "marcaNombre")', 'agenteTelefonoPersonal: quickStr(values, "phone")', 'agenteWhatsapp: quickStr(values, "whatsapp")', 'correoPrincipal: quickStr(values, "email")', 'agenteSitioWeb: quickStr(values, "website")', "confirmListingAccurate: confirmations.infoTruthful", "confirmPhotosRepresentItem: confirmations.mediaAccurate", "confirmCommunityRules: confirmations.rulesAccepted", "confirmPaymentAfterPreview: confirmations.paymentAfterPreview",
         // Gate 1 wired: agenteSmsPersonal propagated through AgenteIndividualResidencialFormState → identityAgente.smsPersonal.
         'agenteSmsPersonal: quickStr(values, "sms")',
       ],
@@ -165,10 +165,26 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
 {
   assert.ok(reg.includes("return { minImages: 1, maxImages: 3, videoOptional: false, note };"), "Quick Business media: 3 max, no video");
   const intake = read(`${QB_COMPONENTS}/QuickBusinessIntakeClient.tsx`);
+  /**
+   * Gate QB-MEDIA-03 — the intake no longer reuses the certified Quick Classifieds media step.
+   *
+   * WHY THE EXPECTATION CHANGED: the certified step produces `QuickMediaItem`, which carries no
+   * semantic role. The 2026-09-21 independent audit found the Quick Business media contract
+   * operationally inert precisely because no producer emitted a role — so the certified step was
+   * structurally incapable of satisfying the contract this verifier exists to protect. Quick
+   * Business now owns a role-aware step INSIDE its own tree; the certified step and the certified
+   * type remain byte-unchanged, which is what the reuse rule was actually protecting. The new
+   * step is held to the same no-video lock, asserted below on the file that now renders.
+   */
   assert.ok(
-    intake.includes('from "@/app/publicar/rapido/_components/QuickMediaStep"') &&
-      intake.includes("validateQuickBusinessIntakeMedia(draft.media, definition.media, lang)"),
-    "intake reuses the certified media step + the Quick Business media lock at Next and submit",
+    intake.includes('from "./QuickBusinessMediaStep"') &&
+      intake.includes("validateQuickBusinessIntakeMedia(draft.media, definition.media, lang, category)") &&
+      intake.includes("undeclaredRoleIssues(draft.media, lang)"),
+    "intake renders the role-aware Quick Business media step and runs the media lock at Next and submit",
+  );
+  assert.ok(
+    !intake.includes('from "@/app/publicar/rapido/_components/QuickMediaStep"'),
+    "the certified role-less media step is no longer rendered by Quick Business",
   );
   /**
    * Quick Business carries its own media contract because `QuickClassifiedMediaContract` types
@@ -192,8 +208,20 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
   const review = read(`${QB_COMPONENTS}/QuickBusinessReviewStep.tsx`);
   assert.ok(review.includes("media.length === 0"), "review submit disabled without an image");
   assert.ok(read(`${QB_ADAPTERS}/serviciosQuickBusinessAdapter.ts`).includes("coverUrl: gallery[0]?.url") && read(`${QB_ADAPTERS}/restaurantesQuickBusinessAdapter.ts`).includes("heroImage: hero ?? \"\""), "first real image becomes the canonical cover / hero");
-  assert.ok(read(`${QB_ADAPTERS}/autosDealerQuickBusinessAdapter.ts`).includes('sourceType: "file", isPrimary: i === 0, sortOrder: i'), "Dealer: first real VEHICLE photo is the primary MediaImageEntry (existing vehicle media shape)");
-  assert.ok(read(`${QB_ADAPTERS}/bienesNegocioQuickBusinessAdapter.ts`).includes("fotosDataUrls: media.map((m) => m.dataUrl)") && read(`${QB_ADAPTERS}/bienesNegocioQuickBusinessAdapter.ts`).includes("fotoPortadaIndex: 0"), "Bienes: first real PROPERTY photo is the cover (existing property media shape)");
+  {
+    // Gate QB-MEDIA-03 — same canonical shape (`MediaImageEntry`, cover = first), now built from
+    // the gallery with identity assets removed and the declared role stamped onto each entry.
+    const dealerSrc = read(`${QB_ADAPTERS}/autosDealerQuickBusinessAdapter.ts`);
+    assert.ok(
+      /sourceType: "file",\s*isPrimary: i === 0,\s*sortOrder: i,\s*role: m\.role,/.test(dealerSrc),
+      "Dealer: first real VEHICLE photo is the primary MediaImageEntry, and every entry declares its role",
+    );
+    assert.ok(
+      dealerSrc.includes("galleryMediaOnly(media).map((m, i) => ({"),
+      "Dealer: a dealership logo never enters the vehicle gallery",
+    );
+  }
+  assert.ok(read(`${QB_ADAPTERS}/bienesNegocioQuickBusinessAdapter.ts`).includes("fotosDataUrls: galleryMediaOnly(media).map((m) => m.dataUrl)") && read(`${QB_ADAPTERS}/bienesNegocioQuickBusinessAdapter.ts`).includes("fotoPortadaIndex: 0"), "Bienes: first real PROPERTY photo is the cover (existing property media shape)");
   assert.ok(intake.includes("{qt(definition.mediaIntro, lang)}") && !intake.includes("mediaBusinessIntro"), "intake shows the per-category truthful media wording (vehicle / property / business)");
   for (const f of [`${QB_COMPONENTS}/QuickBusinessIntakeClient.tsx`, `${QB_COMPONENTS}/QuickBusinessReviewStep.tsx`, `${QB_COMPONENTS}/QuickBusinessChooser.tsx`]) {
     assert.ok(!/unsplash|placeholder\.com|picsum|generateImage|FALLBACK_IMG/i.test(read(f)), `${f}: no fake image fallback satisfies the minimum`);
@@ -392,6 +420,59 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
     // A4 security: HMAC crypto extracted so forgery/tamper/expiry are provable by real attacks.
     "app/lib/auth/assistedPublishingToken.ts", // new: pure token crypto
     "app/lib/auth/assistedPublishingSession.ts", // now a thin server-only wrapper, API unchanged
+    // ------------------------------------------------------------------------------------------
+    // Gate QB-MEDIA-03 (2026-09-21 audit repair) — the semantic media contract was DECLARED but
+    // operationally inert: no producer emitted a role, a missing role was resolved to the
+    // required subject role, and only the two staff-assisted routes enforced it. Making the claim
+    // real required exactly these surfaces and no others.
+    // ------------------------------------------------------------------------------------------
+    // The four CUSTOMER self-service publish seams now run the canonical validator server-side.
+    // (servicios/publish, restaurantes/publish and autos/listings are already authorized above
+    // for the QB-IDENTITY-01 link write; the Bienes seam is new because that family publishes
+    // from the browser and therefore had no server publish handler to host the check.)
+    //
+    // Gate QB-BOUNDARY-02 RETIRED this route: asking a gate and then inserting from the browser
+    // anyway was two independent steps, and the second did not depend on the first. It stays
+    // authorized because DELETING it is itself a change to a protected path, and its replacement
+    // is the atomic publish endpoint below.
+    "app/api/clasificados/bienes-raices/negocio/publish-media-gate/route.ts",
+    // ------------------------------------------------------------------------------------------
+    // Gate QB-BOUNDARY-01 / -02 (2026-09-21 product-boundary closeout). Quick semantic-media
+    // enforcement was reaching SHARED Full publish paths, because it keyed off `lane` and
+    // `sellerType` — neither of which is a product, and both of which arrive from the browser.
+    // Closing that needed a server-owned product fact, and closing the Bienes browser insert
+    // needed a server publish operation. Exactly these surfaces, and no others.
+    // ------------------------------------------------------------------------------------------
+    // The product rule, pure: which base package (SIMPLE vs FULL) a publish is bound to, read
+    // from assisted context / live entitlement / checkout ledger / server custody, and only then
+    // from a declaration that can restrict the caller and never relax anything.
+    "app/lib/listingPlans/quickBusinessProductIdentity.ts",
+    // Its server reads. Two service-role-written ledgers, read-only, failing closed in the SAFE
+    // direction: an outage can make the answer stricter, never more permissive.
+    "app/lib/listingPlans/quickBusinessProductIdentityServer.ts",
+    // The atomic Quick Bienes publish: verify bearer → verify product → validate media → validate
+    // fields → write → link, in one authenticated server operation. Replaces the deleted gate.
+    "app/api/clasificados/bienes-raices/negocio/quick-publish/route.ts",
+    // Its pure contract (column whitelist, server-owned columns, field rules, reuse key) and its
+    // port-injected operation, split out so the security claims are proven by RUNNING them.
+    "app/lib/clasificados/bienes-raices/quickBienesPublishContract.ts",
+    "app/lib/clasificados/bienes-raices/quickBienesPublishOperation.ts",
+    // The two previews that now declare WHICH BASE PACKAGE they are about to charge, so the
+    // server no longer has to infer a product from a lane or a seller type. Declaration only:
+    // the server re-resolves it, and a declaration is read in the restricting direction alone.
+    "app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx",
+    "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewClient.tsx",
+    // The one line that carries the customer's declared photo roles from the canonical agente
+    // draft into the publish core, so the gate above is told what the customer actually said.
+    // Additive and optional: a draft without roles passes `null` and is answered with a
+    // correction, never a guess.
+    "app/(site)/clasificados/lib/leonixPublishRealEstateFromDraftState.ts",
+    // `MediaImageEntry.role?` — the additive field that lets a dealer photo say whether it is a
+    // vehicle or a dealership logo. Without it the two are the same object and the rule is
+    // unenforceable.
+    "app/(site)/clasificados/autos/negocios/types/autoDealerListing.ts",
+    // The matching dealer-lane error code for the new 422 refusal.
+    "app/lib/clasificados/autos/autosPublishApiContract.ts",
     // ---------------------------------------------------------------------------------------
     // LEONIX IX REWARDS (branch claude/leonix-ix-rewards-global-2026-09) — a SEPARATE authorized
     // mission that shares this working tree. Its surfaces are listed so this guard keeps catching
@@ -412,8 +493,8 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
     "app/lib/listingPlans/manualClearedPayments.ts",
     "app/lib/listingPlans/revenueSubscriptionEvents.ts",
     // --- IX Rewards completion + adversarial repair pass ---
-    // The redemption, scheduling and reconciliation surfaces the first Rewards commit named as
-    // open, plus the fixes two independent review rounds then forced. Listed for the same reason
+    // The redemption, scheduling and reconciliation surfaces the first Rewards commit itself
+    // named as open, plus the fixes an independent review then forced. Listed for the same reason
     // as the block above: so this guard keeps catching unexpected drift rather than being switched
     // off. None is a Quick Business surface, and the Quick product is unchanged by every one.
     "app/lib/rewards/rewardsCheckoutRedemption.ts", // reserve/commit/release bound to checkout
@@ -423,11 +504,13 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
     "app/api/admin/rewards/reconciliation/route.ts", // staff-only CSV preview -> commit
     // Payment-pipeline touch points. Each is additive: a credits-applied figure and a
     // "this total is already net" flag on the payment record, the subscriber carried onto a
-    // renewal row so it can be attributed at all, and the pure renewal-earn decision that keeps
-    // a subscription's first invoice from earning twice.
-    "app/lib/listingPlans/invoiceRenewalEarnPolicy.ts",
+    // renewal row so it can be attributed at all, and the commit/release of a credit hold placed
+    // beside the existing earn hook.
     "app/lib/listingPlans/revenuePaymentRecords.ts",
     "app/lib/listingPlans/subscriptionLifecycle.ts",
+    // The pure renewal-earn decision, extracted so a truth table can prove it rather than a
+    // source-string match. No Stripe client, no Supabase, no Quick surface.
+    "app/lib/listingPlans/invoiceRenewalEarnPolicy.ts",
     // The owner dashboard, which now MOUNTS the customer wallet panel. One import, one element;
     // no Quick surface on this page changes.
     "app/(site)/dashboard/page.tsx",
@@ -508,7 +591,13 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
   assert.ok(ad.includes("additionalInventoryVehicles: []"), "Dealer: no bundled inventory children");
   assert.ok(!/inventoryBoostSelected|inventory_role|dealer_inventory_group_id|inProgressInventoryVehicleDraft|resolveDealerActiveVehicleLimit|AUTOS_DEALER_INVENTORY_PACK/.test(ad), "Dealer: inventory pack / roles / limits untouched by Quick");
   assert.ok(!/mileage: \d|vin: "|condition: "(new|used|certified)"|price: \d|stockNumber:|monthlyEstimate:|badges: \[|features: \[|dealerHours: \[|dealerLogo:/.test(ad), "Dealer: no fabricated mileage / VIN / condition / price / stock / hours / logo");
-  assert.ok((ad.match(/mediaImages: MediaImageEntry\[\] = media\.map/g) ?? []).length === 1 && !/dealerLogo/.test(ad), "Dealer: customer photos map ONLY to the vehicle gallery, never to a dealer logo");
+  // Gate QB-MEDIA-03 — the one mapping is now `galleryMediaOnly(media)`: identity assets are
+  // filtered out rather than silently becoming vehicle photos. Still exactly one mapping, and
+  // still no dealer-logo field is written by Quick.
+  assert.ok(
+    (ad.match(/mediaImages: MediaImageEntry\[\] = galleryMediaOnly\(media\)\.map/g) ?? []).length === 1 && !/dealerLogo/.test(ad),
+    "Dealer: customer photos map ONLY to the vehicle gallery, never to a dealer logo",
+  );
   assert.ok(/label: \{ es: "Tu primer vehículo", en: "Your first vehicle" \}|title: \{ es: "Tu primer vehículo", en: "Your first vehicle" \}/.test(ad), "Dealer: the vehicle step is labeled as the first vehicle");
   // Bienes: ONE real first property, no inventory children, no fabricated property / agent facts.
   const bd = read(BIENES);
@@ -724,8 +813,14 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
   // Layer 3 — intake UI: (a) validation called at Next and Submit, (b) file input rejects non-images, (c) video not offered
   const intake = read(`${QB_COMPONENTS}/QuickBusinessIntakeClient.tsx`);
   assert.ok(
-    intake.includes("validateQuickBusinessIntakeMedia(draft.media, definition.media, lang)"),
+    intake.includes("validateQuickBusinessIntakeMedia(draft.media, definition.media, lang, category)"),
     "QuickBusinessIntakeClient: the Quick Business media validator is called at step navigation and submit",
+  );
+  // Gate QB-MEDIA-03 — and the browser is explicitly NOT the boundary: the same contract is
+  // re-run on the server against the payload that actually arrives.
+  assert.ok(
+    intake.includes("re-run on the server against the payload that actually arrives"),
+    "QuickBusinessIntakeClient: the intake states that browser validation is UX, not the security boundary",
   );
   // Layer 2b — that validator is strictly stronger than the Classifieds one it replaced here:
   // it enforces the same count bounds AND rejects video AND excludes identity assets from the
@@ -740,6 +835,21 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
   const mediaStep = read("app/(site)/publicar/rapido/_components/QuickMediaStep.tsx");
   assert.ok(mediaStep.includes('accept="image/*"'), "QuickMediaStep: file input accepts image/* only (video inputs absent)");
   assert.ok(!mediaStep.includes('accept="video') && !mediaStep.includes("video/*"), "QuickMediaStep: no video accept attribute (video blocked at upload layer)");
+  // Gate QB-MEDIA-03 — the step Quick Business actually renders is held to the SAME no-video lock,
+  // and, additionally, must never pre-select a subject role for a declared-attribution family.
+  {
+    const qbStep = read(`${QB_COMPONENTS}/QuickBusinessMediaStep.tsx`);
+    assert.ok(qbStep.includes('accept="image/*"'), "QuickBusinessMediaStep: file input accepts image/* only");
+    assert.ok(!qbStep.includes('accept="video') && !qbStep.includes("video/*"), "QuickBusinessMediaStep: no video accept attribute");
+    assert.ok(
+      qbStep.includes('SUBJECT_ATTRIBUTION[category] === "structural" ? subjectRole : null'),
+      "QuickBusinessMediaStep: a vehicle/property family starts every new photo UNMARKED — no silent default",
+    );
+    assert.ok(
+      qbStep.includes("compressImageFileToJpegDataUrl"),
+      "QuickBusinessMediaStep: reuses the EXISTING compressor, so canonical stores receive the representation they already expect",
+    );
+  }
 
   // Layer 4 — adapter: first image is the canonical cover/hero/primary (no photo → no cover)
   const sv = read(`${QB_ADAPTERS}/serviciosQuickBusinessAdapter.ts`);
