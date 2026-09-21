@@ -19,6 +19,7 @@ import { writeRevenueAuditLog } from "./revenueAuditLog";
 import { attachStripeIdentitiesToConsent } from "./recurringConsent";
 import { extendEntitlementForInvoicePaid } from "./revenueEntitlementFulfillment";
 import { recordDisputeOnPaymentRecord, recordRefundOnPaymentRecord } from "./refundDisputeFoundations";
+import { reverseCreditsForRefundOrDispute } from "@/app/lib/rewards/rewardsFulfillment";
 import {
   applyPaymentSuspension,
   computeGraceEndsAt,
@@ -479,6 +480,19 @@ export async function handleChargeRefunded(input: { charge: Stripe.Charge; event
     stripeEventId: input.eventId,
     partial: (input.charge.amount_refunded ?? 0) < (input.charge.amount ?? 0),
   });
+
+  // LEONIX IX REWARDS — money went back to the customer, so the credits it earned come back too,
+  // proportionally to the refunded share and never more than was actually awarded. Keyed on the
+  // charge id, so a redelivered refund event reverses once. Best-effort: a rewards problem must
+  // not make a correctly-recorded refund look failed to Stripe.
+  await reverseCreditsForRefundOrDispute({
+    paymentRecordId: record.id,
+    ownerUserId: (record as { owner_user_id?: string | null }).owner_user_id ?? null,
+    refundedCents: input.charge.amount_refunded ?? 0,
+    kind: "refund",
+    externalId: input.charge.id,
+  }).catch(() => null);
+
   return result.ok ? { ok: true, outcome: "completed" } : { ok: false, outcome: "failed_retryable", code: result.message };
 }
 
@@ -490,12 +504,22 @@ export async function handleDisputeCreated(input: { dispute: Stripe.Dispute; eve
   if (!intentId) return { ok: true, outcome: "ignored", code: "no_payment_intent" };
   const { data: paymentRecord } = await supabase
     .from("leonix_payment_records")
-    .select("id, category, listing_id, stripe_subscription_id")
+    .select("id, category, listing_id, stripe_subscription_id, owner_user_id")
     .eq("stripe_payment_intent_id", intentId)
     .maybeSingle();
   if (!paymentRecord) return { ok: true, outcome: "ignored", code: "not_leonix_payment" };
 
   await recordDisputeOnPaymentRecord({ paymentRecordId: paymentRecord.id as string, stripeEventId: input.eventId, disputeId: input.dispute.id });
+
+  // LEONIX IX REWARDS — a chargeback claws back the credits that payment earned, on the same
+  // proportional, idempotent rule as a refund. Keyed on the dispute id.
+  await reverseCreditsForRefundOrDispute({
+    paymentRecordId: String(paymentRecord.id),
+    ownerUserId: (paymentRecord as { owner_user_id?: string | null }).owner_user_id ?? null,
+    refundedCents: input.dispute.amount ?? 0,
+    kind: "chargeback",
+    externalId: input.dispute.id,
+  }).catch(() => null);
 
   const category = String(paymentRecord.category ?? "");
   const listingId = String(paymentRecord.listing_id ?? "");

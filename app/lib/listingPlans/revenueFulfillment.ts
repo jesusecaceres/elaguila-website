@@ -6,6 +6,7 @@
 import "server-only";
 import { isBusinessBasePackageKey } from "./businessAccessLevel";
 import { convergeQuickToFullAfterPayment } from "./quickToFullConvergence";
+import { awardCreditsForSettledPayment } from "@/app/lib/rewards/rewardsFulfillment";
 import type Stripe from "stripe";
 import { isPaymentCleared } from "./paymentTracking";
 import { activateEntitlementsForPayment } from "./revenueEntitlementFulfillment";
@@ -2048,6 +2049,36 @@ export async function fulfillCheckoutSessionCompleted(input: {
       placementEntitlementId: entitlementResult.placementEntitlementId,
       promoRedemptionId,
     };
+  }
+
+  // LEONIX IX REWARDS — award 9% back in Leonix Credits for this settled payment.
+  //
+  // Runs only AFTER the payment is marked paid above, so an abandoned or failed checkout never
+  // earns. Card money is awarded as PENDING because it can still be refunded or disputed; it is
+  // promoted to spendable once the settlement window passes. Best-effort by contract: a rewards
+  // problem must never fail a payment that actually settled, so this never throws and its result
+  // does not gate the fulfillment return. A failure is recorded as retryable in the audit log.
+  if (refreshed.owner_user_id) {
+    await awardCreditsForSettledPayment({
+      paymentRecordId: paymentRecord.id,
+      ownerUserId: String(refreshed.owner_user_id),
+      amountPaidCents: Number(refreshed.amount_total_cents ?? refreshed.amount_cents ?? 0),
+      // Credits spent on this purchase must not themselves earn credits.
+      creditsAppliedCents: Number(
+        (refreshed.metadata as { leonix_credits_applied_cents?: number } | null)?.leonix_credits_applied_cents ?? 0,
+      ),
+      promoDiscountCents: Number(refreshed.amount_discount_cents ?? 0),
+      source: "stripe",
+      sourceKind: "stripe_payment",
+      sourceId: eventId,
+      pendingUntilSettlementFinal: true,
+    }).catch((err: unknown) => {
+      console.error("[fulfillment] rewards earn threw", {
+        paymentRecordId: paymentRecord.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return null;
+    });
   }
 
   // Gate QB-CONVERGENCE-02 — the customer just paid for a Full base plan, so any Quick
