@@ -2,6 +2,7 @@
 
 Branch: `cursor/quick-simple-vs-full-commercial-closeout-2026-09`
 Starting SHA: `883467d253e4c14d9d26c71ca9b35eacfe1054b7`
+**QUICK_FREEZE_SHA: `4cb34be6d519b541606eecf9ff4afa3d0824814b`**
 Merge-base with `origin/main`: `fd9094994aa2a63fdcea49f24b2435300a7b49a4`
 
 This document records what was repaired, the evidence for each claim, and what remains
@@ -202,25 +203,60 @@ stronger claim, not deleted.
 
 ## Verification results
 
-- **Full TypeScript check:** 1 error remains (see below). All 4 errors present at the starting SHA
-  were addressed; 3 fixed, 1 deliberately not.
-- **Focused lint:** clean, zero warnings, across all 19 changed files.
+- **Full TypeScript check: CLEAN (exit 0).** All four errors present at the starting SHA are
+  fixed.
+- **Focused lint:** clean, zero warnings, across every changed file.
 - **Quick + assisted verifier sweep:** 17 pass, 2 fail — both **byte-identical to their failure at
-  the starting SHA** (verified by running them in a clean worktree at `883467d2`).
+  the starting SHA**, verified by running them in a clean worktree at `883467d2`.
+- **Adjacent-area verifiers:** `verify-concierge-assisted-publishing-01`,
+  `verify-business-identity-core-01`, `verify-revenue-write-security-hardening-01`,
+  `verify-revenue-os-stripe-golden-contract`, `verify-launch-truth-01` — all pass.
+- **New behavioral tests: 68 checks**, all passing, none touching a database, a network or Stripe:
+  - `verify-quick-convergence-behavior-01.ts` — 18
+  - `verify-quick-lifecycle-media-behavior-01.ts` — 28
+  - `verify-quick-assisted-operations-01.ts` — 22 (including 12 real token attacks)
+
+### Local production build — ENVIRONMENTAL FAILURE, not a regression
+
+`npm run build` reaches **"Compiled successfully in 3.1min"** and passes type-checking, then fails
+at prerender:
+
+```
+Export encountered an error on /(site)/dashboard/page: /dashboard, exiting the build.
+```
+
+Root cause, from source: `app/lib/supabaseClient.ts` calls `createSupabaseBrowserClient()` at
+**module scope**, and `app/lib/supabase/browser.ts:25-30` **throws** when
+`NEXT_PUBLIC_SUPABASE_URL` or `NEXT_PUBLIC_SUPABASE_ANON_KEY` is absent. `/dashboard/page.tsx`
+imports that module. Both variables are unset in this container, so prerendering that route throws
+regardless of the code under test.
+
+Evidence it is not caused by this work:
+- `/dashboard/page.tsx` imports nothing this mission changed.
+- The baseline build at `883467d2` also exits non-zero after compiling successfully.
+- The failure is in the export stage, after type-checking, and names a route outside the changed
+  surface.
+
+This cannot be resolved by a code change in this environment; it needs the Supabase public
+environment variables to be present at build time.
 
 ### Pre-existing failures (evidence-backed, not regressions)
 
-1. `app/lib/quickBusiness/quickBusinessRegistry.ts(31,40)` — `Type 'false' is not assignable to
-   type 'true'`. Root cause: `QuickClassifiedMediaContract` declares `videoOptional: true` as a
-   **literal**, while Quick Business legitimately needs `false`. The one-line fix mutates
-   `app/lib/quickClassifieds/quickClassifiedTypes.ts`, which is **certified-frozen** — two
-   verifiers assert that tree is byte-identical to SHA `7555fb64`. That change was made, then
-   reverted, in favour of leaving the error documented. The correct fix is a Quick-Business-specific
-   contract type plus a call-site migration, which is its own scoped change.
-2. `verify-quick-classifieds-onramp-01` — fails on three Bienes translate files from a prior
+1. `verify-quick-classifieds-onramp-01` — fails on three Bienes translate files from a prior
    mission. Identical at baseline.
-3. `verify-quick-remaining-families-01` — fails on `quickBusinessTypes.ts` from a prior mission.
-   Message byte-identical at baseline.
+2. `verify-quick-remaining-families-01` — fails on `quickBusinessTypes.ts` from a prior mission.
+   Failure message **byte-identical** at baseline.
+
+### A note on one error that was fixed, reverted, then fixed differently
+
+`quickBusinessRegistry.ts(31,40)` (`Type 'false' is not assignable to type 'true'`) blocked the
+production build's type-check. The one-line fix mutates `quickClassifiedTypes.ts`, which is
+**certified-frozen** — two verifiers assert that tree is byte-identical to SHA `7555fb64`. That
+change was made, then deliberately reverted. The shipped fix instead gives Quick Business its own
+`QuickBusinessMediaContract` and its own intake validator, leaving the certified tree untouched.
+The intake narrows its contract when handing it to the certified `QuickMediaStep`; that narrowing
+is sound only because `QuickMediaStep` never reads `videoOptional`, so **that precondition is now
+asserted mechanically** in the core verifier rather than trusted to the comment stating it.
 
 ### Not performed (per mission constraints)
 
