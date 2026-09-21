@@ -27,6 +27,51 @@ export const BASIS_POINTS_DENOMINATOR = 10_000;
 export const CREDIT_CENT_VALUE = 1;
 
 /**
+ * LOCKED LAUNCH POLICY — the owner-approved numbers. They live beside the rate so a surface, a
+ * test and the customer copy can never disagree about them.
+ */
+
+/** A redemption below this is refused outright rather than silently rounded to nothing. */
+export const REDEMPTION_MINIMUM_CENTS = 100;
+
+/** Credits may fund at most half of an eligible purchase, expressed as basis points of it. */
+export const REDEMPTION_MAX_FRACTION_BASIS_POINTS = 5_000;
+
+/**
+ * The fallback payment-rail floor. Stripe cannot settle a charge below 50 cents, so a redemption
+ * is capped to leave at least this much payable unless a caller supplies a STRICTER canonical
+ * value for its own rail.
+ */
+export const DEFAULT_RAIL_MINIMUM_CHARGE_CENTS = 50;
+
+/** Card money stays pending for this many CALENDAR days before it may be promoted. */
+export const CARD_SETTLEMENT_PENDING_DAYS = 30;
+
+/** A checkout hold lives this long; after it, the reservation is released automatically. */
+export const REDEMPTION_RESERVATION_MINUTES = 30;
+
+/**
+ * Launch policy has NO credit expiration. The ledger carries an `expire` entry type so expiry
+ * could be introduced later without a schema change, but nothing in this codebase emits one and
+ * no surface may tell a customer their credits expire.
+ */
+export const CREDITS_EXPIRE_AT_LAUNCH = false;
+
+/** Resolve the rail floor: the caller's value wins only when it is STRICTER than the default. */
+export function resolveRailMinimumChargeCents(canonicalMinimumCents?: number | null): number {
+  const supplied = Number(canonicalMinimumCents);
+  if (!Number.isFinite(supplied) || supplied < 0) return DEFAULT_RAIL_MINIMUM_CHARGE_CENTS;
+  return Math.max(DEFAULT_RAIL_MINIMUM_CHARGE_CENTS, Math.floor(supplied));
+}
+
+/** Half of the eligible purchase, rounded DOWN so the cap can never exceed 50%. */
+export function maxRedeemableForPurchaseCents(eligiblePurchaseCents: number): number {
+  const base = Math.floor(eligiblePurchaseCents);
+  if (!Number.isFinite(base) || base <= 0) return 0;
+  return Math.floor((base * REDEMPTION_MAX_FRACTION_BASIS_POINTS) / BASIS_POINTS_DENOMINATOR);
+}
+
+/**
  * Payment sources that can earn. Deliberately broad: the contract says rewards apply globally
  * across print, digital, Quick, Full, upgrades, cash, card, check and Stripe.
  */
@@ -107,25 +152,51 @@ export function assessEarn(facts: SettledPaymentFacts): EarnAssessment {
 }
 
 /**
- * How many credits a refund claws back.
+ * The TOTAL credits a payment should have reversed once `cumulativeRefundedCents` of it has gone
+ * back to the customer. A pure function of the cumulative position, never of one event.
  *
- * PROPORTIONAL, and never more than was earned: refunding half of an eligible payment reverses
- * half of the credits it generated. Rounded DOWN for the same reason earning is, and clamped so
- * a rounding artifact or a duplicate refund can never reverse more than the original award.
+ * Proportional and rounded DOWN, except that a full refund reverses the full award: rounding a
+ * 100% refund down would leave the customer holding credits for money they no longer paid.
  */
-export function computeReversalCents(input: {
+export function computeTotalReversalTargetCents(input: {
   originallyEarnedCents: number;
   originalEligibleNetCents: number;
-  refundedCents: number;
-  alreadyReversedCents?: number;
+  cumulativeRefundedCents: number;
 }): number {
   const earned = Math.max(0, Math.floor(input.originallyEarnedCents));
   const base = Math.max(0, Math.floor(input.originalEligibleNetCents));
-  const refunded = Math.max(0, Math.floor(input.refundedCents));
-  const already = Math.max(0, Math.floor(input.alreadyReversedCents ?? 0));
+  const refunded = Math.max(0, Math.floor(input.cumulativeRefundedCents));
   if (earned === 0 || base === 0 || refunded === 0) return 0;
-  const proportional = refunded >= base ? earned : Math.floor((earned * refunded) / base);
-  return Math.max(0, Math.min(proportional, earned - already));
+  if (refunded >= base) return earned;
+  return Math.min(earned, Math.floor((earned * refunded) / base));
+}
+
+/**
+ * How many credits THIS refund or dispute event should move, given everything that came before.
+ *
+ * This is a DELTA against a cumulative target, and that is the whole point. Computing each event's
+ * reversal in isolation and summing them under-reverses whenever rounding-down bites more than
+ * once: three $33.33 refunds of a $100.00 payment that earned $9.00 each reverse $2.99 in
+ * isolation, totalling $8.97 and leaving the customer 3 cents of credit for money they got back.
+ * Measuring the cumulative position instead lands exactly on $9.00.
+ *
+ * Guarantees:
+ *  - the total reversed converges on the proportional target and never exceeds what was earned,
+ *  - out-of-order delivery is safe, because the target depends only on the cumulative refunded
+ *    amount, not on which event arrived first,
+ *  - a stale or duplicate event that would move the total BACKWARDS returns 0 rather than a
+ *    negative movement (an over-reversal in the other direction).
+ */
+export function computeReversalDeltaCents(input: {
+  originallyEarnedCents: number;
+  originalEligibleNetCents: number;
+  cumulativeRefundedCents: number;
+  alreadyReversedCents: number;
+}): number {
+  const earned = Math.max(0, Math.floor(input.originallyEarnedCents));
+  const already = Math.max(0, Math.floor(input.alreadyReversedCents));
+  const target = computeTotalReversalTargetCents(input);
+  return Math.max(0, Math.min(target - already, earned - already));
 }
 
 // ---------------------------------------------------------------------------
@@ -140,41 +211,84 @@ export type RedemptionRequest = {
   /** The amount still owed after the single permitted promo code has been applied. */
   amountDueCents: number;
   /**
-   * Some rails cannot settle a zero-value transaction. When set, redemption is capped so at
-   * least this much remains payable. Zero means a fully-credit-funded purchase is allowed.
+   * The rail's floor for the residual charge. Omitted means the canonical default
+   * (`DEFAULT_RAIL_MINIMUM_CHARGE_CENTS`); a supplied value is honoured only when it is STRICTER.
+   * Pass `allowZeroCharge: true` for a rail (cash at the counter) that can settle at zero.
    */
   minimumChargeCents?: number;
+  /** Set only for rails with no floor at all — an in-person cash or check payment. */
+  allowZeroCharge?: boolean;
+  /**
+   * The purchase amount the 50% ceiling is measured against. Defaults to `amountDueCents`.
+   * Supply it when the amount still owed is not the whole eligible purchase (for example a
+   * promo code already reduced the charge): the cap is half of the PURCHASE, not half of the
+   * residual.
+   */
+  eligiblePurchaseCents?: number;
 };
 
 export type RedemptionPlan =
   | { ok: true; redeemCents: number; remainingDueCents: number; cappedBy: RedemptionCapReason | null }
-  | { ok: false; reason: "invalid_request" | "nothing_available" | "nothing_due" };
+  | { ok: false; reason: RedemptionRefusalReason; maxRedeemableCents: number };
 
-export type RedemptionCapReason = "available_balance" | "amount_due" | "minimum_charge";
+export type RedemptionRefusalReason =
+  | "invalid_request"
+  | "nothing_available"
+  | "nothing_due"
+  | "below_minimum";
+
+export type RedemptionCapReason =
+  | "available_balance"
+  | "amount_due"
+  | "minimum_charge"
+  | "purchase_half_cap";
 
 /**
  * Decide how many credits may actually be applied. The SERVER calls this; a browser-supplied
  * amount is never trusted, and the result is what gets reserved.
  *
- * Guarantees:
+ * The owner-approved ceiling and floor are enforced HERE and nowhere else, so no surface can
+ * disagree with them:
  *  - never more than the customer has,
+ *  - never more than HALF of the eligible purchase,
  *  - never more than is owed (so an invoice cannot go negative),
- *  - never so much that the remaining charge drops below a rail's minimum,
+ *  - never so much that the residual charge drops below the payment rail's minimum,
+ *  - never LESS than $1.00 — a sub-minimum redemption is refused outright rather than silently
+ *    rounded away, because a customer told "credits applied" and charged the full price is the
+ *    phantom-discount failure this function exists to prevent,
  *  - partial redemption is first-class: asking for less than the balance is honoured exactly.
+ *
+ * Refusals carry `maxRedeemableCents` so a surface can tell the customer what IS possible
+ * instead of just saying no.
  */
 export function planRedemption(req: RedemptionRequest): RedemptionPlan {
   const requested = Math.floor(req.requestedCents);
   const available = Math.floor(req.availableCents);
   const due = Math.floor(req.amountDueCents);
-  const minCharge = Math.max(0, Math.floor(req.minimumChargeCents ?? 0));
+  const minCharge = req.allowZeroCharge === true ? 0 : resolveRailMinimumChargeCents(req.minimumChargeCents);
+  const purchase = Math.floor(req.eligiblePurchaseCents ?? req.amountDueCents);
 
-  if (![requested, available, due].every(Number.isFinite) || requested < 0 || available < 0 || due < 0) {
-    return { ok: false, reason: "invalid_request" };
+  if (
+    ![requested, available, due, purchase].every(Number.isFinite) ||
+    requested < 0 ||
+    available < 0 ||
+    due < 0 ||
+    purchase < 0
+  ) {
+    return { ok: false, reason: "invalid_request", maxRedeemableCents: 0 };
   }
-  if (due === 0) return { ok: false, reason: "nothing_due" };
-  if (available === 0 || requested === 0) return { ok: false, reason: "nothing_available" };
 
-  const maxByDue = Math.max(0, due - minCharge);
+  // The ceiling, independent of what was requested. Also the honest answer to "how much CAN I
+  // apply?", which is why it is computed before any refusal returns.
+  const byHalfOfPurchase = maxRedeemableForPurchaseCents(purchase);
+  const byResidual = Math.max(0, due - minCharge);
+  const maxRedeemableCents = Math.max(0, Math.min(available, byHalfOfPurchase, byResidual));
+
+  if (due === 0) return { ok: false, reason: "nothing_due", maxRedeemableCents: 0 };
+  if (available === 0 || requested === 0) {
+    return { ok: false, reason: "nothing_available", maxRedeemableCents };
+  }
+
   let redeem = requested;
   let cappedBy: RedemptionCapReason | null = null;
 
@@ -182,13 +296,58 @@ export function planRedemption(req: RedemptionRequest): RedemptionPlan {
     redeem = available;
     cappedBy = "available_balance";
   }
-  if (redeem > maxByDue) {
-    redeem = maxByDue;
-    cappedBy = minCharge > 0 && due - minCharge < available ? "minimum_charge" : "amount_due";
+  if (redeem > byHalfOfPurchase) {
+    redeem = byHalfOfPurchase;
+    cappedBy = "purchase_half_cap";
   }
-  if (redeem <= 0) return { ok: false, reason: "nothing_available" };
+  if (redeem > byResidual) {
+    redeem = byResidual;
+    // The residual cap is the rail's floor when one applies, and the invoice itself otherwise.
+    cappedBy = minCharge > 0 ? "minimum_charge" : "amount_due";
+  }
+
+  if (redeem <= 0) return { ok: false, reason: "nothing_available", maxRedeemableCents };
+
+  // The $1.00 floor is applied AFTER every cap, so a purchase too small to support a $1
+  // redemption is refused rather than producing a token discount nobody asked for.
+  if (redeem < REDEMPTION_MINIMUM_CENTS) {
+    return { ok: false, reason: "below_minimum", maxRedeemableCents };
+  }
 
   return { ok: true, redeemCents: redeem, remainingDueCents: due - redeem, cappedBy };
+}
+
+/**
+ * The exact figures a customer sees while applying credits at checkout.
+ *
+ * Lives HERE, in the pure module, rather than beside the checkout code: the copy has to be
+ * reachable from a client component and from the behavioural verifier, and neither can import a
+ * `server-only` module. Every number is formatted from a value the SERVER computed — this function
+ * does no arithmetic of its own, so a displayed figure can never disagree with a reserved one.
+ */
+export function checkoutCreditsCopy(
+  lang: "es" | "en",
+  view: { availableCents: number; maxRedeemableCents: number; appliedCents: number; remainingDueCents: number },
+): { available: string; maximum: string; applied: string; remainingDue: string; note: string } {
+  const en = lang === "en";
+  return {
+    available: `${en ? "Available credits" : "Créditos disponibles"}: ${formatCreditsCents(view.availableCents)}`,
+    maximum: `${en ? "Maximum for this purchase" : "Máximo para esta compra"}: ${formatCreditsCents(view.maxRedeemableCents)}`,
+    applied: `${en ? "Credits applied" : "Créditos aplicados"}: ${formatCreditsCents(view.appliedCents)}`,
+    remainingDue: `${en ? "Remaining to pay" : "Queda por pagar"}: ${formatCreditsCents(view.remainingDueCents)}`,
+    note: en
+      ? `Credits are held while you complete payment and are only spent once it succeeds. Minimum ${formatCreditsCents(REDEMPTION_MINIMUM_CENTS)}, up to half of an eligible purchase.`
+      : `Los créditos se reservan mientras completas el pago y solo se usan cuando se aprueba. Mínimo ${formatCreditsCents(REDEMPTION_MINIMUM_CENTS)}, hasta la mitad de una compra elegible.`,
+  };
+}
+
+/** Customer-facing explanation of the redemption rules. Kept beside them so they cannot drift. */
+export function redemptionRulesCopy(lang: "es" | "en"): string {
+  const min = formatCreditsCents(REDEMPTION_MINIMUM_CENTS);
+  const pct = REDEMPTION_MAX_FRACTION_BASIS_POINTS / 100;
+  return lang === "en"
+    ? `Apply at least ${min} in credits, and up to ${pct}% of an eligible purchase. Credits are held while you pay and are only spent once the payment succeeds. Your credits do not expire.`
+    : `Aplica al menos ${min} en créditos, y hasta el ${pct}% de una compra elegible. Los créditos se reservan mientras pagas y solo se usan cuando el pago se completa. Tus créditos no vencen.`;
 }
 
 // ---------------------------------------------------------------------------

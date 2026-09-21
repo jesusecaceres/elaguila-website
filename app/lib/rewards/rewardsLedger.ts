@@ -13,12 +13,13 @@
 import "server-only";
 
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
-import type {
-  LedgerEntryInput,
-  RedemptionRecord,
-  RewardsStorePort,
-  WalletOwnerRef,
-  WalletSnapshot,
+import {
+  reserveIdempotencyKey,
+  type LedgerEntryInput,
+  type RedemptionRecord,
+  type RewardsStorePort,
+  type WalletOwnerRef,
+  type WalletSnapshot,
 } from "./rewardsLedgerCore";
 
 type WalletRow = {
@@ -48,6 +49,37 @@ const WALLET_COLUMNS =
 
 /** Postgres unique violation — a concurrent create that lost the race is still the desired state. */
 const PG_UNIQUE_VIOLATION = "23505";
+/** Postgres check violation — how the posting function reports a refused movement. */
+const PG_CHECK_VIOLATION = "23514";
+
+/**
+ * The namespace `reserveIdempotencyKey()` writes. The expiry sweep reads reservation rows back by
+ * their stored key, so it needs the same prefix the core wrote; keeping it here rather than
+ * re-typing the literal is what stops the two drifting apart.
+ */
+const RESERVE_KEY_PREFIX = reserveIdempotencyKey("");
+
+const REDEMPTION_COLUMNS = "id, wallet_id, amount_cents, status, idempotency_key, expires_at";
+
+type RedemptionRow = {
+  id: string;
+  wallet_id: string;
+  amount_cents: number;
+  status: RedemptionRecord["status"];
+  idempotency_key: string;
+  expires_at: string | null;
+};
+
+function toRedemption(row: RedemptionRow): RedemptionRecord {
+  return {
+    id: String(row.id),
+    walletId: String(row.wallet_id),
+    amountCents: Number(row.amount_cents ?? 0),
+    status: row.status,
+    idempotencyKey: String(row.idempotency_key),
+    expiresAtIso: row.expires_at ?? null,
+  };
+}
 
 export function buildRewardsStorePort(): RewardsStorePort {
   const db = getAdminSupabase();
@@ -117,10 +149,13 @@ export function buildRewardsStorePort(): RewardsStorePort {
       });
 
       if (error) {
-        // A CHECK violation here means the movement would have driven a bucket negative. That is a
-        // refusal by design, surfaced as such rather than swallowed.
-        const negative = /violates check constraint|nonneg/i.test(error.message);
-        return { ok: false as const, error: negative ? "negative_balance_refused" : error.message.slice(0, 300) };
+        // A CHECK violation here means the movement would have driven a bucket negative, or the
+        // posting function refused it outright by SQLSTATE. Either is a refusal BY DESIGN, named
+        // as such rather than swallowed or reported as an unexplained database error.
+        const refused =
+          (error as { code?: string }).code === PG_CHECK_VIOLATION ||
+          /violates check constraint|nonneg|exceeds (available|pending|reserved)/i.test(error.message);
+        return { ok: false as const, error: refused ? "negative_balance_refused" : error.message.slice(0, 300) };
       }
 
       const row = (Array.isArray(data) ? data[0] : data) as { id?: string } | null;
@@ -142,14 +177,13 @@ export function buildRewardsStorePort(): RewardsStorePort {
     async createRedemption(input) {
       const { data: existing } = await db
         .from("leonix_rewards_redemptions")
-        .select("id, wallet_id, amount_cents, status, idempotency_key")
+        .select(REDEMPTION_COLUMNS)
         .eq("idempotency_key", input.idempotencyKey)
         .maybeSingle();
       if (existing) {
-        const r = existing as unknown as { id: string; wallet_id: string; amount_cents: number; status: RedemptionRecord["status"]; idempotency_key: string };
         return {
           ok: true as const,
-          redemption: { id: r.id, walletId: r.wallet_id, amountCents: r.amount_cents, status: r.status, idempotencyKey: r.idempotency_key },
+          redemption: toRedemption(existing as unknown as RedemptionRow),
           deduplicated: true,
         };
       }
@@ -164,16 +198,32 @@ export function buildRewardsStorePort(): RewardsStorePort {
           stripe_checkout_session_id: input.stripeCheckoutSessionId ?? null,
           payment_record_id: input.paymentRecordId ?? null,
           actor_auth_user_id: input.actorAuthUserId ?? null,
+          // Written on RESERVE, never inferred later. A `reserved` row without it is refused by
+          // leonix_rewards_redemptions_live_expiry_chk.
+          expires_at: input.expiresAtIso,
           status: "reserved",
         })
-        .select("id, wallet_id, amount_cents, status, idempotency_key")
+        .select(REDEMPTION_COLUMNS)
         .single();
-      if (error || !data) return { ok: false as const, error: error?.message.slice(0, 300) ?? "insert_failed" };
 
-      const r = data as unknown as { id: string; wallet_id: string; amount_cents: number; status: RedemptionRecord["status"]; idempotency_key: string };
+      if (error || !data) {
+        // Another request reserved the same reference first: return theirs rather than failing.
+        if ((error as { code?: string } | null)?.code === PG_UNIQUE_VIOLATION) {
+          const { data: raced } = await db
+            .from("leonix_rewards_redemptions")
+            .select(REDEMPTION_COLUMNS)
+            .eq("idempotency_key", input.idempotencyKey)
+            .maybeSingle();
+          if (raced) {
+            return { ok: true as const, redemption: toRedemption(raced as unknown as RedemptionRow), deduplicated: true };
+          }
+        }
+        return { ok: false as const, error: error?.message.slice(0, 300) ?? "insert_failed" };
+      }
+
       return {
         ok: true as const,
-        redemption: { id: r.id, walletId: r.wallet_id, amountCents: r.amount_cents, status: r.status, idempotencyKey: r.idempotency_key },
+        redemption: toRedemption(data as unknown as RedemptionRow),
         deduplicated: false,
       };
     },
@@ -181,12 +231,11 @@ export function buildRewardsStorePort(): RewardsStorePort {
     async findRedemption(idempotencyKey: string) {
       const { data } = await db
         .from("leonix_rewards_redemptions")
-        .select("id, wallet_id, amount_cents, status, idempotency_key")
+        .select(REDEMPTION_COLUMNS)
         .eq("idempotency_key", idempotencyKey)
         .maybeSingle();
       if (!data) return null;
-      const r = data as unknown as { id: string; wallet_id: string; amount_cents: number; status: RedemptionRecord["status"]; idempotency_key: string };
-      return { id: r.id, walletId: r.wallet_id, amountCents: r.amount_cents, status: r.status, idempotencyKey: r.idempotency_key };
+      return toRedemption(data as unknown as RedemptionRow);
     },
 
     async setRedemptionStatus({ redemptionId, status, settleLedgerId }) {
@@ -202,6 +251,22 @@ export function buildRewardsStorePort(): RewardsStorePort {
       return { ok: true };
     },
 
+    async findLedgerEntryByIdempotencyKey(idempotencyKey: string) {
+      const { data } = await db
+        .from("leonix_rewards_ledger")
+        .select("id, wallet_id, entry_type, amount_cents")
+        .eq("idempotency_key", idempotencyKey)
+        .maybeSingle();
+      if (!data) return null;
+      const row = data as unknown as { id: string; wallet_id: string; entry_type: string; amount_cents: number };
+      return {
+        id: String(row.id),
+        walletId: String(row.wallet_id),
+        entryType: String(row.entry_type),
+        amountCents: Number(row.amount_cents ?? 0),
+      };
+    },
+
     async sumReversedForPayment(paymentRecordId: string) {
       const { data } = await db
         .from("leonix_rewards_ledger")
@@ -211,20 +276,107 @@ export function buildRewardsStorePort(): RewardsStorePort {
       return ((data ?? []) as { amount_cents: number }[]).reduce((a, r) => a + Number(r.amount_cents ?? 0), 0);
     },
 
-    async findEarnForPayment(paymentRecordId: string) {
+    async sumReversalBasisForPayment(paymentRecordId: string, kind: "refund" | "chargeback") {
+      const entryType = kind === "refund" ? "refund_reversal" : "chargeback_reversal";
       const { data } = await db
         .from("leonix_rewards_ledger")
-        .select("amount_cents, meta")
+        .select("meta")
+        .eq("payment_record_id", paymentRecordId)
+        .eq("entry_type", entryType);
+      // `basis_contribution_cents` is the MONEY this entry accounted for, which is not the same as
+      // the credits it moved: a refund landing on an already fully-reversed payment contributes
+      // real money to the position while moving zero credits.
+      return ((data ?? []) as { meta: Record<string, unknown> | null }[]).reduce((total, row) => {
+        const raw = (row.meta as { basis_contribution_cents?: number } | null)?.basis_contribution_cents;
+        const contribution = Number(raw ?? 0);
+        return total + (Number.isFinite(contribution) ? Math.max(0, Math.floor(contribution)) : 0);
+      }, 0);
+    },
+
+    async findEarnForPayment(paymentRecordId: string) {
+      // `wallet_id` is selected because a reversal must debit the wallet this payment CREDITED.
+      // Re-resolving the payer's wallet at reversal time would send the clawback wherever that
+      // payer maps TODAY, which is not necessarily where the credits went.
+      const { data } = await db
+        .from("leonix_rewards_ledger")
+        .select("wallet_id, amount_cents, meta")
         .eq("payment_record_id", paymentRecordId)
         .in("entry_type", ["earn_pending", "earn_available"])
+        .order("created_at", { ascending: true })
         .limit(1)
         .maybeSingle();
       if (!data) return null;
-      const row = data as unknown as { amount_cents: number; meta: Record<string, unknown> | null };
+      const row = data as unknown as {
+        wallet_id: string;
+        amount_cents: number;
+        meta: Record<string, unknown> | null;
+      };
       return {
+        walletId: String(row.wallet_id),
         amountCents: Number(row.amount_cents ?? 0),
         eligibleNetCents: Number((row.meta as { eligible_net_cents?: number } | null)?.eligible_net_cents ?? 0),
       };
+    },
+
+    async listPromotablePendingEarns({ olderThanIso, limit }) {
+      // Pending card earns old enough to promote. Filtering out the already-promoted ones here is
+      // a cheap pre-pass; the real guarantee is the `promote:payment:<id>` idempotency key, which
+      // makes a promotion that slips past this filter a no-op rather than a second one.
+      const { data: candidates } = await db
+        .from("leonix_rewards_ledger")
+        .select("wallet_id, payment_record_id, amount_cents, created_at")
+        .eq("entry_type", "earn_pending")
+        .not("payment_record_id", "is", null)
+        .lte("created_at", olderThanIso)
+        .order("created_at", { ascending: true })
+        .limit(limit);
+
+      const rows = ((candidates ?? []) as {
+        wallet_id: string;
+        payment_record_id: string | null;
+        amount_cents: number;
+        created_at: string;
+      }[]).filter((r): r is typeof r & { payment_record_id: string } => Boolean(r.payment_record_id));
+      if (!rows.length) return [];
+
+      const paymentIds = Array.from(new Set(rows.map((r) => r.payment_record_id)));
+      const { data: promoted } = await db
+        .from("leonix_rewards_ledger")
+        .select("payment_record_id")
+        .eq("entry_type", "earn_promote")
+        .in("payment_record_id", paymentIds);
+      const alreadyPromoted = new Set(
+        ((promoted ?? []) as { payment_record_id: string }[]).map((r) => r.payment_record_id),
+      );
+
+      return rows
+        .filter((r) => !alreadyPromoted.has(r.payment_record_id))
+        .map((r) => ({
+          walletId: String(r.wallet_id),
+          paymentRecordId: String(r.payment_record_id),
+          amountCents: Number(r.amount_cents ?? 0),
+          earnedAtIso: String(r.created_at),
+        }));
+    },
+
+    async listExpiredReservations({ nowIso, limit }) {
+      const { data } = await db
+        .from("leonix_rewards_redemptions")
+        .select("id, amount_cents, idempotency_key")
+        .eq("status", "reserved")
+        .not("expires_at", "is", null)
+        .lte("expires_at", nowIso)
+        .order("expires_at", { ascending: true })
+        .limit(limit);
+
+      return ((data ?? []) as { id: string; amount_cents: number; idempotency_key: string }[])
+        // The stored key is `reserve:<ref>`; the release path is addressed by the bare ref.
+        .filter((r) => typeof r.idempotency_key === "string" && r.idempotency_key.startsWith(RESERVE_KEY_PREFIX))
+        .map((r) => ({
+          redemptionId: String(r.id),
+          redemptionRef: r.idempotency_key.slice(RESERVE_KEY_PREFIX.length),
+          amountCents: Number(r.amount_cents ?? 0),
+        }));
     },
   };
 }

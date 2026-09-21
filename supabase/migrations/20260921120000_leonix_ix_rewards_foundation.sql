@@ -5,6 +5,20 @@
 -- project. Apply order and the readers that depend on it are documented in
 -- docs/rewards/LEONIX_IX_REWARDS_ARCHITECTURE.md.
 --
+-- SECURITY AND CONCURRENCY POSTURE (repaired in place, still unapplied)
+--   * Both SECURITY DEFINER functions pin `search_path = pg_catalog, public, pg_temp` and
+--     schema-qualify every identifier, so a temporary object cannot shadow anything they call.
+--   * EXECUTE is revoked from PUBLIC/anon/authenticated and granted EXPLICITLY to service_role,
+--     rather than left to Postgres's default grant-to-PUBLIC.
+--   * Table privileges are stated the same way: SELECT to authenticated (under the RLS policies
+--     below), everything to service_role, nothing at all to anon.
+--   * A concurrent insert on the same idempotency_key unwinds the wallet update and the ledger
+--     append together and returns the winner's row, instead of aborting the caller's transaction.
+--   * Over-redemption, over-reversal, over-promotion and an over-large staff debit each RAISE a
+--     named error before the balance is touched; the non-negative CHECKs remain as the backstop.
+--   * leonix_rewards_recompute_wallet() REPLAYS history in posting order, because reversals and
+--     negative adjustments are path-dependent and no aggregate can reproduce them.
+--
 -- BUSINESS CONTRACT ENCODED HERE
 --   * Customers earn 9% back in Leonix Credits on eligible NET SETTLED money actually paid.
 --   * $1 credit = $1 toward an eligible Leonix purchase. No cash value. Not transferable.
@@ -133,11 +147,16 @@ CREATE TABLE IF NOT EXISTS public.leonix_rewards_ledger (
     'stripe_payment', 'stripe_refund', 'stripe_dispute',
     'manual_payment', 'staff_adjustment', 'csv_import', 'checkout_redemption'
   )),
-  -- Only a manual adjustment may be negative or zero-adjacent; everything else moves a positive
-  -- magnitude and the entry_type says which direction.
+  -- A manual adjustment is signed and may be negative. A reversal may be ZERO: a refund event that
+  -- lands on a payment already reversed to its proportional target still has to be RECORDED,
+  -- because its idempotency key is what makes the next delivery of that same refund a no-op, and
+  -- its meta carries the refunded basis the cumulative arithmetic depends on. Dropping it would
+  -- leave a silent gap in the audit trail and lose the basis. Everything else moves a positive
+  -- magnitude, and the entry_type says which direction.
   CONSTRAINT leonix_rewards_ledger_amount_chk CHECK (
     (entry_type = 'manual_adjustment' AND amount_cents <> 0)
-    OR (entry_type <> 'manual_adjustment' AND amount_cents > 0)
+    OR (entry_type IN ('refund_reversal', 'chargeback_reversal') AND amount_cents >= 0)
+    OR (entry_type NOT IN ('manual_adjustment', 'refund_reversal', 'chargeback_reversal') AND amount_cents > 0)
   ),
   -- A staff correction is never anonymous and never unexplained.
   CONSTRAINT leonix_rewards_ledger_manual_reason_chk CHECK (
@@ -158,6 +177,14 @@ CREATE INDEX IF NOT EXISTS leonix_rewards_ledger_payment_idx
   ON public.leonix_rewards_ledger (payment_record_id) WHERE payment_record_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS leonix_rewards_ledger_source_idx
   ON public.leonix_rewards_ledger (source_kind, source_id);
+-- The 30-day promotion sweep reads exactly this: pending card earns, oldest first.
+CREATE INDEX IF NOT EXISTS leonix_rewards_ledger_pending_earn_age_idx
+  ON public.leonix_rewards_ledger (created_at)
+  WHERE entry_type = 'earn_pending';
+-- ...and checks whether each one was already promoted.
+CREATE INDEX IF NOT EXISTS leonix_rewards_ledger_promote_lookup_idx
+  ON public.leonix_rewards_ledger (payment_record_id)
+  WHERE entry_type = 'earn_promote';
 
 COMMENT ON TABLE public.leonix_rewards_ledger IS
   'LEONIX IX REWARDS — append-only credit ledger. Rows are NEVER updated or deleted (enforced by leonix_rewards_ledger_immutable_tg). UNIQUE(idempotency_key) is what makes duplicate Stripe deliveries, webhook retries and CSV re-imports harmless.';
@@ -166,6 +193,7 @@ COMMENT ON TABLE public.leonix_rewards_ledger IS
 CREATE OR REPLACE FUNCTION public.leonix_rewards_ledger_reject_mutation()
 RETURNS trigger
 LANGUAGE plpgsql
+SET search_path = pg_catalog, public, pg_temp
 AS $$
 BEGIN
   RAISE EXCEPTION 'leonix_rewards_ledger is append-only; % is not permitted. Post a compensating entry instead.', TG_OP;
@@ -195,6 +223,10 @@ CREATE TABLE IF NOT EXISTS public.leonix_rewards_redemptions (
   settle_ledger_id uuid NULL REFERENCES public.leonix_rewards_ledger (id) ON DELETE RESTRICT,
 
   idempotency_key text NOT NULL,
+  -- THE hold's deadline, written on RESERVE. Nullable only so a committed historical row is not
+  -- forced to carry one; a row that is still `reserved` must have it, because the release job
+  -- reads this column rather than re-deriving a deadline from created_at and a constant it might
+  -- not share with the code that made the hold.
   expires_at timestamptz NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
@@ -203,8 +235,16 @@ CREATE TABLE IF NOT EXISTS public.leonix_rewards_redemptions (
   CONSTRAINT leonix_rewards_redemptions_status_chk
     CHECK (status IN ('reserved', 'committed', 'released', 'expired')),
   CONSTRAINT leonix_rewards_redemptions_context_chk
-    CHECK (context_kind IN ('stripe_checkout', 'manual_payment', 'subscription_invoice'))
+    CHECK (context_kind IN ('stripe_checkout', 'manual_payment', 'subscription_invoice')),
+  -- A live hold without a deadline is a hold that never expires. Refuse it at the database.
+  CONSTRAINT leonix_rewards_redemptions_live_expiry_chk
+    CHECK (status <> 'reserved' OR expires_at IS NOT NULL)
 );
+
+-- The expiry sweep reads exactly this: live holds whose deadline has passed, oldest first.
+CREATE INDEX IF NOT EXISTS leonix_rewards_redemptions_expiry_sweep_idx
+  ON public.leonix_rewards_redemptions (expires_at)
+  WHERE status = 'reserved';
 
 CREATE UNIQUE INDEX IF NOT EXISTS leonix_rewards_redemptions_idempotency_idx
   ON public.leonix_rewards_redemptions (idempotency_key);
@@ -242,7 +282,11 @@ CREATE OR REPLACE FUNCTION public.leonix_rewards_post_entry(
 RETURNS public.leonix_rewards_ledger
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+-- HARDENED SEARCH PATH. `pg_catalog` first and `pg_temp` LAST is the point: a SECURITY DEFINER
+-- function that lets pg_temp be searched ahead of the catalog can be hijacked by any caller who
+-- creates a temporary object shadowing a function this body calls. Every identifier below is also
+-- schema-qualified, so the path is a second line of defence rather than the only one.
+SET search_path = pg_catalog, public, pg_temp
 AS $$
 DECLARE
   v_existing public.leonix_rewards_ledger;
@@ -252,6 +296,7 @@ DECLARE
   v_earned_delta integer := 0;
   v_redeemed_delta integer := 0;
   v_reversed_delta integer := 0;
+  v_draw integer := 0;
   v_wallet public.leonix_rewards_wallets;
   v_row public.leonix_rewards_ledger;
 BEGIN
@@ -265,7 +310,8 @@ BEGIN
   -- dollar. Without this, the CHECK would catch it but as a lost-update race rather than a queue.
   SELECT * INTO v_wallet FROM public.leonix_rewards_wallets WHERE id = p_wallet_id FOR UPDATE;
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'leonix_rewards_post_entry: wallet % not found', p_wallet_id;
+    RAISE EXCEPTION 'leonix_rewards_post_entry: wallet % not found', p_wallet_id
+      USING ERRCODE = 'no_data_found';
   END IF;
 
   CASE p_entry_type
@@ -273,12 +319,26 @@ BEGIN
       v_pending_delta := p_amount_cents;
       v_earned_delta := p_amount_cents;
     WHEN 'earn_promote' THEN
+      -- Promotion may only move credits that are actually still pending. A payment reversed
+      -- between the earn and the settlement window has nothing left to promote.
+      IF v_wallet.pending_cents < p_amount_cents THEN
+        RAISE EXCEPTION 'leonix_rewards_post_entry: promotion of % exceeds pending % on wallet %',
+          p_amount_cents, v_wallet.pending_cents, p_wallet_id
+          USING ERRCODE = 'check_violation';
+      END IF;
       v_pending_delta := -p_amount_cents;
       v_available_delta := p_amount_cents;
     WHEN 'earn_available' THEN
       v_available_delta := p_amount_cents;
       v_earned_delta := p_amount_cents;
     WHEN 'redeem_reserve' THEN
+      -- THE over-redemption refusal, stated explicitly rather than left to the CHECK, so the
+      -- caller gets a named error instead of a generic constraint message.
+      IF v_wallet.available_cents < p_amount_cents THEN
+        RAISE EXCEPTION 'leonix_rewards_post_entry: redemption of % exceeds available % on wallet %',
+          p_amount_cents, v_wallet.available_cents, p_wallet_id
+          USING ERRCODE = 'check_violation';
+      END IF;
       v_available_delta := -p_amount_cents;
       v_reserved_delta := p_amount_cents;
     WHEN 'redeem_commit' THEN
@@ -288,9 +348,18 @@ BEGIN
       v_reserved_delta := -p_amount_cents;
       v_available_delta := p_amount_cents;
     WHEN 'refund_reversal', 'chargeback_reversal' THEN
-      -- Take the clawback from pending first (those credits were never spendable), then from
-      -- available. A reversal larger than the remaining balance is refused by the CHECK rather
-      -- than silently driving the wallet negative.
+      -- PENDING FIRST: take the clawback from credits that were never spendable, then from
+      -- available. Reversing against pending first is what keeps a refund from consuming a
+      -- balance the customer could already have spent.
+      --
+      -- A reversal larger than pending + available cannot be posted: the caller has already
+      -- clamped the movement to what the payment actually earned, so reaching here means the
+      -- wallet drifted, and the right answer is to refuse and reconcile rather than to clamp.
+      IF v_wallet.pending_cents + v_wallet.available_cents < p_amount_cents THEN
+        RAISE EXCEPTION 'leonix_rewards_post_entry: reversal of % exceeds pending % plus available % on wallet %',
+          p_amount_cents, v_wallet.pending_cents, v_wallet.available_cents, p_wallet_id
+          USING ERRCODE = 'check_violation';
+      END IF;
       IF v_wallet.pending_cents >= p_amount_cents THEN
         v_pending_delta := -p_amount_cents;
       ELSE
@@ -299,40 +368,83 @@ BEGIN
       END IF;
       v_reversed_delta := p_amount_cents;
     WHEN 'manual_adjustment' THEN
-      v_available_delta := p_amount_cents; -- signed
       IF p_amount_cents > 0 THEN
+        -- A positive correction is spendable at once; staff have already authorized it.
+        v_available_delta := p_amount_cents;
         v_earned_delta := p_amount_cents;
       ELSE
-        v_reversed_delta := -p_amount_cents;
+        -- EXPLICIT NEGATIVE-DRAW POLICY. A staff debit draws from AVAILABLE first and then from
+        -- PENDING — the opposite order to a reversal, and deliberately so: a correction is about
+        -- value the customer should not keep, and taking it from spendable value first is what
+        -- stops them racing the correction by spending the balance. It can never take more than
+        -- the wallet holds, so it cannot bypass the non-negative constraints; a debit larger than
+        -- the whole balance is refused, and the remainder is a conversation, not a negative wallet.
+        v_draw := -p_amount_cents;
+        IF v_wallet.available_cents + v_wallet.pending_cents < v_draw THEN
+          RAISE EXCEPTION 'leonix_rewards_post_entry: adjustment of % exceeds available % plus pending % on wallet %',
+            p_amount_cents, v_wallet.available_cents, v_wallet.pending_cents, p_wallet_id
+            USING ERRCODE = 'check_violation';
+        END IF;
+        IF v_wallet.available_cents >= v_draw THEN
+          v_available_delta := -v_draw;
+        ELSE
+          v_available_delta := -v_wallet.available_cents;
+          v_pending_delta := -(v_draw - v_wallet.available_cents);
+        END IF;
+        v_reversed_delta := v_draw;
       END IF;
     WHEN 'expire' THEN
+      -- No launch policy emits this. It exists so expiry could be introduced later without a
+      -- schema change; nothing in the application writes it, and no surface claims expiry.
+      IF v_wallet.available_cents < p_amount_cents THEN
+        RAISE EXCEPTION 'leonix_rewards_post_entry: expiry of % exceeds available % on wallet %',
+          p_amount_cents, v_wallet.available_cents, p_wallet_id
+          USING ERRCODE = 'check_violation';
+      END IF;
       v_available_delta := -p_amount_cents;
       v_reversed_delta := p_amount_cents;
     ELSE
-      RAISE EXCEPTION 'leonix_rewards_post_entry: unsupported entry_type %', p_entry_type;
+      RAISE EXCEPTION 'leonix_rewards_post_entry: unsupported entry_type %', p_entry_type
+        USING ERRCODE = 'check_violation';
   END CASE;
 
-  UPDATE public.leonix_rewards_wallets
-  SET pending_cents = pending_cents + v_pending_delta,
-      available_cents = available_cents + v_available_delta,
-      reserved_cents = reserved_cents + v_reserved_delta,
-      lifetime_earned_cents = lifetime_earned_cents + v_earned_delta,
-      lifetime_redeemed_cents = lifetime_redeemed_cents + v_redeemed_delta,
-      lifetime_reversed_cents = lifetime_reversed_cents + v_reversed_delta,
-      updated_at = now()
-  WHERE id = p_wallet_id
-  RETURNING * INTO v_wallet;
+  -- The wallet update and the ledger append are ONE unit. The sub-block exists so that a
+  -- concurrent transaction which inserted this same idempotency_key between our SELECT above and
+  -- our INSERT below unwinds BOTH of them and returns the winner's row, instead of aborting the
+  -- caller's whole transaction with a raw 23505. Graceful recovery, not a swallowed error: the
+  -- row returned is the real entry, and the balances are the winner's.
+  BEGIN
+    UPDATE public.leonix_rewards_wallets
+    SET pending_cents = pending_cents + v_pending_delta,
+        available_cents = available_cents + v_available_delta,
+        reserved_cents = reserved_cents + v_reserved_delta,
+        lifetime_earned_cents = lifetime_earned_cents + v_earned_delta,
+        lifetime_redeemed_cents = lifetime_redeemed_cents + v_redeemed_delta,
+        lifetime_reversed_cents = lifetime_reversed_cents + v_reversed_delta,
+        updated_at = now()
+    WHERE id = p_wallet_id
+    RETURNING * INTO v_wallet;
 
-  INSERT INTO public.leonix_rewards_ledger (
-    wallet_id, entry_type, amount_cents, source_kind, source_id, payment_record_id,
-    redemption_id, idempotency_key, balance_pending_after, balance_available_after,
-    balance_reserved_after, reason, actor_auth_user_id, actor_roster_id, meta
-  ) VALUES (
-    p_wallet_id, p_entry_type, p_amount_cents, p_source_kind, p_source_id, p_payment_record_id,
-    p_redemption_id, p_idempotency_key, v_wallet.pending_cents, v_wallet.available_cents,
-    v_wallet.reserved_cents, p_reason, p_actor_auth_user_id, p_actor_roster_id, COALESCE(p_meta, '{}'::jsonb)
-  )
-  RETURNING * INTO v_row;
+    INSERT INTO public.leonix_rewards_ledger (
+      wallet_id, entry_type, amount_cents, source_kind, source_id, payment_record_id,
+      redemption_id, idempotency_key, balance_pending_after, balance_available_after,
+      balance_reserved_after, reason, actor_auth_user_id, actor_roster_id, meta
+    ) VALUES (
+      p_wallet_id, p_entry_type, p_amount_cents, p_source_kind, p_source_id, p_payment_record_id,
+      p_redemption_id, p_idempotency_key, v_wallet.pending_cents, v_wallet.available_cents,
+      v_wallet.reserved_cents, p_reason, p_actor_auth_user_id, p_actor_roster_id, COALESCE(p_meta, '{}'::jsonb)
+    )
+    RETURNING * INTO v_row;
+  EXCEPTION
+    WHEN unique_violation THEN
+      SELECT * INTO v_existing
+      FROM public.leonix_rewards_ledger
+      WHERE idempotency_key = p_idempotency_key;
+      IF FOUND THEN
+        RETURN v_existing;
+      END IF;
+      RAISE;
+  END;
 
   RETURN v_row;
 END;
@@ -341,53 +453,136 @@ $$;
 COMMENT ON FUNCTION public.leonix_rewards_post_entry IS
   'The ONLY supported way to move Leonix Credits. Idempotent on p_idempotency_key, locks the wallet row, derives bucket deltas from the entry type in SQL (so a caller cannot invent a movement), and appends the ledger row and updates the cached balances in one statement.';
 
--- Rebuild a wallet''s cached balances from ledger history. Reconciliation / repair only.
+-- -----------------------------------------------------------------------------
+-- Rebuild a wallet's cached balances from ledger history. Reconciliation / repair only.
+--
+-- THIS IS A REPLAY, NOT AN AGGREGATE, AND IT HAS TO BE.
+-- Two entry types are PATH-DEPENDENT: a reversal takes from pending first and only then from
+-- available, and a negative manual adjustment takes from available first and only then from
+-- pending. How much each one takes from which bucket depends on the balances AT THE MOMENT it was
+-- posted, which no SUM(CASE ...) over the whole history can recover. An aggregate that treats a
+-- reversal as a flat debit against one bucket produces a different answer from the incremental
+-- path for any wallet that ever held both pending and available credits — which is every wallet
+-- with a card payment and a refund.
+--
+-- So this function replays the entries in posting order through the SAME delta rules as
+-- leonix_rewards_post_entry(), and the lifetime totals are rebuilt alongside the buckets rather
+-- than left untouched at whatever the cache happened to hold.
+--
+-- `scripts/verify-ix-rewards-behavior-01.ts` asserts parity between the incremental balances and
+-- this replay for every lifecycle it exercises.
+-- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.leonix_rewards_recompute_wallet(p_wallet_id uuid)
 RETURNS public.leonix_rewards_wallets
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = pg_catalog, public, pg_temp
 AS $$
 DECLARE
   v_wallet public.leonix_rewards_wallets;
+  v_entry public.leonix_rewards_ledger;
+  v_pending integer := 0;
+  v_available integer := 0;
+  v_reserved integer := 0;
+  v_earned integer := 0;
+  v_redeemed integer := 0;
+  v_reversed integer := 0;
+  v_take integer := 0;
 BEGIN
   SELECT * INTO v_wallet FROM public.leonix_rewards_wallets WHERE id = p_wallet_id FOR UPDATE;
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'leonix_rewards_recompute_wallet: wallet % not found', p_wallet_id;
+    RAISE EXCEPTION 'leonix_rewards_recompute_wallet: wallet % not found', p_wallet_id
+      USING ERRCODE = 'no_data_found';
   END IF;
 
-  UPDATE public.leonix_rewards_wallets w
-  SET pending_cents = COALESCE(agg.pending, 0),
-      available_cents = COALESCE(agg.available, 0),
-      reserved_cents = COALESCE(agg.reserved, 0),
+  -- Posting order. `created_at` alone is not a total order under concurrency, so `id` breaks ties
+  -- deterministically: the same history always replays to the same answer.
+  FOR v_entry IN
+    SELECT *
+    FROM public.leonix_rewards_ledger
+    WHERE wallet_id = p_wallet_id
+    ORDER BY created_at ASC, id ASC
+  LOOP
+    CASE v_entry.entry_type
+      WHEN 'earn_pending' THEN
+        v_pending := v_pending + v_entry.amount_cents;
+        v_earned := v_earned + v_entry.amount_cents;
+      WHEN 'earn_promote' THEN
+        v_pending := v_pending - v_entry.amount_cents;
+        v_available := v_available + v_entry.amount_cents;
+      WHEN 'earn_available' THEN
+        v_available := v_available + v_entry.amount_cents;
+        v_earned := v_earned + v_entry.amount_cents;
+      WHEN 'redeem_reserve' THEN
+        v_available := v_available - v_entry.amount_cents;
+        v_reserved := v_reserved + v_entry.amount_cents;
+      WHEN 'redeem_commit' THEN
+        v_reserved := v_reserved - v_entry.amount_cents;
+        v_redeemed := v_redeemed + v_entry.amount_cents;
+      WHEN 'redeem_release' THEN
+        v_reserved := v_reserved - v_entry.amount_cents;
+        v_available := v_available + v_entry.amount_cents;
+      WHEN 'refund_reversal', 'chargeback_reversal' THEN
+        -- Pending first, then available — the posting rule, replayed against the balances as they
+        -- stood at this point in the history.
+        IF v_pending >= v_entry.amount_cents THEN
+          v_pending := v_pending - v_entry.amount_cents;
+        ELSE
+          v_available := v_available - (v_entry.amount_cents - v_pending);
+          v_pending := 0;
+        END IF;
+        v_reversed := v_reversed + v_entry.amount_cents;
+      WHEN 'manual_adjustment' THEN
+        IF v_entry.amount_cents > 0 THEN
+          v_available := v_available + v_entry.amount_cents;
+          v_earned := v_earned + v_entry.amount_cents;
+        ELSE
+          -- Available first, then pending — again the posting rule, not a guess.
+          v_take := -v_entry.amount_cents;
+          IF v_available >= v_take THEN
+            v_available := v_available - v_take;
+          ELSE
+            v_pending := v_pending - (v_take - v_available);
+            v_available := 0;
+          END IF;
+          v_reversed := v_reversed + v_take;
+        END IF;
+      WHEN 'expire' THEN
+        v_available := v_available - v_entry.amount_cents;
+        v_reversed := v_reversed + v_entry.amount_cents;
+      ELSE
+        RAISE EXCEPTION 'leonix_rewards_recompute_wallet: unsupported entry_type % on entry %',
+          v_entry.entry_type, v_entry.id
+          USING ERRCODE = 'check_violation';
+    END CASE;
+  END LOOP;
+
+  -- A replay that lands on a negative bucket means the LEDGER is inconsistent, not the cache.
+  -- Refusing here is the point: writing a negative balance would violate the wallet CHECKs anyway,
+  -- and silently clamping would hide a real accounting defect behind a plausible number.
+  IF v_pending < 0 OR v_available < 0 OR v_reserved < 0 THEN
+    RAISE EXCEPTION 'leonix_rewards_recompute_wallet: wallet % replays to a negative bucket (pending %, available %, reserved %); the ledger is inconsistent',
+      p_wallet_id, v_pending, v_available, v_reserved
+      USING ERRCODE = 'check_violation';
+  END IF;
+
+  UPDATE public.leonix_rewards_wallets
+  SET pending_cents = v_pending,
+      available_cents = v_available,
+      reserved_cents = v_reserved,
+      lifetime_earned_cents = v_earned,
+      lifetime_redeemed_cents = v_redeemed,
+      lifetime_reversed_cents = v_reversed,
       updated_at = now()
-  FROM (
-    SELECT
-      SUM(CASE entry_type
-            WHEN 'earn_pending' THEN amount_cents
-            WHEN 'earn_promote' THEN -amount_cents
-            ELSE 0 END) AS pending,
-      SUM(CASE entry_type
-            WHEN 'earn_promote' THEN amount_cents
-            WHEN 'earn_available' THEN amount_cents
-            WHEN 'redeem_reserve' THEN -amount_cents
-            WHEN 'redeem_release' THEN amount_cents
-            WHEN 'manual_adjustment' THEN amount_cents
-            WHEN 'expire' THEN -amount_cents
-            ELSE 0 END) AS available,
-      SUM(CASE entry_type
-            WHEN 'redeem_reserve' THEN amount_cents
-            WHEN 'redeem_commit' THEN -amount_cents
-            WHEN 'redeem_release' THEN -amount_cents
-            ELSE 0 END) AS reserved
-    FROM public.leonix_rewards_ledger WHERE wallet_id = p_wallet_id
-  ) agg
-  WHERE w.id = p_wallet_id
-  RETURNING w.* INTO v_wallet;
+  WHERE id = p_wallet_id
+  RETURNING * INTO v_wallet;
 
   RETURN v_wallet;
 END;
 $$;
+
+COMMENT ON FUNCTION public.leonix_rewards_recompute_wallet IS
+  'Rebuilds a wallet''s cached buckets and lifetime totals by REPLAYING leonix_rewards_ledger in posting order through the same delta rules as leonix_rewards_post_entry(). A replay, not an aggregate, because reversals (pending-first) and negative manual adjustments (available-first) are path-dependent. Refuses rather than clamps if the history replays to a negative bucket.';
 
 -- -----------------------------------------------------------------------------
 -- 5. RLS
@@ -437,9 +632,34 @@ CREATE POLICY leonix_rewards_redemptions_select_own
 
 -- SECURITY DEFINER functions must not be callable directly by a browser session: all credit
 -- movement goes through server code that has already authorized the actor.
+--
+-- REVOKE FIRST, THEN GRANT EXPLICITLY. Postgres grants EXECUTE to PUBLIC on a new function by
+-- default, so the revoke is what actually closes the door; the grant that follows names the one
+-- role allowed through it. Leaving the grant implicit would mean the function's reachability
+-- depended on a default nobody in this file stated.
 REVOKE ALL ON FUNCTION public.leonix_rewards_post_entry(
   uuid, text, integer, text, text, text, uuid, uuid, text, uuid, uuid, jsonb
 ) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.leonix_rewards_recompute_wallet(uuid) FROM PUBLIC, anon, authenticated;
+
+GRANT EXECUTE ON FUNCTION public.leonix_rewards_post_entry(
+  uuid, text, integer, text, text, text, uuid, uuid, text, uuid, uuid, jsonb
+) TO service_role;
+GRANT EXECUTE ON FUNCTION public.leonix_rewards_recompute_wallet(uuid) TO service_role;
+
+-- The tables themselves: readable under the SELECT policies above, never writable from a browser
+-- session. service_role bypasses RLS, so this grant is what the server writes through.
+REVOKE ALL ON TABLE public.leonix_rewards_wallets FROM anon;
+REVOKE ALL ON TABLE public.leonix_rewards_ledger FROM anon;
+REVOKE ALL ON TABLE public.leonix_rewards_redemptions FROM anon;
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE public.leonix_rewards_wallets FROM authenticated;
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE public.leonix_rewards_ledger FROM authenticated;
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE public.leonix_rewards_redemptions FROM authenticated;
+GRANT SELECT ON TABLE public.leonix_rewards_wallets TO authenticated;
+GRANT SELECT ON TABLE public.leonix_rewards_ledger TO authenticated;
+GRANT SELECT ON TABLE public.leonix_rewards_redemptions TO authenticated;
+GRANT ALL ON TABLE public.leonix_rewards_wallets TO service_role;
+GRANT ALL ON TABLE public.leonix_rewards_ledger TO service_role;
+GRANT ALL ON TABLE public.leonix_rewards_redemptions TO service_role;
 
 COMMIT;
