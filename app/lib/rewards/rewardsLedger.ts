@@ -401,32 +401,60 @@ export async function resolveWalletOwnerForPayment(input: {
   if (!isSupabaseAdminConfigured()) return null;
   const db = getAdminSupabase();
 
+  // An EMPTY payment id means "there is no payment to look up", not "look up the empty payment".
+  // `business_external_links.record_id` is `text NOT NULL` with no non-empty constraint, so a
+  // single row with `record_id = ''` — from a backfill, a fixture, or a future writer — would
+  // otherwise make EVERY caller resolve to that one business's wallet. Customer isolation must
+  // not depend on an application-layer invariant over an unconstrained column.
+  const paymentRecordId = input.paymentRecordId.trim();
+  if (!paymentRecordId) return resolveWalletOwnerForUser(input.ownerUserId);
+
   const { data: link } = await db
     .from("business_external_links")
     .select("business_id")
     .eq("record_type", "leonix_payment_records")
-    .eq("record_id", input.paymentRecordId)
+    .eq("record_id", paymentRecordId)
     .eq("status", "verified")
     .limit(1)
     .maybeSingle();
   const businessId = (link as { business_id?: string } | null)?.business_id;
   if (businessId) return { kind: "business", businessId: String(businessId) };
 
-  // No payment-level link: fall back to the payer's single active business membership, then to
-  // the user themselves.
-  if (input.ownerUserId) {
-    const { data: memberships } = await db
-      .from("business_memberships")
-      .select("business_id, is_primary_owner")
-      .eq("user_id", input.ownerUserId)
-      .eq("membership_status", "active")
-      .limit(10);
-    const rows = (memberships ?? []) as { business_id: string; is_primary_owner: boolean | null }[];
-    if (rows.length === 1) return { kind: "business", businessId: rows[0]!.business_id };
-    const owned = rows.filter((r) => r.is_primary_owner === true);
-    if (owned.length === 1) return { kind: "business", businessId: owned[0]!.business_id };
-    return { kind: "user", ownerUserId: input.ownerUserId };
-  }
+  // No payment-level link: fall back to who the payer is.
+  return resolveWalletOwnerForUser(input.ownerUserId);
+}
 
-  return null;
+/**
+ * Which wallet a USER's money belongs to, with no payment in hand.
+ *
+ * Split out from `resolveWalletOwnerForPayment` so callers that genuinely have no payment — the
+ * customer's own wallet read, a checkout about to reserve credits — say so, instead of passing an
+ * empty payment id and hoping nothing matches it.
+ *
+ * PRIMARY OWNERSHIP WINS OVER BARE MEMBERSHIP. Being added as an ordinary member of a business
+ * does not hand that business the credits someone earned as an individual, which is what a
+ * "exactly one active membership" rule alone would have done: a customer with an individual
+ * wallet who later joins one business as a `member` would have silently started resolving to the
+ * business wallet, and their own balance would have vanished from the panel. Wallets are never
+ * merged automatically — a locked decision — so the resolver must not effect a merge by accident.
+ */
+export async function resolveWalletOwnerForUser(ownerUserId: string | null): Promise<WalletOwnerRef | null> {
+  if (!ownerUserId || !isSupabaseAdminConfigured()) return null;
+  const db = getAdminSupabase();
+
+  const { data: memberships } = await db
+    .from("business_memberships")
+    .select("business_id, is_primary_owner")
+    .eq("user_id", ownerUserId)
+    .eq("membership_status", "active")
+    .limit(10);
+  const rows = (memberships ?? []) as { business_id: string; is_primary_owner: boolean | null }[];
+
+  // A single business they actually OWN is their business wallet.
+  const owned = rows.filter((r) => r.is_primary_owner === true);
+  if (owned.length === 1) return { kind: "business", businessId: owned[0]!.business_id };
+
+  // Otherwise the money is theirs personally: no owned business, several owned businesses, or
+  // membership of a business they do not own.
+  return { kind: "user", ownerUserId };
 }

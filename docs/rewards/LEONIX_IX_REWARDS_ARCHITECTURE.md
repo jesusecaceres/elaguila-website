@@ -4,7 +4,7 @@ Branch: `claude/leonix-ix-rewards-global-2026-09`
 Branched from QUICK_FREEZE_SHA: `4cb34be6d519b541606eecf9ff4afa3d0824814b`
 
 Nothing in this document describes intent. Every invariant listed here is either enforced by a
-database constraint or proven by `scripts/verify-ix-rewards-behavior-01.ts` (35 behavioral checks,
+database constraint or proven by `scripts/verify-ix-rewards-behavior-01.ts` (124 behavioral checks,
 no database, no network, no Stripe).
 
 ---
@@ -17,7 +17,7 @@ no database, no network, no Stripe).
 | $1 credit = $1 toward an eligible purchase | `CREDIT_CENT_VALUE`, `planRedemption` |
 | No cash value, not transferable | Product copy only; no code path converts credits to money or moves them between wallets |
 | Credits spent do not earn credits | `computeEligibleNetCents` subtracts `creditsAppliedCents` |
-| Refunds/reversals/chargebacks reverse credits | `computeReversalCents`, proportional and clamped |
+| Refunds/reversals/chargebacks reverse credits | `computeTotalReversalTargetCents` + `computeReversalDeltaCents` — a DELTA against a cumulative target, so a sequence of partial refunds lands on the exact proportional total |
 | Redeem all, some or none | `planRedemption` honours a partial request exactly |
 | One promo code maximum per purchase | Unchanged — the existing `discount_conflict` 409 in `app/api/revenue-os/checkout/route.ts` |
 | Credits may be redeemed alongside that one promo | `validateDiscountCombination` |
@@ -51,7 +51,7 @@ re-imports harmless. Keys are derived from the external fact, never random:
 ```
 earn:payment:<paymentRecordId>
 promote:payment:<paymentRecordId>
-reverse:refund:<stripeChargeId>       reverse:chargeback:<stripeDisputeId>
+reverse:refund:<stripeRefundId>       reverse:chargeback:<stripeDisputeId>
 reserve:<ref>   commit:<ref>   release:<ref>
 adjust:<ref>
 ```
@@ -116,7 +116,7 @@ in-memory store that reproduces `UNIQUE(idempotency_key)` and the non-negative C
 |---|---|---|
 | `checkout.session.completed` → payment marked paid | `awardCreditsForSettledPayment` | `earn_pending` (card money can still be refunded) |
 | settlement window passes | `promoteSettledCredits` | `earn_promote`: pending → available |
-| `charge.refunded` | `reverseCreditsForRefundOrDispute` | `refund_reversal`, proportional, keyed on charge id |
+| `charge.refunded` | `reverseCreditsForRefundOrDispute`, fanned out over `charge.refunds` | `refund_reversal` per REFUND OBJECT id — never the charge id, which repeats on every delivery |
 | `charge.dispute.created` | same | `chargeback_reversal`, keyed on dispute id |
 | manual payment verified cleared | `awardCreditsForSettledPayment` | `earn_available` — cash is final on clearance, so it is spendable at once |
 
@@ -137,14 +137,22 @@ than swallowed, which is what an operator queries to find customers still owed c
 
 ## Redemption flow
 
-1. **Reserve** before creating the payment. The server calls `planRedemption`, which caps the
-   customer's request against the live balance, the amount actually owed, and any rail minimum. A
-   browser-supplied figure is never applied as-is.
-2. **Commit** only after the payment succeeds.
-3. **Release** when it fails or expires, returning the hold to `available`.
+1. **Plan**, read-only: `planRedemption` caps the customer's request against the live balance, the
+   50% ceiling, the amount actually owed and the rail's floor. A browser figure is never applied
+   as-is.
+2. **Reserve** once the payment record exists — the hold is keyed on that record's id, which is
+   minted per attempt and never reused. The reserve re-plans under a row lock and is
+   authoritative; if it disagrees with the plan, the checkout aborts rather than charging a price
+   no hold backs.
+3. **Commit** only after the payment succeeds. If the 30-minute hold expired first (a Stripe
+   session outlives it), the credits are RE-DEBITED here rather than reported as already settled —
+   otherwise the customer keeps both the discount and the credits.
+4. **Release** on a stale attempt, a Stripe failure, an expired session, or the 30-minute sweep.
 
-Committing twice, releasing after a commit, or re-submitting the same reservation are all no-ops
-rather than errors — duplicate webhook deliveries must not corrupt entitlement state.
+Committing twice and releasing after a commit are no-ops — duplicate webhook deliveries must not
+corrupt entitlement state. Re-submitting a reference reports `deduplicated` with the amount STILL
+HELD, which is zero for a committed, released or expired hold: a spent hold is never re-served as
+a fresh discount.
 
 An invoice can never go negative: redemption is capped at the amount due, and `minimumChargeCents`
 keeps a payable remainder on rails that cannot settle zero.
@@ -277,7 +285,31 @@ These are named because they are genuinely open, not because they were forgotten
    ledger records them under `manual_adjustment` with the kind carried in the reason — not as a
    second earn against the payment. This keeps one import path and one idempotency scheme; it does
    mean a CSV row never produces an `earn_pending` or `earn_available` entry.
-6. **No Vercel deployment, no live Stripe call, no remote Supabase mutation, no live data import**
+6. **A WON dispute does not restore the credits it reversed.** `charge.dispute.created` reverses
+   immediately; `charge.dispute.closed` with `status = "won"` restores the listing and the
+   subscription but posts no compensating rewards entry, and the ledger is append-only so nothing
+   else can. That payment also stays permanently unpromotable, because `isPaymentStillPromotable`
+   withholds promotion on the existence of any reversal row. Net effect: Leonix wins the dispute
+   and keeps the money, but the customer does not get their credits back. Restoring them needs a
+   compensating entry type — the `manual_adjustment` CHECK requires a human actor and a webhook has
+   none — which is a schema change this mission may not apply. **Not built, and not claimed.**
+
+7. **Reversal arithmetic assumes refund events are processed SERIALLY.** The cumulative position
+   (`sumReversalBasisForPayment` + `sumReversedForPayment`) is read outside the wallet lock; only
+   the final post takes `FOR UPDATE`. Two `charge.refunded` deliveries for one charge handled in
+   parallel can each read the same prior total and under-reverse by a rounding cent. The
+   `leonix_stripe_webhook_events` claim serializes event processing in practice, which is why this
+   is a residual rather than a live defect — but it is an assumption, not a guarantee this module
+   makes on its own.
+
+8. **`leonix_rewards_recompute_wallet()` replays by `created_at`, which is transaction START time,
+   not the serialization point.** Two overlapping transactions can commit in the opposite order to
+   their `created_at` values, in which case the replay reconstructs a different — possibly
+   negative — intermediate state and refuses. That refusal is safe (it never writes a wrong
+   balance) but it can be a false alarm on a genuinely consistent ledger. A monotonic sequence
+   column assigned inside the lock would fix it, and is a schema change this mission may not apply.
+
+9. **No Vercel deployment, no live Stripe call, no remote Supabase mutation, no live data import**
    occurred at any point. Every CSV fixture in the verifier is invented.
 
 ---

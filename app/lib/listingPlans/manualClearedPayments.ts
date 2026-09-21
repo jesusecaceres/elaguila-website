@@ -23,7 +23,7 @@ import { applyPaymentSuspension } from "./subscriptionLifecycle";
 export type ManualPaymentMethod = "cash" | "check" | "zelle" | "ach" | "money_order" | "other";
 export { canTransitionManualState, type ManualPaymentState } from "./refundDisputePolicy";
 import { canTransitionManualState, type ManualPaymentState } from "./refundDisputePolicy";
-import { awardCreditsForSettledPayment } from "@/app/lib/rewards/rewardsFulfillment";
+import { awardCreditsForSettledPayment, earnBaseFromPaymentMetadata } from "@/app/lib/rewards/rewardsFulfillment";
 
 export type RecordManualPaymentInput = {
   adminUserId: string;
@@ -144,10 +144,12 @@ export async function verifyManualPaymentCleared(input: {
   await awardCreditsForSettledPayment({
     paymentRecordId: input.paymentRecordId,
     ownerUserId: record.owner_user_id ? String(record.owner_user_id) : null,
-    amountPaidCents: Number(record.amount_paid_cents ?? record.amount_total_cents ?? record.amount_cents ?? 0),
-    creditsAppliedCents: Number(
-      (record.metadata as { leonix_credits_applied_cents?: number } | null)?.leonix_credits_applied_cents ?? 0,
-    ),
+    // The shared helper decides whether the stored total is already net of the credits applied,
+    // so a credit-funded purchase is never charged its own loyalty value twice.
+    ...earnBaseFromPaymentMetadata({
+      amountPaidCents: Number(record.amount_paid_cents ?? record.amount_total_cents ?? record.amount_cents ?? 0),
+      metadata: record.metadata as Record<string, unknown> | null,
+    }),
     promoDiscountCents: Number(record.amount_discount_cents ?? 0),
     source: "admin_manual",
     sourceKind: "manual_payment",

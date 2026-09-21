@@ -162,6 +162,8 @@ export async function POST(request: NextRequest) {
         outcome: existing ? "deduplicated" : "applied",
         movedCents: existing ? 0 : row.amountCents,
         walletId: null,
+        // The customer-visible text, shown to the operator BEFORE they certify the batch.
+        reason: row.reason,
         detail: existing ? "already_imported" : "would_apply",
       });
     }
@@ -220,6 +222,7 @@ export async function POST(request: NextRequest) {
         outcome: "rejected",
         movedCents: 0,
         walletId: null,
+        reason: row.reason,
         detail: resolved.detail,
       });
       continue;
@@ -247,6 +250,7 @@ export async function POST(request: NextRequest) {
         outcome: "rejected",
         movedCents: 0,
         walletId: null,
+        reason: row.reason,
         detail: posted.error,
       });
       continue;
@@ -261,6 +265,7 @@ export async function POST(request: NextRequest) {
       // What MOVED. A deduplicated row moved nothing, and the report says zero.
       movedCents: posted.deduplicated ? 0 : row.amountCents,
       walletId: null,
+      reason: row.reason,
       detail: posted.deduplicated ? "already_imported" : "applied",
     });
   }

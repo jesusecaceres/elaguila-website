@@ -6,7 +6,7 @@
 import "server-only";
 import { isBusinessBasePackageKey } from "./businessAccessLevel";
 import { convergeQuickToFullAfterPayment } from "./quickToFullConvergence";
-import { awardCreditsForSettledPayment } from "@/app/lib/rewards/rewardsFulfillment";
+import { awardCreditsForSettledPayment, earnBaseFromPaymentMetadata } from "@/app/lib/rewards/rewardsFulfillment";
 import { commitCheckoutCredits, releaseCheckoutCredits } from "@/app/lib/rewards/rewardsCheckoutRedemption";
 import type Stripe from "stripe";
 import { isPaymentCleared } from "./paymentTracking";
@@ -2054,27 +2054,28 @@ export async function fulfillCheckoutSessionCompleted(input: {
 
   // LEONIX IX REWARDS — COMMIT the credits this checkout held.
   //
-  // The hold was taken at checkout creation and has been sitting in `reserved` ever since. Only
-  // now, with the payment marked paid, is it actually SPENT. Committing earlier would let an
-  // abandoned checkout consume a balance; not committing at all would leave the hold stuck until
-  // the 30-minute sweep returned it — after the customer had already received the discount.
+  // The hold was taken at checkout creation, keyed on THIS payment record's id, and has been
+  // sitting in `reserved` ever since. Only now, with the payment marked paid, is it actually
+  // SPENT. Committing earlier would let an abandoned checkout consume a balance.
   //
-  // Idempotent through `commit:<checkoutAttemptKey>`, so a redelivered event commits once, and
-  // best-effort like every other rewards hook: a settled payment must never look failed.
-  const checkoutAttemptKeyForCredits =
-    typeof (refreshed as { checkout_attempt_key?: unknown }).checkout_attempt_key === "string"
-      ? String((refreshed as { checkout_attempt_key?: unknown }).checkout_attempt_key)
-      : "";
-  if (checkoutAttemptKeyForCredits) {
-    await commitCheckoutCredits({
-      checkoutAttemptKey: checkoutAttemptKeyForCredits,
+  // If the 30-minute hold expired before the customer finished paying — a Stripe session lives
+  // far longer than the hold does — `commitCheckoutCredits` RE-DEBITS the credits rather than
+  // reporting success over a hold that is no longer there. A failure to do so is logged as
+  // retryable: at that point the customer has a discount their balance no longer covers, which
+  // needs a person, not a silent pass.
+  const creditCommit = await commitCheckoutCredits({
+    paymentRecordId: paymentRecord.id,
+  }).catch((err: unknown) => {
+    console.error("[fulfillment] rewards redemption commit threw", {
       paymentRecordId: paymentRecord.id,
-    }).catch((err: unknown) => {
-      console.error("[fulfillment] rewards redemption commit threw", {
-        paymentRecordId: paymentRecord.id,
-        error: err instanceof Error ? err.message : String(err),
-      });
-      return null;
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return { committed: false, amountCents: 0, reason: "threw" as string | undefined };
+  });
+  if (creditCommit && !creditCommit.committed && creditCommit.reason && creditCommit.reason !== "no_hold") {
+    console.error("[fulfillment] rewards redemption commit did not settle", {
+      paymentRecordId: paymentRecord.id,
+      reason: creditCommit.reason,
     });
   }
 
@@ -2089,11 +2090,13 @@ export async function fulfillCheckoutSessionCompleted(input: {
     await awardCreditsForSettledPayment({
       paymentRecordId: paymentRecord.id,
       ownerUserId: String(refreshed.owner_user_id),
-      amountPaidCents: Number(refreshed.amount_total_cents ?? refreshed.amount_cents ?? 0),
-      // Credits spent on this purchase must not themselves earn credits.
-      creditsAppliedCents: Number(
-        (refreshed.metadata as { leonix_credits_applied_cents?: number } | null)?.leonix_credits_applied_cents ?? 0,
-      ),
+      // Credits spent on this purchase must not themselves earn credits — and must not be
+      // subtracted twice. This record's total is already net of them, which the shared helper
+      // reads off the row rather than inferring.
+      ...earnBaseFromPaymentMetadata({
+        amountPaidCents: Number(refreshed.amount_total_cents ?? refreshed.amount_cents ?? 0),
+        metadata: refreshed.metadata as Record<string, unknown> | null,
+      }),
       promoDiscountCents: Number(refreshed.amount_discount_cents ?? 0),
       source: "stripe",
       sourceKind: "stripe_payment",
@@ -2226,9 +2229,8 @@ export async function markCheckoutSessionExpired(input: {
   // was holding go straight back to the customer. Released here on the event rather than left to
   // the 30-minute sweep, so the balance is spendable again the moment Stripe says the checkout is
   // over. Idempotent through `release:<ref>`, and a hold already committed is left alone.
-  if (paymentRecord.checkout_attempt_key) {
+  {
     await releaseCheckoutCredits({
-      checkoutAttemptKey: paymentRecord.checkout_attempt_key,
       reason: "checkout_session_expired",
       paymentRecordId: paymentRecord.id,
     }).catch(() => null);

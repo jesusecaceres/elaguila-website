@@ -29,8 +29,13 @@ import { buildRewardsStorePort, isRewardsConfigured, resolveWalletOwnerForPaymen
 import {
   CARD_SETTLEMENT_PENDING_DAYS,
   REDEMPTION_RESERVATION_MINUTES,
+  earnBaseFromPaymentMetadata,
   type SettledPaymentFacts,
 } from "./rewardsPolicy";
+
+// Re-exported so the payment-pipeline call sites keep importing their rewards helpers from one
+// place; the rule itself is pure and lives in rewardsPolicy so it can be tested directly.
+export { earnBaseFromPaymentMetadata };
 
 export type RewardsHookResult =
   | { ok: true; outcome: "earned"; earnCents: number; deduplicated: boolean }

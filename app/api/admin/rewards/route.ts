@@ -24,7 +24,8 @@ import {
   requireRevenueProtectedWriteAccess,
   revenueWriteDenialStatusCode,
 } from "@/app/admin/_lib/adminAccessControl";
-import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { cookies } from "next/headers";
+import { getAdminSupabase, isSupabaseAdminConfigured, requireAdminCookie } from "@/app/lib/supabase/server";
 import { buildRewardsStorePort } from "@/app/lib/rewards/rewardsLedger";
 import {
   commitReservedCredits,
@@ -34,16 +35,12 @@ import {
   type WalletOwnerRef,
 } from "@/app/lib/rewards/rewardsLedgerCore";
 import { formatCreditsCents } from "@/app/lib/rewards/rewardsPolicy";
+// The pure input rules live in their own module so the verifier can CALL them with crafted
+// inputs rather than grepping this file for reassuring substrings.
+import { isUuid, sanitizeSearchTerm } from "@/app/lib/rewards/rewardsStaffQuery";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-/** A wallet is addressed by a canonical uuid. Anything else is refused before it reaches a query. */
-function isUuid(value: string): boolean {
-  return UUID_RE.test(value);
-}
 
 /**
  * The owner a staff action targets.
@@ -57,30 +54,6 @@ function ownerFromBody(body: Record<string, unknown>): WalletOwnerRef | null {
   if (businessId) return isUuid(businessId) ? { kind: "business", businessId } : null;
   if (ownerUserId) return isUuid(ownerUserId) ? { kind: "user", ownerUserId } : null;
   return null;
-}
-
-/**
- * Make a human-typed search term safe to place inside a PostgREST `.or()` filter string.
- *
- * `.or()` takes a single string whose grammar uses `,` to separate conditions, `.` to separate
- * operator from operand, and `()` to group. Interpolating a raw term into it is not a SQL
- * injection — Supabase still parameterizes — but it IS a FILTER injection: a term containing a
- * comma adds a condition the server never intended, and one containing `)` can close the group
- * early. A term of `a,status.eq.deleted` would have widened the result set past the `status`
- * filter applied beside it.
- *
- * So: drop every character that carries meaning in that grammar, collapse the `%` and `_` LIKE
- * wildcards to literals, and bound the length. What survives is a plain substring to match on.
- * Returns null when nothing usable is left, and the caller refuses rather than searching for "".
- */
-function sanitizeSearchTerm(raw: string): string | null {
-  const cleaned = raw
-    .replace(/[(),.*"'\\]/g, " ")
-    .replace(/[%_]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 60);
-  return cleaned.length >= 2 ? cleaned : null;
 }
 
 export async function POST(request: NextRequest) {
@@ -327,8 +300,25 @@ export async function GET(request: NextRequest) {
   if (!isSupabaseAdminConfigured()) {
     return NextResponse.json({ ok: false, error: "db_not_configured" }, { status: 503 });
   }
+
+  // THE ADMIN COOKIE CHECK COMES FIRST, and it is not optional.
+  //
+  // `getCurrentAdminAccessContext()` NEVER returns null, and with no admin cookie at all it
+  // returns `normalizedRole: "owner_admin"` so that unauthenticated navigation can render. On its
+  // own that made `hasPaymentTrackerAccess()` — which grants owner_admin unconditionally — return
+  // true for a request carrying NO COOKIES, and `middleware.ts` gates `/admin` but not
+  // `/api/admin`. The result was an unauthenticated read of any customer's balance and their last
+  // 100 ledger rows, given only a business id.
+  //
+  // The payment-tracker page does `requireAdminCookie` BEFORE reading the context, and that line
+  // is the actual authentication. This route was missing it. Being "gated like the payment
+  // tracker" means doing both steps, in this order.
+  const cookieJar = await cookies();
+  if (!requireAdminCookie(cookieJar)) {
+    return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
+  }
   const ctx = await getCurrentAdminAccessContext();
-  if (!ctx || !hasPaymentTrackerAccess(ctx)) {
+  if (!ctx.hasAdminCookie || !hasPaymentTrackerAccess(ctx)) {
     return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
   }
 

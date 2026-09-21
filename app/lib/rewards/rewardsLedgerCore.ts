@@ -579,14 +579,19 @@ export async function reserveCreditsForPurchase(input: {
   // A REUSED reference returns the hold that already exists and says so. It never creates a
   // second hold, and it never reports a fresh redemption the caller could present as a new
   // discount: `deduplicated` is what stops a replayed reference becoming a phantom price cut.
+  //
+  // ONLY A `reserved` HOLD FUNDS ANYTHING. A `committed` one was already spent on a purchase that
+  // completed; reporting its amount again would hand the customer that discount a second time
+  // without debiting anything. A `released` or `expired` one funds nothing by definition. All
+  // three report zero, and the caller refuses rather than pricing a discount off them.
   const existing = await input.ports.findRedemption(idempotencyKey);
   if (existing) {
-    const spent = existing.status === "released" || existing.status === "expired" ? 0 : existing.amountCents;
+    const stillHeld = existing.status === "reserved" ? existing.amountCents : 0;
     return {
       ok: true,
       redemptionId: existing.id,
-      redeemCents: spent,
-      remainingDueCents: Math.max(0, Math.floor(input.amountDueCents) - spent),
+      redeemCents: stillHeld,
+      remainingDueCents: Math.max(0, Math.floor(input.amountDueCents) - stillHeld),
       deduplicated: true,
       expiresAtIso: existing.expiresAtIso ?? null,
     };
@@ -633,7 +638,15 @@ export async function reserveCreditsForPurchase(input: {
     actorAuthUserId: input.actorAuthUserId ?? null,
     meta: { expires_at: expiresAtIso, capped_by: plan.cappedBy },
   });
-  if (!posted.ok) return { ok: false, reason: posted.error };
+  if (!posted.ok) {
+    // THE ROW EXISTS BUT NO CREDITS MOVED. `createRedemption` has to run first — the ledger entry
+    // needs its id — so a refused post leaves a row sitting in `reserved` that holds nothing.
+    // Left alone, the 30-minute sweep would later "release" it and post a `redeem_release` with
+    // no matching reserve: credits appearing from nowhere, and another checkout's real hold
+    // destroyed in the same movement. Retiring it here is what keeps the ledger honest.
+    await input.ports.setRedemptionStatus({ redemptionId: created.redemption.id, status: "released" });
+    return { ok: false, reason: posted.error };
+  }
 
   return {
     ok: true,
@@ -645,18 +658,63 @@ export async function reserveCreditsForPurchase(input: {
   };
 }
 
-/** Spend the held credits. Called only after the payment has actually succeeded. */
+/**
+ * Spend the held credits. Called only after the payment has actually succeeded.
+ *
+ * THE RELEASED-HOLD CASE IS NOT A NO-OP. A hold lives 30 minutes; a Stripe Checkout session lives
+ * far longer. A customer can therefore leave the tab open past the expiry sweep, pay the reduced
+ * price the session still carries, and arrive here with their credits already back in `available`.
+ * Reporting that as "already final" would hand them the discount AND leave them holding the
+ * credits — the purchase would be funded by nothing.
+ *
+ * So a released or expired hold is RE-DEBITED here, under its own idempotency keys so a duplicate
+ * delivery still moves money once. If the balance can no longer cover it (they spent it in the
+ * meantime) the call FAILS, loudly and retryably, for an operator to settle — which is the honest
+ * outcome, because at that point the customer really does owe the difference.
+ */
 export async function commitReservedCredits(input: {
   redemptionRef: string;
   paymentRecordId?: string | null;
   ports: RewardsStorePort;
-}): Promise<{ ok: true; outcome: "committed" | "already_final"; amountCents: number } | { ok: false; error: string }> {
+}): Promise<{ ok: true; outcome: "committed" | "already_final" | "recommitted"; amountCents: number } | { ok: false; error: string }> {
   const reservation = await input.ports.findRedemption(reserveIdempotencyKey(input.redemptionRef));
   if (!reservation) return { ok: false, error: "reservation_not_found" };
-  if (reservation.status !== "reserved") {
-    // Committing twice, or committing something already released, is a no-op rather than an error:
-    // duplicate webhook deliveries must not corrupt entitlement state.
+
+  if (reservation.status === "committed") {
+    // Already spent. A duplicate webhook delivery must not spend it twice.
     return { ok: true, outcome: "already_final", amountCents: reservation.amountCents };
+  }
+
+  if (reservation.status === "released" || reservation.status === "expired") {
+    // The hold went back to the customer before the payment landed, but the payment carries the
+    // reduced price. Take the credits now.
+    const reReserve = await input.ports.postEntry({
+      walletId: reservation.walletId,
+      entryType: "redeem_reserve",
+      amountCents: reservation.amountCents,
+      sourceKind: "checkout_redemption",
+      paymentRecordId: input.paymentRecordId ?? null,
+      redemptionId: reservation.id,
+      idempotencyKey: `recommit:reserve:${input.redemptionRef}`,
+      reason: "hold expired before settlement; re-debited at commit",
+    });
+    if (!reReserve.ok) {
+      // Cannot cover it — the customer received a discount they no longer have the balance for.
+      // Refusing is correct: this needs a person, not a silent success.
+      return { ok: false, error: "recommit_insufficient_balance" };
+    }
+    const reCommit = await input.ports.postEntry({
+      walletId: reservation.walletId,
+      entryType: "redeem_commit",
+      amountCents: reservation.amountCents,
+      sourceKind: "checkout_redemption",
+      paymentRecordId: input.paymentRecordId ?? null,
+      redemptionId: reservation.id,
+      idempotencyKey: `recommit:commit:${input.redemptionRef}`,
+    });
+    if (!reCommit.ok) return { ok: false, error: reCommit.error };
+
+    return { ok: true, outcome: "recommitted", amountCents: reservation.amountCents };
   }
 
   const posted = await input.ports.postEntry({

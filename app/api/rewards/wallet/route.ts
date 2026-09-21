@@ -10,7 +10,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getBearerUserId } from "@/app/api/clasificados/_lib/bearerUser";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
-import { resolveWalletOwnerForPayment } from "@/app/lib/rewards/rewardsLedger";
+import { resolveWalletOwnerForUser } from "@/app/lib/rewards/rewardsLedger";
 import {
   CARD_SETTLEMENT_PENDING_DAYS,
   CREDITS_EXPIRE_AT_LAUNCH,
@@ -48,8 +48,11 @@ export async function GET(request: NextRequest) {
 
   const lang = request.nextUrl.searchParams.get("lang") === "en" ? "en" : "es";
 
-  // The wallet is resolved from the caller's own identity, never from a request parameter.
-  const owner = await resolveWalletOwnerForPayment({ paymentRecordId: "", ownerUserId: userId });
+  // The wallet is resolved from the caller's OWN identity, never from a request parameter — and
+  // through the user-scoped resolver, not by handing the payment-scoped one an empty id. That
+  // empty string became `.eq("record_id", "")` against a column with no non-empty constraint, so
+  // a single stray row would have pointed every customer's wallet read at one business.
+  const owner = await resolveWalletOwnerForUser(userId);
   if (!owner) {
     return NextResponse.json({
       ok: true,

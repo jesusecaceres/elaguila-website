@@ -39,8 +39,34 @@ type ActivityRow = {
   reason: string | null;
 };
 
-/** Entry types that REDUCE the customer's balance, shown with a minus and a muted tone. */
-const DEBIT_TYPES = new Set(["redeem_commit", "refund_reversal", "chargeback_reversal", "expire"]);
+/**
+ * Entry types that REDUCE the customer's spendable balance, shown with a minus and a muted tone.
+ *
+ * `redeem_reserve` belongs here: a hold comes straight out of `available`, and showing it with a
+ * plus told the customer their balance had gone UP at the moment it went down.
+ *
+ * `manual_adjustment` is NOT in the set, because it is the one SIGNED type — it may be a goodwill
+ * credit or a staff clawback, and only its amount says which. `isDebitRow` decides that per row.
+ */
+const DEBIT_TYPES = new Set([
+  "redeem_commit",
+  "redeem_reserve",
+  "refund_reversal",
+  "chargeback_reversal",
+  "expire",
+]);
+
+/**
+ * Does this row take value away from the customer?
+ *
+ * A signed `manual_adjustment` of -$5.00 was previously rendered as a green **+$5.00** — the sign
+ * was stripped for display and the type was not in the debit set, so a clawback read as a gift.
+ * The amount decides for signed types; the type decides for the rest.
+ */
+function isDebitRow(row: ActivityRow): boolean {
+  if (row.amountCents < 0) return true;
+  return DEBIT_TYPES.has(row.type);
+}
 
 /** A date the server computed, rendered in the reader's locale. Never a date invented here. */
 function formatDate(iso: string, lang: "es" | "en"): string {
@@ -220,7 +246,7 @@ export function LeonixCreditsPanel({ lang = "es" }: { lang?: "es" | "en" }) {
               </h3>
               <ul className="mt-2 divide-y divide-[#F0E9DA]">
                 {activity.map((row) => {
-                  const isDebit = DEBIT_TYPES.has(row.type);
+                  const isDebit = isDebitRow(row);
                   return (
                     <li key={row.id} className="flex items-center justify-between gap-3 py-2">
                       <div className="min-w-0">

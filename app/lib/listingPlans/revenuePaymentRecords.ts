@@ -168,10 +168,19 @@ export async function createPendingPaymentRecord(
         package_label: input.packageDef.label,
         destructive: false,
         subtotal_cents: subtotal,
-        // LEONIX IX REWARDS — the credit-funded portion, read back by the earn hooks so the 9%
-        // is computed on real money only. Written unconditionally (0 when none) so its absence
-        // can never be mistaken for an unrecorded redemption.
+        // LEONIX IX REWARDS — the credit-funded portion of this purchase, for audit and for the
+        // customer's own record. Written unconditionally (0 when none) so its absence can never be
+        // mistaken for an unrecorded redemption.
         leonix_credits_applied_cents: Math.max(0, Math.floor(input.creditsAppliedCents ?? 0)),
+        // AND the flag that stops it being subtracted twice.
+        //
+        // `amount_cents` / `amount_total_cents` above are the amount the rail will actually
+        // CHARGE, which on this path is already net of credits — the checkout route reduced it
+        // before calling here, and the webhook's amount guard compares Stripe's total against it.
+        // The earn hooks compute 9% of real money as `amountPaid - creditsApplied`, so subtracting
+        // the credits again against an already-net total would award nothing at all on a purchase
+        // half-funded by credits. This flag tells them the subtraction has already happened.
+        leonix_amount_is_net_of_credits: true,
         ...(addOns.length
           ? {
               add_ons: addOns.map((a) => ({

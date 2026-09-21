@@ -26,6 +26,8 @@
  * and quietly rewriting a staff member's data is worse than telling them it was wrong.
  */
 
+import { createHash } from "node:crypto";
+
 /** A CSV import is bounded. A file larger than this is refused before it is parsed. */
 export const CSV_MAX_BYTES = 2_000_000;
 /** And so is its row count, so one paste cannot queue thousands of money movements. */
@@ -141,24 +143,41 @@ export function csvRowIdempotencyKey(reference: string): string {
 /**
  * A stable fingerprint of the ACCEPTED rows.
  *
- * Deliberately not a cryptographic hash: it is a tamper-EVIDENCE check between two steps of one
- * staff workflow, not a security boundary (the authorization is the security boundary). What it
- * guarantees is that the file being committed is the file that was reviewed — if a single amount,
- * reference or target changed in between, the fingerprint differs and the commit is refused.
+ * WHAT IT MUST GUARANTEE: the file being committed is the file that was reviewed. Anything a
+ * reviewer could have read and approved has to be inside it.
+ *
+ * EVERY FIELD, NOT JUST THE MONEY. An earlier version hashed only the reference, amount, kind and
+ * target — which let a commit swap the `reason` text for anything at all while still matching the
+ * preview's fingerprint. That text is written into the immutable ledger and then shown to the
+ * customer in their own credit history, so it is exactly the kind of content a review exists to
+ * catch. `reason` is now part of the canonical string.
+ *
+ * SHA-256, NOT A SHORT NON-CRYPTOGRAPHIC HASH. The previous 32-bit FNV-1a was brute-forceable in
+ * seconds: an attacker could change an amount and then vary the free-form `reference` until the
+ * fingerprint collided with the approved one. A 32-bit digest cannot carry a tamper-evidence
+ * claim, however clearly the comment disclaims being "cryptographic".
  */
 export function fingerprintRows(rows: RewardsCsvRow[]): string {
   const canonical = rows
-    .map((r) => `${r.reference}|${r.amountCents}|${r.kind}|${r.paymentRecordId ?? ""}|${r.businessId ?? ""}|${r.ownerUserId ?? ""}`)
+    .map((r) =>
+      [
+        r.reference,
+        String(r.amountCents),
+        r.kind,
+        r.paymentRecordId ?? "",
+        r.businessId ?? "",
+        r.ownerUserId ?? "",
+        // The text a reviewer reads and a customer later sees.
+        r.reason,
+      ]
+        // A separator that cannot appear in any field, so two different row sets cannot
+        // canonicalize to the same string by moving a delimiter into a value.
+        .join("\u0000"),
+    )
     .sort()
-    .join("\n");
-  // FNV-1a, 32-bit, rendered with the row count so two different-sized batches cannot collide
-  // into the same short string.
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < canonical.length; i += 1) {
-    hash ^= canonical.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193) >>> 0;
-  }
-  return `${rows.length}-${hash.toString(16).padStart(8, "0")}`;
+    .join("\u0001");
+  const digest = createHash("sha256").update(`${rows.length}\u0002${canonical}`, "utf8").digest("hex");
+  return `${rows.length}-${digest.slice(0, 32)}`;
 }
 
 /**
@@ -175,8 +194,12 @@ export function parseRewardsCsv(input: { content: string; byteLength?: number })
     return { ok: false, code: "file_too_large", message: `File exceeds ${CSV_MAX_BYTES} bytes.` };
   }
 
-  const lines = input.content.split(/\r?\n/).filter((l, i) => i === 0 || l.trim().length > 0);
-  if (!lines.length) return { ok: false, code: "empty_file", message: "The file is empty." };
+  // KEEP THE ORIGINAL LINE NUMBERS. Filtering blank lines out before numbering would report a bad
+  // row on real line 7 as line 5, and `lineNumber` is documented as the line a staff member can
+  // go and look at. Blank lines are skipped when iterating, not when numbering.
+  const rawLines = input.content.split(/\r?\n/);
+  if (!rawLines.length) return { ok: false, code: "empty_file", message: "The file is empty." };
+  const lines = rawLines;
 
   const header = splitCsvLine(lines[0]!).map((h) => h.trim().toLowerCase());
   const expected = CSV_REQUIRED_HEADERS;
@@ -189,7 +212,11 @@ export function parseRewardsCsv(input: { content: string; byteLength?: number })
     };
   }
 
-  const dataLines = lines.slice(1);
+  // Each entry keeps the line number it had in the FILE, so a rejection points at a real line.
+  const dataLines = lines
+    .slice(1)
+    .map((text, idx) => ({ text, lineNumber: idx + 2 }))
+    .filter((l) => l.text.trim().length > 0);
   if (dataLines.length > CSV_MAX_ROWS) {
     return { ok: false, code: "too_many_rows", message: `File exceeds ${CSV_MAX_ROWS} data rows.` };
   }
@@ -199,8 +226,7 @@ export function parseRewardsCsv(input: { content: string; byteLength?: number })
   const seenReferences = new Map<string, number>();
   const duplicateReferences: string[] = [];
 
-  dataLines.forEach((line, idx) => {
-    const lineNumber = idx + 2; // 1-based, header is line 1.
+  dataLines.forEach(({ text: line, lineNumber }) => {
     const raw = line.slice(0, 300);
     const reject = (code: string, message: string) => rejections.push({ lineNumber, code, message, raw });
 
@@ -347,6 +373,12 @@ export type ReconciliationResultRow = {
   lineNumber: number;
   kind: string;
   amountCents: number;
+  /**
+   * The text this row will write into the immutable ledger and the customer will later read in
+   * their own history. Carried on every preview row because an operator cannot certify a batch
+   * whose customer-visible content they were never shown.
+   */
+  reason?: string;
   outcome: "applied" | "deduplicated" | "rejected";
   movedCents: number;
   walletId: string | null;
@@ -363,10 +395,21 @@ export function toReconciliationCsv(rows: ReconciliationResultRow[]): string {
     "outcome",
     "moved_cents",
     "wallet_id",
+    "reason",
     "detail",
   ].join(",");
   const body = rows.map((r) =>
-    [r.reference, r.lineNumber, r.kind, r.amountCents, r.outcome, r.movedCents, r.walletId ?? "", r.detail]
+    [
+      r.reference,
+      r.lineNumber,
+      r.kind,
+      r.amountCents,
+      r.outcome,
+      r.movedCents,
+      r.walletId ?? "",
+      r.reason ?? "",
+      r.detail,
+    ]
       .map(csvCell)
       .join(","),
   );

@@ -275,7 +275,19 @@ export async function handleInvoicePaid(input: {
         ).data as { id?: string } | null)?.id ?? null
       : null);
 
-  if (renewalPaymentRecordId && (input.invoice.amount_paid ?? 0) > 0) {
+  // A SUBSCRIPTION'S FIRST INVOICE IS NOT A RENEWAL, and it has already earned.
+  //
+  // Stripe fires `checkout.session.completed` AND `invoice.paid` for a subscription signup. The
+  // checkout path awards against ITS payment record; this path creates a SECOND record for the
+  // same money (the checkout record carries no stripe_invoice_id, so the M5 unique index cannot
+  // collapse them). Awarding here too would earn 9% twice on one payment, every signup.
+  //
+  // `billing_reason` is Stripe's own name for that first invoice. Anything else — a renewal, a
+  // cycle change, a manual invoice — is money the checkout path never saw, and earns normally.
+  const billingReason = (input.invoice as unknown as { billing_reason?: string | null }).billing_reason ?? null;
+  const isSubscriptionCreateInvoice = billingReason === "subscription_create";
+
+  if (renewalPaymentRecordId && !isSubscriptionCreateInvoice && (input.invoice.amount_paid ?? 0) > 0) {
     await awardCreditsForSettledPayment({
       paymentRecordId: String(renewalPaymentRecordId),
       ownerUserId: renewalOwnerUserId,

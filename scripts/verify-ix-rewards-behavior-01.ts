@@ -39,6 +39,7 @@ import {
   computeEligibleNetCents,
   checkoutCreditsCopy,
   computeReversalDeltaCents,
+  earnBaseFromPaymentMetadata,
   computeTotalReversalTargetCents,
   formatCreditsCents,
   maxRedeemableForPurchaseCents,
@@ -67,6 +68,7 @@ import {
   type WalletOwnerRef,
   type WalletSnapshot,
 } from "../app/lib/rewards/rewardsLedgerCore";
+import { isUuid, sanitizeSearchTerm } from "../app/lib/rewards/rewardsStaffQuery";
 import {
   CSV_MAX_ROWS,
   CSV_REQUIRED_HEADERS,
@@ -972,7 +974,16 @@ async function main() {
     assert.ok(sql.includes("leonix_rewards_ledger_immutable_tg"), "the ledger is append-only by trigger");
     assert.ok(sql.includes("FOR UPDATE"), "the wallet row is locked during a movement");
     assert.ok(/ENABLE ROW LEVEL SECURITY/.test(sql), "RLS is enabled");
-    assert.ok(!/FOR (INSERT|UPDATE|DELETE)[\s\S]{0,80}TO authenticated/.test(sql), "no authenticated write policy exists on any rewards table");
+    // FOR ALL was the gap: it grants INSERT/UPDATE/DELETE too, and the old pattern did not
+    // name it, so the single most dangerous policy form would have passed this check.
+    assert.ok(
+      !/FOR (INSERT|UPDATE|DELETE|ALL)[\s\S]{0,120}TO (authenticated|anon|public|PUBLIC)/.test(sql),
+      "no authenticated write policy exists on any rewards table",
+    );
+    // And every policy that DOES exist is a SELECT policy.
+    for (const m of sql.matchAll(/CREATE POLICY\s+(\w+)[\s\S]{0,200}?FOR\s+(\w+)/g)) {
+      assert.equal(m[2]!.toUpperCase(), "SELECT", `policy ${m[1]} must be SELECT-only`);
+    }
     assert.ok(sql.includes("REVOKE ALL ON FUNCTION public.leonix_rewards_post_entry"), "the posting function is not callable from a browser session");
     assert.ok(!/numeric|float|double precision|real\b/i.test(sql.replace(/^\s*--.*$/gm, "")), "no floating-point money column");
   });
@@ -1291,7 +1302,81 @@ async function main() {
     assert.equal(replayed.lifetimeReversedCents, incremental.lifetimeReversedCents);
   });
 
-  await check("J4: the SQL recomputation is a REPLAY, not an aggregate", () => {
+  await check("J4: the SQL replay and the SQL posting function derive the SAME bucket deltas", () => {
+    // WHAT J1-J3 DO AND DO NOT PROVE. They drive the TypeScript mirror of the posting rules both
+    // incrementally and as a replay, which proves the REPLAY SHAPE is right — that ordering and
+    // the two path-dependent types are handled consistently. They cannot prove the SQL agrees,
+    // because no PL/pgSQL runs in this suite. This check closes that gap the only way a test
+    // without a database can: by comparing the two SQL CASE blocks to each other, arm by arm.
+    const sql = readFileSync(MIGRATION_PATH, "utf8");
+
+    /** Pull `WHEN '<type>' THEN ...` arms out of one function body, normalized for comparison. */
+    function armsOf(fnMarker: string, endMarker: string): Map<string, string> {
+      const start = sql.indexOf(fnMarker);
+      const body = sql.slice(start, sql.indexOf(endMarker, start));
+      const caseBlock = body.slice(body.indexOf("CASE"), body.indexOf("END CASE"));
+      const arms = new Map<string, string>();
+      const parts = caseBlock.split(/\n\s*WHEN /).slice(1);
+      for (const part of parts) {
+        const head = part.slice(0, part.indexOf("THEN"));
+        const types = (head.match(/'(\w+)'/g) ?? []).map((t) => t.replaceAll("'", ""));
+        const bodyText = part
+          .slice(part.indexOf("THEN") + 4)
+          .replace(/--[^\n]*/g, "")
+          // The two functions name their accumulators differently (per-entry deltas vs running
+          // totals); normalize the NAMES so the ARITHMETIC is what gets compared.
+          .replace(/v_(pending|available|reserved)_delta/g, "$1")
+          .replace(/v_wallet\.(pending|available|reserved)_cents/g, "$1")
+          .replace(/v_(pending|available|reserved)\b/g, "$1")
+          .replace(/p_amount_cents|v_entry\.amount_cents/g, "AMT")
+          .replace(/v_earned_delta|v_earned/g, "EARNED")
+          .replace(/v_redeemed_delta|v_redeemed/g, "REDEEMED")
+          .replace(/v_reversed_delta|v_reversed/g, "REVERSED")
+          .replace(/v_draw|v_take/g, "DRAW")
+          .replace(/\s+/g, " ")
+          .trim();
+        for (const t of types) arms.set(t, bodyText);
+      }
+      return arms;
+    }
+
+    const postArms = armsOf(
+      "FUNCTION public.leonix_rewards_post_entry",
+      "COMMENT ON FUNCTION public.leonix_rewards_post_entry",
+    );
+    const replayArms = armsOf(
+      "FUNCTION public.leonix_rewards_recompute_wallet",
+      "COMMENT ON FUNCTION public.leonix_rewards_recompute_wallet",
+    );
+
+    assert.ok(postArms.size >= 9, `the posting CASE was parsed (${postArms.size} arms)`);
+    assert.ok(replayArms.size >= 9, `the replay CASE was parsed (${replayArms.size} arms)`);
+
+    // Every type the posting function moves must be replayed, and every bucket it touches must be
+    // touched by the replay too. The posting function additionally REFUSES movements that the
+    // replay only has to reproduce, so its arm may be the longer of the two.
+    for (const [type, postBody] of postArms) {
+      const replayBody = replayArms.get(type);
+      assert.ok(replayBody !== undefined, `the replay must handle ${type}`);
+      for (const bucket of ["pending", "available", "reserved", "EARNED", "REDEEMED", "REVERSED"]) {
+        const re = new RegExp(`\\b${bucket}\\b`);
+        assert.equal(
+          re.test(replayBody!),
+          re.test(postBody),
+          `${type}: posting and replay disagree about whether ${bucket} moves`,
+        );
+      }
+      // The pending-first / available-first branch must be present in BOTH wherever it is in either.
+      const branchRe = /IF [^;]*>= (AMT|DRAW) THEN/;
+      assert.equal(
+        branchRe.test(replayBody!),
+        branchRe.test(postBody),
+        `${type}: the path-dependent branch must be present in both`,
+      );
+    }
+  });
+
+  await check("J5: the SQL recomputation is a REPLAY, not an aggregate", () => {
     const sql = readFileSync(MIGRATION_PATH, "utf8");
     const fn = sql.slice(sql.indexOf("FUNCTION public.leonix_rewards_recompute_wallet"));
     assert.ok(/FOR v_entry IN[\s\S]{0,300}ORDER BY created_at ASC, id ASC/.test(fn), "entries are replayed in posting order");
@@ -1472,11 +1557,53 @@ async function main() {
   // =========================================================================
   // SECTION L — authorization, isolation, injection refusal
   // =========================================================================
-  await check("L1: the staff rewards API gates READS like the payment tracker", () => {
+  await check("L1: the staff rewards GET AUTHENTICATES before it authorizes", () => {
     const src = readFileSync("app/api/admin/rewards/route.ts", "utf8");
-    const getBlock = src.slice(src.indexOf("export async function GET"));
-    assert.ok(getBlock.includes("hasPaymentTrackerAccess"), "the GET requires payment-tracker READ authority");
+    // Comments EXPLAIN the order; they do not establish it. Strip them, so this check measures
+    // the code and cannot be satisfied by prose that merely mentions the right function names.
+    const stripComments = (t: string) => t.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+    const getBlock = stripComments(src.slice(src.indexOf("export async function GET")));
+
+    // THE DEFECT THIS EXISTS FOR: `getCurrentAdminAccessContext()` never returns null, and with
+    // NO admin cookie it returns `normalizedRole: "owner_admin"` so unauthenticated navigation can
+    // render. `hasPaymentTrackerAccess()` grants owner_admin unconditionally, and middleware gates
+    // `/admin` but not `/api/admin`. Checking only the context therefore authorized a request
+    // carrying no cookies at all to read any customer's balance and ledger.
+    assert.ok(getBlock.includes("requireAdminCookie"), "the GET checks the admin cookie");
+    assert.ok(
+      getBlock.indexOf("requireAdminCookie") < getBlock.indexOf("getCurrentAdminAccessContext"),
+      "and checks it BEFORE reading the access context, like the payment-tracker page does",
+    );
+    assert.ok(getBlock.includes("hasPaymentTrackerAccess"), "then requires payment-tracker READ authority");
+    assert.ok(getBlock.includes("ctx.hasAdminCookie"), "and re-asserts the cookie on the resolved context");
+    // The dead `!ctx` branch is gone: it could never be true and it read like a guard.
+    assert.ok(!/if \(!ctx \|\|/.test(getBlock), "no dead `!ctx` branch masquerading as a check");
+
+    // The page this route claims parity with does exactly these two steps, in this order.
+    const page = stripComments(readFileSync("app/admin/(dashboard)/workspace/payment-tracker/page.tsx", "utf8"));
+    assert.ok(page.includes("requireAdminCookie("), "the payment tracker page checks the cookie");
+    // Compare CALL SITES, not import lines — an import block orders names alphabetically, not by
+    // execution, and comparing those positions would measure nothing.
+    assert.ok(
+      page.indexOf("requireAdminCookie(c)") < page.indexOf("await getCurrentAdminAccessContext()"),
+      "in the same order",
+    );
+
     assert.ok(src.includes("requireRevenueProtectedWriteAccess"), "every WRITE stays on the money-write gate");
+  });
+
+  await check("L1b: an admin-context default can never BE the authentication", () => {
+    // Proof that the shape above matters: the resolver really does hand back owner_admin with no
+    // cookie, so any route that treats the context alone as authentication is open.
+    const acl = readFileSync("app/admin/_lib/adminAccessControl.ts", "utf8");
+    assert.ok(
+      /if \(!hasAdminCookie\) \{[\s\S]{0,200}normalizedRole: "owner_admin"/.test(acl),
+      "the no-cookie context is owner_admin, which is why the cookie check is the real gate",
+    );
+    assert.ok(
+      /export function hasPaymentTrackerAccess[\s\S]{0,200}isOwnerAdminRole\(ctx\.normalizedRole\)\) return true/.test(acl),
+      "and owner_admin passes the payment-tracker check unconditionally",
+    );
   });
 
   await check("L2: the staff API never returns actor identity or internal meta to the browser", () => {
@@ -1492,30 +1619,64 @@ async function main() {
     const src = readFileSync("app/api/rewards/wallet/route.ts", "utf8");
     assert.ok(src.includes("getBearerUserId"), "identity comes from the bearer token");
     assert.ok(!/searchParams\.get\("(walletId|businessId|ownerUserId)"\)/.test(src), "no wallet is addressable by a request parameter");
-    assert.ok(/ownerUserId: userId/.test(src), "the wallet is resolved from the authenticated user");
+    assert.ok(/resolveWalletOwnerForUser\(userId\)/.test(src), "the wallet is resolved from the authenticated user");
     assert.ok(src.includes("auth_required"), "an unauthenticated read is refused");
   });
 
-  await check("L4: a crafted search term cannot inject a PostgREST filter", () => {
+  await check("L4: a crafted search term cannot inject a PostgREST filter — RUN, not read", () => {
+    // The previous version of this check asserted that the sanitizer's SOURCE TEXT contained the
+    // characters "(", ")", "," and "." — which is true of every JavaScript function ever written,
+    // because `(raw: string)`, `.trim()` and `.slice(0, 60)` all contain them. It would have
+    // passed against a sanitizer that replaced nothing. The rule is now EXERCISED.
+    const attacks: Array<[string, string]> = [
+      ["a,status.eq.deleted", "a comma adds a condition of the caller's choosing"],
+      ["a),or=(id.gte.0", "a paren closes the group early"],
+      ["a.ilike.%", "a dot forms an operator"],
+      ["Bob's Autos", "an apostrophe"],
+      ["100%", "a LIKE wildcard"],
+      ["a_b", "the single-character LIKE wildcard"],
+      ['a"b', "a quote"],
+      ["a\\b", "a backslash"],
+      ["a*b", "the PostgREST like-star"],
+      ["a\nstatus.eq.deleted", "a newline"],
+    ];
+    for (const [term, why] of attacks) {
+      const cleaned = sanitizeSearchTerm(term);
+      if (cleaned === null) continue; // refused outright is also correct
+      for (const ch of ["(", ")", ",", ".", "%", "_", "*", '"', "'", "\\", "\n", "\r"]) {
+        assert.ok(!cleaned.includes(ch), `${why}: ${JSON.stringify(term)} -> ${JSON.stringify(cleaned)} still has ${JSON.stringify(ch)}`);
+      }
+    }
+    // A term that sanitizes away entirely is refused, not searched as "%%" (which matches all).
+    assert.equal(sanitizeSearchTerm(",,,"), null);
+    assert.equal(sanitizeSearchTerm("%"), null);
+    assert.equal(sanitizeSearchTerm("a"), null, "below the minimum length");
+    // A legitimate name survives intact enough to be useful.
+    assert.equal(sanitizeSearchTerm("Taqueria El Sol"), "Taqueria El Sol");
+    // Bounded.
+    assert.ok((sanitizeSearchTerm("x".repeat(500)) ?? "").length <= 60);
+
     const src = readFileSync("app/api/admin/rewards/route.ts", "utf8");
-    assert.ok(src.includes("sanitizeSearchTerm"), "the term is sanitized before interpolation");
     const or = src.match(/\.or\(`([^`]*)`\)/)?.[1] ?? "";
     assert.ok(or.includes("${q}"), "the sanitized value is what gets interpolated");
     assert.ok(!or.includes("${raw}"), "the raw term never reaches the filter");
-    const sanitizer = src.slice(src.indexOf("function sanitizeSearchTerm"), src.indexOf("export async function POST"));
-    assert.ok(/replace\(/.test(sanitizer), "the sanitizer rewrites the term");
-    for (const ch of ["(", ")", ",", "."]) {
-      assert.ok(sanitizer.includes(ch), `the sanitizer's character class covers ${ch}`);
-    }
-    assert.ok(/\[%_\]/.test(sanitizer), "LIKE wildcards are collapsed");
-    assert.ok(/slice\(0, 60\)/.test(sanitizer), "the term is bounded");
-    assert.ok(src.includes("query_unusable"), "a term that sanitizes to nothing is refused, not searched as empty");
+    assert.ok(src.includes("query_unusable"), "a term that sanitizes to nothing is refused");
   });
 
-  await check("L5: a wallet target must be a canonical uuid", () => {
+  await check("L5: a wallet target must be a canonical uuid — RUN, not read", () => {
+    assert.equal(isUuid("11111111-1111-4111-8111-111111111111"), true);
+    for (const bad of [
+      "",
+      "not-a-uuid",
+      "11111111-1111-4111-8111-11111111111",
+      "11111111111141118111111111111111",
+      "11111111-1111-4111-8111-111111111111 or 1=1",
+      "'; drop table x; --",
+    ]) {
+      assert.equal(isUuid(bad), false, `${JSON.stringify(bad)} must not pass as a uuid`);
+    }
     const src = readFileSync("app/api/admin/rewards/route.ts", "utf8");
-    assert.ok(src.includes("function isUuid"), "ids are validated");
-    const ownerFn = src.slice(src.indexOf("function ownerFromBody"), src.indexOf("export async function POST"));
+    const ownerFn = src.slice(src.indexOf("function ownerFromBody"), src.indexOf("export function sanitizeSearchTerm"));
     assert.ok(/isUuid\(businessId\)/.test(ownerFn), "a business target is checked");
     assert.ok(/isUuid\(ownerUserId\)/.test(ownerFn), "a user target is checked");
     assert.ok(src.includes("businessId_invalid"), "the GET refuses a malformed id");
@@ -1622,6 +1783,231 @@ async function main() {
     }
     assert.ok(src.includes("CREDITS_EXPIRE_AT_LAUNCH"), "the expiry policy is reported, not guessed at by the panel");
     assert.ok(src.includes("CARD_SETTLEMENT_PENDING_DAYS"), "the availability date uses the one settlement constant");
+  });
+
+  // =========================================================================
+  // SECTION N — regressions found by adversarial review, each fixed and pinned
+  // =========================================================================
+  await check("N1: credits are subtracted from the earn base ONCE, not twice", () => {
+    // A $100 purchase half-funded by credits: Stripe charges $50, and the record stores $50 as
+    // its total because the webhook's amount guard compares Stripe's figure against it. Subtracting
+    // the $50 of credits AGAIN gave an earn base of zero — the customer earned nothing on $50 of
+    // real money. The flag says the netting already happened.
+    const net = earnBaseFromPaymentMetadata({
+      amountPaidCents: 5000,
+      metadata: { leonix_credits_applied_cents: 5000, leonix_amount_is_net_of_credits: true },
+    });
+    assert.equal(net.amountPaidCents, 5000);
+    assert.equal(net.creditsAppliedCents, 0, "already net: nothing left to subtract");
+    assert.equal(assessEarn(settled({ ...net, source: "stripe" })).earnCents, 450, "9% of the real $50");
+
+    // A record whose total is GROSS still has the credits subtracted.
+    const gross = earnBaseFromPaymentMetadata({
+      amountPaidCents: 10000,
+      metadata: { leonix_credits_applied_cents: 4000 },
+    });
+    assert.equal(gross.creditsAppliedCents, 4000);
+    assert.equal(assessEarn(settled({ ...gross, source: "stripe" })).earnCents, 540, "9% of the real $60");
+
+    // The checkout writer sets the flag, so the two cannot drift apart.
+    const writer = readFileSync("app/lib/listingPlans/revenuePaymentRecords.ts", "utf8");
+    assert.ok(writer.includes("leonix_amount_is_net_of_credits: true"), "the netting writer records that it netted");
+    for (const f of ["app/lib/listingPlans/revenueFulfillment.ts", "app/lib/listingPlans/manualClearedPayments.ts"]) {
+      assert.ok(readFileSync(f, "utf8").includes("earnBaseFromPaymentMetadata"), `${f} uses the shared base`);
+    }
+  });
+
+  await check("N2: a subscription's FIRST invoice does not earn a second time", () => {
+    // `checkout.session.completed` and `invoice.paid` both fire for a signup, against DIFFERENT
+    // payment records — the checkout record carries no stripe_invoice_id, so the unique index
+    // cannot collapse them. Awarding on both earned 9% twice on one payment, every signup.
+    const src = readFileSync("app/lib/listingPlans/revenueSubscriptionEvents.ts", "utf8");
+    const paid = src.slice(src.indexOf("export async function handleInvoicePaid"));
+    assert.ok(paid.includes("subscription_create"), "the signup invoice is recognized by billing_reason");
+    assert.ok(paid.includes("isSubscriptionCreateInvoice"), "and named");
+    assert.ok(
+      /!isSubscriptionCreateInvoice &&[\s\S]{0,80}awardCreditsForSettledPayment|if \(renewalPaymentRecordId && !isSubscriptionCreateInvoice/.test(paid),
+      "and excluded from the renewal award",
+    );
+  });
+
+  await check("N3: a COMMITTED hold is never re-served as a fresh discount", async () => {
+    const { port } = makeStore();
+    await seedAvailable(port, OWNER, 5000, "n3");
+    await reserveCreditsForPurchase({ owner: OWNER, requestedCents: 1000, amountDueCents: 9000, redemptionRef: "n3_ref", contextKind: "stripe_checkout", ports: port });
+    await commitReservedCredits({ redemptionRef: "n3_ref", ports: port });
+    const spentBalance = await walletOf(port, OWNER);
+    assert.equal(spentBalance.availableCents, 4000, "the credits were spent");
+
+    // The same reference again — which a purchase-key-derived reference would produce on the next
+    // monthly renewal — must NOT report a live discount.
+    const again = await reserveCreditsForPurchase({ owner: OWNER, requestedCents: 1000, amountDueCents: 9000, redemptionRef: "n3_ref", contextKind: "stripe_checkout", ports: port });
+    assert.equal(again.ok, true);
+    assert.equal((again as { redeemCents: number }).redeemCents, 0, "a committed hold funds nothing further");
+    assert.equal((await walletOf(port, OWNER)).availableCents, 4000, "and nothing moved");
+  });
+
+  await check("N3b: the checkout reference is the PAYMENT RECORD, not the reusable attempt key", () => {
+    const redemption = readFileSync("app/lib/rewards/rewardsCheckoutRedemption.ts", "utf8");
+    assert.ok(/redemptionRef: input\.paymentRecordId/.test(redemption), "the hold is keyed on the payment record");
+    assert.ok(!/redemptionRef: input\.checkoutAttemptKey/.test(redemption), "never on the attempt key");
+
+    const route = readFileSync("app/api/revenue-os/checkout/route.ts", "utf8");
+    // The hold is taken AFTER the record exists, so an attempt that loses the concurrency race
+    // returns without ever reserving anything.
+    assert.ok(
+      route.indexOf("const paymentInsert = await createPendingPaymentRecord(") < route.indexOf("await reserveCheckoutCredits("),
+      "the record is created before any credits are held",
+    );
+    assert.ok(route.includes("planCheckoutCredits"), "the amount is planned read-only first");
+    assert.ok(route.includes("credits_no_longer_available"), "a plan/reserve disagreement aborts rather than charging");
+  });
+
+  await check("N4: a hold that expired before payment is RE-DEBITED at commit", async () => {
+    const t0 = Date.parse("2026-09-21T12:00:00.000Z");
+    const { port } = makeStore({ now: () => t0 });
+    await seedAvailable(port, OWNER, 5000, "n4");
+    await reserveCreditsForPurchase({ owner: OWNER, requestedCents: 2000, amountDueCents: 9000, redemptionRef: "n4_ref", contextKind: "stripe_checkout", nowMs: t0, ports: port });
+
+    // The sweep returns the credits while the Stripe session — which lives far longer than the
+    // 30-minute hold — is still open at its reduced price.
+    await runReservationExpirySweep({ nowMs: t0 + 31 * 60_000, limit: 10, ports: port });
+    assert.equal((await walletOf(port, OWNER)).availableCents, 5000, "returned to the customer");
+
+    // The customer then pays. The discount is real, so the credits must be taken now.
+    const commit = await commitReservedCredits({ redemptionRef: "n4_ref", paymentRecordId: "n4_pay", ports: port });
+    assert.equal(commit.ok, true);
+    assert.equal((commit as { outcome: string }).outcome, "recommitted");
+    const after = await walletOf(port, OWNER);
+    assert.equal(after.availableCents, 3000, "the credits funding the discount are gone");
+    assert.equal(after.lifetimeRedeemedCents, 2000);
+
+    // And a redelivered webhook does not take them a second time.
+    const again = await commitReservedCredits({ redemptionRef: "n4_ref", paymentRecordId: "n4_pay", ports: port });
+    assert.equal(again.ok, true);
+    assert.equal((await walletOf(port, OWNER)).availableCents, 3000, "still exactly one debit");
+  });
+
+  await check("N4b: a re-debit that the balance cannot cover FAILS rather than passing silently", async () => {
+    const t0 = Date.parse("2026-09-21T12:00:00.000Z");
+    const { port } = makeStore({ now: () => t0 });
+    await seedAvailable(port, OWNER, 2000, "n4b");
+    await reserveCreditsForPurchase({ owner: OWNER, requestedCents: 2000, amountDueCents: 9000, redemptionRef: "n4b_ref", contextKind: "stripe_checkout", nowMs: t0, ports: port });
+    await runReservationExpirySweep({ nowMs: t0 + 31 * 60_000, limit: 10, ports: port });
+    // The customer spends the returned credits elsewhere.
+    await reserveCreditsForPurchase({ owner: OWNER, requestedCents: 2000, amountDueCents: 9000, redemptionRef: "n4b_other", contextKind: "stripe_checkout", nowMs: t0, ports: port });
+    await commitReservedCredits({ redemptionRef: "n4b_other", ports: port });
+    assert.equal((await walletOf(port, OWNER)).availableCents, 0);
+
+    const commit = await commitReservedCredits({ redemptionRef: "n4b_ref", ports: port });
+    assert.equal(commit.ok, false, "this needs a person, not a silent success");
+    assert.equal((commit as { error: string }).error, "recommit_insufficient_balance");
+  });
+
+  await check("N5: a reservation whose ledger post is refused does not survive as a live hold", async () => {
+    const { port, redemptions } = makeStore();
+    await seedAvailable(port, OWNER, 1000, "n5");
+    // Hold everything, so the second reserve's ledger post is refused after its row is created.
+    await reserveCreditsForPurchase({ owner: OWNER, requestedCents: 1000, amountDueCents: 9000, redemptionRef: "n5_first", contextKind: "stripe_checkout", ports: port });
+    const second = await reserveCreditsForPurchase({ owner: OWNER, requestedCents: 1000, amountDueCents: 9000, redemptionRef: "n5_second", contextKind: "stripe_checkout", ports: port });
+    assert.equal(second.ok, false, "refused: the balance is already held");
+
+    const orphan = redemptions.get(reserveIdempotencyKey("n5_second"));
+    if (orphan) {
+      assert.notEqual(orphan.status, "reserved", "a row that holds nothing must not look like a live hold");
+    }
+
+    // The sweep must not 'release' it and conjure credits that were never held.
+    const before = await walletOf(port, OWNER);
+    const out = await runReservationExpirySweep({ nowMs: Date.now() + 3600_000, limit: 10, ports: port });
+    const after = await walletOf(port, OWNER);
+    assert.equal(
+      after.availableCents + after.reservedCents,
+      before.availableCents + before.reservedCents,
+      `the sweep must not create value (released ${out.released})`,
+    );
+  });
+
+  await check("N6: the CSV fingerprint binds the customer-visible REASON text", () => {
+    const row = (reason: string) =>
+      `${CSV_HEADER}\r\n,${UUID_A},,500,manual_adjustment,FP-REASON-1,${reason}`;
+    const approved = parseRewardsCsv({ content: row("office reconciliation") }) as ParsedCsvOk;
+    const swapped = parseRewardsCsv({ content: row("call 555-0100 to claim your prize") }) as ParsedCsvOk;
+    assert.equal(approved.rows.length, 1);
+    assert.equal(swapped.rows.length, 1);
+    // That text is written into the immutable ledger and shown to the customer, so a commit must
+    // not be able to substitute it under a fingerprint the operator approved.
+    assert.notEqual(approved.batchFingerprint, swapped.batchFingerprint, "a changed REASON is detected");
+  });
+
+  await check("N6b: the fingerprint is a cryptographic digest, not a 32-bit hash", () => {
+    const fp = parseRewardsCsv({
+      content: `${CSV_HEADER}\r\n,${UUID_A},,500,manual_adjustment,FP-LEN-1,reconciliation`,
+    }) as ParsedCsvOk;
+    const digest = fp.batchFingerprint.split("-").slice(1).join("-");
+    // 32 bits is 8 hex characters and brute-forceable in seconds by varying the free-form
+    // reference until a collision is found.
+    assert.ok(digest.length >= 32, `digest is ${digest.length} hex chars, need >= 32`);
+    assert.ok(/^[0-9a-f]+$/.test(digest), "hex digest");
+    const src = readFileSync("app/lib/rewards/rewardsCsvReconciliation.ts", "utf8");
+    assert.ok(src.includes('createHash("sha256")'), "sha-256");
+  });
+
+  await check("N7: a CSV rejection points at the REAL line in the file", () => {
+    // Blank lines used to be filtered out BEFORE numbering, so a bad row on file line 5 was
+    // reported as line 3 and the operator looked at the wrong row.
+    const content = [
+      CSV_HEADER,
+      "",
+      `,${UUID_A},,500,manual_adjustment,GOODLINE-1,fine`,
+      "",
+      `,not-a-uuid,,500,manual_adjustment,BADLINE-1,bad target`,
+    ].join("\r\n");
+    const res = parseRewardsCsv({ content }) as ParsedCsvOk;
+    assert.equal(res.rows.length, 1);
+    assert.equal(res.rows[0]!.lineNumber, 3, "the good row really is on line 3");
+    assert.equal(res.rejections.length, 1);
+    assert.equal(res.rejections[0]!.lineNumber, 5, "and the bad row really is on line 5");
+  });
+
+  await check("N8: a preview shows the operator the text they are certifying", () => {
+    const route = readFileSync("app/api/admin/rewards/reconciliation/route.ts", "utf8");
+    const previewBlock = route.slice(route.indexOf('if (mode === "preview")'), route.indexOf("// COMMIT —"));
+    assert.ok(previewBlock.includes("reason: row.reason"), "the preview rows carry the reason text");
+    const csvModule = readFileSync("app/lib/rewards/rewardsCsvReconciliation.ts", "utf8");
+    assert.ok(/reason\?: string;/.test(csvModule), "the result row type carries it");
+    assert.ok(csvModule.includes('"reason",\n    "detail",'), "and the exported report includes it");
+  });
+
+  await check("N9: a staff clawback is never rendered to the customer as a credit", () => {
+    const panel = readFileSync("app/(site)/dashboard/components/LeonixCreditsPanel.tsx", "utf8");
+    assert.ok(panel.includes("function isDebitRow"), "the sign decides for signed types");
+    assert.ok(/if \(row\.amountCents < 0\) return true;/.test(panel), "a negative amount is a debit");
+    assert.ok(panel.includes("const isDebit = isDebitRow(row);"), "and the row uses it");
+    // A hold leaves `available`, so it is a debit too.
+    assert.ok(/DEBIT_TYPES = new Set\(\[[\s\S]{0,200}"redeem_reserve"/.test(panel), "a reserve shows as a debit");
+  });
+
+  await check("N10: a wallet is never resolved from an empty payment id", () => {
+    const src = readFileSync("app/lib/rewards/rewardsLedger.ts", "utf8");
+    assert.ok(src.includes("export async function resolveWalletOwnerForUser"), "a user-scoped resolver exists");
+    assert.ok(
+      /if \(!paymentRecordId\) return resolveWalletOwnerForUser/.test(src),
+      "an empty payment id means 'no payment', not 'the empty payment'",
+    );
+    // No caller passes the empty sentinel any more.
+    for (const f of ["app/api/rewards/wallet/route.ts", "app/lib/rewards/rewardsCheckoutRedemption.ts"]) {
+      assert.ok(
+        !/paymentRecordId: ""/.test(readFileSync(f, "utf8")),
+        `${f} must not resolve a wallet through an empty payment id`,
+      );
+    }
+    // Bare membership must not silently hand an individual's credits to a business.
+    assert.ok(
+      /const owned = rows\.filter\(\(r\) => r\.is_primary_owner === true\);[\s\S]{0,160}if \(owned\.length === 1\)/.test(src),
+      "primary ownership decides, not any active membership",
+    );
+    assert.ok(!/if \(rows\.length === 1\) return \{ kind: "business"/.test(src), "a single bare membership is not ownership");
   });
 
   if (failures.length) {

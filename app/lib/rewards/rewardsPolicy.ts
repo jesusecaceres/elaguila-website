@@ -199,6 +199,37 @@ export function computeReversalDeltaCents(input: {
   return Math.max(0, Math.min(target - already, earned - already));
 }
 
+/**
+ * Derive the earn base from a payment record's stored money, in ONE place.
+ *
+ * The subtlety this exists to remove: some payment records store a total that is ALREADY net of
+ * the credits applied (the Revenue OS checkout reduces the charge before creating the record, and
+ * the webhook's amount guard compares Stripe's total against that reduced figure), while others
+ * store the gross amount with the credits recorded beside it. Subtracting the credits against an
+ * already-net total charges the customer's loyalty value against them twice and awards nothing at
+ * all on a purchase half-funded by credits.
+ *
+ * `metadata.leonix_amount_is_net_of_credits` is written by whichever writer did the netting, so
+ * the answer is a recorded fact rather than an inference from the numbers.
+ */
+export function earnBaseFromPaymentMetadata(input: {
+  amountPaidCents: number;
+  metadata: Record<string, unknown> | null;
+}): { amountPaidCents: number; creditsAppliedCents: number } {
+  const meta = (input.metadata ?? {}) as {
+    leonix_credits_applied_cents?: number;
+    leonix_amount_is_net_of_credits?: boolean;
+  };
+  const creditsApplied = Math.max(0, Math.floor(Number(meta.leonix_credits_applied_cents ?? 0)) || 0);
+  const alreadyNet = meta.leonix_amount_is_net_of_credits === true;
+  return {
+    amountPaidCents: Math.max(0, Math.floor(input.amountPaidCents) || 0),
+    // Already net => nothing left to subtract. The credits are still recorded on the row for the
+    // customer's history; they are simply not deducted a second time here.
+    creditsAppliedCents: alreadyNet ? 0 : creditsApplied,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // REDEMPTION
 // ---------------------------------------------------------------------------

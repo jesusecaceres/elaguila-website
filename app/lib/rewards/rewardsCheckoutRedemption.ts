@@ -6,11 +6,20 @@
  * applied, `rewardsLedgerCore` reserves and settles it, and this module exists only to bind those
  * to the checkout's own identity and lifecycle.
  *
- * THE REFERENCE IS THE CHECKOUT ATTEMPT KEY.
- * `computeCheckoutAttemptKey()` already produces one stable id per purchase attempt, surviving a
- * double click, a second tab and a retried request. Using it as the redemption reference means a
- * retry reuses the SAME hold instead of stacking a second one, and the `deduplicated` flag on the
- * result is what stops a replayed reference being reported to the customer as a fresh discount.
+ * THE REFERENCE IS THE PAYMENT RECORD ID, and that choice is load-bearing.
+ *
+ * The obvious candidate was `checkoutAttemptKey`, which is stable across a double click and a
+ * retried request. It is also stable across DIFFERENT PURCHASES: it is a pure hash of
+ * (owner, listing, package, add-ons, billing mode, operation) with no nonce, and its uniqueness
+ * index covers only UNRESOLVED attempts. So a monthly renewal of the same package mints the same
+ * key every month. Keyed on it, month two would find month one's COMMITTED hold, report its
+ * amount as applied, and hand out the discount again with nothing debited — free money, monthly.
+ * Releasing a hold (a stale attempt, an expired session) had the mirror-image problem: the key
+ * was burned, and the customer could never apply credits to that purchase again.
+ *
+ * A payment record id is minted per attempt and never reused, which makes both impossible. It
+ * also means the reservation happens AFTER the record exists, so an attempt that loses the
+ * concurrency race returns before any credits are held.
  *
  * THE LIFECYCLE
  *   reserve   at checkout creation, from the SERVER-planned amount, never a browser figure
@@ -25,7 +34,7 @@
 import "server-only";
 
 import { writeRevenueAuditLog } from "@/app/lib/listingPlans/revenueAuditLog";
-import { buildRewardsStorePort, isRewardsConfigured, resolveWalletOwnerForPayment } from "./rewardsLedger";
+import { buildRewardsStorePort, isRewardsConfigured, resolveWalletOwnerForUser } from "./rewardsLedger";
 import {
   commitReservedCredits,
   releaseReservedCredits,
@@ -82,7 +91,7 @@ export async function quoteCheckoutCredits(input: {
   if (!isRewardsConfigured()) return { ...none, reason: "rewards_not_configured" };
   if (!input.ownerUserId) return { ...none, reason: "auth_required" };
 
-  const owner = await resolveWalletOwnerForPayment({ paymentRecordId: "", ownerUserId: input.ownerUserId });
+  const owner = await resolveWalletOwnerForUser(input.ownerUserId);
   if (!owner) return { ...none, reason: "no_wallet" };
 
   const walletRes = await buildRewardsStorePort().resolveWallet(owner);
@@ -111,6 +120,50 @@ export async function quoteCheckoutCredits(input: {
 }
 
 /**
+ * What the server WOULD apply, without holding anything.
+ *
+ * The checkout needs the figure before the payment record exists (the record stores the reduced
+ * amount), but the hold must be keyed on that record's id. So planning and holding are two steps:
+ * this one decides, and `reserveCheckoutCredits` commits to the decision. The reserve result is
+ * authoritative — it re-plans under a row lock — and the caller aborts if the two disagree.
+ */
+export async function planCheckoutCredits(input: {
+  ownerUserId: string | null;
+  requestedCents: number;
+  amountDueCents: number;
+  eligiblePurchaseCents?: number;
+  minimumChargeCents?: number;
+}): Promise<{ plannedCents: number; reason?: string; maxRedeemableCents: number }> {
+  const none = (reason: string, maxRedeemableCents = 0) => ({ plannedCents: 0, reason, maxRedeemableCents });
+
+  if (!isRewardsConfigured()) return none("rewards_not_configured");
+  if (!input.ownerUserId) return none("auth_required");
+
+  const requested = Math.floor(input.requestedCents);
+  if (!Number.isFinite(requested) || requested <= 0) return none("nothing_requested");
+
+  try {
+    const owner = await resolveWalletOwnerForUser(input.ownerUserId);
+    if (!owner) return none("no_wallet");
+
+    const walletRes = await buildRewardsStorePort().resolveWallet(owner);
+    if (!walletRes.ok) return none("wallet_unavailable");
+
+    const plan = planRedemption({
+      requestedCents: requested,
+      availableCents: walletRes.wallet.availableCents,
+      amountDueCents: input.amountDueCents,
+      eligiblePurchaseCents: input.eligiblePurchaseCents,
+      minimumChargeCents: input.minimumChargeCents ?? DEFAULT_RAIL_MINIMUM_CHARGE_CENTS,
+    });
+    if (!plan.ok) return none(plan.reason, plan.maxRedeemableCents);
+    return { plannedCents: plan.redeemCents, maxRedeemableCents: plan.redeemCents };
+  } catch (e) {
+    return none(e instanceof Error ? e.message.slice(0, 200) : "plan_failed");
+  }
+}
+
+/**
  * Plan and hold credits for a checkout that is about to be created.
  *
  * `requestedCents` is the customer's WISH. What actually gets held is whatever `planRedemption`
@@ -124,8 +177,8 @@ export async function reserveCheckoutCredits(input: {
   amountDueCents: number;
   eligiblePurchaseCents?: number;
   minimumChargeCents?: number;
-  checkoutAttemptKey: string;
-  paymentRecordId?: string | null;
+  /** The per-attempt reference. Never a value reused across purchases — see the module header. */
+  paymentRecordId: string;
 }): Promise<CheckoutCreditApplication> {
   const refused = (reason: string, maxRedeemableCents = 0): CheckoutCreditApplication => ({
     applied: false,
@@ -135,13 +188,13 @@ export async function reserveCheckoutCredits(input: {
 
   if (!isRewardsConfigured()) return refused("rewards_not_configured");
   if (!input.ownerUserId) return refused("auth_required");
-  if (!input.checkoutAttemptKey) return refused("no_redemption_reference");
+  if (!input.paymentRecordId) return refused("no_redemption_reference");
 
   const requested = Math.floor(input.requestedCents);
   if (!Number.isFinite(requested) || requested <= 0) return refused("nothing_requested");
 
   try {
-    const owner = await resolveWalletOwnerForPayment({ paymentRecordId: "", ownerUserId: input.ownerUserId });
+    const owner = await resolveWalletOwnerForUser(input.ownerUserId);
     if (!owner) return refused("no_wallet");
 
     const res = await reserveCreditsForPurchase({
@@ -150,9 +203,9 @@ export async function reserveCheckoutCredits(input: {
       amountDueCents: input.amountDueCents,
       eligiblePurchaseCents: input.eligiblePurchaseCents,
       minimumChargeCents: input.minimumChargeCents ?? DEFAULT_RAIL_MINIMUM_CHARGE_CENTS,
-      redemptionRef: input.checkoutAttemptKey,
+      redemptionRef: input.paymentRecordId,
       contextKind: "stripe_checkout",
-      paymentRecordId: input.paymentRecordId ?? null,
+      paymentRecordId: input.paymentRecordId,
       actorAuthUserId: input.ownerUserId,
       ports: buildRewardsStorePort(),
     });
@@ -160,9 +213,9 @@ export async function reserveCheckoutCredits(input: {
     if (!res.ok) {
       return refused(res.reason, res.maxRedeemableCents ?? 0);
     }
-    // A reused reference whose hold was already released or expired holds nothing. Treating that
-    // as an applied discount is the phantom-discount failure: the customer would be shown a price
-    // cut backed by no reservation at all.
+    // A hold that is not LIVE funds nothing. `reserveCreditsForPurchase` reports zero for a
+    // committed, released or expired row, and treating any of those as an applied discount is
+    // exactly the phantom-discount failure: a price cut backed by no reservation at all.
     if (res.redeemCents <= 0) {
       return refused("hold_no_longer_active", 0);
     }
@@ -170,12 +223,11 @@ export async function reserveCheckoutCredits(input: {
     await writeRevenueAuditLog({
       action: "revenue_payment_completed",
       targetType: "leonix_rewards_ledger",
-      targetId: input.paymentRecordId ?? null,
+      targetId: input.paymentRecordId,
       meta: {
         rewards_action: "rewards_redemption",
         rewards_outcome: res.deduplicated ? "reserve_deduplicated" : "reserved",
         rewards_amount_cents: res.redeemCents,
-        checkout_attempt_key: input.checkoutAttemptKey,
         redemption_id: res.redemptionId,
         expires_at: res.expiresAtIso,
       },
@@ -198,11 +250,11 @@ export async function reserveCheckoutCredits(input: {
 
 /** The hold currently attached to a checkout attempt, if any is still live. */
 export async function readCheckoutCreditHold(
-  checkoutAttemptKey: string,
+  paymentRecordId: string,
 ): Promise<{ creditsAppliedCents: number; status: string; expiresAtIso: string | null } | null> {
-  if (!isRewardsConfigured() || !checkoutAttemptKey) return null;
+  if (!isRewardsConfigured() || !paymentRecordId) return null;
   try {
-    const hold = await buildRewardsStorePort().findRedemption(reserveIdempotencyKey(checkoutAttemptKey));
+    const hold = await buildRewardsStorePort().findRedemption(reserveIdempotencyKey(paymentRecordId));
     if (!hold) return null;
     return {
       // A released or expired hold funds nothing, and must not be reported as money off.
@@ -221,15 +273,14 @@ export async function readCheckoutCreditHold(
  * Idempotent through `commit:<ref>`, so a redelivered `checkout.session.completed` commits once.
  */
 export async function commitCheckoutCredits(input: {
-  checkoutAttemptKey: string;
   paymentRecordId: string;
 }): Promise<{ committed: boolean; amountCents: number; reason?: string }> {
-  if (!isRewardsConfigured() || !input.checkoutAttemptKey) {
+  if (!isRewardsConfigured() || !input.paymentRecordId) {
     return { committed: false, amountCents: 0, reason: "not_applicable" };
   }
   try {
     const res = await commitReservedCredits({
-      redemptionRef: input.checkoutAttemptKey,
+      redemptionRef: input.paymentRecordId,
       paymentRecordId: input.paymentRecordId,
       ports: buildRewardsStorePort(),
     });
@@ -245,8 +296,7 @@ export async function commitCheckoutCredits(input: {
           rewards_outcome: "commit_failed",
           rewards_reason: res.error,
           retryable: true,
-          checkout_attempt_key: input.checkoutAttemptKey,
-        },
+                  },
       }).catch(() => undefined);
       return { committed: false, amountCents: 0, reason: res.error };
     }
@@ -259,8 +309,7 @@ export async function commitCheckoutCredits(input: {
         rewards_action: "rewards_redemption",
         rewards_outcome: res.outcome === "committed" ? "committed" : "already_final",
         rewards_amount_cents: res.outcome === "committed" ? res.amountCents : 0,
-        checkout_attempt_key: input.checkoutAttemptKey,
-      },
+              },
     }).catch(() => undefined);
 
     return { committed: res.outcome === "committed", amountCents: res.amountCents };
@@ -277,14 +326,13 @@ export async function commitCheckoutCredits(input: {
  * releases anything this misses, so a crashed request cannot strand a customer's balance.
  */
 export async function releaseCheckoutCredits(input: {
-  checkoutAttemptKey: string;
   reason: string;
-  paymentRecordId?: string | null;
+  paymentRecordId: string;
 }): Promise<{ released: boolean; amountCents: number }> {
-  if (!isRewardsConfigured() || !input.checkoutAttemptKey) return { released: false, amountCents: 0 };
+  if (!isRewardsConfigured() || !input.paymentRecordId) return { released: false, amountCents: 0 };
   try {
     const res = await releaseReservedCredits({
-      redemptionRef: input.checkoutAttemptKey,
+      redemptionRef: input.paymentRecordId,
       ports: buildRewardsStorePort(),
     });
     if (!res.ok) return { released: false, amountCents: 0 };
@@ -293,14 +341,13 @@ export async function releaseCheckoutCredits(input: {
       await writeRevenueAuditLog({
         action: "revenue_payment_completed",
         targetType: "leonix_rewards_ledger",
-        targetId: input.paymentRecordId ?? null,
+        targetId: input.paymentRecordId,
         meta: {
           rewards_action: "rewards_redemption",
           rewards_outcome: "released",
           rewards_reason: input.reason,
           rewards_amount_cents: res.amountCents,
-          checkout_attempt_key: input.checkoutAttemptKey,
-        },
+                  },
       }).catch(() => undefined);
     }
     return { released: res.outcome === "released", amountCents: res.amountCents };
