@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 
 import type { ViajesTopOffer } from "../data/viajesLandingSampleData";
@@ -6,17 +5,8 @@ import { type ViajesUi, viajesBadgeLabel } from "../data/viajesUiCopy";
 import { viajesResultsBrowseUrl } from "../lib/viajesBrowseContract";
 import { VIAJES_LANDING_CTA_ORANGE } from "../lib/viajesLandingVisual";
 import { withViajesOfferBackParam } from "../lib/viajesOfferLink";
-
-function StarRow({ count, ariaLabel }: { count: number; ariaLabel: string }) {
-  if (count <= 0) return null;
-  const full = Math.min(5, Math.max(0, Math.round(count)));
-  return (
-    <span className="text-amber-500" aria-label={ariaLabel}>
-      {"★".repeat(full)}
-      <span className="text-[color:var(--lx-muted)]/40">{"☆".repeat(5 - full)}</span>
-    </span>
-  );
-}
+import { formatViajesPublicPrice } from "../lib/viajesPriceDisplay";
+import { ViajesSafeImage } from "./ViajesSafeImage";
 
 function resolvePrimaryCta(offer: ViajesTopOffer, ui: ViajesUi): { label: string; variant: "affiliate" | "business" | "editorial" } {
   if (offer.listingKind === "editorial") return { label: ui.cards.explore, variant: "editorial" };
@@ -28,8 +18,8 @@ function resolvePrimaryCta(offer: ViajesTopOffer, ui: ViajesUi): { label: string
 export function ViajesTopOfferCard({ offer, homeBackHref, ui }: { offer: ViajesTopOffer; homeBackHref: string; ui: ViajesUi }) {
   const affiliateDisclosure =
     ui.lang === "en" && offer.affiliateDisclosureShortEn ? offer.affiliateDisclosureShortEn : offer.affiliateDisclosureShort;
-  const starAria =
-    ui.lang === "en" ? `${Math.min(5, Math.max(0, Math.round(offer.stars)))} of 5 stars` : `${Math.min(5, Math.max(0, Math.round(offer.stars)))} de 5 estrellas`;
+  const priceLabel =
+    offer.listingKind === "editorial" ? ui.cards.readFree : formatViajesPublicPrice(offer.priceFrom, ui.lang);
 
   const href = offer.resultsBrowse
     ? viajesResultsBrowseUrl(ui.lang, offer.resultsBrowse)
@@ -71,12 +61,12 @@ export function ViajesTopOfferCard({ offer, homeBackHref, ui }: { offer: ViajesT
       className={`group flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-transparent transition hover:-translate-y-[1px] hover:shadow-[0_22px_48px_-20px_rgba(30,50,80,0.16)] ${shell}`}
     >
       <div className="relative aspect-[4/3] w-full min-w-0 overflow-hidden">
-        <Image
+        <ViajesSafeImage
           src={offer.imageSrc}
           alt={offer.imageAlt}
-          fill
+          className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
           sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 25vw"
-          className="object-cover transition duration-500 group-hover:scale-[1.03]"
+          mode={offer.listingKind === "editorial" ? "editorial" : "inventory"}
         />
         <div className="absolute left-2.5 top-2.5 sm:left-3 sm:top-3">{sourcePill}</div>
       </div>
@@ -85,13 +75,9 @@ export function ViajesTopOfferCard({ offer, homeBackHref, ui }: { offer: ViajesT
         <h3 className="mt-1 line-clamp-2 text-lg font-bold leading-snug text-[color:var(--lx-text)]">{offer.title}</h3>
         <p className="mt-1 line-clamp-2 text-sm text-[color:var(--lx-text-2)]">{offer.supportingLine}</p>
         <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[color:var(--lx-muted)]">
-          <StarRow count={offer.stars} ariaLabel={starAria} />
-          {offer.stars > 0 ? <span className="hidden sm:inline">·</span> : null}
           <span className="min-w-0">{offer.locationLine}</span>
         </div>
-        <p className="mt-3 text-lg font-bold text-[color:var(--lx-text)]">
-          {offer.listingKind === "editorial" ? ui.cards.readFree : offer.priceFrom}
-        </p>
+        {priceLabel ? <p className="mt-3 text-lg font-bold text-[color:var(--lx-text)]">{priceLabel}</p> : null}
         <div className="mt-2 flex flex-col gap-1 text-xs text-[color:var(--lx-muted)]">
           <span className="flex items-center gap-1.5">
             <span aria-hidden>🗓️</span>

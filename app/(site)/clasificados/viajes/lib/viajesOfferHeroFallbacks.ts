@@ -36,7 +36,11 @@ export function inferViajesHeroVisualKind(input: ViajesOfferHeroInferInput): Via
   return "default";
 }
 
-export function buildHeroFallbackChain(primary: string | undefined, kind: ViajesHeroVisualKind): string[] {
+export function buildHeroFallbackChain(
+  primary: string | undefined,
+  kind: ViajesHeroVisualKind,
+  opts?: { inventory?: boolean }
+): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   const push = (u: string) => {
@@ -46,7 +50,12 @@ export function buildHeroFallbackChain(primary: string | undefined, kind: Viajes
     out.push(t);
   };
   push(primary ?? "");
+  /** Advertiser inventory: real saved image only — never a stock photo that looks like a customer shot. */
+  if (opts?.inventory) return out;
   push(VIAJES_HERO_FALLBACK_BY_KIND[kind]);
   if (kind !== "default") push(VIAJES_HERO_FALLBACK_BY_KIND.default);
   return out;
 }
+
+/** Approved Leonix editorial fallback used when a discovery image fails. */
+export const VIAJES_EDITORIAL_IMAGE_FALLBACK = VIAJES_HERO_FALLBACK_BY_KIND.default;

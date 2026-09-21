@@ -11,6 +11,8 @@ import { resolveViajesOfferBack } from "../../lib/viajesOfferLink";
 import { resolveViajesStagedOfferDetailBundle } from "../../lib/resolveViajesOfferDetailFromStagedServer";
 import { fetchViajesOfferDetailRelated } from "../../lib/viajesOfferDetailRelatedServer";
 import { viajesAllowCuratedDemoCatalog } from "../../lib/viajesPublicInventory";
+import { viajesOfferMetadata } from "../../lib/viajesLocalSeo";
+import { isViajesDurableHttpsUrl } from "../../lib/v2/viajesMediaDurableGuards";
 import type { ViajesOfferDetailModelV2Extras } from "../../lib/v2/mapViajesOfferV2ToDetailModel";
 
 export const dynamic = "force-dynamic";
@@ -37,11 +39,14 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const lang = pickLang(sp);
   const bundle = await resolveViajesStagedOfferDetailBundle(slug, lang);
   const offer = bundle?.offer ?? (viajesAllowCuratedDemoCatalog() ? getViajesOfferDetailBySlug(slug) : null);
-  if (!offer) return { title: "Oferta | Leonix Viajes" };
-  return {
-    title: `${offer.title} | Leonix Viajes`,
-    description: offer.description.slice(0, 155),
-  };
+  if (!offer) return viajesOfferMetadata({ title: "", description: "", lang });
+  const hero = offer.heroImageSrc;
+  return viajesOfferMetadata({
+    title: offer.title,
+    description: offer.description,
+    imageSrc: isViajesDurableHttpsUrl(hero) ? hero : null,
+    lang,
+  });
 }
 
 export default async function ClasificadosViajesOfertaPage({ params, searchParams }: Props) {

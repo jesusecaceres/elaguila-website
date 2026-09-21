@@ -10,6 +10,8 @@ import { getViajesNegocioProfileBySlug, VIAJES_NEGOCIO_SLUGS } from "../../data/
 import { getViajesUi } from "../../data/viajesUiCopy";
 import { resolveViajesProviderProfileFromStagedServer } from "../../lib/resolveViajesProviderProfileFromStagedServer";
 import { viajesAllowCuratedDemoCatalog } from "../../lib/viajesPublicInventory";
+import { viajesProviderMetadata } from "../../lib/viajesLocalSeo";
+import { isViajesDurableHttpsUrl } from "../../lib/v2/viajesMediaDurableGuards";
 
 export const dynamic = "force-dynamic";
 
@@ -35,11 +37,13 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const lang = pickLang(sp);
   const staged = await resolveViajesProviderProfileFromStagedServer(slug, lang);
   const p = staged ?? (viajesAllowCuratedDemoCatalog() ? getViajesNegocioProfileBySlug(slug) : null);
-  if (!p) return { title: "Negocio | Leonix Viajes" };
-  return {
-    title: `${p.businessName} | Leonix Viajes`,
-    description: p.tagline,
-  };
+  if (!p) return viajesProviderMetadata({ businessName: "", tagline: "", lang });
+  return viajesProviderMetadata({
+    businessName: p.businessName,
+    tagline: p.tagline,
+    logoSrc: isViajesDurableHttpsUrl(p.logoSrc) ? p.logoSrc : null,
+    lang,
+  });
 }
 
 export default async function ClasificadosViajesNegocioPage({ params, searchParams }: Props) {

@@ -1,27 +1,19 @@
-import Image from "next/image";
 import Link from "next/link";
 
 import type { ViajesUi } from "../data/viajesUiCopy";
+import { VIAJES_STAY_CARDS } from "../data/viajesLandingSampleData";
 import { viajesResultsBrowseUrl } from "../lib/viajesBrowseContract";
+import { ViajesSafeImage } from "./ViajesSafeImage";
 
 export function ViajesStaySection({ ui }: { ui: ViajesUi }) {
   const copy = ui.staySection;
-  const cards = [
-    {
-      id: "hotels",
-      image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1400&q=80",
-      href: viajesResultsBrowseUrl(ui.lang, { t: "resorts" }),
-      title: copy.hotels.title,
-      subline: copy.hotels.subline,
-    },
-    {
-      id: "rentals",
-      image: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1400&q=80",
-      href: viajesResultsBrowseUrl(ui.lang, { t: "hoteles" }),
-      title: copy.rentals.title,
-      subline: copy.rentals.subline,
-    },
-  ];
+  const cards = VIAJES_STAY_CARDS.map((card) => ({
+    id: card.id,
+    image: card.imageSrc,
+    href: viajesResultsBrowseUrl(ui.lang, card.browse),
+    title: card.id === "hotels" ? copy.hotels.title : copy.rentals.title,
+    subline: card.id === "hotels" ? copy.hotels.subline : copy.rentals.subline,
+  }));
 
   return (
     <section className="mt-12 sm:mt-14">
@@ -36,7 +28,13 @@ export function ViajesStaySection({ ui }: { ui: ViajesUi }) {
             href={card.href}
             className="group relative aspect-[16/10] overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)]"
           >
-            <Image src={card.image} alt={card.title} fill className="object-cover transition duration-500 group-hover:scale-[1.03]" sizes="(max-width:768px) 100vw, 50vw" />
+            <ViajesSafeImage
+              src={card.image}
+              alt={card.title}
+              className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+              sizes="(max-width:768px) 100vw, 50vw"
+              mode="editorial"
+            />
             <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
             <div className="absolute bottom-4 left-4 right-4">
               <h3 className="text-xl font-bold text-white">{card.title}</h3>

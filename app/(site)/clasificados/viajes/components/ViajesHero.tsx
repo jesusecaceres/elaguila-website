@@ -1,10 +1,10 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { VIAJES_HERO_IMAGE } from "../data/viajesLandingSampleData";
 import type { ViajesUi } from "../data/viajesUiCopy";
 import { VIAJES_LANDING_CTA_ORANGE } from "../lib/viajesLandingVisual";
+import { ViajesSafeImage } from "./ViajesSafeImage";
 
 type ViajesHeroProps = {
   searchBar: ReactNode;
@@ -19,13 +19,13 @@ export function ViajesHero({ searchBar, tripPills, ui, exploreHref, publishHref 
     <section className="relative z-[1] w-full min-w-0 overflow-x-hidden">
       <div className="relative w-full overflow-hidden">
         <div className="relative aspect-[16/10] w-full max-h-[min(52svh,22rem)] sm:max-h-[min(48svh,24rem)] md:aspect-[2.4/1] md:max-h-[min(42svh,26rem)] lg:max-h-[min(38svh,28rem)]">
-          <Image
+          <ViajesSafeImage
             src={VIAJES_HERO_IMAGE.src}
             alt={VIAJES_HERO_IMAGE.alt}
-            fill
-            priority
+            className="absolute inset-0 h-full w-full object-cover object-[center_32%]"
             sizes="100vw"
-            className="object-cover object-[center_32%]"
+            mode="editorial"
+            priority
           />
           <div className="absolute inset-0 bg-gradient-to-br from-[#0c2a38]/70 via-[#1a4a5c]/30 to-transparent" aria-hidden />
           <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/25" aria-hidden />

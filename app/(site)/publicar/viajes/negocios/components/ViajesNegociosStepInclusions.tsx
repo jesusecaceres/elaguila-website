@@ -91,6 +91,7 @@ export function ViajesNegociosStepInclusions({ offer, onChange, lang = "es" }: P
         <ViajesModuleItineraryEditor
           value={offer.itinerary}
           onChange={(itinerary) => onChange({ ...offer, itinerary })}
+          lang={lang}
         />
       </section>
     </div>

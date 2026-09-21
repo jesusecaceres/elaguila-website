@@ -3,10 +3,16 @@ import { Suspense } from "react";
 import type { ViajesBusinessResult } from "./data/viajesResultsSampleData";
 import { ViajesLandingPage } from "./components/ViajesLandingPage";
 import { fetchViajesPublicBrowseRowsMerged } from "./lib/viajesPublicBrowseRowsServer";
+import { isViajesProductionCommercialRow } from "./lib/viajesPublicInventory";
+import { viajesLandingMetadata } from "./lib/viajesLocalSeo";
+
+export const metadata = viajesLandingMetadata("es");
 
 export default async function ClasificadosViajesPage() {
   const { rows } = await fetchViajesPublicBrowseRowsMerged();
-  const initialBusinessRows = rows.filter((r): r is ViajesBusinessResult => r.kind === "business");
+  const initialBusinessRows = rows.filter(
+    (r): r is ViajesBusinessResult => r.kind === "business" && isViajesProductionCommercialRow(r)
+  );
 
   return (
     <Suspense

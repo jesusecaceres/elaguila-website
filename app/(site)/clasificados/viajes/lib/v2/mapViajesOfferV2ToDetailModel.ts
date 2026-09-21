@@ -3,10 +3,11 @@ import type { ViajesOfferModelV2 } from "./viajesOfferModelV2";
 import { getViajesHeroAsset } from "./viajesOfferV2Validation";
 import { isViajesDurableHttpsUrl } from "./viajesMediaDurableGuards";
 import { viajesPhoneActionDigits } from "./viajesPhoneDisplay";
+import { isPlaceholderViajesCtaHref } from "../viajesCtaHref";
+import { formatViajesPublicDateRange } from "../viajesPublicDateDisplay";
+import { formatViajesPublicPrice } from "../viajesPriceDisplay";
+import { resolveViajesPublicOfferTitle } from "../viajesPublicOfferTitle";
 import { normalizeViajesSanJoseCaliforniaLabel } from "../viajesPublicLocation";
-
-const FALLBACK_HERO =
-  "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=2000&q=80";
 
 function withHttp(url: string) {
   const t = url.trim();
@@ -19,6 +20,7 @@ function buildChannels(offer: ViajesOfferModelV2): ViajesContactChannel[] {
   const out: ViajesContactChannel[] = [];
   const push = (kind: ViajesContactChannel["kind"], href: string, label: string) => {
     if (!href.trim()) return;
+    if (isPlaceholderViajesCtaHref(href)) return;
     if (out.some((x) => x.kind === kind && x.href === href)) return;
     out.push({ kind, href, label });
   };
@@ -116,7 +118,7 @@ export function mapViajesOfferV2ToDetailModel(
     opts?.heroSrcOverride ||
     (hero && isViajesDurableHttpsUrl(hero.url) ? hero.url : "") ||
     hero?.localPreviewObjectUrl ||
-    FALLBACK_HERO;
+    "";
   const cta = buildCta(offer, lang);
   const channels = buildChannels(offer);
   const includes = offer.inclusions.map((p) => p.label).filter(Boolean);
@@ -129,9 +131,14 @@ export function mapViajesOfferV2ToDetailModel(
   if (offer.basics.spanishGuide) who.push(lang === "en" ? "Spanish guide" : "Guía en español");
   if (offer.basics.serviceLanguage.trim()) who.push(offer.basics.serviceLanguage.trim());
 
-  const dateParts = [offer.schedule.startDate, offer.schedule.endDate, offer.schedule.note, offer.schedule.legacyFechas]
-    .map((x) => x.trim())
-    .filter(Boolean);
+  const dateParts = formatViajesPublicDateRange({
+    startDate: offer.schedule.startDate,
+    endDate: offer.schedule.endDate,
+    note: offer.schedule.note,
+    legacyFechas: offer.schedule.legacyFechas,
+    lang,
+  });
+  const dateRange = dateParts || undefined;
 
   const gallery = offer.media.images
     .filter((i) => isViajesDurableHttpsUrl(i.url) || Boolean(i.localPreviewObjectUrl))
@@ -165,9 +172,9 @@ export function mapViajesOfferV2ToDetailModel(
     heroImageSrc: heroSrc,
     heroImageAlt: hero?.alt || offer.basics.title || (lang === "en" ? "Travel offer" : "Oferta de viaje"),
     heroUseNativeImg: Boolean(opts?.heroSrcOverride?.startsWith("blob:") || hero?.localPreviewObjectUrl),
-    title: offer.basics.title || (sparse ? (lang === "en" ? "Untitled offer" : "Sin título") : ""),
+    title: resolveViajesPublicOfferTitle(offer.basics.title) || (sparse ? (lang === "en" ? "Untitled offer" : "Sin título") : ""),
     destination: offer.basics.destinationLabel || offer.locations.destination.publicLabel || offer.locations.destination.city || "",
-    priceFrom: offer.pricing.priceFrom || (sparse ? "" : lang === "en" ? "Ask provider" : "Consultar"),
+    priceFrom: formatViajesPublicPrice(offer.pricing.priceFrom, lang) || (sparse ? "" : lang === "en" ? "Ask provider" : "Consultar"),
     duration: offer.basics.durationLabel || "",
     departureCity: normalizeViajesSanJoseCaliforniaLabel(
       offer.basics.departureLabel ||
@@ -200,7 +207,7 @@ export function mapViajesOfferV2ToDetailModel(
       ...secondary,
       ...(channels.length ? { contactChannels: channels } : {}),
     },
-    dateRange: dateParts.length ? dateParts.join(" · ") : undefined,
+    dateRange,
     notes: offer.policies.map((p) => p.label).filter(Boolean).join(" · ") || undefined,
     description: offer.story,
     trustNote: opts?.trustNote,

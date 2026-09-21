@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ViajesResultRow } from "../data/viajesResultsSampleData";
 import { viajesResultCardTitle } from "../lib/viajesProviderMatch";
+import { ViajesSafeImage } from "./ViajesSafeImage";
 
 function RelatedCard({ row, lang }: { row: ViajesResultRow; lang: "es" | "en" }) {
   const title = viajesResultCardTitle(row);
@@ -12,9 +13,13 @@ function RelatedCard({ row, lang }: { row: ViajesResultRow; lang: "es" | "en" })
   return (
     <li className="min-w-[240px] max-w-[280px] shrink-0 overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-sm">
       <Link href={row.href} className="block">
-        <div className="aspect-[4/3] overflow-hidden bg-[color:var(--lx-section)]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={image} alt={row.imageAlt || title} className="h-full w-full object-cover" />
+        <div className="relative aspect-[4/3] overflow-hidden bg-[color:var(--lx-section)]">
+          <ViajesSafeImage
+            src={image}
+            alt={row.imageAlt || title}
+            className="absolute inset-0 h-full w-full object-cover"
+            mode="inventory"
+          />
         </div>
         <div className="p-3">
           <p className="line-clamp-2 text-sm font-bold text-[color:var(--lx-text)]">{title}</p>

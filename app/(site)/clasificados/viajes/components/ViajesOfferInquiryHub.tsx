@@ -3,8 +3,8 @@
 import type { ViajesContactChannel } from "../data/viajesOfferDetailSampleData";
 import type { ViajesUi } from "../data/viajesUiCopy";
 import { ViajesContactChannelsRow } from "./ViajesContactChannelsRow";
-import { ViajesPublicInquiryForm } from "./ViajesPublicInquiryForm";
 import { ViajesSheetCtaLink } from "./ViajesSheetCtaLink";
+import { isPlaceholderViajesCtaHref } from "../lib/viajesCtaHref";
 
 const ACCENT = "#D97706";
 
@@ -13,8 +13,6 @@ const PRIVATE_SAFE_KINDS = new Set<ViajesContactChannel["kind"]>(["tel", "telOff
 export function ViajesOfferInquiryHub({
   displayName,
   channels,
-  stagedListingId,
-  preview,
   ui,
   disclosure,
 }: {
@@ -26,7 +24,9 @@ export function ViajesOfferInquiryHub({
   disclosure: string;
 }) {
   const od = ui.offerDetail;
-  const safe = channels.filter((c) => PRIVATE_SAFE_KINDS.has(c.kind) && c.href.trim());
+  const safe = channels.filter(
+    (c) => PRIVATE_SAFE_KINDS.has(c.kind) && c.href.trim() && !isPlaceholderViajesCtaHref(c.href)
+  );
   const primary = safe[0];
 
   return (
@@ -63,12 +63,6 @@ export function ViajesOfferInquiryHub({
           >
             {primary.label}
           </ViajesSheetCtaLink>
-        </div>
-      ) : null}
-
-      {!preview && stagedListingId ? (
-        <div className="mt-6 border-t border-[color:var(--lx-nav-border)] pt-6">
-          <ViajesPublicInquiryForm stagedListingId={stagedListingId} copy={od.inquiry} />
         </div>
       ) : null}
     </section>

@@ -13,9 +13,8 @@ import { getViajesResultsCardAsset, getViajesHeroAsset } from "./viajesOfferV2Va
 import { viajesOfferKindToLegacyTripKeys } from "./viajesOfferKindMap";
 import { isViajesDurableHttpsUrl } from "./viajesMediaDurableGuards";
 import { normalizeViajesSanJoseCaliforniaLabel } from "../viajesPublicLocation";
-
-const FALLBACK_HERO =
-  "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=2000&q=80";
+import { formatViajesPublicPrice } from "../viajesPriceDisplay";
+import { resolveViajesPublicOfferTitle } from "../viajesPublicOfferTitle";
 
 export function mapViajesOfferV2ToBrowseResult(
   offer: ViajesOfferModelV2,
@@ -30,8 +29,8 @@ export function mapViajesOfferV2ToBrowseResult(
     row.hero_image_url?.trim() ||
     (card && isViajesDurableHttpsUrl(card.url) ? card.url : "") ||
     (hero && isViajesDurableHttpsUrl(hero.url) ? hero.url : "") ||
-    FALLBACK_HERO;
-  const title = offer.basics.title.trim() || row.title;
+    "";
+  const title = resolveViajesPublicOfferTitle(offer.basics.title, row.title);
   const dest = offer.basics.destinationLabel.trim() || offer.locations.destination.city || "—";
   const audienceKeys: string[] = [];
   if (offer.basics.audienceFamilies) audienceKeys.push("familias");
@@ -46,6 +45,12 @@ export function mapViajesOfferV2ToBrowseResult(
       .filter(Boolean)
       .pop() ||
     "";
+
+  const listingSearchExtras = [offer.story, offer.provider.description, ...offer.inclusions.map((p) => p.label)]
+    .map((x) => String(x ?? "").trim())
+    .filter(Boolean)
+    .join(" ")
+    .slice(0, 500);
 
   return {
     kind: "business",
@@ -65,8 +70,8 @@ export function mapViajesOfferV2ToBrowseResult(
     departureCity: normalizeViajesSanJoseCaliforniaLabel(
       offer.basics.departureLabel.trim() || offer.locations.departureMeetingPort.city || "—"
     ),
-    duration: normalizeViajesSanJoseCaliforniaLabel(offer.basics.durationLabel.trim() || "—"),
-    price: offer.pricing.priceFrom.trim() || "—",
+    duration: offer.basics.durationLabel.trim() || "—",
+    price: formatViajesPublicPrice(offer.pricing.priceFrom, offer.locale === "en" ? "en" : "es") || "—",
     includedSummary: offer.inclusions
       .map((p) => p.label)
       .filter(Boolean)
@@ -84,6 +89,7 @@ export function mapViajesOfferV2ToBrowseResult(
       offer.basics.spanishGuide,
       offer.basics.serviceLanguage
     ),
+    ...(listingSearchExtras ? { listingSearchExtras } : {}),
     discovery: { featuredBase: 46, sourceTrust: 1, completeness: 0.8 },
   };
 }
@@ -93,6 +99,7 @@ export function mapViajesStagedRowToViajesBusinessResultV2(row: ViajesStagedList
     locale: row.lang === "en" ? "en" : "es",
     laneHint: row.lane,
   });
-  if (!offer.basics.title.trim() && !row.title.trim()) return null;
+  const title = resolveViajesPublicOfferTitle(offer.basics.title, row.title);
+  if (!title) return null;
   return mapViajesOfferV2ToBrowseResult(offer, row);
 }

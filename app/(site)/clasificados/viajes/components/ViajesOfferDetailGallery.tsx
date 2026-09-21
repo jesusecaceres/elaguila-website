@@ -66,6 +66,16 @@ export function ViajesOfferDetailGallery({
           alt={current.alt || title}
           className="aspect-[16/10] w-full object-cover"
           style={{ objectPosition: `${current.focalX * 100}% ${current.focalY * 100}%` }}
+          onError={(e) => {
+            e.currentTarget.style.display = "none";
+            const fallback = e.currentTarget.nextElementSibling;
+            if (fallback instanceof HTMLElement) fallback.hidden = false;
+          }}
+        />
+        <div
+          hidden
+          className="aspect-[16/10] w-full bg-gradient-to-br from-[#1b3344] via-[#2c4a3e] to-[#1a2422]"
+          aria-hidden
         />
       </button>
 

@@ -4,12 +4,12 @@ import { VIAJES_TOP_OFFERS } from "./viajesLandingSampleData";
 import type { ViajesPartnerSpotlightCard, ViajesTopOffersFeed } from "./viajesHomeFeedTypes";
 import { VIAJES_SEASONAL_CAMPAIGNS } from "./viajesSeasonalSampleData";
 
-/** Curated mixed feed: affiliate, business, editorial — ordered by featuredRank. */
+/** Curated mixed feed: affiliate, business, editorial — ordered by featuredRank. Fixtures/tests only. */
 export function selectViajesTopOffersFeed(): ViajesTopOffersFeed {
   return [...VIAJES_TOP_OFFERS].sort((a, b) => (a.featuredRank ?? 99) - (b.featuredRank ?? 99));
 }
 
-/** Business / partner profiles only. */
+/** Sample partner cards — fixtures/tests only. Never use as Production landing inventory. */
 export function selectViajesPartnerSpotlight(limit = 4): ViajesPartnerSpotlightCard[] {
   return Object.values(VIAJES_NEGOCIO_PROFILES)
     .slice(0, limit)
