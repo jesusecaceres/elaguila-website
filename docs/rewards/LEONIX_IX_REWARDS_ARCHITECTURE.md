@@ -4,7 +4,7 @@ Branch: `claude/leonix-ix-rewards-global-2026-09`
 Branched from QUICK_FREEZE_SHA: `4cb34be6d519b541606eecf9ff4afa3d0824814b`
 
 Nothing in this document describes intent. Every invariant listed here is either enforced by a
-database constraint or proven by `scripts/verify-ix-rewards-behavior-01.ts` (150 behavioral checks,
+database constraint or proven by `scripts/verify-ix-rewards-behavior-01.ts` (151 behavioral checks,
 no database, no network, no Stripe).
 
 ---
@@ -314,6 +314,25 @@ Each item is reachable from real application code and covered by the behavioural
    the lifetime totals, and refusing rather than clamping if the history replays negative. Parity
    with the incremental balances is asserted, including for the path-dependent cases no aggregate
    could reproduce.
+
+---
+
+## How this document is kept honest
+
+Three parity checks fail loudly rather than drift, because every money defect this system has
+shipped came from one layer disagreeing with another:
+
+- **`leonix_rewards_post_entry` vs `leonix_rewards_recompute_wallet`**, arm by arm, on every money
+  field — buckets, lifetime totals, recovery, accrual, offset and restoration. A refusal that READS
+  the debt is distinguished from a delta that MOVES it, and the comparison list is itself pinned so
+  it cannot be quietly narrowed. Narrowing it is what once let the replay skip the recovery deltas
+  and erase a real debt.
+- **The SQL, the TypeScript union and the in-memory test store** must handle the same 14 entry
+  types, and the stored `entry_type` vocabulary must match the handled arms. Adding a rule to one
+  side and forgetting another fails by itself.
+- **The Supabase adapter's `SELECT` vs what its snapshot reads.** The required set is derived from
+  the snapshot, so a column read but not selected — which silently returns zero, as
+  `recovery_cents` once did for every TypeScript observer — fails by itself.
 
 ---
 
