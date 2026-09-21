@@ -5143,14 +5143,16 @@ async function main() {
 
     const suite = readFileSync("scripts/verify-ix-rewards-behavior-01.ts", "utf8");
     const sqlSuite = readFileSync("scripts/sql/verify-ix-rewards-sql-behavior-01.sql", "utf8");
+    const routeSuiteSrc = readFileSync("scripts/verify-ix-rewards-route-behavior-01.ts", "utf8");
     const behaviourNames = new Set([...suite.matchAll(/await check\("([A-Za-z0-9]+)/g)].map((m) => m[1]!));
+    const routeNames = new Set([...routeSuiteSrc.matchAll(/await check\("([A-Za-z0-9]+)/g)].map((m) => m[1]!));
     const sqlNames = new Set([...sqlSuite.matchAll(/'(S\d+) /g)].map((m) => m[1]!));
 
     const cited = new Set([...section.matchAll(/`([A-Z]\d+[a-z]?)`/g)].map((m) => m[1]!));
     assert.ok(cited.size >= 40, `the matrix cites a meaningful number of checks (${cited.size})`);
     for (const name of cited) {
       assert.ok(
-        behaviourNames.has(name) || sqlNames.has(name),
+        behaviourNames.has(name) || sqlNames.has(name) || routeNames.has(name),
         `the certification document cites a check named ${name}, which exists in neither suite`,
       );
     }
@@ -5164,6 +5166,21 @@ async function main() {
     );
     const sqlFloor = /MIN_ASSERTIONS=(\d+)/.exec(readFileSync("scripts/verify-ix-rewards-sql-behavior-01.sh", "utf8"))?.[1];
     assert.ok(sqlFloor && doc.includes(`${sqlFloor} in-session assertions`), `the document reports the SQL assertion count (${sqlFloor})`);
+
+    // ...and the route suite's, which is the one a reader is most likely to doubt.
+    const routeChecks = (routeSuiteSrc.match(/await check\("/g) ?? []).length;
+    assert.ok(routeChecks >= 30, `the route suite is a meaningful size (${routeChecks})`);
+    assert.ok(
+      doc.includes(`${routeChecks} checks that EXECUTE the route handlers`),
+      `the document reports the route suite's check count (${routeChecks})`,
+    );
+    // And the mutation harness's, because "67 mutations" is a load-bearing claim in §11.
+    const mutationSrc = readFileSync("scripts/verify-ix-rewards-mutation-01.ts", "utf8");
+    const mutations = (mutationSrc.match(/\n    suite: "(behavior|sql|route)",/g) ?? []).length;
+    assert.ok(
+      doc.includes(`The harness carries **${mutations}** mutations`),
+      `the document reports the mutation count (${mutations})`,
+    );
   });
 
   if (failures.length) {
