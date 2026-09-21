@@ -162,16 +162,13 @@ const MUTATIONS: readonly Mutation[] = [
     suite: "route",
     expect: ["V1"],
   },
-  {
-    defect:
-      "Credits reduce a RECURRING line item, so a one-time debit sets the subscription's price for " +
-      "every renewal, for ever.",
-    file: CHECKOUT,
-    find: "  const creditsBlockedByRecurringPrice = stripeMode === \"subscription\";",
-    replace: "  const creditsBlockedByRecurringPrice = false;",
-    suite: "route",
-    expect: ["V4"],
-  },
+  // SUPERSEDED, NOT DROPPED. This mutation flipped `creditsBlockedByRecurringPrice`, a guard that
+  // no longer exists: online redemption replaced the blanket "recurring checkouts refuse credits"
+  // rule with a first-invoice `duration:"once"` coupon. Its anchor therefore matched zero times,
+  // which the harness reports as a survivor — a mutation that cannot be applied proves nothing.
+  // The SAME defect ("a one-time debit sets the subscription's price for ever") is expressed
+  // against the current source by the S1 mutation below, which subtracts the credits from the
+  // recurring line item instead of letting them ride the coupon. Nothing is now unproven.
   {
     defect:
       "A queue row is CLOSED before the refund id is validated, so an operator who leaves the box " +
@@ -668,8 +665,12 @@ const MUTATIONS: readonly Mutation[] = [
   {
     defect: "Twice the discount is taken off what Stripe is asked to charge, so the customer pays less than agreed.",
     file: CHECKOUT,
-    find: "  const chargeableAmountCents = Math.max(0, amountCents - creditsAppliedCents);",
-    replace: "  const chargeableAmountCents = Math.max(0, amountCents - creditsAppliedCents * 2);",
+    // ANCHOR RE-EXPRESSED (the defect is unchanged). Online redemption split this assignment into
+    // a recurring branch that leaves the line item alone and a one-time branch that subtracts, so
+    // the single-line anchor stopped matching and the mutation silently stopped being applied. The
+    // double subtraction is now injected into the branch that still does the subtracting.
+    find: "  const chargeableAmountCents = isRecurringCheckout\n    ? amountCents\n    : Math.max(0, amountCents - creditsAppliedCents);",
+    replace: "  const chargeableAmountCents = isRecurringCheckout\n    ? amountCents\n    : Math.max(0, amountCents - creditsAppliedCents * 2);",
     suite: "route",
     expect: ["V2"],
   },
@@ -678,8 +679,12 @@ const MUTATIONS: readonly Mutation[] = [
       "The 50% ceiling is quadrupled, so a customer applies far more loyalty value to one purchase " +
       "than the policy allows and the rail is charged correspondingly less.",
     file: CHECKOUT,
-    find: "      eligiblePurchaseCents: subtotalCents,\n    });\n    if (planned.plannedCents > 0) {",
-    replace: "      eligiblePurchaseCents: subtotalCents * 4,\n    });\n    if (planned.plannedCents > 0) {",
+    // ANCHOR RE-EXPRESSED (the defect is unchanged). The eligible-purchase basis became
+    // `isRecurringCheckout ? firstChargeBeforeCreditsCents : subtotalCents` when credits reached
+    // monthly plans, so the old single-value anchor matched zero times and this mutation stopped
+    // being applied at all. The ceiling is quadrupled on whichever basis the route actually uses.
+    find: "      eligiblePurchaseCents: isRecurringCheckout ? firstChargeBeforeCreditsCents : subtotalCents,\n    });\n    if (planned.plannedCents > 0) {",
+    replace: "      eligiblePurchaseCents: (isRecurringCheckout ? firstChargeBeforeCreditsCents : subtotalCents) * 4,\n    });\n    if (planned.plannedCents > 0) {",
     suite: "route",
     expect: ["V3"],
   },

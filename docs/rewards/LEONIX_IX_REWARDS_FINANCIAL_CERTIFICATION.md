@@ -64,7 +64,7 @@ Two structural changes carry this certification:
    wallet read, the staff API, the CSV reconciliation and the customer checkout — against stubs the
    test drives, with a Stripe recorder in place of any call. 56 checks, no text matching.
 
-The mutation harness reintroduces **92 defects** and requires a NAMED check to fail for each. Every
+The mutation harness reintroduces **91 defects** and requires a NAMED check to fail for each. Every
 one of the nineteen that previously survived is now caught.
 
 ---
@@ -270,8 +270,36 @@ certification is the real one.
 `scripts/verify-ix-rewards-route-behavior-01.ts` (35 checks) calls `GET /api/rewards/wallet`,
 `GET`/`POST /api/admin/rewards`, `POST /api/admin/rewards/reconciliation` and
 `POST /api/revenue-os/checkout`, and asserts the answers and the writes. The mutation harness now
-carries **92 mutations, up from 45**, and **every one of the nineteen survivors is caught**, each by
-a named check that fails for the defect and passes for the rename.
+carries **91 mutations, up from 45**. On the 2026-09-21 re-run, **one mutation survives** and is
+recorded below rather than rounded away; every other applicable mutation is caught by a named check
+that fails for the defect and passes for the rename.
+
+### 11a. The 2026-09-21 re-run: three stale anchors and one real hole
+
+Re-running the harness after online redemption shipped reported four survivors. Three of them were
+not defects that escaped a test — they were mutations that **could no longer be applied at all**,
+because the online-redemption change rewrote the exact lines they anchored on. A mutation whose
+anchor matches zero times proves nothing, and the harness rightly refuses to call that a pass:
+
+- *"Credits reduce a RECURRING line item…"* flipped a `creditsBlockedByRecurringPrice` guard that no
+  longer exists. The same defect is expressed against the current source by the mutation that
+  subtracts credits from the recurring line item instead of letting them ride the first-invoice
+  coupon, so this one is **superseded and removed**, not lost.
+- *"Twice the discount is taken off…"* and *"The 50% ceiling is quadrupled…"* both anchored on
+  single-line expressions that became `isRecurringCheckout ? … : …` branches. Both anchors are
+  **re-expressed against the current source**; the defects are unchanged and both are caught again.
+
+The fourth is a genuine coverage hole and is **open**:
+
+> *The 50% ceiling is measured against the full monthly price instead of the post-intro first
+> charge, so a verified customer spends more than half of what they are actually charged.*
+
+`S2` exercises a monthly checkout with **no verified-intro discount**, where the full monthly price
+and the first charge are the same number — so the mutation changes nothing S2 can see. Closing it
+needs a route-suite case with a verified-intro discount in play (verified email + phone identity +
+`requestVerifiedIntroDiscount`), asserting the ceiling binds on the discounted first charge. That
+setup does not exist in the route harness yet. The ceiling itself is correct in the source; what is
+missing is a test that would notice if it stopped being.
 
 The one exception is recorded rather than quietly dropped: quadrupling the ceiling passed to
 `reserveCheckoutCredits` alone was **measured to change no amount at all**, because
@@ -801,7 +829,7 @@ It runs on a **disposable copy of the tree**, never on the repository — an ear
 the live working tree, and an interrupted run was shown to leave money-moving source files
 defective on disk.
 
-The harness carries **92** mutations. They fall into five groups, and the groups matter more than
+The harness carries **91** mutations. They fall into five groups, and the groups matter more than
 the individual rows:
 
 1. **The original repairs** (#1–15) — each money defect from §3, put back.
@@ -919,7 +947,7 @@ Run at the final committed state. `PGHOST`/`PGPORT`/`PGUSER` point at a throwawa
 | `npx tsx scripts/verify-ix-rewards-behavior-01.ts` — 182 behavioural checks | 0 |
 | `npx tsx --tsconfig scripts/lib/tsconfig.harness.json scripts/verify-ix-rewards-route-behavior-01.ts` — 56 checks that EXECUTE the route handlers and the production adapter | 0 |
 | `bash scripts/verify-ix-rewards-sql-behavior-01.sh` — 142 in-session assertions + 2 **timed** cross-session concurrency proofs, against real PostgreSQL 16.13 | 0 |
-| `npx tsx scripts/verify-ix-rewards-mutation-01.ts` — 92 defects reintroduced, each caught by a named check, on a disposable copy of the tree | 0 |
+| `npx tsx scripts/verify-ix-rewards-mutation-01.ts` — 91 defects reintroduced on a disposable copy of the tree; 90 caught by a named check, **1 open survivor** (see §11a) | 0 |
 | `npx tsx scripts/verify-quick-product-boundary-01.ts` — 52 checks | 0 |
 | `npx tsx scripts/verify-quick-business-core-01.ts` | 0 |
 | `npx tsx scripts/verify-quick-lifecycle-media-behavior-01.ts` — 35 checks | 0 |
