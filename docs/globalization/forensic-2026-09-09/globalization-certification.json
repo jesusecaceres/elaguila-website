@@ -1,0 +1,164 @@
+{
+  "schema": "leonix.globalization.certification/v1",
+  "generatedAt": "2026-09-09",
+  "mode": "READ_ONLY_FORENSIC_AUDIT",
+  "refs": {
+    "primaryCheckout": "C:\\projects\\elaguila-website",
+    "workspaceRoot": "C:\\projects",
+    "localMain": "d09d979c1bdba40002ac5e985d6971ce6a87bb0f",
+    "localMainBehindOriginMain": 112,
+    "originMain": "a0a4783971b42ea1d71ab2602d4720d0d590baf8",
+    "originMainObservedDuringAudit": ["2dcf5c70", "056a1486", "a0a47839"],
+    "septGlobalizationSeal": "e3956df893f5041ca22371c999038f297d536eae",
+    "septBranch": "fix/globalization-final-closeout-2026-09",
+    "mergeBase": "7878d856a2762c91548623166ab31e554510c373",
+    "septOnlyCommits": 51,
+    "mainOnlyCommits": 63,
+    "septMainConflictFiles": 0,
+    "thirdBranch": "fix/br-negocio-inventory-hub-media-hydration-2026-08-27",
+    "thirdBranchHead": "0d80e891a806eea9a44e50e1996c1dd1620d3aaf",
+    "thirdBranchConflictWithSeptFiles": 20,
+    "thirdBranchConflictWithMainFiles": 0,
+    "historicalClosuout": "6b155cf3f5d435fe991c5dff48823b203a4d08f3",
+    "build03": "390b939c79097b6636fdeae43e863a7b4eb9a2b1"
+  },
+  "modifications": {
+    "sourceModified": false,
+    "mainModified": false,
+    "refsModified": false,
+    "databaseModified": false,
+    "productionModified": false,
+    "filesWritten": "docs/globalization/forensic-2026-09-09/ only"
+  },
+  "coverage": {
+    "globalSystemsMapped": 53,
+    "globalSystemsTotal": 53,
+    "categoryLanesAudited": 22,
+    "categoryLanesTotal": 22,
+    "batchesCompleted": 9,
+    "batchesTotal": 9,
+    "worktreesInventoried": 38,
+    "localBranches": 79,
+    "commitsSince20260714": 614,
+    "commitsUnreachableFromMain": 132,
+    "databaseAccess": false,
+    "runtimeExecution": false,
+    "browserExecution": false,
+    "stripeExecution": false
+  },
+  "engineStatusCounts": {
+    "BUILT_ADOPTED": 13,
+    "BUILT_PARTIAL": 28,
+    "BUILT_ZERO_CONSUMER": 4,
+    "FORKED": 6,
+    "NOT_BUILT": 2
+  },
+  "cellCounts": {
+    "TRUE": 249,
+    "FALSE": 99,
+    "NA": 44,
+    "BLOCKED_OWNER_POLICY": 2,
+    "totalCells": 394,
+    "note": "Every TRUE is also OWNER_QA_REQUIRED; no runtime verification was performed."
+  },
+  "gapCounts": {
+    "P0": 23,
+    "P1": 58,
+    "P2": 21,
+    "P3": 3,
+    "P4": 1,
+    "totalOpen": 106,
+    "closed": 1,
+    "refuted": ["GAP-050"],
+    "correctedDuringAudit": ["GAP-016", "GAP-001", "GAP-047", "09A-finding-I", "doc01-R9", "doc01-R11"]
+  },
+  "zeroConsumerEngines": [
+    { "system": "G30", "path": "app/components/contact/connectionHub/sharedConnectionHubContactModel.ts:81", "symbol": "buildSharedConnectionHubContact", "routeImporters": 0 },
+    { "system": "G23/G24", "path": "app/lib/businessAddress/*", "symbol": "address verifier + privacy", "routeImporters": 0 },
+    { "system": "G22", "path": "app/admin/_lib/leonixEndorsementAdminActions.ts", "symbol": "trust moderation actions", "routeImporters": 0 },
+    { "system": "G02", "path": "app/lib/listingIdentity/categoryRouteRegistry.ts", "symbol": "dashboardRoute (all 17 adapters)", "routeImporters": 0 },
+    { "system": "G26", "path": "app/lib/serviciosSavedListingIdentity.ts", "symbol": "servicios saved-listing identity", "routeImporters": 0 },
+    { "system": "G49", "path": "newsletterVerificationState.ts", "symbol": "double opt-in", "routeImporters": 0 },
+    { "system": "G10", "path": "MediaUploader.tsx", "symbol": "shared uploader", "routeImporters": 0 }
+  ],
+  "destructiveEditLanes": {
+    "signature": "Edit hydration hand-enumerates fields; republish does a whole-value replace of business_meta; every field missing from the hydration is written back as schema default.",
+    "evidence": ["app/api/clasificados/bienes-raices/listing-edit/route.ts:177", "app/api/clasificados/rentas/listing-edit/route.ts:132"],
+    "destructive": ["bienes-raices-negocio", "bienes-raices-inventory-child", "rentas-negocio", "rentas-privado", "autos-dealer-child", "empleos-premium", "empleos-quick", "servicios", "ofertas-locales-preapproval"],
+    "fixedBySept": ["bienes-raices-negocio", "rentas-negocio"],
+    "remainingAfterSeptMerge": 6,
+    "safe": ["restaurantes", "comida-local", "bienes-raices-privado", "autos-dealer-parent", "viajes", "comunidad", "clases", "busco", "mascotas", "en-venta"],
+    "noEditPath": ["autos-privado"]
+  },
+  "qaReadiness": {
+    "readyNow": ["restaurantes", "en-venta-varios", "busco"],
+    "readyWithNamedStop": ["comida-local", "bienes-raices-privado", "autos-dealer-parent", "comunidad", "viajes-free-intake", "empleos-feria"],
+    "notReady": ["bienes-raices-negocio", "rentas-negocio", "rentas-privado", "bienes-raices-child", "autos-dealer-child", "autos-privado", "empleos-premium", "empleos-quick", "servicios", "ofertas-flyer", "ofertas-coupon", "clases", "mascotas", "newsletter", "admin-os"],
+    "notApplicable": ["negocios-locales"],
+    "platformBlockers": [
+      "PB-1 primary checkout is 112 commits stale; git pull --ff-only before any QA",
+      "PB-2 admin QA blocked by GAP-001 and GAP-091"
+    ],
+    "doNotQaWithRealCard": ["empleos-premium", "empleos-quick"]
+  },
+  "p0Gaps": [
+    { "id": "GAP-001", "title": "Admin staff-provisioning privilege escalation", "path": "app/admin/teamProvisioningActions.ts:35", "action": "ADOPT_EXISTING", "fixExistsAt": "app/admin/_lib/adminAuthBoundary.ts:44-46", "fixedBySeptMerge": false },
+    { "id": "GAP-002", "title": "BR/Rentas Negocio dashboard edit destroys published listings", "action": "RECONCILE", "fixedBySeptMerge": true },
+    { "id": "GAP-003", "title": "Comida Local $129/mo has no LANE_SUSPENSION", "path": "app/lib/listingPlans/subscriptionLifecyclePolicy.ts:139", "action": "RECONCILE", "fixedBySeptMerge": true },
+    { "id": "GAP-004", "title": "Analytics owner_user_id is client-supplied", "path": "app/lib/clasificadosAnalytics.ts:170", "action": "ADOPT_EXISTING", "fixedBySeptMerge": false },
+    { "id": "GAP-032", "title": "Google/Yelp owner panel never renders for any category", "action": "ADOPT_EXISTING", "fixedBySeptMerge": false },
+    { "id": "GAP-039", "title": "Empleos premium republish forks identity and double-charges", "path": "buildEmpleosPublishEnvelope.ts:250", "action": "FIX_REGRESSION", "fixedBySeptMerge": false },
+    { "id": "GAP-040", "title": "Rentas Privado destructive edit; forces country to United States", "action": "ADOPT_EXISTING", "fixedBySeptMerge": false },
+    { "id": "GAP-041", "title": "BR inventory child destructive edit", "action": "ADOPT_EXISTING", "fixedBySeptMerge": false },
+    { "id": "GAP-042", "title": "Autos dealer child inherits parent values incl. video", "action": "FIX_REGRESSION", "fixedBySeptMerge": false },
+    { "id": "GAP-047", "title": "G23 address verifier has zero route consumers", "action": "FIX_REGRESSION", "fixedBySeptMerge": "partial-5-categories" },
+    { "id": "GAP-054", "title": "No view event on any Bienes Raices public detail page", "path": "app/(site)/clasificados/anuncio/[id]/page.tsx:1431,1462,1479", "action": "FIX_REGRESSION", "fixedBySeptMerge": false },
+    { "id": "GAP-055", "title": "BR Negocio base plan allows zero addable properties", "action": "ADOPT_EXISTING", "fixedBySeptMerge": true },
+    { "id": "GAP-061", "title": "Empleos quick is a paid lane and also double-charges", "action": "FIX_REGRESSION", "fixedBySeptMerge": false },
+    { "id": "GAP-067", "title": "Production advertises a $399/mo Viajes charge it cannot collect", "action": "ADOPT_EXISTING", "fixedBySeptMerge": false },
+    { "id": "GAP-075", "title": "Empleos discards 100% of uploaded photos", "path": "buildEmpleosPublishEnvelope.ts:46", "action": "FIX_REGRESSION", "fixedBySeptMerge": false },
+    { "id": "GAP-076", "title": "Four exact-address public leaks (Ofertas, Clases, Empleos, Servicios)", "action": "FIX_REGRESSION", "fixedBySeptMerge": "partial" },
+    { "id": "GAP-088", "title": "service_role may lack DML grants on 45 tables; or repo has diverged from DB", "action": "EXTERNAL_SETUP", "requiresLiveDbQuery": true },
+    { "id": "GAP-089", "title": "public.listings has no tracked schema in any migration", "action": "NET_NEW", "requiresLiveDbQuery": true },
+    { "id": "GAP-090", "title": "servicios_public_listings anon SELECT is USING(true) with no status gate", "action": "ADOPT_EXISTING", "requiresLiveDbQuery": true },
+    { "id": "GAP-091", "title": "Lead/subscriber CSV export behind the unsigned cookie", "action": "ADOPT_EXISTING", "fixedBySeptMerge": false },
+    { "id": "GAP-099", "title": "Two conflicting PWA manifests claim the same URL", "action": "FIX_REGRESSION", "requiresLiveDbQuery": false },
+    { "id": "GAP-100", "title": "Migration timestamp collision blocks the Sept merge", "action": "BLOCKER", "fixedBySeptMerge": false },
+    { "id": "GAP-103", "title": "836 string-asserting verifier gates; test:gates runs 5 of ~792", "action": "OWNER_POLICY_DECISION", "fixedBySeptMerge": false }
+  ],
+  "unintegratedWork": [
+    { "ref": "fix/globalization-final-closeout-2026-09", "commits": 51, "pushed": true, "verdict": "MERGE_FIRST", "conflictWithMain": 0 },
+    { "ref": "fix/br-negocio-inventory-hub-media-hydration-2026-08-27", "commits": 32, "pushed": true, "verdict": "MUST_MERGE_SECOND", "note": "all 5 sampled defects verified live on main; zero supersession" },
+    { "ref": "integration/leo-final-closeout-2026-08", "pushed": false, "verdict": "PRESERVE_IMMEDIATELY", "note": "15 untracked files incl. an uncommitted Supabase migration; exists nowhere in git" },
+    { "ref": "integration/viajes-launch-qa-2026-08", "pushed": false, "verdict": "FORWARD_PORT_DO_NOT_MERGE", "note": "sole home of the only DB-backed Viajes provider resolver; predates and lacks the checkpoint page" },
+    { "ref": "globalization-release-reconcile-2026-08-14", "commits": 5, "pushed": true, "verdict": "MERGE", "note": "locks Viajes/Cupones as free; closes GAP-067" },
+    { "ref": "feature/digital-contact-platform", "commits": 6, "pushed": true, "verdict": "OWNER_DECISION" },
+    { "ref": "nine global-* feeder branches", "verdict": "ALREADY_CAPTURED_SAFE_TO_ARCHIVE", "note": "11/11 proven by byte-identical root tree SHA" },
+    { "ref": "three autos micro-branches", "verdict": "DISCARD", "note": "content-diffed; already on main under different SHAs" }
+  ],
+  "methodologicalFindings": [
+    "git merge-base --is-ancestor produced FALSE NEGATIVES on 14 of 14 branches tested; content is routinely re-landed under new SHAs. Never conclude 'unintegrated' from ancestry alone.",
+    "Prose in this repository is not evidence: 9 confirmed instances of in-source comments and .md audit artifacts contradicting current code.",
+    "230 of 230 docs are stale; zero touched on or after 2026-09-08; 58 assert COMPLETE/CERTIFIED in a heading.",
+    "836 string-asserting verifier gates (79% of scripts/); 2 provably red; 85 assert orphaned component names; test:gates runs 5 of ~792. e2e/ (33 specs) is the only trustworthy test surface."
+  ],
+  "evidenceGaps": [
+    "NO DATABASE ACCESS at any point; the Supabase MCP server required authorization unavailable in this non-interactive session. Five P0s are contingent on one live query each.",
+    "No runtime, browser, or Stripe execution. Every TRUE is source-level.",
+    "Static reachability cannot see runtime-computed imports or server actions invoked by action-id; the ~394 dead-file count is a floor.",
+    "The '13 forked media uploaders' figure was carried forward, not re-derived; treat as unproven.",
+    "Migration APPLICATION state is unverifiable read-only."
+  ],
+  "finalDecision": {
+    "globalizationCoreRecovered": true,
+    "globalizationCoreInProduction": false,
+    "allCategoryAdoptionProven": false,
+    "mainSeptReconciliationSafe": true,
+    "thirdBranchReconciliationSafe": false,
+    "readyToBeginBroadCategoryQa": false,
+    "readyCategories": 3,
+    "readyWithStop": 6,
+    "notReady": 15,
+    "primaryConclusion": "This is an integration problem far more than an engineering problem. Only 2 of 53 systems were never built; 4 more are built and route-unreachable. For a majority of logged gaps a working implementation already exists in-tree and is simply not wired."
+  }
+}
