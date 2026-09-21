@@ -90,6 +90,54 @@ COMMENT ON CONSTRAINT restaurantes_public_listings_status_check
   ON public.restaurantes_public_listings IS
   'Gate QB-LIFECYCLE-02 added ''paused'' as the owner-facing pause state, distinct from ''suspended'' which remains staff moderation. Public reads filter status = ''published'', so a paused row is hidden with no reader change.';
 
+-- -----------------------------------------------------------------------------
+-- 3. PROVE THE WIDENING ACTUALLY TOOK EFFECT.
+--
+-- Both widenings above are `DROP CONSTRAINT IF EXISTS <one exact name>` followed by an `ADD`. That
+-- is correct only while the deployed constraint carries the name written here — and the two
+-- families genuinely differ (`_chk` for Servicios, `_status_check` for Restaurantes), which is how
+-- fragile the assumption is. If a deployed constraint carries any other name, the `DROP ... IF
+-- EXISTS` matches nothing, the old constraint SURVIVES alongside the new one, and both are
+-- enforced: the migration reports success, the capability is switched on, and the first customer
+-- who pauses their listing gets a check violation from a constraint nobody remembered.
+--
+-- Verified against a throwaway PostgreSQL 16: with the documented names the widening works; with a
+-- differently-named constraint the migration still exits 0 and the new value is still rejected.
+--
+-- So the migration asserts its own post-condition. No row is written — this reads the constraint
+-- definitions and refuses to commit if any CHECK on the status column would still reject the value
+-- this gate exists to permit. A name mismatch becomes a loud, pre-commit failure instead of a dead
+-- control in production.
+-- -----------------------------------------------------------------------------
+DO $$
+DECLARE
+  v_blocking text;
+BEGIN
+  SELECT string_agg(c.conname, ', ') INTO v_blocking
+    FROM pg_catalog.pg_constraint c
+   WHERE c.conrelid = 'public.servicios_public_listings'::regclass
+     AND c.contype = 'c'
+     -- Only value-set constraints on this column; a NOT NULL-style CHECK names the column without
+     -- enumerating anything and must not be mistaken for one that rejects the new value.
+     AND pg_catalog.pg_get_constraintdef(c.oid) ~* 'listing_status[[:space:]]*=[[:space:]]*ANY'
+     AND pg_catalog.pg_get_constraintdef(c.oid) !~* '''archived''';
+  IF v_blocking IS NOT NULL THEN
+    RAISE EXCEPTION 'QB-LIFECYCLE-02: servicios_public_listings constraint(s) % still reject ''archived'' after the widening; the DROP above matched no constraint by that name', v_blocking
+      USING ERRCODE = 'check_violation';
+  END IF;
+
+  SELECT string_agg(c.conname, ', ') INTO v_blocking
+    FROM pg_catalog.pg_constraint c
+   WHERE c.conrelid = 'public.restaurantes_public_listings'::regclass
+     AND c.contype = 'c'
+     AND pg_catalog.pg_get_constraintdef(c.oid) ~* 'status[[:space:]]*=[[:space:]]*ANY'
+     AND pg_catalog.pg_get_constraintdef(c.oid) !~* '''paused''';
+  IF v_blocking IS NOT NULL THEN
+    RAISE EXCEPTION 'QB-LIFECYCLE-02: restaurantes_public_listings constraint(s) % still reject ''paused'' after the widening; the DROP above matched no constraint by that name', v_blocking
+      USING ERRCODE = 'check_violation';
+  END IF;
+END $$;
+
 -- PostgREST caches the schema (including CHECK constraint bodies it reports on violation).
 -- Without this notify, the first write using a newly-permitted value after this migration is
 -- applied can still be rejected against the cached definition until the pooler recycles. Safe to

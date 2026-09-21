@@ -46,6 +46,19 @@ export const ADMIN_WORKSPACE_MONETIZATION_NAV: WorkspaceNavItem[] = [
     labelKey: "workspaceNav.link.paymentTracker",
     hintKey: "workspaceNav.paymentTracker.hint",
   },
+  {
+    href: "/admin/workspace/rewards",
+    labelKey: "workspaceNav.link.rewards",
+    hintKey: "workspaceNav.rewards.hint",
+  },
+  // THE BACKLOG HAS TO BE FINDABLE. This queue is what stops an unattributable refund being
+  // silently dropped, and it was reachable only by typing the URL — which is the same thing as
+  // dropping it, with extra steps.
+  {
+    href: "/admin/workspace/rewards-refunds",
+    labelKey: "workspaceNav.link.rewardsRefunds",
+    hintKey: "workspaceNav.rewardsRefunds.hint",
+  },
 ];
 
 /** Flat list — all workspace nav hrefs (preserved for access control + legacy imports). */

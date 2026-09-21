@@ -366,6 +366,21 @@ CREATE TABLE IF NOT EXISTS public.leonix_rewards_refund_resolutions (
   kind text NOT NULL,
   cumulative_refunded_cents integer NOT NULL DEFAULT 0,
 
+  -- WHICH PROBLEM THIS ROW IS, when the rail named one.
+  --
+  -- The dedupe key below was `(payment, kind, cumulative position)`. That is exactly right for the
+  -- case this table was built for — one truncated `charge.refunded` payload redelivered — and
+  -- wrong for the case that arrived later. A WON dispute whose restoration could not be applied is
+  -- filed with a cumulative position of zero, which is a CONSTANT: a payment with two disputes
+  -- filed one row, the second dispute's delivery merely incremented `attempts`, and its id, its
+  -- charge and its reason were discarded. Staff resolved one row; the other dispute's restoration
+  -- was never performed and nothing recorded that it was owed.
+  --
+  -- `external_ref` is the dispute id, or the refund id, when the payload carried one. It joins the
+  -- dedupe key, so two disputes are two rows and a redelivery of ONE of them is still one row. An
+  -- unattributable refund has no such id, leaves this NULL, and dedupes exactly as before.
+  external_ref text NULL,
+
   status text NOT NULL DEFAULT 'open',
   attempts integer NOT NULL DEFAULT 1,
   last_attempt_at timestamptz NOT NULL DEFAULT now(),
@@ -390,7 +405,10 @@ CREATE TABLE IF NOT EXISTS public.leonix_rewards_refund_resolutions (
   CONSTRAINT leonix_rewards_refund_resolutions_status_chk
     CHECK (status IN ('open', 'resolved', 'dismissed')),
   CONSTRAINT leonix_rewards_refund_resolutions_outcome_chk
-    CHECK (resolution_outcome IS NULL OR resolution_outcome IN ('reversed', 'no_action_required')),
+    -- `restored` is its own outcome. It used to be recorded as `reversed`, which is the opposite
+    -- of what happened: the row said credits were clawed back when they were given back. An audit
+    -- trail that states the reverse of the movement is worse than none.
+    CHECK (resolution_outcome IS NULL OR resolution_outcome IN ('reversed', 'restored', 'no_action_required')),
   -- A resolved row is never anonymous and never unexplained, exactly like a manual adjustment.
   CONSTRAINT leonix_rewards_refund_resolutions_resolved_chk CHECK (
     status = 'open'
@@ -404,8 +422,12 @@ CREATE TABLE IF NOT EXISTS public.leonix_rewards_refund_resolutions (
 
 -- ONE OPEN ROW PER (payment, kind, cumulative position). A redelivered webhook bumps `attempts`
 -- on the existing row instead of filling the queue with duplicates of one problem.
+-- `external_ref` joins the key so two distinct disputes on one payment are two rows. COALESCE
+-- rather than the bare column, because a NULL is not equal to another NULL in a unique index and
+-- the unattributable-refund case — which has no external ref at all — must still dedupe.
 CREATE UNIQUE INDEX IF NOT EXISTS leonix_rewards_refund_resolutions_open_idx
-  ON public.leonix_rewards_refund_resolutions (payment_record_id, kind, cumulative_refunded_cents)
+  ON public.leonix_rewards_refund_resolutions
+     (payment_record_id, kind, cumulative_refunded_cents, COALESCE(external_ref, ''))
   WHERE status = 'open';
 CREATE INDEX IF NOT EXISTS leonix_rewards_refund_resolutions_status_idx
   ON public.leonix_rewards_refund_resolutions (status, created_at DESC);
@@ -502,7 +524,21 @@ CREATE OR REPLACE FUNCTION public.leonix_rewards_post_entry(
   p_reason text DEFAULT NULL,
   p_actor_auth_user_id uuid DEFAULT NULL,
   p_actor_roster_id uuid DEFAULT NULL,
-  p_meta jsonb DEFAULT '{}'::jsonb
+  p_meta jsonb DEFAULT '{}'::jsonb,
+  -- HOW MANY REVERSAL-FAMILY ROWS THE CALLER SAW ON THIS PAYMENT WHEN IT DID ITS ARITHMETIC.
+  --
+  -- A compare-and-swap, and the only thing that can make a reversal delta safe. The delta is a
+  -- function of the payment's whole cumulative position — prior basis per kind, credits already
+  -- reversed, credits already restored — and the caller reads all of that in a round trip of its
+  -- own. A ceiling on the TOTAL is not enough: two concurrent partial refunds at cumulative
+  -- positions 2500 and 5000 of a 10000 payment both stayed under the 900-credit award and still
+  -- summed to 675 where 450 was owed, because the smaller delta was computed against a position
+  -- the larger one had already advanced.
+  --
+  -- The ledger is append-only, so this count only ever grows: equality means nothing about this
+  -- payment changed between the read and the write, and inequality means the caller's arithmetic
+  -- is stale and must be redone. NULL opts out, for callers that move nothing position-dependent.
+  p_expected_position_rows integer DEFAULT NULL
 )
 RETURNS public.leonix_rewards_ledger
 LANGUAGE plpgsql
@@ -528,6 +564,15 @@ DECLARE
   v_offset integer := 0;
   v_cover integer := 0;
   v_draw integer := 0;
+  -- PAYMENT-SCOPED POSITION, read INSIDE the wallet lock. Two concurrent refund deliveries each
+  -- computed their delta from a position they read before either had posted, and both were then
+  -- allowed to move money: a $100 payment that earned 900 credits had 1350 and even 1800 clawed
+  -- back, with the excess landing on the customer as recovery debt they never owed. The caller's
+  -- arithmetic is still the primary path; these two numbers are the database saying no.
+  v_payment_earned integer := 0;
+  v_payment_claimed integer := 0;
+  v_dispute_claimed integer := 0;
+  v_position_rows integer := 0;
   v_wallet public.leonix_rewards_wallets;
   v_row public.leonix_rewards_ledger;
 BEGIN
@@ -621,6 +666,59 @@ BEGIN
       v_available_delta := -p_amount_cents;
       v_redeemed_delta := p_amount_cents;
     WHEN 'refund_reversal', 'chargeback_reversal' THEN
+      -- THE PAYMENT-SCOPED CEILING, EVALUATED UNDER THE WALLET LOCK.
+      --
+      -- WHY IT EXISTS. The caller computes a DELTA against a cumulative position it read from this
+      -- ledger. Those reads happen in a separate round trip, outside this lock, so two deliveries
+      -- for the same payment — a refund and a dispute, two partial refunds, a webhook redelivered
+      -- to a second worker — each computed their delta from a position in which the other had not
+      -- yet landed, and both were allowed to move. Measured behaviourally on the real code path:
+      -- a $100.00 payment that earned 900 credits had 1350 clawed back by two concurrent partial
+      -- refunds and 1800 by a concurrent refund and dispute. The wallet never went negative, so
+      -- nothing refused it; the excess simply became `recovery_cents` the customer never owed,
+      -- froze their redemptions and confiscated their next earnings.
+      --
+      -- A payment can never give back more credits than it awarded. That is a fact about THIS
+      -- payment, it is computed here from the ledger while the wallet row is held, and it is
+      -- therefore exact no matter how many callers raced. A restoration returns claim, so it
+      -- counts NEGATIVELY: a won dispute genuinely frees the payment to be refunded later.
+      --
+      -- The loser of a race is refused by a DISTINCT error, not by `check_violation`, because it
+      -- is not a balance refusal: the event is valid and the caller must recompute its delta
+      -- against the position that now exists. `rewardsLedgerCore` does exactly that and retries.
+      IF p_payment_record_id IS NULL THEN
+        RAISE EXCEPTION 'leonix_rewards_post_entry: % requires a payment_record_id', p_entry_type
+          USING ERRCODE = 'check_violation';
+      END IF;
+      -- THE COMPARE-AND-SWAP, before anything else this arm does.
+      SELECT COUNT(*) INTO v_position_rows
+        FROM public.leonix_rewards_ledger l
+       WHERE l.payment_record_id = p_payment_record_id
+         AND l.entry_type IN ('refund_reversal', 'chargeback_reversal', 'reversal_restoration');
+      IF p_expected_position_rows IS NOT NULL AND p_expected_position_rows <> v_position_rows THEN
+        RAISE EXCEPTION 'leonix_rewards_position_moved: payment % now has % reversal rows, not the % this delta was computed against',
+          p_payment_record_id, v_position_rows, p_expected_position_rows
+          USING ERRCODE = 'LX001';
+      END IF;
+      IF p_amount_cents > 0 THEN
+        SELECT COALESCE(SUM(l.amount_cents), 0) INTO v_payment_earned
+          FROM public.leonix_rewards_ledger l
+         WHERE l.payment_record_id = p_payment_record_id
+           AND l.entry_type IN ('earn_pending', 'earn_available');
+        SELECT COALESCE(SUM(
+                 CASE WHEN l.entry_type = 'reversal_restoration'
+                      THEN -l.amount_cents ELSE l.amount_cents END), 0)
+          INTO v_payment_claimed
+          FROM public.leonix_rewards_ledger l
+         WHERE l.payment_record_id = p_payment_record_id
+           AND l.entry_type IN ('refund_reversal', 'chargeback_reversal', 'reversal_restoration');
+        IF p_amount_cents > v_payment_earned - v_payment_claimed THEN
+          RAISE EXCEPTION 'leonix_rewards_position_moved: reversal of % exceeds the % still claimable against payment % (earned %, already claimed %)',
+            p_amount_cents, v_payment_earned - v_payment_claimed, p_payment_record_id,
+            v_payment_earned, v_payment_claimed
+            USING ERRCODE = 'LX001';
+        END IF;
+      END IF;
       -- PENDING FIRST: take the clawback from credits that were never spendable, then from
       -- available. Reversing against pending first is what keeps a refund from consuming a
       -- balance the customer could already have spent.
@@ -695,6 +793,73 @@ BEGIN
         RAISE EXCEPTION 'leonix_rewards_post_entry: restoration of % exceeds what was reversed on wallet %',
           p_amount_cents, p_wallet_id
           USING ERRCODE = 'check_violation';
+      END IF;
+
+      -- THE WALLET-LEVEL BOUND ABOVE IS NOT ENOUGH, AND THIS IS THE DEMONSTRATION.
+      --
+      -- `lifetime_reversed_cents` counts every clawback on the WALLET. One payment refunded and a
+      -- DIFFERENT payment disputed therefore inflate a single number, and two won-dispute
+      -- deliveries for the same payment — both reading `already restored = 0` before either had
+      -- posted — each passed that wallet-level test and each gave back 900 credits for a 900-cent
+      -- chargeback. Measured on the real code path: `lifetime_restored_cents` reached 1800 and the
+      -- customer's spendable balance reached 1800 where 900 was owed. 900 credits from nothing.
+      --
+      -- A restoration gives back what the DISPUTE took on THIS payment, never what a separate
+      -- refund took and never what another payment lost. Computed here, inside the wallet lock,
+      -- from the ledger, so it is exact however many deliveries raced.
+      IF p_payment_record_id IS NULL THEN
+        RAISE EXCEPTION 'leonix_rewards_post_entry: reversal_restoration requires a payment_record_id'
+          USING ERRCODE = 'check_violation';
+      END IF;
+      SELECT COUNT(*) INTO v_position_rows
+        FROM public.leonix_rewards_ledger l
+       WHERE l.payment_record_id = p_payment_record_id
+         AND l.entry_type IN ('refund_reversal', 'chargeback_reversal', 'reversal_restoration');
+      IF p_expected_position_rows IS NOT NULL AND p_expected_position_rows <> v_position_rows THEN
+        RAISE EXCEPTION 'leonix_rewards_position_moved: payment % now has % reversal rows, not the % this restoration was computed against',
+          p_payment_record_id, v_position_rows, p_expected_position_rows
+          USING ERRCODE = 'LX001';
+      END IF;
+      IF p_amount_cents > 0 THEN
+        SELECT COALESCE(SUM(CASE WHEN l.entry_type = 'chargeback_reversal' THEN l.amount_cents ELSE 0 END), 0)
+             - COALESCE(SUM(CASE WHEN l.entry_type = 'reversal_restoration' THEN l.amount_cents ELSE 0 END), 0)
+          INTO v_payment_claimed
+          FROM public.leonix_rewards_ledger l
+         WHERE l.payment_record_id = p_payment_record_id
+           AND l.entry_type IN ('chargeback_reversal', 'reversal_restoration');
+        IF p_amount_cents > v_payment_claimed THEN
+          RAISE EXCEPTION 'leonix_rewards_position_moved: restoration of % exceeds the % a dispute took on payment %',
+            p_amount_cents, v_payment_claimed, p_payment_record_id
+            USING ERRCODE = 'LX001';
+        END IF;
+
+        -- AND THE BOUND THAT MATTERS WHEN A PAYMENT CARRIES MORE THAN ONE DISPUTE.
+        --
+        -- Summing every chargeback on the payment is correct for a payment with one dispute and
+        -- wrong for a payment with two. A $100.00 payment disputed twice at $50.00 reversed 450
+        -- for each. When the FIRST dispute was won and the second stayed lost, the payment-wide
+        -- sum read 900 and the restoration handed back all 900 — including the 450 that the second
+        -- dispute took and that Leonix never recovered. 450 credits from money that was genuinely
+        -- lost, and it scales with the number of disputes.
+        --
+        -- A restoration is addressed to ONE dispute, and that dispute's clawback is a row in this
+        -- ledger: `chargeback_reversal` carrying the dispute id as `source_id`. That is the
+        -- ceiling. A dispute whose `created` event never arrived has no such row and restores
+        -- nothing, which is the out-of-order case the resolution queue surfaces to a person.
+        IF p_source_id IS NULL THEN
+          RAISE EXCEPTION 'leonix_rewards_post_entry: reversal_restoration requires the dispute id as p_source_id'
+            USING ERRCODE = 'check_violation';
+        END IF;
+        SELECT COALESCE(SUM(l.amount_cents), 0) INTO v_dispute_claimed
+          FROM public.leonix_rewards_ledger l
+         WHERE l.payment_record_id = p_payment_record_id
+           AND l.entry_type = 'chargeback_reversal'
+           AND l.source_id = p_source_id;
+        IF p_amount_cents > v_dispute_claimed THEN
+          RAISE EXCEPTION 'leonix_rewards_post_entry: restoration of % exceeds the % dispute % took on payment %',
+            p_amount_cents, v_dispute_claimed, p_source_id, p_payment_record_id
+            USING ERRCODE = 'check_violation';
+        END IF;
       END IF;
       v_offset := LEAST(p_amount_cents, v_wallet.recovery_cents);
       v_recovery_delta := -v_offset;
@@ -1027,7 +1192,7 @@ CREATE POLICY leonix_rewards_redemptions_select_own
 -- role allowed through it. Leaving the grant implicit would mean the function's reachability
 -- depended on a default nobody in this file stated.
 REVOKE ALL ON FUNCTION public.leonix_rewards_post_entry(
-  uuid, text, integer, text, text, text, uuid, uuid, text, uuid, uuid, jsonb
+  uuid, text, integer, text, text, text, uuid, uuid, text, uuid, uuid, jsonb, integer
 ) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.leonix_rewards_recompute_wallet(uuid) FROM PUBLIC, anon, authenticated;
 -- The reservation claim is a money-adjacent state transition (it commits or releases a hold), so
@@ -1037,7 +1202,7 @@ REVOKE ALL ON FUNCTION public.leonix_rewards_claim_redemption(uuid, uuid, intege
   FROM PUBLIC, anon, authenticated;
 
 GRANT EXECUTE ON FUNCTION public.leonix_rewards_post_entry(
-  uuid, text, integer, text, text, text, uuid, uuid, text, uuid, uuid, jsonb
+  uuid, text, integer, text, text, text, uuid, uuid, text, uuid, uuid, jsonb, integer
 ) TO service_role;
 GRANT EXECUTE ON FUNCTION public.leonix_rewards_recompute_wallet(uuid) TO service_role;
 

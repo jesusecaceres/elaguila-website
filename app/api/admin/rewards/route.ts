@@ -29,7 +29,7 @@ import {
 } from "@/app/admin/_lib/adminAccessControl";
 import { cookies } from "next/headers";
 import { getAdminSupabase, isSupabaseAdminConfigured, requireAdminCookie } from "@/app/lib/supabase/server";
-import { buildRewardsStorePort } from "@/app/lib/rewards/rewardsLedger";
+import { buildRewardsStorePort, resolveWalletOwnerForUser } from "@/app/lib/rewards/rewardsLedger";
 import {
   commitReservedCredits,
   postManualAdjustment,
@@ -61,12 +61,23 @@ export const dynamic = "force-dynamic";
  * Both ids must be canonical uuids: these values flow into wallet lookups, and a wallet is never
  * addressable by anything a human typed. An unparseable id is a refusal, not a best-effort match.
  */
-function ownerFromBody(body: Record<string, unknown>): WalletOwnerRef | null {
+async function ownerFromBody(body: Record<string, unknown>): Promise<WalletOwnerRef | null> {
   const businessId = typeof body.businessId === "string" ? body.businessId.trim() : "";
   const ownerUserId = typeof body.ownerUserId === "string" ? body.ownerUserId.trim() : "";
   if (businessId) return isUuid(businessId) ? { kind: "business", businessId } : null;
-  if (ownerUserId) return isUuid(ownerUserId) ? { kind: "user", ownerUserId } : null;
-  return null;
+  if (!ownerUserId) return null;
+  if (!isUuid(ownerUserId)) return null;
+
+  // A CUSTOMER'S WALLET IS WHICHEVER ONE THEY ARE BOUND TO, even when staff address them by user
+  // id. Returning `{ kind: "user" }` verbatim bypassed the binding and broke in both directions:
+  // for a customer bound to a BUSINESS wallet the adapter tried to create a second, personal
+  // wallet, hit the `bound_user_id` unique index, and surfaced a raw duplicate-key string as a
+  // 400 — every primary-owner customer who had ever earned was un-adjustable; and where it did
+  // succeed it would have moved money into a wallet the customer's own surfaces never read.
+  //
+  // `resolveWalletOwnerForUser` is the same resolver the customer's wallet read and their
+  // checkout use, so a staff correction lands exactly where the customer can see it.
+  return (await resolveWalletOwnerForUser(ownerUserId)) ?? { kind: "user", ownerUserId };
 }
 
 export async function POST(request: NextRequest) {
@@ -135,8 +146,25 @@ export async function POST(request: NextRequest) {
     const refundExternalId =
       typeof body.refundExternalId === "string" ? body.refundExternalId.trim() : "";
 
+    const disputeId = typeof body.disputeId === "string" ? body.disputeId.trim() : "";
+
     if (!isUuid(id)) return NextResponse.json({ ok: false, error: "invalid_resolution_id" }, { status: 400 });
     if (note.length < 3) return NextResponse.json({ ok: false, error: "note_required" }, { status: 400 });
+
+    // EVERY REFUSAL HAPPENS BEFORE THE CLAIM. The claim CLOSES the row, so a validation that runs
+    // after it returns a 400 to the operator while leaving the row `resolved` with nothing moved —
+    // the obligation simply ceases to exist, invisibly, and the customer keeps credits for money
+    // they got back. Two validations used to sit on the wrong side of that line: the canonical
+    // refund id for a reversal, and the dispute id for a restoration. Both are pure checks on the
+    // request, so both belong here, where a refusal costs nothing.
+    if (wantsRestore && disputeId.length < 4) {
+      return NextResponse.json({ ok: false, error: "dispute_id_required" }, { status: 400 });
+    }
+    if (!wantsRestore && outcome === "reversed" && (!refundExternalId || refundExternalId.length < 4)) {
+      // Without a canonical refund id there is no stable idempotency anchor, and the whole reason
+      // this row exists is that the payload did not carry one.
+      return NextResponse.json({ ok: false, error: "refund_external_id_required" }, { status: 400 });
+    }
 
     const row = await findOpenRefundResolution(id);
     if (!row) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
@@ -154,11 +182,13 @@ export async function POST(request: NextRequest) {
     // leaving a row that claims work nobody did.
     const claimed = await closeRefundResolution({
       id,
-      outcome,
+      // A RESTORATION IS RECORDED AS A RESTORATION. Collapsing it into `reversed` made the audit
+      // record state the opposite of the movement: credits given back, filed as clawed back.
+      outcome: wantsRestore ? "restored" : outcome,
       note,
       actorAuthUserId,
       actorRosterId,
-      refundExternalId: outcome === "reversed" ? refundExternalId : null,
+      refundExternalId: wantsRestore ? disputeId : outcome === "reversed" ? refundExternalId : null,
     });
     if (!claimed.ok) {
       return NextResponse.json({ ok: false, error: claimed.error }, { status: 409 });
@@ -167,24 +197,26 @@ export async function POST(request: NextRequest) {
     let movedCents = 0;
     let recoveryAccruedCents = 0;
     if (wantsRestore) {
-      const disputeId = typeof body.disputeId === "string" ? body.disputeId.trim() : "";
-      if (disputeId.length < 4) {
-        return NextResponse.json({ ok: false, error: "dispute_id_required" }, { status: 400 });
-      }
       const restored = await restoreCreditsForWonDispute({
         paymentRecordId: row.paymentRecordId,
         externalId: disputeId,
       });
       if (!restored.ok) {
-        await enqueueUnattributableRefund({
+        // `requeued` REPORTS WHAT HAPPENED. It used to be asserted unconditionally while the
+        // enqueue's own `{ ok: false }` was discarded, so an operator could be told the work was
+        // preserved at the exact moment it was lost.
+        const refiled = await enqueueUnattributableRefund({
           paymentRecordId: row.paymentRecordId,
           kind: row.kind,
           cumulativeRefundedCents: row.cumulativeRefundedCents,
           reason: `staff_resolution_restoration_failed: ${restored.reason ?? "unknown"}`,
           stripeChargeId: row.stripeChargeId,
-        }).catch(() => undefined);
+          // Carried through so the re-filed row is about THIS dispute. Without it, a payment with
+          // two unresolved disputes collapses both into one row at cumulative position zero.
+          externalRef: row.externalRef ?? disputeId,
+        }).catch(() => ({ ok: false as const, error: "enqueue_threw" }));
         return NextResponse.json(
-          { ok: false, error: restored.reason ?? "restoration_failed", requeued: true },
+          { ok: false, error: restored.reason ?? "restoration_failed", requeued: refiled.ok },
           { status: 500 },
         );
       }
@@ -198,11 +230,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (outcome === "reversed") {
-      // A CANONICAL REFUND ID IS REQUIRED. Without it there is no stable idempotency anchor, and
-      // the whole reason this row exists is that the payload did not carry one.
-      if (!refundExternalId || refundExternalId.length < 4) {
-        return NextResponse.json({ ok: false, error: "refund_external_id_required" }, { status: 400 });
-      }
       const reversed = await reverseCreditsForRefundOrDispute({
         paymentRecordId: row.paymentRecordId,
         refundedCents: row.cumulativeRefundedCents,
@@ -215,15 +242,16 @@ export async function POST(request: NextRequest) {
       if (!reversed.ok) {
         // The claim is already recorded, so the obligation would otherwise vanish. Re-file it as a
         // fresh open row naming the failure, rather than reporting an error and losing the work.
-        await enqueueUnattributableRefund({
+        const refiled = await enqueueUnattributableRefund({
           paymentRecordId: row.paymentRecordId,
           kind: row.kind,
           cumulativeRefundedCents: row.cumulativeRefundedCents,
           reason: `staff_resolution_reversal_failed: ${reversed.reason ?? "unknown"}`,
           stripeChargeId: row.stripeChargeId,
-        }).catch(() => undefined);
+          externalRef: row.externalRef ?? refundExternalId,
+        }).catch(() => ({ ok: false as const, error: "enqueue_threw" }));
         return NextResponse.json(
-          { ok: false, error: reversed.reason ?? "reversal_failed", requeued: true },
+          { ok: false, error: reversed.reason ?? "reversal_failed", requeued: refiled.ok },
           { status: 500 },
         );
       }
@@ -303,7 +331,7 @@ export async function POST(request: NextRequest) {
   // many credits may actually be applied; the amount typed by staff is a request.
   // -------------------------------------------------------------------------
   if (action === "redeem") {
-    const owner = ownerFromBody(body);
+    const owner = await ownerFromBody(body);
     if (!owner) return NextResponse.json({ ok: false, error: "owner_required" }, { status: 400 });
 
     const requestedCents = Number(body.requestedCents);
@@ -388,6 +416,21 @@ export async function POST(request: NextRequest) {
           string,
           unknown
         >;
+        // A RECORD THAT IS ALREADY NET OF CREDITS CANNOT TAKE MORE.
+        //
+        // `createPendingPaymentRecord` writes `leonix_amount_is_net_of_credits: true` on every
+        // Revenue OS checkout, and `earnBaseFromPaymentMetadata` then IGNORES
+        // `leonix_credits_applied_cents` entirely — correctly, because that row's total was
+        // already reduced. Accumulating counter credits onto such a row therefore wrote a number
+        // nothing would ever subtract: a $100.00 record with $50.00 of counter credits still
+        // earned 9% of the full $100.00. Credits earning credits is the one thing the contract
+        // forbids outright, so this is refused by name rather than recorded and ignored.
+        if (existingMeta.leonix_amount_is_net_of_credits === true) {
+          return NextResponse.json(
+            { ok: false, error: "payment_record_already_net_of_credits" },
+            { status: 409 },
+          );
+        }
         const priorCredits = Math.max(0, Math.floor(Number(existingMeta.leonix_credits_applied_cents ?? 0)) || 0);
         const { error: metaError } = await db
           .from("leonix_payment_records")
@@ -431,7 +474,7 @@ export async function POST(request: NextRequest) {
   // ADJUST — authorized correction. Signed, reasoned, attributed, audited.
   // -------------------------------------------------------------------------
   if (action === "adjust") {
-    const owner = ownerFromBody(body);
+    const owner = await ownerFromBody(body);
     if (!owner) return NextResponse.json({ ok: false, error: "owner_required" }, { status: 400 });
 
     const amountCents = Number(body.amountCents);
@@ -524,6 +567,25 @@ export async function GET(request: NextRequest) {
   const cookieJar = await cookies();
   if (!requireAdminCookie(cookieJar)) {
     return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
+  }
+
+  // AND THE COOKIE IS NOT AUTHENTICATION. `requireAdminCookie` is `leonix_admin === "1"` — an
+  // unsigned, unkeyed marker anyone can set — and `getCurrentAdminAccessContext()` defaults an
+  // unresolved roster to `owner_admin`, which `hasPaymentTrackerAccess` grants unconditionally. A
+  // single forged cookie therefore returned any named business's wallet balances and its last 100
+  // ledger rows: another customer's money, to an unauthenticated caller.
+  //
+  // This response carries customer financial data, so it is gated by the same authority that can
+  // MOVE that money: `requireRevenueProtectedWriteAccess` re-verifies the session against live
+  // Supabase Auth, cross-checks the cookie email against the real auth email, looks the roster up
+  // by `auth_user_id` rather than by email, and requires `super_admin`. The role check below then
+  // still applies, so this only ever narrows who gets through.
+  const readAccess = await requireRevenueProtectedWriteAccess();
+  if (!readAccess.ok) {
+    return NextResponse.json(
+      { ok: false, error: "forbidden", reason: readAccess.reason },
+      { status: revenueWriteDenialStatusCode(readAccess.reason) },
+    );
   }
   const ctx = await getCurrentAdminAccessContext();
   if (!ctx.hasAdminCookie || !hasPaymentTrackerAccess(ctx)) {

@@ -451,3 +451,50 @@ export function formatCreditsCents(cents: number): string {
   const abs = Math.abs(Math.floor(cents));
   return `${sign}$${(abs / 100).toFixed(2)}`;
 }
+
+// ---------------------------------------------------------------------------
+// SETTLEMENT ELIGIBILITY
+// ---------------------------------------------------------------------------
+
+/**
+ * Payment statuses that mean the money did NOT stay with Leonix.
+ *
+ * `refunded` is deliberately absent. `recordRefundOnPaymentRecord` sets it for a PARTIAL refund as
+ * well as a full one, so treating it as invalidation froze the un-refunded remainder of the earn in
+ * `pending` permanently. A refund is handled by proportional reversal plus residual promotion; only
+ * a payment that is contested, failed or canceled is invalid.
+ */
+export const NON_PROMOTABLE_PAYMENT_STATUSES: readonly string[] = ["disputed", "failed", "canceled"];
+
+/**
+ * Is a payment still good once its settlement window has closed?
+ *
+ * PURE, AND DELIBERATELY SO. This used to be a block of conditions inside a database query, which
+ * meant no test could reach it: the promotion sweep is driven with an INJECTED eligibility
+ * predicate, so a mutation to the real one left every check green. An adversarial mutation run
+ * proved it — reverting this rule to "does any chargeback row exist" was caught by nothing.
+ *
+ * THE DISPUTE RULE IS THE SUBTLE ONE. A dispute invalidates the payment outright while the money
+ * is contested. It is not permanent: the ledger is append-only, so the `chargeback_reversal` row
+ * stands for ever, and asking whether one EXISTS meant a payment whose dispute Leonix WON never
+ * promoted again — the remainder of a partially disputed payment stayed frozen in `pending` while
+ * every surface told the customer their credits do not expire. What matters is whether a clawback
+ * is still OUTSTANDING, which is the reversal minus what winning gave back.
+ */
+export function isPaymentPromotableFromFacts(facts: {
+  paymentStatus: string | null;
+  manualState: string | null;
+  /** Every `chargeback_reversal` and `reversal_restoration` row on this payment. */
+  disputeLedgerRows: ReadonlyArray<{ entryType: string; amountCents: number }>;
+}): boolean {
+  if (facts.paymentStatus && NON_PROMOTABLE_PAYMENT_STATUSES.includes(facts.paymentStatus)) return false;
+  if (facts.manualState === "reversed" || facts.manualState === "rejected") return false;
+
+  const outstandingDisputeCents = facts.disputeLedgerRows.reduce((sum, row) => {
+    const amount = Math.max(0, Math.floor(Number(row.amountCents) || 0));
+    if (row.entryType === "chargeback_reversal") return sum + amount;
+    if (row.entryType === "reversal_restoration") return sum - amount;
+    return sum;
+  }, 0);
+  return outstandingDisputeCents <= 0;
+}

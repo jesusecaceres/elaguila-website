@@ -20,6 +20,13 @@ import "server-only";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
 export type RefundResolutionKind = "refund" | "chargeback";
+/**
+ * `restored` is a first-class outcome, not a flavour of `reversed`.
+ *
+ * A row filed by a WON dispute records credits the customer is OWED. Closing it as `reversed`
+ * stated the opposite of the movement in the one record a person would later audit.
+ */
+export type RefundResolutionOutcome = "reversed" | "restored" | "no_action_required";
 
 export type RefundResolutionRow = {
   id: string;
@@ -28,19 +35,21 @@ export type RefundResolutionRow = {
   stripeEventId: string | null;
   kind: RefundResolutionKind;
   cumulativeRefundedCents: number;
+  /** The dispute or refund id this row is about, when the rail named one. Part of the dedupe key. */
+  externalRef: string | null;
   status: "open" | "resolved" | "dismissed";
   attempts: number;
   lastAttemptAtIso: string;
   reason: string;
   createdAtIso: string;
   resolvedAtIso: string | null;
-  resolutionOutcome: "reversed" | "no_action_required" | null;
+  resolutionOutcome: RefundResolutionOutcome | null;
   resolutionNote: string | null;
   resolvedRefundExternalId: string | null;
 };
 
 const COLUMNS =
-  "id, payment_record_id, stripe_charge_id, stripe_event_id, kind, cumulative_refunded_cents, status, attempts, last_attempt_at, reason, created_at, resolved_at, resolution_outcome, resolution_note, resolved_refund_external_id";
+  "id, payment_record_id, stripe_charge_id, stripe_event_id, kind, cumulative_refunded_cents, external_ref, status, attempts, last_attempt_at, reason, created_at, resolved_at, resolution_outcome, resolution_note, resolved_refund_external_id";
 
 /** Postgres unique violation — a redelivery racing the same open row is the desired state. */
 const PG_UNIQUE_VIOLATION = "23505";
@@ -53,6 +62,7 @@ function toRow(r: Record<string, unknown>): RefundResolutionRow {
     stripeEventId: r.stripe_event_id == null ? null : String(r.stripe_event_id),
     kind: String(r.kind) === "chargeback" ? "chargeback" : "refund",
     cumulativeRefundedCents: Number(r.cumulative_refunded_cents ?? 0),
+    externalRef: r.external_ref == null ? null : String(r.external_ref),
     status: (String(r.status) as RefundResolutionRow["status"]) ?? "open",
     attempts: Number(r.attempts ?? 1),
     lastAttemptAtIso: String(r.last_attempt_at ?? ""),
@@ -84,10 +94,22 @@ export async function enqueueUnattributableRefund(input: {
   reason: string;
   stripeChargeId?: string | null;
   stripeEventId?: string | null;
+  /**
+   * The dispute or refund id this row is about, when one exists.
+   *
+   * IT IS PART OF THE DEDUPE KEY, and that is the point. A won dispute whose restoration failed is
+   * filed at a cumulative position of ZERO — a constant — so a payment with two disputes collapsed
+   * both into one row and the second dispute's obligation was silently discarded. Naming the
+   * dispute makes two problems two rows while a redelivery of one of them is still one row.
+   */
+  externalRef?: string | null;
 }): Promise<{ ok: true; id: string; deduplicated: boolean } | { ok: false; error: string }> {
   if (!isSupabaseAdminConfigured()) return { ok: false, error: "supabase_not_configured" };
   const db = getAdminSupabase();
   const cumulative = Math.max(0, Math.floor(Number(input.cumulativeRefundedCents) || 0));
+  // The index keys on COALESCE(external_ref, ''), so the lookup has to normalise the same way or
+  // `bump()` would miss the very row the unique violation just proved exists.
+  const externalRef = input.externalRef?.trim() ? input.externalRef.trim() : null;
   const nowIso = new Date().toISOString();
 
   const bump = async (): Promise<{ ok: true; id: string; deduplicated: boolean } | { ok: false; error: string }> => {
@@ -98,6 +120,7 @@ export async function enqueueUnattributableRefund(input: {
       .eq("kind", input.kind)
       .eq("cumulative_refunded_cents", cumulative)
       .eq("status", "open")
+      .filter("external_ref", externalRef === null ? "is" : "eq", externalRef === null ? null : externalRef)
       .maybeSingle();
     if (error || !existing) return { ok: false, error: error?.message.slice(0, 300) ?? "not_found" };
     const row = existing as { id: string; attempts?: number };
@@ -115,6 +138,7 @@ export async function enqueueUnattributableRefund(input: {
         payment_record_id: input.paymentRecordId,
         kind: input.kind,
         cumulative_refunded_cents: cumulative,
+        external_ref: externalRef,
         reason: input.reason.slice(0, 300),
         stripe_charge_id: input.stripeChargeId ?? null,
         stripe_event_id: input.stripeEventId ?? null,
@@ -125,7 +149,36 @@ export async function enqueueUnattributableRefund(input: {
     if (error) {
       // The open row already exists: this is the SAME problem arriving again, so count the
       // attempt rather than filling the queue with duplicates or reporting a failure.
-      if ((error as { code?: string }).code === PG_UNIQUE_VIOLATION) return bump();
+      if ((error as { code?: string }).code === PG_UNIQUE_VIOLATION) {
+        const bumped = await bump();
+        if (bumped.ok) return bumped;
+        // THE ROW WAS RESOLVED BETWEEN THE FAILED INSERT AND THE LOOKUP, so the partial index no
+        // longer covers it and there is nothing to bump. Left here, the event would vanish — the
+        // exact silent loss this queue exists to prevent. Insert again: the index is clear now.
+        const { data: retried, error: retryError } = await db
+          .from("leonix_rewards_refund_resolutions")
+          .insert({
+            payment_record_id: input.paymentRecordId,
+            kind: input.kind,
+            cumulative_refunded_cents: cumulative,
+            external_ref: externalRef,
+            reason: input.reason.slice(0, 300),
+            stripe_charge_id: input.stripeChargeId ?? null,
+            stripe_event_id: input.stripeEventId ?? null,
+            last_attempt_at: nowIso,
+          })
+          .select("id")
+          .single();
+        if (retryError || !retried) {
+          // A second unique violation means a concurrent writer filed the same problem; that is
+          // the desired state, so report it as a deduplicated success rather than a loss.
+          if ((retryError as { code?: string } | null)?.code === PG_UNIQUE_VIOLATION) {
+            return bump();
+          }
+          return { ok: false, error: retryError?.message.slice(0, 300) ?? "enqueue_retry_failed" };
+        }
+        return { ok: true, id: String((retried as { id: string }).id), deduplicated: false };
+      }
       return { ok: false, error: error.message.slice(0, 300) };
     }
     return { ok: true, id: String((data as { id: string }).id), deduplicated: false };
@@ -169,13 +222,20 @@ export async function findOpenRefundResolution(
  * Close a queue row, attributed.
  *
  * COMPARE-AND-SET FROM `open`. Two staff resolving the same row at once must not both succeed:
- * the second gets `already_resolved` and no second movement is attempted. The caller performs the
- * credit movement BEFORE calling this and passes the resulting ledger id, so a row can only ever
- * read as resolved once the money it describes has actually moved.
+ * the second gets `already_resolved` and no second movement is attempted.
+ *
+ * THE ROW IS CLAIMED BEFORE THE MOVEMENT, NOT AFTER — this comment used to say the opposite, and
+ * the code has always done it this way. Moving first meant two staff supplying different refund
+ * ids produced two idempotency keys, both read the same prior position, and both posted the same
+ * delta. Claiming first makes exactly one caller eligible to move anything; a movement that then
+ * fails is re-filed by the caller as a fresh open row rather than lost.
+ *
+ * The consequence the caller owes: EVERY refusal must happen before this call. A validation that
+ * runs afterwards closes the row while moving nothing, which destroys the obligation outright.
  */
 export async function closeRefundResolution(input: {
   id: string;
-  outcome: "reversed" | "no_action_required";
+  outcome: RefundResolutionOutcome;
   note: string;
   actorAuthUserId: string;
   actorRosterId?: string | null;

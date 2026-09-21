@@ -14,6 +14,7 @@ import "server-only";
 
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import {
+  REVERSAL_POSITION_MOVED,
   reserveIdempotencyKey,
   type LedgerEntryInput,
   type RedemptionRecord,
@@ -62,6 +63,14 @@ const WALLET_COLUMNS =
 const PG_UNIQUE_VIOLATION = "23505";
 /** Postgres check violation — how the posting function reports a refused movement. */
 const PG_CHECK_VIOLATION = "23514";
+/**
+ * The posting function's OWN SQLSTATE for "a competitor moved this payment's reversal position".
+ *
+ * Deliberately not `check_violation`: a balance refusal means the movement must not happen, while
+ * this means the movement's ARITHMETIC is stale and must be recomputed. Collapsing the two would
+ * turn a recoverable race into a permanently under-reversed payment.
+ */
+const PG_POSITION_MOVED = "LX001";
 
 /**
  * The namespace `reserveIdempotencyKey()` writes. The expiry sweep reads reservation rows back by
@@ -173,9 +182,22 @@ export function buildRewardsStorePort(): RewardsStorePort {
         p_actor_auth_user_id: input.actorAuthUserId ?? null,
         p_actor_roster_id: input.actorRosterId ?? null,
         p_meta: input.meta ?? {},
+        // The compare-and-swap token. Null for every movement whose amount does not depend on a
+        // payment's reversal history, which is all of them except a reversal and a restoration.
+        p_expected_position_rows: input.expectedPositionRows ?? null,
       });
 
       if (error) {
+        // THE RACE COMES FIRST, because it is not a refusal. `leonix_rewards_post_entry` raises
+        // it under its own SQLSTATE when a concurrent delivery advanced this payment's reversal
+        // position; the core recomputes and posts again. The message token is matched as well as
+        // the code because PostgREST does not always surface a function's SQLSTATE verbatim.
+        if (
+          (error as { code?: string }).code === PG_POSITION_MOVED ||
+          error.message.includes("leonix_rewards_position_moved")
+        ) {
+          return { ok: false as const, error: REVERSAL_POSITION_MOVED };
+        }
         // A CHECK violation here means the movement would have driven a bucket negative, or the
         // posting function refused it outright by SQLSTATE. Either is a refusal BY DESIGN, named
         // as such rather than swallowed or reported as an unexplained database error.
@@ -312,6 +334,24 @@ export function buildRewardsStorePort(): RewardsStorePort {
         .eq("payment_record_id", paymentRecordId)
         .eq("entry_type", kind === "refund" ? "refund_reversal" : "chargeback_reversal");
       return ((data ?? []) as { amount_cents: number }[]).reduce((a, r) => a + Number(r.amount_cents ?? 0), 0);
+    },
+
+    async countPaymentPositionRows(paymentRecordId: string) {
+      // A COUNT, not the rows: this is only ever compared for equality, and the posting statement
+      // recomputes it under the wallet lock before trusting it. `head: true` keeps it a single
+      // index probe on `leonix_rewards_ledger_payment_idx`.
+      const { count, error } = await db
+        .from("leonix_rewards_ledger")
+        .select("id", { count: "exact", head: true })
+        .eq("payment_record_id", paymentRecordId)
+        .in("entry_type", ["refund_reversal", "chargeback_reversal", "reversal_restoration"]);
+      // A FAILED READ MUST NOT LOOK LIKE "NOTHING HAS HAPPENED YET". Returning 0 here would hand
+      // the posting statement a token that matches only an empty position, so a real reversal
+      // history would refuse — loudly and retryably, which is the safe direction — while a first
+      // reversal would proceed on an unverified read. -1 can never equal a real count, so a failed
+      // read always refuses rather than sometimes passing.
+      if (error) return -1;
+      return Number(count ?? 0);
     },
 
     async sumReversedForPayment(paymentRecordId: string) {
@@ -517,6 +557,41 @@ export async function resolveWalletOwnerForPayment(input: {
  * staff-verified link from a payment to a business stopped attributing anything and the whole
  * award went to the payer's personal wallet instead.
  */
+
+/**
+ * Is a BUSINESS binding still real?
+ *
+ * The binding pins which wallet a customer uses so a membership change cannot move their balance
+ * under them — and that is right in the direction it was written for. It was wrong in the other:
+ * a member REMOVED from a business kept resolving to that business's wallet for ever, because the
+ * binding short-circuits before any membership is read. They could still read the business's
+ * balance and still spend it at checkout, both through the service-role client, so the RLS policy
+ * that would have stopped them never ran. Meanwhile the successor's payments earn into the same
+ * wallet, so what an ex-owner could spend was the new owner's money.
+ *
+ * A PERSONAL binding is unconditional: it is the customer's own wallet and nothing can revoke it.
+ * A BUSINESS binding lasts exactly as long as the membership it was granted under.
+ *
+ * FAILS OPEN, deliberately. A membership table we cannot read is not evidence of removal, and
+ * re-routing someone's money on a transient error would be its own defect. Only a definite "no
+ * active membership" answer ends the binding.
+ */
+async function businessBindingStillActive(businessId: string, userId: string): Promise<boolean> {
+  try {
+    const { data, error } = await getAdminSupabase()
+      .from("business_memberships")
+      .select("business_id")
+      .eq("user_id", userId)
+      .eq("business_id", businessId)
+      .eq("membership_status", "active")
+      .limit(1);
+    if (error) return true;
+    return (data ?? []).length > 0;
+  } catch {
+    return true;
+  }
+}
+
 export async function findBoundWalletOwner(ownerUserId: string | null): Promise<WalletOwnerRef | null> {
   if (!ownerUserId || !isSupabaseAdminConfigured()) return null;
   const { data } = await getAdminSupabase()
@@ -525,7 +600,11 @@ export async function findBoundWalletOwner(ownerUserId: string | null): Promise<
     .eq("bound_user_id", ownerUserId)
     .maybeSingle();
   const row = data as { business_id?: string | null; owner_user_id?: string | null } | null;
-  if (row?.business_id) return { kind: "business", businessId: String(row.business_id) };
+  if (row?.business_id) {
+    const businessId = String(row.business_id);
+    if (!(await businessBindingStillActive(businessId, ownerUserId))) return null;
+    return { kind: "business", businessId };
+  }
   if (row?.owner_user_id) return { kind: "user", ownerUserId: String(row.owner_user_id) };
   return null;
 }
@@ -551,8 +630,18 @@ export async function resolveWalletOwnerForUser(ownerUserId: string | null): Pro
     .eq("bound_user_id", ownerUserId)
     .maybeSingle();
   const boundRow = bound as { business_id?: string | null; owner_user_id?: string | null } | null;
-  if (boundRow?.business_id) return { kind: "business", businessId: String(boundRow.business_id) };
-  if (boundRow?.owner_user_id) return { kind: "user", ownerUserId: String(boundRow.owner_user_id) };
+  if (boundRow?.business_id) {
+    // THE BINDING OUTLIVES A MEMBERSHIP CHANGE, BUT NOT THE MEMBERSHIP ITSELF. See
+    // `businessBindingStillActive`: a removed member kept reading and spending the business
+    // wallet, which by then held their successor's earnings. When the membership is gone the
+    // binding is over and the customer falls through to their own wallet below.
+    const businessId = String(boundRow.business_id);
+    if (await businessBindingStillActive(businessId, ownerUserId)) {
+      return { kind: "business", businessId };
+    }
+  } else if (boundRow?.owner_user_id) {
+    return { kind: "user", ownerUserId: String(boundRow.owner_user_id) };
+  }
 
   const { data: memberships } = await db
     .from("business_memberships")

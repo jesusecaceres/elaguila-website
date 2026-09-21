@@ -1723,6 +1723,41 @@ export async function fulfillCheckoutSessionCompleted(input: {
     };
   }
 
+  // LEONIX IX REWARDS — COMMIT the credits this checkout held, THE MOMENT THE PAYMENT SETTLES.
+  //
+  // The hold was taken at checkout creation, keyed on THIS payment record's id, and has been
+  // sitting in `reserved` ever since. Committing any earlier would let an abandoned checkout
+  // consume a balance; committing any later is how the balance gets consumed by nothing.
+  //
+  // THIS USED TO BE THE LAST STEP OF FULFILLMENT, behind roughly fifteen early returns that all
+  // run AFTER the payment is marked paid. A permanent activation failure — a listing gate that
+  // will never pass for a data reason — therefore exhausted Stripe's retries with the hold still
+  // uncommitted, and thirty minutes later the expiry sweep handed the credits back. The customer
+  // paid the reduced price, kept the credits, and the only trace was a console line. Settling the
+  // money the payment was made with does not depend on whether a listing activated; the customer
+  // is owed the listing either way, and that is a different problem from a different queue.
+  //
+  // If the 30-minute hold expired before the customer finished paying — a Stripe session lives far
+  // longer than the hold does — `commitCheckoutCredits` RE-DEBITS the credits rather than
+  // reporting success over a hold that is no longer there, and when the balance can no longer
+  // cover it, records the shortfall as recovery debt instead of losing it.
+  const creditCommit = await commitCheckoutCredits({
+    paymentRecordId: paymentRecord.id,
+  }).catch((err: unknown) => {
+    console.error("[fulfillment] rewards redemption commit threw", {
+      paymentRecordId: paymentRecord.id,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return { committed: false, amountCents: 0, reason: "threw" as string | undefined };
+  });
+  if (creditCommit && !creditCommit.committed && creditCommit.reason && creditCommit.reason !== "no_hold") {
+    console.error("[fulfillment] rewards redemption commit did not settle", {
+      paymentRecordId: paymentRecord.id,
+      reason: creditCommit.reason,
+    });
+  }
+
+
   await writeRevenueAuditLog({
     action: "revenue_payment_completed",
     targetType: "leonix_payment_records",
@@ -2050,33 +2085,6 @@ export async function fulfillCheckoutSessionCompleted(input: {
       placementEntitlementId: entitlementResult.placementEntitlementId,
       promoRedemptionId,
     };
-  }
-
-  // LEONIX IX REWARDS — COMMIT the credits this checkout held.
-  //
-  // The hold was taken at checkout creation, keyed on THIS payment record's id, and has been
-  // sitting in `reserved` ever since. Only now, with the payment marked paid, is it actually
-  // SPENT. Committing earlier would let an abandoned checkout consume a balance.
-  //
-  // If the 30-minute hold expired before the customer finished paying — a Stripe session lives
-  // far longer than the hold does — `commitCheckoutCredits` RE-DEBITS the credits rather than
-  // reporting success over a hold that is no longer there. A failure to do so is logged as
-  // retryable: at that point the customer has a discount their balance no longer covers, which
-  // needs a person, not a silent pass.
-  const creditCommit = await commitCheckoutCredits({
-    paymentRecordId: paymentRecord.id,
-  }).catch((err: unknown) => {
-    console.error("[fulfillment] rewards redemption commit threw", {
-      paymentRecordId: paymentRecord.id,
-      error: err instanceof Error ? err.message : String(err),
-    });
-    return { committed: false, amountCents: 0, reason: "threw" as string | undefined };
-  });
-  if (creditCommit && !creditCommit.committed && creditCommit.reason && creditCommit.reason !== "no_hold") {
-    console.error("[fulfillment] rewards redemption commit did not settle", {
-      paymentRecordId: paymentRecord.id,
-      reason: creditCommit.reason,
-    });
   }
 
   // LEONIX IX REWARDS — award 9% back in Leonix Credits for this settled payment.

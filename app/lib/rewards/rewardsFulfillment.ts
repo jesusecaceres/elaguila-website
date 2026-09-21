@@ -31,6 +31,7 @@ import {
   CARD_SETTLEMENT_PENDING_DAYS,
   REDEMPTION_RESERVATION_MINUTES,
   earnBaseFromPaymentMetadata,
+  isPaymentPromotableFromFacts,
   type SettledPaymentFacts,
 } from "./rewardsPolicy";
 
@@ -340,23 +341,15 @@ export async function promoteSettledCredits(input: {
 // ---------------------------------------------------------------------------
 
 /**
- * Payment statuses that mean the money did NOT stay with Leonix. A payment in any of these states
- * must never promote: its credits stay pending until the reversal takes them, because promoting
- * first moves the clawback's target into `available` — money the customer may already have spent.
- */
-// `refunded` is deliberately NOT here. `recordRefundOnPaymentRecord` sets that status for a
-// PARTIAL refund as well as a full one, so treating it as invalidation froze the un-refunded
-// remainder of the earn in `pending` permanently. A refund is handled by proportional reversal
-// plus residual promotion; only a payment that is contested, failed or canceled is invalid.
-const NON_PROMOTABLE_PAYMENT_STATUSES = new Set(["disputed", "failed", "canceled"]);
-
-/**
  * Is this payment still good, 30 days on?
  *
- * Asked of the PAYMENT RECORD, which is where refund and dispute state lives, and cross-checked
- * against the ledger for any reversal already posted. Both, because a dispute can be recorded on
- * the ledger before the payment row is updated, and a refund can be recorded on the payment row
- * before its reversal reaches the ledger. Either signal is enough to withhold promotion.
+ * The DECISION lives in `rewardsPolicy.isPaymentPromotableFromFacts`, which is pure and therefore
+ * testable; this function's only job is to fetch the facts it needs. That split is not tidiness: a
+ * mutation run proved the rule was unreachable from any test while it lived here, because the
+ * promotion sweep is driven with an injected eligibility predicate and never called the real one.
+ *
+ * Both sources are read, because a dispute can be recorded on the ledger before the payment row is
+ * updated, and a refund can be recorded on the payment row before its reversal reaches the ledger.
  */
 async function isPaymentStillPromotable(paymentRecordId: string): Promise<boolean> {
   const db = getAdminSupabase();
@@ -374,26 +367,23 @@ async function isPaymentStillPromotable(paymentRecordId: string): Promise<boolea
     refunded_at: string | null;
     manual_state: string | null;
   };
-  if (row.payment_status && NON_PROMOTABLE_PAYMENT_STATUSES.has(row.payment_status)) return false;
-  if (row.manual_state === "reversed" || row.manual_state === "rejected") return false;
 
-  // A DISPUTE invalidates the payment outright: the money is contested, so nothing it earned
-  // becomes spendable. A REFUND does not, because refunds are proportional — the refunded share
-  // has already been clawed back and the remainder is credits for money the customer really paid.
-  //
-  // `refunded_at` used to disqualify on its own, and so did the existence of ANY reversal row.
-  // Both are set by a PARTIAL refund too, which is how the residual came to be stranded in
-  // `pending` forever while the customer was told their credits never expire. The sweep now
-  // promotes `earned - reversed` and this predicate answers only "is this payment still valid".
-  const { data: disputes } = await db
+  const { data: disputeRows, error: disputeError } = await db
     .from("leonix_rewards_ledger")
-    .select("id")
+    .select("entry_type, amount_cents")
     .eq("payment_record_id", paymentRecordId)
-    .eq("entry_type", "chargeback_reversal")
-    .limit(1);
-  if ((disputes ?? []).length > 0) return false;
+    .in("entry_type", ["chargeback_reversal", "reversal_restoration"]);
+  // Same posture: a ledger we cannot read cannot clear a payment for promotion.
+  if (disputeError) return false;
 
-  return true;
+  return isPaymentPromotableFromFacts({
+    paymentStatus: row.payment_status,
+    manualState: row.manual_state,
+    disputeLedgerRows: ((disputeRows ?? []) as { entry_type: string; amount_cents: number }[]).map((r) => ({
+      entryType: String(r.entry_type),
+      amountCents: Number(r.amount_cents ?? 0),
+    })),
+  });
 }
 
 export type PromotionSweepReport = {

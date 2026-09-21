@@ -300,6 +300,22 @@ export async function POST(request: NextRequest) {
     ? serverVerifiedOwnerUserId ?? bearerUserId
     : bearerUserId || body.ownerUserId?.trim() || null;
 
+  // SPENDING SOMEONE'S CREDITS REQUIRES PROVING WHO YOU ARE. `ownerUserId` above still falls back
+  // to `body.ownerUserId` when no bearer token is present, because a guest checkout legitimately
+  // has no session and the field is only an attribution hint there.
+  //
+  // It is NOT an acceptable input to a wallet. With no Authorization header at all, a request
+  // could name any customer's auth id and have that customer's balance planned, held and spent on
+  // the attacker's own listing — no credential, no bound listing, nothing to forge but a uuid that
+  // appears in ordinary owner-scoped payloads. Measured against the real code path: a $199.50
+  // balance funds a $399.00 purchase for someone else, repeatable per listing, with the victim
+  // recorded as the actor in the audit log.
+  //
+  // Credits therefore resolve ONLY through an identity this server verified. A guest checkout is
+  // unaffected — it simply cannot apply credits, which is already an ordinary, explained outcome
+  // rather than a failure.
+  const creditsOwnerUserId = serverVerifiedOwnerUserId ?? bearerUserId ?? null;
+
   const addOnValidation = validateRevenueCheckoutAddOns({
     category: String(body.category ?? "").trim().toLowerCase(),
     basePackageKey: String(body.packageKey ?? "").trim().toLowerCase(),
@@ -817,9 +833,28 @@ export async function POST(request: NextRequest) {
   let creditsHoldExpiresAtIso: string | null = null;
   let creditsRefusedReason: string | null = null;
 
-  if (requestedCreditsCents > 0) {
+  // CREDITS DO NOT REDUCE A RECURRING PRICE. In `subscription` mode the discount is applied by
+  // lowering the line item's `unit_amount`, and that line item carries `recurring: { interval:
+  // "month" }` — so a ONE-TIME credit debit would set the subscription's price for every renewal,
+  // for ever. Measured: $199.50 of credits against a $399.00/month plan bills $199.50 a month
+  // indefinitely and earns 9% on the reduced figure each time, funding further redemptions.
+  //
+  // This codebase already knows the mechanism: the verified-intro discount uses a Stripe
+  // `duration: "once"` coupon precisely so "the subscription's own price stays full and renewals
+  // bill full price". Credits have no such coupon yet, and inventing an untested per-amount coupon
+  // path on the live payment rail is not something a certification can stand behind.
+  //
+  // So credits are REFUSED on a recurring plan, by name, and the customer keeps their balance and
+  // pays the full price. Nothing is silently applied and nothing leaks. Enabling credits on
+  // recurring plans needs the once-coupon path and an owner decision; it is recorded as unbuilt
+  // rather than half-built.
+  const creditsBlockedByRecurringPrice = stripeMode === "subscription";
+
+  if (requestedCreditsCents > 0 && creditsBlockedByRecurringPrice) {
+    creditsRefusedReason = "not_available_on_recurring_plan";
+  } else if (requestedCreditsCents > 0) {
     const planned = await planCheckoutCredits({
-      ownerUserId,
+      ownerUserId: creditsOwnerUserId,
       requestedCents: requestedCreditsCents,
       amountDueCents: amountCents,
       // The 50% ceiling is measured against the whole eligible purchase, not the post-promo
@@ -971,7 +1006,7 @@ export async function POST(request: NextRequest) {
   // customer is asked to retry, rather than paying a discounted price backed by no credits.
   if (creditsAppliedCents > 0) {
     const application = await reserveCheckoutCredits({
-      ownerUserId,
+      ownerUserId: creditsOwnerUserId,
       requestedCents: creditsAppliedCents,
       amountDueCents: amountCents,
       eligiblePurchaseCents: subtotalCents,

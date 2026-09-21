@@ -108,6 +108,11 @@ export async function recordDisputeOnPaymentRecord(input: {
       updated_at: new Date().toISOString(),
       metadata: {
         ...meta,
+        // WHAT TO GO BACK TO IF THE DISPUTE IS WON. Without it, `disputed` was a one-way door:
+        // the status never cleared, and the rewards promotion sweep refuses a disputed payment
+        // for ever, so the un-disputed remainder of a partially disputed payment stayed frozen in
+        // `pending` while every surface told the customer their credits do not expire.
+        dispute_prior_payment_status: record.payment_status == null ? null : String(record.payment_status),
         dispute_stripe_event_id: input.stripeEventId ?? null,
         dispute_id: input.disputeId ?? null,
         dispute_policy: "Chargeback does not cancel valid obligations for delivered services (Agreement v1.2 §16); content preserved; admin review required.",
@@ -115,6 +120,57 @@ export async function recordDisputeOnPaymentRecord(input: {
       },
     })
     .eq("id", input.paymentRecordId);
+  if (error) return { ok: false, message: error.message };
+  return { ok: true };
+}
+
+/**
+ * A dispute closed in Leonix's favour. Put the payment record back where it was.
+ *
+ * `disputed` is not a terminal truth about a payment — it is a state that lasts while the money is
+ * contested. When the dispute is WON the money stayed, the customer kept what they bought, and
+ * everything that keys off `payment_status = 'disputed'` must stop withholding. The rewards
+ * promotion sweep is the one that costs the customer: it refuses a disputed payment outright, so
+ * the un-disputed remainder of a partially disputed payment was stranded in `pending` for ever.
+ *
+ * Idempotent: a redelivered `charge.dispute.closed` finds a record that is no longer disputed and
+ * reports that rather than overwriting a status something else has since set.
+ */
+export async function clearWonDisputeOnPaymentRecord(input: {
+  paymentRecordId: string;
+  stripeEventId?: string | null;
+  disputeId?: string | null;
+}): Promise<{ ok: boolean; idempotent?: boolean; message?: string }> {
+  if (!isSupabaseAdminConfigured()) return { ok: false, message: "supabase_not_configured" };
+  const supabase = getAdminSupabase();
+  const { data: record } = await supabase
+    .from("leonix_payment_records")
+    .select("id, payment_status, metadata")
+    .eq("id", input.paymentRecordId)
+    .maybeSingle();
+  if (!record) return { ok: false, message: "payment_record_not_found" };
+  if (String(record.payment_status) !== "disputed") return { ok: true, idempotent: true };
+
+  const meta = (record.metadata ?? {}) as Record<string, unknown>;
+  const prior = typeof meta.dispute_prior_payment_status === "string" ? meta.dispute_prior_payment_status : null;
+  const { error } = await supabase
+    .from("leonix_payment_records")
+    .update({
+      // A record disputed before this field existed has no prior status to return to; `paid` is
+      // the only status a disputed Stripe charge can have come from.
+      payment_status: prior && prior !== "disputed" ? prior : "paid",
+      updated_at: new Date().toISOString(),
+      metadata: {
+        ...meta,
+        dispute_won_stripe_event_id: input.stripeEventId ?? null,
+        dispute_won_id: input.disputeId ?? null,
+        dispute_policy: "Dispute closed in Leonix's favour; payment restored and admin review cleared.",
+        requires_admin_review: false,
+      },
+    })
+    .eq("id", input.paymentRecordId)
+    // COMPARE-AND-SET, so a status something else has changed in the meantime is never clobbered.
+    .eq("payment_status", "disputed");
   if (error) return { ok: false, message: error.message };
   return { ok: true };
 }

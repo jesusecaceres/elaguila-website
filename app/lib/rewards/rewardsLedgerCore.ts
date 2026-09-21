@@ -56,6 +56,27 @@ export function manualAdjustmentIdempotencyKey(ref: string): string {
   return `adjust:${ref}`;
 }
 
+/**
+ * THE DATABASE REFUSED A MOVEMENT BECAUSE THE PAYMENT'S POSITION CHANGED UNDER US.
+ *
+ * Not a balance refusal and not a failure: a concurrent delivery for the same payment landed
+ * between this call's position read and its post. The event is still valid, its delta is simply
+ * stale, so the only correct response is to recompute against the position that now exists.
+ * `leonix_rewards_post_entry` raises it under its own SQLSTATE precisely so this case can be told
+ * apart from "the wallet cannot cover it".
+ */
+export const REVERSAL_POSITION_MOVED = "reversal_position_moved";
+
+/**
+ * How many times a reversal or restoration recomputes before giving up.
+ *
+ * Every retry is a LOSS in a race, and a loss only happens when another delivery for the same
+ * payment committed — so the position strictly advances and the loop terminates. The cap exists so
+ * a pathological storm reports a named, retryable error instead of spinning; four is far more than
+ * the number of concurrent events one payment's refund lifecycle can produce.
+ */
+const POSITION_RETRY_ATTEMPTS = 4;
+
 // ---------------------------------------------------------------------------
 // Port
 // ---------------------------------------------------------------------------
@@ -132,6 +153,15 @@ export type LedgerEntryInput = {
   actorAuthUserId?: string | null;
   actorRosterId?: string | null;
   meta?: Record<string, unknown>;
+  /**
+   * THE PAYMENT'S REVERSAL POSITION AS THE CALLER SAW IT — a compare-and-swap token.
+   *
+   * A reversal or restoration amount is a function of every reversal-family row already on the
+   * payment, and those rows are read in a round trip of their own. Passing the COUNT the caller
+   * measured against lets the posting statement refuse, under the wallet lock, if anything landed
+   * in between. The ledger is append-only so the count only grows: equal means nothing moved.
+   */
+  expectedPositionRows?: number | null;
 };
 
 export type LedgerEntryRecord = {
@@ -198,6 +228,15 @@ export type RewardsStorePort = {
   ): Promise<{ id: string; walletId: string; entryType: string; amountCents: number } | null>;
   /** Total already reversed against a payment, so partial refunds cannot over-reverse. */
   sumReversedForPayment(paymentRecordId: string): Promise<number>;
+  /**
+   * How many reversal-family rows this payment carries right now.
+   *
+   * Read FIRST, before the sums, and handed back to `postEntry` as `expectedPositionRows`. Reading
+   * it first is what makes it safe: a competitor that commits afterwards makes the live count
+   * differ and the post is refused, whereas a competitor that committed before is included in
+   * both the count and the sums.
+   */
+  countPaymentPositionRows(paymentRecordId: string): Promise<number>;
   /**
    * What a WON dispute has already given back on this payment. A restoration can never exceed
    * `reversed - restored`, so this is the other half of that bound.
@@ -565,6 +604,47 @@ export async function reverseForRefundOrChargeback(input: {
   cumulativeRefundedCentsForKind?: number | null;
   ports: RewardsStorePort;
 }): Promise<ReversalResult> {
+  // 3. EXACTLY RIGHT EVEN WHEN TWO DELIVERIES RACE.
+  //
+  // The cumulative position below is read in its own round trip, so it is STALE the moment another
+  // delivery for the same payment commits. Both callers then computed a delta against a position
+  // in which the other had not landed, and both moved money: a $100.00 payment that earned 900
+  // credits had 1350 clawed back by two concurrent partial refunds, and 1800 by a concurrent
+  // refund and dispute. Nothing refused it — the wallet stayed non-negative and the excess became
+  // recovery debt the customer never owed, freezing their redemptions and taking their next
+  // earnings.
+  //
+  // The posting statement now enforces the payment-scoped ceiling under the wallet lock, where it
+  // is exact, and refuses the loser of a race by a DISTINCT name. Losing is not a failure: the
+  // event is valid and only its arithmetic is stale, so this recomputes against the position that
+  // now exists and posts again. Each retry follows a competitor's commit, so the position strictly
+  // advances and the loop converges — measured, the two races above land on exactly 900.
+  let lastError: ReversalResult | null = null;
+  for (let attempt = 0; attempt < POSITION_RETRY_ATTEMPTS; attempt += 1) {
+    const outcome = await attemptReversal(input);
+    if (outcome !== POSITION_RETRY) return outcome;
+    lastError = {
+      ok: false,
+      error: "reversal_position_contended",
+      basisRecorded: false,
+    };
+  }
+  // Every attempt lost. Reporting a contended position is the honest outcome: nothing moved, no
+  // idempotency key was burned, and the caller (or the refund resolution queue) may retry.
+  return lastError ?? { ok: false, error: "reversal_position_contended", basisRecorded: false };
+}
+
+/** Sentinel: the posting statement refused because a competitor moved the payment's position. */
+const POSITION_RETRY = Symbol("position_retry");
+
+async function attemptReversal(input: {
+  paymentRecordId: string;
+  kind: "refund" | "chargeback";
+  externalId: string;
+  eventRefundedCents: number;
+  cumulativeRefundedCentsForKind?: number | null;
+  ports: RewardsStorePort;
+}): Promise<ReversalResult | typeof POSITION_RETRY> {
   const original = await input.ports.findEarnForPayment(input.paymentRecordId);
   if (!original || original.amountCents <= 0) {
     return { ok: true, outcome: "nothing_to_reverse", reason: "payment_earned_nothing", reversedCents: 0, totalReversedCents: 0 };
@@ -572,6 +652,14 @@ export async function reverseForRefundOrChargeback(input: {
 
   const idempotencyKey = reversalIdempotencyKey(input.kind, input.externalId);
   const otherKind = input.kind === "refund" ? "chargeback" : "refund";
+
+  // THE COMPARE-AND-SWAP TOKEN IS READ BEFORE THE SUMS, AND THE ORDER IS THE POINT.
+  //
+  // A competitor that commits AFTER this read makes the live count differ from it, so the post is
+  // refused and recomputed. A competitor that committed BEFORE it is reflected in the count and in
+  // every sum below alike. Reading the count last would invert that: the token would look current
+  // while the sums it is vouching for were stale.
+  const positionRows = await input.ports.countPaymentPositionRows(input.paymentRecordId);
 
   const [priorBasisSameKind, priorBasisOtherKind, reversedSoFarCents, restoredSoFarCents] = await Promise.all([
     input.ports.sumReversalBasisForPayment(input.paymentRecordId, input.kind),
@@ -619,6 +707,7 @@ export async function reverseForRefundOrChargeback(input: {
     sourceId: input.externalId,
     paymentRecordId: input.paymentRecordId,
     idempotencyKey,
+    expectedPositionRows: positionRows,
     meta: {
       basis_contribution_cents: basisContributionCents,
       cumulative_refunded_cents: cumulativeRefundedCents,
@@ -628,6 +717,13 @@ export async function reverseForRefundOrChargeback(input: {
     },
   });
   if (!posted.ok) {
+    // A CONTENDED POSITION IS NOT A REFUSED MOVEMENT. Nothing was written, the idempotency key is
+    // still free, and the only thing wrong with this event is that its delta was computed against
+    // a position a competitor has since advanced. Recording a zero-amount basis row here would
+    // burn the key and permanently under-reverse the payment; recomputing is what makes the total
+    // exact. The caller's loop does that.
+    if (posted.error === REVERSAL_POSITION_MOVED) return POSITION_RETRY;
+
     // THE BASIS MUST SURVIVE A REFUSED MOVEMENT.
     //
     // A reversal is refused when the customer has already SPENT the credits: the wallet cannot go
@@ -650,6 +746,9 @@ export async function reverseForRefundOrChargeback(input: {
       sourceId: input.externalId,
       paymentRecordId: input.paymentRecordId,
       idempotencyKey,
+      // NO CAS TOKEN HERE, deliberately. This row moves nothing; it exists only so the event's
+      // refunded basis survives. Guarding it against a position that has since moved would leave
+      // the basis unrecorded and make the NEXT refund under-reverse by this event's share.
       reason: "reversal refused: balance already spent; basis recorded, money not moved",
       meta: {
         basis_contribution_cents: basisContributionCents,
@@ -926,6 +1025,70 @@ export async function commitReservedCredits(input: {
   return { ok: true, outcome: "committed", amountCents: reservation.amountCents };
 }
 
+/** `unfunded:<ref>` — the debt recorded when a settled purchase's hold can no longer be taken. */
+export function unfundedRedemptionIdempotencyKey(redemptionRef: string): string {
+  return `unfunded:${redemptionRef}`;
+}
+
+/**
+ * RECORD AS DEBT WHAT THE CUSTOMER RECEIVED BUT NO LONGER HAS THE BALANCE TO COVER.
+ *
+ * A hold lives 30 minutes; a Stripe Checkout session lives up to 24 hours. A customer can let the
+ * hold expire, spend the returned credits on a SECOND purchase, and then come back and pay the
+ * first session — which is still priced at the discount the expired hold was funding. The re-debit
+ * at commit is the right answer and usually works; when the balance is gone it cannot, and the
+ * purchase was funded by nothing. Measured: a $200.00 balance bought $399.00 of discounts.
+ *
+ * Refusing is not enough on its own, because the goods have already been delivered and the money
+ * has already been charged at the reduced price. The obligation is real, so it is recorded the way
+ * every other unfundable clawback is recorded: as `recovery_cents`. The customer owes it, their
+ * redemptions pause until it is settled, and their next earnings settle it automatically. Nothing
+ * is lost and nothing is invented.
+ *
+ * The reservation is then finalised so a later retry cannot take the credits a second time.
+ */
+export async function accrueUnfundedRedemption(input: {
+  redemptionRef: string;
+  paymentRecordId?: string | null;
+  ports: RewardsStorePort;
+}): Promise<
+  | { ok: true; outcome: "accrued" | "already_recorded"; amountCents: number }
+  | { ok: false; error: string }
+> {
+  const reservation = await input.ports.findRedemption(reserveIdempotencyKey(input.redemptionRef));
+  if (!reservation) return { ok: false, error: "reservation_not_found" };
+  if (reservation.status === "committed") {
+    return { ok: true, outcome: "already_recorded", amountCents: reservation.amountCents };
+  }
+
+  const posted = await input.ports.postEntry({
+    walletId: reservation.walletId,
+    entryType: "recovery_accrue",
+    amountCents: reservation.amountCents,
+    sourceKind: "checkout_redemption",
+    paymentRecordId: input.paymentRecordId ?? null,
+    redemptionId: reservation.id,
+    idempotencyKey: unfundedRedemptionIdempotencyKey(input.redemptionRef),
+    reason: "purchase settled at a credit-reduced price the balance could no longer fund",
+  });
+  if (!posted.ok) return { ok: false, error: posted.error };
+
+  // FINALISE THE HOLD, or a later retry would re-debit the same credits on top of the debt. The
+  // row is already released or expired, so this is not a compare-and-set from `reserved`.
+  await input.ports.setRedemptionStatus({
+    redemptionId: reservation.id,
+    status: "committed",
+    settleLedgerId: posted.entry.id,
+    fromAnyStatus: true,
+  });
+
+  return {
+    ok: true,
+    outcome: posted.entry.deduplicated ? "already_recorded" : "accrued",
+    amountCents: reservation.amountCents,
+  };
+}
+
 /** Return held credits after a failed or expired checkout. */
 export async function releaseReservedCredits(input: {
   redemptionRef: string;
@@ -1012,6 +1175,29 @@ export async function restoreReversedCredits(input: {
   requestedCents?: number | null;
   ports: RewardsStorePort;
 }): Promise<RestorationResult> {
+  // THE BOUND BELOW IS READ OUTSIDE THE LOCK, SO TWO WON DISPUTES ON ONE PAYMENT RACED IT.
+  //
+  // Both deliveries read `already restored = 0`, both computed a full restoration, and the
+  // wallet-level guard in SQL could not tell them apart because it sums clawbacks across EVERY
+  // payment: a second, entirely separate refunded payment had inflated `lifetime_reversed_cents`
+  // enough to let both through. Measured on the real code path, a 900-cent chargeback gave back
+  // 1800 and the customer's spendable balance doubled. 900 credits from nothing.
+  //
+  // The posting statement now bounds a restoration by what a dispute took on THIS payment, under
+  // the wallet lock, and names the race distinctly so it can be recomputed rather than refused.
+  for (let attempt = 0; attempt < POSITION_RETRY_ATTEMPTS; attempt += 1) {
+    const outcome = await attemptRestoration(input);
+    if (outcome !== POSITION_RETRY) return outcome;
+  }
+  return { ok: false, error: "restoration_position_contended" };
+}
+
+async function attemptRestoration(input: {
+  paymentRecordId: string;
+  externalId: string;
+  requestedCents?: number | null;
+  ports: RewardsStorePort;
+}): Promise<RestorationResult | typeof POSITION_RETRY> {
   const original = await input.ports.findEarnForPayment(input.paymentRecordId);
   if (!original || original.amountCents <= 0) {
     return { ok: true, outcome: "nothing_to_restore", restoredCents: 0, recoveryOffsetCents: 0, reason: "payment_earned_nothing", deduplicated: false };
@@ -1025,15 +1211,39 @@ export async function restoreReversedCredits(input: {
   // won, leaving the customer with full rewards on $50 they had been refunded. 450 cents from
   // nothing, scaling with the refund.
   const kind: "refund" | "chargeback" = "chargeback";
-  const [reversedCents, restoredCents] = await Promise.all([
+  // Read first, for the same reason as the reversal path.
+  const positionRows = await input.ports.countPaymentPositionRows(input.paymentRecordId);
+  const [reversedCents, restoredCents, thisDispute] = await Promise.all([
     input.ports.sumReversedForPaymentByKind?.(input.paymentRecordId, kind) ??
       input.ports.sumReversedForPayment(input.paymentRecordId),
     input.ports.sumRestoredForPayment?.(input.paymentRecordId) ?? Promise.resolve(0),
+    // THIS DISPUTE'S OWN CLAWBACK. The reversal it produced is addressable: it was posted under
+    // `reverse:chargeback:<disputeId>`.
+    input.ports.findLedgerEntryByIdempotencyKey(reversalIdempotencyKey(kind, input.externalId)),
   ]);
 
-  // The bound. `reversed` counts what THIS KIND of reversal claimed; a clawback that outran the
-  // wallet recorded the rest as recovery, and the restoration cancels that debt first.
-  const outstanding = Math.max(0, Math.floor(reversedCents) - Math.floor(restoredCents));
+  // TWO BOUNDS, AND THE TIGHTER ONE WINS.
+  //
+  // The payment-wide bound (`reversed - restored`) is what a single dispute needs. It is NOT
+  // enough when a payment carries MORE THAN ONE dispute, and that gap created money: a $100.00
+  // payment disputed twice at $50.00 each reversed 450 for each dispute, 900 in total. When the
+  // FIRST dispute was WON and the second stayed lost, the payment-wide bound read 900 and gave
+  // back all 900 — including the 450 that the second dispute took and that Leonix never got back.
+  // The customer kept full rewards on $50.00 that had been permanently charged back. 450 cents
+  // from nothing, scaling with the number of disputes.
+  //
+  // A won dispute gives back what THAT DISPUTE took. Its reversal row is addressable by the
+  // dispute's own idempotency key, so this is a fact rather than an apportionment. A dispute whose
+  // `created` event never arrived has no row, takes nothing, and restores nothing — which is the
+  // out-of-order case the refund resolution queue exists to surface.
+  const thisDisputeTookCents =
+    thisDispute && thisDispute.entryType === "chargeback_reversal"
+      ? Math.max(0, Math.floor(thisDispute.amountCents))
+      : 0;
+  const outstanding = Math.max(
+    0,
+    Math.min(thisDisputeTookCents, Math.floor(reversedCents) - Math.floor(restoredCents)),
+  );
   const requested =
     typeof input.requestedCents === "number" && Number.isFinite(input.requestedCents)
       ? Math.max(0, Math.floor(input.requestedCents))
@@ -1046,7 +1256,12 @@ export async function restoreReversedCredits(input: {
       outcome: "nothing_to_restore",
       restoredCents: 0,
       recoveryOffsetCents: 0,
-      reason: reversedCents <= 0 ? "nothing_was_reversed" : "already_restored",
+      reason:
+        reversedCents <= 0
+          ? "nothing_was_reversed"
+          : thisDisputeTookCents <= 0
+            ? "nothing_was_reversed"
+            : "already_restored",
       deduplicated: false,
     };
   }
@@ -1079,9 +1294,11 @@ export async function restoreReversedCredits(input: {
     sourceId: input.externalId,
     paymentRecordId: input.paymentRecordId,
     idempotencyKey: restorationIdempotencyKey(input.externalId),
+    expectedPositionRows: positionRows,
     reason: "dispute won; reversed credits restored",
     meta: {
       reversed_cents: reversedCents,
+      this_dispute_reversed_cents: thisDisputeTookCents,
       already_restored_cents: restoredCents,
       requested_cents: requested,
       recovery_before_cents: recoveryBefore,
@@ -1090,6 +1307,10 @@ export async function restoreReversedCredits(input: {
       basis_contribution_cents: -basisNeutralizedCents,
     },
   });
+  // A competitor restored first. Nothing moved and no key was burned, so recompute the bound
+  // against the restorations that now exist — which is how the second delivery correctly lands on
+  // `nothing_to_restore` instead of handing the credits back twice.
+  if (!posted.ok && posted.error === REVERSAL_POSITION_MOVED) return POSITION_RETRY;
   if (!posted.ok) return { ok: false, error: posted.error };
 
   if (posted.entry.deduplicated) {

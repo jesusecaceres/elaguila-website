@@ -518,6 +518,13 @@ export function getAllowedWorkspaceNavHrefs(ctx: AdminAccessContext): string[] {
   // access check (owner_admin, or an active roster member with can_view_payments).
   if (hasPaymentTrackerAccess(ctx)) {
     hrefs.push("/admin/workspace/payment-tracker");
+    // IX REWARDS. The refund-resolution queue is the whole mechanism that keeps an unattributable
+    // refund from being silently dropped — money went back to a customer and the credits it
+    // earned are still spendable. A backlog with no link in the shell is, operationally, the
+    // silent drop it exists to prevent: staff had to already know the URL. Both rewards screens
+    // are money screens, so they ride the same permission the payment tracker does.
+    hrefs.push("/admin/workspace/rewards");
+    hrefs.push("/admin/workspace/rewards-refunds");
   }
   return hrefs;
 }

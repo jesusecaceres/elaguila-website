@@ -36,6 +36,7 @@ import "server-only";
 import { writeRevenueAuditLog } from "@/app/lib/listingPlans/revenueAuditLog";
 import { buildRewardsStorePort, isRewardsConfigured, resolveWalletOwnerForUser } from "./rewardsLedger";
 import {
+  accrueUnfundedRedemption,
   commitReservedCredits,
   releaseReservedCredits,
   reserveCreditsForPurchase,
@@ -287,6 +288,41 @@ export async function commitCheckoutCredits(input: {
     if (!res.ok) {
       // "No reservation" is the ordinary case for a checkout that applied no credits at all.
       if (res.error === "reservation_not_found") return { committed: false, amountCents: 0, reason: "no_hold" };
+
+      // THE PURCHASE WAS DELIVERED AT A PRICE THE BALANCE CAN NO LONGER FUND.
+      //
+      // A hold lives 30 minutes; a Stripe Checkout session lives up to 24 hours. A customer can
+      // let the hold lapse, spend the returned credits on a SECOND purchase, and then pay the
+      // first session — still priced at the discount the lapsed hold was funding. The re-debit
+      // above is the right answer and usually works; when the balance is gone it cannot, and
+      // refusing alone left Leonix short: measured, a $200.00 balance bought $399.00 of
+      // discounts, with nothing in the ledger saying anything was owed.
+      //
+      // The obligation is recorded the way every other unfundable clawback is: as recovery debt.
+      // The customer's redemptions pause and their next earnings settle it. It is not silent, and
+      // it is not a loss.
+      const debt = await accrueUnfundedRedemption({
+        redemptionRef: input.paymentRecordId,
+        paymentRecordId: input.paymentRecordId,
+        ports: buildRewardsStorePort(),
+      });
+      await writeRevenueAuditLog({
+        action: "revenue_payment_completed",
+        targetType: "leonix_rewards_ledger",
+        targetId: input.paymentRecordId,
+        meta: {
+          rewards_action: "rewards_redemption",
+          rewards_outcome: debt.ok ? "commit_failed_debt_recorded" : "commit_failed_debt_unrecorded",
+          rewards_reason: res.error,
+          rewards_amount_cents: debt.ok ? debt.amountCents : 0,
+          // An unrecorded debt is the one state a person must chase: the discount was given and
+          // nothing in the ledger says it is owed.
+          retryable: !debt.ok,
+        },
+      }).catch(() => undefined);
+      if (debt.ok) {
+        return { committed: false, amountCents: debt.amountCents, reason: "recorded_as_recovery_debt" };
+      }
       await writeRevenueAuditLog({
         action: "revenue_payment_completed",
         targetType: "leonix_rewards_ledger",

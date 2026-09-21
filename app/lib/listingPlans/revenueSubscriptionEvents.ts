@@ -18,7 +18,7 @@ import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/
 import { writeRevenueAuditLog } from "./revenueAuditLog";
 import { attachStripeIdentitiesToConsent } from "./recurringConsent";
 import { extendEntitlementForInvoicePaid } from "./revenueEntitlementFulfillment";
-import { recordDisputeOnPaymentRecord, recordRefundOnPaymentRecord } from "./refundDisputeFoundations";
+import { clearWonDisputeOnPaymentRecord, recordDisputeOnPaymentRecord, recordRefundOnPaymentRecord } from "./refundDisputeFoundations";
 import {
   awardCreditsForSettledPayment,
   restoreCreditsForWonDispute,
@@ -543,18 +543,35 @@ export async function handleSubscriptionDeleted(input: {
   return { ok: true, outcome: "completed" };
 }
 
-async function findPaymentRecordByIntentOrCharge(charge: Stripe.Charge): Promise<{ id: string } | null> {
+/**
+ * The payment record a Stripe charge belongs to.
+ *
+ * ORDERED-LIMIT-1, NOT `maybeSingle()`. `stripe_payment_intent_id` carries an ordinary index, not
+ * a unique one, so two rows for one intent — a retried checkout, a backfill, a repair script — made
+ * PostgREST return an ERROR rather than a row. The caller read `data` as null and reported the
+ * event as "not a Leonix payment": a refund or a dispute then settled as handled, nothing was
+ * reversed, no queue row was filed and Stripe never retried. It failed silently, and in the
+ * direction that costs Leonix.
+ *
+ * The oldest row is the original payment, which is the one a refund or dispute is about.
+ * `ok: false` is returned for a genuine read FAILURE so the caller can fail retryably instead of
+ * treating "we could not look" as "there is nothing here".
+ */
+async function findPaymentRecordByIntentOrCharge(
+  charge: Stripe.Charge,
+): Promise<{ ok: true; record: { id: string } | null } | { ok: false }> {
   const supabase = getAdminSupabase();
   const intentId = typeof charge.payment_intent === "string" ? charge.payment_intent : charge.payment_intent?.id ?? null;
-  if (intentId) {
-    const { data } = await supabase
-      .from("leonix_payment_records")
-      .select("id")
-      .eq("stripe_payment_intent_id", intentId)
-      .maybeSingle();
-    if (data?.id) return { id: data.id as string };
-  }
-  return null;
+  if (!intentId) return { ok: true, record: null };
+  const { data, error } = await supabase
+    .from("leonix_payment_records")
+    .select("id")
+    .eq("stripe_payment_intent_id", intentId)
+    .order("created_at", { ascending: true })
+    .limit(1);
+  if (error) return { ok: false };
+  const row = ((data ?? []) as { id: string }[])[0];
+  return { ok: true, record: row?.id ? { id: String(row.id) } : null };
 }
 
 /**
@@ -626,7 +643,13 @@ async function reverseRewardsForChargeRefunds(input: {
   // Oldest first, so the cumulative position advances in the order the refunds actually happened.
   const ordered = [...refunds].sort((a, b) => (a.created ?? 0) - (b.created ?? 0));
   for (const refund of ordered) {
-    await reverseCreditsForRefundOrDispute({
+    // THE RESULT IS READ. It used to be discarded, and that hole was wider than the one this
+    // queue was built for: an ATTRIBUTABLE refund whose reversal failed — a transient database
+    // error mid-posting, a contended position, a wallet that could not be resolved — returned
+    // `ok: false`, nothing looked at it, the handler reported `completed`, and Stripe never
+    // retried. Money went back to the customer, the credits stayed spendable, and no row anywhere
+    // said so. The queue only ever covered payloads with no refund object at all.
+    const reversed = await reverseCreditsForRefundOrDispute({
       paymentRecordId: input.paymentRecordId,
       refundedCents: refund.amount ?? 0,
       // Each refund contributes only its OWN amount. Re-asserting the cumulative figure on every
@@ -634,14 +657,48 @@ async function reverseRewardsForChargeRefunds(input: {
       cumulativeRefundedCents: null,
       kind: "refund",
       externalId: refund.id,
-    });
+    }).catch((e: unknown) => ({
+      ok: false as const,
+      outcome: "failed" as const,
+      reason: e instanceof Error ? e.message.slice(0, 200) : "reversal_threw",
+    }));
+    if (!reversed.ok) {
+      await enqueueUnattributableRefund({
+        paymentRecordId: input.paymentRecordId,
+        kind: "refund",
+        cumulativeRefundedCents: Math.max(0, Math.floor(refund.amount ?? 0)),
+        reason: `refund_reversal_failed: ${("reason" in reversed && reversed.reason) || "unknown"}`,
+        stripeChargeId: input.charge.id,
+        stripeEventId: input.eventId ?? null,
+        // NAMED BY THE REFUND, so a charge with several failed refunds files several rows rather
+        // than collapsing into one whose amount matches none of them.
+        externalRef: refund.id,
+      }).catch(() => undefined);
+      await writeRevenueAuditLog({
+        action: "revenue_payment_completed",
+        targetType: "leonix_rewards_ledger",
+        targetId: input.paymentRecordId,
+        meta: {
+          rewards_action: "rewards_reverse",
+          rewards_outcome: "queued_for_resolution",
+          rewards_reason: ("reason" in reversed && reversed.reason) || "reversal_failed",
+          retryable: true,
+          stripe_charge_id: input.charge.id,
+          refund_id: refund.id,
+        },
+      }).catch(() => undefined);
+    }
   }
 }
 
 /** charge.refunded — refund foundation: record on the original payment record; history preserved. */
 export async function handleChargeRefunded(input: { charge: Stripe.Charge; eventId: string }): Promise<HandlerResult> {
   if (!isSupabaseAdminConfigured()) return { ok: false, outcome: "failed_retryable", code: "supabase_not_configured" };
-  const record = await findPaymentRecordByIntentOrCharge(input.charge);
+  const lookup = await findPaymentRecordByIntentOrCharge(input.charge);
+  // A read we could not perform is NOT "this is not our payment". Failing retryably lets Stripe
+  // redeliver instead of settling a refund as handled while nothing was reversed.
+  if (!lookup.ok) return { ok: false, outcome: "failed_retryable", code: "payment_record_lookup_failed" };
+  const record = lookup.record;
   if (!record) return { ok: true, outcome: "ignored", code: "not_leonix_payment" };
   const result = await recordRefundOnPaymentRecord({
     paymentRecordId: record.id,
@@ -669,11 +726,16 @@ export async function handleDisputeCreated(input: { dispute: Stripe.Dispute; eve
   const supabase = getAdminSupabase();
   const intentId = typeof input.dispute.payment_intent === "string" ? input.dispute.payment_intent : input.dispute.payment_intent?.id ?? null;
   if (!intentId) return { ok: true, outcome: "ignored", code: "no_payment_intent" };
-  const { data: paymentRecord } = await supabase
+  // Ordered-limit-1 rather than `maybeSingle()`, for the same reason the charge lookup is: the
+  // intent column is not unique, and a duplicate row turned a real dispute into a silent no-op.
+  const { data: disputeRecords, error: disputeLookupError } = await supabase
     .from("leonix_payment_records")
     .select("id, category, listing_id, stripe_subscription_id, owner_user_id")
     .eq("stripe_payment_intent_id", intentId)
-    .maybeSingle();
+    .order("created_at", { ascending: true })
+    .limit(1);
+  if (disputeLookupError) return { ok: false, outcome: "failed_retryable", code: "payment_record_lookup_failed" };
+  const paymentRecord = ((disputeRecords ?? []) as Record<string, unknown>[])[0] ?? null;
   if (!paymentRecord) return { ok: true, outcome: "ignored", code: "not_leonix_payment" };
 
   await recordDisputeOnPaymentRecord({ paymentRecordId: paymentRecord.id as string, stripeEventId: input.eventId, disputeId: input.dispute.id });
@@ -682,13 +744,43 @@ export async function handleDisputeCreated(input: { dispute: Stripe.Dispute; eve
   // cumulative, idempotent rule as a refund. Keyed on the DISPUTE id, which is already unique per
   // dispute; the dispute's own amount is its contribution to the money-returned position, and it
   // composes with any refunds already reversed against the same payment.
-  await reverseCreditsForRefundOrDispute({
+  //
+  // AND THE RESULT IS READ. Discarding it meant a failed chargeback reversal left the customer
+  // holding rewards for money that had been taken back, with nothing queued and nothing retried.
+  const disputeReversal = await reverseCreditsForRefundOrDispute({
     paymentRecordId: String(paymentRecord.id),
     refundedCents: input.dispute.amount ?? 0,
     cumulativeRefundedCents: null,
     kind: "chargeback",
     externalId: input.dispute.id,
-  }).catch(() => null);
+  }).catch((e: unknown) => ({
+    ok: false as const,
+    outcome: "failed" as const,
+    reason: e instanceof Error ? e.message.slice(0, 200) : "reversal_threw",
+  }));
+  if (!disputeReversal.ok) {
+    await enqueueUnattributableRefund({
+      paymentRecordId: String(paymentRecord.id),
+      kind: "chargeback",
+      cumulativeRefundedCents: Math.max(0, Math.floor(input.dispute.amount ?? 0)),
+      reason: `chargeback_reversal_failed: ${("reason" in disputeReversal && disputeReversal.reason) || "unknown"}`,
+      stripeChargeId: typeof input.dispute.charge === "string" ? input.dispute.charge : input.dispute.charge?.id ?? null,
+      stripeEventId: input.eventId,
+      externalRef: input.dispute.id,
+    }).catch(() => undefined);
+    await writeRevenueAuditLog({
+      action: "revenue_payment_completed",
+      targetType: "leonix_rewards_ledger",
+      targetId: String(paymentRecord.id),
+      meta: {
+        rewards_action: "rewards_reverse",
+        rewards_outcome: "queued_for_resolution",
+        rewards_reason: ("reason" in disputeReversal && disputeReversal.reason) || "reversal_failed",
+        retryable: true,
+        dispute_id: input.dispute.id,
+      },
+    }).catch(() => undefined);
+  }
 
   const category = String(paymentRecord.category ?? "");
   const listingId = String(paymentRecord.listing_id ?? "");
@@ -724,15 +816,29 @@ export async function handleDisputeClosed(input: { dispute: Stripe.Dispute; even
   const supabase = getAdminSupabase();
   const intentId = typeof input.dispute.payment_intent === "string" ? input.dispute.payment_intent : input.dispute.payment_intent?.id ?? null;
   if (!intentId) return { ok: true, outcome: "ignored", code: "no_payment_intent" };
-  const { data: paymentRecord } = await supabase
+  const { data: closedRecords, error: closedLookupError } = await supabase
     .from("leonix_payment_records")
     .select("id, category, listing_id, stripe_subscription_id")
     .eq("stripe_payment_intent_id", intentId)
-    .maybeSingle();
+    .order("created_at", { ascending: true })
+    .limit(1);
+  if (closedLookupError) return { ok: false, outcome: "failed_retryable", code: "payment_record_lookup_failed" };
+  const paymentRecord = ((closedRecords ?? []) as Record<string, unknown>[])[0] ?? null;
   if (!paymentRecord) return { ok: true, outcome: "ignored", code: "not_leonix_payment" };
 
   const won = input.dispute.status === "won";
   if (won) {
+    // PUT THE PAYMENT RECORD BACK. `disputed` is a state, not a verdict, and every reader that
+    // keys off it must stop withholding once the dispute is won. The rewards promotion sweep is
+    // the one that costs the customer: it refuses a disputed payment outright, so the un-disputed
+    // remainder of a partially disputed payment stayed frozen in `pending` for ever while the
+    // product told them in both languages that credits do not expire.
+    await clearWonDisputeOnPaymentRecord({
+      paymentRecordId: String(paymentRecord.id),
+      stripeEventId: input.eventId,
+      disputeId: input.dispute.id,
+    }).catch(() => undefined);
+
     const subId = paymentRecord.stripe_subscription_id ? String(paymentRecord.stripe_subscription_id) : null;
     if (subId) {
       const record = await loadSubscriptionRecord(subId);
@@ -795,6 +901,12 @@ export async function handleDisputeClosed(input: { dispute: Stripe.Dispute; even
           : "won_dispute_restoration_found_nothing_to_restore",
         stripeChargeId: typeof input.dispute.charge === "string" ? input.dispute.charge : input.dispute.charge?.id ?? null,
         stripeEventId: input.eventId,
+        // THE DISPUTE IS WHAT MAKES THIS ROW DISTINCT. A restoration is filed at a cumulative
+        // position of ZERO — a constant — so without the dispute id a payment with two unresolved
+        // won disputes collapsed both into ONE row: the second delivery merely incremented
+        // `attempts`, its id and its reason were discarded, staff resolved one, and the other
+        // customer's credits were never given back with nothing recording that they were owed.
+        externalRef: input.dispute.id,
       }).catch(() => undefined);
     }
   }

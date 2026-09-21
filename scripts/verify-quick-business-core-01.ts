@@ -533,6 +533,28 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
     "app/lib/rewards/rewardsRefundResolutionQueue.ts", // the unattributable-refund queue
     "app/admin/(dashboard)/workspace/rewards-refunds/page.tsx", // staff queue page
     "app/admin/(dashboard)/workspace/rewards-refunds/RewardsRefundQueueClient.tsx",
+    // -----------------------------------------------------------------------
+    // IX REWARDS FINANCIAL CERTIFICATION (2026-09-21). Four further shared surfaces, each changed
+    // for a demonstrated money defect and each strictly ADDITIVE. None touches a Quick media rule,
+    // a product-identity rule or a publish rule, which is what this guard exists to protect.
+    //
+    //   AdminWorkspaceNav / adminAccessControl / adminStrings — the refund-resolution queue was
+    //     reachable only by typing its URL. That queue is the entire mechanism that keeps an
+    //     unattributable refund from being silently dropped, so a backlog with no link in the
+    //     shell is the silent drop it exists to prevent. Two nav entries and their labels are
+    //     added, both behind the SAME `hasPaymentTrackerAccess` permission the payment tracker
+    //     already uses; no existing entry, permission or route changes.
+    //
+    //   refundDisputeFoundations — `payment_status = 'disputed'` was a one-way door, and the
+    //     rewards promotion sweep refuses a disputed payment outright, so the un-disputed
+    //     remainder of a partially disputed payment stayed frozen in `pending` for ever. One
+    //     metadata field records what to return to, and one new function returns to it when the
+    //     dispute is WON. Nothing existing is removed or re-pointed.
+    // -----------------------------------------------------------------------
+    "app/admin/_components/AdminWorkspaceNav.tsx", // two additive nav entries, same permission
+    "app/admin/_lib/adminAccessControl.ts", // the same two hrefs in the nav allowlist
+    "app/admin/_lib/adminStrings.ts", // their labels, both languages
+    "app/lib/listingPlans/refundDisputeFoundations.ts", // a won dispute stops withholding
   ]);
   // A touched entry from `git status --short` may be a directory (`app/api/new-dir/`) for newly
   // added dirs not yet staged; check if it is authorized directly or all contained authorized files.
