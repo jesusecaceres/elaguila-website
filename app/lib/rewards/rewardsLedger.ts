@@ -404,11 +404,15 @@ export function buildRewardsStorePort(): RewardsStorePort {
     },
 
     async sumReversedForPayment(paymentRecordId: string) {
-      const { data } = await db
+      // `-1` on a failed read, for the same reason as every other sum here: a reversal sized from
+      // a position of zero that was never read is an OVER-reversal, and the payment-scoped ceiling
+      // in SQL does not catch it because the inflated figure is still under the payment's award.
+      const { data, error } = await db
         .from("leonix_rewards_ledger")
         .select("amount_cents, entry_type")
         .eq("payment_record_id", paymentRecordId)
         .in("entry_type", ["refund_reversal", "chargeback_reversal"]);
+      if (error) return -1;
       return ((data ?? []) as { amount_cents: number }[]).reduce((a, r) => a + Number(r.amount_cents ?? 0), 0);
     },
 
@@ -419,11 +423,14 @@ export function buildRewardsStorePort(): RewardsStorePort {
       // total is floored at zero — the position can be withdrawn to nothing, never below it.
       const entryTypes =
         kind === "refund" ? ["refund_reversal"] : ["chargeback_reversal", "reversal_restoration"];
-      const { data } = await db
+      const { data, error } = await db
         .from("leonix_rewards_ledger")
         .select("meta")
         .eq("payment_record_id", paymentRecordId)
         .in("entry_type", entryTypes);
+      // Same sentinel. A prior basis read as ZERO makes this event's contribution look like the
+      // whole money-returned position, which claws back what an earlier refund already took.
+      if (error) return -1;
       // `basis_contribution_cents` is the MONEY this entry accounted for, which is not the same as
       // the credits it moved: a refund landing on an already fully-reversed payment contributes
       // real money to the position while moving zero credits.

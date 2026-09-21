@@ -58,7 +58,7 @@ Two structural changes carry this certification:
    wallet read, the staff API, the CSV reconciliation and the customer checkout — against stubs the
    test drives, with a Stripe recorder in place of any call. 47 checks, no text matching.
 
-The mutation harness reintroduces **83 defects** and requires a NAMED check to fail for each. Every
+The mutation harness reintroduces **85 defects** and requires a NAMED check to fail for each. Every
 one of the nineteen that previously survived is now caught.
 
 ---
@@ -264,7 +264,7 @@ certification is the real one.
 `scripts/verify-ix-rewards-route-behavior-01.ts` (35 checks) calls `GET /api/rewards/wallet`,
 `GET`/`POST /api/admin/rewards`, `POST /api/admin/rewards/reconciliation` and
 `POST /api/revenue-os/checkout`, and asserts the answers and the writes. The mutation harness now
-carries **83 mutations, up from 45**, and **every one of the nineteen survivors is caught**, each by
+carries **85 mutations, up from 45**, and **every one of the nineteen survivors is caught**, each by
 a named check that fails for the defect and passes for the rename.
 
 The one exception is recorded rather than quietly dropped: quadrupling the ceiling passed to
@@ -368,6 +368,7 @@ same of Round 3, built a `RewardsStorePort` over real PostgreSQL 16.13, and were
 | U6 | **`Z17` proved one table, not the harness rule.** Scoping the multi-row `maybeSingle` fidelity to the single table the check seeded left every other route read over a non-unique column passing in the harness and erroring in production. `not(col, "in", "(a,b)")` — the string form this repository actually uses — threw an unnamed `TypeError`. | **MEDIUM (evidence integrity)** | Mutation; both suites green. | **Repaired.** `Z17` loops over three tables and asserts both the refusal and that one row is still one row, and the `in` operator accepts both PostgREST forms. |
 | U7 | **`Z16` proved neither predicate it was cited for.** Its two wallets differed in business AND in bound user, so either scope alone isolated them — including the dangerous direction, which releases a successor bound to the same business wallet. | **LOW** | Two mutations, both green. | **Repaired.** A third wallet shares the business and differs in the user. The code comment claiming the user scope was "unproven" is now false in the right direction — it is proven, by `Z16`. |
 | U8 | `__failReadsOn` survived `__reset()`, so a check that threw mid-body would poison every later check. | **LOW** | Executed. | **Repaired.** One line in `__reset()`. |
+| U12 | **Two more reads of the same class, found by tracing the fix rather than by a reviewer.** `sumReversedForPayment` and `sumReversalBasisForPayment` also discarded their error and returned 0. This direction is worse than the ones already repaired: a prior basis read as zero makes THIS event's contribution look like the entire money-returned position, so a second partial refund claws back what the first one already took — **675 where 450 is owed** — and the SQL payment ceiling does not catch it, because the inflated figure is still under the payment's award. | **HIGH** | `Z18` drives both reads failing, one at a time, against the real fulfillment path. | **Repaired.** Both report the `-1` sentinel; the reversal refuses when any of the four inputs is unknown, and the promotion sweep SKIPS rather than promoting the full award from a position it could not read. Two mutations pin them. |
 | U9 | A doc comment still described the `<chargeId>:cum<N>` fallback that had been removed, twenty lines above code saying there is exactly one scheme. | **LOW** | Read. | **Repaired**, and it now names both times that idea came back — the removed fallback and Round 2's `queue:<rowid>` anchor — because in a certification that reads comments as evidence, a comment describing a removed accounting scheme is its own defect. |
 
 ### Accepted, with reasons
@@ -752,7 +753,7 @@ It runs on a **disposable copy of the tree**, never on the repository — an ear
 the live working tree, and an interrupted run was shown to leave money-moving source files
 defective on disk.
 
-The harness carries **83** mutations. They fall into five groups, and the groups matter more than
+The harness carries **85** mutations. They fall into five groups, and the groups matter more than
 the individual rows:
 
 1. **The original repairs** (#1–15) — each money defect from §3, put back.
@@ -870,7 +871,7 @@ Run at the final committed state. `PGHOST`/`PGPORT`/`PGUSER` point at a throwawa
 | `npx tsx scripts/verify-ix-rewards-behavior-01.ts` — 182 behavioural checks | 0 |
 | `npx tsx --tsconfig scripts/lib/tsconfig.harness.json scripts/verify-ix-rewards-route-behavior-01.ts` — 47 checks that EXECUTE the route handlers and the production adapter | 0 |
 | `bash scripts/verify-ix-rewards-sql-behavior-01.sh` — 142 in-session assertions + 2 **timed** cross-session concurrency proofs, against real PostgreSQL 16.13 | 0 |
-| `npx tsx scripts/verify-ix-rewards-mutation-01.ts` — 83 defects reintroduced, each caught by a named check, on a disposable copy of the tree | 0 |
+| `npx tsx scripts/verify-ix-rewards-mutation-01.ts` — 85 defects reintroduced, each caught by a named check, on a disposable copy of the tree | 0 |
 | `npx tsx scripts/verify-quick-product-boundary-01.ts` — 52 checks | 0 |
 | `npx tsx scripts/verify-quick-business-core-01.ts` | 0 |
 | `npx tsx scripts/verify-quick-lifecycle-media-behavior-01.ts` — 35 checks | 0 |

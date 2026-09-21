@@ -860,6 +860,27 @@ const MUTATIONS: readonly Mutation[] = [
     suite: "route",
     expect: ["Z17"],
   },
+  {
+    defect:
+      "A failed read of the reversal BASIS is reported as zero, so this event's contribution looks like " +
+      "the whole money-returned position and claws back what an earlier refund already took — under the " +
+      "payment's award, so the SQL ceiling does not catch it.",
+    file: ADAPTER,
+    find: "      // Same sentinel. A prior basis read as ZERO makes this event's contribution look like the\n      // whole money-returned position, which claws back what an earlier refund already took.\n      if (error) return -1;",
+    replace: "      void error;",
+    suite: "route",
+    expect: ["Z18"],
+  },
+  {
+    defect:
+      "A failed read of the reversed TOTAL is reported as zero, so a reversal is sized as if nothing had " +
+      "been clawed back yet and the customer is charged twice for one refund.",
+    file: ADAPTER,
+    find: "      if (error) return -1;\n      return ((data ?? []) as { amount_cents: number }[]).reduce((a, r) => a + Number(r.amount_cents ?? 0), 0);\n    },\n\n    async sumReversalBasisForPayment",
+    replace: "      return ((data ?? []) as { amount_cents: number }[]).reduce((a, r) => a + Number(r.amount_cents ?? 0), 0);\n    },\n\n    async sumReversalBasisForPayment",
+    suite: "route",
+    expect: ["Z18"],
+  },
 ];
 
 function runBehavior(): { ok: boolean; output: string } {

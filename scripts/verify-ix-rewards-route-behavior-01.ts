@@ -1293,6 +1293,38 @@ async function main(): Promise<void> {
     __seed("leonix_rewards_ledger", [
       { id: "earn-1", wallet_id: "wallet-a", entry_type: "earn_available", amount_cents: 900, payment_record_id: PAYMENT_A, idempotency_key: `earn:payment:${PAYMENT_A}`, meta: { eligible_net_cents: 10000 }, created_at: new Date().toISOString() },
     ]);
+    // AND THE BASIS AND REVERSED-TOTAL READS. A prior basis read as ZERO makes this event's
+    // contribution look like the whole money-returned position, which claws back what an earlier
+    // refund already took — and the SQL payment ceiling does not catch it, because the inflated
+    // figure is still under the payment's award.
+    for (const columns of ["meta", "amount_cents, entry_type"]) {
+      __reset();
+      installLedgerRpc();
+      __seed("payment_records", [{ id: PAYMENT_A, payment_status: "paid", stripe_charge_id: "ch_1" }]);
+      __seed("leonix_rewards_wallets", [
+        { id: "wallet-a", owner_user_id: CUSTOMER_A, available_cents: 675, pending_cents: 0, reserved_cents: 0, lifetime_earned_cents: 900, lifetime_redeemed_cents: 0, lifetime_reversed_cents: 225, recovery_cents: 0, lifetime_restored_cents: 0 },
+      ]);
+      __seed("leonix_rewards_ledger", [
+        { id: "earn-1", wallet_id: "wallet-a", entry_type: "earn_available", amount_cents: 900, payment_record_id: PAYMENT_A, idempotency_key: `earn:payment:${PAYMENT_A}`, meta: { eligible_net_cents: 10000 }, created_at: new Date().toISOString() },
+        { id: "rev-1", wallet_id: "wallet-a", entry_type: "refund_reversal", amount_cents: 225, payment_record_id: PAYMENT_A, source_id: REFUND_ONE, idempotency_key: `reverse:refund:${REFUND_ONE}`, meta: { basis_contribution_cents: 2500 }, created_at: new Date().toISOString() },
+      ]);
+      const f = await import("@/app/lib/rewards/rewardsFulfillment");
+      __failReadsOn("leonix_rewards_ledger", columns);
+      try {
+        const res = await f.reverseCreditsForRefundOrDispute({
+          paymentRecordId: PAYMENT_A, refundedCents: 2500, cumulativeRefundedCents: 5000,
+          kind: "refund", externalId: REFUND_TWO,
+        });
+        assert.equal(res.ok, false, `reading "${columns}" failed but the reversal proceeded: ${JSON.stringify(res)}`);
+      } finally {
+        __failReadsOn();
+      }
+      const moved = __rpcCalls("leonix_rewards_post_entry").filter(
+        (c) => String(c.params.p_entry_type) === "refund_reversal",
+      );
+      assert.equal(moved.length, 0, `reading "${columns}": nothing may move`);
+    }
+
     const fulfillment2 = await import("@/app/lib/rewards/rewardsFulfillment");
     __failReadsOn("leonix_rewards_ledger", "wallet_id, amount_cents, meta");
     try {

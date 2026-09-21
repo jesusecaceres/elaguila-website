@@ -425,7 +425,16 @@ export async function runPendingPromotionSweep(input: {
     // The refunded share is already gone. What is left is credits for money the customer did in
     // fact pay, so it promotes. A payment that is disputed or otherwise invalidated is refused by
     // `isPaymentStillEligible` above and never reaches here.
-    const reversedCents = await input.ports.sumReversedForPayment(candidate.paymentRecordId).catch(() => 0);
+    // A SWEEP THAT CANNOT READ THE REVERSALS MUST SKIP, NOT PROMOTE THE FULL AWARD.
+    //
+    // `-1` is the failed-read sentinel; `.catch(() => -1)` treats a throw the same way. Reading
+    // either as 0 would promote credits for money that was refunded, because the sweep would
+    // believe nothing had been reversed. Skipping leaves the payment for the next sweep.
+    const reversedCents = await input.ports.sumReversedForPayment(candidate.paymentRecordId).catch(() => -1);
+    if (reversedCents < 0) {
+      out.skippedIneligible += 1;
+      continue;
+    }
     const promotableCents = Math.max(0, candidate.amountCents - Math.max(0, reversedCents));
     if (promotableCents <= 0) {
       // Fully reversed. There is nothing left to promote, and that is not a failure.
@@ -698,7 +707,12 @@ async function attemptReversal(input: {
   // `sumRestoredForPayment` reports it when its query errored. Reading that as 0 makes
   // `alreadyReversedCents` too LARGE, which under-reverses — the customer keeps credits for money
   // they got back — and the failure is silent. Refusing is retryable: the caller queues it.
-  if (restoredSoFarCents < 0) {
+  if (
+    restoredSoFarCents < 0 ||
+    reversedSoFarCents < 0 ||
+    priorBasisSameKind < 0 ||
+    priorBasisOtherKind < 0
+  ) {
     return { ok: false, error: "reversal_state_unavailable", basisRecorded: false, shortfallCents: 0 };
   }
 
