@@ -11,7 +11,11 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { requireAdminCookie } from "@/app/lib/supabase/server";
-import { getCurrentAdminAccessContext, requirePaymentTrackerAccess } from "@/app/admin/_lib/adminAccessControl";
+import {
+  getCurrentAdminAccessContext,
+  requirePaymentTrackerAccess,
+  requireRevenueProtectedWriteAccess,
+} from "@/app/admin/_lib/adminAccessControl";
 import { RewardsWorkspaceClient } from "./RewardsWorkspaceClient";
 
 export const dynamic = "force-dynamic";
@@ -20,9 +24,17 @@ export default async function RewardsWorkspacePage() {
   const cookieStore = await cookies();
   if (!requireAdminCookie(cookieStore)) redirect("/admin/login");
   const ctx = await getCurrentAdminAccessContext();
-  // Reuses the payment-tracker READ gate: anyone who may see payments may see credit balances.
-  // Every WRITE is separately gated inside the API by requireRevenueProtectedWriteAccess().
   requirePaymentTrackerAccess(ctx);
+  // THE PAGE GATE MUST MATCH THE API GATE, or the screen is a dead end.
+  //
+  // Every action on this screen — including the customer SEARCH and the balance read — goes through
+  // `POST /api/admin/rewards`, which requires a roster `super_admin`. The page required only
+  // `hasPaymentTrackerAccess`: owner_admin OR any roster member with `can_view_payments`. A
+  // billing-support member could therefore open it and get "forbidden" on everything. That
+  // mismatch was invisible while the screen was reachable only by typing its URL; putting it in
+  // the workspace navigation made it a visible dead end.
+  const write = await requireRevenueProtectedWriteAccess();
+  if (!write.ok) redirect("/admin/team?access_denied=1");
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-6">

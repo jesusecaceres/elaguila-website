@@ -1423,6 +1423,21 @@ export async function fulfillCheckoutSessionCompleted(input: {
   };
 
   if (isPaymentCleared(paymentRecord.payment_status)) {
+    // THE REDELIVERY PATH HAS TO SETTLE THE CREDITS TOO.
+    //
+    // This branch runs on every Stripe redelivery of an already-paid session, and it did not touch
+    // the hold. The commit below is `.catch`-ed and logged, so if the FIRST delivery's commit
+    // threw, the redelivery re-fulfilled and never retried it: thirty minutes later the expiry
+    // sweep returned the credits to a customer who had paid the reduced price. It is idempotent
+    // through `commit:<ref>`, so running it here costs one lookup and closes that window.
+    await commitCheckoutCredits({ paymentRecordId: paymentRecord.id }).catch((err: unknown) => {
+      console.error("[fulfillment] rewards redemption commit threw on the already-paid path", {
+        paymentRecordId: paymentRecord.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return { committed: false, amountCents: 0, reason: "threw" as string | undefined };
+    });
+
     const entitlementResult = await activateEntitlementsForPayment({
       paymentRecord,
       packageDef,

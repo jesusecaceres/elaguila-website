@@ -70,7 +70,19 @@ async function resolveOwnerForRow(
   row: RewardsCsvRow,
 ): Promise<{ ok: true; owner: WalletOwnerRef } | { ok: false; detail: string }> {
   if (row.businessId) return { ok: true, owner: { kind: "business", businessId: row.businessId } };
-  if (row.ownerUserId) return { ok: true, owner: { kind: "user", ownerUserId: row.ownerUserId } };
+  if (row.ownerUserId) {
+    // A CUSTOMER'S WALLET IS WHICHEVER ONE THEY ARE BOUND TO, even in a CSV.
+    //
+    // Returning `{ kind: "user" }` verbatim bypassed the binding, exactly as the admin route used
+    // to: for a customer bound to a BUSINESS wallet the adapter tries to create a second, personal
+    // wallet, hits the `bound_user_id` unique index and fails with a raw duplicate-key message —
+    // and where it does succeed, the adjustment lands in a wallet none of the customer's surfaces
+    // read. `resolveWalletOwnerForUser` is the same resolver their wallet read and their checkout
+    // use, so a reconciliation lands where the customer can see it.
+    const { resolveWalletOwnerForUser } = await import("@/app/lib/rewards/rewardsLedger");
+    const bound = await resolveWalletOwnerForUser(row.ownerUserId);
+    return { ok: true, owner: bound ?? { kind: "user", ownerUserId: row.ownerUserId } };
+  }
 
   if (!row.paymentRecordId) return { ok: false, detail: "no_target" };
 

@@ -226,6 +226,64 @@ CREATE TABLE IF NOT EXISTS public.leonix_rewards_ledger (
 -- order movements actually serialized on that wallet. It is the canonical replay order and the
 -- tie-breaker nothing else can supply.
 CREATE SEQUENCE IF NOT EXISTS public.leonix_rewards_ledger_seq AS bigint;
+-- THE COLUMN IS ADDED WITHOUT A DEFAULT, AND THAT IS THE WHOLE POINT.
+--
+-- `ADD COLUMN ... DEFAULT nextval(...)` has a VOLATILE default, so PostgreSQL rewrites the table
+-- and evaluates it once per row in HEAP order — which has nothing to do with when the rows were
+-- written. Since the replay sorts by `entry_seq` FIRST, that assignment silently BECOMES the
+-- canonical history: measured on PostgreSQL 16, a ledger stored in a different order from the one
+-- it was written in replayed to `pending -600`, and `leonix_rewards_recompute_wallet` refused a
+-- wallet that was in fact perfectly consistent.
+--
+-- So: add the column empty (no rewrite, every row NULL), fill it in CHRONOLOGICAL order, and only
+-- then attach the default and the NOT NULL. On a fresh database every step is a no-op over zero
+-- rows; the whole dance exists for the populated case, which is exactly the case that was wrong.
+ALTER TABLE public.leonix_rewards_ledger
+  ADD COLUMN IF NOT EXISTS entry_seq bigint;
+
+-- The backfill MUTATES the ledger, and the append-only trigger exists to refuse mutations — so on
+-- a database where the trigger already exists (an upgrade), it is stood down for this one
+-- statement and restored immediately, inside the same transaction as everything else here. The
+-- `DO` block is because the trigger does not exist yet on a fresh database.
+DO $$
+DECLARE
+  v_pending integer;
+  v_base bigint;
+BEGIN
+  SELECT count(*) INTO v_pending FROM public.leonix_rewards_ledger WHERE entry_seq IS NULL;
+  IF v_pending = 0 THEN
+    RETURN;
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM pg_catalog.pg_trigger
+     WHERE tgrelid = 'public.leonix_rewards_ledger'::regclass
+       AND tgname = 'leonix_rewards_ledger_immutable_tg'
+  ) THEN
+    EXECUTE 'ALTER TABLE public.leonix_rewards_ledger DISABLE TRIGGER leonix_rewards_ledger_immutable_tg';
+  END IF;
+
+  -- Reserve one contiguous block, then hand it out in the order the rows were WRITTEN. Calling
+  -- `nextval` per row would work too, but only if the rows were visited in that order, which is
+  -- exactly the guarantee `ADD COLUMN ... DEFAULT nextval(...)` does not give.
+  v_base := setval(
+    'public.leonix_rewards_ledger_seq',
+    (SELECT COALESCE(last_value, 1) FROM public.leonix_rewards_ledger_seq) + v_pending,
+    true
+  ) - v_pending;
+
+  UPDATE public.leonix_rewards_ledger l
+     SET entry_seq = v_base + o.rn
+    FROM (
+      SELECT id, row_number() OVER (ORDER BY created_at ASC, id ASC) AS rn
+        FROM public.leonix_rewards_ledger
+       WHERE entry_seq IS NULL
+    ) o
+   WHERE l.id = o.id;
+
+  EXECUTE 'ALTER TABLE public.leonix_rewards_ledger ENABLE TRIGGER leonix_rewards_ledger_immutable_tg';
+END $$;
+
 -- DEFAULTED AND NOT NULL, so the canonical order cannot be opted out of.
 --
 -- A row inserted without `nextval` would carry NULL, and `NULLS FIRST` would sort it before ALL
@@ -234,12 +292,7 @@ CREATE SEQUENCE IF NOT EXISTS public.leonix_rewards_ledger_seq AS bigint;
 -- path-dependent. The default closes that off for any future writer; the posting function's
 -- explicit `nextval` still draws the value inside the wallet lock.
 ALTER TABLE public.leonix_rewards_ledger
-  ADD COLUMN IF NOT EXISTS entry_seq bigint DEFAULT nextval('public.leonix_rewards_ledger_seq');
-ALTER TABLE public.leonix_rewards_ledger
   ALTER COLUMN entry_seq SET DEFAULT nextval('public.leonix_rewards_ledger_seq');
-UPDATE public.leonix_rewards_ledger
-  SET entry_seq = nextval('public.leonix_rewards_ledger_seq')
-  WHERE entry_seq IS NULL;
 ALTER TABLE public.leonix_rewards_ledger
   ALTER COLUMN entry_seq SET NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS leonix_rewards_ledger_entry_seq_idx
@@ -283,6 +336,16 @@ DROP TRIGGER IF EXISTS leonix_rewards_ledger_immutable_tg ON public.leonix_rewar
 CREATE TRIGGER leonix_rewards_ledger_immutable_tg
   BEFORE UPDATE OR DELETE ON public.leonix_rewards_ledger
   FOR EACH ROW EXECUTE FUNCTION public.leonix_rewards_ledger_reject_mutation();
+
+-- AND TRUNCATE, which is neither an UPDATE nor a DELETE and empties the table in one statement.
+--
+-- The row-level trigger above does not see it, `service_role` holds TRUNCATE by default, and
+-- `TRUNCATE ... CASCADE` takes the redemptions and the refund queue with it. "Rows are NEVER
+-- updated or deleted" was one statement short of true.
+DROP TRIGGER IF EXISTS leonix_rewards_ledger_no_truncate_tg ON public.leonix_rewards_ledger;
+CREATE TRIGGER leonix_rewards_ledger_no_truncate_tg
+  BEFORE TRUNCATE ON public.leonix_rewards_ledger
+  FOR EACH STATEMENT EXECUTE FUNCTION public.leonix_rewards_ledger_reject_mutation();
 
 -- -----------------------------------------------------------------------------
 -- 3. REDEMPTIONS (reserve → commit / release)
@@ -422,18 +485,42 @@ CREATE TABLE IF NOT EXISTS public.leonix_rewards_refund_resolutions (
 
 -- ONE OPEN ROW PER (payment, kind, cumulative position). A redelivered webhook bumps `attempts`
 -- on the existing row instead of filling the queue with duplicates of one problem.
--- `external_ref` joins the key so two distinct disputes on one payment are two rows. COALESCE
--- rather than the bare column, because a NULL is not equal to another NULL in a unique index and
--- the unattributable-refund case — which has no external ref at all — must still dedupe.
-CREATE UNIQUE INDEX IF NOT EXISTS leonix_rewards_refund_resolutions_open_idx
-  ON public.leonix_rewards_refund_resolutions
-     (payment_record_id, kind, cumulative_refunded_cents, COALESCE(external_ref, ''))
-  WHERE status = 'open';
+-- The dedupe key is built below, AFTER the upgrade-safe column and constraint statements, because
+-- it references `external_ref`. `external_ref` joins the key so two distinct disputes on one
+-- payment are two rows; COALESCE rather than the bare column, because a NULL is never equal to
+-- another NULL in a unique index and the unattributable-refund case — which has no external ref at
+-- all — must still dedupe.
 CREATE INDEX IF NOT EXISTS leonix_rewards_refund_resolutions_status_idx
   ON public.leonix_rewards_refund_resolutions (status, created_at DESC);
 
 COMMENT ON TABLE public.leonix_rewards_refund_resolutions IS
   'LEONIX IX REWARDS — refund and dispute events that could not be attributed to a canonical refund object. Durable and retryable: money went back to the customer, so the credits it earned must be dealt with by a person rather than silently left spendable.';
+
+-- THE COLUMN ABOVE IS INSIDE `CREATE TABLE IF NOT EXISTS`, WHICH IS A NO-OP ON AN UPGRADE.
+--
+-- On a database where an earlier version of this file already ran, the table exists, the column is
+-- never added, and the unique index below fails with `column "external_ref" does not exist` —
+-- a hard deploy stop. This file already does the right thing for `entry_seq`; the inconsistency was
+-- the defect. Stating it separately costs nothing on a fresh database and is the difference between
+-- a deploy and a rollback on an upgraded one.
+ALTER TABLE public.leonix_rewards_refund_resolutions
+  ADD COLUMN IF NOT EXISTS external_ref text NULL;
+
+-- Same reasoning for the outcome vocabulary: `restored` has to be admitted on a table that already
+-- exists, or `closeRefundResolution({ outcome: "restored" })` violates the OLD check.
+ALTER TABLE public.leonix_rewards_refund_resolutions
+  DROP CONSTRAINT IF EXISTS leonix_rewards_refund_resolutions_outcome_chk;
+ALTER TABLE public.leonix_rewards_refund_resolutions
+  ADD CONSTRAINT leonix_rewards_refund_resolutions_outcome_chk
+  CHECK (resolution_outcome IS NULL OR resolution_outcome IN ('reversed', 'restored', 'no_action_required'));
+
+-- ...and for the dedupe key, which must be REPLACED rather than merely created-if-absent: an index
+-- of this name built on the old three-column key would silently keep collapsing two disputes.
+DROP INDEX IF EXISTS public.leonix_rewards_refund_resolutions_open_idx;
+CREATE UNIQUE INDEX leonix_rewards_refund_resolutions_open_idx
+  ON public.leonix_rewards_refund_resolutions
+     (payment_record_id, kind, cumulative_refunded_cents, COALESCE(external_ref, ''))
+  WHERE status = 'open';
 
 ALTER TABLE public.leonix_rewards_refund_resolutions ENABLE ROW LEVEL SECURITY;
 
@@ -488,6 +575,25 @@ BEGIN
       USING ERRCODE = 'check_violation';
   END IF;
 
+  -- RESERVE CLAIMS THE ROW AS WELL, WITHOUT ADVANCING IT.
+  --
+  -- This was the one movement that never touched the redemption row: it recorded the id and moved
+  -- on, so the RESERVED amount and the reservation's own amount could disagree. Reserving 3000
+  -- against a row that says 500 then left 2500 cents stranded for ever — commit and release both
+  -- demand the row's amount, so neither can free them, and `recompute_wallet` agrees with the
+  -- cache, so no reconciliation surfaces it. The header of this file promises that "a buggy or
+  -- malicious caller cannot invent a movement that the entry type does not mean"; for this one
+  -- entry type it could.
+  IF p_entry_type = 'redeem_reserve' THEN
+    IF v_redemption.status <> 'reserved' THEN
+      RAISE EXCEPTION 'leonix_rewards_claim_redemption: redemption % is %, not reserved',
+        p_redemption_id, v_redemption.status
+        USING ERRCODE = 'check_violation';
+    END IF;
+    -- No status change: a reserve is what PUTS the row in `reserved`, and the row is created there.
+    RETURN;
+  END IF;
+
   IF p_entry_type = 'redeem_recommit' THEN
     IF v_redemption.status NOT IN ('released', 'expired') THEN
       RAISE EXCEPTION 'leonix_rewards_claim_redemption: redemption % is % and cannot be re-debited',
@@ -512,6 +618,17 @@ END;
 $$;
 
 -- -----------------------------------------------------------------------------
+-- THE PREVIOUS SIGNATURE MUST GO FIRST.
+--
+-- `CREATE OR REPLACE FUNCTION` with an extra parameter creates a SECOND function rather than
+-- replacing the first. On an upgraded database that leaves two `leonix_rewards_post_entry`
+-- overloads, and a twelve-argument call then silently resolves to the one WITHOUT the
+-- compare-and-swap and without the payment-scoped ceiling — the exact code that let two concurrent
+-- refunds claw back 1350 of a 900-credit award. It also makes `COMMENT ON FUNCTION` ambiguous.
+DROP FUNCTION IF EXISTS public.leonix_rewards_post_entry(
+  uuid, text, integer, text, text, text, uuid, uuid, text, uuid, uuid, jsonb
+);
+
 CREATE OR REPLACE FUNCTION public.leonix_rewards_post_entry(
   p_wallet_id uuid,
   p_entry_type text,
@@ -634,6 +751,11 @@ BEGIN
           p_amount_cents, v_wallet.available_cents, p_wallet_id
           USING ERRCODE = 'check_violation';
       END IF;
+      -- THE HOLD IS CLAIMED LAST, so the two POLICY refusals above keep their named messages: a
+      -- customer paused by a recovery debt should be told that, not told about a redemption id.
+      -- The claim is the same row lock, wallet check and exact-amount check a commit or a release
+      -- takes; it advances nothing, because a reserve is what puts the row in `reserved`.
+      PERFORM public.leonix_rewards_claim_redemption(p_redemption_id, p_wallet_id, p_amount_cents, 'redeem_reserve');
       v_available_delta := -p_amount_cents;
       v_reserved_delta := p_amount_cents;
     WHEN 'redeem_commit' THEN
@@ -695,15 +817,31 @@ BEGIN
         FROM public.leonix_rewards_ledger l
        WHERE l.payment_record_id = p_payment_record_id
          AND l.entry_type IN ('refund_reversal', 'chargeback_reversal', 'reversal_restoration');
+      -- MANDATORY, NOT OPTIONAL. A `DEFAULT NULL` that disables the check makes the SAFE value the
+      -- one a future caller has to remember to pass, and without it the original defect reproduces
+      -- exactly: two concurrent partial refunds on a $100.00 payment still summed to 675 where 450
+      -- was owed. Zero-amount rows are exempt — they record a basis and move nothing.
+      IF p_expected_position_rows IS NULL AND p_amount_cents > 0 THEN
+        RAISE EXCEPTION 'leonix_rewards_post_entry: % of % against payment % requires p_expected_position_rows',
+          p_entry_type, p_amount_cents, p_payment_record_id
+          USING ERRCODE = 'check_violation';
+      END IF;
       IF p_expected_position_rows IS NOT NULL AND p_expected_position_rows <> v_position_rows THEN
         RAISE EXCEPTION 'leonix_rewards_position_moved: payment % now has % reversal rows, not the % this delta was computed against',
           p_payment_record_id, v_position_rows, p_expected_position_rows
           USING ERRCODE = 'LX001';
       END IF;
       IF p_amount_cents > 0 THEN
+        -- SCOPED TO THIS WALLET AS WELL AS THIS PAYMENT. Scoped to the payment alone, a reversal
+        -- aimed at the WRONG wallet was accepted: it invented recovery debt on a wallet that had
+        -- earned nothing, and burned the payment's budget so the correct reversal could never be
+        -- posted afterwards. `rewardsLedgerCore` reads the wallet off the earn row, so this is
+        -- defence in depth — but the ceiling is advertised as exact, and it was exact per payment
+        -- rather than per payment and wallet.
         SELECT COALESCE(SUM(l.amount_cents), 0) INTO v_payment_earned
           FROM public.leonix_rewards_ledger l
          WHERE l.payment_record_id = p_payment_record_id
+           AND l.wallet_id = p_wallet_id
            AND l.entry_type IN ('earn_pending', 'earn_available');
         SELECT COALESCE(SUM(
                  CASE WHEN l.entry_type = 'reversal_restoration'
@@ -711,6 +849,7 @@ BEGIN
           INTO v_payment_claimed
           FROM public.leonix_rewards_ledger l
          WHERE l.payment_record_id = p_payment_record_id
+           AND l.wallet_id = p_wallet_id
            AND l.entry_type IN ('refund_reversal', 'chargeback_reversal', 'reversal_restoration');
         IF p_amount_cents > v_payment_earned - v_payment_claimed THEN
           RAISE EXCEPTION 'leonix_rewards_position_moved: reversal of % exceeds the % still claimable against payment % (earned %, already claimed %)',
@@ -788,6 +927,37 @@ BEGIN
       -- `recovery = 0`, so winning the dispute was REFUSED — the customer was charged the rewards
       -- for a charge they had paid and then made good on. `lifetime_recovery_accrued_cents` never
       -- shrinks, so the bound stays exactly what the reversal actually took, in either form.
+      -- THE COMPARE-AND-SWAP RUNS FIRST, BEFORE ANY BOUND.
+      --
+      -- A bound refuses with `check_violation`, which is terminal: the caller gives up. A lost
+      -- RACE is not terminal — the event is valid and only its arithmetic is stale. Checking a
+      -- bound first meant the losers of four concurrent `dispute.closed(won)` deliveries got a
+      -- hard refusal instead of the retryable `LX001` the retry loop exists for, and the webhook
+      -- then filed queue rows claiming a customer was owed credits they already had.
+      IF p_payment_record_id IS NULL THEN
+        RAISE EXCEPTION 'leonix_rewards_post_entry: reversal_restoration requires a payment_record_id'
+          USING ERRCODE = 'check_violation';
+      END IF;
+      -- Required whatever the amount. A zero-amount restoration moves nothing but still adds a row
+      -- to the payment's position, so it still has to say which dispute it is about.
+      IF p_source_id IS NULL THEN
+        RAISE EXCEPTION 'leonix_rewards_post_entry: reversal_restoration requires the dispute id as p_source_id'
+          USING ERRCODE = 'check_violation';
+      END IF;
+      SELECT COUNT(*) INTO v_position_rows
+        FROM public.leonix_rewards_ledger l
+       WHERE l.payment_record_id = p_payment_record_id
+         AND l.entry_type IN ('refund_reversal', 'chargeback_reversal', 'reversal_restoration');
+      IF p_expected_position_rows IS NULL AND p_amount_cents > 0 THEN
+        RAISE EXCEPTION 'leonix_rewards_post_entry: reversal_restoration of % against payment % requires p_expected_position_rows',
+          p_amount_cents, p_payment_record_id
+          USING ERRCODE = 'check_violation';
+      END IF;
+      IF p_expected_position_rows IS NOT NULL AND p_expected_position_rows <> v_position_rows THEN
+        RAISE EXCEPTION 'leonix_rewards_position_moved: payment % now has % reversal rows, not the % this restoration was computed against',
+          p_payment_record_id, v_position_rows, p_expected_position_rows
+          USING ERRCODE = 'LX001';
+      END IF;
       IF p_amount_cents > v_wallet.lifetime_reversed_cents + v_wallet.lifetime_recovery_accrued_cents
                           - v_wallet.lifetime_restored_cents THEN
         RAISE EXCEPTION 'leonix_rewards_post_entry: restoration of % exceeds what was reversed on wallet %',
@@ -807,25 +977,13 @@ BEGIN
       -- A restoration gives back what the DISPUTE took on THIS payment, never what a separate
       -- refund took and never what another payment lost. Computed here, inside the wallet lock,
       -- from the ledger, so it is exact however many deliveries raced.
-      IF p_payment_record_id IS NULL THEN
-        RAISE EXCEPTION 'leonix_rewards_post_entry: reversal_restoration requires a payment_record_id'
-          USING ERRCODE = 'check_violation';
-      END IF;
-      SELECT COUNT(*) INTO v_position_rows
-        FROM public.leonix_rewards_ledger l
-       WHERE l.payment_record_id = p_payment_record_id
-         AND l.entry_type IN ('refund_reversal', 'chargeback_reversal', 'reversal_restoration');
-      IF p_expected_position_rows IS NOT NULL AND p_expected_position_rows <> v_position_rows THEN
-        RAISE EXCEPTION 'leonix_rewards_position_moved: payment % now has % reversal rows, not the % this restoration was computed against',
-          p_payment_record_id, v_position_rows, p_expected_position_rows
-          USING ERRCODE = 'LX001';
-      END IF;
       IF p_amount_cents > 0 THEN
         SELECT COALESCE(SUM(CASE WHEN l.entry_type = 'chargeback_reversal' THEN l.amount_cents ELSE 0 END), 0)
              - COALESCE(SUM(CASE WHEN l.entry_type = 'reversal_restoration' THEN l.amount_cents ELSE 0 END), 0)
           INTO v_payment_claimed
           FROM public.leonix_rewards_ledger l
          WHERE l.payment_record_id = p_payment_record_id
+           AND l.wallet_id = p_wallet_id
            AND l.entry_type IN ('chargeback_reversal', 'reversal_restoration');
         IF p_amount_cents > v_payment_claimed THEN
           RAISE EXCEPTION 'leonix_rewards_position_moved: restoration of % exceeds the % a dispute took on payment %',
@@ -846,14 +1004,21 @@ BEGIN
         -- ledger: `chargeback_reversal` carrying the dispute id as `source_id`. That is the
         -- ceiling. A dispute whose `created` event never arrived has no such row and restores
         -- nothing, which is the out-of-order case the resolution queue surfaces to a person.
-        IF p_source_id IS NULL THEN
-          RAISE EXCEPTION 'leonix_rewards_post_entry: reversal_restoration requires the dispute id as p_source_id'
-            USING ERRCODE = 'check_violation';
-        END IF;
-        SELECT COALESCE(SUM(l.amount_cents), 0) INTO v_dispute_claimed
+
+        -- NET OF WHAT THIS DISPUTE HAS ALREADY GIVEN BACK.
+        --
+        -- Summing only the clawback made this bound re-usable: a second restoration for the SAME
+        -- dispute under a different idempotency key passed it, and the only thing standing in the
+        -- way was the payment-wide bound above. An adversarial mutation deleted that one and
+        -- created 450 credits from nothing with every other guard intact. Two bounds that each
+        -- depend on the other are one bound; this one now stands on its own.
+        SELECT COALESCE(SUM(CASE WHEN l.entry_type = 'chargeback_reversal' THEN l.amount_cents ELSE 0 END), 0)
+             - COALESCE(SUM(CASE WHEN l.entry_type = 'reversal_restoration' THEN l.amount_cents ELSE 0 END), 0)
+          INTO v_dispute_claimed
           FROM public.leonix_rewards_ledger l
          WHERE l.payment_record_id = p_payment_record_id
-           AND l.entry_type = 'chargeback_reversal'
+           AND l.wallet_id = p_wallet_id
+           AND l.entry_type IN ('chargeback_reversal', 'reversal_restoration')
            AND l.source_id = p_source_id;
         IF p_amount_cents > v_dispute_claimed THEN
           RAISE EXCEPTION 'leonix_rewards_post_entry: restoration of % exceeds the % dispute % took on payment %',
@@ -946,7 +1111,15 @@ BEGIN
 END;
 $$;
 
-COMMENT ON FUNCTION public.leonix_rewards_post_entry IS
+-- LOCK ORDER: WALLET, THEN REDEMPTION. Always, and only from inside this function —
+-- `leonix_rewards_claim_redemption` is never called from anywhere else. A transaction that took a
+-- redemption row lock and then called this function would take them in the opposite order and
+-- deadlock (demonstrated; PostgreSQL detects it and aborts one side). Nothing in the application
+-- does: every write to `leonix_rewards_redemptions` outside this function is a single autocommit
+-- statement. The invariant is load-bearing and unenforceable, so it is written down.
+COMMENT ON FUNCTION public.leonix_rewards_post_entry(
+  uuid, text, integer, text, text, text, uuid, uuid, text, uuid, uuid, jsonb, integer
+) IS
   'The ONLY supported way to move Leonix Credits. Idempotent on p_idempotency_key, locks the wallet row, derives bucket deltas from the entry type in SQL (so a caller cannot invent a movement), and appends the ledger row and updates the cached balances in one statement.';
 
 -- -----------------------------------------------------------------------------
@@ -1105,16 +1278,20 @@ BEGIN
           v_entry.entry_type, v_entry.id
           USING ERRCODE = 'check_violation';
     END CASE;
-  END LOOP;
 
-  -- A replay that lands on a negative bucket means the LEDGER is inconsistent, not the cache.
-  -- Refusing here is the point: writing a negative balance would violate the wallet CHECKs anyway,
-  -- and silently clamping would hide a real accounting defect behind a plausible number.
-  IF v_pending < 0 OR v_available < 0 OR v_reserved < 0 OR v_recovery < 0 THEN
-    RAISE EXCEPTION 'leonix_rewards_recompute_wallet: wallet % replays to a negative bucket (pending %, available %, reserved %, recovery %); the ledger is inconsistent',
-      p_wallet_id, v_pending, v_available, v_reserved, v_recovery
-      USING ERRCODE = 'check_violation';
-  END IF;
+    -- CHECKED INSIDE THE LOOP, NAMING THE ENTRY.
+    --
+    -- A bucket going negative MID-REPLAY is the actual signature of an inconsistent or
+    -- out-of-order ledger, and checking only after the loop made it invisible whenever a later
+    -- entry brought the bucket back up — the reconciliation returned a clean wallet for a history
+    -- that had passed through a state which cannot exist. Naming the offending `entry_seq` is also
+    -- the difference between "this wallet is broken" and a diagnosis.
+    IF v_pending < 0 OR v_available < 0 OR v_reserved < 0 OR v_recovery < 0 THEN
+      RAISE EXCEPTION 'leonix_rewards_recompute_wallet: wallet % replays to a negative bucket at entry_seq % (%, pending %, available %, reserved %, recovery %); the ledger is inconsistent',
+        p_wallet_id, v_entry.entry_seq, v_entry.entry_type, v_pending, v_available, v_reserved, v_recovery
+        USING ERRCODE = 'check_violation';
+    END IF;
+  END LOOP;
 
   UPDATE public.leonix_rewards_wallets
   SET pending_cents = v_pending,
@@ -1220,6 +1397,9 @@ GRANT SELECT ON TABLE public.leonix_rewards_redemptions TO authenticated;
 GRANT ALL ON TABLE public.leonix_rewards_wallets TO service_role;
 GRANT ALL ON TABLE public.leonix_rewards_ledger TO service_role;
 GRANT ALL ON TABLE public.leonix_rewards_redemptions TO service_role;
+-- ...except the one privilege an append-only ledger must never grant to anyone. The trigger above
+-- refuses it as well; the revoke means the server never even reaches the trigger.
+REVOKE TRUNCATE ON TABLE public.leonix_rewards_ledger FROM service_role;
 
 -- The refund resolution queue is STAFF-ONLY. It names payment records, charge ids and refunded
 -- amounts for customers other than the reader, so unlike the wallet tables there is no

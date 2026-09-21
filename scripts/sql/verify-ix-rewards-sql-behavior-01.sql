@@ -52,6 +52,19 @@ $$ INSERT INTO public.leonix_payment_records DEFAULT VALUES RETURNING id $$;
 CREATE OR REPLACE FUNCTION pg_temp.actor() RETURNS uuid LANGUAGE sql AS
 $$ INSERT INTO auth.users DEFAULT VALUES RETURNING id $$;
 
+/**
+ * The payment's live reversal-row count — the compare-and-swap token.
+ *
+ * `leonix_rewards_post_entry` now REQUIRES it for any position-dependent movement, so these probes
+ * supply it the same way `rewardsLedgerCore` does: read immediately before the call. A probe that
+ * could omit it would be testing a code path production cannot reach.
+ */
+CREATE OR REPLACE FUNCTION pg_temp.pos(p_payment uuid) RETURNS integer LANGUAGE sql AS $$
+  SELECT count(*)::integer FROM public.leonix_rewards_ledger
+   WHERE payment_record_id = p_payment
+     AND entry_type IN ('refund_reversal', 'chargeback_reversal', 'reversal_restoration')
+$$;
+
 CREATE OR REPLACE FUNCTION pg_temp.new_wallet() RETURNS uuid LANGUAGE plpgsql AS $$
 DECLARE v_business uuid; v_wallet uuid;
 BEGIN
@@ -79,13 +92,24 @@ END $$;
 -- S2. NON-NEGATIVE BUCKETS: over-redemption, over-promotion, over-offset are REFUSED.
 -- ---------------------------------------------------------------------------
 DO $$
-DECLARE w uuid; p uuid;
+DECLARE w uuid; p uuid; r uuid;
 BEGIN
   w := pg_temp.new_wallet(); p := pg_temp.new_payment();
   PERFORM public.leonix_rewards_post_entry(w,'earn_available',500,'stripe_payment','e2:'||p, NULL, p);
+  INSERT INTO public.leonix_rewards_redemptions (wallet_id, amount_cents, idempotency_key, expires_at)
+    VALUES (w, 600, 'reserve:r2', now() + interval '30 min') RETURNING id INTO r;
   PERFORM pg_temp.raises(
-    format('SELECT public.leonix_rewards_post_entry(%L,''redeem_reserve'',600,''checkout_redemption'',''r2'')', w),
+    format('SELECT public.leonix_rewards_post_entry(%L,''redeem_reserve'',600,''checkout_redemption'',''r2'',NULL,NULL,%L)', w, r),
     'exceeds available', 'S2 a redemption larger than the balance is refused by name');
+  -- AND A RESERVE NOW CLAIMS ITS ROW, so it can no longer hold an amount the row does not name.
+  PERFORM pg_temp.raises(
+    format('SELECT public.leonix_rewards_post_entry(%L,''redeem_reserve'',300,''checkout_redemption'',''r2b'',NULL,NULL,%L)', w, r),
+    'does not match reservation', 'S2 a reserve for an amount the hold does not name is refused');
+  -- An amount the wallet CAN cover, so the refusal under test is the missing hold and not the
+  -- balance: a probe that trips an earlier guard proves that guard twice and this one never.
+  PERFORM pg_temp.raises(
+    format('SELECT public.leonix_rewards_post_entry(%L,''redeem_reserve'',100,''checkout_redemption'',''r2c'')', w),
+    'requires a redemption id', 'S2 and a reserve with no hold at all is refused');
   PERFORM pg_temp.raises(
     format('SELECT public.leonix_rewards_post_entry(%L,''earn_promote'',100,''stripe_payment'',''pr2'')', w),
     'exceeds pending', 'S2 a promotion with nothing pending is refused');
@@ -107,7 +131,7 @@ BEGIN
   PERFORM public.leonix_rewards_post_entry(w,'earn_pending',300,'stripe_payment','e3a:'||p1, NULL, p1);
   PERFORM public.leonix_rewards_post_entry(w,'earn_available',700,'manual_payment','e3b:'||p2, NULL, p2);
   -- Reverse p2 in full: 700. Pending (300, belonging to p1) is taken first, then 400 of available.
-  PERFORM public.leonix_rewards_post_entry(w,'refund_reversal',700,'stripe_refund','rev3','re_3',p2);
+  PERFORM public.leonix_rewards_post_entry(w,'refund_reversal',700,'stripe_refund','rev3','re_3',p2,NULL,NULL,NULL,NULL,'{}'::jsonb,pg_temp.pos(p2));
   SELECT * INTO v FROM public.leonix_rewards_wallets WHERE id = w;
   PERFORM pg_temp.ok(v.pending_cents = 0, 'S3 pending is taken first');
   PERFORM pg_temp.ok(v.available_cents = 300, 'S3 then available');
@@ -122,7 +146,7 @@ BEGIN
   PERFORM public.leonix_rewards_post_entry(w,'earn_available',900,'stripe_payment','e3c:'||p, NULL, p);
   -- Spend it all.
   PERFORM public.leonix_rewards_post_entry(w,'manual_adjustment',-900,'staff_adjustment','sp3',NULL,NULL,NULL,'spent',pg_temp.actor());
-  PERFORM public.leonix_rewards_post_entry(w,'refund_reversal',900,'stripe_refund','rev3b','re_3b',p);
+  PERFORM public.leonix_rewards_post_entry(w,'refund_reversal',900,'stripe_refund','rev3b','re_3b',p,NULL,NULL,NULL,NULL,'{}'::jsonb,pg_temp.pos(p));
   SELECT * INTO v FROM public.leonix_rewards_wallets WHERE id = w;
   PERFORM pg_temp.ok(v.available_cents = 0 AND v.pending_cents = 0, 'S3 buckets stay non-negative when the credits were already spent');
   PERFORM pg_temp.ok(v.recovery_cents = 900, 'S3 and the shortfall becomes recovery debt');
@@ -146,22 +170,22 @@ DECLARE w uuid; p uuid;
 BEGIN
   w := pg_temp.new_wallet(); p := pg_temp.new_payment();
   PERFORM public.leonix_rewards_post_entry(w,'earn_available',900,'stripe_payment','e4:'||p, NULL, p);
-  PERFORM public.leonix_rewards_post_entry(w,'refund_reversal',450,'stripe_refund','rev4a','re_4a',p);
+  PERFORM public.leonix_rewards_post_entry(w,'refund_reversal',450,'stripe_refund','rev4a','re_4a',p,NULL,NULL,NULL,NULL,'{}'::jsonb,pg_temp.pos(p));
   PERFORM pg_temp.raises(
-    format('SELECT public.leonix_rewards_post_entry(%L,''refund_reversal'',500,''stripe_refund'',''rev4b'',''re_4b'',%L)', w, p),
+    format('SELECT public.leonix_rewards_post_entry(%L,''refund_reversal'',500,''stripe_refund'',''rev4b'',''re_4b'',%L,NULL,NULL,NULL,NULL,''{}''::jsonb,%s)', w, p, pg_temp.pos(p)),
     'leonix_rewards_position_moved', 'S4 a second reversal beyond the award is refused');
   -- Exactly the remainder is accepted.
-  PERFORM public.leonix_rewards_post_entry(w,'refund_reversal',450,'stripe_refund','rev4c','re_4c',p);
+  PERFORM public.leonix_rewards_post_entry(w,'refund_reversal',450,'stripe_refund','rev4c','re_4c',p,NULL,NULL,NULL,NULL,'{}'::jsonb,pg_temp.pos(p));
   PERFORM pg_temp.ok(
     (SELECT COALESCE(SUM(amount_cents),0) FROM public.leonix_rewards_ledger
       WHERE payment_record_id = p AND entry_type = 'refund_reversal') = 900,
     'S4 and the remainder is');
   PERFORM pg_temp.raises(
-    format('SELECT public.leonix_rewards_post_entry(%L,''refund_reversal'',1,''stripe_refund'',''rev4d'',''re_4d'',%L)', w, p),
+    format('SELECT public.leonix_rewards_post_entry(%L,''refund_reversal'',1,''stripe_refund'',''rev4d'',''re_4d'',%L,NULL,NULL,NULL,NULL,''{}''::jsonb,%s)', w, p, pg_temp.pos(p)),
     'leonix_rewards_position_moved', 'S4 not one cent more');
   -- A reversal with no payment at all cannot dodge the ceiling.
   PERFORM pg_temp.raises(
-    format('SELECT public.leonix_rewards_post_entry(%L,''refund_reversal'',100,''stripe_refund'',''rev4e'')', w),
+    format('SELECT public.leonix_rewards_post_entry(%L,''refund_reversal'',100,''stripe_refund'',''rev4e'',NULL,NULL,NULL,NULL,NULL,NULL,''{}''::jsonb,0)', w),
     'requires a payment_record_id', 'S4 the ceiling cannot be skipped by omitting the payment');
 END $$;
 
@@ -174,28 +198,28 @@ BEGIN
   w := pg_temp.new_wallet(); p := pg_temp.new_payment();
   PERFORM public.leonix_rewards_post_entry(w,'earn_available',900,'stripe_payment','e5:'||p, NULL, p);
   -- TWO partial disputes, 450 each.
-  PERFORM public.leonix_rewards_post_entry(w,'chargeback_reversal',450,'stripe_dispute','cb5a','dp_5a',p);
-  PERFORM public.leonix_rewards_post_entry(w,'chargeback_reversal',450,'stripe_dispute','cb5b','dp_5b',p);
+  PERFORM public.leonix_rewards_post_entry(w,'chargeback_reversal',450,'stripe_dispute','cb5a','dp_5a',p,NULL,NULL,NULL,NULL,'{}'::jsonb,pg_temp.pos(p));
+  PERFORM public.leonix_rewards_post_entry(w,'chargeback_reversal',450,'stripe_dispute','cb5b','dp_5b',p,NULL,NULL,NULL,NULL,'{}'::jsonb,pg_temp.pos(p));
   -- Dispute A is won. It may give back 450 — never the 900 the payment lost in total.
   PERFORM pg_temp.raises(
-    format('SELECT public.leonix_rewards_post_entry(%L,''reversal_restoration'',900,''stripe_dispute'',''res5a'',''dp_5a'',%L)', w, p),
+    format('SELECT public.leonix_rewards_post_entry(%L,''reversal_restoration'',900,''stripe_dispute'',''res5a'',''dp_5a'',%L,NULL,NULL,NULL,NULL,''{}''::jsonb,%s)', w, p, pg_temp.pos(p)),
     'dispute dp_5a took', 'S5 a won dispute cannot restore the OTHER dispute''s clawback');
-  PERFORM public.leonix_rewards_post_entry(w,'reversal_restoration',450,'stripe_dispute','res5a','dp_5a',p);
+  PERFORM public.leonix_rewards_post_entry(w,'reversal_restoration',450,'stripe_dispute','res5a','dp_5a',p,NULL,NULL,NULL,NULL,'{}'::jsonb,pg_temp.pos(p));
   SELECT * INTO v FROM public.leonix_rewards_wallets WHERE id = w;
   PERFORM pg_temp.ok(v.available_cents = 450, 'S5 it restores exactly its own');
   PERFORM pg_temp.ok(v.lifetime_restored_cents = 450, 'S5 recorded as restored, not as earning');
   PERFORM pg_temp.ok(v.lifetime_earned_cents = 900, 'S5 lifetime earnings are unchanged by a restoration');
   -- A dispute that never took anything restores nothing.
   PERFORM pg_temp.raises(
-    format('SELECT public.leonix_rewards_post_entry(%L,''reversal_restoration'',450,''stripe_dispute'',''res5z'',''dp_never'',%L)', w, p),
+    format('SELECT public.leonix_rewards_post_entry(%L,''reversal_restoration'',450,''stripe_dispute'',''res5z'',''dp_never'',%L,NULL,NULL,NULL,NULL,''{}''::jsonb,%s)', w, p, pg_temp.pos(p)),
     'dispute dp_never took', 'S5 an unknown dispute restores nothing');
   -- A restoration with no dispute id cannot dodge the per-dispute bound.
   PERFORM pg_temp.raises(
-    format('SELECT public.leonix_rewards_post_entry(%L,''reversal_restoration'',450,''stripe_dispute'',''res5y'',NULL,%L)', w, p),
+    format('SELECT public.leonix_rewards_post_entry(%L,''reversal_restoration'',450,''stripe_dispute'',''res5y'',NULL,%L,NULL,NULL,NULL,NULL,''{}''::jsonb,%s)', w, p, pg_temp.pos(p)),
     'requires the dispute id', 'S5 the per-dispute bound cannot be skipped by omitting the dispute');
   -- A restoration with no payment cannot dodge the payment-scoped bound.
   PERFORM pg_temp.raises(
-    format('SELECT public.leonix_rewards_post_entry(%L,''reversal_restoration'',450,''stripe_dispute'',''res5x'',''dp_5b'')', w),
+    format('SELECT public.leonix_rewards_post_entry(%L,''reversal_restoration'',450,''stripe_dispute'',''res5x'',''dp_5b'',NULL,NULL,NULL,NULL,NULL,''{}''::jsonb,0)', w),
     'requires a payment_record_id', 'S5 nor by omitting the payment');
 END $$;
 
@@ -205,10 +229,110 @@ DECLARE w uuid; p uuid;
 BEGIN
   w := pg_temp.new_wallet(); p := pg_temp.new_payment();
   PERFORM public.leonix_rewards_post_entry(w,'earn_available',900,'stripe_payment','e5b:'||p, NULL, p);
-  PERFORM public.leonix_rewards_post_entry(w,'refund_reversal',900,'stripe_refund','rev5b','re_5b',p);
+  PERFORM public.leonix_rewards_post_entry(w,'refund_reversal',900,'stripe_refund','rev5b','re_5b',p,NULL,NULL,NULL,NULL,'{}'::jsonb,pg_temp.pos(p));
+  -- MATCHED ON THE GUARD, NOT ON A WORD TWO GUARDS SHARE. `'took'` appears in both the payment-wide
+  -- and the per-dispute message, so this assertion was a second test of the per-dispute bound and
+  -- the payment-wide bound had no coverage at all — which is how a mutation deleting the
+  -- payment-wide bound created 450 credits from nothing with everything else green.
+  --
+  -- This payment has only a REFUND against it, so the payment-wide dispute claim is zero and that
+  -- is the guard that must speak.
   PERFORM pg_temp.raises(
-    format('SELECT public.leonix_rewards_post_entry(%L,''reversal_restoration'',900,''stripe_dispute'',''res5b'',''re_5b'',%L)', w, p),
-    'took', 'S5 a refund''s clawback cannot be restored by a dispute');
+    format('SELECT public.leonix_rewards_post_entry(%L,''reversal_restoration'',900,''stripe_dispute'',''res5b'',''re_5b'',%L,NULL,NULL,NULL,NULL,''{}''::jsonb,%s)', w, p, pg_temp.pos(p)),
+    'a dispute took on payment', 'S5 a refund''s clawback cannot be restored by a dispute');
+END $$;
+
+-- THE PAYMENT-WIDE DISPUTE BOUND, ON ITS OWN, WITH A SECOND PAYMENT INFLATING THE WALLET.
+--
+-- A mutation run deleted this bound and created money while every other guard was intact and every
+-- assertion was green: a second, separately refunded payment raises `lifetime_reversed_cents`
+-- enough for the WALLET-level guard to wave a second restoration through, and the per-dispute
+-- bound used not to subtract what the dispute had already given back. Both halves are fixed; this
+-- exercises the payment-wide half specifically, with different idempotency keys so the ledger's
+-- own dedupe is not what is doing the work.
+DO $$
+DECLARE w uuid; p1 uuid; p2 uuid; v public.leonix_rewards_wallets;
+BEGIN
+  w := pg_temp.new_wallet(); p1 := pg_temp.new_payment(); p2 := pg_temp.new_payment();
+  PERFORM public.leonix_rewards_post_entry(w,'earn_available',900,'stripe_payment','e5c:'||p1,NULL,p1);
+  PERFORM public.leonix_rewards_post_entry(w,'earn_available',900,'stripe_payment','e5d:'||p2,NULL,p2);
+  PERFORM public.leonix_rewards_post_entry(w,'chargeback_reversal',450,'stripe_dispute','cb5c','dp_5c',p1,NULL,NULL,NULL,NULL,'{}'::jsonb,pg_temp.pos(p1));
+  PERFORM public.leonix_rewards_post_entry(w,'refund_reversal',900,'stripe_refund','rev5d','re_5d',p2,NULL,NULL,NULL,NULL,'{}'::jsonb,pg_temp.pos(p2));
+  PERFORM public.leonix_rewards_post_entry(w,'reversal_restoration',450,'stripe_dispute','res5c_a','dp_5c',p1,NULL,NULL,NULL,NULL,'{}'::jsonb,pg_temp.pos(p1));
+  SELECT * INTO v FROM public.leonix_rewards_wallets WHERE id = w;
+  PERFORM pg_temp.ok(v.lifetime_restored_cents = 450, 'S5 the won dispute gives back exactly what it took');
+  -- The payment has one dispute and it is fully restored, so the PAYMENT-WIDE bound is the one
+  -- with nothing left — and it must speak even though the wallet-level guard sees plenty of
+  -- headroom from the second payment's refund.
+  PERFORM pg_temp.raises(
+    format('SELECT public.leonix_rewards_post_entry(%L,''reversal_restoration'',450,''stripe_dispute'',''res5c_b'',''dp_5c'',%L,NULL,NULL,NULL,NULL,''{}''::jsonb,%s)', w, p1, pg_temp.pos(p1)),
+    'a dispute took on payment', 'S5 a second restoration is refused by the PAYMENT-WIDE bound');
+  SELECT * INTO v FROM public.leonix_rewards_wallets WHERE id = w;
+  PERFORM pg_temp.ok(v.lifetime_restored_cents = 450, 'S5 nothing was given back twice');
+  -- 900 + 900 earned, 450 taken by the dispute, 900 taken by the other payment's refund, 450 given
+  -- back when the dispute was won.
+  PERFORM pg_temp.ok(v.available_cents = 900, 'S5 and the balance is what the customer is owed');
+END $$;
+
+-- THE PER-DISPUTE BOUND, ON ITS OWN, WITH THE PAYMENT-WIDE BOUND STILL HOLDING HEADROOM.
+--
+-- Two disputes of 450 each: the payment-wide claim is 900, so after restoring the FIRST in full it
+-- still has 450 left and waves a second attempt through. Only a per-dispute bound that subtracts
+-- what THAT dispute has already given back can refuse it. It used not to subtract, which is why
+-- the two bounds were really one bound and deleting either created money.
+DO $$
+DECLARE w uuid; p uuid; v public.leonix_rewards_wallets;
+BEGIN
+  w := pg_temp.new_wallet(); p := pg_temp.new_payment();
+  PERFORM public.leonix_rewards_post_entry(w,'earn_available',900,'stripe_payment','e5h:'||p,NULL,p);
+  PERFORM public.leonix_rewards_post_entry(w,'chargeback_reversal',450,'stripe_dispute','cb5h_1','dp_5h_1',p,NULL,NULL,NULL,NULL,'{}'::jsonb,pg_temp.pos(p));
+  PERFORM public.leonix_rewards_post_entry(w,'chargeback_reversal',450,'stripe_dispute','cb5h_2','dp_5h_2',p,NULL,NULL,NULL,NULL,'{}'::jsonb,pg_temp.pos(p));
+  PERFORM public.leonix_rewards_post_entry(w,'reversal_restoration',450,'stripe_dispute','res5h_a','dp_5h_1',p,NULL,NULL,NULL,NULL,'{}'::jsonb,pg_temp.pos(p));
+  PERFORM pg_temp.raises(
+    format('SELECT public.leonix_rewards_post_entry(%L,''reversal_restoration'',450,''stripe_dispute'',''res5h_b'',''dp_5h_1'',%L,NULL,NULL,NULL,NULL,''{}''::jsonb,%s)', w, p, pg_temp.pos(p)),
+    'dispute dp_5h_1 took', 'S5 a dispute cannot be restored twice, even with payment-wide headroom left');
+  SELECT * INTO v FROM public.leonix_rewards_wallets WHERE id = w;
+  PERFORM pg_temp.ok(v.lifetime_restored_cents = 450, 'S5 only the one dispute was given back');
+  PERFORM pg_temp.ok(v.available_cents = 450, 'S5 and the other dispute''s clawback still stands');
+  -- The OTHER dispute may still be restored, so the bound refuses a repeat rather than everything.
+  PERFORM public.leonix_rewards_post_entry(w,'reversal_restoration',450,'stripe_dispute','res5h_c','dp_5h_2',p,NULL,NULL,NULL,NULL,'{}'::jsonb,pg_temp.pos(p));
+  SELECT * INTO v FROM public.leonix_rewards_wallets WHERE id = w;
+  PERFORM pg_temp.ok(v.available_cents = 900 AND v.lifetime_restored_cents = 900,
+    'S5 winning the second dispute gives back its own 450');
+END $$;
+
+-- THE WALLET-LEVEL LIFETIME BOUND, which nothing executed before.
+DO $$
+DECLARE w uuid; p uuid;
+BEGIN
+  w := pg_temp.new_wallet(); p := pg_temp.new_payment();
+  PERFORM public.leonix_rewards_post_entry(w,'earn_available',900,'stripe_payment','e5e:'||p,NULL,p);
+  PERFORM public.leonix_rewards_post_entry(w,'chargeback_reversal',450,'stripe_dispute','cb5e','dp_5e',p,NULL,NULL,NULL,NULL,'{}'::jsonb,pg_temp.pos(p));
+  -- More than the wallet has EVER had taken from it, in any form.
+  PERFORM pg_temp.raises(
+    format('SELECT public.leonix_rewards_post_entry(%L,''reversal_restoration'',5000,''stripe_dispute'',''res5e'',''dp_5e'',%L,NULL,NULL,NULL,NULL,''{}''::jsonb,%s)', w, p, pg_temp.pos(p)),
+    'exceeds what was reversed on wallet', 'S5 a restoration beyond the wallet''s whole clawback history is refused');
+END $$;
+
+-- THE REVERSAL CEILING IS SCOPED TO THE WALLET AS WELL AS THE PAYMENT.
+DO $$
+DECLARE w1 uuid; w2 uuid; p uuid; v public.leonix_rewards_wallets;
+BEGIN
+  w1 := pg_temp.new_wallet(); w2 := pg_temp.new_wallet(); p := pg_temp.new_payment();
+  PERFORM public.leonix_rewards_post_entry(w1,'earn_available',900,'stripe_payment','e5f:'||p,NULL,p);
+  -- w2 earned nothing on this payment. A clawback aimed at it used to be ACCEPTED: it invented
+  -- recovery debt on an unrelated wallet and burned the payment's budget so the correct reversal
+  -- could never be posted afterwards.
+  PERFORM pg_temp.raises(
+    format('SELECT public.leonix_rewards_post_entry(%L,''refund_reversal'',900,''stripe_refund'',''rev5f'',''re_5f'',%L,NULL,NULL,NULL,NULL,''{}''::jsonb,%s)', w2, p, pg_temp.pos(p)),
+    'leonix_rewards_position_moved', 'S5 a reversal aimed at a wallet that earned nothing on the payment is refused');
+  SELECT * INTO v FROM public.leonix_rewards_wallets WHERE id = w2;
+  PERFORM pg_temp.ok(v.recovery_cents = 0, 'S5 and invents no debt on it');
+  -- ...and the correct wallet can still be reversed in full.
+  PERFORM public.leonix_rewards_post_entry(w1,'refund_reversal',900,'stripe_refund','rev5g','re_5f',p,NULL,NULL,NULL,NULL,'{}'::jsonb,pg_temp.pos(p));
+  SELECT * INTO v FROM public.leonix_rewards_wallets WHERE id = w1;
+  PERFORM pg_temp.ok(v.available_cents = 0 AND v.lifetime_reversed_cents = 900,
+    'S5 the payment''s budget was never burned by the misaimed attempt');
 END $$;
 
 -- ---------------------------------------------------------------------------
@@ -307,11 +431,15 @@ BEGIN
   PERFORM public.leonix_rewards_post_entry(w,'redeem_reserve',1000,'checkout_redemption','reserve:ref8',NULL,NULL,r);
   PERFORM public.leonix_rewards_post_entry(w,'redeem_commit',1000,'checkout_redemption','commit:ref8',NULL,NULL,r);
   PERFORM public.leonix_rewards_post_entry(w,'manual_adjustment',-100,'staff_adjustment','ma8',NULL,NULL,NULL,'correction',pg_temp.actor());
-  PERFORM public.leonix_rewards_post_entry(w,'chargeback_reversal',1800,'stripe_dispute','cb8','dp_8',p2);
-  PERFORM public.leonix_rewards_post_entry(w,'reversal_restoration',900,'stripe_dispute','res8','dp_8',p2);
+  PERFORM public.leonix_rewards_post_entry(w,'chargeback_reversal',1800,'stripe_dispute','cb8','dp_8',p2,NULL,NULL,NULL,NULL,'{}'::jsonb,pg_temp.pos(p2));
+  PERFORM public.leonix_rewards_post_entry(w,'reversal_restoration',900,'stripe_dispute','res8','dp_8',p2,NULL,NULL,NULL,NULL,'{}'::jsonb,pg_temp.pos(p2));
 
   SELECT * INTO live FROM public.leonix_rewards_wallets WHERE id = w;
-  SELECT * INTO replayed FROM public.leonix_rewards_recompute_wallet(w);
+  BEGIN
+    SELECT * INTO replayed FROM public.leonix_rewards_recompute_wallet(w);
+  EXCEPTION WHEN OTHERS THEN
+    RAISE EXCEPTION 'FAILED: S8 the replay refused a ledger the posting path produced — %', SQLERRM;
+  END;
   PERFORM pg_temp.ok(live.pending_cents = replayed.pending_cents, 'S8 replay reproduces pending');
   PERFORM pg_temp.ok(live.available_cents = replayed.available_cents, 'S8 replay reproduces available');
   PERFORM pg_temp.ok(live.reserved_cents = replayed.reserved_cents, 'S8 replay reproduces reserved');
@@ -337,7 +465,7 @@ BEGIN
   PERFORM public.leonix_rewards_post_entry(w,'earn_available',900,'stripe_payment','e8d:'||p,NULL,p);
   -- Spend it, then refund the payment: the clawback cannot be covered and becomes debt.
   PERFORM public.leonix_rewards_post_entry(w,'manual_adjustment',-900,'staff_adjustment','ma8d',NULL,NULL,NULL,'spent',pg_temp.actor());
-  PERFORM public.leonix_rewards_post_entry(w,'refund_reversal',900,'stripe_refund','rev8d','re_8d',p);
+  PERFORM public.leonix_rewards_post_entry(w,'refund_reversal',900,'stripe_refund','rev8d','re_8d',p,NULL,NULL,NULL,NULL,'{}'::jsonb,pg_temp.pos(p));
   PERFORM pg_temp.ok((SELECT recovery_cents FROM public.leonix_rewards_wallets WHERE id = w) = 900,
     'S8 a clawback the wallet could not cover is a debt');
   -- Now two further earns land on that debt: one pending, one available.
@@ -347,7 +475,11 @@ BEGIN
   PERFORM pg_temp.ok(live.recovery_cents = 0, 'S8 and the next earnings settle it first');
   PERFORM pg_temp.ok(live.pending_cents = 0, 'S8 the pending earn went entirely to the debt');
   PERFORM pg_temp.ok(live.available_cents = 300, 'S8 and only the remainder is spendable');
-  SELECT * INTO replayed FROM public.leonix_rewards_recompute_wallet(w);
+  BEGIN
+    SELECT * INTO replayed FROM public.leonix_rewards_recompute_wallet(w);
+  EXCEPTION WHEN OTHERS THEN
+    RAISE EXCEPTION 'FAILED: S8 the replay refused a ledger the posting path produced — %', SQLERRM;
+  END;
   PERFORM pg_temp.ok(live.pending_cents = replayed.pending_cents, 'S8 the replay repays the debt from pending too');
   PERFORM pg_temp.ok(live.available_cents = replayed.available_cents, 'S8 and from available');
   PERFORM pg_temp.ok(live.recovery_cents = replayed.recovery_cents, 'S8 landing on the same debt');
@@ -365,7 +497,7 @@ BEGIN
   PERFORM public.leonix_rewards_post_entry(w,'earn_available',2000,'manual_payment','e9b',NULL,pg_temp.new_payment());
   FOR n IN 1..10 LOOP
     PERFORM public.leonix_rewards_post_entry(w,'refund_reversal',200,'stripe_refund','rev9:'||n,'re_9_'||n,p,
-      NULL,NULL,NULL,NULL,'{}'::jsonb,NULL);
+      NULL,NULL,NULL,NULL,'{}'::jsonb,pg_temp.pos(p));
   END LOOP;
   -- No clock manipulation is needed or possible: the ledger is append-only, and `now()` is fixed
   -- for the whole transaction, so every row this block wrote already carries one timestamp.
@@ -374,7 +506,11 @@ BEGIN
   PERFORM pg_temp.ok((SELECT count(*) FROM public.leonix_rewards_ledger WHERE wallet_id = w) >= 12,
     'S9 and there are more than nine of them');
   SELECT * INTO live FROM public.leonix_rewards_wallets WHERE id = w;
-  SELECT * INTO replayed FROM public.leonix_rewards_recompute_wallet(w);
+  BEGIN
+    SELECT * INTO replayed FROM public.leonix_rewards_recompute_wallet(w);
+  EXCEPTION WHEN OTHERS THEN
+    RAISE EXCEPTION 'FAILED: S8 the replay refused a ledger the posting path produced — %', SQLERRM;
+  END;
   PERFORM pg_temp.ok(live.pending_cents = replayed.pending_cents
                  AND live.available_cents = replayed.available_cents
                  AND live.recovery_cents = replayed.recovery_cents
@@ -382,6 +518,101 @@ BEGIN
     'S9 the replay reproduces the wallet with the clock giving it no help');
   PERFORM pg_temp.ok((SELECT count(*) FROM public.leonix_rewards_ledger WHERE wallet_id = w AND entry_seq IS NULL) = 0,
     'S9 no entry can opt out of the canonical order');
+END $$;
+
+-- EVERY REPLAY ARM, EXECUTED. A mutation run found six arms of the replay that no scenario
+-- reached — release, re-commit, both recovery movements, expiry and a POSITIVE staff adjustment —
+-- each provably breakable with both suites green, because the only thing watching them was a
+-- textual comparison of the two SQL CASE blocks against each other. A comparison of two blocks
+-- cannot see them both being wrong, and a consistent change to both defeats it outright.
+DO $$
+DECLARE w uuid; p uuid; r1 uuid; r2 uuid; live public.leonix_rewards_wallets; replayed public.leonix_rewards_wallets;
+BEGIN
+  w := pg_temp.new_wallet(); p := pg_temp.new_payment();
+  PERFORM public.leonix_rewards_post_entry(w,'earn_available',5000,'stripe_payment','e8g:'||p,NULL,p);
+
+  -- redeem_release: a hold that goes back to the customer.
+  INSERT INTO public.leonix_rewards_redemptions (wallet_id, amount_cents, idempotency_key, expires_at)
+    VALUES (w, 1000, 'reserve:r8g_1', now() + interval '30 min') RETURNING id INTO r1;
+  PERFORM public.leonix_rewards_post_entry(w,'redeem_reserve',1000,'checkout_redemption','reserve:r8g_1',NULL,NULL,r1);
+  PERFORM public.leonix_rewards_post_entry(w,'redeem_release',1000,'checkout_redemption','release:r8g_1',NULL,NULL,r1);
+
+  -- redeem_recommit: an expired hold re-debited out of available.
+  INSERT INTO public.leonix_rewards_redemptions (wallet_id, amount_cents, idempotency_key, expires_at)
+    VALUES (w, 800, 'reserve:r8g_2', now() - interval '1 min') RETURNING id INTO r2;
+  PERFORM public.leonix_rewards_post_entry(w,'redeem_reserve',800,'checkout_redemption','reserve:r8g_2',NULL,NULL,r2);
+  PERFORM public.leonix_rewards_post_entry(w,'redeem_release',800,'checkout_redemption','release:r8g_2',NULL,NULL,r2);
+  UPDATE public.leonix_rewards_redemptions SET status='expired' WHERE id = r2;
+  PERFORM public.leonix_rewards_post_entry(w,'redeem_recommit',800,'checkout_redemption','recommit:r8g_2',NULL,NULL,r2);
+
+  -- a POSITIVE staff adjustment, which is spendable at once and counts as earning.
+  PERFORM public.leonix_rewards_post_entry(w,'manual_adjustment',600,'staff_adjustment','ma8g',NULL,NULL,NULL,'goodwill',pg_temp.actor());
+  -- a standalone debt, and a partial repayment of it outside the earnings path.
+  PERFORM public.leonix_rewards_post_entry(w,'recovery_accrue',700,'staff_adjustment','ra8g');
+  PERFORM public.leonix_rewards_post_entry(w,'recovery_offset',300,'staff_adjustment','ro8g');
+  -- expiry, which no launch policy emits but which the vocabulary admits.
+  PERFORM public.leonix_rewards_post_entry(w,'expire',200,'staff_adjustment','ex8g');
+
+  SELECT * INTO live FROM public.leonix_rewards_wallets WHERE id = w;
+  PERFORM pg_temp.ok(live.available_cents = 4600, 'S8 the six arms land where the posting rules say');
+  PERFORM pg_temp.ok(live.lifetime_redeemed_cents = 800, 'S8 a re-debited hold counts as redeemed');
+  PERFORM pg_temp.ok(live.recovery_cents = 400, 'S8 a standalone debt survives a partial repayment');
+  PERFORM pg_temp.ok(live.reserved_cents = 0, 'S8 nothing is left held');
+
+  BEGIN
+    SELECT * INTO replayed FROM public.leonix_rewards_recompute_wallet(w);
+  EXCEPTION WHEN OTHERS THEN
+    RAISE EXCEPTION 'FAILED: S8 the replay refused a ledger the posting path produced — %', SQLERRM;
+  END;
+  PERFORM pg_temp.ok(live.available_cents = replayed.available_cents, 'S8 replay reproduces release, recommit, adjustment and expiry');
+  PERFORM pg_temp.ok(live.reserved_cents = replayed.reserved_cents, 'S8 replay reproduces the hold lifecycle');
+  PERFORM pg_temp.ok(live.recovery_cents = replayed.recovery_cents, 'S8 replay reproduces a standalone accrual and offset');
+  PERFORM pg_temp.ok(live.lifetime_redeemed_cents = replayed.lifetime_redeemed_cents, 'S8 replay reproduces the re-debit');
+  PERFORM pg_temp.ok(live.lifetime_earned_cents = replayed.lifetime_earned_cents, 'S8 replay counts a positive adjustment as earning');
+  PERFORM pg_temp.ok(live.lifetime_reversed_cents = replayed.lifetime_reversed_cents, 'S8 replay banks the expiry');
+  PERFORM pg_temp.ok(live.lifetime_recovery_offset_cents = replayed.lifetime_recovery_offset_cents, 'S8 replay reproduces the repayment');
+END $$;
+
+-- THE STAFF-DEBIT DRAW ORDER, IN THE ENGINE. Available first, then pending — the opposite of a
+-- reversal, and deliberately so: a correction is about value the customer should not keep, and
+-- taking it from spendable value first is what stops them racing the correction. Only a debit
+-- LARGER than the whole balance was executed before, which never reaches the branch.
+DO $$
+DECLARE w uuid; p uuid; v public.leonix_rewards_wallets;
+BEGIN
+  w := pg_temp.new_wallet(); p := pg_temp.new_payment();
+  PERFORM public.leonix_rewards_post_entry(w,'earn_pending',1000,'stripe_payment','e8i:'||p,NULL,p);
+  PERFORM public.leonix_rewards_post_entry(w,'earn_available',1000,'manual_payment','e8j',NULL,pg_temp.new_payment());
+  PERFORM public.leonix_rewards_post_entry(w,'manual_adjustment',-500,'staff_adjustment','ma8i',NULL,NULL,NULL,'correction',pg_temp.actor());
+  SELECT * INTO v FROM public.leonix_rewards_wallets WHERE id = w;
+  PERFORM pg_temp.ok(v.available_cents = 500, 'S8 a staff debit takes spendable value FIRST');
+  PERFORM pg_temp.ok(v.pending_cents = 1000, 'S8 and leaves pending alone while available covers it');
+  -- ...and crosses into pending only when available runs out.
+  PERFORM public.leonix_rewards_post_entry(w,'manual_adjustment',-800,'staff_adjustment','ma8j',NULL,NULL,NULL,'correction',pg_temp.actor());
+  SELECT * INTO v FROM public.leonix_rewards_wallets WHERE id = w;
+  PERFORM pg_temp.ok(v.available_cents = 0 AND v.pending_cents = 700, 'S8 then crosses into pending for the remainder');
+END $$;
+
+-- THE REPLAY REFUSES AN INCONSISTENT LEDGER, AND SAYS WHERE. Nothing reached this before, because
+-- the constraints make an inconsistent ledger hard to build — so it is built deliberately, with
+-- the append-only trigger stood down for the one statement that corrupts the order.
+DO $$
+DECLARE w uuid; p uuid; a uuid; b uuid; v_seq bigint;
+BEGIN
+  w := pg_temp.new_wallet(); p := pg_temp.new_payment();
+  SELECT id INTO a FROM public.leonix_rewards_post_entry(w,'earn_available',1000,'manual_payment','e8k',NULL,p);
+  SELECT id INTO b FROM public.leonix_rewards_post_entry(w,'manual_adjustment',-1000,'staff_adjustment','ma8k',NULL,NULL,NULL,'spent',pg_temp.actor());
+  -- Swap the two entries' order. The history is now one that never happened: a debit before the
+  -- earn that funded it. The cache is untouched and still correct.
+  ALTER TABLE public.leonix_rewards_ledger DISABLE TRIGGER leonix_rewards_ledger_immutable_tg;
+  SELECT entry_seq INTO v_seq FROM public.leonix_rewards_ledger WHERE id = a;
+  UPDATE public.leonix_rewards_ledger SET entry_seq = (SELECT entry_seq FROM public.leonix_rewards_ledger WHERE id = b) * -1 WHERE id = a;
+  UPDATE public.leonix_rewards_ledger SET entry_seq = v_seq - 1000000 WHERE id = b;
+  ALTER TABLE public.leonix_rewards_ledger ENABLE TRIGGER leonix_rewards_ledger_immutable_tg;
+  PERFORM pg_temp.raises(
+    format('SELECT public.leonix_rewards_recompute_wallet(%L)', w),
+    'replays to a negative bucket at entry_seq',
+    'S8 the replay refuses an inconsistent ledger and names the entry it broke on');
 END $$;
 
 -- ---------------------------------------------------------------------------
@@ -402,6 +633,37 @@ BEGIN
   PERFORM pg_temp.raises(
     format('UPDATE public.leonix_rewards_wallets SET available_cents = -1 WHERE id = %L', w),
     'nonneg', 'S10 a wallet bucket cannot be driven negative by a direct write');
+  -- AND TRUNCATE, which is neither an UPDATE nor a DELETE and emptied the whole ledger in one
+  -- statement — cascading to the redemptions and the staff refund queue with it.
+  PERFORM pg_temp.raises(
+    'TRUNCATE public.leonix_rewards_ledger CASCADE',
+    'append-only', 'S10 and the ledger cannot be truncated');
+  PERFORM pg_temp.ok(
+    NOT has_table_privilege('service_role', 'public.leonix_rewards_ledger', 'TRUNCATE'),
+    'S10 the server role does not even hold the privilege');
+END $$;
+
+-- THE COMPARE-AND-SWAP IS MANDATORY, NOT OPT-OUT. A `DEFAULT NULL` that disables the check makes
+-- the SAFE value the one a future caller has to remember to pass, and without it the original
+-- defect reproduces exactly.
+DO $$
+DECLARE w uuid; p uuid;
+BEGIN
+  w := pg_temp.new_wallet(); p := pg_temp.new_payment();
+  PERFORM public.leonix_rewards_post_entry(w,'earn_available',900,'stripe_payment','e10b:'||p,NULL,p);
+  PERFORM pg_temp.raises(
+    format('SELECT public.leonix_rewards_post_entry(%L,''refund_reversal'',450,''stripe_refund'',''rev10b'',''re_10b'',%L)', w, p),
+    'requires p_expected_position_rows', 'S10 a reversal with no position token is refused');
+  PERFORM public.leonix_rewards_post_entry(w,'chargeback_reversal',450,'stripe_dispute','cb10b','dp_10b',p,NULL,NULL,NULL,NULL,'{}'::jsonb,pg_temp.pos(p));
+  PERFORM pg_temp.raises(
+    format('SELECT public.leonix_rewards_post_entry(%L,''reversal_restoration'',450,''stripe_dispute'',''res10b'',''dp_10b'',%L)', w, p),
+    'requires p_expected_position_rows', 'S10 and so is a restoration');
+  -- A ZERO-amount row records a basis and moves nothing, so it is exempt — and still has to name
+  -- its payment.
+  PERFORM public.leonix_rewards_post_entry(w,'refund_reversal',0,'stripe_refund','rev10c','re_10c',p);
+  PERFORM pg_temp.ok(
+    (SELECT count(*) FROM public.leonix_rewards_ledger WHERE idempotency_key = 'rev10c') = 1,
+    'S10 a zero-amount basis row needs no token');
 END $$;
 
 -- ---------------------------------------------------------------------------

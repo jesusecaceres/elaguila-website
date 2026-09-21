@@ -301,6 +301,10 @@ export async function commitCheckoutCredits(input: {
       // The obligation is recorded the way every other unfundable clawback is: as recovery debt.
       // The customer's redemptions pause and their next earnings settle it. It is not silent, and
       // it is not a loss.
+      // `accrueUnfundedRedemption` refuses a hold that is still LIVE, so a transient commit
+      // failure stays a transient commit failure: the credits remain in `reserved`, the expiry
+      // sweep can still reach them, and a redelivery retries. Only a hold that has already gone
+      // back to the customer, and can no longer be re-taken, becomes a debt.
       const debt = await accrueUnfundedRedemption({
         redemptionRef: input.paymentRecordId,
         paymentRecordId: input.paymentRecordId,
@@ -322,6 +326,11 @@ export async function commitCheckoutCredits(input: {
       }).catch(() => undefined);
       if (debt.ok) {
         return { committed: false, amountCents: debt.amountCents, reason: "recorded_as_recovery_debt" };
+      }
+      // The hold is still live: nothing was lost, and Stripe's redelivery (or the expiry sweep)
+      // is the right resolution. Reported as retryable rather than as an unrecorded obligation.
+      if (debt.error === "hold_still_live") {
+        return { committed: false, amountCents: 0, reason: res.error };
       }
       await writeRevenueAuditLog({
         action: "revenue_payment_completed",

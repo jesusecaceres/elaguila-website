@@ -32,6 +32,16 @@ type Row = {
   stripeEventId: string | null;
   /** The dispute or refund id this row is about, when the rail named one. */
   externalRef: string | null;
+  /**
+   * Does this row record credits the customer is OWED? DECIDED BY THE SERVER.
+   *
+   * This used to be a prefix test the browser ran for itself, and the classification drifted from
+   * the row: a restoration whose first staff attempt failed was re-filed under a different reason,
+   * the prefix stopped matching, and the screen offered only controls that close the row having
+   * moved nothing. The API now sends the answer and also REFUSES an outcome that contradicts it,
+   * so the screen and the server cannot disagree about what a row is.
+   */
+  isRestorationWork: boolean;
   kind: "refund" | "chargeback";
   cumulativeRefundedCents: number;
   status: "open" | "resolved" | "dismissed";
@@ -59,17 +69,6 @@ async function postAdminRewards(body: Record<string, unknown>) {
 
 function money(cents: number): string {
   return `$${(Math.max(0, Math.floor(cents)) / 100).toFixed(2)}`;
-}
-
-/**
- * Does this row record credits the customer is OWED rather than a clawback to apply?
- *
- * The webhook files won-dispute work with `kind: "chargeback"` and a cumulative position of zero,
- * and names the reason. Reading the reason is what lets the screen say "credits are owed" instead
- * of rendering "$0.00 · Chargeback" and inviting staff to close it with no movement.
- */
-function isRestorationWork(row: Row): boolean {
-  return row.kind === "chargeback" && row.reason.startsWith("won_dispute_restoration");
 }
 
 export function RewardsRefundQueueClient() {
@@ -199,7 +198,7 @@ export function RewardsRefundQueueClient() {
       ) : (
         <ul className="space-y-3">
           {rows.map((row) => {
-            const owed = isRestorationWork(row);
+            const owed = row.isRestorationWork;
             const open = row.status === "open";
             return (
               <li key={row.id} className="rounded-2xl border border-[#E7DCC6] bg-white p-4 shadow-sm">

@@ -37,6 +37,17 @@ export type RefundResolutionRow = {
   cumulativeRefundedCents: number;
   /** The dispute or refund id this row is about, when the rail named one. Part of the dedupe key. */
   externalRef: string | null;
+  /**
+   * Does this row record credits the customer is OWED rather than a clawback to apply?
+   *
+   * DECIDED ON THE SERVER, and sent to the screen. It used to be a prefix test the browser did for
+   * itself, which meant the classification could drift from the row: a restoration whose first
+   * staff attempt failed was re-filed under a different reason, the prefix stopped matching, and
+   * the screen rendered it as an ordinary chargeback with only "Reverse credits" and "No action".
+   * Both close the row moving nothing, so the customer's credits were never given back and the
+   * queue was empty. Deciding here also lets the API REFUSE an outcome that contradicts the row.
+   */
+  isRestorationWork: boolean;
   status: "open" | "resolved" | "dismissed";
   attempts: number;
   lastAttemptAtIso: string;
@@ -54,6 +65,19 @@ const COLUMNS =
 /** Postgres unique violation — a redelivery racing the same open row is the desired state. */
 const PG_UNIQUE_VIOLATION = "23505";
 
+/**
+ * The one definition of "this row is credits OWED, not a clawback to apply".
+ *
+ * The webhook files won-dispute work with `kind: "chargeback"`, a cumulative position of zero and a
+ * reason naming what happened. Every writer that re-files such a row must keep the prefix, which is
+ * why `RESTORATION_WORK_REASON_PREFIX` is exported rather than spelled out at each site.
+ */
+export const RESTORATION_WORK_REASON_PREFIX = "won_dispute_restoration";
+
+export function isRestorationWorkRow(row: { kind: RefundResolutionKind; reason: string }): boolean {
+  return row.kind === "chargeback" && row.reason.startsWith(RESTORATION_WORK_REASON_PREFIX);
+}
+
 function toRow(r: Record<string, unknown>): RefundResolutionRow {
   return {
     id: String(r.id),
@@ -63,6 +87,10 @@ function toRow(r: Record<string, unknown>): RefundResolutionRow {
     kind: String(r.kind) === "chargeback" ? "chargeback" : "refund",
     cumulativeRefundedCents: Number(r.cumulative_refunded_cents ?? 0),
     externalRef: r.external_ref == null ? null : String(r.external_ref),
+    isRestorationWork: isRestorationWorkRow({
+      kind: String(r.kind) === "chargeback" ? "chargeback" : "refund",
+      reason: String(r.reason ?? ""),
+    }),
     status: (String(r.status) as RefundResolutionRow["status"]) ?? "open",
     attempts: Number(r.attempts ?? 1),
     lastAttemptAtIso: String(r.last_attempt_at ?? ""),

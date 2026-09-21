@@ -645,6 +645,18 @@ async function attemptReversal(input: {
   cumulativeRefundedCentsForKind?: number | null;
   ports: RewardsStorePort;
 }): Promise<ReversalResult | typeof POSITION_RETRY> {
+  // EVERY MONEY INPUT IS COERCED TO A FINITE INTEGER BEFORE IT REACHES THE ARITHMETIC.
+  //
+  // `Math.max(0, Math.floor(NaN))` is NaN, so a non-finite event amount propagated straight
+  // through the delta, produced a `22P02` from the database, and then burned the refund's
+  // idempotency key on the basis-recording path. `Infinity` was worse: it reversed the entire
+  // award regardless of what was refunded. Neither is reachable from Stripe today; the cumulative
+  // branch was already guarded and the per-event branch was not, which is the kind of asymmetry
+  // that stops being theoretical the moment a CSV importer or a staff form reaches this.
+  const eventRefundedCents = Number.isFinite(input.eventRefundedCents)
+    ? Math.max(0, Math.floor(input.eventRefundedCents))
+    : 0;
+
   const original = await input.ports.findEarnForPayment(input.paymentRecordId);
   if (!original || original.amountCents <= 0) {
     return { ok: true, outcome: "nothing_to_reverse", reason: "payment_earned_nothing", reversedCents: 0, totalReversedCents: 0 };
@@ -682,7 +694,7 @@ async function attemptReversal(input: {
   const basisContributionCents =
     typeof cumulativeForKind === "number" && Number.isFinite(cumulativeForKind)
       ? Math.max(0, Math.floor(cumulativeForKind) - priorBasisSameKind)
-      : Math.max(0, Math.floor(input.eventRefundedCents));
+      : eventRefundedCents;
 
   const cumulativeRefundedCents = priorBasisSameKind + basisContributionCents + priorBasisOtherKind;
 
@@ -711,7 +723,7 @@ async function attemptReversal(input: {
     meta: {
       basis_contribution_cents: basisContributionCents,
       cumulative_refunded_cents: cumulativeRefundedCents,
-      event_refunded_cents: Math.max(0, Math.floor(input.eventRefundedCents)),
+      event_refunded_cents: eventRefundedCents,
       originally_earned_cents: original.amountCents,
       already_reversed_before_cents: alreadyReversedCents,
     },
@@ -724,19 +736,27 @@ async function attemptReversal(input: {
     // exact. The caller's loop does that.
     if (posted.error === REVERSAL_POSITION_MOVED) return POSITION_RETRY;
 
-    // THE BASIS MUST SURVIVE A REFUSED MOVEMENT.
+    // THE BASIS SURVIVES A REFUSED MOVEMENT — BUT ONLY A REAL REFUSAL.
     //
-    // A reversal is refused when the customer has already SPENT the credits: the wallet cannot go
-    // negative, so nothing moves. Returning here recorded nothing at all, which lost this event's
-    // refunded basis — and the cumulative arithmetic is a DELTA against that basis, so the NEXT
-    // refund on the same payment then under-reversed by exactly this event's share. An
-    // adversarial review reversed 270 cents where 540 was owed, permanently, unless a human
-    // replayed the first refund by hand.
+    // A refusal means the database decided this movement must not happen. Recording the event as a
+    // ZERO-AMOUNT reversal carrying its basis is right for that case: the cumulative arithmetic is
+    // a DELTA against the basis, so losing it makes the NEXT refund under-reverse by exactly this
+    // event's share, and the idempotency key is spent either way.
     //
-    // So the event is recorded as a ZERO-AMOUNT reversal carrying its basis. The ledger's amount
-    // CHECK allows exactly that for a reversal, and it is the same shape a deduplicated delivery
-    // already writes. No money moves, the running position stays exact, and the shortfall is
-    // reported so the audit log can say a person is owed a correction.
+    // IT IS CATASTROPHIC FOR AN INFRASTRUCTURE ERROR. A dropped connection or a five-second
+    // gateway timeout is not a decision about money, and writing a zero-amount row under
+    // `reverse:<kind>:<id>` burns that refund's key permanently: the redelivery deduplicates
+    // against it, the staff queue cannot settle it either, and a fully refunded $100.00 payment
+    // keeps its whole 900-credit award for ever. Measured on the real code path with one failed
+    // round trip.
+    //
+    // So this branch is now reached only for a named balance refusal. Everything else returns
+    // retryably with NOTHING written, which is what lets the redelivery — or the queue row the
+    // webhook files — actually fix it.
+    if (posted.error !== "negative_balance_refused") {
+      return { ok: false, error: posted.error, basisRecorded: false, shortfallCents: deltaCents };
+    }
+
     const shortfallCents = deltaCents;
     const recorded = await input.ports.postEntry({
       walletId: original.walletId,
@@ -753,7 +773,7 @@ async function attemptReversal(input: {
       meta: {
         basis_contribution_cents: basisContributionCents,
         cumulative_refunded_cents: cumulativeRefundedCents,
-        event_refunded_cents: Math.max(0, Math.floor(input.eventRefundedCents)),
+        event_refunded_cents: eventRefundedCents,
         originally_earned_cents: original.amountCents,
         already_reversed_before_cents: alreadyReversedCents,
         refused_movement_cents: shortfallCents,
@@ -1059,6 +1079,22 @@ export async function accrueUnfundedRedemption(input: {
   if (!reservation) return { ok: false, error: "reservation_not_found" };
   if (reservation.status === "committed") {
     return { ok: true, outcome: "already_recorded", amountCents: reservation.amountCents };
+  }
+
+  // A LIVE HOLD IS NOT AN UNFUNDED PURCHASE, AND RECORDING ONE AS DEBT CHARGES TWICE.
+  //
+  // This is reached when a commit failed, and a commit can fail for a reason that has nothing to
+  // do with the balance: a transient database error while the reservation is still `reserved`.
+  // The credits are then sitting in `reserved_cents`, untouched. Accruing a debt for them — and
+  // force-finalising the hold, which takes the row out of the expiry sweep's reach — left the
+  // customer with the full amount frozen in `reserved` FOR EVER and an equal recovery debt on top:
+  // $399.00 taken for a $199.50 obligation, and nothing self-correcting, because a redelivery now
+  // finds the row `committed`.
+  //
+  // The debt is only real when the hold has already gone BACK to the customer and the re-debit
+  // could not be covered. A still-live hold is a retryable failure, not a debt.
+  if (reservation.status === "reserved") {
+    return { ok: false, error: "hold_still_live" };
   }
 
   const posted = await input.ports.postEntry({

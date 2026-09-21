@@ -448,7 +448,25 @@ export function PublishCheckoutCheckpoint({
           Sits below the discount controls and ABOVE the total, because it changes what is due.
           Credits are not a promo code: `validateDiscountCombination` allows them alongside the
           one promo slot, so this never hides or competes with the field above. */}
-      {resolved.mode === "checkout" && creditsEligible ? (
+      {/* NOT ON A RECURRING PLAN. In `subscription` mode the discount is applied by lowering the
+          line item's `unit_amount`, and that line item recurs monthly — so a ONE-TIME credit debit
+          would set the subscription's price for every renewal, for ever. The server refuses credits
+          there by name, and mounting the control anyway meant the customer applied credits, saw a
+          green "Credits applied $199.50 · Remaining to pay $199.50", pressed pay, and was told the
+          credits could not be applied with no reason given. A control whose action the server will
+          always refuse is a phantom discount with extra steps. */}
+      {resolved.mode === "checkout" && creditsEligible && basePackageIsMonthly ? (
+        <p
+          className="mt-3 rounded-xl border px-3 py-2 text-xs"
+          style={{ borderColor: `${LEONIX_BORDER}99`, color: LEONIX_MUTED }}
+        >
+          {lang === "en"
+            ? "Leonix Credits do not apply to monthly plans yet. Your balance is untouched and stays available for one-time purchases."
+            : "Los Créditos Leonix aún no aplican a planes mensuales. Tu saldo queda intacto y disponible para compras únicas."}
+        </p>
+      ) : null}
+
+      {resolved.mode === "checkout" && creditsEligible && !basePackageIsMonthly ? (
         <LeonixCheckoutCreditsPanel
           lang={lang === "en" ? "en" : "es"}
           eligiblePurchaseCents={resolved.totalCents}

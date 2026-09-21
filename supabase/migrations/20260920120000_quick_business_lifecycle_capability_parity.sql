@@ -111,31 +111,58 @@ COMMENT ON CONSTRAINT restaurantes_public_listings_status_check
 -- -----------------------------------------------------------------------------
 DO $$
 DECLARE
-  v_blocking text;
+  v_col text;
+  v_tbl text;
+  v_val text;
+  v_con record;
+  v_rejected boolean;
 BEGIN
-  SELECT string_agg(c.conname, ', ') INTO v_blocking
-    FROM pg_catalog.pg_constraint c
-   WHERE c.conrelid = 'public.servicios_public_listings'::regclass
-     AND c.contype = 'c'
-     -- Only value-set constraints on this column; a NOT NULL-style CHECK names the column without
-     -- enumerating anything and must not be mistaken for one that rejects the new value.
-     AND pg_catalog.pg_get_constraintdef(c.oid) ~* 'listing_status[[:space:]]*=[[:space:]]*ANY'
-     AND pg_catalog.pg_get_constraintdef(c.oid) !~* '''archived''';
-  IF v_blocking IS NOT NULL THEN
-    RAISE EXCEPTION 'QB-LIFECYCLE-02: servicios_public_listings constraint(s) % still reject ''archived'' after the widening; the DROP above matched no constraint by that name', v_blocking
-      USING ERRCODE = 'check_violation';
-  END IF;
+  -- EVALUATE THE CONSTRAINTS, DO NOT READ THEM.
+  --
+  -- The first version of this block matched constraint TEXT, and text matching was wrong in both
+  -- directions. It aborted a perfectly good migration whenever the table carried any other check
+  -- mentioning a column whose name merely ends in `status` (`payment_status = ANY (...)` contains
+  -- the substring `status = ANY`), and it missed a surviving constraint written as
+  -- `status = 'a' OR status = 'b'`, which is the dead-control outcome this block exists to
+  -- prevent. Both measured against PostgreSQL 16.
+  --
+  -- So each SINGLE-COLUMN check on the status column is recreated on a one-column temporary table
+  -- and the candidate value is inserted under a savepoint. That is a verdict, not a guess: IN,
+  -- OR, ANY and single-value forms are all evaluated by the database itself. Multi-column checks
+  -- (`published_at IS NULL OR status IN (...)`) are deliberately out of scope — they cannot reject
+  -- the value on its own, so treating them as blocking is exactly the false positive above.
+  FOREACH v_tbl IN ARRAY ARRAY['servicios_public_listings', 'restaurantes_public_listings'] LOOP
+    v_col := CASE WHEN v_tbl = 'servicios_public_listings' THEN 'listing_status' ELSE 'status' END;
+    v_val := CASE WHEN v_tbl = 'servicios_public_listings' THEN 'archived' ELSE 'paused' END;
 
-  SELECT string_agg(c.conname, ', ') INTO v_blocking
-    FROM pg_catalog.pg_constraint c
-   WHERE c.conrelid = 'public.restaurantes_public_listings'::regclass
-     AND c.contype = 'c'
-     AND pg_catalog.pg_get_constraintdef(c.oid) ~* 'status[[:space:]]*=[[:space:]]*ANY'
-     AND pg_catalog.pg_get_constraintdef(c.oid) !~* '''paused''';
-  IF v_blocking IS NOT NULL THEN
-    RAISE EXCEPTION 'QB-LIFECYCLE-02: restaurantes_public_listings constraint(s) % still reject ''paused'' after the widening; the DROP above matched no constraint by that name', v_blocking
-      USING ERRCODE = 'check_violation';
-  END IF;
+    EXECUTE format('CREATE TEMP TABLE leonix_qb_probe (%I text)', v_col);
+    FOR v_con IN
+      SELECT c.conname, pg_catalog.pg_get_constraintdef(c.oid) AS def
+        FROM pg_catalog.pg_constraint c
+        JOIN pg_catalog.pg_attribute a
+          ON a.attrelid = c.conrelid AND a.attname = v_col
+       WHERE c.conrelid = ('public.' || v_tbl)::regclass
+         AND c.contype = 'c'
+         -- EXACTLY this one column, so the check stands or falls on the value alone.
+         AND c.conkey = ARRAY[a.attnum]
+    LOOP
+      EXECUTE format('ALTER TABLE leonix_qb_probe ADD CONSTRAINT %I %s', v_con.conname, v_con.def);
+    END LOOP;
+
+    v_rejected := false;
+    BEGIN
+      EXECUTE format('INSERT INTO leonix_qb_probe (%I) VALUES (%L)', v_col, v_val);
+    EXCEPTION WHEN check_violation THEN
+      v_rejected := true;
+    END;
+    DROP TABLE leonix_qb_probe;
+
+    IF v_rejected THEN
+      RAISE EXCEPTION 'QB-LIFECYCLE-02: public.%.% still rejects %L after the widening — a differently-named CHECK constraint survived the DROP above, so the capability would be dead in production',
+        v_tbl, v_col, v_val
+        USING ERRCODE = 'check_violation';
+    END IF;
+  END LOOP;
 END $$;
 
 -- PostgREST caches the schema (including CHECK constraint bodies it reports on violation).

@@ -559,36 +559,48 @@ export async function resolveWalletOwnerForPayment(input: {
  */
 
 /**
- * Is a BUSINESS binding still real?
+ * Has this customer's BUSINESS binding been revoked?
  *
  * The binding pins which wallet a customer uses so a membership change cannot move their balance
- * under them — and that is right in the direction it was written for. It was wrong in the other:
- * a member REMOVED from a business kept resolving to that business's wallet for ever, because the
- * binding short-circuits before any membership is read. They could still read the business's
- * balance and still spend it at checkout, both through the service-role client, so the RLS policy
- * that would have stopped them never ran. Meanwhile the successor's payments earn into the same
- * wallet, so what an ex-owner could spend was the new owner's money.
+ * under them — right in that direction. It was wrong in the other: a member REMOVED from a business
+ * kept resolving to that business's wallet for ever, could still read the balance and still spend
+ * it at checkout (both through the service-role client, so the RLS member check never ran), and by
+ * then the wallet held their successor's earnings.
  *
- * A PERSONAL binding is unconditional: it is the customer's own wallet and nothing can revoke it.
- * A BUSINESS binding lasts exactly as long as the membership it was granted under.
+ * THE QUESTION IS "WAS IT TAKEN AWAY", NOT "IS THERE ONE".
  *
- * FAILS OPEN, deliberately. A membership table we cannot read is not evidence of removal, and
- * re-routing someone's money on a transient error would be its own defect. Only a definite "no
- * active membership" answer ends the binding.
+ * A first attempt asked whether an ACTIVE membership exists, and that severed the binding for
+ * every customer who never had a membership in the first place — which is a real and ordinary
+ * case: `resolveWalletOwnerForPayment` binds a payer to a business wallet through a STAFF-VERIFIED
+ * `business_external_links` row, no membership required. Severing those bindings split earning
+ * from spending across two wallets: the customer's own wallet read returned $0.00 while their
+ * balance sat in the business wallet, their checkout could not resolve a wallet at all, and a
+ * staff correction by user id failed with a duplicate-key error. It produced a customer with money
+ * they could neither see nor spend — the precise failure the binding exists to prevent.
+ *
+ * So the binding ends only on POSITIVE EVIDENCE of revocation: a membership row for this exact
+ * (user, business) pair that is no longer active. No row at all means the binding did not come
+ * from a membership and nothing has been revoked.
+ *
+ * FAILS OPEN. A table we cannot read is not evidence of anything, and re-routing someone's money
+ * on a transient error would be its own defect.
  */
-async function businessBindingStillActive(businessId: string, userId: string): Promise<boolean> {
+async function businessBindingRevoked(businessId: string, userId: string): Promise<boolean> {
   try {
     const { data, error } = await getAdminSupabase()
       .from("business_memberships")
-      .select("business_id")
+      .select("membership_status")
       .eq("user_id", userId)
       .eq("business_id", businessId)
-      .eq("membership_status", "active")
-      .limit(1);
-    if (error) return true;
-    return (data ?? []).length > 0;
+      .limit(5);
+    if (error) return false;
+    const rows = (data ?? []) as { membership_status?: string | null }[];
+    // No membership relationship at all: the binding came from somewhere else and stands.
+    if (rows.length === 0) return false;
+    // A relationship exists. It ends the binding only if none of its rows is still active.
+    return !rows.some((r) => String(r.membership_status ?? "") === "active");
   } catch {
-    return true;
+    return false;
   }
 }
 
@@ -602,7 +614,7 @@ export async function findBoundWalletOwner(ownerUserId: string | null): Promise<
   const row = data as { business_id?: string | null; owner_user_id?: string | null } | null;
   if (row?.business_id) {
     const businessId = String(row.business_id);
-    if (!(await businessBindingStillActive(businessId, ownerUserId))) return null;
+    if (await businessBindingRevoked(businessId, ownerUserId)) return null;
     return { kind: "business", businessId };
   }
   if (row?.owner_user_id) return { kind: "user", ownerUserId: String(row.owner_user_id) };
@@ -636,7 +648,7 @@ export async function resolveWalletOwnerForUser(ownerUserId: string | null): Pro
     // wallet, which by then held their successor's earnings. When the membership is gone the
     // binding is over and the customer falls through to their own wallet below.
     const businessId = String(boundRow.business_id);
-    if (await businessBindingStillActive(businessId, ownerUserId)) {
+    if (!(await businessBindingRevoked(businessId, ownerUserId))) {
       return { kind: "business", businessId };
     }
   } else if (boundRow?.owner_user_id) {

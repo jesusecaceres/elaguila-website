@@ -35,10 +35,12 @@ import {
   postManualAdjustment,
   releaseReservedCredits,
   reserveCreditsForPurchase,
+  reversalIdempotencyKey,
   type WalletOwnerRef,
 } from "@/app/lib/rewards/rewardsLedgerCore";
 import { formatCreditsCents } from "@/app/lib/rewards/rewardsPolicy";
 import {
+  RESTORATION_WORK_REASON_PREFIX,
   closeRefundResolution,
   enqueueUnattributableRefund,
   findOpenRefundResolution,
@@ -172,6 +174,54 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "already_resolved" }, { status: 409 });
     }
 
+    // THE ROW'S OWN KIND IS THE AUTHORITY ON WHICH OUTCOME IS EVEN POSSIBLE.
+    //
+    // `wantsRestore` came from the request body and nothing compared it to the row. The API would
+    // accept `reversed` on a won-dispute row — closing it as a clawback, moving nothing (its basis
+    // is zero) and destroying the obligation — and `restored` on an ordinary refund row. The
+    // screen's own discriminator is a render decision; this is the one that binds.
+    if (row.isRestorationWork && !wantsRestore) {
+      return NextResponse.json(
+        { ok: false, error: "row_requires_restoration_outcome" },
+        { status: 409 },
+      );
+    }
+    if (!row.isRestorationWork && wantsRestore) {
+      return NextResponse.json(
+        { ok: false, error: "row_is_not_restoration_work" },
+        { status: 409 },
+      );
+    }
+
+    // A TYPED ID THAT ALREADY BELONGS TO ANOTHER PAYMENT IS A TYPO, NOT A REVERSAL — AND THIS
+    // REFUSES BEFORE THE CLAIM, like every other refusal on this path.
+    //
+    // `reverse:<kind>:<id>` is globally unique, and nothing checked that the id a human read off
+    // Stripe belongs to THIS payment. One wrong character writes a reversal on payment A under
+    // customer B's future refund id; when B's `charge.refunded` arrives the posting function finds
+    // the key, deduplicates, and B's genuine clawback never happens while the ledger claims it
+    // did. The amount is server-derived so nothing over-reverses — the damage is the poisoned key,
+    // and it is silent.
+    if (!wantsRestore && outcome === "reversed") {
+      const existingUnderKey = await ports.findLedgerEntryByIdempotencyKey(
+        reversalIdempotencyKey(row.kind, refundExternalId),
+      );
+      if (existingUnderKey) {
+        const { data: ownerRow } = await db
+          .from("leonix_rewards_ledger")
+          .select("payment_record_id")
+          .eq("id", existingUnderKey.id)
+          .maybeSingle();
+        const ownerPaymentId = (ownerRow as { payment_record_id?: string | null } | null)?.payment_record_id ?? null;
+        if (ownerPaymentId && ownerPaymentId !== row.paymentRecordId) {
+          return NextResponse.json(
+            { ok: false, error: "refund_external_id_belongs_to_another_payment" },
+            { status: 409 },
+          );
+        }
+      }
+    }
+
     // CLAIM THE ROW FIRST. The movement used to happen before the close, so two staff opening the
     // same row and supplying different refund ids produced two different idempotency keys, both
     // read the same prior position, and both posted the same delta — clawing back twice what was
@@ -209,7 +259,10 @@ export async function POST(request: NextRequest) {
           paymentRecordId: row.paymentRecordId,
           kind: row.kind,
           cumulativeRefundedCents: row.cumulativeRefundedCents,
-          reason: `staff_resolution_restoration_failed: ${restored.reason ?? "unknown"}`,
+          // Prefixed, so the re-filed row is still recognised as restoration work and still
+          // offers the only control that can settle it. Without the prefix it rendered as an
+          // ordinary chargeback whose every button closes it having moved nothing.
+          reason: `${RESTORATION_WORK_REASON_PREFIX}_retry: staff_resolution_failed: ${restored.reason ?? "unknown"}`,
           stripeChargeId: row.stripeChargeId,
           // Carried through so the re-filed row is about THIS dispute. Without it, a payment with
           // two unresolved disputes collapses both into one row at cumulative position zero.
@@ -218,6 +271,33 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           { ok: false, error: restored.reason ?? "restoration_failed", requeued: refiled.ok },
           { status: 500 },
+        );
+      }
+      // A RESTORATION THAT MOVED NOTHING IS NOT A RESOLUTION.
+      //
+      // `restoreCreditsForWonDispute` reports `skipped / nothing_was_reversed` when the dispute's
+      // clawback has not arrived yet — which is the ORDERING case this row was filed for. The row
+      // was already claimed, so returning 200 with `movedCents: 0` printed a green "Restored
+      // $0.00" and closed the obligation: the clawback landed five minutes later, no key would
+      // ever restore it, and the customer was silently charged their rewards for a dispute they
+      // had won. `already_restored` is the genuine no-op — the credits are already back.
+      const restoredReason = "reason" in restored ? String(restored.reason ?? "") : "";
+      const quietSkip = restored.outcome === "skipped" && restoredReason === "already_restored";
+      const movedNothing = restored.outcome !== "restored" && !quietSkip;
+      if (movedNothing) {
+        const refiled = await enqueueUnattributableRefund({
+          paymentRecordId: row.paymentRecordId,
+          kind: row.kind,
+          cumulativeRefundedCents: row.cumulativeRefundedCents,
+          // THE PREFIX IS LOAD-BEARING: it is what keeps the re-filed row classified as
+          // restoration work, so the screen still offers the control that can settle it.
+          reason: `${RESTORATION_WORK_REASON_PREFIX}_retry: ${restoredReason || "moved_nothing"}`,
+          stripeChargeId: row.stripeChargeId,
+          externalRef: row.externalRef ?? disputeId,
+        }).catch(() => ({ ok: false as const, error: "enqueue_threw" }));
+        return NextResponse.json(
+          { ok: false, error: restoredReason || "restoration_moved_nothing", requeued: refiled.ok },
+          { status: 409 },
         );
       }
       movedCents = restored.outcome === "restored" ? restored.restoredCents : 0;
@@ -230,12 +310,23 @@ export async function POST(request: NextRequest) {
     }
 
     if (outcome === "reversed") {
+      // WHAT THE STORED AMOUNT MEANS DEPENDS ON WHY THE ROW EXISTS, AND THE ROW SAYS WHICH.
+      //
+      // A row with NO `external_ref` is the truncated-payload case: the rail gave a cumulative
+      // `charge.amount_refunded` and no refund object to attribute it to, so the number IS the
+      // cumulative position and must be passed as one.
+      //
+      // A row WITH an `external_ref` is one specific refund or dispute whose reversal failed, and
+      // the number is that event's OWN amount. Passing a per-event amount as a cumulative position
+      // was silently catastrophic: for a second $50.00 refund of a $100.00 payment the resolver
+      // computed `max(0, 5000 - 5000) = 0`, moved nothing, returned 200, and closed the row as
+      // `reversed` — while burning `reverse:refund:<id>` with a zero-amount entry so the real
+      // delivery could never fix it. 450 credits written off with an audit row saying otherwise.
+      const perEvent = Boolean(row.externalRef);
       const reversed = await reverseCreditsForRefundOrDispute({
         paymentRecordId: row.paymentRecordId,
         refundedCents: row.cumulativeRefundedCents,
-        // The rail's cumulative position is what this row recorded, so the delta arithmetic lands
-        // on the exact proportional total rather than double-counting an earlier partial refund.
-        cumulativeRefundedCents: row.cumulativeRefundedCents,
+        cumulativeRefundedCents: perEvent ? null : row.cumulativeRefundedCents,
         kind: row.kind,
         externalId: refundExternalId,
       });
@@ -341,6 +432,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "invalid_body" }, { status: 400 });
     }
 
+    // A RECORD THAT IS ALREADY NET OF CREDITS CANNOT TAKE MORE — AND THIS IS DECIDED FIRST.
+    //
+    // `createPendingPaymentRecord` writes `leonix_amount_is_net_of_credits: true` on every Revenue
+    // OS checkout, and `earnBaseFromPaymentMetadata` then IGNORES `leonix_credits_applied_cents`
+    // entirely — correctly, because that row's total was already reduced. Accumulating counter
+    // credits onto such a row writes a number nothing will ever subtract, so a $100.00 record with
+    // $50.00 of counter credits still earns 9% of the full $100.00. Credits earning credits is the
+    // one thing the contract forbids outright.
+    //
+    // THE CHECK RAN AFTER THE RESERVE AND THE COMMIT. By the time it refused, `redeem_commit` had
+    // already been posted: the customer's balance was $50.00 lighter, the redemption row said
+    // `committed`, and staff saw a 409 and charged the counter price in full. Re-posting the same
+    // reference returned `deduplicated`, so there was no recovery short of a manual adjustment.
+    // It is the same error this file's refund-resolve path was repaired for — a refusal that runs
+    // after the money has moved is not a refusal. The read is pure, so it belongs here.
+    const redeemPaymentRecordId = typeof body.paymentRecordId === "string" ? body.paymentRecordId.trim() : "";
+    if (redeemPaymentRecordId && isUuid(redeemPaymentRecordId)) {
+      const { data: preRow } = await db
+        .from("leonix_payment_records")
+        .select("id, metadata")
+        .eq("id", redeemPaymentRecordId)
+        .maybeSingle();
+      const preMeta = ((preRow as { metadata?: Record<string, unknown> | null } | null)?.metadata ?? {}) as Record<
+        string,
+        unknown
+      >;
+      if (preRow && preMeta.leonix_amount_is_net_of_credits === true) {
+        return NextResponse.json(
+          { ok: false, error: "payment_record_already_net_of_credits" },
+          { status: 409 },
+        );
+      }
+    }
+
     const reserved = await reserveCreditsForPurchase({
       owner,
       requestedCents: Math.floor(requestedCents),
@@ -403,7 +528,6 @@ export async function POST(request: NextRequest) {
     //
     // Writing `leonix_credits_applied_cents` (and NOT the already-net flag, because this row's
     // total is still gross) is what makes `earnBaseFromPaymentMetadata` subtract it exactly once.
-    const redeemPaymentRecordId = typeof body.paymentRecordId === "string" ? body.paymentRecordId.trim() : "";
     let creditsRecordedOnPayment = false;
     if (redeemPaymentRecordId && isUuid(redeemPaymentRecordId)) {
       const { data: paymentRow } = await db
@@ -416,21 +540,9 @@ export async function POST(request: NextRequest) {
           string,
           unknown
         >;
-        // A RECORD THAT IS ALREADY NET OF CREDITS CANNOT TAKE MORE.
-        //
-        // `createPendingPaymentRecord` writes `leonix_amount_is_net_of_credits: true` on every
-        // Revenue OS checkout, and `earnBaseFromPaymentMetadata` then IGNORES
-        // `leonix_credits_applied_cents` entirely — correctly, because that row's total was
-        // already reduced. Accumulating counter credits onto such a row therefore wrote a number
-        // nothing would ever subtract: a $100.00 record with $50.00 of counter credits still
-        // earned 9% of the full $100.00. Credits earning credits is the one thing the contract
-        // forbids outright, so this is refused by name rather than recorded and ignored.
-        if (existingMeta.leonix_amount_is_net_of_credits === true) {
-          return NextResponse.json(
-            { ok: false, error: "payment_record_already_net_of_credits" },
-            { status: 409 },
-          );
-        }
+        // The pre-flight refusal above has already established this row is not already net of
+        // credits; re-reading it here would be a second decision on a value that can no longer
+        // change the outcome, because the money has moved.
         const priorCredits = Math.max(0, Math.floor(Number(existingMeta.leonix_credits_applied_cents ?? 0)) || 0);
         const { error: metaError } = await db
           .from("leonix_payment_records")

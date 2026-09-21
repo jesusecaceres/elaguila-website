@@ -86,8 +86,20 @@ if [ -z "$COUNT" ] || [ "$COUNT" -lt "$MIN_ASSERTIONS" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# TWO REAL SESSIONS. Everything above runs in one connection, so it cannot show that the wallet
-# lock serializes anything. These two scenarios use genuinely concurrent transactions.
+# TWO REAL SESSIONS.
+#
+# Everything above runs in one connection, so it cannot show that the wallet lock serializes
+# anything. These scenarios use genuinely concurrent transactions.
+#
+# THE FIRST VERSION OF THIS BLOCK PROVED NOTHING, and an adversarial review demonstrated it by
+# deleting session A's reserve entirely and watching the runner still print "refused after queueing
+# on the wallet lock". Three defects: the racing session's output was captured into a variable
+# inside a BACKGROUND SUBSHELL (so the parent never saw it), the variable was then OVERWRITTEN by a
+# second, entirely sequential call, and session A's own exit code was written to a file nobody read.
+#
+# So now: every session writes to a FILE, every exit code is read, and the racing call is timed —
+# if B did not actually wait on A's lock, its duration is short and the check fails. That timing
+# assertion is what makes "queued on the lock" a measurement rather than a caption.
 # ---------------------------------------------------------------------------
 echo "— concurrency: two sessions competing for the same balance"
 SETUP="$(psql -d "$DB" -tA -v ON_ERROR_STOP=1 <<'SQL'
@@ -106,44 +118,139 @@ SELECT 'ready';
 SQL
 )" || { echo "concurrency setup failed: $SETUP" >&2; exit 1; }
 
-# Session A opens a transaction, takes the wallet lock and holds it; session B must queue behind it
-# rather than reading the same balance and reserving it too.
-FIFO_DIR="$(mktemp -d)"
-mkfifo "$FIFO_DIR/a_in"
-( psql -q -d "$DB" -v ON_ERROR_STOP=1 -f "$FIFO_DIR/a_in" > "$FIFO_DIR/a_out" 2>&1; echo $? > "$FIFO_DIR/a_rc" ) &
-exec 3>"$FIFO_DIR/a_in"
+WORK="$(mktemp -d)"
+cleanup_work() { rm -rf "$WORK"; }
+trap 'cleanup_work; cleanup' EXIT
+
+# --- Session A: takes the wallet lock and HOLDS it for HOLD_SECONDS before committing.
+HOLD_SECONDS=3
+mkfifo "$WORK/a_in"
+(
+  psql -q -d "$DB" -v ON_ERROR_STOP=1 -f "$WORK/a_in" > "$WORK/a_out" 2>&1
+  echo "$?" > "$WORK/a_rc"
+) &
+A_PID=$!
+exec 3>"$WORK/a_in"
 cat >&3 <<'SQL'
 BEGIN;
 SELECT public.leonix_rewards_post_entry(
   (SELECT wallet_id FROM public.probe_ctx), 'redeem_reserve', 600, 'checkout_redemption', 'reserve:cA',
   NULL, NULL, (SELECT id FROM public.leonix_rewards_redemptions WHERE idempotency_key = 'reserve:cA'));
 SQL
+
+# Give A time to take the lock before B asks for it.
 sleep 1
-# B runs in its own connection while A still holds the lock. It must BLOCK, then be refused.
-B_OUT="$(timeout 20 psql -q -d "$DB" -tA -c "
-  SELECT public.leonix_rewards_post_entry(
-    (SELECT wallet_id FROM public.probe_ctx), 'redeem_reserve', 600, 'checkout_redemption', 'reserve:cB',
-    NULL, NULL, (SELECT id FROM public.leonix_rewards_redemptions WHERE idempotency_key = 'reserve:cB'));" 2>&1)" &
+
+# --- Session B: the racing reserve. Its output and its duration go to FILES, from inside the
+#     subshell that actually runs it, so the parent reads what the race produced.
+(
+  B_START="$(date +%s%N)"
+  timeout 30 psql -q -d "$DB" -tA -c "
+    SELECT public.leonix_rewards_post_entry(
+      (SELECT wallet_id FROM public.probe_ctx), 'redeem_reserve', 600, 'checkout_redemption', 'reserve:cB',
+      NULL, NULL, (SELECT id FROM public.leonix_rewards_redemptions WHERE idempotency_key = 'reserve:cB'));" \
+    > "$WORK/b_out" 2>&1
+  echo "$?" > "$WORK/b_rc"
+  echo $(( ($(date +%s%N) - B_START) / 1000000 )) > "$WORK/b_ms"
+) &
 B_PID=$!
-sleep 1
+
+# A holds the lock for a measurable interval, then commits.
+sleep "$HOLD_SECONDS"
 printf 'COMMIT;\n' >&3
 exec 3>&-
-wait $B_PID
-B_OUT="$(timeout 20 psql -q -d "$DB" -tA -c "
-  SELECT public.leonix_rewards_post_entry(
-    (SELECT wallet_id FROM public.probe_ctx), 'redeem_reserve', 600, 'checkout_redemption', 'reserve:cB2',
-    NULL, NULL, (SELECT id FROM public.leonix_rewards_redemptions WHERE idempotency_key = 'reserve:cB'));" 2>&1)"
-wait
-rm -rf "$FIFO_DIR"
+wait "$A_PID"
+wait "$B_PID"
+
+A_RC="$(cat "$WORK/a_rc" 2>/dev/null || echo missing)"
+B_RC="$(cat "$WORK/b_rc" 2>/dev/null || echo missing)"
+B_OUT="$(cat "$WORK/b_out" 2>/dev/null || true)"
+B_MS="$(cat "$WORK/b_ms" 2>/dev/null || echo 0)"
+
+# A must have SUCCEEDED. If it did not, there was no lock and nothing below means anything.
+if [ "$A_RC" != "0" ]; then
+  echo "verify-ix-rewards-sql-behavior-01: the holding session failed (rc=$A_RC)" >&2
+  cat "$WORK/a_out" >&2
+  exit 1
+fi
+grep -q '600' "$WORK/a_out" || {
+  echo "verify-ix-rewards-sql-behavior-01: the holding session did not reserve anything" >&2
+  cat "$WORK/a_out" >&2
+  exit 1
+}
+
+# B must have BLOCKED for most of the hold. A short duration means it never queued, which is the
+# exact way the previous version of this check passed while proving nothing.
+MIN_MS=$(( (HOLD_SECONDS - 1) * 1000 ))
+if [ "$B_MS" -lt "$MIN_MS" ]; then
+  echo "verify-ix-rewards-sql-behavior-01: the racing session returned in ${B_MS}ms without waiting for the lock (expected at least ${MIN_MS}ms)" >&2
+  exit 1
+fi
+
+# ...and then been refused by name, because the balance was gone by the time it got the lock.
+case "$B_OUT" in
+  *"exceeds available"*) : ;;
+  *) echo "verify-ix-rewards-sql-behavior-01: the racing reserve was not refused: $B_OUT" >&2; exit 1 ;;
+esac
+[ "$B_RC" != "0" ] || {
+  echo "verify-ix-rewards-sql-behavior-01: the racing reserve reported success" >&2; exit 1; }
 
 FINAL="$(psql -d "$DB" -tA -c "SELECT available_cents || '/' || reserved_cents FROM public.leonix_rewards_wallets WHERE id = (SELECT wallet_id FROM public.probe_ctx);")"
 if [ "$FINAL" != "400/600" ]; then
   echo "verify-ix-rewards-sql-behavior-01: two concurrent reserves left the wallet at $FINAL, expected 400/600" >&2
   exit 1
 fi
-case "$B_OUT" in
-  *"exceeds available"*) echo "ok  the second concurrent reserve was refused by name after queueing on the wallet lock" ;;
-  *) echo "verify-ix-rewards-sql-behavior-01: the second concurrent reserve was not refused: $B_OUT" >&2; exit 1 ;;
-esac
+echo "ok  the racing reserve queued ${B_MS}ms on the wallet lock and was then refused by name"
 
-echo "verify-ix-rewards-sql-behavior-01: OK ($COUNT in-session assertions + 2 cross-session concurrency proofs)"
+# --- And a second race on the same lock, in the other direction: while A holds the wallet, a
+#     RECOMPUTE must queue behind it rather than reading a half-applied wallet.
+psql -q -d "$DB" -tA -c "
+  INSERT INTO public.leonix_rewards_redemptions (wallet_id, amount_cents, idempotency_key, expires_at)
+  VALUES ((SELECT wallet_id FROM public.probe_ctx), 100, 'reserve:cC', now() + interval '30 min');" >/dev/null
+
+mkfifo "$WORK/c_in"
+(
+  psql -q -d "$DB" -v ON_ERROR_STOP=1 -f "$WORK/c_in" > "$WORK/c_out" 2>&1
+  echo "$?" > "$WORK/c_rc"
+) &
+C_PID=$!
+exec 4>"$WORK/c_in"
+cat >&4 <<'SQL'
+BEGIN;
+SELECT public.leonix_rewards_post_entry(
+  (SELECT wallet_id FROM public.probe_ctx), 'redeem_reserve', 100, 'checkout_redemption', 'reserve:cC',
+  NULL, NULL, (SELECT id FROM public.leonix_rewards_redemptions WHERE idempotency_key = 'reserve:cC'));
+SQL
+sleep 1
+(
+  D_START="$(date +%s%N)"
+  timeout 30 psql -q -d "$DB" -tA -c "
+    SELECT available_cents || '/' || reserved_cents FROM public.leonix_rewards_recompute_wallet(
+      (SELECT wallet_id FROM public.probe_ctx));" > "$WORK/d_out" 2>&1
+  echo "$?" > "$WORK/d_rc"
+  echo $(( ($(date +%s%N) - D_START) / 1000000 )) > "$WORK/d_ms"
+) &
+D_PID=$!
+sleep "$HOLD_SECONDS"
+printf 'COMMIT;\n' >&4
+exec 4>&-
+wait "$C_PID"
+wait "$D_PID"
+
+C_RC="$(cat "$WORK/c_rc" 2>/dev/null || echo missing)"
+D_RC="$(cat "$WORK/d_rc" 2>/dev/null || echo missing)"
+D_MS="$(cat "$WORK/d_ms" 2>/dev/null || echo 0)"
+D_OUT="$(tr -d ' \n' < "$WORK/d_out" 2>/dev/null || true)"
+[ "$C_RC" = "0" ] || { echo "the holding session failed (rc=$C_RC)" >&2; cat "$WORK/c_out" >&2; exit 1; }
+[ "$D_RC" = "0" ] || { echo "the recompute failed (rc=$D_RC)" >&2; cat "$WORK/d_out" >&2; exit 1; }
+if [ "$D_MS" -lt "$MIN_MS" ]; then
+  echo "verify-ix-rewards-sql-behavior-01: the recompute returned in ${D_MS}ms without waiting for the wallet lock" >&2
+  exit 1
+fi
+if [ "$D_OUT" != "300/700" ]; then
+  echo "verify-ix-rewards-sql-behavior-01: the recompute saw $D_OUT, expected 300/700 — it read a half-applied wallet" >&2
+  exit 1
+fi
+echo "ok  a recompute queued ${D_MS}ms on the same lock and replayed the COMMITTED wallet, not a partial one"
+
+echo "verify-ix-rewards-sql-behavior-01: OK ($COUNT in-session assertions + 2 timed cross-session concurrency proofs)"

@@ -862,10 +862,19 @@ export function ClasificadosServiciosPreviewClient() {
         // the full amount is exactly the phantom-discount failure this seam exists to prevent, so
         // the refusal is shown and the redirect waits for them to decide.
         if ((ctx.requestedCreditsCents ?? 0) > 0 && (checkout.creditsAppliedCents ?? 0) <= 0) {
+          // SAY WHY, when the server said why. The generic message was the only thing a customer
+          // ever saw, including for the one refusal that is permanent and has nothing to do with
+          // their balance — credits do not apply to a recurring plan. Being told "we could not
+          // apply your credits" with no reason, on every attempt, is indistinguishable from a bug.
+          const recurring = checkout.creditsRefusedReason === "not_available_on_recurring_plan";
           setCheckoutErr(
-            lang === "es"
-              ? "No pudimos aplicar tus créditos a esta compra. Puedes continuar y pagar el total."
-              : "We could not apply your credits to this purchase. You can continue and pay the full amount.",
+            recurring
+              ? lang === "es"
+                ? "Los Créditos Leonix aún no aplican a planes mensuales. Tu saldo queda intacto; puedes continuar y pagar el total."
+                : "Leonix Credits do not apply to monthly plans yet. Your balance is untouched; you can continue and pay the full amount."
+              : lang === "es"
+                ? "No pudimos aplicar tus créditos a esta compra. Puedes continuar y pagar el total."
+                : "We could not apply your credits to this purchase. You can continue and pay the full amount.",
           );
           setCheckoutBusy(false);
           return;

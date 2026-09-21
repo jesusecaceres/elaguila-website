@@ -106,7 +106,7 @@ const MUTATIONS: readonly Mutation[] = [
     find: "  if (redeem < REDEMPTION_MINIMUM_CENTS) {\n    return { ok: false, reason: \"below_minimum\", maxRedeemableCents };\n  }",
     replace: "  // MUTATED: the $1 floor is gone.",
     suite: "behavior",
-    expect: ["C"],
+    expect: ["C2", "C5"],
   },
   {
     defect: "Credits may fund more than half of an eligible purchase.",
@@ -114,7 +114,7 @@ const MUTATIONS: readonly Mutation[] = [
     find: "export const REDEMPTION_MAX_FRACTION_BASIS_POINTS = 5_000;",
     replace: "export const REDEMPTION_MAX_FRACTION_BASIS_POINTS = 9_000;",
     suite: "behavior",
-    expect: ["C"],
+    expect: ["C3", "C5"],
   },
   {
     defect:
@@ -179,10 +179,144 @@ const MUTATIONS: readonly Mutation[] = [
       "A member removed from a business keeps its wallet for ever, reading and spending their " +
       "successor's earnings.",
     file: ADAPTER,
-    find: "    if (!(await businessBindingStillActive(businessId, ownerUserId))) return null;",
+    find: "    if (await businessBindingRevoked(businessId, ownerUserId)) return null;",
     replace: "    // MUTATED: the binding outlives the membership.",
     suite: "behavior",
     expect: ["R7"],
+  },
+
+  // ----- DEFECTS THAT SURVIVED AN ADVERSARIAL REVIEW OF THIS VERY HARNESS.
+  //
+  // Each of these was demonstrated to pass the whole certification before the check that now
+  // catches it existed. They are kept here because a coverage hole, once closed, is exactly the
+  // kind of thing that reopens silently.
+  {
+    defect:
+      "The rail-minimum / amount-due residual cap is removed. Credits wipe an invoice below the " +
+      "payment rail's floor whenever the eligible purchase is larger than what is still due.",
+    file: POLICY,
+    find: "  if (redeem > byResidual) {",
+    replace: "  if (false) {",
+    suite: "behavior",
+    expect: ["Q3b"],
+  },
+  {
+    defect: "A payment a person REJECTED by hand still promotes its credits.",
+    file: POLICY,
+    find: "  if (facts.manualState === \"reversed\" || facts.manualState === \"rejected\") return false;",
+    replace: "  if (facts.manualState === \"reversed\") return false;",
+    suite: "behavior",
+    expect: ["R4"],
+  },
+  {
+    defect:
+      "The replay mirror accepts a ledger the database would refuse to reconcile — a history that " +
+      "passed through a state which cannot exist.",
+    file: BEHAVIOR,
+    find: "        acc.pendingCents < 0 ||\n        acc.availableCents < 0 ||\n        acc.reservedCents < 0 ||\n        (acc.recoveryCents ?? 0) < 0",
+    replace: "        false",
+    suite: "behavior",
+    expect: ["Q12b"],
+  },
+  {
+    defect:
+      "The replay mirror's earn arm credits the full amount AND discharges the debt, so one " +
+      "reconciliation hands back credits the customer owed and lets them spend them.",
+    file: BEHAVIOR,
+    find: "        acc.pendingCents += amount - off;\n        acc.lifetimeEarnedCents += amount;",
+    replace: "        acc.pendingCents += amount;\n        acc.lifetimeEarnedCents += amount;",
+    suite: "behavior",
+    expect: ["Q12", "J1", "J2", "J3", "P6"],
+  },
+  {
+    defect: "The replay mirror does not return a released hold to available.",
+    file: BEHAVIOR,
+    find: "      case \"redeem_release\":\n        acc.reservedCents -= amount;\n        acc.availableCents += amount;\n        return;",
+    replace: "      case \"redeem_release\":\n        acc.reservedCents -= amount;\n        return;",
+    suite: "behavior",
+    expect: ["Q12", "J1", "J2", "J3", "P6"],
+  },
+  {
+    defect: "The reversal's position token is read AFTER the sums it vouches for, so it vouches for nothing.",
+    file: CORE,
+    find: "  const positionRows = await input.ports.countPaymentPositionRows(input.paymentRecordId);\n\n  const [priorBasisSameKind",
+    replace: "  const positionRows = 0 * (await input.ports.countPaymentPositionRows(input.paymentRecordId));\n\n  const [priorBasisSameKind",
+    suite: "behavior",
+    expect: ["Q1", "Q6"],
+  },
+  {
+    defect: "An infrastructure error burns the refund's idempotency key with a zero-amount basis row.",
+    file: CORE,
+    find: "    if (posted.error !== \"negative_balance_refused\") {",
+    replace: "    if (false) {",
+    suite: "behavior",
+    expect: ["Q15"],
+  },
+
+  // ----- THE BYPASSES AN ADVERSARIAL REVIEW USED TO DEFEAT THE TEXTUAL CHECKS.
+  //
+  // Each of these keeps every literal and every ordering the old assertions matched, and removes
+  // the effect anyway. They are the reason those checks now assert conditions.
+  {
+    defect:
+      "The checkout's verified identity is poisoned at its SOURCE: an ownership gate is handed the " +
+      "request body's user id, so the line that reads it is untouched and an attacker-named wallet " +
+      "is still planned, held and spent.",
+    file: CHECKOUT,
+    find: "    serverVerifiedOwnerUserId = ownerGate.ownerUserId;\n  }\n\n  // Gate 12",
+    replace: "    serverVerifiedOwnerUserId = body.ownerUserId?.trim() || ownerGate.ownerUserId;\n  }\n\n  // Gate 12",
+    suite: "behavior",
+    expect: ["R1"],
+  },
+  {
+    defect:
+      "The business-binding revocation check is CALLED and its result discarded, so a removed " +
+      "member keeps reading and spending the business wallet.",
+    file: ADAPTER,
+    find: "    if (await businessBindingRevoked(businessId, ownerUserId)) return null;",
+    replace: "    const revoked = await businessBindingRevoked(businessId, ownerUserId);\n    void revoked;",
+    suite: "behavior",
+    expect: ["R7"],
+  },
+  {
+    defect:
+      "The queue's refund-id guard is disabled while its message and its position stay put, so an " +
+      "operator who leaves the box empty closes the obligation with nothing moved.",
+    file: ADMIN,
+    find: "    if (!wantsRestore && outcome === \"reversed\" && (!refundExternalId || refundExternalId.length < 4)) {",
+    replace: "    if (false) {",
+    suite: "behavior",
+    expect: ["P8"],
+  },
+  {
+    defect:
+      "A restoration that moved NOTHING is reported as a success and the row stays closed, so the " +
+      "clawback that lands minutes later stands for ever.",
+    file: ADMIN,
+    find: "      const movedNothing = restored.outcome !== \"restored\" && !quietSkip;",
+    replace: "      const movedNothing = false && !quietSkip;",
+    suite: "behavior",
+    expect: ["P8"],
+  },
+  {
+    defect:
+      "The queue accepts an outcome that contradicts the row: a won-dispute row settled as a " +
+      "reversal, which moves nothing and destroys the obligation.",
+    file: ADMIN,
+    find: "    if (row.isRestorationWork && !wantsRestore) {",
+    replace: "    if (false) {",
+    suite: "behavior",
+    expect: ["P8"],
+  },
+  {
+    defect:
+      "A per-event refund amount is passed back as the rail's CUMULATIVE position, so the staff " +
+      "resolution computes a delta of zero, moves nothing, and closes the row as reversed.",
+    file: ADMIN,
+    find: "        cumulativeRefundedCents: perEvent ? null : row.cumulativeRefundedCents,",
+    replace: "        cumulativeRefundedCents: row.cumulativeRefundedCents,",
+    suite: "behavior",
+    expect: ["P8"],
   },
 
   // ----- SQL. These require a local PostgreSQL; the runner reports them as skipped without one.
@@ -237,6 +371,91 @@ const MUTATIONS: readonly Mutation[] = [
     expect: ["S7"],
   },
   {
+    defect:
+      "The payment-wide dispute-restoration bound is deleted. A second payment's refund inflates " +
+      "the wallet's lifetime clawback enough for a won dispute to be restored twice: 450 credits " +
+      "from nothing, with every other guard intact.",
+    file: MIGRATION,
+    find: "        IF p_amount_cents > v_payment_claimed THEN\n          RAISE EXCEPTION 'leonix_rewards_position_moved: restoration of % exceeds the % a dispute took on payment %',",
+    replace: "        IF FALSE THEN\n          RAISE EXCEPTION 'leonix_rewards_position_moved: restoration of % exceeds the % a dispute took on payment %',",
+    suite: "sql",
+    expect: ["S5"],
+  },
+  {
+    defect:
+      "The per-dispute restoration bound stops subtracting what that dispute already gave back, " +
+      "so one dispute can be restored twice whenever the payment has another.",
+    file: MIGRATION,
+    find: "             - COALESCE(SUM(CASE WHEN l.entry_type = 'reversal_restoration' THEN l.amount_cents ELSE 0 END), 0)\n          INTO v_dispute_claimed",
+    replace: "             - 0\n          INTO v_dispute_claimed",
+    suite: "sql",
+    expect: ["S5"],
+  },
+  {
+    defect: "The staff-debit draw order flips to pending-first, letting a customer race the correction.",
+    file: MIGRATION,
+    find: "        IF v_wallet.available_cents >= v_draw THEN\n          v_available_delta := -v_draw;",
+    replace: "        IF v_wallet.pending_cents >= v_draw THEN\n          v_pending_delta := -v_draw;",
+    suite: "sql",
+    expect: ["S8"],
+  },
+  {
+    defect: "The replay does not return a released hold to available.",
+    file: MIGRATION,
+    find: "      WHEN 'redeem_release' THEN\n        v_reserved := v_reserved - v_entry.amount_cents;\n        v_available := v_available + v_entry.amount_cents;",
+    replace: "      WHEN 'redeem_release' THEN\n        v_reserved := v_reserved - v_entry.amount_cents;",
+    suite: "sql",
+    expect: ["S8"],
+  },
+  {
+    defect: "The replay forgets a standalone recovery debt, so a reconciliation lifts the redemption block.",
+    file: MIGRATION,
+    find: "      WHEN 'recovery_accrue' THEN\n        v_recovery := v_recovery + v_entry.amount_cents;",
+    replace: "      WHEN 'recovery_accrue' THEN\n        v_recovery := v_recovery + 0;",
+    suite: "sql",
+    expect: ["S8"],
+  },
+  {
+    defect: "The reversal ceiling stops being scoped to the wallet, so a misaimed clawback invents debt.",
+    file: MIGRATION,
+    find: "           AND l.wallet_id = p_wallet_id\n           AND l.entry_type IN ('earn_pending', 'earn_available');",
+    replace: "           AND l.entry_type IN ('earn_pending', 'earn_available');",
+    suite: "sql",
+    expect: ["S5"],
+  },
+  {
+    defect: "A reserve stops claiming its redemption row, so a hold can strand credits nothing can free.",
+    file: MIGRATION,
+    find: "      PERFORM public.leonix_rewards_claim_redemption(p_redemption_id, p_wallet_id, p_amount_cents, 'redeem_reserve');",
+    replace: "      -- MUTATED: the reserve claims nothing.",
+    suite: "sql",
+    expect: ["S2"],
+  },
+  {
+    defect: "The ledger becomes truncatable, taking the redemptions and the staff queue with it.",
+    file: MIGRATION,
+    find: "CREATE TRIGGER leonix_rewards_ledger_no_truncate_tg\n  BEFORE TRUNCATE ON public.leonix_rewards_ledger\n  FOR EACH STATEMENT EXECUTE FUNCTION public.leonix_rewards_ledger_reject_mutation();",
+    replace: "-- MUTATED: no truncate guard.",
+    suite: "sql",
+    expect: ["S10"],
+  },
+  {
+    defect: "The compare-and-swap becomes opt-out again, so a new caller silently gets the old defect.",
+    file: MIGRATION,
+    find: "      IF p_expected_position_rows IS NULL AND p_amount_cents > 0 THEN\n        RAISE EXCEPTION 'leonix_rewards_post_entry: % of % against payment % requires p_expected_position_rows',",
+    replace: "      IF FALSE THEN\n        RAISE EXCEPTION 'leonix_rewards_post_entry: % of % against payment % requires p_expected_position_rows',",
+    suite: "sql",
+    expect: ["S10"],
+  },
+  {
+    defect: "The replay's negative-bucket refusal moves back to the end of the loop, hiding an impossible state.",
+    file: MIGRATION,
+    find: "    IF v_pending < 0 OR v_available < 0 OR v_reserved < 0 OR v_recovery < 0 THEN\n      RAISE EXCEPTION 'leonix_rewards_recompute_wallet: wallet % replays to a negative bucket at entry_seq %",
+    replace: "    IF FALSE THEN\n      RAISE EXCEPTION 'leonix_rewards_recompute_wallet: wallet % replays to a negative bucket at entry_seq %",
+    suite: "sql",
+    expect: ["S8"],
+  },
+  {
     defect: "The posting function becomes callable from a browser session.",
     file: MIGRATION,
     find: ") FROM PUBLIC, anon, authenticated;\nREVOKE ALL ON FUNCTION public.leonix_rewards_recompute_wallet(uuid) FROM PUBLIC, anon, authenticated;",
@@ -273,7 +492,23 @@ function runSql(): { ok: boolean; skipped: boolean; output: string } {
 async function main() {
   const failures: string[] = [];
   const rows: string[] = [];
+  const restored = new Map<string, string>();
   let sqlAvailable = true;
+
+  // EVERY `expect` MUST NAME A CHECK THAT EXISTS. A typo, or a check renamed out from under a
+  // mutation, would otherwise be reported as "the suite went red but not on the expected check" —
+  // or, with the old substring matcher, as a pass.
+  const behaviourSource = readFileSync(BEHAVIOR, "utf8");
+  const sqlSource = readFileSync("scripts/sql/verify-ix-rewards-sql-behavior-01.sql", "utf8");
+  for (const m of MUTATIONS) {
+    for (const name of m.expect) {
+      const exists =
+        m.suite === "behavior"
+          ? behaviourSource.includes(`await check("${name}`) || behaviourSource.includes(`check("${name}:`)
+          : sqlSource.includes(`'${name} `);
+      assert.ok(exists, `the mutation for "${m.defect.slice(0, 60)}" expects a check named ${name}, which does not exist`);
+    }
+  }
 
   // BASELINE. A mutation run against an already-red suite proves nothing.
   const baseline = runBehavior();
@@ -307,7 +542,16 @@ async function main() {
         rows.push(`HOLE  ${m.file}: ${m.defect.slice(0, 70)}…`);
         continue;
       }
-      const caught = m.expect.filter((name) => run.output.includes(name));
+      // MATCHED ON THE CHECK, NOT ON A SUBSTRING OF THE WHOLE FAILURE TEXT.
+      //
+      // This was `output.includes(name)`, and `expect: ["C"]` is one character: the earn-rate
+      // mutation's failure text contains "C", so a mutation that broke something else entirely
+      // would still have been reported as "ok, C catches it". Measured, one mutation's output
+      // satisfied the `expect` of seven others. The behavioural suite prints `  ✗ <check name>: `
+      // and the SQL suite raises `FAILED: <assertion name> `, so both are anchored.
+      const caught = m.expect.filter((name) =>
+        run.output.includes(`✗ ${name}:`) || run.output.includes(`FAILED: ${name} `),
+      );
       if (caught.length === 0) {
         failures.push(
           `the suite went red but not on the expected check (${m.expect.join(", ")}) — ${m.defect.slice(0, 80)}\n${run.output.slice(-600)}`,
@@ -318,9 +562,13 @@ async function main() {
       rows.push(`ok    ${caught.join("/")} catches: ${m.defect.slice(0, 68)}…`);
     } finally {
       writeFileSync(m.file, before);
+      // RESTORED IN THE `finally`, AND VERIFIED THERE TOO. The verification used to sit after the
+      // try/finally, where three `continue` paths skipped it entirely — a bad anchor, a surviving
+      // mutation or a wrong-check failure all left the file unchecked, and a later mutation would
+      // then have been measured against whatever was on disk.
+      assert.equal(readFileSync(m.file, "utf8"), before, `${m.file} was not restored byte-for-byte`);
+      restored.set(m.file, before);
     }
-    // AND THE RESTORE HAS TO BE EXACT, or a later mutation is measured against a changed file.
-    assert.equal(readFileSync(m.file, "utf8"), before, `${m.file} was not restored byte-for-byte`);
   }
 
   // The suite is green again at the end, which is the other half of every mutation.
@@ -329,6 +577,12 @@ async function main() {
   if (sqlAvailable) {
     const sqlAfter = runSql();
     assert.ok(sqlAfter.ok, `the SQL suite must be GREEN after restoring every file:\n${sqlAfter.output.slice(-800)}`);
+  }
+
+  // AND THE TREE IS VERIFIED AT THE END, not only per iteration. The header used to claim this
+  // and the code did not do it.
+  for (const [file, original] of restored) {
+    assert.equal(readFileSync(file, "utf8"), original, `${file} is not what it was before this run`);
   }
 
   for (const r of rows) console.log(r);
