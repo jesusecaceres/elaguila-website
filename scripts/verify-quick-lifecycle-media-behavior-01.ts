@@ -319,42 +319,85 @@ const CANONICAL_VALIDATOR = "enforceQuickBusinessPublishMedia(";
 check("B14 WIRING: ALL FOUR customer self-service publish paths invoke the canonical validator", () => {
   // THE AUDIT FINDING THIS ENCODES: only the two staff-assisted routes enforced the contract, so
   // every path a CUSTOMER could publish through was protected by browser code alone.
+  //
+  // Gate QB-BOUNDARY-02 UPDATE: the Bienes seam is no longer a standalone media gate the browser
+  // could choose not to call before inserting anyway. It is the ATOMIC Quick Bienes publish
+  // endpoint, which runs the same canonical validator and then writes the row itself. Strictly
+  // stronger: the previous entry proved a question was asked, this one proves the same question
+  // is asked by the only thing that can write.
   const SELF_SERVICE: Array<[string, string]> = [
     ["app/api/clasificados/servicios/publish/route.ts", '"servicios"'],
     ["app/api/clasificados/restaurantes/publish/route.ts", '"restaurantes"'],
     ["app/api/clasificados/autos/listings/route.ts", '"autos-dealer"'],
-    // Bienes Negocio publishes from the BROWSER, so its server seam is a dedicated gate route
-    // that the publish core calls before any row is written, and fails closed on.
-    ["app/api/clasificados/bienes-raices/negocio/publish-media-gate/route.ts", '"bienes-negocio"'],
+    ["app/api/clasificados/bienes-raices/negocio/quick-publish/route.ts", '"bienes-negocio"'],
   ];
   for (const [p, category] of SELF_SERVICE) {
     const src = read(p);
     assert.ok(src.includes(CANONICAL_VALIDATOR), `${p} must call the canonical validator`);
     assert.ok(src.includes(category), `${p} must enforce its own family's contract (${category})`);
   }
+  // The superseded two-step gate route must be GONE, not merely unused.
+  assert.throws(
+    () => read("app/api/clasificados/bienes-raices/negocio/publish-media-gate/route.ts"),
+    "the bypassable ask-a-gate-then-insert route is deleted",
+  );
 });
 
-check("B15 WIRING: the browser Bienes publish calls the server gate and FAILS CLOSED", () => {
+check("B14b BOUNDARY: the two SHARED seams run the contract only for a VERIFIED QUICK product", () => {
+  // THE BLOCKER THIS ENCODES: Quick and Full publish through the SAME dealer lane and the SAME
+  // business seller type, so enforcing on `lane` or on `sellerType` held Full customers to a $99
+  // product's rule. Both seams now resolve a product from server-owned records first.
+  const autos = read("app/api/clasificados/autos/listings/route.ts");
+  assert.ok(autos.includes("resolveQuickBusinessPublishIdentity("), "the dealer seam resolves a product");
+  assert.ok(
+    autos.includes("identity.enforceQuickContract\n      ? enforceQuickBusinessPublishMedia("),
+    "and runs the Quick contract only when that product is Quick",
+  );
+  assert.ok(autos.includes("ownerUserId: userId"), "the owner is the bearer subject, never the body");
+
+  const bienes = read("app/api/clasificados/bienes-raices/negocio/quick-publish/route.ts");
+  assert.ok(bienes.includes("resolveQuickBusinessPublishIdentity("), "the Bienes seam resolves a product");
+  assert.ok(bienes.includes("serverCustodyQuick: true"), "its custody leg is set by the route, not by a body");
+
   const core = read("app/(site)/clasificados/lib/leonixPublishRealEstateListingCore.ts");
   assert.ok(
-    core.includes("/api/clasificados/bienes-raices/negocio/publish-media-gate"),
-    "the browser publish core must ask the SERVER before writing a business listing",
+    !/sellerType === "business"\s*\)\s*\{\s*const roles/.test(core),
+    "no branch enforces the Quick contract on `sellerType === \"business\"` alone",
+  );
+});
+
+check("B15 WIRING: a QUICK Bienes publish is written by the SERVER, and cannot fall back", () => {
+  // WHAT THIS ASSERTION USED TO SAY, AND WHY IT IS NOW STRONGER: it used to prove the browser
+  // asked a server gate BEFORE its own insert. That was true and still bypassable — the insert
+  // did not depend on the answer in any way a server could observe. The claim now is that for a
+  // verified Quick Bienes publish there is NO browser insert at all.
+  const core = read("app/(site)/clasificados/lib/leonixPublishRealEstateListingCore.ts");
+  assert.ok(
+    core.includes("/api/clasificados/bienes-raices/negocio/quick-publish"),
+    "the browser publish core hands the whole Quick publish to the server",
   );
   assert.ok(
-    core.includes("enforceBienesNegocioPublishMediaOnServer"),
+    core.includes("publishQuickBienesThroughServerCustody"),
     "that call is a named, single-purpose seam, not an inline fetch",
   );
-  assert.ok(core.includes("if (!gate.ok) return { ok: false, error: gate.error };"), "a refusal aborts the publish");
+  assert.ok(
+    !core.includes("/api/clasificados/bienes-raices/negocio/publish-media-gate"),
+    "the bypassable gate-then-insert sequence is gone from the core",
+  );
+  assert.ok(
+    core.includes("if (!custody.ok) return { ok: false, error: custody.error };"),
+    "a refusal aborts the publish",
+  );
   // Fail-closed: no session, a non-200 and a thrown fetch must all resolve to REFUSED.
-  const fn = core.slice(core.indexOf("async function enforceBienesNegocioPublishMediaOnServer"));
+  const fn = core.slice(core.indexOf("async function publishQuickBienesThroughServerCustody"));
   const body = fn.slice(0, fn.indexOf("\nexport async function publishLeonixRealEstateListingCore"));
   assert.ok(body.includes("if (!accessToken) return { ok: false, error: generic };"), "no session refuses");
   assert.ok(/catch \{\s*return \{ ok: false, error: generic \};/.test(body), "a network failure refuses");
-  assert.ok(body.includes("if (res.ok) return { ok: true };"), "only an explicit server OK passes");
-  // And the gate itself must run BEFORE any row write.
-  const gateIdx = core.indexOf("enforceBienesNegocioPublishMediaOnServer(supabase");
+  assert.ok(body.includes('payload?.ok !== true'), "only an explicit server OK passes");
+  // And the browser insert is unreachable for this product: it is the ELSE of the custody branch.
+  const custodyIdx = core.indexOf("if (quickBienesPublish) {");
   const insertIdx = core.indexOf("insertListingsRowResilient(supabase, insertPayload)");
-  assert.ok(gateIdx > -1 && insertIdx > -1 && gateIdx < insertIdx, "the gate runs before the insert, not after");
+  assert.ok(custodyIdx > -1 && insertIdx > custodyIdx, "the browser insert sits behind the Quick branch, not beside it");
 });
 
 check("B16 WIRING: both staff-assisted routes remain protected, through the same entry point", () => {

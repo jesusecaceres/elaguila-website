@@ -525,3 +525,282 @@ not data loss — but it is a real behaviour change for a live product.
 
 Nothing was deployed, no Vercel Preview was created, no PR was touched, and the Rewards branch was
 not read or modified.
+
+---
+
+# Section S — 2026-09-21 product-boundary + Bienes server-custody closeout (AUTHORITATIVE)
+
+> **This section supersedes Section R wherever the two conflict, and supersedes R.9 outright.**
+> R.9 recorded that Quick's semantic-media rule was reaching the SHARED Full Autos Dealer and Full
+> Bienes Negocio publishing paths, and offered the owner three options. **Option 3 as written there
+> — "narrow the guard's scope to Quick-marked submissions only" — was correctly identified as
+> reintroducing the hole, and is NOT what was done.** What was done is a fourth thing R.9 did not
+> contemplate: the guard is narrowed to a **server-verified product**, not to a browser mark. The
+> difference is the whole of S.1.
+>
+> The Quick freeze SHA is again the commit on this branch that carries this section; it is
+> reported in the mission return as `FINAL_QUICK_FREEZE_SHA`. Every earlier freeze SHA named in
+> this file is retired.
+
+## S.0 — The two blockers this section closes
+
+| # | Blocker as disclosed by the prior refreeze | Status |
+|---|---|---|
+| 1 | Quick semantic-media enforcement reached shared Full Autos Dealer and Full Bienes Negocio publishing paths | **CLOSED** — S.1, S.2 |
+| 2 | Quick Bienes publishing performed a browser→Postgres insert after a separate server validation call, so the validation seam could be bypassed | **CLOSED at the application layer** — S.3; one DB-layer residual stated in S.7 |
+
+---
+
+## S.1 — PRODUCT IDENTITY TRUTH: the canonical server-owned Quick/Full distinction
+
+### What was wrong
+
+Neither signal the enforcement keyed off is a product, and both arrive from the browser:
+
+| Seam | Old condition | Why it is not a product |
+|---|---|---|
+| `app/api/clasificados/autos/listings/route.ts` | `body.lane === "negocios"` | The `negocios` lane is the DEALER lane. `autos_dealer_quick_monthly` ($99, SIMPLE) and `autos_dealer_monthly` ($399, FULL) both publish through it. |
+| `app/(site)/clasificados/lib/leonixPublishRealEstateListingCore.ts` | `sellerType === "business"` | `br_agent_quick_monthly` (SIMPLE) and `br_agent_monthly` (FULL) both publish as `seller_type = 'business'`. |
+
+### The canonical fact
+
+**The BASE PACKAGE KEY bound to the publish**, paired per category by the existing
+`BUSINESS_CATEGORY_PACKAGE_PAIR` in `app/lib/listingPlans/businessAccessLevel.ts` — the one place
+in the codebase that pairs a category's Simple and Full packages:
+
+```
+autos          simple: autos_dealer_quick_monthly   full: autos_dealer_monthly
+bienes-raices  simple: br_agent_quick_monthly       full: br_agent_monthly
+```
+
+The rule that reads it is pure and lives in
+`app/lib/listingPlans/quickBusinessProductIdentity.ts` (`resolveQuickBusinessProduct`). Its server
+reads live in `app/lib/listingPlans/quickBusinessProductIdentityServer.ts`
+(`resolveQuickBusinessPublishIdentity`). Precedence, highest first:
+
+| # | Source | Record | Who writes it |
+|---|---|---|---|
+| 1 | `assisted_context` | HMAC-signed assisted-publishing cookie, roster-rechecked at redemption | Leonix staff auth, server-minted |
+| 2 | `live_entitlement` | `listing_package_entitlements` rows → `businessAccessGrantForRow` → `simple` / `full` | Stripe fulfilment (service role) |
+| 3 | `checkout_ledger` | `leonix_payment_records.package_key`, restricted to the category's two base keys | The server's own checkout route |
+| 4 | `server_custody_route` | Resolution happening INSIDE the Quick-only server publish operation | Unreachable from any request body |
+| 5 | `declared_simple_package` | The caller's word — **read only when it names the SIMPLE key** | The browser |
+| — | `none` → `unverified` | Nothing named a base package | — |
+
+### Why leg 5 exists, and why it is safe
+
+A customer's **first** publish precedes their payment: the row is inserted `pending`, then checkout
+runs. At that instant legs 2 and 3 are silent. Rather than guess, the resolver accepts a
+declaration under one asymmetric rule already written down in `businessQuickPlanSignal.ts` —
+declaring Quick buys the cheaper, LESSER product:
+
+- a declaration is read **only** when it names the category's SIMPLE key, and can then only ever
+  **ADD** the stricter Quick contract to the caller;
+- a declaration naming the FULL key, or anything else, is **discarded**. There is no input by which
+  a caller declares its way OUT of the Quick contract;
+- any server-owned fact (legs 1–4) **overrides** the declaration in **both** directions.
+
+This is what separates the change from R.9's option 3. Option 3 was "trust the Quick mark".
+This is "server records decide; a mark may only make you stricter."
+
+`unverified` does **not** enforce. Imposing Quick limits on a publish no server record names is
+exactly blocker 1, so an unverified publish keeps its family's own Full validators untouched.
+
+Proof: `scripts/verify-quick-product-boundary-01.ts` §A1–A10, §D3.
+
+---
+
+## S.2 — EXACT ROUTES PROTECTED, AND WHAT THEY DO NOW
+
+| Route / seam | Product resolution | Quick contract runs when |
+|---|---|---|
+| `app/api/clasificados/autos/listings/route.ts` (dealer lane) | `resolveQuickBusinessPublishIdentity({category:"autos", ownerUserId: <bearer>, listingId: parentListingId, declaredPackageKey: body.basePackageKey})` | `identity.enforceQuickContract === true` |
+| `app/api/clasificados/bienes-raices/negocio/quick-publish/route.ts` (**new**) | same resolver, `category:"bienes-raices"`, `serverCustodyQuick: true` | always — the route publishes Quick or refuses |
+| `app/api/clasificados/servicios/publish/route.ts` | unchanged | unchanged |
+| `app/api/clasificados/restaurantes/publish/route.ts` | unchanged | unchanged |
+| `app/api/clasificados/autos/assisted-publish/route.ts` | unchanged — **unconditional** | always (staff-assisted) |
+| `app/api/clasificados/bienes-raices/negocio/assisted-publish/route.ts` | unchanged — **unconditional** | always (staff-assisted) |
+| `app/api/clasificados/bienes-raices/negocio/publish-media-gate/route.ts` | **DELETED** — superseded by the custody route | — |
+
+The two staff-assisted routes are deliberately left **unconditional**: a staff actor publishing on
+a customer's behalf is held to the subject-photo rule whatever the package, so this mission's
+product boundary cannot be used to weaken staff-assisted publishing. `verify-quick-product-boundary-01`
+§D4 asserts they did **not** become product-conditional.
+
+### Declaration channel (browser → server), for completeness
+
+| Caller | Sends | Note |
+|---|---|---|
+| `AutosNegociosPreviewClient.tsx` | `basePackageKey: baseCheckout.packageKey` | `baseCheckout` already prefers the SERVER's `serverSellPackageKey` over the URL marker (`selectBusinessBaseCheckout`) |
+| `AgenteIndividualResidencialPreviewClient.tsx` | `basePackageKey` for the **main row only** | Quick includes one property, so an inventory-add publish is never routed to Quick |
+
+---
+
+## S.3 — QUICK BIENES: the former bypass, and the new atomic server custody path
+
+### The former sequence (bypassable)
+
+```
+browser: POST /api/clasificados/bienes-raices/negocio/publish-media-gate  { roles }  → 200 / 422
+browser: supabase.from("listings").insert(insertPayload)                              → row
+```
+
+Step 2 did not depend on step 1 **in any way a server could observe**. The gate's answer was
+advice the browser could decline to ask for; a client that skipped the POST still got its row.
+
+### The replacement
+
+One authenticated server operation. The endpoint
+`app/api/clasificados/bienes-raices/negocio/quick-publish/route.ts` is a **shell**; the operation
+itself is `app/lib/clasificados/bienes-raices/quickBienesPublishOperation.ts`
+(`executeQuickBienesPublish`), behind explicit ports so its security claims are proven by RUNNING
+it. Its pure contract (column whitelist, server-owned columns, field rules, reuse key, the
+`listing_json` Quick binding) is `quickBienesPublishContract.ts`.
+
+| Mission requirement | How it is met | Proof |
+|---|---|---|
+| verifies the bearer user | `resolveOwnerUserId` = `getBearerUserId(request)`; no body field names an owner | §C3 |
+| verifies the Quick product/payment/entitlement | `resolveQuickBusinessPublishIdentity` with `serverCustodyQuick: true`; `product !== "quick"` → **409 `quick_product_mismatch`** | §C4 |
+| derives owner identity server-side | `owner_id` written from the bearer subject, always, after the caller's whitelisted columns are spread in | §C1, §C5 |
+| validates semantic media server-side | `enforceQuickBusinessPublishMedia({category:"bienes-negocio"})` — the same canonical entry point every other Quick seam calls | §C2, §B5–B6 |
+| validates canonical listing fields | `validateQuickBienesListingFields` — title / city / price / media presence | §C11, §C17 |
+| writes only after all validation succeeds | order asserted call-by-call: identity → product → media → lookup → write → group → link | §C12 |
+| returns the canonical listing ID | `{ ok: true, listingId }` | §C1 |
+| writes or preserves the canonical business-listing link | `linkSelfServiceListingToBusiness` (ownership re-proven, idempotent, never fatal) | §C9, §C10 |
+| cannot be bypassed by the former browser insert path | the browser insert is the **ELSE** of the Quick branch in the publish core; the gate route is deleted; a custody refusal aborts with no fall-through | §C2 |
+| cannot publish as another owner | `owner_id` is server-written; the update port is scoped by `id` **and** `owner_id` | §C5, §C6 |
+| cannot convert a Full or FSBO listing into Quick | `category` / `seller_type` are server constants; a FULL product answer is refused 409; reuse only ever matches the caller's own pending Quick-shaped row | §C4, §C5, §B8 |
+| handles retries safely without duplicates | reuse key = owner + category + seller_type + pending + not published + `inventory_role=main` + title; a FAILED lookup is a hard stop, never an insert | §C7, §C8 |
+
+Additional hardening proven the same way: the column whitelist drops everything it does not name
+(§C14); `listing_json.br_payment` is rebuilt server-side so a caller cannot claim its row is
+already paid (§C13); an unconfigured database refuses rather than pretending to publish (§C15);
+a malformed media descriptor is refused, never coerced into "no photos" (§C16).
+
+**Not an unrestricted service-role endpoint.** The admin client is reachable only through five
+narrow ports — two tables (`listings`, `business_listing_links`), one owner, one category, one
+seller type, one status, one fixed column set. There is no generic query port.
+
+---
+
+## S.4 — PROOF THAT FULL AND PRIVATE/FSBO PRODUCTS ARE UNAFFECTED
+
+| Product | Why it is untouched | Proof |
+|---|---|---|
+| **Full Autos Dealer** | The dealer seam now runs the Quick contract only when the resolver returns `quick`. A live `autos_dealer_monthly` entitlement, or a Full checkout-ledger row, returns `full`; a forged `declaredPackageKey: <quick>` against a Full entitlement still returns `full`. | §B3, §A3, §A8 |
+| **Autos Privado** | `autos-privado` is not in `BUSINESS_CATEGORY_PACKAGE_PAIR`, so no fact and no declaration can enroll it; and the media branch is entered only on `body.lane === "negocios"`. | §A2, §B4 |
+| **Full Bienes Negocio** | The publish core routes to the custody path only when `quickBasePackageKey` equals the SIMPLE key. Everything else keeps the existing browser flow, insert and link write-back byte for byte. No branch enforces on `sellerType === "business"` alone. | §B7, §D5 |
+| **Bienes FSBO** | FSBO is `seller_type = 'private'`. The custody row builder can only write `business`, and the core's Quick branch additionally requires `sellerType === "business"`. | §B8 |
+| **Servicios / Restaurantes Quick** | Untouched. Their galleries are structurally single-purpose, so an unroled photo still IS the business, and an explicit identity asset is still refused. | §B9 |
+| **Counts / video / one-item rules** | `QUICK_BUSINESS_PUBLISH_MAX_IMAGES` is `null` for all four families, so no Quick intake cap reaches any publish seam; every enforcement call site is behind a product check or a staff context. | §D6 |
+
+**Direct consequence for R.9:** a Full dealer and a Full agent are no longer refused with
+`role_declaration_required`. R.9's option 2 (add role controls to the Full editors) remains
+worthwhile, but it is no longer a **deploy blocker**. Full editors may emit
+`MediaImageEntry.role` / `fotoMediaRoles` additively; nothing forces them through the Quick
+contract.
+
+---
+
+## S.5 — ASSISTED PATHS
+
+Both staff-assisted routes are unchanged and still enforce unconditionally, still re-check the
+live staff roster at redemption (`readActiveAssistedPublishingContext`), and were explicitly
+asserted **not** to have become product-conditional. Assisted context is also the highest-priority
+leg of the product resolver, so a staff-declared Quick package outranks an entitlement or ledger
+row. Proof: §A6, §D4; `verify-quick-assisted-operations-01` exit 0.
+
+---
+
+## S.6 — TEST RESULTS (this mission)
+
+Commands run from the repository root at the freeze commit's tree.
+
+### Required — GREEN
+
+| Command | Exit | Result |
+|---|---|---|
+| `npx tsx scripts/verify-quick-product-boundary-01.ts` | 0 | OK — 42 behavioral checks (new) |
+| `npx tsx scripts/verify-quick-lifecycle-media-behavior-01.ts` | 0 | OK — 35 checks |
+| `npx tsx scripts/verify-quick-remaining-families-01.ts` | 0 | OK (includes the committed-diff migration guard) |
+| `npx tsx scripts/verify-quick-business-core-01.ts` | 0 | OK |
+| `npx tsx scripts/verify-quick-assisted-operations-01.ts` | 0 | OK — 23 checks, 12 real token attacks |
+| `npx tsx scripts/verify-quick-convergence-behavior-01.ts` | 0 | OK — 19 behavioral checks |
+| `npx tsx scripts/verify-quick-full-gates-04.ts` | 0 | OK — Full-only server gates |
+| `npx tsx scripts/verify-quick-business-proof-matrix-02.ts` | 0 | OK |
+| `npx tsx scripts/verify-autos-dealer-gate1-2-unified-media-gallery.ts` | 0 | OK |
+| `npx tsx scripts/verify-autos-dealer-gate3-4-6-7-8-9-edit-save.ts` | 0 | OK |
+| `npx tsx scripts/verify-autos-dealer-gate10-11-webhook-child-resume.ts` | 0 | OK |
+| `npx tsx scripts/verify-autos-dealer-gate12-16-parity-and-regression.ts` | 0 | OK |
+| `npx tsx scripts/verify-autos-dealer-gate15-17-status-truth-capacity-display.ts` | 0 | OK |
+| `npx tsx scripts/verify-autos-bilingual-architecture-01.ts` | 0 | OK |
+| `node scripts/verify-autos-privado-revenue-os-checkout.mjs` | 0 | OK |
+| `npx tsx scripts/verify-bienes-negocio-gate1-identity.ts` | 0 | OK |
+| `npx tsx scripts/verify-bienes-negocio-gate2-discovery.ts` | 0 | OK |
+| `npx tsx scripts/verify-bienes-privado-gate1-lifecycle.ts` | 0 | OK |
+| `npx tsx scripts/verify-bienes-privado-gate2-discovery.ts` | 0 | OK |
+| `node scripts/verify-bienes-agent-inventory-bundle-pending-row-creation-01.mjs` | 0 | OK |
+| `npx tsx scripts/verify-revenue-write-security-hardening-01.ts` | 0 | OK |
+| `npx tsx scripts/verify-revenue-active-entitlement-guard.ts` | 0 | OK |
+| `npx tsx scripts/verify-revenue-os-stripe-golden-contract.ts` | 0 | OK |
+| `npx tsx scripts/verify-revenue-circuit-truth.ts` | 0 | OK |
+| `node scripts/verify-package-entitlement-model.mjs` | 0 | OK |
+| `node scripts/verify-publish-checkout-checkpoint-standard-01.mjs` | 0 | OK |
+| `npm run typecheck` | 0 | Zero errors, whole project |
+| `npx eslint <every changed file>` | 0 | Zero errors, zero warnings |
+
+### PRE-EXISTING RED at the mission's required starting SHA — not green, and not caused here
+
+Each was run at `79ade5fd74c2ced41077eeac4355082ec4d595d6` in a clean worktree and at the freeze
+tree; the PASS/FAIL lines are **identical**. They are reported red, not claimed green.
+
+| Command | Exit (base) | Exit (now) | Identical failure |
+|---|---|---|---|
+| `npx tsx scripts/verify-quick-business-access-level-01.ts` | 1 | 1 | yes — "the Quick photo is a real photo of the thing being sold" (2 failed) |
+| `npx tsx scripts/verify-quick-upgrade-contract-05.ts` | 1 | 1 | yes — `git diff origin/main...HEAD`: no merge base (1 failed) |
+| `npx tsx scripts/verify-quick-simple-dashboard-03.ts` | 1 | 1 | yes — doorway wording / bare-button checks (3 failed) |
+| `node scripts/verify-bienes-paid-pending-to-active-fulfillment-01.mjs` | 1 | 1 | yes (byte-identical but for the worktree path) |
+| `node scripts/verify-bienes-application-instance-isolation-01.mjs` | 1 | 1 | yes (byte-identical but for the worktree path) |
+| `node scripts/verify-package-c-c7-c8-capacity-and-truth.mjs` | 1 | 1 | yes (byte-identical) |
+
+---
+
+## S.7 — HONEST RESIDUAL (requires a migration this mission may not apply)
+
+Blocker 2 is closed **at the application layer**: there is no longer any code path in the product
+by which a Quick Bienes row is written from a browser, and the two-step gate route is deleted
+rather than merely unused.
+
+**What is still open:** `listings` remains writable by an authenticated browser session under RLS,
+because Full Bienes and FSBO legitimately publish that way. A client that ignores the application
+entirely and speaks to PostgREST directly can therefore still insert a `bienes-raices` /
+`seller_type='business'` row without passing through the custody operation, and could then attempt
+to buy the Quick package for it.
+
+**Why it was not closed here:** closing it needs a database-side policy or constraint — a
+migration — and this mission is explicitly not authorized to apply one. An application-level
+correction was preferred as instructed, and no migration was authored, so the existing
+committed-diff migration guard (one migration, by exact path) stays satisfied and inert.
+
+**Recommended follow-on, in order of strength:**
+
+1. An RLS policy on `listings` that refuses an authenticated INSERT where
+   `category = 'bienes-raices' AND seller_type = 'business'`, leaving that row class to the
+   service role (the custody route) and to the Full path only if the Full path is moved to a
+   server route in the same mission.
+2. Failing that, a checkout-side re-check: refuse a `br_agent_quick_monthly` checkout for a
+   listing whose server-written `listing_json.br_payment.base_package_key` is not the Quick key.
+   **Not done here** because it changes live billing behaviour for pending rows created before
+   this freeze, which is an owner decision, not an implementation detail.
+
+## S.8 — Scope note
+
+One change in this diff is not part of the two blockers: an unused import
+(`migrateLegacyAutosNegociosDraftJsonToNamespace`) was removed from
+`AutosNegociosPreviewClient.tsx`. It was a **pre-existing** ESLint error at
+`79ade5fd74c2ced41077eeac4355082ec4d595d6`, in a file this mission already had to change, and
+removing it is behaviour-free. It is named here rather than left for an auditor to notice.
+
+Nothing was deployed, no Vercel Preview was created, no PR was touched, no migration was applied,
+no Supabase mutation was performed, no live Stripe call was made, and the Rewards branch was not
+read or modified.

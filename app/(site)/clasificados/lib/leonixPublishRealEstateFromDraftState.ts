@@ -470,6 +470,14 @@ export function buildPublishParamsFromBienesRaicesNegocioDraft(
 
 export type BrPublishDraftOptions = {
   activationMode?: "immediate" | "pending_payment";
+  /**
+   * Gate QB-BOUNDARY-02 — the base package this BUSINESS Bienes publish belongs to.
+   *
+   * Passed through untouched to the publish core, which routes a SIMPLE ($99 Quick) publish to the
+   * authenticated server custody operation and leaves every other value on the existing Full
+   * browser flow. Absent means Full, so nothing about the standard agent application changes.
+   */
+  basePackageKey?: string | null;
 };
 
 export async function publishLeonixListingFromBienesRaicesNegocioDraft(
@@ -488,6 +496,7 @@ export async function publishLeonixListingFromBienesRaicesNegocioDraft(
       // without the roles drifting out of alignment. Absent on a draft written before roles
       // existed, in which case the server answers with a correction instead of a guess.
       mediaRoles: state.media.photoMediaRoles ?? null,
+      quickBasePackageKey: opts?.basePackageKey ?? null,
       activationMode: opts?.activationMode,
       brPaymentLane: "negocio",
     });
@@ -532,6 +541,7 @@ export async function publishLeonixListingFromAgenteResidencialDraft(
       // without the roles drifting out of alignment. Absent on a draft written before roles
       // existed, in which case the server answers with a correction instead of a guess.
       mediaRoles: state.fotoMediaRoles ?? null,
+      quickBasePackageKey: opts?.basePackageKey ?? null,
       activationMode: opts?.activationMode,
       brPaymentLane: "negocio",
     });

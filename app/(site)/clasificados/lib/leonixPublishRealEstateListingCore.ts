@@ -16,6 +16,7 @@ import {
   toLeonixListingsTitleForDb,
 } from "@/app/(site)/clasificados/lib/leonixPublishPublicDescription";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import { quickBasePackageKeyForCategory } from "@/app/lib/listingPlans/quickBusinessProductIdentity";
 import {
   buildLeonixContactJsonPayload,
   buildLeonixListingJsonPayload,
@@ -344,6 +345,16 @@ export type PublishLeonixRealEstateListingCoreParams = {
    * inventing a role — a missing role never becomes "property".
    */
   mediaRoles?: Readonly<Record<string, string>> | null;
+  /**
+   * Gate QB-BOUNDARY-02 — the base package this BUSINESS Bienes publish belongs to.
+   *
+   * When it names the SIMPLE ($99 Quick) agent package, the row is NOT written from this browser
+   * at all: the whole publish is handed to the authenticated server custody operation, which
+   * re-resolves the product from server-owned records before it writes anything. Anything else —
+   * the Full package key, or nothing — is a FULL Bienes publish and keeps the existing browser
+   * flow, byte for byte, with no Quick rule applied to it.
+   */
+  quickBasePackageKey?: string | null;
   lang: "es" | "en";
   /** Rentas publish-time Mux (optional; omitted when listing has link-only video or no video). */
   muxAssetId?: string | null;
@@ -385,36 +396,57 @@ export type PublishLeonixRealEstateListingCoreResult =
   | { ok: false; error: string };
 
 /**
- * Ask the server whether this media set satisfies the Bienes Negocio semantic media contract.
+ * Gate QB-BOUNDARY-02 — hand a QUICK Bienes Negocio publish to the server, whole.
  *
- * Only a role descriptor crosses the wire — never bytes, never a URL. Every failure mode
- * (no session, non-200, network error, malformed answer) resolves to REFUSED, so there is no
- * input and no outage under which the publish proceeds unchecked.
+ * WHAT THIS REPLACES: `enforceBienesNegocioPublishMediaOnServer`, which asked a server gate for a
+ * yes/no and then let THIS FILE insert the row. Those were two independent steps, and step two did
+ * not depend on step one in any way a server could observe — a client that skipped the question
+ * still got its row. Both the question and the write now happen inside one authenticated server
+ * operation, so the browser no longer holds the pen.
+ *
+ * Only the row's whitelisted fields and a role descriptor cross the wire — never image bytes. The
+ * server re-derives owner identity, re-resolves the product from its own records, re-runs the
+ * media contract, re-validates the canonical fields, collapses a retry onto the caller's own
+ * pending row, and writes the canonical business link.
+ *
+ * Every failure mode (no session, non-200, network error, malformed answer) resolves to REFUSED,
+ * so there is no input and no outage under which a Quick row is written unchecked.
  */
-async function enforceBienesNegocioPublishMediaOnServer(
+async function publishQuickBienesThroughServerCustody(
   supabase: ReturnType<typeof createSupabaseBrowserClient>,
-  roles: readonly (string | null)[],
-  lang: "es" | "en",
-): Promise<{ ok: true } | { ok: false; error: string }> {
+  input: {
+    listingRow: Record<string, unknown>;
+    mediaRoles: readonly (string | null)[];
+    basePackageKey: string;
+    lang: "es" | "en";
+  },
+): Promise<{ ok: true; listingId: string; reused: boolean } | { ok: false; error: string }> {
   const generic =
-    lang === "es"
-      ? "No se pudo verificar tus fotos con el servidor. Inténtalo de nuevo."
-      : "Your photos could not be verified with the server. Please try again.";
+    input.lang === "es"
+      ? "No se pudo publicar tu anuncio con el servidor. Inténtalo de nuevo."
+      : "Your listing could not be published with the server. Please try again.";
   try {
     const { data: sessionData } = await supabase.auth.getSession();
     const accessToken = sessionData.session?.access_token;
     if (!accessToken) return { ok: false, error: generic };
-    const res = await fetch("/api/clasificados/bienes-raices/negocio/publish-media-gate", {
+    const res = await fetch("/api/clasificados/bienes-raices/negocio/quick-publish", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
-      body: JSON.stringify({ roles }),
+      body: JSON.stringify({
+        listingRow: input.listingRow,
+        mediaRoles: input.mediaRoles,
+        basePackageKey: input.basePackageKey,
+        lang: input.lang,
+      }),
     });
-    if (res.ok) return { ok: true };
     const payload = (await res.json().catch(() => null)) as
-      | { message?: unknown; messageEs?: unknown }
+      | { ok?: unknown; listingId?: unknown; reused?: unknown; message?: unknown; messageEs?: unknown }
       | null;
-    const message = lang === "es" ? payload?.messageEs : payload?.message;
-    return { ok: false, error: typeof message === "string" && message.trim() ? message : generic };
+    if (!res.ok || payload?.ok !== true || typeof payload.listingId !== "string" || !payload.listingId.trim()) {
+      const message = input.lang === "es" ? payload?.messageEs : payload?.message;
+      return { ok: false, error: typeof message === "string" && message.trim() ? message : generic };
+    }
+    return { ok: true, listingId: payload.listingId.trim(), reused: payload.reused === true };
   } catch {
     return { ok: false, error: generic };
   }
@@ -481,25 +513,22 @@ export async function publishLeonixRealEstateListingCore(
   const userId = auth.user.id;
 
   /**
-   * Gate QB-MEDIA-03 — SERVER enforcement of the semantic media contract for a BUSINESS Bienes
-   * Raíces listing, before any row is written.
+   * Gate QB-BOUNDARY-02 — is this a VERIFIED-QUICK Bienes Negocio publish?
    *
-   * Bienes Negocio is the one Quick Business family that publishes from the browser, so there is
-   * no server publish handler to host the check; `/api/clasificados/bienes-raices/negocio/publish-media-gate`
-   * is that handler's stand-in. It FAILS CLOSED: a refusal, a non-200, or an unreachable gate all
-   * abort the publish, because browser-side validation is UX and must never be the boundary.
-   *
-   * Honest scope: the `listings` INSERT below remains a browser→Postgres write governed by RLS.
-   * A client that never called this function at all would not pass through here; closing that
-   * requires a database-side constraint, i.e. a migration, which this mission may not apply.
+   * `sellerType === "business"` is NOT the answer: Quick agents and Full agents share it, and the
+   * previous revision used exactly that to decide, which is how a $399 Full agent ended up held to
+   * the $99 Quick product's photo rule. The answer is the BASE PACKAGE this publish belongs to,
+   * and only the SIMPLE key selects the Quick path. The server re-resolves that product from its
+   * own records before writing anything, so this browser-side read only ROUTES the request — it
+   * decides nothing, and a forged key cannot make the server write a Quick row for a Full account.
    */
-  if (category === "bienes-raices" && sellerType === "business") {
-    const roles = imageSources
-      .filter((u) => typeof u === "string" && u.trim())
-      .map((u) => params.mediaRoles?.[u] ?? null);
-    const gate = await enforceBienesNegocioPublishMediaOnServer(supabase, roles, lang);
-    if (!gate.ok) return { ok: false, error: gate.error };
-  }
+  const quickBienesBaseKey = quickBasePackageKeyForCategory("bienes-raices");
+  const quickBienesPublish =
+    category === "bienes-raices" &&
+    sellerType === "business" &&
+    Boolean(quickBienesBaseKey) &&
+    String(params.quickBasePackageKey ?? "").trim().toLowerCase() ===
+      String(quickBienesBaseKey ?? "").trim().toLowerCase();
 
   const insertPayload = buildListingsInsertRowForLeonixPublish(userId, paramsForRow, {
     listingDescriptionForDb: descriptionForDb,
@@ -563,6 +592,7 @@ export async function publishLeonixRealEstateListingCore(
   }
 
   const reusableRealEstatePending =
+    !quickBienesPublish &&
     params.activationMode === "pending_payment" &&
     (category === "rentas" || (category === "bienes-raices" && sellerType === "business"))
       ? await supabase
@@ -624,7 +654,34 @@ export async function publishLeonixRealEstateListingCore(
   let insertedThisAttempt = false;
 
   let insErr: { message: string; code?: string } | null = null;
-  if (reusablePendingId) {
+  if (quickBienesPublish) {
+    /**
+     * Gate QB-BOUNDARY-02 — THE QUICK BIENES ROW IS NOT WRITTEN FROM HERE.
+     *
+     * This branch is the whole reason the former "ask a gate, then insert anyway" sequence is
+     * gone: for a Quick Bienes publish there is no browser insert to bypass, because the browser
+     * never reaches one. The server operation verifies the bearer user, re-resolves the product
+     * from its own entitlement and checkout records, runs the semantic media contract and the
+     * canonical field rules, collapses a retry onto the caller's own pending row, writes the row
+     * and the canonical business link, and hands back the listing id.
+     *
+     * A refusal, a non-200, or an unreachable server all abort the publish — there is no
+     * fall-through to `insertListingsRowResilient`, at any point, for this product.
+     */
+    const roles = imageSources
+      .filter((u) => typeof u === "string" && u.trim())
+      .map((u) => params.mediaRoles?.[u] ?? null);
+    const custody = await publishQuickBienesThroughServerCustody(supabase, {
+      listingRow: insertPayload,
+      mediaRoles: roles,
+      basePackageKey: quickBienesBaseKey!,
+      lang,
+    });
+    if (!custody.ok) return { ok: false, error: custody.error };
+    listingId = custody.listingId;
+    insertedThisAttempt = !custody.reused;
+    persistedListingStatus = "pending";
+  } else if (reusablePendingId) {
     const patch = { ...insertPayload };
     delete patch.owner_id;
     delete patch.created_at;
@@ -674,7 +731,8 @@ export async function publishLeonixRealEstateListingCore(
     };
   }
 
-  if (category === "bienes-raices" && sellerType === "business") {
+  if (category === "bienes-raices" && sellerType === "business" && !quickBienesPublish) {
+    // The Quick custody operation already grouped its own main row server-side.
     const role = params.brInventoryRole;
     const needsMainGroupPatch = role === "main" && !params.brInventoryGroupId?.trim();
     if (needsMainGroupPatch) {
@@ -843,12 +901,16 @@ export async function publishLeonixRealEstateListingCore(
   });
   if (sellerPhotoWarning) warnings.push(sellerPhotoWarning);
 
-  // Gate QB-IDENTITY-01 — Bienes Negocio is the one family that publishes from the browser, and
+  // Gate QB-IDENTITY-01 — FULL Bienes Negocio publishes from the browser, and
   // `business_listing_links` has no authenticated INSERT policy by design. Record the canonical
   // business↔listing relationship through the server seam so this path converges with the three
   // server-published families. Business rows only; ownership is re-proven server-side. Silent on
   // failure: the listing is already live and must not be reported as failed over a link write.
-  if (category === "bienes-raices" && sellerType === "business") {
+  //
+  // Gate QB-BOUNDARY-02 — a QUICK Bienes publish is excluded because its custody operation already
+  // wrote the SAME link, inside the same request that wrote the row. Both paths therefore end at
+  // one identical `business_listing_links` row; only the number of round trips differs.
+  if (category === "bienes-raices" && sellerType === "business" && !quickBienesPublish) {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData.session?.access_token;

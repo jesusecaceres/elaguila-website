@@ -14,6 +14,7 @@ import { isListingPackageEntitlementRowActive } from "@/app/lib/listingPlans/lis
 import { assertCommercialCapacityForWrite } from "@/app/lib/listingPlans/commercialWriteGuard";
 import { linkSelfServiceListingToBusiness } from "@/app/lib/business/canonicalListingLink";
 import { enforceQuickBusinessPublishMedia } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
+import { resolveQuickBusinessPublishIdentity } from "@/app/lib/listingPlans/quickBusinessProductIdentityServer";
 import type { AutosClassifiedsLane, AutosClassifiedsLang } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 import {
   AUTOS_LISTING_API_MAX_BODY_BYTES,
@@ -32,6 +33,14 @@ type Body = {
   lang?: AutosClassifiedsLang;
   parentListingId?: string;
   dealerInventoryGroupId?: string;
+  /**
+   * Gate QB-BOUNDARY-01 — the base package the caller believes it is publishing under. This is
+   * the caller's WORD, not authority: `resolveQuickBusinessPublishIdentity` reads it only when it
+   * names the category's SIMPLE key, and any server-owned record (entitlement row, checkout
+   * ledger, assisted context) overrides it in either direction. Declaring the Full key, or
+   * omitting it, can never lift a Quick customer out of the Quick contract.
+   */
+  basePackageKey?: string;
 };
 
 function dbNotConfigured(lang: AutosClassifiedsLang) {
@@ -233,21 +242,39 @@ export async function POST(request: Request) {
     }
   }
 
-  // Gate QB-MEDIA-03 — the canonical Quick Business semantic media contract, run on the SERVER
-  // for a dealer listing the CUSTOMER created for themselves. Until this gate only the
-  // staff-assisted dealer route enforced it, so the self-service path was protected by browser
-  // code alone and a dealership LOGO satisfied "at least one real photo of the vehicle".
+  // Gate QB-BOUNDARY-01 — the Quick Business semantic media contract, run on the SERVER for a
+  // dealer listing the CUSTOMER created for themselves, and ONLY for a VERIFIED QUICK dealer.
   //
-  // Scope is the DEALER lane only: the privado (private-seller) lane is a different product with
-  // its own rules and is deliberately untouched. Counts are NOT imposed here — the Autos lane is
-  // uncapped by design — only the semantic requirement: at least one image DECLARED to depict the
-  // vehicle. An unroled dealer gallery is answered with `role_declaration_required`, a correction,
-  // not a bare rejection.
+  // WHAT THIS REPLACES: the previous revision ran the contract for `body.lane === "negocios"`.
+  // That lane is the dealer lane, which BOTH the $99 Quick dealer package and the $399 Full
+  // dealer package publish through — so a FULL dealer was being held to a Quick product's rule,
+  // from a browser-supplied field. `lane` is not a product and never was.
+  //
+  // The product now comes from `resolveQuickBusinessPublishIdentity`: a verified staff assisted
+  // context, a live `listing_package_entitlements` row, the server-minted `leonix_payment_records`
+  // checkout ledger, or — only in the restricting direction, and only when nothing server-owned
+  // contradicts it — a declared SIMPLE package key. A `full` or `unverified` answer leaves the
+  // Full dealer's existing image / video / inventory behavior completely untouched.
+  //
+  // The privado (private-seller) lane is a different product with no Simple/Full split at all, so
+  // it cannot reach this branch and stays deliberately untouched.
+  //
+  // Counts are NOT imposed here — the Autos lane is uncapped by design — only the semantic
+  // requirement: at least one image DECLARED to depict the vehicle. An unroled Quick dealer
+  // gallery is answered with `role_declaration_required`, a correction, not a bare rejection.
   if (body.lane === "negocios") {
-    const semanticMedia = enforceQuickBusinessPublishMedia({
-      category: "autos-dealer",
-      payload: body.listing as unknown,
+    const identity = await resolveQuickBusinessPublishIdentity({
+      category: "autos",
+      ownerUserId: userId,
+      listingId: parentListingId || null,
+      declaredPackageKey: typeof body.basePackageKey === "string" ? body.basePackageKey : null,
     });
+    const semanticMedia = identity.enforceQuickContract
+      ? enforceQuickBusinessPublishMedia({
+          category: "autos-dealer",
+          payload: body.listing as unknown,
+        })
+      : null;
     if (semanticMedia && !semanticMedia.ok) {
       return NextResponse.json(
         {

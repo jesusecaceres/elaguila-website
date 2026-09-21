@@ -15,10 +15,7 @@ import { mockAutoDealerListing } from "../mock/mockAutoDealerListing";
 import type { AutoDealerListing } from "../types/autoDealerListing";
 import { AutosNegociosPreviewLocaleProvider, useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
 import { buildAutosNegociosEditorResumeHref } from "@/app/lib/clasificados/autos/autosDealerInventoryAddFlow";
-import {
-  migrateLegacyAutosNegociosDraftJsonToNamespace,
-  storageEventAffectsAutosNegociosDraft,
-} from "../lib/autosNegociosDraftNamespace";
+import { storageEventAffectsAutosNegociosDraft } from "../lib/autosNegociosDraftNamespace";
 import { AutosNegociosPreviewInventorySection } from "../components/AutosNegociosPreviewInventorySection";
 import { AutosNegociosPreviewCaptureBanner } from "../components/AutosNegociosPreviewCaptureBanner";
 import { AutosNegociosResultsCardPreview } from "../components/AutosNegociosResultsCardPreview";
@@ -576,10 +573,25 @@ function AutosNegociosPreviewInner({
       }
     }
 
+    /**
+     * Gate QB-BOUNDARY-01 — say which base package this dealer publish belongs to, so the server
+     * does not have to infer a PRODUCT from the `negocios` LANE (which Quick and Full dealers
+     * share). `baseCheckout.packageKey` is already the server's own answer wherever the server
+     * has one (`selectBusinessBaseCheckout` prefers `serverSellPackageKey` over the URL marker).
+     *
+     * This is a declaration, not authority. The route reads it only when it names the SIMPLE
+     * ($99 Quick) key, and any server-owned record overrides it in either direction — so it can
+     * add the Quick contract to a Quick dealer and can never lift it off one.
+     */
     const res = await fetch("/api/clasificados/autos/listings", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ listing: preparedListing, lane: "negocios", lang }),
+      body: JSON.stringify({
+        listing: preparedListing,
+        lane: "negocios",
+        lang,
+        basePackageKey: baseCheckout.packageKey,
+      }),
     });
     const j = (await res.json().catch(() => ({}))) as {
       id?: string;
@@ -604,7 +616,7 @@ function AutosNegociosPreviewInner({
       leonixAdId: j.leonixAdId?.trim() || j.leonix_ad_id?.trim() || null,
       customerEmail: data.session?.user?.email ?? null,
     };
-  }, [additionalInventoryVehicles, lang, listing, canonicalListingId]);
+  }, [additionalInventoryVehicles, lang, listing, canonicalListingId, baseCheckout.packageKey]);
 
   /**
    * Payment firewall (owner lock, 2026-09-19): a dashboard listing-edit Save only durably

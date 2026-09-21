@@ -394,8 +394,17 @@ export default function AgenteIndividualResidencialPreviewClient() {
       // dev/QA payment bypass) is brought live immediately below via the atomic, capacity- and
       // lifecycle-checked `activate_pending` mutation — never by a bare active-status INSERT,
       // which would bypass the RPC entirely and let a client-side count check be the only guard.
+      /**
+       * Gate QB-BOUNDARY-02 — say which base package this publish belongs to: the very package
+       * this preview is about to charge. The SIMPLE ($99 Quick) key routes the publish to the
+       * authenticated server custody operation, which re-resolves the product from ITS OWN
+       * records before writing; the Full key leaves the standard agent application on exactly the
+       * flow it already had. Only the main row can be Quick — the Quick package includes one
+       * property, so an inventory-add publish is never routed there.
+       */
       const r = await publishLeonixListingFromAgenteResidencialDraft(st, lang, publishInventory, {
         activationMode: "pending_payment",
+        basePackageKey: publishInventory.mode === "main" ? baseCheckout.packageKey : null,
       });
 
       if (!r.ok) {

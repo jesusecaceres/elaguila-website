@@ -429,8 +429,39 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
     // The four CUSTOMER self-service publish seams now run the canonical validator server-side.
     // (servicios/publish, restaurantes/publish and autos/listings are already authorized above
     // for the QB-IDENTITY-01 link write; the Bienes seam is new because that family publishes
-    // from the browser and therefore has no server publish handler to host the check.)
+    // from the browser and therefore had no server publish handler to host the check.)
+    //
+    // Gate QB-BOUNDARY-02 RETIRED this route: asking a gate and then inserting from the browser
+    // anyway was two independent steps, and the second did not depend on the first. It stays
+    // authorized because DELETING it is itself a change to a protected path, and its replacement
+    // is the atomic publish endpoint below.
     "app/api/clasificados/bienes-raices/negocio/publish-media-gate/route.ts",
+    // ------------------------------------------------------------------------------------------
+    // Gate QB-BOUNDARY-01 / -02 (2026-09-21 product-boundary closeout). Quick semantic-media
+    // enforcement was reaching SHARED Full publish paths, because it keyed off `lane` and
+    // `sellerType` — neither of which is a product, and both of which arrive from the browser.
+    // Closing that needed a server-owned product fact, and closing the Bienes browser insert
+    // needed a server publish operation. Exactly these surfaces, and no others.
+    // ------------------------------------------------------------------------------------------
+    // The product rule, pure: which base package (SIMPLE vs FULL) a publish is bound to, read
+    // from assisted context / live entitlement / checkout ledger / server custody, and only then
+    // from a declaration that can restrict the caller and never relax anything.
+    "app/lib/listingPlans/quickBusinessProductIdentity.ts",
+    // Its server reads. Two service-role-written ledgers, read-only, failing closed in the SAFE
+    // direction: an outage can make the answer stricter, never more permissive.
+    "app/lib/listingPlans/quickBusinessProductIdentityServer.ts",
+    // The atomic Quick Bienes publish: verify bearer → verify product → validate media → validate
+    // fields → write → link, in one authenticated server operation. Replaces the deleted gate.
+    "app/api/clasificados/bienes-raices/negocio/quick-publish/route.ts",
+    // Its pure contract (column whitelist, server-owned columns, field rules, reuse key) and its
+    // port-injected operation, split out so the security claims are proven by RUNNING them.
+    "app/lib/clasificados/bienes-raices/quickBienesPublishContract.ts",
+    "app/lib/clasificados/bienes-raices/quickBienesPublishOperation.ts",
+    // The two previews that now declare WHICH BASE PACKAGE they are about to charge, so the
+    // server no longer has to infer a product from a lane or a seller type. Declaration only:
+    // the server re-resolves it, and a declaration is read in the restricting direction alone.
+    "app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx",
+    "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewClient.tsx",
     // The one line that carries the customer's declared photo roles from the canonical agente
     // draft into the publish core, so the gate above is told what the customer actually said.
     // Additive and optional: a draft without roles passes `null` and is answered with a
