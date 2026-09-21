@@ -86,6 +86,7 @@ import {
 } from "@/app/lib/listingPlans/verifiedIntroDiscountRedemptions";
 import { ensureVerifiedIntroDiscountStripeCoupon } from "@/app/lib/listingPlans/verifiedIntroDiscountStripeCoupon";
 import { ensureContractTermStripeCoupon } from "@/app/lib/listingPlans/contractTermStripeCoupon";
+import { releaseCheckoutCredits, reserveCheckoutCredits } from "@/app/lib/rewards/rewardsCheckoutRedemption";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -762,8 +763,60 @@ export async function POST(request: NextRequest) {
     if (existingAttempt.verified_intro_discount_redemption_id) {
       await releaseVerifiedIntroDiscountReservation(checkoutAttemptKey);
     }
+    // LEONIX IX REWARDS — a stale attempt's credit hold is released with it, on exactly the same
+    // reasoning as the verified-15 release above: an abandoned attempt must never keep a
+    // customer's balance out of reach. The 30-minute expiry sweep is the backstop, not the plan.
+    await releaseCheckoutCredits({
+      checkoutAttemptKey,
+      reason: "stale_checkout_attempt_released",
+      paymentRecordId: existingAttempt.id,
+    });
     attemptGeneration = Math.max(1, existingAttempt.attempt_generation ?? 1) + 1;
   }
+
+  // ── LEONIX IX REWARDS — apply the customer's own credits to this purchase. ───────────────
+  // Credits are LOYALTY VALUE, not a promo code: they do not consume the single promo slot, and
+  // they coexist with at most one promo (see rewardsPolicy.validateDiscountCombination). They are
+  // therefore applied AFTER the discount block, to whatever is actually still owed.
+  //
+  // `body.requestedCreditsCents` is the customer's WISH and nothing more. The server plans the
+  // real figure against the live balance, the 50% ceiling, the amount due and Stripe's 50-cent
+  // floor, then HOLDS it. The hold is keyed on `checkoutAttemptKey`, so a retried request reuses
+  // it rather than stacking a second one.
+  const requestedCreditsCents = Math.max(
+    0,
+    Math.floor(Number((body as Record<string, unknown>).requestedCreditsCents ?? 0)) || 0,
+  );
+  let creditsAppliedCents = 0;
+  let creditsRedemptionId: string | null = null;
+  let creditsHoldExpiresAtIso: string | null = null;
+  let creditsRefusedReason: string | null = null;
+
+  if (requestedCreditsCents > 0) {
+    const application = await reserveCheckoutCredits({
+      ownerUserId,
+      requestedCents: requestedCreditsCents,
+      amountDueCents: amountCents,
+      // The 50% ceiling is measured against the whole eligible purchase, not the post-promo
+      // residual: a promo code must not shrink how much loyalty value the customer may spend.
+      eligiblePurchaseCents: subtotalCents,
+      checkoutAttemptKey,
+    });
+    if (application.applied) {
+      creditsAppliedCents = application.creditsAppliedCents;
+      creditsRedemptionId = application.redemptionId;
+      creditsHoldExpiresAtIso = application.expiresAtIso;
+    } else {
+      // Credits that cannot be applied are NOT a checkout failure. The customer pays the full
+      // price, keeps their balance, and is told exactly why rather than silently charged.
+      creditsRefusedReason = application.reason;
+    }
+  }
+
+  // The one amount the rest of this route charges. Every downstream figure — the payment record,
+  // the Stripe line items, the session, the response — is derived from this, so the price the
+  // customer sees, the price Stripe charges and the price we record cannot disagree.
+  const chargeableAmountCents = Math.max(0, amountCents - creditsAppliedCents);
 
   // ── Package C Build 2 (C4) — atomic reservation. The four partial unique indexes on
   // leonix_verified_intro_discount_redemptions are the actual concurrency gate; this call
@@ -789,11 +842,16 @@ export async function POST(request: NextRequest) {
     category: packageDef.category,
     packageKey: packageDef.packageKey,
     packageDef,
-    amountCents,
+    // What Stripe will actually charge, after any credits held above.
+    amountCents: chargeableAmountCents,
     subtotalCents,
     addOns,
     currency,
     listingId: listingRef,
+    // The earn hooks read `metadata.leonix_credits_applied_cents` to subtract the credit-funded
+    // portion before computing 9%, which is how "credits do not earn credits" is enforced on the
+    // real money path rather than only in the policy unit tests.
+    creditsAppliedCents,
     leonixAdId: serverVerifiedLeonixAdId ?? body.leonixAdId,
     ownerUserId,
     customerEmail: body.customerEmail,
@@ -852,6 +910,11 @@ export async function POST(request: NextRequest) {
     // unrelated DB error never permanently consumes the customer's one-time introductory benefit.
     if (verifiedIntroDiscountRedemptionId) {
       await releaseVerifiedIntroDiscountReservation(checkoutAttemptKey);
+    }
+    // Same reasoning for the credit hold: no payment record means no purchase, so the customer's
+    // balance goes straight back rather than waiting out the 30-minute window.
+    if (creditsAppliedCents > 0) {
+      await releaseCheckoutCredits({ checkoutAttemptKey, reason: "payment_record_create_failed" });
     }
     return NextResponse.json(
       { ok: false, code: paymentInsert.code, message: paymentInsert.message },
@@ -921,12 +984,15 @@ export async function POST(request: NextRequest) {
     basePackageDef: packageDef,
     addOns,
     subtotalCents,
-    finalAmountCents: amountCents,
+    // Credits reduce the charge through the SAME proportional line-item distribution the promo
+    // and verified-intro discounts use. No second pricing path, and no Stripe coupon: a customer
+    // spending loyalty value must not consume the one promo slot.
+    finalAmountCents: chargeableAmountCents,
   });
 
   const stripeResult = await createRevenueStripeCheckoutSession({
     packageDef,
-    amountCents,
+    amountCents: chargeableAmountCents,
     lineItems: stripeLineItems,
     currency,
     stripeMode,
@@ -964,6 +1030,16 @@ export async function POST(request: NextRequest) {
     }
     if (verifiedIntroDiscountRedemptionId) {
       await releaseVerifiedIntroDiscountReservation(checkoutAttemptKey);
+    }
+    // LEONIX IX REWARDS — the same residual closed for credits. A hold made moments ago survived
+    // a synchronous Stripe failure with no session id for the webhook's expiry path to key off,
+    // so it is released here explicitly rather than left to time out.
+    if (creditsAppliedCents > 0) {
+      await releaseCheckoutCredits({
+        checkoutAttemptKey,
+        reason: "checkout_session_create_failed",
+        paymentRecordId: paymentInsert.paymentRecordId,
+      });
     }
     return NextResponse.json(
       { ok: false, code: stripeResult.code, message: stripeResult.message },
@@ -1044,9 +1120,19 @@ export async function POST(request: NextRequest) {
     checkoutUrl: stripeResult.checkoutUrl,
     paymentRecordId: paymentInsert.paymentRecordId,
     stripeCheckoutSessionId: stripeResult.sessionId,
-    amountCents,
+    // `amountCents` is what the customer will be CHARGED. The pre-credit figure is reported
+    // separately so the confirmation can show both without either number being inferred.
+    amountCents: chargeableAmountCents,
+    amountBeforeCreditsCents: amountCents,
     currency,
     mode: stripeMode,
+    // LEONIX IX REWARDS — exactly what happened to the credits, including a refusal. A customer
+    // who asked to spend credits and could not must be told, not quietly charged full price.
+    creditsAppliedCents,
+    remainingDueCents: chargeableAmountCents,
+    ...(creditsRedemptionId ? { creditsRedemptionId } : {}),
+    ...(creditsHoldExpiresAtIso ? { creditsHoldExpiresAtIso } : {}),
+    ...(creditsRefusedReason ? { creditsRefusedReason } : {}),
     ...(promoRedemptionId ? { promoRedemptionId } : {}),
     ...(verifiedIntroDiscountRedemptionId ? { verifiedIntroDiscountRedemptionId } : {}),
     activeDiscountSource: requestedDiscountSource,

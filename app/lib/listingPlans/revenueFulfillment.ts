@@ -7,6 +7,7 @@ import "server-only";
 import { isBusinessBasePackageKey } from "./businessAccessLevel";
 import { convergeQuickToFullAfterPayment } from "./quickToFullConvergence";
 import { awardCreditsForSettledPayment } from "@/app/lib/rewards/rewardsFulfillment";
+import { commitCheckoutCredits, releaseCheckoutCredits } from "@/app/lib/rewards/rewardsCheckoutRedemption";
 import type Stripe from "stripe";
 import { isPaymentCleared } from "./paymentTracking";
 import { activateEntitlementsForPayment } from "./revenueEntitlementFulfillment";
@@ -2051,6 +2052,32 @@ export async function fulfillCheckoutSessionCompleted(input: {
     };
   }
 
+  // LEONIX IX REWARDS — COMMIT the credits this checkout held.
+  //
+  // The hold was taken at checkout creation and has been sitting in `reserved` ever since. Only
+  // now, with the payment marked paid, is it actually SPENT. Committing earlier would let an
+  // abandoned checkout consume a balance; not committing at all would leave the hold stuck until
+  // the 30-minute sweep returned it — after the customer had already received the discount.
+  //
+  // Idempotent through `commit:<checkoutAttemptKey>`, so a redelivered event commits once, and
+  // best-effort like every other rewards hook: a settled payment must never look failed.
+  const checkoutAttemptKeyForCredits =
+    typeof (refreshed as { checkout_attempt_key?: unknown }).checkout_attempt_key === "string"
+      ? String((refreshed as { checkout_attempt_key?: unknown }).checkout_attempt_key)
+      : "";
+  if (checkoutAttemptKeyForCredits) {
+    await commitCheckoutCredits({
+      checkoutAttemptKey: checkoutAttemptKeyForCredits,
+      paymentRecordId: paymentRecord.id,
+    }).catch((err: unknown) => {
+      console.error("[fulfillment] rewards redemption commit threw", {
+        paymentRecordId: paymentRecord.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return null;
+    });
+  }
+
   // LEONIX IX REWARDS — award 9% back in Leonix Credits for this settled payment.
   //
   // Runs only AFTER the payment is marked paid above, so an abandoned or failed checkout never
@@ -2193,6 +2220,18 @@ export async function markCheckoutSessionExpired(input: {
         stripe_event_id: eventId,
       },
     });
+  }
+
+  // LEONIX IX REWARDS — the session expired, so the purchase will not happen and the credits it
+  // was holding go straight back to the customer. Released here on the event rather than left to
+  // the 30-minute sweep, so the balance is spendable again the moment Stripe says the checkout is
+  // over. Idempotent through `release:<ref>`, and a hold already committed is left alone.
+  if (paymentRecord.checkout_attempt_key) {
+    await releaseCheckoutCredits({
+      checkoutAttemptKey: paymentRecord.checkout_attempt_key,
+      reason: "checkout_session_expired",
+      paymentRecordId: paymentRecord.id,
+    }).catch(() => null);
   }
 
   const promoRedemptionId = paymentRecord.promo_redemption_id ?? metadata.promoRedemptionId;

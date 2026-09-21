@@ -48,6 +48,14 @@ export type CreatePendingPaymentRecordInput = {
   /** Package C Build 1 — stable purchase-attempt identity (see computeCheckoutAttemptKey). */
   checkoutAttemptKey?: string | null;
   attemptGeneration?: number | null;
+  /**
+   * LEONIX IX REWARDS — the portion of this purchase funded by Leonix Credits, in cents.
+   *
+   * Recorded so the earn hooks can subtract it before computing 9%: credits spent on a purchase
+   * do not themselves earn credits. It is written to `metadata.leonix_credits_applied_cents`,
+   * which is exactly where `revenueFulfillment` and `manualClearedPayments` already read it.
+   */
+  creditsAppliedCents?: number | null;
 };
 
 export type PendingPaymentRecordResult =
@@ -160,6 +168,10 @@ export async function createPendingPaymentRecord(
         package_label: input.packageDef.label,
         destructive: false,
         subtotal_cents: subtotal,
+        // LEONIX IX REWARDS — the credit-funded portion, read back by the earn hooks so the 9%
+        // is computed on real money only. Written unconditionally (0 when none) so its absence
+        // can never be mistaken for an unrecorded redemption.
+        leonix_credits_applied_cents: Math.max(0, Math.floor(input.creditsAppliedCents ?? 0)),
         ...(addOns.length
           ? {
               add_ons: addOns.map((a) => ({
@@ -315,13 +327,19 @@ export type LeonixPaymentRecordRow = {
   stripe_payment_intent_id: string | null;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
+  /**
+   * The stable purchase-attempt identity. Surfaced because it is also the reference a Leonix
+   * Credits hold is keyed on, so the webhook can commit or release that hold without inventing a
+   * second identifier for the same attempt.
+   */
+  checkout_attempt_key: string | null;
   paid_at: string | null;
   canceled_at: string | null;
   metadata: Record<string, unknown> | null;
 };
 
 const PAYMENT_RECORD_SELECT =
-  "id, category, package_key, listing_id, owner_user_id, leonix_ad_id, billing_mode, placement_tier, amount_cents, amount_total_cents, amount_subtotal_cents, amount_discount_cents, currency, payment_status, source, promo_code_id, promo_redemption_id, verified_intro_discount_redemption_id, contract_term, package_entitlement_id, placement_entitlement_id, stripe_checkout_session_id, stripe_payment_intent_id, stripe_customer_id, stripe_subscription_id, paid_at, canceled_at, customer_email, business_name, metadata";
+  "id, category, package_key, listing_id, owner_user_id, leonix_ad_id, billing_mode, placement_tier, amount_cents, amount_total_cents, amount_subtotal_cents, amount_discount_cents, currency, payment_status, source, promo_code_id, promo_redemption_id, verified_intro_discount_redemption_id, contract_term, package_entitlement_id, placement_entitlement_id, stripe_checkout_session_id, stripe_payment_intent_id, stripe_customer_id, stripe_subscription_id, checkout_attempt_key, paid_at, canceled_at, customer_email, business_name, metadata";
 
 /** Extended payment row for promo redemption business attribution (Gate REVENUE-OS-PROMO-REDEMPTION-BUSINESS-ATTRIBUTION-01). */
 export type LeonixPaymentRecordAttributionRow = LeonixPaymentRecordRow & {

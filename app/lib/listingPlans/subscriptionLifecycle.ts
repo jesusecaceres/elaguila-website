@@ -139,6 +139,12 @@ export type SubscriptionRecordRow = {
   listing_suspended_status: string | null;
   package_entitlement_id: string | null;
   metadata: Record<string, unknown> | null;
+  /**
+   * The subscriber. Carried so a RENEWAL invoice can be attributed to a rewards wallet: the
+   * renewal payment record is created by the webhook and has no payer of its own to fall back on.
+   * Optional because existing readers of this type do not select it.
+   */
+  owner_user_id?: string | null;
 };
 
 /** Reconcile one subscription: applies grace-expiry suspension if due. Idempotent. */

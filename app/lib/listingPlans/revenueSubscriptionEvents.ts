@@ -19,7 +19,7 @@ import { writeRevenueAuditLog } from "./revenueAuditLog";
 import { attachStripeIdentitiesToConsent } from "./recurringConsent";
 import { extendEntitlementForInvoicePaid } from "./revenueEntitlementFulfillment";
 import { recordDisputeOnPaymentRecord, recordRefundOnPaymentRecord } from "./refundDisputeFoundations";
-import { reverseCreditsForRefundOrDispute } from "@/app/lib/rewards/rewardsFulfillment";
+import { awardCreditsForSettledPayment, reverseCreditsForRefundOrDispute } from "@/app/lib/rewards/rewardsFulfillment";
 import {
   applyPaymentSuspension,
   computeGraceEndsAt,
@@ -78,7 +78,8 @@ async function loadSubscriptionRecord(stripeSubscriptionId: string): Promise<Sub
   const supabase = getAdminSupabase();
   const { data } = await supabase
     .from("leonix_subscription_records")
-    .select("id, status, category, listing_id, package_key, suspension_reason, grace_ends_at, listing_prior_status, listing_suspended_status, package_entitlement_id, metadata")
+    // `owner_user_id` is selected so a renewal invoice can be attributed to a rewards wallet.
+    .select("id, status, category, listing_id, package_key, suspension_reason, grace_ends_at, listing_prior_status, listing_suspended_status, package_entitlement_id, metadata, owner_user_id")
     .eq("stripe_subscription_id", stripeSubscriptionId)
     .maybeSingle();
   return (data as SubscriptionRecordRow | null) ?? null;
@@ -225,26 +226,70 @@ export async function handleInvoicePaid(input: {
   const invoiceId = String(input.invoice.id ?? "");
 
   // Per-invoice renewal payment record — idempotent via the M5 partial unique index.
-  const { error: invoiceInsertError } = await supabase.from("leonix_payment_records").insert({
-    category: record.category,
-    listing_id: record.listing_id,
-    package_key: record.package_key,
-    billing_mode: "monthly_subscription",
-    amount_cents: input.invoice.amount_paid ?? 0,
-    amount_total_cents: input.invoice.amount_paid ?? 0,
-    amount_paid_cents: input.invoice.amount_paid ?? 0,
-    currency: input.invoice.currency ?? "usd",
-    payment_status: "paid",
-    paid_at: new Date().toISOString(),
-    source: "stripe_webhook",
-    stripe_subscription_id: stripeSubscriptionId,
-    stripe_invoice_id: invoiceId,
-    stripe_customer_id: typeof input.invoice.customer === "string" ? input.invoice.customer : null,
-    metadata: { gate: "PACKAGE-C-BUILD-1-SUBSCRIPTION-LIFECYCLE", stripe_event_id: input.eventId, operation: "subscription_renewal" },
-  });
-  const invoiceReplay = invoiceInsertError?.code === "23505";
+  const renewalOwnerUserId = record.owner_user_id ?? null;
+  const { data: insertedRenewal, error: invoiceInsertError } = await supabase
+    .from("leonix_payment_records")
+    .insert({
+      category: record.category,
+      listing_id: record.listing_id,
+      package_key: record.package_key,
+      billing_mode: "monthly_subscription",
+      amount_cents: input.invoice.amount_paid ?? 0,
+      amount_total_cents: input.invoice.amount_paid ?? 0,
+      amount_paid_cents: input.invoice.amount_paid ?? 0,
+      currency: input.invoice.currency ?? "usd",
+      payment_status: "paid",
+      paid_at: new Date().toISOString(),
+      source: "stripe_webhook",
+      // Carried onto the renewal row so the rewards wallet resolver has a payer to attribute to.
+      // Without it, an eligible renewal earns nothing, which is not the agreed policy.
+      owner_user_id: renewalOwnerUserId,
+      stripe_subscription_id: stripeSubscriptionId,
+      stripe_invoice_id: invoiceId,
+      stripe_customer_id: typeof input.invoice.customer === "string" ? input.invoice.customer : null,
+      metadata: { gate: "PACKAGE-C-BUILD-1-SUBSCRIPTION-LIFECYCLE", stripe_event_id: input.eventId, operation: "subscription_renewal" },
+    })
+    .select("id")
+    .maybeSingle();
+  const invoiceReplay = (invoiceInsertError as { code?: string } | null)?.code === "23505";
   if (invoiceInsertError && !invoiceReplay) {
     return { ok: false, outcome: "failed_retryable", code: "invoice_payment_record_failed" };
+  }
+
+  // LEONIX IX REWARDS — an eligible recurring renewal earns 9%, exactly like the first payment.
+  //
+  // The idempotency anchor is the canonical `earn:payment:<paymentRecordId>` key, and the payment
+  // record itself is unique per invoice (the M5 partial unique index on stripe_invoice_id). So a
+  // redelivered `invoice.paid`, a retried webhook and the overlapping checkout-completion path all
+  // converge on the SAME key and award once. On a replay the insert returns no row, so the
+  // existing record is read back by invoice id rather than assumed.
+  const renewalPaymentRecordId =
+    (insertedRenewal as { id?: string } | null)?.id ??
+    (invoiceReplay && invoiceId
+      ? ((
+          await supabase
+            .from("leonix_payment_records")
+            .select("id")
+            .eq("stripe_invoice_id", invoiceId)
+            .maybeSingle()
+        ).data as { id?: string } | null)?.id ?? null
+      : null);
+
+  if (renewalPaymentRecordId && (input.invoice.amount_paid ?? 0) > 0) {
+    await awardCreditsForSettledPayment({
+      paymentRecordId: String(renewalPaymentRecordId),
+      ownerUserId: renewalOwnerUserId,
+      amountPaidCents: input.invoice.amount_paid ?? 0,
+      // A renewal invoice is charged in full to the card; credits are applied at checkout, not to
+      // an automatic renewal, so there is no credit-funded portion to subtract here.
+      creditsAppliedCents: 0,
+      promoDiscountCents: 0,
+      source: "stripe",
+      sourceKind: "stripe_payment",
+      sourceId: input.eventId,
+      // Card money. Pending for the settlement window, exactly like an initial card payment.
+      pendingUntilSettlementFinal: true,
+    }).catch(() => null);
   }
 
   // Extend the SAME entitlement row (never duplicate; revive expired; never auto-revive revoked).
@@ -469,6 +514,52 @@ async function findPaymentRecordByIntentOrCharge(charge: Stripe.Charge): Promise
   return null;
 }
 
+/**
+ * Reverse rewards for every refund object carried on a `charge.refunded` event.
+ *
+ * `charge.refunds.data` may be absent or truncated on a webhook payload — Stripe caps the embedded
+ * list. When no refund object is available, the anchor falls back to the charge id with a
+ * `:cum<N>` suffix taken from the CUMULATIVE refunded amount, so a second partial refund still
+ * produces a DIFFERENT key and still reverses instead of colliding with the first. That suffix is
+ * a fallback for a truncated payload, not the design: a real refund id is always preferred.
+ */
+async function reverseRewardsForChargeRefunds(input: {
+  paymentRecordId: string;
+  charge: Stripe.Charge;
+}): Promise<void> {
+  const cumulativeRefundedCents = input.charge.amount_refunded ?? 0;
+  const refunds = (input.charge.refunds?.data ?? []).filter(
+    (r): r is Stripe.Refund => Boolean(r) && typeof r.id === "string",
+  );
+
+  if (!refunds.length) {
+    await reverseCreditsForRefundOrDispute({
+      paymentRecordId: input.paymentRecordId,
+      refundedCents: cumulativeRefundedCents,
+      // The rail's own cumulative position is authoritative when we cannot see the individual
+      // refunds, and it is what keeps the running total exact across several such deliveries.
+      cumulativeRefundedCents,
+      kind: "refund",
+      externalId: `${input.charge.id}:cum${cumulativeRefundedCents}`,
+    });
+    return;
+  }
+
+  // Oldest first, so the cumulative position advances in the order the refunds actually happened.
+  const ordered = [...refunds].sort((a, b) => (a.created ?? 0) - (b.created ?? 0));
+  for (const refund of ordered) {
+    await reverseCreditsForRefundOrDispute({
+      paymentRecordId: input.paymentRecordId,
+      refundedCents: refund.amount ?? 0,
+      // Each refund contributes only its OWN amount. Re-asserting the cumulative figure on every
+      // iteration would let the last refund in the loop claim the entire position for itself.
+      cumulativeRefundedCents: null,
+      kind: "refund",
+      externalId: refund.id,
+    });
+  }
+}
+
 /** charge.refunded — refund foundation: record on the original payment record; history preserved. */
 export async function handleChargeRefunded(input: { charge: Stripe.Charge; eventId: string }): Promise<HandlerResult> {
   if (!isSupabaseAdminConfigured()) return { ok: false, outcome: "failed_retryable", code: "supabase_not_configured" };
@@ -481,17 +572,15 @@ export async function handleChargeRefunded(input: { charge: Stripe.Charge; event
     partial: (input.charge.amount_refunded ?? 0) < (input.charge.amount ?? 0),
   });
 
-  // LEONIX IX REWARDS — money went back to the customer, so the credits it earned come back too,
-  // proportionally to the refunded share and never more than was actually awarded. Keyed on the
-  // charge id, so a redelivered refund event reverses once. Best-effort: a rewards problem must
-  // not make a correctly-recorded refund look failed to Stripe.
-  await reverseCreditsForRefundOrDispute({
-    paymentRecordId: record.id,
-    ownerUserId: (record as { owner_user_id?: string | null }).owner_user_id ?? null,
-    refundedCents: input.charge.amount_refunded ?? 0,
-    kind: "refund",
-    externalId: input.charge.id,
-  }).catch(() => null);
+  // LEONIX IX REWARDS — money went back to the customer, so the credits it earned come back too.
+  //
+  // KEYED ON EACH REFUND OBJECT, NOT ON THE CHARGE. Stripe fires `charge.refunded` once per refund
+  // against the same charge, and the charge id is identical on every one of those deliveries:
+  // keying the reversal on it makes every partial refund after the first dedupe to a no-op and
+  // leaves the customer holding credits for money they already got back.
+  //
+  // Best-effort: a rewards problem must not make a correctly-recorded refund look failed to Stripe.
+  await reverseRewardsForChargeRefunds({ paymentRecordId: record.id, charge: input.charge }).catch(() => null);
 
   return result.ok ? { ok: true, outcome: "completed" } : { ok: false, outcome: "failed_retryable", code: result.message };
 }
@@ -512,11 +601,13 @@ export async function handleDisputeCreated(input: { dispute: Stripe.Dispute; eve
   await recordDisputeOnPaymentRecord({ paymentRecordId: paymentRecord.id as string, stripeEventId: input.eventId, disputeId: input.dispute.id });
 
   // LEONIX IX REWARDS — a chargeback claws back the credits that payment earned, on the same
-  // proportional, idempotent rule as a refund. Keyed on the dispute id.
+  // cumulative, idempotent rule as a refund. Keyed on the DISPUTE id, which is already unique per
+  // dispute; the dispute's own amount is its contribution to the money-returned position, and it
+  // composes with any refunds already reversed against the same payment.
   await reverseCreditsForRefundOrDispute({
     paymentRecordId: String(paymentRecord.id),
-    ownerUserId: (paymentRecord as { owner_user_id?: string | null }).owner_user_id ?? null,
     refundedCents: input.dispute.amount ?? 0,
+    cumulativeRefundedCents: null,
     kind: "chargeback",
     externalId: input.dispute.id,
   }).catch(() => null);
