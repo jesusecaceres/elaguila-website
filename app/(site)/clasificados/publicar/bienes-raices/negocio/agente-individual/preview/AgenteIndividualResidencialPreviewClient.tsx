@@ -8,7 +8,12 @@ import { BR_NEGOCIO_Q_PROPIEDAD } from "@/app/clasificados/bienes-raices/shared/
 import { BR_PUBLICAR_NEGOCIO } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { leonixLiveAnuncioPath } from "@/app/clasificados/lib/leonixRealEstateListingContract";
-import { publishLeonixListingFromAgenteResidencialDraft } from "@/app/clasificados/lib/leonixPublishRealEstateFromDraftState";
+import {
+  buildPublishParamsFromAgenteResidencialDraft,
+  publishLeonixListingFromAgenteResidencialDraft,
+} from "@/app/clasificados/lib/leonixPublishRealEstateFromDraftState";
+import { buildListingsInsertRowForLeonixPublish } from "@/app/clasificados/lib/leonixPublishRealEstateListingCore";
+import { AssistedSaveForClientBar } from "@/app/clasificados/components/AssistedSaveForClientBar";
 import { brPublishPaymentRequired } from "@/app/lib/clasificados/bienes-raices/brPublishPaymentPolicy";
 import { PublishCheckoutCheckpoint } from "@/app/(site)/clasificados/components/PublishCheckoutCheckpoint";
 import {
@@ -659,6 +664,28 @@ export default function AgenteIndividualResidencialPreviewClient() {
 
   return (
     <div className="min-h-screen bg-[#F9F6F1]">
+      {/* Leonix assisted sale — visible only when the SERVER confirms a live Bienes custody
+          context. The row is built through the SAME canonical builders the customer's own publish
+          uses (draft → negocio publish params → listings row), so the assisted and self-service
+          paths write the same shape. The server filters the row to its allowed columns and
+          overwrites ownership regardless of what is sent. */}
+      <div className="mx-auto max-w-[1140px] px-4 sm:px-6">
+        <AssistedSaveForClientBar
+          category="bienes-raices"
+          lang={lang === "en" ? "en" : "es"}
+          buildPayload={(ctx) => {
+            if (!ctx.clientUserId) return null;
+            const built = buildPublishParamsFromAgenteResidencialDraft(data, lang === "en" ? "en" : "es");
+            if (!("params" in built) || !built.ok) return null;
+            return {
+              category: "bienes-raices",
+              clientUserId: ctx.clientUserId,
+              listingRow: buildListingsInsertRowForLeonixPublish(ctx.clientUserId, built.params),
+              lang: lang === "en" ? "en" : "es",
+            };
+          }}
+        />
+      </div>
       <div className="sticky top-0 z-40 border-b border-[#E8DFD0]/80 bg-[#FFFCF7]/95 backdrop-blur-sm">
         <div className="mx-auto flex max-w-[1140px] flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <p className="text-[10px] font-bold uppercase tracking-wide text-[#B8954A]">

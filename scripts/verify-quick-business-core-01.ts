@@ -428,12 +428,22 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
     "app/lib/sales/quickSalesCategories.ts", // new: the four categories → existing tables/intakes
     "app/lib/sales/prospectPreviewReader.ts", // new: whitelisted, read-only preview fields
     "app/lib/sales/assistedSaveForClientClient.ts", // new: the one client caller, four contracts
+    // Directory entries cover the case where git reports an untracked FOLDER; the explicit file
+    // paths beneath them cover the case where the same files are already tracked. Both spellings
+    // are listed on purpose — an authorization that only works before the first commit is not one.
     "app/api/admin/sales-preview/", // new: custody, preview-link and post-payment publish routes
+    "app/api/admin/sales-preview/custody/route.ts",
+    "app/api/admin/sales-preview/preview-link/route.ts",
+    "app/api/admin/sales-preview/publish/route.ts",
     "app/admin/(dashboard)/workspace/quick-sales/", // new: the staff workspace screen
+    "app/admin/(dashboard)/workspace/quick-sales/page.tsx",
+    "app/admin/(dashboard)/workspace/quick-sales/QuickSalesWorkspaceClient.tsx",
     "app/(site)/vista-previa/", // new: the prospect's read-only preview page
+    "app/(site)/vista-previa/[category]/page.tsx",
     "app/(site)/clasificados/components/AssistedSaveForClientBar.tsx", // new: the shared staff strip
-    // The two existing intakes that mount that shared strip. Neither gains a field, a draft store,
-    // or a publish path of its own — see verify-p0-staff-assisted-category-access-01.ts.
+    // The three existing intakes that mount that shared strip. None gains a field, a draft store,
+    // or a publish path of its own — see verify-p0-staff-assisted-category-access-01.ts. The Bienes
+    // preview client is already authorized above, from an earlier mission.
     "app/(site)/publicar/restaurantes/RestauranteApplicationClient.tsx",
     "app/(site)/publicar/autos/shared/components/AutosPublishConfirmCore.tsx",
     // SALES PREVIEWS. Three server defects found by mapping the staff-assisted workflow, each of
