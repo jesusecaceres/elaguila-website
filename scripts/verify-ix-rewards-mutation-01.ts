@@ -693,6 +693,92 @@ const MUTATIONS: readonly Mutation[] = [
     suite: "route",
     expect: ["V4"],
   },
+  // -------------------------------------------------------------------------
+  // ROUND 3 — a final reviewer found a BLOCKER this round had INTRODUCED, plus
+  // five more. Each is pinned here.
+  // -------------------------------------------------------------------------
+  {
+    defect:
+      "A truncated-payload queue row is keyed on the ROW rather than the rail's own refund id, so the " +
+      "staff resolution and the rail's later delivery are two keys for one refund and their bases ADD: " +
+      "900 clawed back where 450 was owed, and on a spent balance 450 cents of debt never owed.",
+    file: POLICY,
+    find: "  if (!supplied) return { ok: false, error: \"refund_external_id_required\" };\n  return { ok: true, anchor: supplied };",
+    replace: "  return { ok: true, anchor: `queue:${row.id}` };",
+    suite: "route",
+    expect: ["Y5"],
+  },
+  {
+    defect:
+      "The adapter stops writing its nonce into `p_meta`, so the duplicate signal silently reverts to a " +
+      "pre-read: eight concurrent deliveries of one won dispute report 2700 restored against 900 moved.",
+    file: ADAPTER,
+    find: "        p_meta: { ...(input.meta ?? {}), post_nonce: postNonce },",
+    replace: "        p_meta: input.meta ?? {},",
+    suite: "route",
+    expect: ["Z3"],
+  },
+  {
+    defect:
+      "A PENDING INVITATION is treated as a revocation, so a customer invited to a business has their " +
+      "wallet binding released by a mere READ — irreversibly, because accepting the invitation cannot " +
+      "put it back once a personal wallet exists.",
+    file: ADAPTER,
+    find: "    return rows.every((r) => String(r.membership_status ?? \"\") === \"revoked\");",
+    replace: "    return !rows.some((r) => String(r.membership_status ?? \"\") === \"active\");",
+    suite: "route",
+    expect: ["Z12", "Z13"],
+  },
+  {
+    defect:
+      "`no_action_required` can close a won-dispute row whose clawback is still outstanding, writing off " +
+      "the customer's restoration with no ledger row, no dispute id, and nothing able to reopen it.",
+    file: ADMIN,
+    find: "      if (outstandingCents > 0) {",
+    replace: "      if (outstandingCents > 0 && false) {",
+    suite: "route",
+    expect: ["Y3b"],
+  },
+  {
+    defect:
+      "A reversal key already held by ANOTHER wallet is reported as a duplicate delivery, so the webhook " +
+      "believes the clawback was applied: the money went back, the credits stayed, nothing was queued.",
+    file: CORE,
+    find: "    if (posted.entry.walletId !== original.walletId) {",
+    replace: "    if (false) {",
+    suite: "route",
+    expect: ["Z14"],
+  },
+  {
+    defect:
+      "A staff write-off of recovery debt stops being bounded by the debt, so a mistyped figure drives " +
+      "the offset past what is owed.",
+    file: CORE,
+    find: "  if (amountCents > recoveryCents) {",
+    replace: "  if (amountCents > recoveryCents && false) {",
+    suite: "route",
+    expect: ["Y15"],
+  },
+  {
+    defect:
+      "A failed position read is reported as a position of ZERO, so a first reversal proceeds on a read " +
+      "that never succeeded while the code's comment claims the sentinel is load-bearing.",
+    file: ADAPTER,
+    find: "      if (error) return -1;",
+    replace: "      if (error) return 0;",
+    suite: "route",
+    expect: ["Z15"],
+  },
+  {
+    defect:
+      "`maybeSingle()` in the route harness accepts more than one row, making the harness kinder than " +
+      "PostgREST in exactly the way this change was once burned by.",
+    file: "scripts/lib/stubs/supabaseServer.mjs",
+    find: "    if (rows.length > 1) {",
+    replace: "    if (false) {",
+    suite: "route",
+    expect: ["Z17"],
+  },
 ];
 
 function runBehavior(): { ok: boolean; output: string } {

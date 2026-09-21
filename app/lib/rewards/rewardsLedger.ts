@@ -655,6 +655,16 @@ async function releaseRevokedBusinessBinding(businessId: string, userId: string)
     await getAdminSupabase()
       .from("leonix_rewards_wallets")
       .update({ bound_user_id: null, updated_at: new Date().toISOString() })
+      // BOTH SCOPES, AND ONE OF THEM IS UNPROVEN BY TEST — SAID PLAINLY.
+      //
+      // The business scope is exercised (`Z16`). The `bound_user_id` compare-and-set is NOT: this
+      // function is only ever reached from a branch that has just read `bound_user_id = userId`,
+      // so in a single resolution the two scopes select the same row and no test can tell them
+      // apart. It defends a narrow concurrent window — a second, stale resolution for this user
+      // arriving after the binding was released AND re-bound to a successor — which cannot be
+      // staged from outside the module. It stays because it costs one predicate and the failure it
+      // prevents is somebody else's wallet identity; it is recorded as unproven rather than
+      // counted as evidence.
       .eq("business_id", businessId)
       .eq("bound_user_id", userId);
   } catch {
@@ -674,8 +684,16 @@ async function businessBindingRevoked(businessId: string, userId: string): Promi
     const rows = (data ?? []) as { membership_status?: string | null }[];
     // No membership relationship at all: the binding came from somewhere else and stands.
     if (rows.length === 0) return false;
-    // A relationship exists. It ends the binding only if none of its rows is still active.
-    return !rows.some((r) => String(r.membership_status ?? "") === "active");
+    // REVOCATION IS A POSITIVE STATE, NOT "ANYTHING THAT IS NOT ACTIVE".
+    //
+    // `business_memberships_status_chk` admits `invited`, `active` and `revoked`, and an `invited`
+    // row is a PENDING INVITATION — the opposite of a revocation. Asking "is none of them active"
+    // treated it as one: the binding was released, the customer's 900 credits stayed in the
+    // business wallet, their own wallet read $0.00, and once a personal wallet existed
+    // `resolveWalletOwnerForUser` took the `owner_user_id` branch for ever — so ACCEPTING the
+    // invitation did not put it back. A wallet read alone was enough to trigger it; no write
+    // needed. Only a row that actually says `revoked` ends a binding.
+    return rows.every((r) => String(r.membership_status ?? "") === "revoked");
   } catch {
     return false;
   }

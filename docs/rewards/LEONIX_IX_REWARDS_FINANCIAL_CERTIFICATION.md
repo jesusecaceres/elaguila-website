@@ -20,7 +20,16 @@ The first pass found **twenty defects that move money incorrectly or expose it**
 BLOCKER, nine HIGH, five launch-impacting MEDIUM. Four of the six create or destroy credits
 outright and one lets an unauthenticated caller spend another customer's balance. Round 1's five
 independent reviewers found **nineteen more** (§3b), six of which the §3 repairs had introduced.
-Round 2's two reviewers found **ten more** (§3c), three of them HIGH. Every one is repaired.
+Round 2's two reviewers found **ten more** (§3c), three of them HIGH. Round 3's final reviewer —
+who drove the real core against real PL/pgSQL, which neither suite did — found **eight more**
+(§3d), including **a BLOCKER that Round 2's own repair had introduced**: a double clawback on a
+real customer, in the one workflow the refund queue exists to make safe, which not one of the 426
+checks then in place could see in either direction. Every one is repaired.
+
+That is the shape of this whole mission, said once: **every round's repairs introduced defects that
+the round's own tests could not see.** Six of Round 1's nineteen findings were mine; Round 3's
+BLOCKER was mine. The only reason any of them is not in the shipped code is that each round's
+reviewers were given the complete diff and told nothing had been fixed.
 
 **The most important finding of the whole mission was about the tests.** Round 2's second reviewer
 reintroduced nineteen defects — including two straight authorization bypasses, a doubled discount
@@ -36,9 +45,9 @@ Two structural changes carry this certification:
    grants.
 2. **The HTTP layer is proven by execution too.** The route handlers are CALLED — the customer
    wallet read, the staff API, the CSV reconciliation and the customer checkout — against stubs the
-   test drives, with a Stripe recorder in place of any call. 35 checks, no text matching.
+   test drives, with a Stripe recorder in place of any call. 43 checks, no text matching.
 
-The mutation harness reintroduces **67 defects** and requires a NAMED check to fail for each. Every
+The mutation harness reintroduces **75 defects** and requires a NAMED check to fail for each. Every
 one of the nineteen that previously survived is now caught.
 
 ---
@@ -244,7 +253,7 @@ certification is the real one.
 `scripts/verify-ix-rewards-route-behavior-01.ts` (35 checks) calls `GET /api/rewards/wallet`,
 `GET`/`POST /api/admin/rewards`, `POST /api/admin/rewards/reconciliation` and
 `POST /api/revenue-os/checkout`, and asserts the answers and the writes. The mutation harness now
-carries **67 mutations, up from 45**, and **every one of the nineteen survivors is caught**, each by
+carries **75 mutations, up from 45**, and **every one of the nineteen survivors is caught**, each by
 a named check that fails for the defect and passes for the rename.
 
 The one exception is recorded rather than quietly dropped: quadrupling the ceiling passed to
@@ -285,6 +294,50 @@ Both reviewers independently found the first two.
 | N4b | `leonix_amount_is_net_of_credits` is written on every Revenue OS record, even one with zero credits applied, so the counter-credits pre-flight refuses a few records where nothing was ever netted. | Fails CLOSED, on a staff path, with a named reason and the maximum-redeemable figure returned so staff can act. Testing `leonix_credits_applied_cents > 0` as well would be exact; it is a precision improvement, not a money defect. |
 | N7 | The queue claims a row before the movement, so a row that reads `resolved` with `movedCents: 0` is possible when the movement then fails. | Deliberate, and the safer of the two orders: claiming first is the mutual exclusion that stops two staff both moving money on one row. Every failure re-files the obligation as a fresh open row (`Y7`, `Y8`, `Y14`), so nothing is destroyed — but the file's own comment claiming a resolved row always describes money that moved is now false, and is corrected here rather than in the comment alone. |
 | N-admin | `body.paymentRecordId` is not checked to belong to the named owner, so a super_admin can annotate the wrong payment record. | Staff-only, audited, moves no money on the wrong wallet (the wallet comes from the canonical binding, proven by `Z9`). Recorded. |
+
+---
+
+## 3d. Round 3 — the reviewer who found what this round had broken
+
+One final reviewer, who wrote none of this code, was given the complete diff, the running suites and
+a throwaway PostgreSQL, and was told to treat every financial assertion as untrusted. They built a
+`RewardsStorePort` over real PostgreSQL 16.13 mirroring `rewardsLedger.ts` statement for statement —
+including the `LX001` mapping, the `-1` sentinel and the nonce — and drove the **real** exported core
+functions through it. That is the one thing neither suite did: the TypeScript suite drives an
+in-memory store and the SQL suite drives `psql`.
+
+**They found a BLOCKER that this round had introduced, and no check on either side could see it.**
+
+| # | Finding | Severity | Demonstrated | Disposition |
+|---|---|---|---|---|
+| T1 | **The `queue:<rowid>` anchor makes the same refunded dollars count twice.** Round 2 keyed a truncated-payload row on the ROW, reasoning it names no event. But the route DEMANDS the canonical refund id precisely so the staff resolution and the rail's own later delivery share one key. Two keys do not deduplicate, and `sumReversalBasisForPayment` ADDS their `basis_contribution_cents`. It was the second accounting scheme `revenueSubscriptionEvents` had already been repaired to remove, reintroduced through the staff queue. | **BLOCKER** | $100.00 payment, 900 earned, one $50.00 refund: staff resolve the truncated row (450 moved), Stripe redelivers `charge.refunded` with `re_REAL123` (450 moved again). **900 clawed back where 450 was owed.** A second shape gave 675. On a spent balance, **450 cents of `recovery_cents` the customer never owed**, which freezes every redemption. Verified as a REGRESSION: the same sequence at the starting SHA gives 450, then `deduplicated: true`. | **Repaired.** The anchor is the rail's own event id. A row that names one is resolved under it and a disagreeing typed id is refused; a row that names none uses the id the route already demands, and is refused outright without one. There is one accounting scheme again. `Y5` drives the staff resolution and then the rail's delivery and requires 450. |
+| T2 | **The round's central repair could be deleted with all 426 checks green.** Removing `post_nonce: postNonce` from `p_meta` left the behavioural, route, SQL and mutation suites all green — while eight concurrent won-dispute deliveries collectively reported **2700 restored against 900 moved**. `Z2` tests the pure rule; nothing asserted the adapter SENDS a nonce. | **HIGH** | Clean A/B on two fresh databases, N = 8. | **Repaired.** `Z3` now asserts the recorded RPC call carries a `post_nonce` of real length, and that two posts do not share one. |
+| T3 | **A pending INVITATION silently and irreversibly severs a wallet binding.** `businessBindingRevoked` asked "is none of them active". `business_memberships_status_chk` admits `invited`, which is a pending invitation — the opposite of a revocation. A wallet READ was enough to release the binding; the customer's own wallet then read $0.00 while their credits sat in the business wallet, and **accepting the invitation did not put it back**, because once a personal wallet exists the resolver takes the `owner_user_id` branch for ever. | **HIGH** | Executed against the real resolver across every status combination. Wrong number $0.00; correct $9.00. Latent rather than live — nothing in today's app writes `invited` — but it is a legal schema state the type system already models. | **Repaired.** Only a row that says `revoked` ends a binding. `Z12` and `Z13` execute the resolver across `invited`, `active`, `revoked` and mixtures. The check that blocked this fix — `R7`, a regex over the exact source line — was **replaced**, because it went green for the defect and red for a pure extract-variable refactor. |
+| T4 | **`no_action_required` on a restoration row destroys the obligation.** Round 2 allowed it to fix a row that could never be closed. On its own it opened a worse hole: one click closed a won-dispute row whose clawback was still outstanding — no ledger row, no dispute id recorded, no route action able to reopen it — while the `restored` path carefully refuses to close a row that moved nothing. | **MEDIUM (launch-impacting)** | Traced through the route, the queue module and the UI, which renders the button unconditionally. For a fully disputed and won $100.00 payment that is 900 credits the customer is owed, gone. | **Repaired.** The outcome now asks the ledger the same question the restore path answers with money: it is refused with `restoration_still_outstanding` and the exact figure unless the payment's chargeback is fully restored. `Y3b` proves the refusal; `Y3` proves the legitimate close still works. |
+| T5 | **Recovery debt had no staff exit.** `redeem_reserve` refuses while a debt stands, and a positive `manual_adjustment` does not repay one — the posting function's adjustment arm credits `available` with no offset, unlike the earn arms. So a staff "correction" of +900 to a customer owing 900 handed them 900 credits they still could not spend. The only exit was an unrelated future purchase. | **MEDIUM (launch-impacting)** | Traced through the SQL arms and the route's action list. | **Repaired.** A `forgive_recovery` action behind the same `super_admin` gate posts `recovery_offset`, bounded by the debt (a larger figure is refused with the real one, never clamped), keyed on the staff reference, and refused outright on a wallet with no debt. `Y15` proves all four. |
+| T6 | **A reversal key held by ANOTHER wallet was reported as a duplicate delivery.** `postManualAdjustment` has refused this since the staff path was repaired; `attemptReversal` did not. The webhook then believed the clawback was applied: the money went back, the credits stayed, nothing was queued, and Stripe never retried. | **MEDIUM (launch-impacting)** | Observed by execution, via a key collision in the reviewer's own harness. | **Repaired.** `attemptReversal` refuses with `reversal_key_belongs_to_another_wallet` so the caller queues it. `Z14` proves it. |
+| T7 | **The route harness's `maybeSingle()` was kinder than PostgREST**, returning the first of several rows where the real call errors — the exact behaviour this diff contains a repair for. `.lte()` compared as strings, and `.not()` degraded every unknown operator to `!==`. | **MEDIUM (evidence integrity)** | Read against the code under test. | **Repaired.** `maybeSingle` raises `PGRST116` on more than one row, `lte` compares numerically where both sides are numeric, and `not()` refuses an operator it was not taught rather than guessing. `Z17` proves the first, and a mutation pins it. |
+| T8 | A failed position read reported as `0` rather than `-1` is caught by nothing, though the code's own comment calls the sentinel load-bearing. | **LOW** | Mutation; both suites stayed green. | **Repaired.** The harness gained a way to make a read fail, and `Z15` asserts the sentinel. |
+
+### Accepted, with reasons
+
+| # | Finding | Why |
+|---|---|---|
+| T9 | The `bound_user_id` compare-and-set in `releaseRevokedBusinessBinding` is not covered by any test. | Unreachable by construction in a single resolution: the function is only called from a branch that has just read `bound_user_id = userId`, so both scopes select the same row and no test can distinguish them. It defends a concurrent window that cannot be staged from outside the module. The predicate stays — the failure it prevents is somebody else's wallet identity — and the code says at the site that it is unproven rather than counting it as evidence. The business scope IS proven, by `Z16`. |
+| T10 | 202 of the behavioural suite's 961 assertions are still regexes over source. | Every one whose defect the reviewers demonstrated could survive a text-preserving reintroduction has been replaced by an executable check (`P8`, `R7`, `R9`, and the whole HTTP layer). The remainder assert structural facts about files the route harness does not reach — the webhook event handlers, the UI components and the migration's text. Named here rather than left implicit, and the honest reading is that they are *corroboration*, not proof. |
+
+### What the reviewer could not break
+
+Reported because negative results are evidence: **300 randomised event streams** across five seeds,
+8–21 events each, ~40% of reversals delivered concurrently, driving the real core against real
+PL/pgSQL, with four invariants asserted after every step — no negative bucket, the per-payment
+reversal ceiling, ten-field replay parity, and `lifetime_earned` equal to the ledger's earns plus
+staff adjustments. **Zero violations.** Plus: 12 trials of a simultaneous full refund and full
+dispute on one payment (900 every time); N = 2/4/8 simultaneous won-dispute deliveries (900 restored
+and 900 *reported*, at every N, because of the nonce); K = 3/5/8 simultaneous distinct partial
+refunds (losers write nothing and burn no key, and retried serially land on the exact proportional
+total); the full 30-minute hold lifecycle through expiry, re-debit and unfunded accrual; and the
+migration applied **four times with live data present**, leaving exactly one `post_entry` overload.
 
 ---
 
@@ -344,6 +397,8 @@ EXECUTES the route handlers and the production adapter rather than reading them.
 | Sequence of partial refunds | converges on the exact total, no per-step rounding drift | `B4`, `B5` |
 | Out-of-order delivery | same total whatever the order | `B5` |
 | Duplicate delivery of one refund | moves money once; the replay reports zero moved | `D1`, `Q5` |
+| A staff resolution FOLLOWED by the rail's own delivery of the same refund | moves money once, because both use the rail's key | `Y5` |
+| A reversal key already held by another wallet | refused and queued, never reported as a duplicate | `Z14` |
 | Refund + dispute on one payment | the money returned is accounted for once | `Q3`, `S4` |
 | Clawback the wallet cannot cover | becomes recovery debt; no bucket goes negative | `B12`, `S3` |
 | Reversal beyond the payment's award | refused at the database | `S4` |
@@ -615,6 +670,8 @@ These are product-policy choices, not defects, and they were not made unilateral
 | Per-payment attribution inside the shared buckets is approximate (A6). | Wallet totals are correct and the per-payment ceiling is enforced; what is imprecise is which payment a promotion or a clawback consumed. Visible only in a per-payment reconciliation, never in a customer's balance. |
 | **Credits cannot be spent online anywhere** (§9.1). | Every online checkout refuses them; the only spend path is the staff counter. Customers earn correctly and see a balance they cannot spend by themselves. The copy now says so. This is the largest functional gap in the change and it is a product decision, not a defect. |
 | A released hold does not repay an outstanding recovery debt (§9.2). | Value-neutral, and policy-conformant. A customer in that state holds spendable credits they cannot spend until a future earning clears the debt. Reachable only when a clawback lands while credits are reserved. |
+| The `bound_user_id` compare-and-set in the binding release is unproven by test (§3d, T9). | Unreachable by construction in a single resolution; it defends a concurrent window that cannot be staged from outside the module. Recorded as unproven rather than counted as evidence. |
+| 202 of the behavioural suite's 961 assertions are still regexes over source (§3d, T10). | Every one whose defect a reviewer demonstrated could survive a text-preserving reintroduction has been replaced by an executable check. The rest assert structural facts about the webhook handlers, the UI and the migration text, which the route harness does not reach. Corroboration, not proof. |
 | The route harness models PostgREST, not PostgreSQL. | `scripts/lib/stubs/supabaseServer.mjs` implements the query surface the routes use plus the unique indexes that matter. It proves what a route DOES — its gate, its ordering, its arguments, its answer. It proves nothing about PL/pgSQL, which is why the SQL suite exists and runs against a real server. |
 | An `invoice.paid` with no `billing_reason` skips the earn without queueing (A4). | The customer loses 9% of one renewal, recorded in the audit log as retryable. Needs an earn-gap queue. |
 | No automatic wallet merge (locked policy). | A customer with two identities keeps two balances. Staff correction is the path. |
@@ -634,7 +691,7 @@ It runs on a **disposable copy of the tree**, never on the repository — an ear
 the live working tree, and an interrupted run was shown to leave money-moving source files
 defective on disk.
 
-The harness carries **67** mutations. They fall into five groups, and the groups matter more than
+The harness carries **75** mutations. They fall into five groups, and the groups matter more than
 the individual rows:
 
 1. **The original repairs** (#1–15) — each money defect from §3, put back.
@@ -750,9 +807,9 @@ Run at the final committed state. `PGHOST`/`PGPORT`/`PGUSER` point at a throwawa
 | Command | Exit |
 |---|---|
 | `npx tsx scripts/verify-ix-rewards-behavior-01.ts` — 182 behavioural checks | 0 |
-| `npx tsx --tsconfig scripts/lib/tsconfig.harness.json scripts/verify-ix-rewards-route-behavior-01.ts` — 35 checks that EXECUTE the route handlers and the production adapter | 0 |
+| `npx tsx --tsconfig scripts/lib/tsconfig.harness.json scripts/verify-ix-rewards-route-behavior-01.ts` — 43 checks that EXECUTE the route handlers and the production adapter | 0 |
 | `bash scripts/verify-ix-rewards-sql-behavior-01.sh` — 142 in-session assertions + 2 **timed** cross-session concurrency proofs, against real PostgreSQL 16.13 | 0 |
-| `npx tsx scripts/verify-ix-rewards-mutation-01.ts` — 67 defects reintroduced, each caught by a named check, on a disposable copy of the tree | 0 |
+| `npx tsx scripts/verify-ix-rewards-mutation-01.ts` — 75 defects reintroduced, each caught by a named check, on a disposable copy of the tree | 0 |
 | `npx tsx scripts/verify-quick-product-boundary-01.ts` — 52 checks | 0 |
 | `npx tsx scripts/verify-quick-business-core-01.ts` | 0 |
 | `npx tsx scripts/verify-quick-lifecycle-media-behavior-01.ts` — 35 checks | 0 |

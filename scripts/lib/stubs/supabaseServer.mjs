@@ -19,6 +19,7 @@
 
 const tables = new Map();
 const authUsers = new Map();
+const failingReads = new Set();
 const rpcCalls = [];
 let rpcHandler = null;
 let idSeq = 0;
@@ -39,6 +40,19 @@ export function __reset() {
 export function __setAuthUsers(users) {
   authUsers.clear();
   for (const u of users ?? []) authUsers.set(u.id, { id: u.id, email: u.email });
+}
+
+/**
+ * Make one table's reads FAIL, so a "we could not read this" branch can be exercised.
+ *
+ * Several guards in this system depend on distinguishing "nothing has happened yet" from "we do
+ * not know" — the compare-and-swap token's `-1` sentinel most of all. A harness with no way to
+ * produce a read error can never reach them, and the comments claiming they are load-bearing go
+ * unverified.
+ */
+export function __failReadsOn(table) {
+  if (table) failingReads.add(table);
+  else failingReads.clear();
 }
 
 export function __seed(table, rows) {
@@ -156,14 +170,39 @@ class Query {
     return this;
   }
   not(column, op, value) {
-    if (op === "is" && value === null) this.predicates.push((r) => r[column] != null);
-    else this.predicates.push((r) => String(r[column]) !== String(value));
-    return this;
+    if (op === "is") {
+      this.predicates.push((r) => (value === null ? r[column] != null : r[column] !== value));
+      return this;
+    }
+    if (op === "eq") {
+      this.predicates.push((r) => String(r[column]) !== String(value));
+      return this;
+    }
+    if (op === "in") {
+      const set = new Set((value ?? []).map((v) => String(v)));
+      this.predicates.push((r) => !set.has(String(r[column])));
+      return this;
+    }
+    // REFUSE RATHER THAN GUESS. Degrading every unknown operator to `!==` made the harness answer
+    // questions it had not been taught, which is how a fake starts certifying itself.
+    throw new Error(`harness: unsupported not() operator ${op}`);
   }
   gt(c, v) { this.predicates.push((r) => Number(r[c]) > Number(v)); return this; }
   gte(c, v) { this.predicates.push((r) => Number(r[c]) >= Number(v)); return this; }
   lt(c, v) { this.predicates.push((r) => Number(r[c]) < Number(v)); return this; }
-  lte(c, v) { this.predicates.push((r) => String(r[c]) <= String(v)); return this; }
+  lte(c, v) {
+    // Numeric where both sides are numeric, lexicographic otherwise — which is what PostgREST does
+    // by column type. Comparing `5000 <= 900` as strings is the kind of quiet wrongness a harness
+    // must not have.
+    this.predicates.push((r) => {
+      const a = r[c];
+      if (Number.isFinite(Number(a)) && Number.isFinite(Number(v)) && a !== null && a !== "") {
+        return Number(a) <= Number(v);
+      }
+      return String(a) <= String(v);
+    });
+    return this;
+  }
   ilike(c, v) {
     const needle = String(v).replace(/^%/, "").replace(/%$/, "").toLowerCase();
     this.predicates.push((r) => String(r[c] ?? "").toLowerCase().includes(needle));
@@ -239,6 +278,9 @@ class Query {
       tables.set(this.table, store.filter((r) => !ids.has(r.id)));
       return { data: targets, error: null };
     }
+    if (failingReads.has(this.table)) {
+      return { data: null, count: null, error: { code: "57014", message: "harness: read failed" } };
+    }
     const data = this._matching();
     if (this.wantCount) return { data: this.headOnly ? null : data, count: data.length, error: null };
     return { data, error: null };
@@ -248,6 +290,17 @@ class Query {
     const res = this._run();
     if (res.error) return Promise.resolve(res);
     const rows = res.data ?? [];
+    // PostgREST's `maybeSingle` accepts ZERO or ONE row and ERRORS on more. Returning `rows[0]`
+    // for any count made this harness kinder than production in exactly the way this change was
+    // once burned by: two payment records for one payment intent made the real call return an
+    // error rather than a row, and the repair for that is in this diff. A route check over a
+    // non-unique column would have passed here and failed in production.
+    if (rows.length > 1) {
+      return Promise.resolve({
+        data: null,
+        error: { code: "PGRST116", message: `JSON object requested, multiple (or no) rows returned (${rows.length})` },
+      });
+    }
     return Promise.resolve({ data: rows[0] ?? null, error: null, count: res.count });
   }
   single() {

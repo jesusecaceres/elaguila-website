@@ -786,6 +786,23 @@ async function attemptReversal(input: {
   // A replay matched the existing entry: NOTHING moved, and the audit log must say so rather
   // than reporting the amount this call would have moved had it been the first delivery.
   if (posted.entry.deduplicated) {
+    // A DUPLICATE OF SOMETHING ELSE IS NOT A DUPLICATE — IT IS A COLLISION.
+    //
+    // `reverse:<kind>:<externalId>` is globally unique, so a key already held by a reversal on a
+    // DIFFERENT wallet means this event's id belongs to somebody else's movement. Reporting that
+    // as `duplicate_delivery` told the webhook the clawback was already applied: the money went
+    // back to the customer, the credits stayed, nothing was queued, and Stripe never retried.
+    // `postManualAdjustment` has refused this since the staff path was repaired; the webhook path
+    // did not, so the same class of mistake was silent on the side that runs unattended.
+    // `readPostedEntry` already reports the row that exists, which is what makes this detectable.
+    if (posted.entry.walletId !== original.walletId) {
+      return {
+        ok: false,
+        error: "reversal_key_belongs_to_another_wallet",
+        basisRecorded: false,
+        shortfallCents: 0,
+      };
+    }
     return {
       ok: true,
       outcome: "no_movement",
@@ -1413,4 +1430,84 @@ export async function postManualAdjustment(input: {
     return { ok: false, error: "adjustment_reference_belongs_to_another_wallet" };
   }
   return { ok: true, amountCents: Math.floor(input.amountCents), deduplicated: posted.entry.deduplicated };
+}
+
+/**
+ * FORGIVE AN OUTSTANDING RECOVERY DEBT — the staff exit that did not exist.
+ *
+ * A clawback larger than the spendable balance becomes `recovery_cents`, and locked policy says
+ * redemption is prohibited while a debt stands and that future eligible earnings repay it first.
+ * That is correct, and it had no manual exit. A positive `manual_adjustment` does NOT repay a debt
+ * — `leonix_rewards_post_entry`'s `manual_adjustment` arm credits `available` with no offset,
+ * unlike the earn arms — so a staff "correction" of +900 to a customer owing 900 handed them 900
+ * credits they still could not spend, and the debt stood. The only way out was an unrelated future
+ * purchase. A manual-resolution state that no control can resolve is a customer stuck for ever.
+ *
+ * `recovery_offset` already exists in the ledger's vocabulary and in the replay for exactly this:
+ * a debt settled or written off outside the earnings path. It reduces the debt and touches no
+ * spendable bucket, which is what a write-off IS — it does not hand the customer credits, it stops
+ * the debt blocking them. The posting function refuses an offset larger than the debt, so this can
+ * never manufacture a negative one.
+ *
+ * Keyed on the staff reference, so a double click forgives once.
+ */
+export function recoveryOffsetIdempotencyKey(ref: string): string {
+  return `recovery_offset:${ref.trim()}`;
+}
+
+export async function forgiveRecoveryDebt(input: {
+  owner: WalletOwnerRef;
+  amountCents: number;
+  reason: string;
+  actorAuthUserId: string;
+  actorRosterId?: string | null;
+  adjustmentRef: string;
+  ports: RewardsStorePort;
+}): Promise<
+  | { ok: true; amountCents: number; remainingRecoveryCents: number; deduplicated: boolean }
+  | { ok: false; error: string; recoveryCents?: number }
+> {
+  const amountCents = Math.floor(Number(input.amountCents));
+  if (!Number.isFinite(amountCents) || amountCents <= 0) return { ok: false, error: "amount_must_be_positive" };
+  if (!input.reason || input.reason.trim().length < 3) return { ok: false, error: "reason_required" };
+  if (!input.adjustmentRef.trim()) return { ok: false, error: "reference_required" };
+  if (!input.actorAuthUserId) return { ok: false, error: "actor_required" };
+
+  const walletRes = await input.ports.resolveWallet(input.owner);
+  if (!walletRes.ok) return { ok: false, error: walletRes.error };
+
+  const recoveryCents = Math.max(0, Math.floor(Number(walletRes.wallet.recoveryCents ?? 0) || 0));
+  if (recoveryCents <= 0) return { ok: false, error: "no_recovery_debt", recoveryCents: 0 };
+  if (amountCents > recoveryCents) {
+    // Refused rather than clamped: a staff member who typed the wrong figure should see the real
+    // one, not have it silently corrected into a number they did not intend.
+    return { ok: false, error: "exceeds_recovery_debt", recoveryCents };
+  }
+
+  const posted = await input.ports.postEntry({
+    walletId: walletRes.wallet.id,
+    entryType: "recovery_offset",
+    amountCents,
+    sourceKind: "staff_adjustment",
+    idempotencyKey: recoveryOffsetIdempotencyKey(input.adjustmentRef),
+    reason: input.reason.trim(),
+    actorAuthUserId: input.actorAuthUserId,
+    actorRosterId: input.actorRosterId ?? null,
+    meta: { recovery_before_cents: recoveryCents },
+  });
+  if (!posted.ok) return { ok: false, error: posted.error };
+
+  // THE SAME REFERENCE ON A SECOND WALLET IS A MISTAKE, NOT A REPLAY — the rule the staff
+  // adjustment path already enforces, applied to the one other reference staff type by hand.
+  if (posted.entry.deduplicated && posted.entry.walletId !== walletRes.wallet.id) {
+    return { ok: false, error: "reference_belongs_to_another_wallet" };
+  }
+
+  const after = await input.ports.getWalletById(walletRes.wallet.id);
+  return {
+    ok: true,
+    amountCents,
+    remainingRecoveryCents: Math.max(0, Math.floor(Number(after?.recoveryCents ?? 0) || 0)),
+    deduplicated: posted.entry.deduplicated,
+  };
 }

@@ -571,17 +571,35 @@ export function refiledRefundResolution(
  * the typed id against ids already on the ledger cannot catch that, because the defining property
  * of the attack is that the key is still FREE when it is typed.
  *
- * So the anchor is taken from the ROW, never from the request:
+ * THE ANCHOR IS ALWAYS THE RAIL'S OWN EVENT ID. There is exactly one accounting scheme.
+ *
+ * A first attempt at this keyed a truncated-payload row on the ROW (`queue:<id>`), reasoning that
+ * such a row names no event. That was wrong, and it moved real money: the staff resolution wrote
+ * `reverse:refund:queue:<uuid>` while the rail's own later delivery wrote
+ * `reverse:refund:re_REAL`, the two keys do not deduplicate against each other, and
+ * `sumReversalBasisForPayment` ADDS their `basis_contribution_cents`. Measured on a $100.00 payment
+ * that earned 900 with one $50.00 refund: **900 clawed back where 450 was owed**, and on a spent
+ * balance 450 cents of `recovery_cents` the customer never owed, which also freezes every
+ * redemption. It was the same "second accounting scheme living beside the per-refund-id one"
+ * that `revenueSubscriptionEvents` had already been repaired to remove, reintroduced through the
+ * staff queue. This is why the route DEMANDS the canonical refund id before it will resolve such a
+ * row at all: so that the two deliveries share one key and the second one is a no-op.
+ *
+ * What the row decides is whether the typed id is ALLOWED, not whether it is used:
  *
  * - A row that names an event (`external_ref`) is resolved under THAT id, and a typed id that
- *   disagrees is a typo — refused by name rather than written. The genuine webhook delivery uses
- *   the same key, so the two still deduplicate against each other exactly as they should.
- * - A row that names none is the truncated-payload case: there is no event to key on, the amount
- *   is a cumulative rail position, and the row itself is the only stable identity available. The
- *   typed id is recorded as evidence in the note and reason, never as semantics.
+ *   disagrees is a typo — refused by name rather than written.
+ * - A row that names none is the truncated-payload case. The typed id IS the anchor, because it is
+ *   the rail's key for the same refund. Without one there is no stable idempotency and the
+ *   resolution is refused rather than keyed on something only this system knows.
  * - A restoration must name its dispute. Restoring a dispute nobody can name is refused, because
  *   the per-dispute bound that stops a won dispute giving back another dispute's clawback is
  *   computed from exactly that id.
+ *
+ * The typo hazard this cannot rule out — an id that is still FREE when it is mistyped — is
+ * narrowed by the route's `refund_external_id_belongs_to_another_payment` pre-check and costs at
+ * most a silent under-reversal of one future refund, which the queue then files. A double clawback
+ * on a real customer today is not the safer side of that trade.
  */
 export function resolutionIdempotencyAnchor(
   row: { id: string; externalRef: string | null },
@@ -596,5 +614,6 @@ export function resolutionIdempotencyAnchor(
     return { ok: true, anchor: row.externalRef };
   }
   if (opts.wantsRestore) return { ok: false, error: "restoration_row_has_no_dispute_id" };
-  return { ok: true, anchor: `queue:${row.id}` };
+  if (!supplied) return { ok: false, error: "refund_external_id_required" };
+  return { ok: true, anchor: supplied };
 }

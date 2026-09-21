@@ -32,6 +32,7 @@ import { getAdminSupabase, isSupabaseAdminConfigured, requireAdminCookie } from 
 import { buildRewardsStorePort, resolveWalletOwnerForUser } from "@/app/lib/rewards/rewardsLedger";
 import {
   commitReservedCredits,
+  forgiveRecoveryDebt,
   postManualAdjustment,
   releaseReservedCredits,
   reserveCreditsForPurchase,
@@ -199,6 +200,33 @@ export async function POST(request: NextRequest) {
         { ok: false, error: "row_requires_restoration_outcome" },
         { status: 409 },
       );
+    }
+    // ...AND `no_action_required` MUST PROVE THERE IS NOTHING LEFT TO DO.
+    //
+    // Letting it through was the repair for a row that could never be closed. On its own it opened
+    // a worse hole: the restore path carefully refuses to close a row that moved nothing and
+    // re-files it, while one click on "Sin acción" closed a won-dispute row whose clawback was
+    // still outstanding — no ledger entry, no dispute id recorded, no route action able to reopen
+    // it, and 900 credits the customer was owed simply gone. The two paths must be equally hard to
+    // get wrong, so this one asks the ledger the same question the restore path answers with money:
+    // is any of this payment's chargeback still unrestored?
+    if (row.isRestorationWork && outcome === "no_action_required") {
+      const [clawedBack, givenBack] = await Promise.all([
+        ports.sumReversedForPaymentByKind?.(row.paymentRecordId, "chargeback") ?? Promise.resolve(0),
+        ports.sumRestoredForPayment?.(row.paymentRecordId) ?? Promise.resolve(0),
+      ]);
+      const outstandingCents = Math.max(0, Math.floor(clawedBack) - Math.floor(givenBack));
+      if (outstandingCents > 0) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "restoration_still_outstanding",
+            outstandingCents,
+            outstandingDisplay: formatCreditsCents(outstandingCents),
+          },
+          { status: 409 },
+        );
+      }
     }
     if (!row.isRestorationWork && wantsRestore) {
       return NextResponse.json(
@@ -628,6 +656,54 @@ export async function POST(request: NextRequest) {
   // -------------------------------------------------------------------------
   // ADJUST — authorized correction. Signed, reasoned, attributed, audited.
   // -------------------------------------------------------------------------
+  // -------------------------------------------------------------------------
+  // FORGIVE RECOVERY DEBT — the one manual-resolution state that had no control.
+  // -------------------------------------------------------------------------
+  if (action === "forgive_recovery") {
+    const owner = await ownerFromBody(body);
+    if (!owner) return NextResponse.json({ ok: false, error: "owner_required" }, { status: 400 });
+
+    const amountCents = Number(body.amountCents);
+    const reason = typeof body.reason === "string" ? body.reason.trim() : "";
+    const adjustmentRef = typeof body.adjustmentRef === "string" ? body.adjustmentRef.trim() : "";
+    if (!Number.isFinite(amountCents) || !reason || !adjustmentRef) {
+      return NextResponse.json({ ok: false, error: "invalid_body" }, { status: 400 });
+    }
+
+    const res = await forgiveRecoveryDebt({
+      owner,
+      amountCents: Math.floor(amountCents),
+      reason,
+      actorAuthUserId,
+      actorRosterId,
+      adjustmentRef,
+      ports,
+    });
+    if (!res.ok) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: res.error,
+          ...(typeof res.recoveryCents === "number"
+            ? {
+                recoveryCents: res.recoveryCents,
+                recoveryDisplay: formatCreditsCents(res.recoveryCents),
+              }
+            : {}),
+        },
+        { status: res.error === "exceeds_recovery_debt" || res.error === "no_recovery_debt" ? 409 : 400 },
+      );
+    }
+    return NextResponse.json({
+      ok: true,
+      forgivenCents: res.amountCents,
+      forgivenDisplay: formatCreditsCents(res.amountCents),
+      remainingRecoveryCents: res.remainingRecoveryCents,
+      remainingRecoveryDisplay: formatCreditsCents(res.remainingRecoveryCents),
+      deduplicated: res.deduplicated,
+    });
+  }
+
   if (action === "adjust") {
     const owner = await ownerFromBody(body);
     if (!owner) return NextResponse.json({ ok: false, error: "owner_required" }, { status: 400 });

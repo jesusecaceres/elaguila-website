@@ -22,11 +22,14 @@ type SupabaseHarness = {
   __rpcCalls(fn?: string): { fn: string; params: Record<string, unknown> }[];
   __onRpc(handler: (fn: string, params: Record<string, unknown>) => unknown): void;
   __setAuthUsers(users: { id: string; email: string }[]): void;
+  __failReadsOn(table?: string): void;
 };
 
 type HeadersHarness = { __setCookies(entries: Record<string, string>): void };
 type SupabaseJsHarness = { __setBearerTokens(map: Record<string, string>): void };
 type StripeHarness = { __stripeSessions(): Record<string, unknown>[]; __resetStripe(): void };
+/** The stub's own client, reached through THIS module so it is the same instance the routes use. */
+type ClientHarness = { getAdminSupabase(): { from(table: string): Record<string, (...args: unknown[]) => unknown> } };
 
 
 const supabase = supabaseModule as unknown as SupabaseHarness;
@@ -40,6 +43,8 @@ export const __rows = supabase.__rows;
 export const __rpcCalls = supabase.__rpcCalls;
 export const __onRpc = supabase.__onRpc;
 export const __setAuthUsers = supabase.__setAuthUsers;
+export const __failReadsOn = supabase.__failReadsOn;
+export const getHarnessClient = (supabaseModule as unknown as ClientHarness).getAdminSupabase;
 export const __setCookies = nextHeaders.__setCookies;
 export const __setBearerTokens = supabaseJs.__setBearerTokens;
 export const __stripeSessions = stripe.__stripeSessions;

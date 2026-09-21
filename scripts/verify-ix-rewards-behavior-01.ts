@@ -4998,10 +4998,24 @@ async function main() {
       /if \(rows\.length === 0\) return false;/.test(helperBody),
       "no membership relationship at all means nothing was revoked, so the binding stands",
     );
-    assert.ok(
-      /return !rows\.some\(\(r\) => String\(r\.membership_status \?\? ""\) === "active"\);/.test(helperBody),
-      "and it ends only when a relationship exists and none of its rows is active",
-    );
+    // WHAT DECIDES A REVOCATION IS NOT ASSERTED HERE — IT IS EXECUTED.
+    //
+    // This used to pin the exact source line. Two things were wrong with that. It went RED for a
+    // pure extract-variable refactor, and it went GREEN for the defect: the line it pinned asked
+    // "is none of them active", which treated a PENDING INVITATION (`invited`, which the CHECK
+    // constraint admits and `MembershipStatus` declares) as a revocation and released the binding
+    // of a customer who had been invited to a business — irreversibly, because once a personal
+    // wallet exists the resolver takes the `owner_user_id` branch for ever. The regex could not
+    // see it, because the defect WAS the line it required.
+    //
+    // `Z12` and `Z13` in the route suite run the real resolver against each membership status.
+    const routeSuiteR7 = readFileSync("scripts/verify-ix-rewards-route-behavior-01.ts", "utf8");
+    for (const name of ["Z6", "Z7", "Z8", "Z12"]) {
+      assert.ok(
+        routeSuiteR7.includes(`await check("${name}:`),
+        `the executable check ${name} must exist — this check no longer covers what it decides`,
+      );
+    }
     assert.ok(/if \(error\) return false;/.test(helperBody), "a table we cannot read is not evidence of removal");
     // Both resolvers honour it; a PERSONAL binding is unconditional.
     for (const fnName of ["findBoundWalletOwner", "resolveWalletOwnerForUser"]) {
