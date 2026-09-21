@@ -35,7 +35,11 @@ import {
   warnDroppedUnpersistableMedia,
 } from "@/app/lib/media/listingMediaContract";
 import { readActiveAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
-import { linkAssistedListingToBusiness } from "@/app/lib/business/assistedListingCustody";
+import {
+  hasClearedManualPaymentForListing,
+  isListingLinkedToBusiness,
+  linkAssistedListingToBusiness,
+} from "@/app/lib/business/assistedListingCustody";
 import { linkSelfServiceListingToBusiness } from "@/app/lib/business/canonicalListingLink";
 import { enforceQuickBusinessPublishMedia } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
 import { resolveQuickBusinessPublishIdentity } from "@/app/lib/listingPlans/quickBusinessProductIdentityServer";
@@ -427,6 +431,44 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "ownership_mismatch" }, { status: 403 });
   }
 
+  // CUSTODY, NOT A CLIENT-SUPPLIED ROW ID.
+  //
+  // The guard above only fires when `verifiedOwnerId` is non-null, and on an assisted request it
+  // is null by construction — so the row to write was chosen entirely by the browser's
+  // `draft.draftListingId`. A staff cookie minted for business A could therefore overwrite
+  // business B's restaurant row and then link that foreign row to A. Re-opening an existing row
+  // on behalf of a client requires the same custody proof the other categories demand: this
+  // business must already hold this listing.
+  if (isAssistedRequest && existingByDraft?.id) {
+    const linked = await isListingLinkedToBusiness({
+      businessId: assistedContext!.businessId,
+      listingSource: "restaurantes_public_listings",
+      listingId: String((existingByDraft as { id: string }).id),
+    });
+    if (!linked) {
+      return NextResponse.json({ ok: false, error: "listing_not_linked_to_business" }, { status: 403 });
+    }
+  }
+
+  // PUBLISHING ON A CLIENT'S BEHALF REQUIRES AUTHORITATIVE PAYMENT.
+  //
+  // Every other assisted category checks this; this one did not check it at all, so
+  // `publish_for_client` made an unpaid listing public on a staff member's say-so. The check is
+  // the same server/payment truth the others use — a cleared manual payment for THIS listing —
+  // and it runs before anything is written.
+  if (isAssistedPublishForClient) {
+    if (!existingByDraft?.id) {
+      return NextResponse.json({ ok: false, error: "existing_listing_required" }, { status: 400 });
+    }
+    const cleared = await hasClearedManualPaymentForListing({
+      listingSource: "restaurantes_public_listings",
+      listingId: String((existingByDraft as { id: string }).id),
+    });
+    if (!cleared) {
+      return NextResponse.json({ ok: false, error: "manual_payment_not_cleared" }, { status: 402 });
+    }
+  }
+
   // Gate E.2.1 — paid coupon entitlement is server/payment truth only (live
   // `listing_package_entitlements` state), never a client-submitted flag, the old sticky
   // `listing_json.couponUpgradeEnabled` boolean, slug, or Leonix Ad ID.
@@ -582,7 +624,17 @@ export async function POST(req: NextRequest) {
           packageTier: requestedLane,
           status: "published",
         }),
-        status: pendingPayment ? RESTAURANTE_PENDING_CHECKOUT_STATUS : "published",
+        // A STAFF SAVE IS NEVER A PUBLICATION.
+        //
+        // `save_for_client` with no `activation_mode` used to insert `status: "published"` with a
+        // `published_at` — and "published" is exactly the predicate the public reader uses. Staff
+        // preparing an ad for a prospect therefore put an UNPAID listing live on the site, before
+        // any payment existed and with no way to tell it apart from a paid one. The assisted save
+        // pins the pending status itself rather than inheriting whatever the body asked for.
+        status:
+          isAssistedSaveForClient || pendingPayment
+            ? RESTAURANTE_PENDING_CHECKOUT_STATUS
+            : "published",
       };
       let insertError: { message: string; code?: string } | null = null;
       for (let attempt = 0; attempt < 8; attempt++) {
@@ -598,7 +650,8 @@ export async function POST(req: NextRequest) {
         const { data: inserted, error } = await supabase.from("restaurantes_public_listings").insert({
           ...row,
           leonix_ad_id,
-          published_at: now,
+          // ...and it is not "published at" a time it was never published.
+          published_at: isAssistedSaveForClient ? null : now,
           updated_at: now,
         }).select("id, leonix_ad_id").single();
         if (!error && inserted?.id) {

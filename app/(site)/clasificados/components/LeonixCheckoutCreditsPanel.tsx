@@ -43,6 +43,13 @@ export type LeonixCheckoutCreditsPanelProps = {
   /** Reported upward on every change so the checkout body can carry it. Never negative. */
   onRequestedCentsChange: (cents: number) => void;
   disabled?: boolean;
+  /**
+   * The amount this plan bills EVERY month, when it is a subscription; null for a one-time
+   * purchase. Credits reach a monthly plan through a first-invoice-only Stripe coupon, so the
+   * renewal price is unchanged — and a customer spending credits on a subscription needs that
+   * said plainly, not inferred.
+   */
+  recurringAmountCents?: number | null;
   borderColor: string;
   textColor: string;
   mutedColor: string;
@@ -64,6 +71,7 @@ export default function LeonixCheckoutCreditsPanel({
   amountDueCents,
   onRequestedCentsChange,
   disabled,
+  recurringAmountCents = null,
   borderColor,
   textColor,
   mutedColor,
@@ -295,6 +303,15 @@ export default function LeonixCheckoutCreditsPanel({
           {applied ? (
             <p className="text-xs font-semibold" style={{ color: successColor }} data-testid="leonix-checkout-credits-applied">
               {copy.applied} · {copy.remainingDue}
+            </p>
+          ) : null}
+
+          {recurringAmountCents !== null && recurringAmountCents > 0 ? (
+            <p className="text-xs" style={{ color: mutedColor }}>
+              {t(
+                `Tus créditos se aplican solo a este primer pago. Tu plan sigue en ${formatCreditsCents(recurringAmountCents)} al mes.`,
+                `Your credits apply to this first payment only. Your plan stays at ${formatCreditsCents(recurringAmountCents)} a month.`,
+              )}
             </p>
           ) : null}
 

@@ -85,6 +85,7 @@ import {
   type ReserveVerifiedIntroDiscountInput,
 } from "@/app/lib/listingPlans/verifiedIntroDiscountRedemptions";
 import { ensureVerifiedIntroDiscountStripeCoupon } from "@/app/lib/listingPlans/verifiedIntroDiscountStripeCoupon";
+import { ensureRewardsFirstInvoiceCoupon } from "@/app/lib/listingPlans/rewardsFirstInvoiceStripeCoupon";
 import { ensureContractTermStripeCoupon } from "@/app/lib/listingPlans/contractTermStripeCoupon";
 import {
   planCheckoutCredits,
@@ -833,33 +834,51 @@ export async function POST(request: NextRequest) {
   let creditsHoldExpiresAtIso: string | null = null;
   let creditsRefusedReason: string | null = null;
 
-  // CREDITS DO NOT REDUCE A RECURRING PRICE. In `subscription` mode the discount is applied by
-  // lowering the line item's `unit_amount`, and that line item carries `recurring: { interval:
-  // "month" }` — so a ONE-TIME credit debit would set the subscription's price for every renewal,
-  // for ever. Measured: $199.50 of credits against a $399.00/month plan bills $199.50 a month
-  // indefinitely and earns 9% on the reduced figure each time, funding further redemptions.
+  // CREDITS ON A RECURRING PLAN GO THROUGH A FIRST-INVOICE COUPON, NEVER THE LINE ITEM.
   //
-  // This codebase already knows the mechanism: the verified-intro discount uses a Stripe
-  // `duration: "once"` coupon precisely so "the subscription's own price stays full and renewals
-  // bill full price". Credits have no such coupon yet, and inventing an untested per-amount coupon
-  // path on the live payment rail is not something a certification can stand behind.
+  // In `subscription` mode the line item's `unit_amount` IS the recurring price, so taking credits
+  // off it bills the reduced figure every month for ever — measured: $199.50 of credits against a
+  // $399.00/month plan bills $199.50 a month indefinitely and earns 9% on the reduced figure each
+  // time, funding further redemptions. Credits were therefore refused outright on recurring plans.
   //
-  // So credits are REFUSED on a recurring plan, by name, and the customer keeps their balance and
-  // pays the full price. Nothing is silently applied and nothing leaks. Enabling credits on
-  // recurring plans needs the once-coupon path and an owner decision; it is recorded as unbuilt
-  // rather than half-built.
-  const creditsBlockedByRecurringPrice = stripeMode === "subscription";
+  // They are now applied the way the verified-intro discount already is: a Stripe
+  // `duration: "once"` coupon, which discounts the FIRST invoice and leaves the subscription's own
+  // price alone. The line items stay at full price, so renewal bills $249 with no Leonix action.
+  //
+  // ONE DISCOUNT SLOT. A Checkout Session takes a single `discounts` entry, so the intro discount
+  // and the credits cannot be two coupons. `ensureRewardsFirstInvoiceCoupon` carries BOTH as one
+  // `amount_off`, which is also what makes the ordering real rather than claimed: the intro
+  // discount comes off first, the credits are sized against what REMAINS, and the two are added
+  // back together exactly once.
+  //
+  // A finite-term contract promo is the one case still refused: its coupon is `duration:
+  // "repeating"` and occupies the same slot, so there is nowhere for the credits to go. The
+  // customer is told that by name rather than silently charged full price.
+  const creditsBlockedByContractTermCoupon = Boolean(contractTermStripeCouponId);
+  const isRecurringCheckout = stripeMode === "subscription";
 
-  if (requestedCreditsCents > 0 && creditsBlockedByRecurringPrice) {
-    creditsRefusedReason = "not_available_on_recurring_plan";
+  // THE ELIGIBLE CHARGE THE 50% CEILING IS MEASURED AGAINST.
+  //
+  // On a subscription the customer's FIRST payment is the price minus the intro discount, and that
+  // is the server-authoritative, pre-tax figure the policy means by "the current eligible charge".
+  // Measuring against the full $249 instead would let a verified customer spend more than half of
+  // what they are actually being charged. `verifiedIntroDiscountCents` is computed for BOTH
+  // mechanisms above, so this is correct whether the discount rides a coupon or the line item.
+  const firstChargeBeforeCreditsCents = isRecurringCheckout
+    ? Math.max(0, amountCents - verifiedIntroDiscountCents)
+    : amountCents;
+
+  if (requestedCreditsCents > 0 && creditsBlockedByContractTermCoupon) {
+    creditsRefusedReason = "not_available_with_contract_term_promo";
   } else if (requestedCreditsCents > 0) {
     const planned = await planCheckoutCredits({
       ownerUserId: creditsOwnerUserId,
       requestedCents: requestedCreditsCents,
-      amountDueCents: amountCents,
+      amountDueCents: firstChargeBeforeCreditsCents,
       // The 50% ceiling is measured against the whole eligible purchase, not the post-promo
       // residual: a promo code must not shrink how much loyalty value the customer may spend.
-      eligiblePurchaseCents: subtotalCents,
+      // On a subscription the eligible purchase is that first charge, after the intro discount.
+      eligiblePurchaseCents: isRecurringCheckout ? firstChargeBeforeCreditsCents : subtotalCents,
     });
     if (planned.plannedCents > 0) {
       creditsAppliedCents = planned.plannedCents;
@@ -870,10 +889,19 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // The one amount the rest of this route charges. Every downstream figure — the payment record,
-  // the Stripe line items, the session, the response — is derived from this, so the price the
-  // customer sees, the price Stripe charges and the price we record cannot disagree.
-  const chargeableAmountCents = Math.max(0, amountCents - creditsAppliedCents);
+  //
+  // ON A SUBSCRIPTION THIS IS DELIBERATELY THE FULL PRICE. The line items must keep billing $249,
+  // so the credits are NOT subtracted here — they ride the first-invoice coupon below. Subtracting
+  // them in both places would discount the customer twice and set the recurring price to the
+  // discounted figure, which is the defect this whole path exists to avoid.
+  const chargeableAmountCents = isRecurringCheckout
+    ? amountCents
+    : Math.max(0, amountCents - creditsAppliedCents);
+
+  /** What the customer actually pays on their FIRST invoice, which is what every figure reports. */
+  const firstChargeAfterCreditsCents = isRecurringCheckout
+    ? Math.max(0, firstChargeBeforeCreditsCents - creditsAppliedCents)
+    : chargeableAmountCents;
 
   // ── Package C Build 2 (C4) — atomic reservation. The four partial unique indexes on
   // leonix_verified_intro_discount_redemptions are the actual concurrency gate; this call
@@ -1056,6 +1084,50 @@ export async function POST(request: NextRequest) {
     creditsHoldExpiresAtIso = application.expiresAtIso;
   }
 
+  // ── THE FIRST-INVOICE COUPON. Created only now, from the AUTHORITATIVE reserved amount. ──
+  //
+  // Sequenced here deliberately. The reserve above re-plans under a row lock and is the only
+  // figure this checkout may charge against; minting the coupon before it would risk discounting
+  // an amount the wallet never actually held. It is also created before the Stripe session, so a
+  // coupon failure stops the checkout with the credits still safely held and released below,
+  // rather than after a session exists.
+  //
+  // The amount is the WHOLE first-invoice reduction — the intro discount plus the credits — because
+  // a session has one discount slot. When there are no credits this is left alone and the
+  // verified-intro coupon is attached exactly as before; nothing on that path changes.
+  let rewardsFirstInvoiceCouponId: string | null = null;
+  if (isRecurringCheckout && creditsAppliedCents > 0) {
+    const amountOffCents = verifiedIntroDiscountCents + creditsAppliedCents;
+    const coupon = await ensureRewardsFirstInvoiceCoupon({
+      paymentRecordId: paymentInsert.paymentRecordId,
+      amountOffCents,
+      currency,
+    });
+    if (!coupon.ok) {
+      // NEVER FALL THROUGH TO FULL PRICE. The customer asked to spend credits; a checkout that
+      // silently charges them the undiscounted price while their balance sits reserved is the
+      // phantom-discount failure in reverse. Release the hold, retire the attempt, and say so.
+      await releaseCheckoutCredits({
+        reason: "rewards_first_invoice_coupon_unavailable",
+        paymentRecordId: paymentInsert.paymentRecordId,
+      });
+      await releaseStaleCheckoutAttempt(paymentInsert.paymentRecordId);
+      if (verifiedIntroDiscountRedemptionId) {
+        await releaseVerifiedIntroDiscountReservation(checkoutAttemptKey);
+      }
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "credits_discount_temporarily_unavailable",
+          message:
+            "Your credits could not be applied to this plan right now. Nothing was charged and your balance is untouched — try again.",
+        },
+        { status: 503 },
+      );
+    }
+    rewardsFirstInvoiceCouponId = coupon.couponId;
+  }
+
   let promoRedemptionId: string | undefined;
 
   if (promoCodeId && promoCodeRaw) {
@@ -1136,7 +1208,9 @@ export async function POST(request: NextRequest) {
     checkoutAttemptKey,
     attemptGeneration,
     consentRecordId,
-    verifiedIntroDiscountStripeCouponId,
+    // The rewards coupon SUPERSEDES the intro coupon when it exists, because it already contains
+    // the intro discount. Passing both would either stack (impossible — one slot) or double-count.
+    verifiedIntroDiscountStripeCouponId: rewardsFirstInvoiceCouponId ?? verifiedIntroDiscountStripeCouponId,
     contractTermStripeCouponId,
   });
 
@@ -1246,16 +1320,22 @@ export async function POST(request: NextRequest) {
     checkoutUrl: stripeResult.checkoutUrl,
     paymentRecordId: paymentInsert.paymentRecordId,
     stripeCheckoutSessionId: stripeResult.sessionId,
-    // `amountCents` is what the customer will be CHARGED. The pre-credit figure is reported
-    // separately so the confirmation can show both without either number being inferred.
-    amountCents: chargeableAmountCents,
-    amountBeforeCreditsCents: amountCents,
+    // `amountCents` is what the customer will be CHARGED NOW. On a subscription that is the FIRST
+    // invoice — price, minus the intro discount, minus the credits — and NOT `chargeableAmountCents`,
+    // which is deliberately the full recurring price so renewals keep billing it. Reporting the
+    // line-item figure here would tell a customer spending credits that they are about to pay the
+    // undiscounted amount. The pre-credit figure is reported separately so the confirmation can
+    // show both without either being inferred.
+    amountCents: firstChargeAfterCreditsCents,
+    amountBeforeCreditsCents: isRecurringCheckout ? firstChargeBeforeCreditsCents : amountCents,
+    /** What every renewal bills, unchanged by any credit. Stated so nobody has to infer it. */
+    ...(isRecurringCheckout ? { recurringAmountCents: amountCents } : {}),
     currency,
     mode: stripeMode,
     // LEONIX IX REWARDS — exactly what happened to the credits, including a refusal. A customer
     // who asked to spend credits and could not must be told, not quietly charged full price.
     creditsAppliedCents,
-    remainingDueCents: chargeableAmountCents,
+    remainingDueCents: firstChargeAfterCreditsCents,
     ...(creditsRedemptionId ? { creditsRedemptionId } : {}),
     ...(creditsHoldExpiresAtIso ? { creditsHoldExpiresAtIso } : {}),
     ...(creditsRefusedReason ? { creditsRefusedReason } : {}),

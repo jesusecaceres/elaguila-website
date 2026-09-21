@@ -62,9 +62,9 @@ Two structural changes carry this certification:
    grants.
 2. **The HTTP layer is proven by execution too.** The route handlers are CALLED — the customer
    wallet read, the staff API, the CSV reconciliation and the customer checkout — against stubs the
-   test drives, with a Stripe recorder in place of any call. 50 checks, no text matching.
+   test drives, with a Stripe recorder in place of any call. 56 checks, no text matching.
 
-The mutation harness reintroduces **88 defects** and requires a NAMED check to fail for each. Every
+The mutation harness reintroduces **92 defects** and requires a NAMED check to fail for each. Every
 one of the nineteen that previously survived is now caught.
 
 ---
@@ -270,7 +270,7 @@ certification is the real one.
 `scripts/verify-ix-rewards-route-behavior-01.ts` (35 checks) calls `GET /api/rewards/wallet`,
 `GET`/`POST /api/admin/rewards`, `POST /api/admin/rewards/reconciliation` and
 `POST /api/revenue-os/checkout`, and asserts the answers and the writes. The mutation harness now
-carries **88 mutations, up from 45**, and **every one of the nineteen survivors is caught**, each by
+carries **92 mutations, up from 45**, and **every one of the nineteen survivors is caught**, each by
 a named check that fails for the defect and passes for the rename.
 
 The one exception is recorded rather than quietly dropped: quadrupling the ceiling passed to
@@ -801,7 +801,7 @@ It runs on a **disposable copy of the tree**, never on the repository — an ear
 the live working tree, and an interrupted run was shown to leave money-moving source files
 defective on disk.
 
-The harness carries **88** mutations. They fall into five groups, and the groups matter more than
+The harness carries **92** mutations. They fall into five groups, and the groups matter more than
 the individual rows:
 
 1. **The original repairs** (#1–15) — each money defect from §3, put back.
@@ -917,9 +917,9 @@ Run at the final committed state. `PGHOST`/`PGPORT`/`PGUSER` point at a throwawa
 | Command | Exit |
 |---|---|
 | `npx tsx scripts/verify-ix-rewards-behavior-01.ts` — 182 behavioural checks | 0 |
-| `npx tsx --tsconfig scripts/lib/tsconfig.harness.json scripts/verify-ix-rewards-route-behavior-01.ts` — 50 checks that EXECUTE the route handlers and the production adapter | 0 |
+| `npx tsx --tsconfig scripts/lib/tsconfig.harness.json scripts/verify-ix-rewards-route-behavior-01.ts` — 56 checks that EXECUTE the route handlers and the production adapter | 0 |
 | `bash scripts/verify-ix-rewards-sql-behavior-01.sh` — 142 in-session assertions + 2 **timed** cross-session concurrency proofs, against real PostgreSQL 16.13 | 0 |
-| `npx tsx scripts/verify-ix-rewards-mutation-01.ts` — 88 defects reintroduced, each caught by a named check, on a disposable copy of the tree | 0 |
+| `npx tsx scripts/verify-ix-rewards-mutation-01.ts` — 92 defects reintroduced, each caught by a named check, on a disposable copy of the tree | 0 |
 | `npx tsx scripts/verify-quick-product-boundary-01.ts` — 52 checks | 0 |
 | `npx tsx scripts/verify-quick-business-core-01.ts` | 0 |
 | `npx tsx scripts/verify-quick-lifecycle-media-behavior-01.ts` — 35 checks | 0 |

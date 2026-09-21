@@ -15,6 +15,7 @@
  *    to business, then requires a cleared manual payment before going live
  */
 import { NextResponse, type NextRequest } from "next/server";
+import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { readActiveAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
 import {
   hasClearedManualPaymentForListing,
@@ -165,6 +166,40 @@ export async function POST(request: NextRequest) {
         { ok: false, error: "manual_payment_not_cleared", message: "Record and clear the manual payment in the Payment Tracker first." },
         { status: 402 },
       );
+    }
+
+    // A GATE THAT PASSES AND CHANGES NOTHING IS NOT A PUBLICATION.
+    //
+    // The cleared-payment check above returned 402 when unpaid and then fell straight through to
+    // `{ ok: true }` when paid: the row stayed `draft`, nothing became public, and staff were told
+    // the listing had been published for their client. `publish_for_client` was a lifecycle no-op.
+    // The activation is a compare-and-set from the pre-publish state, so a concurrent moderation
+    // or webhook write is never overwritten, and a zero-row result is reported rather than
+    // swallowed.
+    const supabase = getAdminSupabase();
+    const nowIso = new Date().toISOString();
+    const { data: activated, error: activateError } = await supabase
+      .from("autos_classifieds_listings")
+      .update({ status: "active", published_at: nowIso, updated_at: nowIso })
+      .eq("id", mainListingId)
+      .in("status", ["draft", "pending_payment", "payment_failed"])
+      .select("id")
+      .maybeSingle();
+    if (activateError) {
+      return NextResponse.json({ ok: false, error: "autos_activate_failed" }, { status: 500 });
+    }
+    if (!activated?.id) {
+      return NextResponse.json(
+        { ok: false, error: "autos_status_transition_not_allowed" },
+        { status: 409 },
+      );
+    }
+    if (vehicleListingId) {
+      await supabase
+        .from("autos_classifieds_listings")
+        .update({ status: "active", published_at: nowIso, updated_at: nowIso })
+        .eq("id", vehicleListingId)
+        .in("status", ["draft", "pending_payment", "payment_failed"]);
     }
   }
 

@@ -41,6 +41,8 @@ import {
   __setCookies,
   __stripeSessions,
   __resetStripe,
+  __stripeCoupons,
+  __failCouponCreate,
 } from "./lib/harnessControls";
 
 let checks = 0;
@@ -1656,6 +1658,33 @@ async function main(): Promise<void> {
     cancelUrl: "http://x/no",
   };
 
+  /**
+   * SECTION S fixtures — a real Quick Business monthly plan.
+   *
+   * Credits reach a subscription through a Stripe `duration: "once"` coupon on the first invoice,
+   * so what these checks read is what the route ASKED Stripe for: the line item's `unit_amount`
+   * (which must stay at the full recurring price) and the coupon it attached.
+   */
+  const QUICK_MONTHLY = {
+    category: "servicios",
+    packageKey: "servicios_quick_monthly",
+    listingDraftId: "draft-sub",
+    successUrl: "http://x/ok",
+    cancelUrl: "http://x/no",
+    recurringConsent: { accepted: true, consentTextVersion: RECURRING_CONSENT_TEXT_VERSION, lang: "es" },
+  };
+  /** Quick Business is $249/month. The number is asserted, not assumed. */
+  const QUICK_MONTHLY_CENTS = 24900;
+
+  function couponOn(session: Record<string, unknown>): { coupon?: string } | null {
+    const discounts = session.discounts as { coupon?: string }[] | undefined;
+    return discounts && discounts.length ? discounts[0]! : null;
+  }
+  function unitAmounts(session: Record<string, unknown>): number[] {
+    const items = (session.line_items ?? []) as { price_data?: { unit_amount?: number } }[];
+    return items.map((i) => Number(i.price_data?.unit_amount ?? 0));
+  }
+
   await check("V1: the wallet a checkout spends from is the BEARER's — `ownerUserId` in the body reaches nothing", async () => {
     __reset();
     __resetStripe();
@@ -1744,42 +1773,201 @@ async function main(): Promise<void> {
     );
   });
 
-  await check("V4: a RECURRING plan refuses credits by name, and holds nothing", async () => {
+  await check("V4: a FINITE-TERM contract promo refuses credits by name, and holds nothing", async () => {
+    // The one refusal that remains on a recurring plan, and the reason it must remain.
+    //
+    // Credits now reach a subscription through a `duration: "once"` amount_off coupon. A contract
+    // promo occupies that same single `discounts` slot with a `duration: "repeating"` coupon, so
+    // there is nowhere for the credits to go. That is a truthful refusal by name — never a silent
+    // full-price charge, and never a second coupon Stripe would reject.
+    //
+    // This check replaced one asserting that EVERY recurring plan refuses credits. That was the
+    // product rule until this change deliberately altered it; the check is rewritten rather than
+    // deleted so the refusal path keeps its coverage.
+    const policy = readFileSync("app/api/revenue-os/checkout/route.ts", "utf8");
+    assert.ok(
+      policy.includes('creditsRefusedReason = "not_available_with_contract_term_promo"'),
+      "the contract-term refusal is named",
+    );
+    assert.ok(
+      policy.includes("const creditsBlockedByContractTermCoupon = Boolean(contractTermStripeCouponId);"),
+      "and it is decided by the presence of that coupon, not by the billing mode",
+    );
+
+    // ...and behaviourally: with no contract promo, a recurring plan DOES take credits and holds
+    // exactly one reservation. The refusal is specific, not a blanket.
+    __reset();
+    __resetStripe();
+    echoingLedger();
+    __setBearerTokens({ tok: BEARER });
+    seedTwoWallets(5000);
+    const res = await postCheckout({ ...QUICK_MONTHLY, requestedCreditsCents: 5000 });
+    assert.equal(res.status, 200, await res.clone().text());
+    const held = __rpcCalls("leonix_rewards_post_entry").filter(
+      (c) => String(c.params.p_entry_type) === "redeem_reserve",
+    );
+    assert.equal(held.length, 1, "exactly one hold on a recurring checkout that takes credits");
+  });
+
+  await check("S1: credits reach a MONTHLY plan through a first-invoice coupon, and the plan still bills $249", async () => {
+    __reset();
+    __resetStripe();
+    echoingLedger();
+    __setBearerTokens({ tok: BEARER });
+    seedTwoWallets(5000);
+    const res = await postCheckout({ ...QUICK_MONTHLY, requestedCreditsCents: 5000 });
+    const text = await res.clone().text();
+    assert.equal(res.status, 200, text);
+    const body = JSON.parse(text) as {
+      creditsAppliedCents?: number;
+      amountCents?: number;
+      remainingDueCents?: number;
+      recurringAmountCents?: number;
+    };
+
+    // The credits were actually applied — not refused with the balance left sitting there.
+    assert.ok((body.creditsAppliedCents ?? 0) > 0, `credits must apply on a monthly plan: ${text}`);
+
+    // THE RENEWAL PRICE IS UNTOUCHED. This is the defect the whole mechanism exists to avoid:
+    // subtracting credits from a `recurring` line item bills the reduced figure for ever.
+    const sessions = __stripeSessions();
+    assert.equal(sessions.length, 1, "one session");
+    assert.deepEqual(
+      unitAmounts(sessions[0]!),
+      [QUICK_MONTHLY_CENTS],
+      "the recurring line item must stay at the full monthly price",
+    );
+    assert.equal(body.recurringAmountCents, QUICK_MONTHLY_CENTS, "and the response says so");
+
+    // The discount rides a coupon, and that coupon is a ONCE amount_off for exactly the credits.
+    const attached = couponOn(sessions[0]!);
+    assert.ok(attached?.coupon, `a coupon must be attached: ${JSON.stringify(sessions[0])}`);
+    const coupons = __stripeCoupons();
+    const minted = coupons.find((c) => c.id === attached!.coupon);
+    assert.ok(minted, `the attached coupon must be one this route created: ${JSON.stringify(coupons)}`);
+    assert.equal(minted!.duration, "once", "first invoice only — never a permanent price cut");
+    assert.equal(
+      minted!.amount_off,
+      body.creditsAppliedCents,
+      "with no verified-intro discount in play, the coupon is exactly the credits",
+    );
+    assert.equal(String(minted!.currency).toLowerCase(), "usd");
+
+    // And the customer is told what they pay NOW, not the line-item figure.
+    assert.equal(
+      body.amountCents,
+      QUICK_MONTHLY_CENTS - (body.creditsAppliedCents ?? 0),
+      "the reported charge is the first invoice",
+    );
+    assert.equal(body.remainingDueCents, body.amountCents);
+  });
+
+  await check("S2: the 50% ceiling binds on the monthly charge, and the $1 floor is enforced", async () => {
     __reset();
     __resetStripe();
     echoingLedger();
     __setBearerTokens({ tok: BEARER });
     seedTwoWallets(500000);
-    const res = await postCheckout({
-      category: "servicios",
-      packageKey: "servicios_base_monthly",
-      listingDraftId: "draft-2",
-      successUrl: "http://x/ok",
-      cancelUrl: "http://x/no",
-      requestedCreditsCents: 500,
-      // A subscription checkout refuses to go anywhere without affirmative consent, so supply it —
-      // otherwise this check would "pass" by never reaching the credits decision at all.
-      recurringConsent: {
-        accepted: true,
-        consentTextVersion: RECURRING_CONSENT_TEXT_VERSION,
-        lang: "es",
-      },
-    });
-    const text = await res.clone().text();
-    assert.equal(res.status, 200, `the subscription checkout reached the credits decision: ${text.slice(0, 300)}`);
+    const res = await postCheckout({ ...QUICK_MONTHLY, requestedCreditsCents: 999999 });
+    assert.equal(res.status, 200, await res.clone().text());
+    const body = (await res.json()) as { creditsAppliedCents?: number };
+    assert.ok(
+      (body.creditsAppliedCents ?? 0) <= Math.floor(QUICK_MONTHLY_CENTS / 2),
+      `half of $249.00 is the ceiling, got ${body.creditsAppliedCents}`,
+    );
+    assert.ok((body.creditsAppliedCents ?? 0) >= 100, "and at least the $1.00 minimum");
+
+    // The rail must still get something to charge.
     const held = __rpcCalls("leonix_rewards_post_entry").filter(
       (c) => String(c.params.p_entry_type) === "redeem_reserve",
     );
-    assert.equal(held.length, 0, `no hold on a subscription: ${text.slice(0, 300)}`);
+    assert.equal(held.length, 1);
+    assert.ok(
+      QUICK_MONTHLY_CENTS - Number(held[0]!.params.p_amount_cents) >= 50,
+      "at least $0.50 must remain for the card",
+    );
+  });
+
+  await check("S3: a balance below $1.00 is refused by name, and nothing is held or discounted", async () => {
+    __reset();
+    __resetStripe();
+    echoingLedger();
+    __setBearerTokens({ tok: BEARER });
+    seedTwoWallets(40);
+    const res = await postCheckout({ ...QUICK_MONTHLY, requestedCreditsCents: 40 });
+    assert.equal(res.status, 200, await res.clone().text());
+    const body = (await res.json()) as { creditsAppliedCents?: number; creditsRefusedReason?: string };
+    assert.equal(body.creditsAppliedCents ?? 0, 0);
+    assert.ok(body.creditsRefusedReason, "the customer is told why, never silently charged full price");
+    assert.equal(
+      __rpcCalls("leonix_rewards_post_entry").filter((c) => String(c.params.p_entry_type) === "redeem_reserve").length,
+      0,
+      "and nothing was held",
+    );
+    assert.equal(__stripeCoupons().length, 0, "and no coupon was minted");
+  });
+
+  await check("S4: recovery debt blocks redemption on a monthly plan too", async () => {
+    __reset();
+    __resetStripe();
+    __setBearerTokens({ tok: BEARER });
+    __seed("leonix_rewards_wallets", [
+      { id: "w-bearer", owner_user_id: BEARER, available_cents: 20000, pending_cents: 0, reserved_cents: 0, lifetime_earned_cents: 20000, lifetime_redeemed_cents: 0, lifetime_reversed_cents: 0, recovery_cents: 900, lifetime_restored_cents: 0 },
+    ]);
+    // The database refuses a reserve while a debt stands; the harness mirrors that refusal.
+    __onRpc((fn, params) => {
+      if (fn === "leonix_rewards_post_entry" && String(params.p_entry_type) === "redeem_reserve") {
+        return { data: null, error: { code: "23514", message: "violates check constraint" } };
+      }
+      return {
+        data: { id: "e1", wallet_id: params.p_wallet_id, entry_type: params.p_entry_type, amount_cents: params.p_amount_cents, meta: params.p_meta ?? {} },
+        error: null,
+      };
+    });
+    const res = await postCheckout({ ...QUICK_MONTHLY, requestedCreditsCents: 5000 });
+    const text = await res.clone().text();
+    const coupons = __stripeCoupons();
+    assert.equal(coupons.length, 0, `a refused reserve must not mint a discount: ${JSON.stringify(coupons)}`);
     if (res.status === 200) {
-      const body = JSON.parse(text) as { creditsAppliedCents?: number; creditsRefusedReason?: string };
-      assert.equal(body.creditsAppliedCents ?? 0, 0, "and nothing applied");
-      assert.equal(
-        body.creditsRefusedReason,
-        "not_available_on_recurring_plan",
-        "and the customer is told why, rather than shown a discount that evaporates",
-      );
+      const body = JSON.parse(text) as { creditsAppliedCents?: number };
+      assert.equal(body.creditsAppliedCents ?? 0, 0, "and nothing is reported as applied");
     }
+  });
+
+  await check("S5: a coupon that cannot be created STOPS checkout — never a silent full-price charge", async () => {
+    __reset();
+    __resetStripe();
+    echoingLedger();
+    __setBearerTokens({ tok: BEARER });
+    seedTwoWallets(5000);
+    __failCouponCreate();
+    const res = await postCheckout({ ...QUICK_MONTHLY, requestedCreditsCents: 5000 });
+    const text = await res.clone().text();
+    assert.ok(res.status >= 400, `the checkout must stop, got ${res.status}: ${text}`);
+    assert.equal(
+      __stripeSessions().length,
+      0,
+      "and no payable session may exist for a price the credits never backed",
+    );
+    const body = JSON.parse(text) as { code?: string };
+    assert.equal(body.code, "credits_discount_temporarily_unavailable", "told by name");
+  });
+
+  await check("S6: a one-time checkout still reduces the LINE ITEM and mints no coupon", async () => {
+    // The subscription path must not have changed how a one-time purchase works.
+    __reset();
+    __resetStripe();
+    echoingLedger();
+    __setBearerTokens({ tok: BEARER });
+    seedTwoWallets(5000);
+    const res = await postCheckout({ ...ONE_TIME, requestedCreditsCents: 500 });
+    assert.equal(res.status, 200, await res.clone().text());
+    const body = (await res.json()) as { creditsAppliedCents?: number; amountCents?: number };
+    assert.equal(body.creditsAppliedCents, 500);
+    assert.equal(body.amountCents, 1999);
+    assert.equal(__stripeCoupons().length, 0, "a one-time charge needs no coupon");
+    const charged = JSON.stringify(__stripeSessions()[0]);
+    assert.ok(charged.includes("1999"), `the line item carries the reduced amount: ${charged.slice(0, 300)}`);
   });
 
   if (failures.length) {

@@ -398,6 +398,29 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
     "app/api/stripe/billing-portal-session/route.ts", // server-side Stripe billing portal session (never static URL)
     "app/api/clasificados/quick-business/my-listing/route.ts", // listing state resolver for doorway
     // ---------------------------------------------------------------------------------------
+    // SALES-READY PREVIEWS + ONLINE IX REWARDS REDEMPTION (2026-09-21).
+    //
+    // Two mission outcomes, and each entry below is a surface the outcome could not be reached
+    // without. The guard itself is unchanged — no pattern was relaxed, no protected path removed.
+    //
+    // ONLINE REDEMPTION. Credits could be earned and not spent: every online checkout refused them
+    // because reducing a `recurring` line item would have set the subscription's price for ever.
+    // They now ride a Stripe `duration: "once"` coupon on the first invoice — the mechanism the
+    // verified-intro discount already uses — so the line item, and therefore every renewal, is
+    // untouched. One new module plus the checkout route that mints and attaches it.
+    "app/lib/listingPlans/rewardsFirstInvoiceStripeCoupon.ts", // new: the amount_off once-coupon
+    // SALES PREVIEWS. Three server defects found by mapping the staff-assisted workflow, each of
+    // which put an unpaid or mis-attributed listing in front of a customer:
+    //  - Restaurantes `save_for_client` inserted `status: "published"` — the exact public predicate
+    //    — so staff preparing an ad put an UNPAID listing live; it had no custody check, so a
+    //    cookie for one business could overwrite another's row; and `publish_for_client` had no
+    //    payment gate at all.
+    //  - Autos `publish_for_client` checked for cleared payment and then changed nothing: the row
+    //    stayed `draft` while staff were told the client's ad was published.
+    //  - Bienes reported `{ ok: true }` on writes that matched zero rows.
+    // The Restaurantes and Autos routes are already authorized above; Bienes is authorized here.
+    // No new lifecycle vocabulary and no new public surface was introduced.
+    // ---------------------------------------------------------------------------------------
     // QUICK FINAL REPAIR — canonical identity, real lifecycle, immediate convergence, semantic
     // media. Each entry is a surface the repair could not be performed without; nothing else in
     // the protected tree is opened.

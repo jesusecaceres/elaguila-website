@@ -386,7 +386,7 @@ const MUTATIONS: readonly Mutation[] = [
     find: "  IF v_redemption.status <> 'reserved' THEN\n    RAISE EXCEPTION 'leonix_rewards_claim_redemption: redemption % is %, not reserved',",
     replace: "  IF FALSE THEN\n    RAISE EXCEPTION 'leonix_rewards_claim_redemption: redemption % is %, not reserved',",
     suite: "sql",
-    expect: ["S7"],
+    expect: ["S2"],
   },
   {
     defect:
@@ -685,18 +685,54 @@ const MUTATIONS: readonly Mutation[] = [
   },
   {
     defect:
-      "The recurring-plan refusal stops being exclusive: the branch and its reason survive, and credits " +
-      "are applied to a subscription anyway — a one-time debit that sets the price of every renewal.",
+      "The contract-term refusal is decided by BILLING MODE again, so every recurring checkout " +
+      "refuses credits and the whole first-invoice-coupon path becomes unreachable.",
     file: CHECKOUT,
-    find: "  } else if (requestedCreditsCents > 0) {\n    const planned = await planCheckoutCredits({",
-    replace: "  }\n  if (requestedCreditsCents > 0) {\n    const planned = await planCheckoutCredits({",
+    find: "  const creditsBlockedByContractTermCoupon = Boolean(contractTermStripeCouponId);",
+    replace: "  const creditsBlockedByContractTermCoupon = stripeMode === \"subscription\";",
     suite: "route",
-    expect: ["V4"],
+    expect: ["V4", "S1"],
   },
-  // -------------------------------------------------------------------------
-  // ROUND 3 — a final reviewer found a BLOCKER this round had INTRODUCED, plus
-  // five more. Each is pinned here.
-  // -------------------------------------------------------------------------
+  {
+    defect:
+      "Credits are subtracted from the RECURRING line item as well as riding the coupon, so the " +
+      "customer is discounted twice and the plan bills the reduced figure every month for ever.",
+    file: CHECKOUT,
+    find: "  const chargeableAmountCents = isRecurringCheckout\n    ? amountCents\n    : Math.max(0, amountCents - creditsAppliedCents);",
+    replace: "  const chargeableAmountCents = Math.max(0, amountCents - creditsAppliedCents);",
+    suite: "route",
+    expect: ["S1"],
+  },
+  {
+    defect:
+      "The first-invoice coupon loses its `once` duration, becoming a FOREVER discount on the " +
+      "subscription: every renewal is discounted by the credits the customer spent once.",
+    file: "app/lib/listingPlans/rewardsFirstInvoiceStripeCoupon.ts",
+    find: "        duration: \"once\",\n        name: \"Leonix credits (first invoice)\",",
+    replace: "        duration: \"forever\",\n        name: \"Leonix credits (first invoice)\",",
+    suite: "route",
+    expect: ["S1"],
+  },
+  {
+    defect:
+      "The 50% ceiling is measured against the full monthly price instead of the post-intro first " +
+      "charge, so a verified customer spends more than half of what they are actually charged.",
+    file: CHECKOUT,
+    find: "      eligiblePurchaseCents: isRecurringCheckout ? firstChargeBeforeCreditsCents : subtotalCents,",
+    replace: "      eligiblePurchaseCents: subtotalCents,",
+    suite: "route",
+    expect: ["S2"],
+  },
+  {
+    defect:
+      "A coupon that could not be created no longer stops the checkout, so the customer is charged " +
+      "the full price while their credits sit reserved against a discount that does not exist.",
+    file: CHECKOUT,
+    find: "    if (!coupon.ok) {",
+    replace: "    if (!coupon.ok && false) {",
+    suite: "route",
+    expect: ["S5"],
+  },
   {
     defect:
       "A truncated-payload queue row is keyed on the ROW rather than the rail's own refund id, so the " +

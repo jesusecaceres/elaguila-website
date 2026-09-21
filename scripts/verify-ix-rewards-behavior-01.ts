@@ -3875,19 +3875,48 @@ async function main() {
       assert.ok(client.includes(field), `the caller reads back ${field} instead of discarding it`);
     }
     const checkpoint = readFileSync("app/(site)/clasificados/components/PublishCheckoutCheckpoint.tsx", "utf8");
-    assert.ok(/creditsEligible &&/.test(checkpoint), "the control is opt-in per category");
-    // ...AND NEVER MOUNTS WHERE THE SERVER WILL ALWAYS REFUSE IT. In `subscription` mode the
-    // discount is applied by lowering a line item that recurs monthly, so credits are refused
-    // there by name. Mounting the control anyway let the customer apply credits, read a green
-    // "Credits applied · Remaining to pay", press pay, and be told it could not be done — with no
-    // reason. A control whose action is always refused is a phantom discount with extra steps.
     assert.ok(
-      /creditsEligible && !basePackageIsMonthly \?/.test(checkpoint),
-      "and is hidden on a recurring plan, where the server refuses credits outright",
+      /creditsEligible \?/.test(checkpoint) || /creditsEligible &&/.test(checkpoint),
+      "the control is opt-in per category",
+    );
+    // ...AND IT NO LONGER EXCLUDES MONTHLY PLANS. It used to mount only when
+    // `!basePackageIsMonthly`, with a notice in its place saying credits did not apply to monthly
+    // plans. Credits now reach those plans through a first-invoice coupon, so that notice would be
+    // false — and a notice that is no longer true is a defect, not merely stale copy.
+    assert.ok(
+      !/creditsEligible && !basePackageIsMonthly/.test(checkpoint),
+      "the monthly exclusion is gone from the mount condition",
     );
     assert.ok(
-      /creditsEligible && basePackageIsMonthly \?/.test(checkpoint),
-      "with an explanation in its place, rather than silence",
+      !/do not apply to monthly plans/i.test(checkpoint),
+      "and the notice that said otherwise is gone with it",
+    );
+    // A customer applying credits to a subscription must be told the renewal price is unchanged.
+    const creditsPanelSrc = readFileSync("app/(site)/clasificados/components/LeonixCheckoutCreditsPanel.tsx", "utf8");
+    assert.ok(
+      /recurringAmountCents/.test(creditsPanelSrc) && /al mes/.test(creditsPanelSrc) && /a month/.test(creditsPanelSrc),
+      "the panel states the unchanged monthly price, in both languages",
+    );
+    // WHY THE CONTROL MOUNTS ON A MONTHLY PLAN NOW.
+    //
+    // It used to be hidden there, and correctly: the discount was applied by lowering a line item
+    // that recurs monthly, so credits were refused on recurring plans by name. Mounting the
+    // control anyway let the customer apply credits, read a green "Credits applied · Remaining to
+    // pay", press pay, and be told it could not be done — a phantom discount with extra steps.
+    //
+    // Credits now reach those plans through a first-invoice coupon, so the action the control
+    // offers is one the server will honour. What must stay true is the thing that made hiding it
+    // right: the control must never promise something the server refuses. The refusal that
+    // remains — a finite-term contract promo holding the single discount slot — is surfaced as a
+    // named `creditsRefusedReason` rather than a silent full-price charge.
+    assert.ok(
+      /creditsRefusedReason/.test(
+        readFileSync(
+          "app/(site)/clasificados/publicar/servicios/preview/ClasificadosServiciosPreviewClient.tsx",
+          "utf8",
+        ),
+      ),
+      "and a refusal the server does make is surfaced, rather than silence",
     );
     // THE FIGURE HAS TO REACH THE CALLER. The control can be mounted, read a balance and preview a
     // discount, and still be decorative if the amount never leaves the component.
@@ -4710,27 +4739,47 @@ async function main() {
       "and in subscription mode that same line item recurs monthly",
     );
 
+    // THE RULE CHANGED, AND THE CHECK CHANGED WITH IT — DELIBERATELY, NOT QUIETLY.
+    //
+    // This used to require `creditsBlockedByRecurringPrice = stripeMode === "subscription"`:
+    // credits were refused outright on any recurring plan, because reducing the line item would
+    // have set the subscription's price for ever. Credits now reach a subscription through a
+    // Stripe `duration: "once"` coupon on the FIRST invoice — the same mechanism the verified-intro
+    // discount uses — so the refusal is gone and the invariant it protected is not.
+    //
+    // The invariant is what this check now asserts, and it is stronger: on a recurring checkout the
+    // line item must be the FULL price, so no credit can ever reach the recurring amount. `S1` in
+    // the route suite proves it by executing the route and reading the `unit_amount` the route
+    // asked Stripe for; here the structural guarantee is pinned so the two cannot drift.
     const route = readFileSync("app/api/revenue-os/checkout/route.ts", "utf8");
     assert.ok(
-      /const creditsBlockedByRecurringPrice = stripeMode === "subscription";/.test(route),
-      "so a recurring plan refuses credits outright",
-    );
-    // THE REFUSAL HAS TO COME FIRST, or the plan runs and the amount is applied anyway.
-    assertOrder(
-      route,
-      "creditsBlockedByRecurringPrice",
-      "planCheckoutCredits({",
-      "the recurring refusal is decided before any credit is planned",
+      /const chargeableAmountCents = isRecurringCheckout\s*\n\s*\? amountCents\s*\n\s*: Math\.max\(0, amountCents - creditsAppliedCents\);/.test(route),
+      "a recurring checkout prices its line items at the FULL amount — credits never touch them",
     );
     assert.ok(
-      /if \(requestedCreditsCents > 0 && creditsBlockedByRecurringPrice\) \{\s*\n\s*creditsRefusedReason = "not_available_on_recurring_plan";/.test(route),
-      "and the customer is told why rather than silently charged full price — a live condition, not a string",
+      /ensureRewardsFirstInvoiceCoupon\(/.test(route),
+      "and the reduction rides a first-invoice coupon instead",
     );
+
+    // The coupon is `once`, or it is a permanent price cut wearing a discount's name.
+    const rewardsCoupon = readFileSync("app/lib/listingPlans/rewardsFirstInvoiceStripeCoupon.ts", "utf8");
+    assert.ok(/duration: "once"/.test(rewardsCoupon), "the credits coupon discounts the first invoice only");
+    assert.ok(
+      /coupon\.duration === "once"/.test(rewardsCoupon),
+      "and a coupon retrieved under that id is validated before it is trusted",
+    );
+
+    // ONE REFUSAL REMAINS, because a session has one discount slot.
+    assert.ok(
+      /creditsRefusedReason = "not_available_with_contract_term_promo";/.test(route),
+      "a finite-term contract coupon still occupies the slot, and the customer is told by name",
+    );
+
     // The codebase's own precedent for a first-payment-only discount, kept intact.
     const coupon = readFileSync("app/lib/listingPlans/verifiedIntroDiscountStripeCoupon.ts", "utf8");
     assert.ok(
       /duration: "once"/.test(coupon),
-      "the once-coupon mechanism a future credits-on-subscriptions path would use still exists",
+      "the once-coupon mechanism this path was modelled on still exists",
     );
   });
 

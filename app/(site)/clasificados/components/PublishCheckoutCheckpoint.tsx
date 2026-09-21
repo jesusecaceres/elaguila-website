@@ -455,25 +455,24 @@ export function PublishCheckoutCheckpoint({
           green "Credits applied $199.50 · Remaining to pay $199.50", pressed pay, and was told the
           credits could not be applied with no reason given. A control whose action the server will
           always refuse is a phantom discount with extra steps. */}
-      {resolved.mode === "checkout" && creditsEligible && basePackageIsMonthly ? (
-        <p
-          className="mt-3 rounded-xl border px-3 py-2 text-xs"
-          style={{ borderColor: `${LEONIX_BORDER}99`, color: LEONIX_MUTED }}
-        >
-          {/* "…stays available for one-time purchases" was not true: no online surface accepts
-              credits today, so the sentence sent the customer looking for a checkout that does not
-              exist. It now says where they ARE spendable. */}
-          {lang === "en"
-            ? "Leonix Credits do not apply to monthly plans yet. Your balance is untouched — Leonix staff can apply it to a payment in the office."
-            : "Los Créditos Leonix aún no aplican a planes mensuales. Tu saldo queda intacto — el personal de Leonix puede aplicarlo a un pago en la oficina."}
-        </p>
-      ) : null}
-
-      {resolved.mode === "checkout" && creditsEligible && !basePackageIsMonthly ? (
+      {/* Credits now reach a monthly plan through a Stripe `duration: "once"` coupon on the first
+          invoice, so the control mounts for BOTH billing modes. The recurring price is untouched —
+          the line item still carries the full $249 — and the panel says so, because a customer
+          applying credits to a subscription needs to know what they pay NOW and what they pay
+          every month after. The old branch here rendered a notice saying credits did not apply to
+          monthly plans; that is no longer true, and a notice that is no longer true is a defect. */}
+      {resolved.mode === "checkout" && creditsEligible ? (
         <LeonixCheckoutCreditsPanel
           lang={lang === "en" ? "en" : "es"}
-          eligiblePurchaseCents={resolved.totalCents}
-          amountDueCents={resolved.totalCents}
+          // POST-DISCOUNT, because that is what the customer is actually charged now and what the
+          // server sizes the 50% ceiling against. Showing a ceiling computed from the undiscounted
+          // price would offer the customer more credits than the server will accept, and the
+          // refusal would arrive after they pressed pay.
+          eligiblePurchaseCents={Math.max(0, resolved.totalCents - (resolved.discountCents ?? 0))}
+          amountDueCents={Math.max(0, resolved.totalCents - (resolved.discountCents ?? 0))}
+          // On a monthly plan the credits come off the FIRST invoice only; the plan keeps billing
+          // its full price. The panel says so rather than leaving the customer to assume either.
+          recurringAmountCents={basePackageIsMonthly ? resolved.totalCents : null}
           onRequestedCentsChange={setRequestedCreditsCents}
           disabled={busy}
           borderColor={LEONIX_BORDER}

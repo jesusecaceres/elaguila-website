@@ -27,7 +27,13 @@ type SupabaseHarness = {
 
 type HeadersHarness = { __setCookies(entries: Record<string, string>): void };
 type SupabaseJsHarness = { __setBearerTokens(map: Record<string, string>): void };
-type StripeHarness = { __stripeSessions(): Record<string, unknown>[]; __resetStripe(): void };
+type StripeHarness = {
+  __stripeSessions(): Record<string, unknown>[];
+  __resetStripe(): void;
+  __stripeCoupons(): Record<string, unknown>[];
+  __seedCoupon(coupon: Record<string, unknown>): void;
+  __failCouponCreate(error?: unknown): void;
+};
 /** The stub's own client, reached through THIS module so it is the same instance the routes use. */
 type ClientHarness = { getAdminSupabase(): { from(table: string): Record<string, (...args: unknown[]) => unknown> } };
 
@@ -49,3 +55,6 @@ export const __setCookies = nextHeaders.__setCookies;
 export const __setBearerTokens = supabaseJs.__setBearerTokens;
 export const __stripeSessions = stripe.__stripeSessions;
 export const __resetStripe = stripe.__resetStripe;
+export const __stripeCoupons = stripe.__stripeCoupons;
+export const __seedCoupon = stripe.__seedCoupon;
+export const __failCouponCreate = stripe.__failCouponCreate;

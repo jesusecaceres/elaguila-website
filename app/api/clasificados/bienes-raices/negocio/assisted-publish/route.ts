@@ -186,13 +186,24 @@ export async function POST(request: NextRequest) {
     delete patch.status;
     delete patch.is_published;
     delete patch.published_at;
-    const { error: updateError } = await db
+    // ZERO ROWS IS NOT SUCCESS.
+    //
+    // `.update(...).eq(...).eq("owner_id", clientUserId)` with no `.select()` returns a null error
+    // when it matches NOTHING, so a `clientUserId` that does not match the stored owner produced
+    // `{ ok: true, listingId }` having written not one column. Staff were told the client's ad had
+    // been saved; nothing had been. The row count is now the answer.
+    const { data: updatedRow, error: updateError } = await db
       .from("listings")
       .update(patch)
       .eq("id", listingId)
-      .eq("owner_id", clientUserId);
+      .eq("owner_id", clientUserId)
+      .select("id")
+      .maybeSingle();
     if (updateError) {
       return NextResponse.json({ ok: false, error: "listing_update_failed" }, { status: 500 });
+    }
+    if (!updatedRow?.id) {
+      return NextResponse.json({ ok: false, error: "listing_owner_mismatch" }, { status: 409 });
     }
   } else {
     // Insert new listing
@@ -244,15 +255,25 @@ export async function POST(request: NextRequest) {
     }
 
     const activatedAt = new Date().toISOString();
-    const { error: activateError } = await db
+    // Same rule on the one write that makes a listing PUBLIC: a zero-row activation reported as
+    // success is a listing staff believe is live and a customer cannot find.
+    const { data: activatedRow, error: activateError } = await db
       .from("listings")
       .update({ status: "active", is_published: true, published_at: activatedAt, updated_at: activatedAt })
       .eq("id", listingId)
-      .eq("owner_id", clientUserId);
+      .eq("owner_id", clientUserId)
+      .select("id")
+      .maybeSingle();
     if (activateError) {
       return NextResponse.json(
         { ok: false, error: "listing_activate_failed", listingId },
         { status: 500 },
+      );
+    }
+    if (!activatedRow?.id) {
+      return NextResponse.json(
+        { ok: false, error: "listing_owner_mismatch", listingId },
+        { status: 409 },
       );
     }
   }
