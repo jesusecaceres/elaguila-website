@@ -44,6 +44,7 @@ import {
   formatCreditsCents,
   maxRedeemableForPurchaseCents,
   planRedemption,
+  recoveryBalanceCopy,
   redemptionRulesCopy,
   resolveRailMinimumChargeCents,
   validateDiscountCombination,
@@ -61,6 +62,8 @@ import {
   reserveIdempotencyKey,
   reversalIdempotencyKey,
   reverseForRefundOrChargeback,
+  restoreReversedCredits,
+  restorationIdempotencyKey,
   runPendingPromotionSweep,
   runReservationExpirySweep,
   type LedgerEntryInput,
@@ -354,6 +357,11 @@ function makeStore(opts?: { now?: () => number }) {
       const e = entries.find((x) => x.id === id)!;
       return { id: e.id, walletId: e.walletId, entryType: e.entryType, amountCents: e.amountCents };
     },
+    async sumRestoredForPayment(paymentRecordId) {
+      return entries
+        .filter((e) => e.paymentRecordId === paymentRecordId && e.entryType === "reversal_restoration")
+        .reduce((a, e) => a + e.amountCents, 0);
+    },
     async sumReversedForPayment(paymentRecordId) {
       return entries
         .filter((e) => e.paymentRecordId === paymentRecordId && (e.entryType === "refund_reversal" || e.entryType === "chargeback_reversal"))
@@ -422,6 +430,29 @@ async function seedAvailable(port: RewardsStorePort, owner: WalletOwnerRef, cent
     owner, amountCents: cents, reason: "test seed", actorAuthUserId: "staff_1", adjustmentRef: ref, ports: port,
   });
   assert.equal(res.ok, true, `seed ${ref} must succeed`);
+}
+
+/**
+ * Post a raw entry for the recovery types, which no public helper emits on their own: a debt is
+ * normally created by a reversal and settled by an earn. These tests need to set one up directly.
+ */
+async function postEntryDirect(
+  port: RewardsStorePort,
+  owner: WalletOwnerRef,
+  entryType: LedgerEntryInput["entryType"],
+  amountCents: number,
+  key: string,
+) {
+  const w = await port.resolveWallet(owner);
+  assert.equal(w.ok, true);
+  const res = await port.postEntry({
+    walletId: (w as { wallet: WalletSnapshot }).wallet.id,
+    entryType,
+    amountCents,
+    sourceKind: "staff_adjustment",
+    idempotencyKey: key,
+  });
+  assert.equal(res.ok, true, `${entryType} ${key} must post`);
 }
 
 async function walletOf(port: RewardsStorePort, owner: WalletOwnerRef): Promise<WalletSnapshot> {
@@ -2605,6 +2636,264 @@ async function main() {
       "primary ownership decides, not any active membership",
     );
     assert.ok(!/if \(rows\.length === 1\) return \{ kind: "business"/.test(src), "a single bare membership is not ownership");
+  });
+
+  // ===============================================================================================
+  // SECTION P — SOURCE CLOSEOUT: recovery, restoration, canonical wallet, the refund queue
+  // Every check closes an item the previous report listed as genuinely unbuilt.
+  // ===============================================================================================
+
+  await check("P1: a clawback the wallet cannot cover becomes a DEBT, repaid by future earnings", async () => {
+    const { port } = makeStore();
+    await earnFromSettledPayment({ owner: OWNER, paymentRecordId: "p1", facts: settled({ amountPaidCents: 10_000 }), sourceKind: "stripe_payment", pendingUntilSettlementFinal: false, ports: port });
+    await reserveCreditsForPurchase({ owner: OWNER, requestedCents: 900, amountDueCents: 90_000, redemptionRef: "p1_spend", contextKind: "stripe_checkout", ports: port });
+    await commitReservedCredits({ redemptionRef: "p1_spend", ports: port });
+    assert.equal((await walletOf(port, OWNER)).availableCents, 0, "every credit spent");
+
+    const rev = await reverseForRefundOrChargeback({ paymentRecordId: "p1", eventRefundedCents: 10_000, kind: "refund", externalId: "re_p1", ports: port });
+    assert.equal(rev.ok, true);
+    assert.equal((rev as { reversedCents: number }).reversedCents, 0, "nothing was left to take");
+    assert.equal((rev as { recoveryAccruedCents: number }).recoveryAccruedCents, 900, "so the whole 900 is owed");
+    const owed = await walletOf(port, OWNER);
+    assert.equal(owed.recoveryCents, 900);
+    assert.ok(owed.availableCents >= 0 && owed.pendingCents >= 0, "never negative");
+
+    await earnFromSettledPayment({ owner: OWNER, paymentRecordId: "p1b", facts: settled({ amountPaidCents: 5_000 }), sourceKind: "stripe_payment", pendingUntilSettlementFinal: false, ports: port });
+    const mid = await walletOf(port, OWNER);
+    assert.equal(mid.recoveryCents, 450, "9% of $50 pays down half the debt");
+    assert.equal(mid.availableCents, 0, "and none of it became spendable");
+    assert.equal(mid.lifetimeEarnedCents, 900 + 450, "the customer still EARNED it");
+
+    await earnFromSettledPayment({ owner: OWNER, paymentRecordId: "p1c", facts: settled({ amountPaidCents: 10_000 }), sourceKind: "stripe_payment", pendingUntilSettlementFinal: false, ports: port });
+    const clear = await walletOf(port, OWNER);
+    assert.equal(clear.recoveryCents, 0, "the debt is settled");
+    assert.equal(clear.availableCents, 450, "900 earned, 450 of it repaid the remainder");
+  });
+
+  await check("P1b: a PENDING card earn repays the debt too, before it can ever be promoted", async () => {
+    // Most earnings arrive pending — card money waits out the settlement window. If only the
+    // immediately-available path repaid the debt, a customer who owed a clawback could sit on
+    // pending credits that promote straight into spendable value and never settle what they owe.
+    const { port } = makeStore();
+    await seedAvailable(port, OWNER, 1_000, "p1b_seed");
+    await postEntryDirect(port, OWNER, "recovery_accrue", 600, "p1b_debt");
+    assert.equal((await walletOf(port, OWNER)).recoveryCents, 600);
+
+    // 9% of $100 = 900 pending. 600 of it settles the debt; 300 remains pending.
+    await earnFromSettledPayment({ owner: OWNER, paymentRecordId: "p1b_pay", facts: settled({ amountPaidCents: 10_000 }), sourceKind: "stripe_payment", pendingUntilSettlementFinal: true, ports: port });
+    const w = await walletOf(port, OWNER);
+    assert.equal(w.recoveryCents, 0, "the pending earn repaid the debt");
+    assert.equal(w.pendingCents, 300, "and only the remainder is still pending");
+    assert.equal(w.lifetimeEarnedCents, 1_000 + 900, "the full amount was still earned");
+  });
+
+  await check("P2: no new hold may be taken while a debt is outstanding", async () => {
+    const { port } = makeStore();
+    await seedAvailable(port, OWNER, 5_000, "p2_seed");
+    await postEntryDirect(port, OWNER, "recovery_accrue", 500, "p2_debt");
+    assert.equal((await walletOf(port, OWNER)).recoveryCents, 500);
+
+    const blocked = await reserveCreditsForPurchase({ owner: OWNER, requestedCents: 1_000, amountDueCents: 90_000, redemptionRef: "p2_ref", contextKind: "stripe_checkout", ports: port });
+    assert.equal(blocked.ok, false, "a customer who owes a clawback cannot hold a fresh discount");
+    assert.equal((await walletOf(port, OWNER)).availableCents, 5_000, "and nothing moved");
+
+    await postEntryDirect(port, OWNER, "recovery_offset", 500, "p2_settle");
+    const allowed = await reserveCreditsForPurchase({ owner: OWNER, requestedCents: 1_000, amountDueCents: 90_000, redemptionRef: "p2_ref2", contextKind: "stripe_checkout", ports: port });
+    assert.equal(allowed.ok, true, "a pause, not a penalty");
+  });
+
+  await check("P3: a WON dispute restores what its reversal took — once, and never more", async () => {
+    const { port } = makeStore();
+    await earnFromSettledPayment({ owner: OWNER, paymentRecordId: "p3", facts: settled({ amountPaidCents: 10_000 }), sourceKind: "stripe_payment", pendingUntilSettlementFinal: false, ports: port });
+    await reverseForRefundOrChargeback({ paymentRecordId: "p3", eventRefundedCents: 10_000, kind: "chargeback", externalId: "dp_p3", ports: port });
+    assert.equal((await walletOf(port, OWNER)).availableCents, 0, "the dispute clawed it all back");
+
+    const restored = await restoreReversedCredits({ paymentRecordId: "p3", externalId: "dp_p3", ports: port });
+    assert.equal(restored.ok, true);
+    assert.equal((restored as { restoredCents: number }).restoredCents, 900, "exactly what was taken");
+    const back = await walletOf(port, OWNER);
+    assert.equal(back.availableCents, 900, "spendable again");
+    assert.equal(back.lifetimeEarnedCents, 900, "a restoration is NOT new earning");
+    assert.equal(back.lifetimeRestoredCents, 900, "it is counted as a restoration");
+
+    // TWO INDEPENDENT GUARDS, and a redelivery hits whichever comes first. The BOUND refuses it
+    // because nothing is outstanding any more; the idempotency key would refuse it even if the
+    // bound somehow allowed it. Either way nothing moves, which is the property that matters.
+    const again = await restoreReversedCredits({ paymentRecordId: "p3", externalId: "dp_p3", ports: port });
+    assert.equal(again.ok, true);
+    assert.equal((again as { restoredCents: number }).restoredCents, 0, "a duplicate delivery moves nothing");
+    assert.equal(
+      (again as { outcome: string }).outcome,
+      "nothing_to_restore",
+      "and says so rather than reporting the amount a first delivery would have moved",
+    );
+    assert.equal((await walletOf(port, OWNER)).availableCents, 900);
+    assert.equal(
+      (await walletOf(port, OWNER)).lifetimeRestoredCents,
+      900,
+      "restored exactly once, whatever the delivery count",
+    );
+
+    const forged = await restoreReversedCredits({ paymentRecordId: "p3", externalId: "dp_forged", requestedCents: 5_000, ports: port });
+    assert.equal((forged as { restoredCents: number }).restoredCents, 0, "nothing outstanding, nothing restored");
+    assert.equal((await walletOf(port, OWNER)).availableCents, 900, "a second dispute id mints nothing");
+    assert.equal(restorationIdempotencyKey("dp_p3"), "restore:dp_p3");
+  });
+
+  await check("P4: a restoration never hands back value the clawback never took", async () => {
+    const { port } = makeStore();
+    await earnFromSettledPayment({ owner: OWNER, paymentRecordId: "p4", facts: settled({ amountPaidCents: 10_000 }), sourceKind: "stripe_payment", pendingUntilSettlementFinal: false, ports: port });
+    await reserveCreditsForPurchase({ owner: OWNER, requestedCents: 900, amountDueCents: 90_000, redemptionRef: "p4_spend", contextKind: "stripe_checkout", ports: port });
+    await commitReservedCredits({ redemptionRef: "p4_spend", ports: port });
+    await reverseForRefundOrChargeback({ paymentRecordId: "p4", eventRefundedCents: 10_000, kind: "chargeback", externalId: "dp_p4", ports: port });
+    assert.equal((await walletOf(port, OWNER)).recoveryCents, 900, "the whole clawback became a debt");
+
+    // WINNING THE DISPUTE CANCELS THE DEBT — it does not mint spendable credits.
+    //
+    // The clawback took nothing from the buckets (they were empty) and recorded 900 as owed. So
+    // the restoration's whole effect is to cancel that 900: the customer owes nothing, and no
+    // spendable balance appears out of a purchase whose credits they had already used.
+    const res = await restoreReversedCredits({ paymentRecordId: "p4", externalId: "dp_p4", ports: port });
+    assert.equal(res.ok, true);
+    assert.equal((res as { restoredCents: number }).restoredCents, 900, "the full clawback is undone");
+    assert.equal((res as { recoveryOffsetCents: number }).recoveryOffsetCents, 900, "entirely by cancelling the debt");
+    const after = await walletOf(port, OWNER);
+    assert.equal(after.recoveryCents, 0, "nothing is owed any more");
+    assert.equal(after.availableCents, 0, "and no spendable credits appeared from nowhere");
+
+    // And it still cannot happen twice.
+    const twice = await restoreReversedCredits({ paymentRecordId: "p4", externalId: "dp_p4", ports: port });
+    assert.equal((twice as { restoredCents: number }).restoredCents, 0);
+    assert.equal((await walletOf(port, OWNER)).availableCents, 0);
+  });
+
+  await check("P5: recovery copy is honest in both languages and never claims expiry", () => {
+    for (const lang of ["es", "en"] as const) {
+      const copy = recoveryBalanceCopy(lang, { recoveryCents: 3_232 });
+      assert.ok(copy.heading.includes("$32.32"), `${lang} names the amount`);
+      assert.ok(copy.detail.length > 60, `${lang} explains rather than labels`);
+      assert.ok(/no vencen|do not expire/.test(copy.detail), `${lang} states that credits do not expire`);
+      assert.ok(/efectivo|in cash/.test(copy.detail), `${lang} says there is nothing to pay in cash`);
+      assert.ok(!/multa|penalty/i.test(copy.detail), `${lang} does not invent a penalty`);
+    }
+  });
+
+  await check("P6: recomputation reproduces recovery and restoration exactly", async () => {
+    const { port, recompute } = makeStore();
+    await earnFromSettledPayment({ owner: OWNER, paymentRecordId: "p6", facts: settled({ amountPaidCents: 10_000 }), sourceKind: "stripe_payment", pendingUntilSettlementFinal: false, ports: port });
+    await reserveCreditsForPurchase({ owner: OWNER, requestedCents: 500, amountDueCents: 90_000, redemptionRef: "p6_a", contextKind: "stripe_checkout", ports: port });
+    await commitReservedCredits({ redemptionRef: "p6_a", ports: port });
+    await reverseForRefundOrChargeback({ paymentRecordId: "p6", eventRefundedCents: 10_000, kind: "chargeback", externalId: "dp_p6", ports: port });
+    await earnFromSettledPayment({ owner: OWNER, paymentRecordId: "p6b", facts: settled({ amountPaidCents: 3_000 }), sourceKind: "stripe_payment", pendingUntilSettlementFinal: false, ports: port });
+    await restoreReversedCredits({ paymentRecordId: "p6", externalId: "dp_p6", ports: port });
+
+    const live = await walletOf(port, OWNER);
+    const replayed = recompute(live.id);
+    assert.deepEqual(
+      [replayed.pendingCents, replayed.availableCents, replayed.reservedCents, replayed.recoveryCents, replayed.lifetimeRestoredCents],
+      [live.pendingCents, live.availableCents, live.reservedCents, live.recoveryCents, live.lifetimeRestoredCents],
+      "the replay lands on exactly the incremental balances",
+    );
+    assert.deepEqual(
+      [replayed.lifetimeEarnedCents, replayed.lifetimeRedeemedCents, replayed.lifetimeReversedCents],
+      [live.lifetimeEarnedCents, live.lifetimeRedeemedCents, live.lifetimeReversedCents],
+      "and on the same lifetime totals",
+    );
+  });
+
+  await check("P7: the canonical wallet is PINNED — a membership change cannot move a balance", () => {
+    const adapter = readFileSync("app/lib/rewards/rewardsLedger.ts", "utf8");
+    const fn = adapter.slice(adapter.indexOf("export async function resolveWalletOwnerForUser"));
+    const bindingAt = fn.indexOf('.eq("bound_user_id", ownerUserId)');
+    const membershipAt = fn.indexOf('.from("business_memberships")');
+    assert.ok(bindingAt > 0, "the binding is read");
+    assert.ok(membershipAt > 0, "the membership rules still exist");
+    assert.ok(bindingAt < membershipAt, "and the binding is read FIRST — membership decides only the first answer");
+
+    const resolveAt = adapter.indexOf("async resolveWallet(owner: WalletOwnerRef)");
+    const resolveBlock = adapter.slice(resolveAt, adapter.indexOf("async getWalletById", resolveAt));
+    assert.ok(resolveBlock.includes("bound_user_id: bindUserId"), "a new wallet is born bound");
+    assert.ok(resolveBlock.includes('.is("bound_user_id", null)'), "an existing wallet adopts a binding only if it has none");
+
+    const core = readFileSync("app/lib/rewards/rewardsLedgerCore.ts", "utf8");
+    for (const fnName of ["reverseForRefundOrChargeback", "restoreReversedCredits"]) {
+      const body = core.slice(core.indexOf(`export async function ${fnName}`), core.indexOf(`export async function ${fnName}`) + 4_000);
+      assert.ok(/walletId: original\.walletId/.test(body), `${fnName} posts to the wallet the earn credited`);
+    }
+  });
+
+  await check("P8: an unattributable refund is QUEUED, not merely logged", () => {
+    const src = readFileSync("app/lib/listingPlans/revenueSubscriptionEvents.ts", "utf8");
+    const fn = src.slice(src.indexOf("async function reverseRewardsForChargeRefunds"), src.indexOf("/** charge.refunded"));
+    const noRefunds = fn.slice(fn.indexOf("if (!refunds.length) {"), fn.indexOf("// Oldest first"));
+    assert.ok(noRefunds.includes("enqueueUnattributableRefund("), "the event lands in a durable queue");
+    assert.ok(!noRefunds.includes("reverseCreditsForRefundOrDispute("), "and still reverses nothing automatically");
+    assert.ok(noRefunds.includes("retryable: true"), "and is marked retryable");
+
+    const queue = readFileSync("app/lib/rewards/rewardsRefundResolutionQueue.ts", "utf8");
+    assert.ok(queue.includes("PG_UNIQUE_VIOLATION"), "a redelivery bumps attempts rather than duplicating");
+    assert.ok(queue.includes('.eq("status", "open")'), "closing is a compare-and-set from open");
+    assert.ok(queue.includes('error: "note_required"'), "a resolution is explained");
+    assert.ok(queue.includes('error: "actor_required"'), "and attributed");
+
+    const api = readFileSync("app/api/admin/rewards/route.ts", "utf8");
+    const resolveBlock = api.slice(api.indexOf('if (action === "refund_resolve")'), api.indexOf("// SEARCH — name and phone"));
+    assert.ok(resolveBlock.includes("reverseCreditsForRefundOrDispute("), "it settles through the one reversal path");
+    // ASSERT THE GUARD, NOT THE MESSAGE. An error string survives `if (false)`; the condition is
+    // the thing that refuses a reversal with no stable idempotency anchor — which is the entire
+    // reason the row is in this queue.
+    assert.ok(
+      /if \(!refundExternalId \|\| refundExternalId\.length < 4\) \{[\s\S]{0,200}refund_external_id_required/.test(resolveBlock),
+      "a canonical refund id is REQUIRED to reverse, enforced by a live condition",
+    );
+    assert.ok(
+      resolveBlock.indexOf("refund_external_id_required") < resolveBlock.indexOf("reverseCreditsForRefundOrDispute("),
+      "and it is checked before any movement is attempted",
+    );
+    assert.ok(
+      resolveBlock.indexOf("reverseCreditsForRefundOrDispute(") < resolveBlock.indexOf("closeRefundResolution("),
+      "the money moves BEFORE the row closes, so 'resolved' always describes a real movement",
+    );
+  });
+
+  await check("P9: the checkout control previews, never decides, and never claims expiry", () => {
+    const panel = readFileSync("app/(site)/clasificados/components/LeonixCheckoutCreditsPanel.tsx", "utf8");
+    assert.ok(panel.includes("maxRedeemableForPurchaseCents("), "the 50% ceiling comes from the policy module");
+    assert.ok(panel.includes("REDEMPTION_MINIMUM_CENTS"), "and so does the $1 floor");
+    assert.ok(panel.includes("REDEMPTION_RESERVATION_MINUTES"), "and the 30-minute hold");
+    // Strip the file header: it EXPLAINS the rule, so matching it would be reading the comment
+    // rather than the component. What matters is that no rendered string claims expiry.
+    const panelCode = panel.slice(panel.indexOf('import { useCallback'));
+    assert.ok(!/vencen|expire/i.test(panelCode), "no rendered string claims credits expire");
+    for (const state of ['"loading"', '"ready"', '"signed_out"', '"empty"', '"error"']) {
+      assert.ok(panel.includes(state), `the ${state} state exists`);
+    }
+    assert.ok(panel.includes("recoveryBalanceCopy("), "a recovery balance is EXPLAINED, not silently refused");
+
+    const payload = readFileSync("app/lib/listingPlans/revenueCategoryCheckoutPayload.ts", "utf8");
+    assert.ok(payload.includes("requestedCreditsCents"), "the request carries the figure");
+    const client = readFileSync("app/lib/listingPlans/revenueCategoryCheckoutClient.ts", "utf8");
+    for (const field of ["creditsAppliedCents", "remainingDueCents", "creditsRefusedReason"]) {
+      assert.ok(client.includes(field), `the caller reads back ${field} instead of discarding it`);
+    }
+    const checkpoint = readFileSync("app/(site)/clasificados/components/PublishCheckoutCheckpoint.tsx", "utf8");
+    assert.ok(/creditsEligible \?/.test(checkpoint), "the control is opt-in per category");
+    // THE FIGURE HAS TO REACH THE CALLER. The control can be mounted, read a balance and preview a
+    // discount, and still be decorative if the amount never leaves the component.
+    assert.ok(
+      /onRequestedCentsChange=\{setRequestedCreditsCents\}/.test(checkpoint),
+      "the control reports the chosen amount upward",
+    );
+    const finalAction = checkpoint.slice(checkpoint.indexOf("const handleFinalAction ="), checkpoint.indexOf("const loadingLabel"));
+    assert.ok(
+      /void onCheckout\?\.\(\{[\s\S]*?requestedCreditsCents,/.test(finalAction),
+      "and the checkout context carries it — otherwise the control is decorative",
+    );
+    const servicios = readFileSync("app/(site)/clasificados/publicar/servicios/preview/ClasificadosServiciosPreviewClient.tsx", "utf8");
+    assert.ok(
+      /\(ctx\.requestedCreditsCents \?\? 0\) > 0 && \(checkout\.creditsAppliedCents \?\? 0\) <= 0/.test(servicios),
+      "a phantom discount stops the checkout instead of redirecting",
+    );
   });
 
   if (failures.length) {

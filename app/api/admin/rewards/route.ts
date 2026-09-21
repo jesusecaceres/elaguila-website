@@ -14,6 +14,9 @@
  *                       because an office payment is taken in person and settles immediately)
  *   adjust            — authorized manual correction, signed, reasoned, attributed
  *   release           — return a stale hold to the customer's available balance
+ *   refund_queue      — list unattributable refund events awaiting a person (read)
+ *   refund_resolve    — settle one of them: reverse under the canonical refund id, or record that
+ *                       no action is required. Attributed, noted, idempotent.
  *
  * Historical ledger rows are never edited or deleted: a correction is a new compensating entry.
  */
@@ -35,6 +38,12 @@ import {
   type WalletOwnerRef,
 } from "@/app/lib/rewards/rewardsLedgerCore";
 import { formatCreditsCents } from "@/app/lib/rewards/rewardsPolicy";
+import {
+  closeRefundResolution,
+  findOpenRefundResolution,
+  listRefundResolutions,
+} from "@/app/lib/rewards/rewardsRefundResolutionQueue";
+import { reverseCreditsForRefundOrDispute } from "@/app/lib/rewards/rewardsFulfillment";
 // The pure input rules live in their own module so the verifier can CALL them with crafted
 // inputs rather than grepping this file for reassuring substrings.
 import { isUuid, sanitizeSearchTerm } from "@/app/lib/rewards/rewardsStaffQuery";
@@ -82,6 +91,100 @@ export async function POST(request: NextRequest) {
   const action = typeof body.action === "string" ? body.action.trim() : "";
   const db = getAdminSupabase();
   const ports = buildRewardsStorePort();
+
+  // -------------------------------------------------------------------------
+  // REFUND QUEUE — the unattributable refund events that need a person.
+  //
+  // A `charge.refunded` payload with no refund objects cannot be attributed to a canonical refund
+  // id, and reversing it under a charge-derived key was the defect that once over-charged a
+  // customer. Refusing is right; refusing silently is not — money went back to the customer and
+  // the credits that payment earned are still spendable. These rows are that backlog.
+  // -------------------------------------------------------------------------
+  if (action === "refund_queue") {
+    const status = typeof body.status === "string" ? body.status.trim() : "open";
+    const listed = await listRefundResolutions({
+      status: status === "resolved" || status === "dismissed" || status === "all" ? status : "open",
+      limit: Number(body.limit ?? 50),
+    });
+    if (!listed.ok) return NextResponse.json({ ok: false, error: listed.error }, { status: 500 });
+    return NextResponse.json({ ok: true, rows: listed.rows });
+  }
+
+  // -------------------------------------------------------------------------
+  // REFUND RESOLVE — settle one row, exactly once.
+  //
+  // THE MOVEMENT HAPPENS FIRST, then the row closes. A row that reads "resolved" therefore always
+  // describes money that actually moved. The reversal goes through the ORDINARY path under the
+  // ordinary `reverse:refund:<id>` key built from the refund id a human supplied, so if Stripe
+  // later delivers that same refund properly the webhook is a no-op rather than a second clawback.
+  // -------------------------------------------------------------------------
+  if (action === "refund_resolve") {
+    const id = typeof body.resolutionId === "string" ? body.resolutionId.trim() : "";
+    const note = typeof body.note === "string" ? body.note.trim() : "";
+    const outcome = body.outcome === "no_action_required" ? "no_action_required" : "reversed";
+    const refundExternalId =
+      typeof body.refundExternalId === "string" ? body.refundExternalId.trim() : "";
+
+    if (!isUuid(id)) return NextResponse.json({ ok: false, error: "invalid_resolution_id" }, { status: 400 });
+    if (note.length < 3) return NextResponse.json({ ok: false, error: "note_required" }, { status: 400 });
+
+    const row = await findOpenRefundResolution(id);
+    if (!row) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
+    if (row.status !== "open") {
+      return NextResponse.json({ ok: false, error: "already_resolved" }, { status: 409 });
+    }
+
+    let movedCents = 0;
+    let recoveryAccruedCents = 0;
+    if (outcome === "reversed") {
+      // A CANONICAL REFUND ID IS REQUIRED. Without it there is no stable idempotency anchor, and
+      // the whole reason this row exists is that the payload did not carry one.
+      if (!refundExternalId || refundExternalId.length < 4) {
+        return NextResponse.json({ ok: false, error: "refund_external_id_required" }, { status: 400 });
+      }
+      const reversed = await reverseCreditsForRefundOrDispute({
+        paymentRecordId: row.paymentRecordId,
+        refundedCents: row.cumulativeRefundedCents,
+        // The rail's cumulative position is what this row recorded, so the delta arithmetic lands
+        // on the exact proportional total rather than double-counting an earlier partial refund.
+        cumulativeRefundedCents: row.cumulativeRefundedCents,
+        kind: row.kind,
+        externalId: refundExternalId,
+      });
+      if (!reversed.ok) {
+        return NextResponse.json({ ok: false, error: reversed.reason ?? "reversal_failed" }, { status: 500 });
+      }
+      if (reversed.outcome === "reversed") {
+        movedCents = reversed.reversedCents;
+        recoveryAccruedCents = reversed.recoveryAccruedCents ?? 0;
+      }
+    }
+
+    const closed = await closeRefundResolution({
+      id,
+      outcome,
+      note,
+      actorAuthUserId,
+      actorRosterId,
+      refundExternalId: outcome === "reversed" ? refundExternalId : null,
+    });
+    if (!closed.ok) {
+      // The money moved but the row would not close. Say so loudly: the reversal is idempotent
+      // under its refund id, so retrying is safe, and a silent 500 here would hide a real movement.
+      return NextResponse.json(
+        { ok: false, error: closed.error, movedCents, recoveryAccruedCents, movementApplied: movedCents > 0 },
+        { status: 409 },
+      );
+    }
+
+    return NextResponse.json({
+      ok: true,
+      outcome,
+      movedCents,
+      movedDisplay: formatCreditsCents(movedCents),
+      recoveryAccruedCents,
+    });
+  }
 
   // -------------------------------------------------------------------------
   // SEARCH — name and phone are SEARCH KEYS ONLY. The wallet is keyed on the

@@ -514,6 +514,25 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
     // The owner dashboard, which now MOUNTS the customer wallet panel. One import, one element;
     // no Quick surface on this page changes.
     "app/(site)/dashboard/page.tsx",
+    // -----------------------------------------------------------------------
+    // LEONIX IX REWARDS — SOURCE CLOSEOUT. The customer-facing redemption control and the staff
+    // refund-resolution queue. Listed FILE-EXACT so this guard keeps catching unexpected drift
+    // rather than being switched off.
+    //
+    // Two of these are SHARED checkout surfaces the Quick product also uses, and both changes are
+    // strictly additive: `PublishCheckoutCheckpoint` gains one OPTIONAL prop (`creditsEligible`)
+    // that a category must opt into, so an unwired category renders exactly what it did before;
+    // `revenueCategoryCheckoutClient` stops DISCARDING credits fields the server already sent.
+    // Neither alters any Quick media, product-identity or publish rule.
+    // -----------------------------------------------------------------------
+    "app/(site)/clasificados/components/LeonixCheckoutCreditsPanel.tsx", // the redemption control
+    "app/(site)/clasificados/components/PublishCheckoutCheckpoint.tsx", // one optional prop
+    "app/(site)/clasificados/publicar/servicios/preview/ClasificadosServiciosPreviewClient.tsx", // first wired category
+    "app/lib/listingPlans/revenueCategoryCheckoutClient.ts", // reads back the server's credits answer
+    "app/lib/listingPlans/revenueCategoryCheckoutPayload.ts", // carries requestedCreditsCents
+    "app/lib/rewards/rewardsRefundResolutionQueue.ts", // the unattributable-refund queue
+    "app/admin/(dashboard)/workspace/rewards-refunds/page.tsx", // staff queue page
+    "app/admin/(dashboard)/workspace/rewards-refunds/RewardsRefundQueueClient.tsx",
   ]);
   // A touched entry from `git status --short` may be a directory (`app/api/new-dir/`) for newly
   // added dirs not yet staged; check if it is authorized directly or all contained authorized files.

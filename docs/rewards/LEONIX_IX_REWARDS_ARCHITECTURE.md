@@ -4,7 +4,7 @@ Branch: `claude/leonix-ix-rewards-global-2026-09`
 Branched from QUICK_FREEZE_SHA: `4cb34be6d519b541606eecf9ff4afa3d0824814b`
 
 Nothing in this document describes intent. Every invariant listed here is either enforced by a
-database constraint or proven by `scripts/verify-ix-rewards-behavior-01.ts` (131 behavioral checks,
+database constraint or proven by `scripts/verify-ix-rewards-behavior-01.ts` (141 behavioral checks,
 no database, no network, no Stripe).
 
 ---
@@ -285,7 +285,31 @@ Each item is reachable from real application code and covered by the behavioural
    size and row count, per-row rejection reasons, a derived `csv:<reference>` idempotency key, an
    attributed audit entry and a downloadable report. Formula-leading cells are **refused** on
    import and **neutralized** on export.
-9. **Wallet recomputation** — `leonix_rewards_recompute_wallet()` replays the ledger in posting
+9. **Checkout redemption UI** — `LeonixCheckoutCreditsPanel`, mounted inside the shared
+   `PublishCheckoutCheckpoint`, so one component reaches every category surface. Opt-in per
+   category via `creditsEligible`. Shows available balance, the maximum for this purchase, the
+   applied amount and the exact remaining due, the 30-minute hold and the redemption rules, in
+   ES/EN, mobile-first. Every figure is a PREVIEW: the server re-plans under a row lock and its
+   answer wins, the caller reads back `creditsAppliedCents` / `remainingDueCents` /
+   `creditsRefusedReason`, and a request that applied nothing STOPS the checkout rather than
+   redirecting to a full-price Stripe page.
+10. **Recovery balance** — a clawback the wallet cannot cover is recorded as `recovery_cents`
+   rather than refused. Buckets never go negative, future EARNINGS repay the debt before becoming
+   spendable, no new hold may be taken while it stands, and the customer is told why in their own
+   language (`recoveryBalanceCopy`). A staff goodwill credit is not an earning and does not repay
+   it.
+11. **Won-dispute restoration** — `charge.dispute.closed` with `status = "won"` posts a
+   `reversal_restoration`, bounded by `reversed - already restored`, keyed on the dispute id,
+   landing on the wallet the reversal debited, repaying any recovery debt before handing anything
+   back as spendable. It can never restore more than was taken, and a redelivery moves nothing.
+12. **Unattributable refund queue** — `leonix_rewards_refund_resolutions`, written by the webhook
+   and worked at `/admin/workspace/rewards-refunds`. One row per problem with an attempt counter,
+   not one per delivery; settled only with a canonical refund id, attributed, noted, and the
+   movement happens BEFORE the row closes so "resolved" always describes real money.
+13. **Canonical wallet identity** — `bound_user_id`, pinned at first use and never reassigned. The
+   membership rules decide only the first answer; afterwards earning, promotion, redemption,
+   reversal, release and restoration all resolve to the same wallet.
+14. **Wallet recomputation** — `leonix_rewards_recompute_wallet()` replays the ledger in posting
    order through the same delta rules as `leonix_rewards_post_entry()`, rebuilding the buckets AND
    the lifetime totals, and refusing rather than clamping if the history replays negative. Parity
    with the incremental balances is asserted, including for the path-dependent cases no aggregate
@@ -293,78 +317,54 @@ Each item is reachable from real application code and covered by the behavioural
 
 ---
 
-## Deferred / not done
+## Intentionally excluded at launch
 
-These are named because they are genuinely open, not because they were forgotten.
+These are OWNER DECISIONS, not missing work. They are listed separately from anything unbuilt so
+the two are never confused again.
 
-1. **The migration is not applied anywhere.** Until it is, every hook returns `skipped` and no
-   credits accrue. This is deliberate: the mission forbids remote Supabase mutation. Nothing in
-   this repository has been run against a remote project.
-2. **No checkout redemption *widget*.** The server path is complete and proven — a request
-   carrying `requestedCreditsCents` is planned against the live balance, held, charged and
-   committed correctly, and the response returns the exact available / applied / remaining-due
-   figures plus a refusal reason when credits could not be applied. What does not exist is a
-   rendered control in the checkout page that lets a customer type that number;
-   `checkoutCreditsCopy()` supplies the ES/EN strings such a control would use. Stated plainly:
-   the capability is real, the on-page affordance is not yet drawn.
-3. **Wallet merge is not implemented.** A customer who earns as an individual and later gains a
-   business holds two wallets, and they are never merged automatically — a locked decision, not an
-   oversight. The safe manual path is a pair of compensating `manual_adjustment` entries.
-4. **Unattributed / guest payments earn nothing.** A payment with no resolvable business or user
-   returns `skipped: no_wallet_owner`. There is no backfill that awards credits once such a payment
-   is later linked canonically; that is a reconciliation CSV batch today, not an automatic sweep.
+1. **No automatic wallet merge.** A customer who earns as an individual and later gains a business
+   keeps whichever wallet was bound to them first; the two are never merged automatically. The
+   binding (`leonix_rewards_wallets.bound_user_id`) is what makes that a stable identity rather
+   than a race: earning, promotion, redemption, reversal, release and restoration all resolve
+   through it, and a membership change can no longer move a balance. The safe manual path remains
+   a pair of compensating `manual_adjustment` entries.
+2. **Guest and unattributed payments earn nothing, and there is no automatic backfill.** A payment
+   with no resolvable business or user returns `skipped: no_wallet_owner`. Linking it canonically
+   later does not retroactively award credits; that is a staff reconciliation CSV batch, by
+   decision.
+3. **The migration is applied at the staging certification gate, not before.** Until then every
+   hook returns `skipped` and no credits accrue. Nothing in this repository has been run against a
+   remote project.
+4. **No credit expiration.** `CREDITS_EXPIRE_AT_LAUNCH = false`. The `expire` entry type exists so
+   expiry could be introduced later without a schema change; nothing writes it and no surface
+   claims it.
 5. **`earn_adjustment` CSV rows post as attributed `manual_adjustment` entries.** They are
-   validated as earn-shaped (a payment record is required, a negative amount is refused), but the
-   ledger records them under `manual_adjustment` with the kind carried in the reason — not as a
-   second earn against the payment. This keeps one import path and one idempotency scheme; it does
-   mean a CSV row never produces an `earn_pending` or `earn_available` entry.
-6. **A WON dispute does not restore the credits it reversed.** `charge.dispute.created` reverses
-   immediately; `charge.dispute.closed` with `status = "won"` restores the listing and the
-   subscription but posts no compensating rewards entry, and the ledger is append-only so nothing
-   else can. That payment also stays permanently unpromotable, because `isPaymentStillPromotable`
-   withholds promotion on the existence of any reversal row. Net effect: Leonix wins the dispute
-   and keeps the money, but the customer does not get their credits back. Restoring them needs a
-   compensating entry type — the `manual_adjustment` CHECK requires a human actor and a webhook has
-   none — which is a schema change this mission may not apply. **Not built, and not claimed.**
+   validated as earn-shaped, but recorded under `manual_adjustment` with the kind in the reason —
+   one import path, one idempotency scheme. A CSV row never produces an `earn_pending` entry.
 
-7. **A refund payload with no refund objects reverses nothing.** `charge.refunds.data` is
-   normally present, but Stripe may truncate or omit it. There is exactly one accounting scheme
-   now — the refund object's own id — so an unattributable payload is audited as a retryable skip
-   for an operator rather than reversed under a second, cumulative-keyed scheme. The old fallback
-   double-counted: 810 cents reversed where 540 was owed.
+---
 
-8. **A reversal refused for insufficient balance records its BASIS but moves no money.** When the
-   customer has already spent the credits the wallet cannot go negative. A zero-amount reversal
-   entry is written so the cumulative position stays exact, and the shortfall is reported — but
-   Leonix is out those credits until a person posts a correction. There is no automatic recovery.
+## Remaining residuals
 
-9. **Reversal arithmetic assumes refund events are processed SERIALLY.** The cumulative position
-   (`sumReversalBasisForPayment` + `sumReversedForPayment`) is read outside the wallet lock; only
-   the final post takes `FOR UPDATE`. Two `charge.refunded` deliveries for one charge handled in
-   parallel can each read the same prior total and under-reverse by a rounding cent. The
-   `leonix_stripe_webhook_events` claim serializes event processing in practice, which is why this
-   is a residual rather than a live defect — but it is an assumption, not a guarantee this module
-   makes on its own.
+Genuine limits, each with its blast radius stated. None blocks launch.
 
-10. **`leonix_rewards_recompute_wallet()` replays by `created_at`, which is transaction START time,
-   not the serialization point.** Two overlapping transactions can commit in the opposite order to
-   their `created_at` values, in which case the replay reconstructs a different — possibly
-   negative — intermediate state and refuses. That refusal is safe (it never writes a wrong
-   balance) but it can be a false alarm on a genuinely consistent ledger. A monotonic sequence
-   column assigned inside the lock would fix it, and is a schema change this mission may not apply.
-
-11. **Earn and redeem resolve a wallet through different functions.** `resolveWalletOwnerForPayment`
-   prefers a *verified* `business_external_links` row for that payment, while
-   `resolveWalletOwnerForUser` (used to quote and redeem) does not consult that table at all. So
-   staff linking a payment to a business sends that payment's 9% to the business wallet while the
-   customer spends from their user wallet. Wallets are never merged automatically (item 3), which
-   makes this visible rather than silent, but the split itself is not yet reconciled.
-
-12. **A WON dispute, a reversed refund and a failed refund all leave the clawback standing.** Item
-   6 covers the dispute; the same shape applies when `amount_refunded` returns to zero. Restoring
-   credits needs a compensating entry, and the ledger is append-only.
-
-13. **No Vercel deployment, no live Stripe call, no remote Supabase mutation, no live data import**
+1. **A refund payload with no refund objects reverses nothing automatically.** It cannot be
+   attributed to a canonical refund id, and inventing a charge-derived key is what once
+   double-counted the same refunded dollars. The event is now recorded in
+   `leonix_rewards_refund_resolutions` — durable, retryable, staff-visible at
+   `/admin/workspace/rewards-refunds` — and settled by a person against the real refund id, under
+   the ordinary `reverse:refund:<id>` key so a later correct webhook is a no-op. What remains
+   residual is only that it needs a human, not that anything is lost.
+2. **Reversal arithmetic reads the cumulative position outside the wallet lock.** Only the final
+   post takes `FOR UPDATE`. Two `charge.refunded` deliveries for one charge handled in true
+   parallel can each read the same prior total; the `leonix_stripe_webhook_events` claim
+   serializes event processing in practice, and the `reverse:<kind>:<externalId>` key means a
+   duplicate delivery still cannot double-move. The exposure is a rounding cent under a race the
+   claim already prevents.
+3. **A reversed or failed refund leaves its clawback standing.** When `amount_refunded` returns to
+   zero, nothing restores the credits automatically. A WON DISPUTE now does restore them
+   (`reversal_restoration`); the refund-reversal case needs a staff `manual_adjustment`.
+4. **No Vercel deployment, no live Stripe call, no remote Supabase mutation, no live data import**
    occurred at any point. Every CSV fixture in the verifier is invented.
 
 ---
