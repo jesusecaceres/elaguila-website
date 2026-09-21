@@ -411,6 +411,26 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
     // call placed AFTER the payment is already settled; none changes payment behaviour.
     "app/lib/listingPlans/manualClearedPayments.ts",
     "app/lib/listingPlans/revenueSubscriptionEvents.ts",
+    // --- IX Rewards completion + adversarial repair pass ---
+    // The redemption, scheduling and reconciliation surfaces the first Rewards commit named as
+    // open, plus the fixes two independent review rounds then forced. Listed for the same reason
+    // as the block above: so this guard keeps catching unexpected drift rather than being switched
+    // off. None is a Quick Business surface, and the Quick product is unchanged by every one.
+    "app/lib/rewards/rewardsCheckoutRedemption.ts", // reserve/commit/release bound to checkout
+    "app/lib/rewards/rewardsCsvReconciliation.ts", // pure CSV parsing, validation, idempotency
+    "app/lib/rewards/rewardsStaffQuery.ts", // the pure staff input rules, so tests can call them
+    "app/api/revenue-os/admin/rewards-sweep/route.ts", // the protected promotion + expiry seam
+    "app/api/admin/rewards/reconciliation/route.ts", // staff-only CSV preview -> commit
+    // Payment-pipeline touch points. Each is additive: a credits-applied figure and a
+    // "this total is already net" flag on the payment record, the subscriber carried onto a
+    // renewal row so it can be attributed at all, and the pure renewal-earn decision that keeps
+    // a subscription's first invoice from earning twice.
+    "app/lib/listingPlans/invoiceRenewalEarnPolicy.ts",
+    "app/lib/listingPlans/revenuePaymentRecords.ts",
+    "app/lib/listingPlans/subscriptionLifecycle.ts",
+    // The owner dashboard, which now MOUNTS the customer wallet panel. One import, one element;
+    // no Quick surface on this page changes.
+    "app/(site)/dashboard/page.tsx",
   ]);
   // A touched entry from `git status --short` may be a directory (`app/api/new-dir/`) for newly
   // added dirs not yet staged; check if it is authorized directly or all contained authorized files.
