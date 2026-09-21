@@ -226,8 +226,22 @@ CREATE TABLE IF NOT EXISTS public.leonix_rewards_ledger (
 -- order movements actually serialized on that wallet. It is the canonical replay order and the
 -- tie-breaker nothing else can supply.
 CREATE SEQUENCE IF NOT EXISTS public.leonix_rewards_ledger_seq AS bigint;
+-- DEFAULTED AND NOT NULL, so the canonical order cannot be opted out of.
+--
+-- A row inserted without `nextval` would carry NULL, and `NULLS FIRST` would sort it before ALL
+-- history rather than at its own position — reconstructing a state that never existed, with the
+-- error depending on the balances at that point because reversals and negative adjustments are
+-- path-dependent. The default closes that off for any future writer; the posting function's
+-- explicit `nextval` still draws the value inside the wallet lock.
 ALTER TABLE public.leonix_rewards_ledger
-  ADD COLUMN IF NOT EXISTS entry_seq bigint;
+  ADD COLUMN IF NOT EXISTS entry_seq bigint DEFAULT nextval('public.leonix_rewards_ledger_seq');
+ALTER TABLE public.leonix_rewards_ledger
+  ALTER COLUMN entry_seq SET DEFAULT nextval('public.leonix_rewards_ledger_seq');
+UPDATE public.leonix_rewards_ledger
+  SET entry_seq = nextval('public.leonix_rewards_ledger_seq')
+  WHERE entry_seq IS NULL;
+ALTER TABLE public.leonix_rewards_ledger
+  ALTER COLUMN entry_seq SET NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS leonix_rewards_ledger_entry_seq_idx
   ON public.leonix_rewards_ledger (entry_seq) WHERE entry_seq IS NOT NULL;
 CREATE INDEX IF NOT EXISTS leonix_rewards_ledger_wallet_seq_idx

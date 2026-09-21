@@ -40,10 +40,14 @@ import {
 import { formatCreditsCents } from "@/app/lib/rewards/rewardsPolicy";
 import {
   closeRefundResolution,
+  enqueueUnattributableRefund,
   findOpenRefundResolution,
   listRefundResolutions,
 } from "@/app/lib/rewards/rewardsRefundResolutionQueue";
-import { reverseCreditsForRefundOrDispute } from "@/app/lib/rewards/rewardsFulfillment";
+import {
+  restoreCreditsForWonDispute,
+  reverseCreditsForRefundOrDispute,
+} from "@/app/lib/rewards/rewardsFulfillment";
 // The pure input rules live in their own module so the verifier can CALL them with crafted
 // inputs rather than grepping this file for reassuring substrings.
 import { isUuid, sanitizeSearchTerm } from "@/app/lib/rewards/rewardsStaffQuery";
@@ -122,6 +126,12 @@ export async function POST(request: NextRequest) {
     const id = typeof body.resolutionId === "string" ? body.resolutionId.trim() : "";
     const note = typeof body.note === "string" ? body.note.trim() : "";
     const outcome = body.outcome === "no_action_required" ? "no_action_required" : "reversed";
+    // A row filed by the ORDERING case records credits the customer is OWED, not a clawback to
+    // apply. Settling it with a reversal moves nothing (its basis is zero), and settling it with
+    // `adjust` credits `available` while leaving `lifetime_restored` untouched — so the SQL
+    // restoration bound stays fully open and a later `restore:<disputeId>` could pay it twice.
+    // `restore` settles it through the real restoration path, which moves the bound with it.
+    const wantsRestore = body.outcome === "restored";
     const refundExternalId =
       typeof body.refundExternalId === "string" ? body.refundExternalId.trim() : "";
 
@@ -134,8 +144,59 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "already_resolved" }, { status: 409 });
     }
 
+    // CLAIM THE ROW FIRST. The movement used to happen before the close, so two staff opening the
+    // same row and supplying different refund ids produced two different idempotency keys, both
+    // read the same prior position, and both posted the same delta — clawing back twice what was
+    // owed and leaving a recovery debt that blocks every redemption until a human notices.
+    //
+    // The compare-and-set from `open` is the mutual exclusion: exactly one caller wins it, and
+    // only the winner moves money. A movement that then fails is re-queued below rather than
+    // leaving a row that claims work nobody did.
+    const claimed = await closeRefundResolution({
+      id,
+      outcome,
+      note,
+      actorAuthUserId,
+      actorRosterId,
+      refundExternalId: outcome === "reversed" ? refundExternalId : null,
+    });
+    if (!claimed.ok) {
+      return NextResponse.json({ ok: false, error: claimed.error }, { status: 409 });
+    }
+
     let movedCents = 0;
     let recoveryAccruedCents = 0;
+    if (wantsRestore) {
+      const disputeId = typeof body.disputeId === "string" ? body.disputeId.trim() : "";
+      if (disputeId.length < 4) {
+        return NextResponse.json({ ok: false, error: "dispute_id_required" }, { status: 400 });
+      }
+      const restored = await restoreCreditsForWonDispute({
+        paymentRecordId: row.paymentRecordId,
+        externalId: disputeId,
+      });
+      if (!restored.ok) {
+        await enqueueUnattributableRefund({
+          paymentRecordId: row.paymentRecordId,
+          kind: row.kind,
+          cumulativeRefundedCents: row.cumulativeRefundedCents,
+          reason: `staff_resolution_restoration_failed: ${restored.reason ?? "unknown"}`,
+          stripeChargeId: row.stripeChargeId,
+        }).catch(() => undefined);
+        return NextResponse.json(
+          { ok: false, error: restored.reason ?? "restoration_failed", requeued: true },
+          { status: 500 },
+        );
+      }
+      movedCents = restored.outcome === "restored" ? restored.restoredCents : 0;
+      return NextResponse.json({
+        ok: true,
+        outcome: "restored",
+        movedCents,
+        movedDisplay: formatCreditsCents(movedCents),
+      });
+    }
+
     if (outcome === "reversed") {
       // A CANONICAL REFUND ID IS REQUIRED. Without it there is no stable idempotency anchor, and
       // the whole reason this row exists is that the payload did not carry one.
@@ -152,29 +213,24 @@ export async function POST(request: NextRequest) {
         externalId: refundExternalId,
       });
       if (!reversed.ok) {
-        return NextResponse.json({ ok: false, error: reversed.reason ?? "reversal_failed" }, { status: 500 });
+        // The claim is already recorded, so the obligation would otherwise vanish. Re-file it as a
+        // fresh open row naming the failure, rather than reporting an error and losing the work.
+        await enqueueUnattributableRefund({
+          paymentRecordId: row.paymentRecordId,
+          kind: row.kind,
+          cumulativeRefundedCents: row.cumulativeRefundedCents,
+          reason: `staff_resolution_reversal_failed: ${reversed.reason ?? "unknown"}`,
+          stripeChargeId: row.stripeChargeId,
+        }).catch(() => undefined);
+        return NextResponse.json(
+          { ok: false, error: reversed.reason ?? "reversal_failed", requeued: true },
+          { status: 500 },
+        );
       }
       if (reversed.outcome === "reversed") {
         movedCents = reversed.reversedCents;
         recoveryAccruedCents = reversed.recoveryAccruedCents ?? 0;
       }
-    }
-
-    const closed = await closeRefundResolution({
-      id,
-      outcome,
-      note,
-      actorAuthUserId,
-      actorRosterId,
-      refundExternalId: outcome === "reversed" ? refundExternalId : null,
-    });
-    if (!closed.ok) {
-      // The money moved but the row would not close. Say so loudly: the reversal is idempotent
-      // under its refund id, so retrying is safe, and a silent 500 here would hide a real movement.
-      return NextResponse.json(
-        { ok: false, error: closed.error, movedCents, recoveryAccruedCents, movementApplied: movedCents > 0 },
-        { status: 409 },
-      );
     }
 
     return NextResponse.json({

@@ -324,20 +324,26 @@ export function buildRewardsStorePort(): RewardsStorePort {
     },
 
     async sumReversalBasisForPayment(paymentRecordId: string, kind: "refund" | "chargeback") {
-      const entryType = kind === "refund" ? "refund_reversal" : "chargeback_reversal";
+      // A WON DISPUTE WITHDRAWS THE BASIS IT ADDED. `reversal_restoration` rows carry a NEGATIVE
+      // `basis_contribution_cents`, so including them for the chargeback kind is what stops a
+      // later refund measuring its position against a charge that was already given back. The
+      // total is floored at zero — the position can be withdrawn to nothing, never below it.
+      const entryTypes =
+        kind === "refund" ? ["refund_reversal"] : ["chargeback_reversal", "reversal_restoration"];
       const { data } = await db
         .from("leonix_rewards_ledger")
         .select("meta")
         .eq("payment_record_id", paymentRecordId)
-        .eq("entry_type", entryType);
+        .in("entry_type", entryTypes);
       // `basis_contribution_cents` is the MONEY this entry accounted for, which is not the same as
       // the credits it moved: a refund landing on an already fully-reversed payment contributes
       // real money to the position while moving zero credits.
-      return ((data ?? []) as { meta: Record<string, unknown> | null }[]).reduce((total, row) => {
+      const total = ((data ?? []) as { meta: Record<string, unknown> | null }[]).reduce((sum, row) => {
         const raw = (row.meta as { basis_contribution_cents?: number } | null)?.basis_contribution_cents;
         const contribution = Number(raw ?? 0);
-        return total + (Number.isFinite(contribution) ? Math.max(0, Math.floor(contribution)) : 0);
+        return sum + (Number.isFinite(contribution) ? Math.floor(contribution) : 0);
       }, 0);
+      return Math.max(0, total);
     },
 
     async findEarnForPayment(paymentRecordId: string) {
@@ -462,10 +468,12 @@ export async function resolveWalletOwnerForPayment(input: {
   // personal wallet EARNED into a business wallet they could never spend from at checkout, because
   // redemption resolves through the binding. Earn and spend have to land on one wallet, so the
   // binding is checked first and the link only decides a customer who has no wallet identity yet.
-  if (input.ownerUserId) {
-    const bound = await resolveWalletOwnerForUser(input.ownerUserId);
-    if (bound) return bound;
-  }
+  // ONLY A REAL BINDING SHORT-CIRCUITS. `resolveWalletOwnerForUser` never returns null for a real
+  // user, so calling IT here returned on every identified payer and left the link lookup below
+  // unreachable — silently disabling staff payment-to-business attribution and pinning the whole
+  // award to the payer's personal wallet. A customer with no wallet identity yet falls through.
+  const bound = await findBoundWalletOwner(input.ownerUserId);
+  if (bound) return bound;
 
   const { data: link } = await db
     .from("business_external_links")
@@ -500,6 +508,28 @@ export async function resolveWalletOwnerForPayment(input: {
  * business wallet, and their own balance would have vanished from the panel. Wallets are never
  * merged automatically — a locked decision — so the resolver must not effect a merge by accident.
  */
+/**
+ * The wallet ALREADY BOUND to this user, or null when they have no wallet identity yet.
+ *
+ * Distinct from `resolveWalletOwnerForUser`, which never returns null for a real user — it falls
+ * through to `{ kind: "user" }`. Short-circuiting on that fallback made the payment-link branch in
+ * `resolveWalletOwnerForPayment` dead code: every identified payer returned before it, so a
+ * staff-verified link from a payment to a business stopped attributing anything and the whole
+ * award went to the payer's personal wallet instead.
+ */
+export async function findBoundWalletOwner(ownerUserId: string | null): Promise<WalletOwnerRef | null> {
+  if (!ownerUserId || !isSupabaseAdminConfigured()) return null;
+  const { data } = await getAdminSupabase()
+    .from("leonix_rewards_wallets")
+    .select("business_id, owner_user_id")
+    .eq("bound_user_id", ownerUserId)
+    .maybeSingle();
+  const row = data as { business_id?: string | null; owner_user_id?: string | null } | null;
+  if (row?.business_id) return { kind: "business", businessId: String(row.business_id) };
+  if (row?.owner_user_id) return { kind: "user", ownerUserId: String(row.owner_user_id) };
+  return null;
+}
+
 export async function resolveWalletOwnerForUser(ownerUserId: string | null): Promise<WalletOwnerRef | null> {
   if (!ownerUserId || !isSupabaseAdminConfigured()) return null;
   const db = getAdminSupabase();

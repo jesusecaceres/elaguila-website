@@ -1054,6 +1054,22 @@ export async function restoreReversedCredits(input: {
   const before = await input.ports.getWalletById(original.walletId);
   const recoveryBefore = Math.max(0, Number(before?.recoveryCents ?? 0) || 0);
 
+  // NEUTRALIZE THE BASIS THIS DISPUTE CONTRIBUTED, or a later refund over-reverses.
+  //
+  // A reversal's `basis_contribution_cents` is the MONEY-RETURNED position it added, and the
+  // cumulative arithmetic sums it across kinds. Restoring the credits without withdrawing that
+  // basis left the whole disputed charge permanently in the position: a $100 payment whose
+  // dispute was WON, then goodwill-refunded $50, computed a cumulative of $150 against a $100
+  // purchase, targeted a 100% reversal, and took the customer's entire 900-cent award instead of
+  // the 450 they had actually lost.
+  //
+  // The withdrawal is proportional to what is being restored, in the same integer-cent arithmetic
+  // the forward direction uses, so a partial restoration withdraws a partial basis.
+  const basisNeutralizedCents =
+    original.amountCents > 0
+      ? Math.floor((restoreCents * Math.max(0, original.eligibleNetCents)) / original.amountCents)
+      : 0;
+
   const posted = await input.ports.postEntry({
     // THE WALLET THAT WAS DEBITED, read from the earn entry — never re-resolved from the payer.
     walletId: original.walletId,
@@ -1069,6 +1085,9 @@ export async function restoreReversedCredits(input: {
       already_restored_cents: restoredCents,
       requested_cents: requested,
       recovery_before_cents: recoveryBefore,
+      // NEGATIVE, because this row REMOVES money-returned position rather than adding it. The
+      // basis sum for the chargeback kind includes restoration rows for exactly this reason.
+      basis_contribution_cents: -basisNeutralizedCents,
     },
   });
   if (!posted.ok) return { ok: false, error: posted.error };

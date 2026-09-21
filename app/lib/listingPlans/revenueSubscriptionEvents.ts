@@ -771,8 +771,20 @@ export async function handleDisputeClosed(input: { dispute: Stripe.Dispute; even
     // `nothing_to_restore` is queued too, because the commonest cause is ORDER: if
     // `dispute.closed(won)` is processed before `dispute.created`, there is no clawback to undo
     // yet and the one that lands afterwards would stand permanently.
+    // WHICH SKIPS ACTUALLY OWE SOMEONE SOMETHING.
+    //
+    // `already_restored` is the ORDINARY redelivery: Stripe re-sends `dispute.closed` and the
+    // bound correctly answers "nothing outstanding". Filing that as work would have put a row
+    // reading "money is owed" in front of staff for every redelivered won dispute — and a staff
+    // member acting on one would hand the customer the award a second time. The same is true of
+    // `rewards_not_configured`, which is every won dispute on a deployment without rewards.
+    //
+    // What DOES need a person is the ordering case: `closed(won)` processed before `created`, so
+    // there is no clawback to undo yet and the one that lands afterwards would stand permanently.
+    const QUIET_SKIPS = new Set(["payment_earned_nothing", "already_restored", "rewards_not_configured"]);
     const needsAPerson =
-      !restored.ok || (restored.outcome === "skipped" && restored.reason !== "payment_earned_nothing");
+      !restored.ok ||
+      (restored.outcome === "skipped" && !QUIET_SKIPS.has(String(restored.reason ?? "")));
     if (needsAPerson) {
       await enqueueUnattributableRefund({
         paymentRecordId: String(paymentRecord.id),
