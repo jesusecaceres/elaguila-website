@@ -12,7 +12,24 @@ import {
 } from "./revenueCategoryCheckoutPayload";
 
 export type RevenueCategoryCheckoutStartResult =
-  | { ok: true; checkoutUrl: string; paymentRecordId?: string }
+  | {
+      ok: true;
+      checkoutUrl: string;
+      paymentRecordId?: string;
+      /**
+       * LEONIX IX REWARDS — what the SERVER actually did with the credits request.
+       *
+       * These were already on the wire and thrown away here, which meant a customer could ask for
+       * credits, be told nothing, and land on a Stripe page for a different amount than the one
+       * the control previewed. The server's figures are authoritative; the caller shows them.
+       */
+      amountBeforeCreditsCents?: number;
+      creditsAppliedCents?: number;
+      remainingDueCents?: number;
+      creditsHoldExpiresAtIso?: string | null;
+      /** Why no credits were applied, when the customer asked for some. Never a silent zero. */
+      creditsRefusedReason?: string | null;
+    }
   | { ok: false; userMessage: string };
 
 export function revenueCategoryCheckoutErrorMessage(lang: "es" | "en"): string {
@@ -53,6 +70,11 @@ export async function startRevenueCategoryCheckout(
       checkoutUrl?: string;
       paymentRecordId?: string;
       message?: string;
+      amountBeforeCreditsCents?: number;
+      creditsAppliedCents?: number;
+      remainingDueCents?: number;
+      creditsHoldExpiresAtIso?: string | null;
+      creditsRefusedReason?: string | null;
     };
 
     if (res.ok && j.ok && typeof j.checkoutUrl === "string" && j.checkoutUrl.trim()) {
@@ -60,6 +82,13 @@ export async function startRevenueCategoryCheckout(
         ok: true,
         checkoutUrl: j.checkoutUrl.trim(),
         paymentRecordId: j.paymentRecordId,
+        ...(typeof j.amountBeforeCreditsCents === "number"
+          ? { amountBeforeCreditsCents: j.amountBeforeCreditsCents }
+          : {}),
+        ...(typeof j.creditsAppliedCents === "number" ? { creditsAppliedCents: j.creditsAppliedCents } : {}),
+        ...(typeof j.remainingDueCents === "number" ? { remainingDueCents: j.remainingDueCents } : {}),
+        ...(j.creditsHoldExpiresAtIso ? { creditsHoldExpiresAtIso: j.creditsHoldExpiresAtIso } : {}),
+        ...(j.creditsRefusedReason ? { creditsRefusedReason: j.creditsRefusedReason } : {}),
       };
     }
 

@@ -785,6 +785,8 @@ export function ClasificadosServiciosPreviewClient() {
       promoCode: string | null;
       recurringConsent?: { accepted: true; consentTextVersion: string; lang: "es" | "en" } | null;
       requestVerifiedIntroDiscount?: boolean;
+      /** LEONIX IX REWARDS — credits the customer chose to apply, in cents. A request, not a price. */
+      requestedCreditsCents?: number;
     }) => {
       if (!appState) return;
       setCheckoutBusy(true);
@@ -845,10 +847,26 @@ export function ClasificadosServiciosPreviewClient() {
           promoCode: ctx.promoCode,
           recurringConsent: ctx.recurringConsent ?? null,
           requestVerifiedIntroDiscount: ctx.requestVerifiedIntroDiscount ?? false,
+          // LEONIX IX REWARDS — what the customer asked to apply. A request, not a price: the
+          // server re-plans it under a row lock and charges what it decides.
+          requestedCreditsCents: ctx.requestedCreditsCents ?? 0,
         });
 
         if (!checkout.ok) {
           setCheckoutErr(checkout.userMessage);
+          setCheckoutBusy(false);
+          return;
+        }
+
+        // THE CUSTOMER ASKED FOR CREDITS AND GOT NONE. Redirecting silently to a Stripe page for
+        // the full amount is exactly the phantom-discount failure this seam exists to prevent, so
+        // the refusal is shown and the redirect waits for them to decide.
+        if ((ctx.requestedCreditsCents ?? 0) > 0 && (checkout.creditsAppliedCents ?? 0) <= 0) {
+          setCheckoutErr(
+            lang === "es"
+              ? "No pudimos aplicar tus créditos a esta compra. Puedes continuar y pagar el total."
+              : "We could not apply your credits to this purchase. You can continue and pay the full amount.",
+          );
           setCheckoutBusy(false);
           return;
         }
@@ -1155,6 +1173,7 @@ export function ClasificadosServiciosPreviewClient() {
                     : "Completa los campos requeridos en el formulario antes de iniciar el pago seguro."
               }
               onPromoApply={handlePromoApply}
+              creditsEligible
               onCheckout={(ctx) => void onCheckout(ctx)}
               newsletterEmail={newsletterEmail}
               newsletterCaptureNote={newsletterCaptureNote}

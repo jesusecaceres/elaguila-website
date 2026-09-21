@@ -372,6 +372,36 @@ export function checkoutCreditsCopy(
   };
 }
 
+/**
+ * Customer-facing explanation of a RECOVERY BALANCE, in the customer's own terms.
+ *
+ * Said plainly, because the alternative is a checkout that refuses to apply credits and does not
+ * say why. A refund returned money for a purchase whose credits had already been spent, so those
+ * credits are owed back; the next credits earned settle it automatically. No penalty, no expiry,
+ * nothing to pay in cash.
+ */
+export function recoveryBalanceCopy(
+  lang: "es" | "en",
+  view: { recoveryCents: number },
+): { heading: string; detail: string } {
+  const amount = formatCreditsCents(Math.max(0, Math.floor(view.recoveryCents) || 0));
+  return lang === "en"
+    ? {
+        heading: `Credits owed back: ${amount}`,
+        detail:
+          `A refund returned money for a purchase whose credits you had already used, so ${amount} in credits is owed back. ` +
+          "The next credits you earn cover it automatically, and then your credits become available again. " +
+          "There is nothing to pay in cash, and your credits do not expire.",
+      }
+    : {
+        heading: `Créditos por devolver: ${amount}`,
+        detail:
+          `Un reembolso devolvió dinero de una compra cuyos créditos ya habías usado, así que quedan ${amount} en créditos por devolver. ` +
+          "Los próximos créditos que ganes lo cubren automáticamente y después tus créditos vuelven a estar disponibles. " +
+          "No hay nada que pagar en efectivo y tus créditos no vencen.",
+      };
+}
+
 /** Customer-facing explanation of the redemption rules. Kept beside them so they cannot drift. */
 export function redemptionRulesCopy(lang: "es" | "en"): string {
   const min = formatCreditsCents(REDEMPTION_MINIMUM_CENTS);

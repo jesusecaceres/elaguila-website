@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
   const { data: walletRow, error } = await db
     .from("leonix_rewards_wallets")
     .select(
-      "id, pending_cents, available_cents, reserved_cents, lifetime_earned_cents, lifetime_redeemed_cents, lifetime_reversed_cents",
+      "id, pending_cents, available_cents, reserved_cents, lifetime_earned_cents, lifetime_redeemed_cents, lifetime_reversed_cents, recovery_cents, lifetime_restored_cents",
     )
     .eq(column, value)
     .maybeSingle();
@@ -88,6 +88,11 @@ export async function GET(request: NextRequest) {
     lifetimeEarnedDisplay: formatCreditsCents(0),
     lifetimeRedeemedDisplay: formatCreditsCents(0),
     lifetimeReversedDisplay: formatCreditsCents(0),
+    // A clawback the wallet could not cover, repaid out of future earnings before they become
+    // spendable. Surfaced so the checkout control can explain it instead of silently refusing.
+    recoveryCents: 0,
+    recoveryDisplay: formatCreditsCents(0),
+    lifetimeRestoredCents: 0,
     pendingAvailableOn: null as string | null,
   };
 
@@ -111,6 +116,8 @@ export async function GET(request: NextRequest) {
     lifetime_earned_cents: number;
     lifetime_redeemed_cents: number;
     lifetime_reversed_cents: number;
+    recovery_cents?: number | null;
+    lifetime_restored_cents?: number | null;
   };
 
   const { data: activityRows } = await db
@@ -169,6 +176,13 @@ export async function GET(request: NextRequest) {
       lifetimeEarnedDisplay: formatCreditsCents(w.lifetime_earned_cents),
       lifetimeRedeemedDisplay: formatCreditsCents(w.lifetime_redeemed_cents),
       lifetimeReversedDisplay: formatCreditsCents(w.lifetime_reversed_cents ?? 0),
+      // WHAT THE CUSTOMER OWES BACK. A refund clawed back credits that had already been spent, so
+      // the shortfall is carried here and repaid out of future earnings before they become
+      // spendable. Surfaced because a checkout that simply refused to apply credits without
+      // saying why is the kind of silence this system is not allowed to have.
+      recoveryCents: Math.max(0, Number(w.recovery_cents ?? 0) || 0),
+      recoveryDisplay: formatCreditsCents(Math.max(0, Number(w.recovery_cents ?? 0) || 0)),
+      lifetimeRestoredCents: Math.max(0, Number(w.lifetime_restored_cents ?? 0) || 0),
       pendingAvailableOn,
     },
     activity,

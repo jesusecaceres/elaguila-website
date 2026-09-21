@@ -36,6 +36,7 @@ import {
   buildVerifiedIntroChargeScheduleText,
 } from "@/app/lib/listingPlans/recurringConsentCopy";
 import { VerifiedIntroDiscountVerifyPanel } from "./VerifiedIntroDiscountVerifyPanel";
+import LeonixCheckoutCreditsPanel from "./LeonixCheckoutCreditsPanel";
 
 export type RecurringConsentAcknowledgmentPayload = {
   accepted: true;
@@ -84,6 +85,12 @@ export type PublishCheckoutCheckpointProps = {
     /** Package C Build 2 (C4) — explicit customer request for the verified-15% introductory
      * discount. Mutually exclusive with promoCode; the server rejects a request carrying both. */
     requestVerifiedIntroDiscount: boolean;
+    /**
+     * LEONIX IX REWARDS — how many of the customer's credits to apply, in cents. A PREVIEW: the
+     * server re-plans it under a row lock against the live balance and its answer wins. Zero when
+     * the control is not mounted, the customer has no credits, or they applied none.
+     */
+    requestedCreditsCents: number;
   }) => void | Promise<void>;
   onFreePublish?: (ctx: {
     newsletterOptIn: boolean;
@@ -110,6 +117,15 @@ export type PublishCheckoutCheckpointProps = {
    * `finalButtonEnabled`; newsletter capture failure must never block the paid transaction.
    */
   newsletterCaptureNote?: string | null;
+  /**
+   * LEONIX IX REWARDS — mount the credits control for this category.
+   *
+   * Opt-in, exactly like `onPromoApply`: a category that has not been wired for credits renders
+   * no control and its checkout is byte-for-byte unchanged. The control itself decides whether to
+   * show anything, because a signed-out customer or one with no balance must see nothing rather
+   * than an empty box.
+   */
+  creditsEligible?: boolean;
   /** When set, shown as CTA when Restaurante coupon add-on blocks checkout. */
   editHref?: string;
   /** Optional "Ver reglas de Leonix" modal shown above confirmations (opt-in per category). */
@@ -138,6 +154,7 @@ export function PublishCheckoutCheckpoint({
   newsletterEmail,
   onNewsletterEmailChange,
   newsletterCaptureNote,
+  creditsEligible,
   editHref,
   rulesModal,
   className = "",
@@ -155,6 +172,7 @@ export function PublishCheckoutCheckpoint({
   const [promoPercentOff, setPromoPercentOff] = useState<number | null>(null);
   const [promoMessage, setPromoMessage] = useState<string | null>(null);
   const [promoBusy, setPromoBusy] = useState(false);
+  const [requestedCreditsCents, setRequestedCreditsCents] = useState(0);
   // Package C Build 2 (C4) — verified 15% introductory discount, mutually exclusive with promo.
   const [verifiedIntroDiscountApplied, setVerifiedIntroDiscountApplied] = useState(false);
   const [verifiedIntroDiscountEstimateCents, setVerifiedIntroDiscountEstimateCents] = useState<number | null>(null);
@@ -260,6 +278,7 @@ export function PublishCheckoutCheckpoint({
             ? buildRecurringConsentAcknowledgment(lang === "en" ? "en" : "es")
             : null,
         requestVerifiedIntroDiscount: verifiedIntroDiscountApplied,
+        requestedCreditsCents,
       });
     } else {
       void onFreePublish?.(baseCtx);
@@ -422,6 +441,24 @@ export function PublishCheckoutCheckpoint({
             setVerifiedIntroDiscountApplied(active);
             setVerifiedIntroDiscountEstimateCents(estimatedDiscountCents);
           }}
+        />
+      ) : null}
+
+      {/* LEONIX IX REWARDS — apply your credits to this purchase.
+          Sits below the discount controls and ABOVE the total, because it changes what is due.
+          Credits are not a promo code: `validateDiscountCombination` allows them alongside the
+          one promo slot, so this never hides or competes with the field above. */}
+      {resolved.mode === "checkout" && creditsEligible ? (
+        <LeonixCheckoutCreditsPanel
+          lang={lang === "en" ? "en" : "es"}
+          eligiblePurchaseCents={resolved.totalCents}
+          amountDueCents={resolved.totalCents}
+          onRequestedCentsChange={setRequestedCreditsCents}
+          disabled={busy}
+          borderColor={LEONIX_BORDER}
+          textColor={LEONIX_CHARCOAL}
+          mutedColor={LEONIX_MUTED}
+          successColor={LEONIX_SUCCESS}
         />
       ) : null}
 

@@ -192,6 +192,14 @@ export type RevenueCategoryCheckoutPayload = {
   /** Package C Build 2 (C4) — explicit customer request for the verified-15% introductory
    * discount. Mutually exclusive with promoCode; the server rejects a request carrying both. */
   requestVerifiedIntroDiscount?: boolean;
+  /**
+   * LEONIX IX REWARDS — credits the customer asked to apply, in cents.
+   *
+   * A REQUEST, never a price. The server re-plans it under a row lock against the live balance,
+   * the $1 floor, the 50%-of-purchase ceiling, the amount due and the payment rail's minimum
+   * charge, and charges what IT decides. A forged figure here buys nothing.
+   */
+  requestedCreditsCents?: number | null;
 };
 
 export function buildRevenueCategoryCheckoutBody(
@@ -224,5 +232,8 @@ export function buildRevenueCategoryCheckoutBody(
     ...(input.returnContext?.trim() ? { returnContext: input.returnContext.trim() } : {}),
     ...(input.recurringConsent ? { recurringConsent: input.recurringConsent } : {}),
     ...(input.requestVerifiedIntroDiscount ? { requestVerifiedIntroDiscount: true } : {}),
+    ...(Number(input.requestedCreditsCents ?? 0) > 0
+      ? { requestedCreditsCents: Math.max(0, Math.floor(Number(input.requestedCreditsCents))) }
+      : {}),
   };
 }
