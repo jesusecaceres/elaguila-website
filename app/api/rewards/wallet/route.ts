@@ -11,7 +11,13 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getBearerUserId } from "@/app/api/clasificados/_lib/bearerUser";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { resolveWalletOwnerForPayment } from "@/app/lib/rewards/rewardsLedger";
-import { earnRateCopy, formatCreditsCents } from "@/app/lib/rewards/rewardsPolicy";
+import {
+  CARD_SETTLEMENT_PENDING_DAYS,
+  CREDITS_EXPIRE_AT_LAUNCH,
+  earnRateCopy,
+  formatCreditsCents,
+  redemptionRulesCopy,
+} from "@/app/lib/rewards/rewardsPolicy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -58,28 +64,39 @@ export async function GET(request: NextRequest) {
 
   const { data: walletRow, error } = await db
     .from("leonix_rewards_wallets")
-    .select("id, pending_cents, available_cents, reserved_cents, lifetime_earned_cents, lifetime_redeemed_cents")
+    .select(
+      "id, pending_cents, available_cents, reserved_cents, lifetime_earned_cents, lifetime_redeemed_cents, lifetime_reversed_cents",
+    )
     .eq(column, value)
     .maybeSingle();
 
   if (error) return NextResponse.json({ ok: false, error: "lookup_failed" }, { status: 500 });
 
+  const emptyWallet = {
+    availableCents: 0,
+    pendingCents: 0,
+    reservedCents: 0,
+    lifetimeEarnedCents: 0,
+    lifetimeRedeemedCents: 0,
+    lifetimeReversedCents: 0,
+    availableDisplay: formatCreditsCents(0),
+    pendingDisplay: formatCreditsCents(0),
+    reservedDisplay: formatCreditsCents(0),
+    lifetimeEarnedDisplay: formatCreditsCents(0),
+    lifetimeRedeemedDisplay: formatCreditsCents(0),
+    lifetimeReversedDisplay: formatCreditsCents(0),
+    pendingAvailableOn: null as string | null,
+  };
+
   if (!walletRow) {
     // No wallet yet is a truthful zero state, not an error — the customer simply has not earned.
     return NextResponse.json({
       ok: true,
-      wallet: {
-        availableCents: 0,
-        pendingCents: 0,
-        reservedCents: 0,
-        lifetimeEarnedCents: 0,
-        lifetimeRedeemedCents: 0,
-        availableDisplay: formatCreditsCents(0),
-        pendingDisplay: formatCreditsCents(0),
-        lifetimeEarnedDisplay: formatCreditsCents(0),
-      },
+      wallet: emptyWallet,
       activity: [],
       explanation: earnRateCopy(lang),
+      redemptionRules: redemptionRulesCopy(lang),
+      creditsExpire: CREDITS_EXPIRE_AT_LAUNCH,
     });
   }
 
@@ -90,6 +107,7 @@ export async function GET(request: NextRequest) {
     reserved_cents: number;
     lifetime_earned_cents: number;
     lifetime_redeemed_cents: number;
+    lifetime_reversed_cents: number;
   };
 
   const { data: activityRows } = await db
@@ -110,6 +128,29 @@ export async function GET(request: NextRequest) {
       reason: r.reason,
     }));
 
+  // WHEN pending credits become spendable, computed from the OLDEST unpromoted pending earn plus
+  // the settlement window — the same window the promotion sweep uses, read from the same
+  // constant. Null when there is nothing pending, because a date nobody can stand behind is
+  // worse than no date: the panel then says nothing rather than inventing one.
+  let pendingAvailableOn: string | null = null;
+  if (w.pending_cents > 0) {
+    const { data: oldestPending } = await db
+      .from("leonix_rewards_ledger")
+      .select("created_at")
+      .eq("wallet_id", w.id)
+      .eq("entry_type", "earn_pending")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    const earnedAt = (oldestPending as { created_at?: string } | null)?.created_at;
+    if (earnedAt) {
+      const t = Date.parse(earnedAt);
+      if (Number.isFinite(t)) {
+        pendingAvailableOn = new Date(t + CARD_SETTLEMENT_PENDING_DAYS * 86_400_000).toISOString();
+      }
+    }
+  }
+
   return NextResponse.json({
     ok: true,
     wallet: {
@@ -118,11 +159,20 @@ export async function GET(request: NextRequest) {
       reservedCents: w.reserved_cents,
       lifetimeEarnedCents: w.lifetime_earned_cents,
       lifetimeRedeemedCents: w.lifetime_redeemed_cents,
+      lifetimeReversedCents: w.lifetime_reversed_cents ?? 0,
       availableDisplay: formatCreditsCents(w.available_cents),
       pendingDisplay: formatCreditsCents(w.pending_cents),
+      reservedDisplay: formatCreditsCents(w.reserved_cents),
       lifetimeEarnedDisplay: formatCreditsCents(w.lifetime_earned_cents),
+      lifetimeRedeemedDisplay: formatCreditsCents(w.lifetime_redeemed_cents),
+      lifetimeReversedDisplay: formatCreditsCents(w.lifetime_reversed_cents ?? 0),
+      pendingAvailableOn,
     },
     activity,
     explanation: earnRateCopy(lang),
+    redemptionRules: redemptionRulesCopy(lang),
+    // Stated explicitly so no surface has to guess. Launch policy has NO expiration, and the
+    // panel reads this rather than carrying its own claim about expiry.
+    creditsExpire: CREDITS_EXPIRE_AT_LAUNCH,
   });
 }

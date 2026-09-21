@@ -182,29 +182,103 @@ database refuses a `manual_adjustment` lacking either. Historical rows are never
 
 ---
 
+## Locked launch policy
+
+Every number below is a constant in `rewardsPolicy.ts`, asserted by
+`scripts/verify-ix-rewards-behavior-01.ts`, and read by every surface rather than re-typed.
+
+| Rule | Value | Constant |
+|---|---|---|
+| Earn rate on eligible net settled money | 9% | `REWARDS_EARN_RATE_BASIS_POINTS = 900` |
+| Money representation | integer cents, rounded DOWN | `computeEarnCents` |
+| Credits spent earn nothing | enforced | `computeEligibleNetCents` |
+| Card settlement window before credits are spendable | 30 calendar days | `CARD_SETTLEMENT_PENDING_DAYS` |
+| Cleared cash / manual money | immediately spendable | `pendingUntilSettlementFinal: false` |
+| Minimum redemption | $1.00 | `REDEMPTION_MINIMUM_CENTS` |
+| Maximum redemption | 50% of the eligible purchase | `REDEMPTION_MAX_FRACTION_BASIS_POINTS` |
+| Payment-rail floor preserved | 50c default; a stricter value wins | `resolveRailMinimumChargeCents` |
+| Checkout reservation hold | 30 minutes, auto-released | `REDEMPTION_RESERVATION_MINUTES` |
+| Credit expiration | **none at launch** | `CREDITS_EXPIRE_AT_LAUNCH = false` |
+| Wallet merge | never automatic | see *Deferred* |
+| Reversal target wallet | the wallet originally credited | `findEarnForPayment().walletId` |
+
+---
+
+## What is BUILT
+
+Each item is reachable from real application code and covered by the behavioural verifier.
+
+1. **Earning** — Stripe checkout (`revenueFulfillment`), cleared manual/office payments
+   (`manualClearedPayments`) and **recurring subscription renewals**
+   (`revenueSubscriptionEvents.handleInvoicePaid`) all award 9% under
+   `earn:payment:<paymentRecordId>`. The renewal payment record now carries `owner_user_id`, which
+   is what makes a renewal attributable to a wallet at all.
+2. **Refund and chargeback reversal** — keyed on each **refund object's** id (and each dispute's),
+   never on the charge, and computed as a DELTA against a cumulative target so a sequence of
+   partial refunds converges on the exact proportional total instead of losing a cent per event.
+   The debit always lands on the wallet the payment originally credited; ownership is never
+   re-resolved at reversal time. A duplicate delivery is recorded and reports **zero movement**
+   rather than the amount it would have moved on a first delivery.
+3. **Settlement promotion** — `runRewardsSettlementPromotionSweep` promotes card credits after 30
+   calendar days, only for payments not refunded, disputed, reversed or otherwise invalidated.
+   Idempotent per payment; the eligibility question fails **closed**.
+4. **Checkout redemption** — `rewardsCheckoutRedemption.ts` reserves against the live balance
+   through the one `planRedemption` policy, threads the reduced amount through the SAME
+   `finalAmountCents` seam the promo and verified-intro discounts use, commits only after
+   `checkout.session.completed`, and releases on a stale attempt, a payment-record failure, a
+   synchronous Stripe failure and an expired session. The reference is the existing
+   `checkoutAttemptKey`, so a retry reuses the hold instead of stacking a second one, and a reused
+   reference reports `deduplicated` rather than a fresh discount.
+5. **Reservation expiry** — `expires_at` is written on reserve (a live hold without one is refused
+   by a CHECK), and `runRewardsReservationExpirySweep` releases anything past 30 minutes.
+6. **The scheduler seam** — `POST/GET /api/revenue-os/admin/rewards-sweep`, modelled on the
+   existing subscription sweep: `CRON_SECRET` bearer for GET, super-admin or
+   `LEONIX_REWARDS_SWEEP_KEY` for POST, constant-time comparison, and **fail-closed when the secret
+   is unset**. Authored in `vercel.json` as configuration; nothing here activates a schedule.
+7. **Customer wallet UI** — `LeonixCreditsPanel` is **mounted** in the canonical owner dashboard
+   (`app/(site)/dashboard/page.tsx`). It shows pending, available, reserved, lifetime
+   earned/redeemed/reversed, the ledger history, and the pending availability date when the server
+   can compute one. It offers no redeem control, because the dashboard cannot spend credits.
+8. **Staff CSV reconciliation** — `POST /api/admin/rewards/reconciliation` with a mandatory
+   `preview` → `commit` flow bound by a batch fingerprint, an exact required header, bounded file
+   size and row count, per-row rejection reasons, a derived `csv:<reference>` idempotency key, an
+   attributed audit entry and a downloadable report. Formula-leading cells are **refused** on
+   import and **neutralized** on export.
+9. **Wallet recomputation** — `leonix_rewards_recompute_wallet()` replays the ledger in posting
+   order through the same delta rules as `leonix_rewards_post_entry()`, rebuilding the buckets AND
+   the lifetime totals, and refusing rather than clamping if the history replays negative. Parity
+   with the incremental balances is asserted, including for the path-dependent cases no aggregate
+   could reproduce.
+
+---
+
 ## Deferred / not done
 
 These are named because they are genuinely open, not because they were forgotten.
 
 1. **The migration is not applied anywhere.** Until it is, every hook returns `skipped` and no
-   credits accrue. This is deliberate: the mission forbade remote Supabase mutation.
-2. **Checkout redemption UI is not wired.** The reserve/commit/release engine, its policy and its
-   tests are complete, and the office/manual path uses them end to end, but the customer-facing
-   Stripe checkout does not yet offer "apply my credits". Wiring it means threading
-   `creditsAppliedCents` through `app/api/revenue-os/checkout/route.ts` and writing it to
-   `leonix_payment_records.metadata.leonix_credits_applied_cents`, which the earn hook already
-   reads.
-3. **Pending → available promotion has no scheduler.** `promoteSettledCredits` is implemented and
-   idempotent; nothing calls it yet. It needs a cron job and an owner decision on the settlement
-   window length.
-4. **CSV export / import-preview / reconciliation is not implemented.** The ledger is designed for
-   it (`source_kind = 'csv_import'` is already a valid source and the idempotency key scheme
-   extends to a row hash), but the importer, the dry-run preview and the reconciliation report are
-   not written.
-5. **Wallet merge is not implemented.** A customer who earns as an individual and later gains a
-   business would hold two wallets. The safe path is a pair of compensating `manual_adjustment`
-   entries; an automated merge was not built.
-6. **No Vercel deployment, no live Stripe call, no remote Supabase mutation** occurred at any point.
+   credits accrue. This is deliberate: the mission forbids remote Supabase mutation. Nothing in
+   this repository has been run against a remote project.
+2. **No checkout redemption *widget*.** The server path is complete and proven — a request
+   carrying `requestedCreditsCents` is planned against the live balance, held, charged and
+   committed correctly, and the response returns the exact available / applied / remaining-due
+   figures plus a refusal reason when credits could not be applied. What does not exist is a
+   rendered control in the checkout page that lets a customer type that number;
+   `checkoutCreditsCopy()` supplies the ES/EN strings such a control would use. Stated plainly:
+   the capability is real, the on-page affordance is not yet drawn.
+3. **Wallet merge is not implemented.** A customer who earns as an individual and later gains a
+   business holds two wallets, and they are never merged automatically — a locked decision, not an
+   oversight. The safe manual path is a pair of compensating `manual_adjustment` entries.
+4. **Unattributed / guest payments earn nothing.** A payment with no resolvable business or user
+   returns `skipped: no_wallet_owner`. There is no backfill that awards credits once such a payment
+   is later linked canonically; that is a reconciliation CSV batch today, not an automatic sweep.
+5. **`earn_adjustment` CSV rows post as attributed `manual_adjustment` entries.** They are
+   validated as earn-shaped (a payment record is required, a negative amount is refused), but the
+   ledger records them under `manual_adjustment` with the kind carried in the reason — not as a
+   second earn against the payment. This keeps one import path and one idempotency scheme; it does
+   mean a CSV row never produces an `earn_pending` or `earn_available` entry.
+6. **No Vercel deployment, no live Stripe call, no remote Supabase mutation, no live data import**
+   occurred at any point. Every CSV fixture in the verifier is invented.
 
 ---
 
