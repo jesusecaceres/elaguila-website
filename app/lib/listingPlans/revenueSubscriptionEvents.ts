@@ -20,6 +20,7 @@ import { attachStripeIdentitiesToConsent } from "./recurringConsent";
 import { extendEntitlementForInvoicePaid } from "./revenueEntitlementFulfillment";
 import { recordDisputeOnPaymentRecord, recordRefundOnPaymentRecord } from "./refundDisputeFoundations";
 import { awardCreditsForSettledPayment, reverseCreditsForRefundOrDispute } from "@/app/lib/rewards/rewardsFulfillment";
+import { decideInvoiceRenewalEarn } from "./invoiceRenewalEarnPolicy";
 import {
   applyPaymentSuspension,
   computeGraceEndsAt,
@@ -284,10 +285,35 @@ export async function handleInvoicePaid(input: {
   //
   // `billing_reason` is Stripe's own name for that first invoice. Anything else — a renewal, a
   // cycle change, a manual invoice — is money the checkout path never saw, and earns normally.
-  const billingReason = (input.invoice as unknown as { billing_reason?: string | null }).billing_reason ?? null;
-  const isSubscriptionCreateInvoice = billingReason === "subscription_create";
+  // FAIL CLOSED WHEN THE SIGNAL IS ABSENT. `billing_reason` is always present on real Stripe
+  // subscription invoices, but a replayed, synthesised or older-API-version payload may omit it —
+  // and an ABSENT value is not evidence that this is a renewal. Treating it as one would earn 9%
+  // a second time on a signup the checkout path already awarded. When we cannot tell, we do not
+  // award, and the skip is audited so the gap is visible rather than silent.
+  const renewalEarnDecision = decideInvoiceRenewalEarn({
+    paymentRecordId: renewalPaymentRecordId,
+    billingReason: (input.invoice as unknown as { billing_reason?: string | null }).billing_reason ?? null,
+    amountPaidCents: input.invoice.amount_paid ?? 0,
+  });
 
-  if (renewalPaymentRecordId && !isSubscriptionCreateInvoice && (input.invoice.amount_paid ?? 0) > 0) {
+  if (!renewalEarnDecision.earn && renewalEarnDecision.audit && renewalPaymentRecordId) {
+    // Not a signup, and not confidently a renewal either. Recorded as retryable so an operator can
+    // settle it by hand rather than the customer silently losing credits they were owed.
+    await writeRevenueAuditLog({
+      action: "revenue_payment_completed",
+      targetType: "leonix_rewards_ledger",
+      targetId: String(renewalPaymentRecordId),
+      meta: {
+        rewards_action: "rewards_earn",
+        rewards_outcome: "skipped",
+        rewards_reason: renewalEarnDecision.reason,
+        retryable: true,
+        stripe_invoice_id: invoiceId,
+      },
+    }).catch(() => undefined);
+  }
+
+  if (renewalEarnDecision.earn && renewalPaymentRecordId) {
     await awardCreditsForSettledPayment({
       paymentRecordId: String(renewalPaymentRecordId),
       ownerUserId: renewalOwnerUserId,

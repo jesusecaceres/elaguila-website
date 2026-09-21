@@ -301,18 +301,31 @@ export async function commitCheckoutCredits(input: {
       return { committed: false, amountCents: 0, reason: res.error };
     }
 
+    // THE AUDIT REPORTS WHAT MOVED, and a re-debit MOVES money.
+    //
+    // `recommitted` means the 30-minute hold had already been returned and the credits were taken
+    // again here, because the customer paid the reduced price anyway. Folding that into
+    // "already_final" with `rewards_amount_cents: 0` would make the single movement this whole
+    // path exists to perform invisible in the audit trail, and report it to the caller as though
+    // nothing had happened — the exact reporting failure the reversal path was fixed for.
+    const moved = res.outcome === "committed" || res.outcome === "recommitted";
     await writeRevenueAuditLog({
       action: "revenue_payment_completed",
       targetType: "leonix_rewards_ledger",
       targetId: input.paymentRecordId,
       meta: {
         rewards_action: "rewards_redemption",
-        rewards_outcome: res.outcome === "committed" ? "committed" : "already_final",
-        rewards_amount_cents: res.outcome === "committed" ? res.amountCents : 0,
-              },
+        rewards_outcome: res.outcome,
+        rewards_amount_cents: moved ? res.amountCents : 0,
+        // A re-debit is worth an operator's attention even though it succeeded: it means a hold
+        // expired while a customer was still paying.
+        ...(res.outcome === "recommitted"
+          ? { rewards_reason: "hold_expired_before_settlement_redebited", redebited: true }
+          : {}),
+      },
     }).catch(() => undefined);
 
-    return { committed: res.outcome === "committed", amountCents: res.amountCents };
+    return { committed: moved, amountCents: res.amountCents, reason: res.outcome };
   } catch (e) {
     return { committed: false, amountCents: 0, reason: e instanceof Error ? e.message.slice(0, 200) : "commit_failed" };
   }

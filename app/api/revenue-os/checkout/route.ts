@@ -985,7 +985,17 @@ export async function POST(request: NextRequest) {
           paymentRecordId: paymentInsert.paymentRecordId,
         });
       }
-      await releaseStaleCheckoutAttempt(paymentInsert.paymentRecordId);
+      // If the record cannot be retired it keeps this purchase's attempt-key slot, and every
+      // later checkout for the same purchase returns `checkout_attempt_in_progress` until it
+      // ages out. Nothing is lost, but the customer is locked out, so it is logged rather than
+      // discarded.
+      const retired = await releaseStaleCheckoutAttempt(paymentInsert.paymentRecordId);
+      if (!retired) {
+        console.error("[revenue-os checkout] aborted attempt could not be retired", {
+          paymentRecordId: paymentInsert.paymentRecordId,
+          checkoutAttemptKey,
+        });
+      }
       if (verifiedIntroDiscountRedemptionId) {
         await releaseVerifiedIntroDiscountReservation(checkoutAttemptKey);
       }

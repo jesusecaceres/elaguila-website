@@ -207,10 +207,59 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: committed.error, redemptionId: reserved.redemptionId }, { status: 500 });
     }
 
+    // RECORD THE CREDIT-FUNDED PORTION ON THE PAYMENT RECORD, or the clearance will over-earn.
+    //
+    // A manual payment row stores the FULL amount owed, and `verifyManualPaymentCleared` earns 9%
+    // of whatever that row says. Taking $50 of credits at the counter and writing nothing back
+    // meant the customer was later awarded 9% of the whole $100 for $50 of real money — their
+    // credits earning credits, which is the one thing the contract forbids outright.
+    //
+    // Writing `leonix_credits_applied_cents` (and NOT the already-net flag, because this row's
+    // total is still gross) is what makes `earnBaseFromPaymentMetadata` subtract it exactly once.
+    const redeemPaymentRecordId = typeof body.paymentRecordId === "string" ? body.paymentRecordId.trim() : "";
+    let creditsRecordedOnPayment = false;
+    if (redeemPaymentRecordId && isUuid(redeemPaymentRecordId)) {
+      const { data: paymentRow } = await db
+        .from("leonix_payment_records")
+        .select("id, metadata")
+        .eq("id", redeemPaymentRecordId)
+        .maybeSingle();
+      if (paymentRow) {
+        const existingMeta = ((paymentRow as { metadata?: Record<string, unknown> | null }).metadata ?? {}) as Record<
+          string,
+          unknown
+        >;
+        const priorCredits = Math.max(0, Math.floor(Number(existingMeta.leonix_credits_applied_cents ?? 0)) || 0);
+        const { error: metaError } = await db
+          .from("leonix_payment_records")
+          .update({
+            metadata: {
+              ...existingMeta,
+              // Accumulated, because staff may apply credits across more than one interaction
+              // against the same payment.
+              leonix_credits_applied_cents: priorCredits + reserved.redeemCents,
+              leonix_credits_last_redemption_id: reserved.redemptionId,
+            },
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", redeemPaymentRecordId);
+        creditsRecordedOnPayment = !metaError;
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       deduplicated: false,
       movedCents: reserved.redeemCents,
+      // Staff need to know when the earn base was NOT annotated: without it the clearance will
+      // award 9% of money the customer did not actually pay.
+      creditsRecordedOnPayment,
+      ...(redeemPaymentRecordId && !creditsRecordedOnPayment
+        ? {
+            warning:
+              "Credits were applied but could not be recorded on the payment record. Correct the payment record before clearing it, or the reward will be calculated on the full amount.",
+          }
+        : {}),
       redemptionId: reserved.redemptionId,
       redeemedCents: reserved.redeemCents,
       redeemedDisplay: formatCreditsCents(reserved.redeemCents),

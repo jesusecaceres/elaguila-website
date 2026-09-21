@@ -150,6 +150,13 @@ export type RewardsStorePort = {
     redemptionId: string;
     status: "committed" | "released" | "expired";
     settleLedgerId?: string | null;
+    /**
+     * Normally the update is a compare-and-set from `reserved`, so a late release cannot undo a
+     * commit. The re-debit path is the one case that must finalise a row which is ALREADY
+     * released or expired — it has just taken the credits again — and it says so explicitly
+     * rather than the adapter quietly dropping the guard for everyone.
+     */
+    fromAnyStatus?: boolean;
   }): Promise<{ ok: boolean; error?: string }>;
   /**
    * An existing ledger entry under this exact key, if any.
@@ -644,7 +651,20 @@ export async function reserveCreditsForPurchase(input: {
     // Left alone, the 30-minute sweep would later "release" it and post a `redeem_release` with
     // no matching reserve: credits appearing from nowhere, and another checkout's real hold
     // destroyed in the same movement. Retiring it here is what keeps the ledger honest.
-    await input.ports.setRedemptionStatus({ redemptionId: created.redemption.id, status: "released" });
+    //
+    // Only retire a row THIS call created. A deduplicated row belongs to a concurrent request that
+    // may hold live credits, and releasing it here would destroy that request's hold.
+    if (!created.deduplicated) {
+      const retired = await input.ports.setRedemptionStatus({
+        redemptionId: created.redemption.id,
+        status: "released",
+      });
+      if (!retired.ok) {
+        // The row is still `reserved` and holds nothing. Naming it distinctly is what lets an
+        // operator find it before the sweep "releases" a hold that never existed.
+        return { ok: false, reason: "orphaned_reservation_not_retired" };
+      }
+    }
     return { ok: false, reason: posted.error };
   }
 
@@ -688,6 +708,17 @@ export async function commitReservedCredits(input: {
   if (reservation.status === "released" || reservation.status === "expired") {
     // The hold went back to the customer before the payment landed, but the payment carries the
     // reduced price. Take the credits now.
+    //
+    // COMMIT FIRST, RESERVE SECOND — deliberately the reverse of the obvious order.
+    //
+    // `redeem_commit` moves `reserved -> spent` and `redeem_reserve` moves `available ->
+    // reserved`. Posting the reserve first and then failing on the commit would leave the credits
+    // parked in `reserved` with no row that can ever release them: the expiry sweep only sees rows
+    // whose STATUS is `reserved`, and this row's status is `released`. They would be stranded.
+    //
+    // So the pair is posted as reserve-then-commit but the FAILURE of either is unwound by the
+    // compensating release below, and the redemption row is moved to `committed` only once both
+    // have landed. Every step is keyed, so a redelivered webhook repeats none of it.
     const reReserve = await input.ports.postEntry({
       walletId: reservation.walletId,
       entryType: "redeem_reserve",
@@ -703,6 +734,7 @@ export async function commitReservedCredits(input: {
       // Refusing is correct: this needs a person, not a silent success.
       return { ok: false, error: "recommit_insufficient_balance" };
     }
+
     const reCommit = await input.ports.postEntry({
       walletId: reservation.walletId,
       entryType: "redeem_commit",
@@ -712,7 +744,34 @@ export async function commitReservedCredits(input: {
       redemptionId: reservation.id,
       idempotencyKey: `recommit:commit:${input.redemptionRef}`,
     });
-    if (!reCommit.ok) return { ok: false, error: reCommit.error };
+    if (!reCommit.ok) {
+      // UNWIND, so the credits are not stranded in `reserved` with no row that can free them.
+      // Best-effort: if this release also fails the caller still gets a hard error, which is what
+      // brings a person to look.
+      await input.ports
+        .postEntry({
+          walletId: reservation.walletId,
+          entryType: "redeem_release",
+          amountCents: reservation.amountCents,
+          sourceKind: "checkout_redemption",
+          redemptionId: reservation.id,
+          idempotencyKey: `recommit:unwind:${input.redemptionRef}`,
+          reason: "re-debit could not be committed; hold returned",
+        })
+        .catch(() => undefined);
+      return { ok: false, error: reCommit.error };
+    }
+
+    // The row is FINALISED. Leaving it `released` after permanently spending its credits would
+    // make the ledger and the redemption record tell two different stories.
+    await input.ports.setRedemptionStatus({
+      redemptionId: reservation.id,
+      status: "committed",
+      settleLedgerId: reCommit.entry.id,
+      // This row is not in `reserved`, so the ordinary compare-and-set from `reserved` cannot
+      // move it. The re-debit is what earns the right to finalise it.
+      fromAnyStatus: true,
+    });
 
     return { ok: true, outcome: "recommitted", amountCents: reservation.amountCents };
   }
