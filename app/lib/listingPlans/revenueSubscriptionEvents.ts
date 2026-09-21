@@ -571,15 +571,33 @@ async function reverseRewardsForChargeRefunds(input: {
   );
 
   if (!refunds.length) {
-    await reverseCreditsForRefundOrDispute({
-      paymentRecordId: input.paymentRecordId,
-      refundedCents: cumulativeRefundedCents,
-      // The rail's own cumulative position is authoritative when we cannot see the individual
-      // refunds, and it is what keeps the running total exact across several such deliveries.
-      cumulativeRefundedCents,
-      kind: "refund",
-      externalId: `${input.charge.id}:cum${cumulativeRefundedCents}`,
-    });
+    // FAIL CLOSED. There used to be a fallback here that keyed on `<chargeId>:cum<N>` and claimed
+    // the rail's cumulative position. It was a SECOND accounting scheme living beside the
+    // per-refund-id one, and the two are additive in `sumReversalBasisForPayment`, so the same
+    // refunded dollars were counted once under each. An adversarial review reversed 810 cents on
+    // a refund that owed 540 — 270 cents taken from a customer for money they still paid — just
+    // by sending one delivery without `charge.refunds` and the next one with it. A third refund
+    // wiped the whole earn.
+    //
+    // There is exactly one scheme now: a refund is identified by its own refund object. A payload
+    // that does not carry one cannot be attributed, so nothing moves and the gap is audited as
+    // retryable for an operator to settle, which is the same posture the renewal-earn decision
+    // takes when `billing_reason` is absent.
+    if (cumulativeRefundedCents > 0) {
+      await writeRevenueAuditLog({
+        action: "revenue_payment_completed",
+        targetType: "leonix_rewards_ledger",
+        targetId: input.paymentRecordId,
+        meta: {
+          rewards_action: "rewards_reverse",
+          rewards_outcome: "skipped",
+          rewards_reason: "charge_refunds_absent_from_payload",
+          retryable: true,
+          stripe_charge_id: input.charge.id,
+          cumulative_refunded_cents: cumulativeRefundedCents,
+        },
+      }).catch(() => undefined);
+    }
     return;
   }
 

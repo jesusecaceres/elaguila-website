@@ -83,6 +83,7 @@ export type LedgerEntryInput = {
     | "redeem_reserve"
     | "redeem_commit"
     | "redeem_release"
+    | "redeem_recommit"
     | "refund_reversal"
     | "chargeback_reversal"
     | "manual_adjustment"
@@ -336,10 +337,30 @@ export async function runPendingPromotionSweep(input: {
       out.skippedIneligible += 1;
       continue;
     }
+
+    // PROMOTE THE RESIDUAL, NOT ALL-OR-NOTHING.
+    //
+    // A PARTIAL refund reverses its proportional share and leaves the rest of the earn sitting in
+    // `pending`. Refusing to promote anything once a reversal exists stranded that remainder
+    // forever: the sweep skipped it on every run, nothing expires it, and the customer is told in
+    // both languages that their credits do not expire. A $399 payment with a $39.90 refund left
+    // $32.32 permanently unspendable.
+    //
+    // The refunded share is already gone. What is left is credits for money the customer did in
+    // fact pay, so it promotes. A payment that is disputed or otherwise invalidated is refused by
+    // `isPaymentStillEligible` above and never reaches here.
+    const reversedCents = await input.ports.sumReversedForPayment(candidate.paymentRecordId).catch(() => 0);
+    const promotableCents = Math.max(0, candidate.amountCents - Math.max(0, reversedCents));
+    if (promotableCents <= 0) {
+      // Fully reversed. There is nothing left to promote, and that is not a failure.
+      out.skippedIneligible += 1;
+      continue;
+    }
+
     const res = await promotePendingForPayment({
       walletId: candidate.walletId,
       paymentRecordId: candidate.paymentRecordId,
-      amountCents: candidate.amountCents,
+      amountCents: promotableCents,
       ports: input.ports,
     });
     if (!res.ok) {
@@ -352,7 +373,7 @@ export async function runPendingPromotionSweep(input: {
       continue;
     }
     out.promoted += 1;
-    out.promotedCents += candidate.amountCents;
+    out.promotedCents += promotableCents;
   }
 
   return out;
@@ -430,7 +451,18 @@ export type ReversalResult =
       reason?: string;
     }
   | { ok: true; outcome: "nothing_to_reverse"; reason: string; reversedCents: 0; totalReversedCents: number }
-  | { ok: false; error: string };
+  | {
+      ok: false;
+      error: string;
+      /**
+       * Whether this event's refunded BASIS was still recorded, as a zero-amount entry, after the
+       * movement itself was refused. The cumulative arithmetic is a delta against that basis, so
+       * losing it makes the NEXT refund on the same payment under-reverse by this event's share.
+       */
+      basisRecorded?: boolean;
+      /** What this event was owed but could not take, because the credits were already spent. */
+      shortfallCents?: number;
+    };
 
 /**
  * Claw back credits when money goes back to the customer.
@@ -519,7 +551,42 @@ export async function reverseForRefundOrChargeback(input: {
       already_reversed_before_cents: alreadyReversedCents,
     },
   });
-  if (!posted.ok) return { ok: false, error: posted.error };
+  if (!posted.ok) {
+    // THE BASIS MUST SURVIVE A REFUSED MOVEMENT.
+    //
+    // A reversal is refused when the customer has already SPENT the credits: the wallet cannot go
+    // negative, so nothing moves. Returning here recorded nothing at all, which lost this event's
+    // refunded basis — and the cumulative arithmetic is a DELTA against that basis, so the NEXT
+    // refund on the same payment then under-reversed by exactly this event's share. An
+    // adversarial review reversed 270 cents where 540 was owed, permanently, unless a human
+    // replayed the first refund by hand.
+    //
+    // So the event is recorded as a ZERO-AMOUNT reversal carrying its basis. The ledger's amount
+    // CHECK allows exactly that for a reversal, and it is the same shape a deduplicated delivery
+    // already writes. No money moves, the running position stays exact, and the shortfall is
+    // reported so the audit log can say a person is owed a correction.
+    const shortfallCents = deltaCents;
+    const recorded = await input.ports.postEntry({
+      walletId: original.walletId,
+      entryType: input.kind === "refund" ? "refund_reversal" : "chargeback_reversal",
+      amountCents: 0,
+      sourceKind: input.kind === "refund" ? "stripe_refund" : "stripe_dispute",
+      sourceId: input.externalId,
+      paymentRecordId: input.paymentRecordId,
+      idempotencyKey,
+      reason: "reversal refused: balance already spent; basis recorded, money not moved",
+      meta: {
+        basis_contribution_cents: basisContributionCents,
+        cumulative_refunded_cents: cumulativeRefundedCents,
+        event_refunded_cents: Math.max(0, Math.floor(input.eventRefundedCents)),
+        originally_earned_cents: original.amountCents,
+        already_reversed_before_cents: alreadyReversedCents,
+        refused_movement_cents: shortfallCents,
+        refusal_reason: posted.error,
+      },
+    });
+    return { ok: false, error: posted.error, basisRecorded: recorded.ok, shortfallCents };
+  }
 
   // A replay matched the existing entry: NOTHING moved, and the audit log must say so rather
   // than reporting the amount this call would have moved had it been the first delivery.
@@ -707,72 +774,39 @@ export async function commitReservedCredits(input: {
 
   if (reservation.status === "released" || reservation.status === "expired") {
     // The hold went back to the customer before the payment landed, but the payment carries the
-    // reduced price. Take the credits now.
+    // reduced price. Take the credits now — in ONE movement.
     //
-    // COMMIT FIRST, RESERVE SECOND — deliberately the reverse of the obvious order.
+    // THIS WAS A TWO-ENTRY PAIR, AND THE PAIR COULD CREATE MONEY.
     //
-    // `redeem_commit` moves `reserved -> spent` and `redeem_reserve` moves `available ->
-    // reserved`. Posting the reserve first and then failing on the commit would leave the credits
-    // parked in `reserved` with no row that can ever release them: the expiry sweep only sees rows
-    // whose STATUS is `reserved`, and this row's status is `released`. They would be stranded.
+    // It posted `redeem_reserve` under one key and `redeem_commit` under another, unwinding with
+    // a third key when the commit failed. Every key is permanent, so after an unwind a redelivery
+    // found the reserve key ALREADY USED — it moved nothing — while the commit key was still
+    // fresh and executed anyway. The commit then decremented `reserved_cents`, a number shared by
+    // every live hold on the wallet, so it consumed an UNRELATED checkout's credits: that
+    // checkout's own commit was refused forever, its credits were stranded in `reserved` with no
+    // operation able to free them, and the wallet ended up with spendable credits that had
+    // already bought something. An adversarial review produced 2000 cents from nothing this way.
     //
-    // So the pair is posted as reserve-then-commit but the FAILURE of either is unwound by the
-    // compensating release below, and the redemption row is moved to `committed` only once both
-    // have landed. Every step is keyed, so a redelivered webhook repeats none of it.
-    const reReserve = await input.ports.postEntry({
+    // One entry, one key, one atomic movement, guarded in SQL against this reservation's own
+    // status. It either happens exactly once or it does not happen at all; there is nothing left
+    // to half-apply and no key to burn.
+    const redebited = await input.ports.postEntry({
       walletId: reservation.walletId,
-      entryType: "redeem_reserve",
+      entryType: "redeem_recommit",
       amountCents: reservation.amountCents,
       sourceKind: "checkout_redemption",
       paymentRecordId: input.paymentRecordId ?? null,
       redemptionId: reservation.id,
-      idempotencyKey: `recommit:reserve:${input.redemptionRef}`,
+      idempotencyKey: `recommit:${input.redemptionRef}`,
       reason: "hold expired before settlement; re-debited at commit",
     });
-    if (!reReserve.ok) {
+    if (!redebited.ok) {
       // Cannot cover it — the customer received a discount they no longer have the balance for.
       // Refusing is correct: this needs a person, not a silent success.
-      return { ok: false, error: "recommit_insufficient_balance" };
+      return { ok: false, error: redebited.error };
     }
-
-    const reCommit = await input.ports.postEntry({
-      walletId: reservation.walletId,
-      entryType: "redeem_commit",
-      amountCents: reservation.amountCents,
-      sourceKind: "checkout_redemption",
-      paymentRecordId: input.paymentRecordId ?? null,
-      redemptionId: reservation.id,
-      idempotencyKey: `recommit:commit:${input.redemptionRef}`,
-    });
-    if (!reCommit.ok) {
-      // UNWIND, so the credits are not stranded in `reserved` with no row that can free them.
-      // Best-effort: if this release also fails the caller still gets a hard error, which is what
-      // brings a person to look.
-      await input.ports
-        .postEntry({
-          walletId: reservation.walletId,
-          entryType: "redeem_release",
-          amountCents: reservation.amountCents,
-          sourceKind: "checkout_redemption",
-          redemptionId: reservation.id,
-          idempotencyKey: `recommit:unwind:${input.redemptionRef}`,
-          reason: "re-debit could not be committed; hold returned",
-        })
-        .catch(() => undefined);
-      return { ok: false, error: reCommit.error };
-    }
-
-    // The row is FINALISED. Leaving it `released` after permanently spending its credits would
-    // make the ledger and the redemption record tell two different stories.
-    await input.ports.setRedemptionStatus({
-      redemptionId: reservation.id,
-      status: "committed",
-      settleLedgerId: reCommit.entry.id,
-      // This row is not in `reserved`, so the ordinary compare-and-set from `reserved` cannot
-      // move it. The re-debit is what earns the right to finalise it.
-      fromAnyStatus: true,
-    });
-
+    // The redemption row was advanced to `committed` INSIDE the same statement that moved the
+    // money, so there is no second write here that could disagree with the ledger.
     return { ok: true, outcome: "recommitted", amountCents: reservation.amountCents };
   }
 
@@ -787,12 +821,18 @@ export async function commitReservedCredits(input: {
   });
   if (!posted.ok) return { ok: false, error: posted.error };
 
-  const updated = await input.ports.setRedemptionStatus({
+  // `leonix_rewards_post_entry` advanced the redemption to `committed` under the SAME row lock it
+  // moved the money under, refusing outright if the row was no longer `reserved`. The status write
+  // that used to live here ran AFTER the money had already moved, so a commit racing the expiry
+  // sweep saw both movements land and only then decided which had "won".
+  await input.ports.setRedemptionStatus({
     redemptionId: reservation.id,
     status: "committed",
     settleLedgerId: posted.entry.id,
+    // Already committed by the posting statement; this only records the settling ledger id, so it
+    // must not re-assert a `reserved` precondition that is no longer true.
+    fromAnyStatus: true,
   });
-  if (!updated.ok) return { ok: false, error: updated.error ?? "status_update_failed" };
 
   return { ok: true, outcome: "committed", amountCents: reservation.amountCents };
 }
@@ -819,12 +859,14 @@ export async function releaseReservedCredits(input: {
   });
   if (!posted.ok) return { ok: false, error: posted.error };
 
-  const updated = await input.ports.setRedemptionStatus({
+  // Same as the commit path: the posting statement already moved this row out of `reserved` under
+  // its own lock. `expired` is a label on an already-released hold, not a second movement.
+  await input.ports.setRedemptionStatus({
     redemptionId: reservation.id,
     status: input.expired ? "expired" : "released",
     settleLedgerId: posted.entry.id,
+    fromAnyStatus: true,
   });
-  if (!updated.ok) return { ok: false, error: updated.error ?? "status_update_failed" };
 
   return { ok: true, outcome: "released", amountCents: reservation.amountCents };
 }
@@ -866,5 +908,14 @@ export async function postManualAdjustment(input: {
     actorRosterId: input.actorRosterId ?? null,
   });
   if (!posted.ok) return { ok: false, error: posted.error };
+
+  // A REFERENCE BELONGS TO ONE WALLET. `adjust:<ref>` carries no wallet, and the reference is
+  // staff free text, so the same correction code entered for a SECOND customer deduplicated
+  // against the FIRST customer's entry: the call reported success and an amount, the second
+  // customer's wallet never moved, and the ledger held one entry on someone else's wallet. The
+  // same reference for a different wallet is a mistake, not a replay, so it is refused by name.
+  if (posted.entry.deduplicated && posted.entry.walletId !== walletRes.wallet.id) {
+    return { ok: false, error: "adjustment_reference_belongs_to_another_wallet" };
+  }
   return { ok: true, amountCents: Math.floor(input.amountCents), deduplicated: posted.entry.deduplicated };
 }

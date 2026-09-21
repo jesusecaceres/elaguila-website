@@ -137,8 +137,16 @@ function makeStore(opts?: { now?: () => number }) {
       case "redeem_reserve":
         if (w.availableCents < amount) throw new Error("redemption_exceeds_available");
         d.available = -amount; d.reserved = amount; break;
-      case "redeem_commit": d.reserved = -amount; d.redeemed = amount; break;
-      case "redeem_release": d.reserved = -amount; d.available = amount; break;
+      case "redeem_commit":
+        if (w.reservedCents < amount) throw new Error("commit_exceeds_reserved");
+        d.reserved = -amount; d.redeemed = amount; break;
+      case "redeem_release":
+        if (w.reservedCents < amount) throw new Error("release_exceeds_reserved");
+        d.reserved = -amount; d.available = amount; break;
+      case "redeem_recommit":
+        // ONE movement: available -> spent. An expired hold is not in `reserved` any more.
+        if (w.availableCents < amount) throw new Error("recommit_exceeds_available");
+        d.available = -amount; d.redeemed = amount; break;
       case "refund_reversal":
       case "chargeback_reversal":
         if (w.pendingCents + w.availableCents < amount) throw new Error("reversal_exceeds_balance");
@@ -213,6 +221,29 @@ function makeStore(opts?: { now?: () => number }) {
       const w = wallets.get(input.walletId);
       if (!w) return { ok: false, error: "wallet_not_found" };
 
+      // THE RESERVATION GUARD, MODELLED. `leonix_rewards_post_entry` locks the redemption row for
+      // these three entry types, refuses unless its status permits the movement, and advances that
+      // status in the SAME statement. Modelling only the bucket arithmetic is precisely how a
+      // money-creating defect passed 125 checks: the mock let a commit post against a released
+      // hold and quietly consume a neighbouring reservation's credits.
+      let guardedRedemption: StoredRedemption | null = null;
+      if (
+        input.entryType === "redeem_commit" ||
+        input.entryType === "redeem_release" ||
+        input.entryType === "redeem_recommit"
+      ) {
+        if (!input.redemptionId) return { ok: false, error: "redemption_id_required" };
+        guardedRedemption = [...redemptions.values()].find((r) => r.id === input.redemptionId) ?? null;
+        if (!guardedRedemption) return { ok: false, error: "redemption_not_found" };
+        if (guardedRedemption.walletId !== input.walletId) return { ok: false, error: "redemption_wallet_mismatch" };
+        if (guardedRedemption.amountCents !== input.amountCents) return { ok: false, error: "redemption_amount_mismatch" };
+        const allowed =
+          input.entryType === "redeem_recommit"
+            ? guardedRedemption.status === "released" || guardedRedemption.status === "expired"
+            : guardedRedemption.status === "reserved";
+        if (!allowed) return { ok: false, error: "redemption_not_in_expected_state" };
+      }
+
       let d: ReturnType<typeof deltasFor>;
       try {
         d = deltasFor(input.entryType, input.amountCents, w);
@@ -237,6 +268,10 @@ function makeStore(opts?: { now?: () => number }) {
       const id = `e${++seq}`;
       entries.push({ ...input, id, createdAtMs: now() });
       byIdempotency.set(input.idempotencyKey, id);
+      // Atomic with the movement, exactly as the SQL does it.
+      if (guardedRedemption) {
+        guardedRedemption.status = input.entryType === "redeem_release" ? "released" : "committed";
+      }
       return { ok: true, entry: { id, walletId: input.walletId, entryType: input.entryType, amountCents: input.amountCents, idempotencyKey: input.idempotencyKey, deduplicated: false } };
     },
     async createRedemption(input) {
@@ -254,11 +289,14 @@ function makeStore(opts?: { now?: () => number }) {
       return { ok: true, redemption: { ...r }, deduplicated: false };
     },
     async findRedemption(key) { const r = redemptions.get(key); return r ? { ...r } : null; },
-    async setRedemptionStatus({ redemptionId, status }) {
+    async setRedemptionStatus({ redemptionId, status, fromAnyStatus }) {
       for (const r of redemptions.values()) {
         if (r.id === redemptionId) {
-          // Compare-and-set from 'reserved', like the adapter's conditional update.
-          if (r.status !== "reserved") return { ok: false, error: "redemption_not_reserved" };
+          // Compare-and-set from 'reserved', like the adapter's conditional update — AND the
+          // explicit opt-out the adapter honours. Silently dropping `fromAnyStatus` here made the
+          // mock disagree with production, which is why two mutations of the finalisation code
+          // left all 125 checks green.
+          if (!fromAnyStatus && r.status !== "reserved") return { ok: false, error: "redemption_not_reserved" };
           r.status = status;
           return { ok: true };
         }
@@ -606,7 +644,24 @@ async function main() {
     assert.ok(/externalId:\s*refund\.id/.test(fn), "the refund's own id is the idempotency anchor");
     // The old defect, stated so a regression is visible: externalId must not simply be charge.id.
     assert.ok(!/externalId:\s*input\.charge\.id\s*,/.test(fn), "the bare charge id is never the anchor");
-    assert.ok(/cum\$\{cumulativeRefundedCents\}/.test(fn), "a truncated payload still produces distinct keys");
+
+    // EXACTLY ONE ACCOUNTING SCHEME. A `<chargeId>:cum<N>` fallback used to key a truncated
+    // payload off the rail's cumulative position. Because basis contributions from both schemes
+    // are summed, the same refunded dollars were counted once under each: an adversarial review
+    // reversed 810 cents where 540 was owed, simply by sending one delivery without
+    // `charge.refunds` and the next one with it.
+    assert.ok(!/cum\$\{/.test(fn), "no second, cumulative-keyed scheme exists beside the refund ids");
+    assert.ok(!/externalId:\s*`\$\{input\.charge\.id\}/.test(fn), "no charge-derived key at all");
+    // A payload we cannot attribute moves NOTHING, and says so.
+    const noRefunds = fn.slice(fn.indexOf("if (!refunds.length) {"), fn.indexOf("// Oldest first"));
+    assert.ok(
+      !noRefunds.includes("reverseCreditsForRefundOrDispute("),
+      "an unattributable refund payload reverses nothing",
+    );
+    assert.ok(
+      noRefunds.includes('rewards_reason: "charge_refunds_absent_from_payload"') && noRefunds.includes("retryable: true"),
+      "and the gap is audited as retryable rather than left silent",
+    );
   });
 
   // =========================================================================
@@ -981,10 +1036,34 @@ async function main() {
       !/FOR (INSERT|UPDATE|DELETE|ALL)[\s\S]{0,120}TO (authenticated|anon|public|PUBLIC)/.test(sql),
       "no authenticated write policy exists on any rewards table",
     );
-    // And every policy that DOES exist is a SELECT policy.
-    for (const m of sql.matchAll(/CREATE POLICY\s+(\w+)[\s\S]{0,200}?FOR\s+(\w+)/g)) {
-      assert.equal(m[2]!.toUpperCase(), "SELECT", `policy ${m[1]} must be SELECT-only`);
+    // EVERY policy statement is examined, not only the ones that happen to say FOR.
+    //
+    // A policy with NO `FOR` clause defaults to `FOR ALL` in Postgres, which grants
+    // INSERT/UPDATE/DELETE as well. The previous loop matched on `FOR\\s+(\\w+)` and therefore
+    // simply did not see such a policy: an adversarial review added
+    // `CREATE POLICY ... TO authenticated USING (true) WITH CHECK (true)` and every check stayed
+    // green. Each statement is now split out and required to declare FOR SELECT explicitly.
+    const policies = [...sql.matchAll(/CREATE POLICY[\s\S]*?;/g)].map((m) => m[0]);
+    assert.ok(policies.length > 0, "the read policies exist");
+    for (const policy of policies) {
+      const name = /CREATE POLICY\s+(\S+)/.exec(policy)?.[1] ?? "<unnamed>";
+      const forClause = /\bFOR\s+(SELECT|INSERT|UPDATE|DELETE|ALL)\b/i.exec(policy)?.[1];
+      assert.ok(forClause, `policy ${name} must state FOR SELECT explicitly — no FOR clause means FOR ALL`);
+      assert.equal(forClause!.toUpperCase(), "SELECT", `policy ${name} must be SELECT-only`);
+      assert.ok(
+        !/WITH\s+CHECK/i.test(policy),
+        `policy ${name} must carry no WITH CHECK — a read policy has nothing to write`,
+      );
     }
+
+    // THE LEDGER IS APPEND-ONLY BY A TRIGGER THAT IS ACTUALLY INSTALLED. Naming the trigger is not
+    // the same as creating it: deleting the CREATE TRIGGER statement left the name behind in a
+    // comment and the suite stayed green.
+    assert.ok(
+      /CREATE TRIGGER\s+leonix_rewards_ledger_immutable_tg[\s\S]{0,200}?BEFORE\s+UPDATE\s+OR\s+DELETE[\s\S]{0,200}?ON\s+public\.leonix_rewards_ledger[\s\S]{0,200}?EXECUTE\s+FUNCTION/i.test(sql),
+      "the immutability trigger is CREATEd on the ledger for UPDATE and DELETE",
+    );
+
     assert.ok(sql.includes("REVOKE ALL ON FUNCTION public.leonix_rewards_post_entry"), "the posting function is not callable from a browser session");
     assert.ok(!/numeric|float|double precision|real\b/i.test(sql.replace(/^\s*--.*$/gm, "")), "no floating-point money column");
   });
@@ -1007,10 +1086,21 @@ async function main() {
     assert.equal(formatCreditsCents(-250), "-$2.50");
   });
 
-  await check("G4: both SECURITY DEFINER functions pin a hardened search path", () => {
+  await check("G4: EVERY SECURITY DEFINER function pins a hardened search path", () => {
     const sql = readFileSync(MIGRATION_PATH, "utf8");
-    const definers = sql.match(/SECURITY DEFINER[\s\S]{0,400}?SET search_path = ([^\n;]+)/g) ?? [];
-    assert.equal(definers.length, 2, `exactly the two SECURITY DEFINER functions, found ${definers.length}`);
+    // Count the declarations themselves, then require each to be followed by a pinned path. A
+    // fixed expected count would have to be edited by the same hand that adds a function, so the
+    // two numbers are compared to each other instead.
+    // Comments talk ABOUT SECURITY DEFINER; only the declarations count.
+    const code = sql.replace(/^\s*--.*$/gm, "");
+    const declared = (code.match(/\bSECURITY DEFINER\b/g) ?? []).length;
+    const definers = code.match(/SECURITY DEFINER[\s\S]{0,400}?SET search_path = ([^\n;]+)/g) ?? [];
+    assert.equal(
+      definers.length,
+      declared,
+      `every SECURITY DEFINER must pin a search_path (${declared} declared, ${definers.length} pinned)`,
+    );
+    assert.ok(declared >= 3, `the money functions are SECURITY DEFINER (found ${declared})`);
     for (const d of definers) {
       const path = d.slice(d.lastIndexOf("SET search_path =") + "SET search_path =".length).trim();
       assert.ok(path.startsWith("pg_catalog"), `search_path must start at pg_catalog: ${path}`);
@@ -1031,6 +1121,30 @@ async function main() {
         sql.indexOf("GRANT EXECUTE ON FUNCTION public.leonix_rewards_post_entry"),
       "revoke precedes grant",
     );
+
+    // NO GRANT MAY NAME A BROWSER ROLE. An adversarial review showed the previous assertions were
+    // satisfied by `TO service_role, authenticated` — the substring `TO service_role` was present,
+    // and a browser JWT could then call the money-moving RPC with any wallet, type and amount.
+    // Every grant statement in the migration is now read, and its grantee list checked.
+    for (const grant of sql.match(/GRANT[\s\S]*?;/g) ?? []) {
+      const to = grant.slice(grant.lastIndexOf(" TO ") + 4).replace(/;\s*$/, "").trim();
+      const grantees = to.split(",").map((g) => g.trim());
+      const isSelectOnly = /^GRANT\s+SELECT\b/.test(grant.trim());
+      for (const grantee of grantees) {
+        assert.notEqual(grantee, "anon", `anon is never granted anything: ${grant.trim().slice(0, 90)}`);
+        if (grantee === "authenticated") {
+          assert.ok(
+            isSelectOnly,
+            `authenticated may only ever be granted SELECT: ${grant.trim().slice(0, 90)}`,
+          );
+        }
+      }
+    }
+    // A blanket GRANT ALL is legitimate for service_role and for nobody else.
+    for (const grant of sql.match(/GRANT\s+ALL[\s\S]*?;/gi) ?? []) {
+      const to = grant.slice(grant.lastIndexOf(" TO ") + 4).replace(/;\s*$/, "").trim();
+      assert.equal(to, "service_role", `GRANT ALL may only ever name service_role: ${grant.trim().slice(0, 90)}`);
+    }
   });
 
   await check("G6: no client write grant survives on any rewards table", () => {
@@ -1171,14 +1285,139 @@ async function main() {
     assert.equal((await walletOf(port, OWNER)).availableCents, 900);
   });
 
+  await check("B15: a reversal refused for insufficient balance still RECORDS its basis", async () => {
+    // The cumulative arithmetic is a DELTA against the recorded basis. A refused reversal used to
+    // record nothing at all, so the NEXT refund on the same payment under-reversed by exactly the
+    // refused event's share — permanently, unless a human replayed it by hand.
+    const { port, entries } = makeStore();
+    await earnFromSettledPayment({ owner: OWNER, paymentRecordId: "b15", facts: settled({ amountPaidCents: 10_000 }), sourceKind: "stripe_payment", pendingUntilSettlementFinal: false, ports: port });
+    assert.equal((await walletOf(port, OWNER)).availableCents, 900, "9% of $100, spendable at once");
+
+    // The customer spends every credit.
+    await reserveCreditsForPurchase({ owner: OWNER, requestedCents: 900, amountDueCents: 90_000, redemptionRef: "b15_spend", contextKind: "stripe_checkout", ports: port });
+    await commitReservedCredits({ redemptionRef: "b15_spend", ports: port });
+    assert.equal((await walletOf(port, OWNER)).availableCents, 0);
+
+    // Refund #1 of $30 can move nothing — but its basis must survive.
+    const first = await reverseForRefundOrChargeback({ paymentRecordId: "b15", eventRefundedCents: 3000, kind: "refund", externalId: "re_b15_1", ports: port });
+    assert.equal(first.ok, false, "the movement is refused, not clamped silently");
+    assert.equal((first as { basisRecorded?: boolean }).basisRecorded, true, "but the basis IS recorded");
+    assert.equal((first as { shortfallCents?: number }).shortfallCents, 270, "and the shortfall is reported");
+    const recorded = entries.filter((e) => e.entryType === "refund_reversal" && e.paymentRecordId === "b15");
+    assert.equal(recorded.length, 1, "exactly one record for the refused event");
+    assert.equal(recorded[0]!.amountCents, 0, "recorded as a ZERO-amount entry — no money moved");
+    assert.equal(
+      Number((recorded[0]!.meta as { basis_contribution_cents?: number }).basis_contribution_cents),
+      3000,
+      "carrying this event's refunded basis",
+    );
+
+    // A goodwill correction restores a balance, then refund #2 arrives.
+    await postManualAdjustment({ owner: OWNER, amountCents: 1000, reason: "goodwill", actorAuthUserId: "staff-1", adjustmentRef: "b15_goodwill", ports: port });
+    const second = await reverseForRefundOrChargeback({ paymentRecordId: "b15", eventRefundedCents: 3000, kind: "refund", externalId: "re_b15_2", ports: port });
+    assert.equal(second.ok, true);
+    // $60 of $100 refunded => floor(900 * 6000/10000) = 540 owed in total. 0 was taken before,
+    // so this event owes the whole 540 — NOT the 270 a lost basis would have produced.
+    assert.equal((second as { reversedCents: number }).reversedCents, 540, "the running position is exact");
+  });
+
+  await check("B16: one adjustment reference can never be applied to a SECOND wallet", async () => {
+    // `adjust:<ref>` carries no wallet and the reference is staff free text, so the same
+    // correction code entered for another customer deduplicated against the FIRST customer's
+    // entry: success and an amount were reported, the second wallet never moved, and the ledger
+    // held one entry on someone else's wallet.
+    const { port, entries } = makeStore();
+    const a = await postManualAdjustment({ owner: OWNER, amountCents: 5000, reason: "correction", actorAuthUserId: "staff-1", adjustmentRef: "CORRECTION-1", ports: port });
+    assert.equal(a.ok, true);
+    assert.equal((await walletOf(port, OWNER)).availableCents, 5000);
+
+    const b = await postManualAdjustment({ owner: OTHER_OWNER, amountCents: 5000, reason: "correction", actorAuthUserId: "staff-1", adjustmentRef: "CORRECTION-1", ports: port });
+    assert.equal(b.ok, false, "the reuse is refused, not silently deduplicated");
+    assert.equal((b as { error: string }).error, "adjustment_reference_belongs_to_another_wallet");
+    assert.equal((await walletOf(port, OTHER_OWNER)).availableCents, 0, "and the second wallet is untouched");
+    assert.equal(entries.filter((e) => e.entryType === "manual_adjustment").length, 1, "one entry, on one wallet");
+
+    // A genuine REPLAY on the SAME wallet still deduplicates rather than paying twice.
+    const replay = await postManualAdjustment({ owner: OWNER, amountCents: 5000, reason: "correction", actorAuthUserId: "staff-1", adjustmentRef: "CORRECTION-1", ports: port });
+    assert.equal(replay.ok, true);
+    assert.equal((replay as { deduplicated: boolean }).deduplicated, true);
+    assert.equal((await walletOf(port, OWNER)).availableCents, 5000, "still paid exactly once");
+  });
+
+  await check("H9: a PARTIAL refund promotes the RESIDUAL, not nothing", async () => {
+    // THE DEFECT: a partial refund reversed its proportional share and then blocked promotion
+    // forever, so the un-refunded remainder sat in `pending` on every sweep, with nothing to
+    // expire it and a customer-facing promise that credits do not expire. $399.00 with a $39.90
+    // refund left $32.32 permanently unspendable.
+    let clock = Date.parse("2026-01-01T00:00:00.000Z");
+    const { port } = makeStore({ now: () => clock });
+    await earnFromSettledPayment({
+      owner: OWNER,
+      paymentRecordId: "h9",
+      facts: settled({ amountPaidCents: 39_900 }),
+      sourceKind: "stripe_payment",
+      pendingUntilSettlementFinal: true,
+      ports: port,
+    });
+    assert.equal((await walletOf(port, OWNER)).pendingCents, 3591, "9% of $399.00");
+
+    // A 10% refund reverses 10% of the earn.
+    const rev = await reverseForRefundOrChargeback({
+      paymentRecordId: "h9",
+      eventRefundedCents: 3990,
+      kind: "refund",
+      externalId: "re_h9_1",
+      ports: port,
+    });
+    assert.equal(rev.ok, true);
+    const afterRefund = await walletOf(port, OWNER);
+    assert.equal(afterRefund.pendingCents, 3591 - 359, "the refunded share is gone");
+
+    clock += 31 * DAY;
+    const sweep = await runPendingPromotionSweep({
+      nowMs: clock,
+      settlementDays: 30,
+      limit: 50,
+      ports: port,
+      isPaymentStillEligible: async () => true,
+    });
+    assert.equal(sweep.promoted, 1, "the remainder IS promoted");
+    assert.equal(sweep.promotedCents, 3232, "and it is the residual, not the original earn");
+    const promoted = await walletOf(port, OWNER);
+    assert.equal(promoted.availableCents, 3232, "$32.32 is spendable");
+    assert.equal(promoted.pendingCents, 0, "nothing is stranded");
+
+    // A FULLY refunded payment still promotes nothing — the residual is zero, not negative.
+    const { port: p2 } = makeStore({ now: () => clock });
+    await earnFromSettledPayment({ owner: OWNER, paymentRecordId: "h9b", facts: settled({ amountPaidCents: 10_000 }), sourceKind: "stripe_payment", pendingUntilSettlementFinal: true, ports: p2 });
+    await reverseForRefundOrChargeback({ paymentRecordId: "h9b", eventRefundedCents: 10_000, kind: "refund", externalId: "re_h9b", ports: p2 });
+    const full = await runPendingPromotionSweep({ nowMs: clock + 31 * DAY, settlementDays: 30, limit: 50, ports: p2, isPaymentStillEligible: async () => true });
+    assert.equal(full.promoted, 0, "a fully refunded payment promotes nothing");
+    assert.equal((await walletOf(p2, OWNER)).availableCents, 0);
+  });
+
   await check("H8: eligibility is asked of the PAYMENT RECORD and fails closed", () => {
     const src = readFileSync("app/lib/rewards/rewardsFulfillment.ts", "utf8");
     const fn = src.slice(src.indexOf("async function isPaymentStillPromotable"), src.indexOf("export type PromotionSweepReport"));
     assert.ok(fn.includes("leonix_payment_records"), "the payment record is consulted");
     assert.ok(/if \(error \|\| !payment\) return false;/.test(fn), "an unreadable payment fails CLOSED");
-    assert.ok(fn.includes("refunded_at"), "a refund withholds promotion");
-    assert.ok(fn.includes("NON_PROMOTABLE_PAYMENT_STATUSES"), "so do refunded/disputed/failed/canceled statuses");
-    assert.ok(fn.includes("refund_reversal"), "and so does a reversal already on the ledger");
+    assert.ok(fn.includes("NON_PROMOTABLE_PAYMENT_STATUSES"), "disputed/failed/canceled statuses withhold promotion");
+    assert.ok(fn.includes("chargeback_reversal"), "and so does a dispute already on the ledger");
+
+    // A PARTIAL REFUND MUST NOT INVALIDATE THE WHOLE EARN. `recordRefundOnPaymentRecord` sets
+    // both `refunded_at` and `payment_status: "refunded"` for a partial refund, so treating
+    // either as invalidation froze the un-refunded remainder in `pending` permanently — while the
+    // customer is told, in both languages, that their credits do not expire.
+    assert.ok(!/if \(row\.refunded_at\) return false;/.test(fn), "a partial refund does not invalidate the payment");
+    assert.ok(
+      !/\.in\("entry_type", \["refund_reversal", "chargeback_reversal"\]\)/.test(fn),
+      "the existence of ANY reversal no longer blocks promotion",
+    );
+    const statuses = src.slice(src.indexOf("const NON_PROMOTABLE_PAYMENT_STATUSES"), src.indexOf(";", src.indexOf("const NON_PROMOTABLE_PAYMENT_STATUSES")));
+    assert.ok(!statuses.includes('"refunded"'), "`refunded` is not an invalidating status");
+    for (const s of ["disputed", "failed", "canceled"]) {
+      assert.ok(statuses.includes(`"${s}"`), `${s} still invalidates`);
+    }
   });
 
   // =========================================================================
@@ -1950,7 +2189,167 @@ async function main() {
 
     const commit = await commitReservedCredits({ redemptionRef: "n4b_ref", ports: port });
     assert.equal(commit.ok, false, "this needs a person, not a silent success");
-    assert.equal((commit as { error: string }).error, "recommit_insufficient_balance");
+    // The refusal now comes from the posting function itself — ONE statement that either moves
+    // the credits or does not. The old two-entry pair reported its own invented error after
+    // having already posted half of the movement.
+    assert.equal((commit as { error: string }).error, "negative_balance_refused");
+    const after = await walletOf(port, OWNER);
+    assert.equal(after.availableCents, 0, "and nothing moved");
+    assert.equal(after.reservedCents, 0, "in particular nothing was parked in reserved");
+
+    // THE ROUND-3 REGRESSION GUARD: a retry must not find a half-used keyspace. The old pair
+    // burned `recommit:reserve:<ref>` on the first attempt, so the second attempt's fresh
+    // `recommit:commit:<ref>` key posted anyway and spent a DIFFERENT reservation's credits.
+    const retry = await commitReservedCredits({ redemptionRef: "n4b_ref", ports: port });
+    assert.equal(retry.ok, false, "a retry is still refused, not silently succeeded");
+    const afterRetry = await walletOf(port, OWNER);
+    assert.deepEqual(
+      [afterRetry.availableCents, afterRetry.reservedCents, afterRetry.lifetimeRedeemedCents],
+      [after.availableCents, after.reservedCents, after.lifetimeRedeemedCents],
+      "a retry moves nothing at all",
+    );
+  });
+
+  await check("N4e: the REDEMPTION ROW's status tracks the money, on every path", async () => {
+    // Two mutations of the finalisation code used to leave all checks green, because nothing
+    // asserted the row's status after a re-debit and the in-memory port silently dropped the
+    // `fromAnyStatus` opt-out the real adapter honours. The status is now moved by the posting
+    // statement itself, so it is asserted directly on every transition.
+    const t0 = Date.parse("2026-09-21T12:00:00.000Z");
+    const statusOf = async (port: RewardsStorePort, ref: string) =>
+      (await port.findRedemption(reserveIdempotencyKey(ref)))?.status ?? null;
+
+    // reserve -> commit
+    const { port: a } = makeStore({ now: () => t0 });
+    await seedAvailable(a, OWNER, 5000, "n4e_a");
+    await reserveCreditsForPurchase({ owner: OWNER, requestedCents: 2000, amountDueCents: 90_000, redemptionRef: "A", contextKind: "stripe_checkout", nowMs: t0, ports: a });
+    assert.equal(await statusOf(a, "A"), "reserved");
+    await commitReservedCredits({ redemptionRef: "A", ports: a });
+    assert.equal(await statusOf(a, "A"), "committed", "a spent hold is committed");
+
+    // reserve -> release
+    const { port: b } = makeStore({ now: () => t0 });
+    await seedAvailable(b, OWNER, 5000, "n4e_b");
+    await reserveCreditsForPurchase({ owner: OWNER, requestedCents: 2000, amountDueCents: 90_000, redemptionRef: "B", contextKind: "stripe_checkout", nowMs: t0, ports: b });
+    await releaseReservedCredits({ redemptionRef: "B", ports: b });
+    assert.equal(await statusOf(b, "B"), "released", "a returned hold is released");
+
+    // reserve -> expire -> RE-DEBIT. The row must end up committed, not left released.
+    const { port: c } = makeStore({ now: () => t0 });
+    await seedAvailable(c, OWNER, 5000, "n4e_c");
+    await reserveCreditsForPurchase({ owner: OWNER, requestedCents: 2000, amountDueCents: 90_000, redemptionRef: "C", contextKind: "stripe_checkout", nowMs: t0, ports: c });
+    await runReservationExpirySweep({ nowMs: t0 + 31 * 60_000, limit: 10, ports: c });
+    assert.equal(await statusOf(c, "C"), "expired", "the sweep marks it expired");
+    const recommit = await commitReservedCredits({ redemptionRef: "C", ports: c });
+    assert.equal(recommit.ok, true);
+    assert.equal((recommit as { outcome: string }).outcome, "recommitted");
+    assert.equal(
+      await statusOf(c, "C"),
+      "committed",
+      "a re-debited hold is COMMITTED — the ledger and the redemption row must tell one story",
+    );
+    assert.equal((await walletOf(c, OWNER)).lifetimeRedeemedCents, 2000, "and the money moved once");
+  });
+
+  await check("N4d: commit and the expiry sweep cannot BOTH move the same hold", async () => {
+    // The old shape read the redemption row, posted, and only THEN compare-and-set. Commit and
+    // release therefore both read `reserved`, both posted, and the loser learned it had lost
+    // AFTER its money had already moved: the same 2000 cents were spent and returned at once.
+    const t0 = Date.parse("2026-09-21T12:00:00.000Z");
+    const { port } = makeStore({ now: () => t0 });
+    await seedAvailable(port, OWNER, 5000, "n4d");
+    await reserveCreditsForPurchase({ owner: OWNER, requestedCents: 2000, amountDueCents: 90_000, redemptionRef: "A", contextKind: "stripe_checkout", nowMs: t0, ports: port });
+    await reserveCreditsForPurchase({ owner: OWNER, requestedCents: 3000, amountDueCents: 90_000, redemptionRef: "B", contextKind: "stripe_checkout", nowMs: t0, ports: port });
+    assert.deepEqual(
+      [(await walletOf(port, OWNER)).availableCents, (await walletOf(port, OWNER)).reservedCents],
+      [0, 5000],
+    );
+
+    const committed = await commitReservedCredits({ redemptionRef: "A", ports: port });
+    assert.equal(committed.ok, true);
+    // The sweep now reaches the SAME hold. It must move nothing.
+    const released = await releaseReservedCredits({ redemptionRef: "A", expired: true, ports: port });
+    assert.equal(released.ok, true, "a late release is reported, not thrown");
+    assert.equal((released as { outcome: string }).outcome, "already_final", "and it is a no-op");
+    const after = await walletOf(port, OWNER);
+    assert.deepEqual(
+      [after.availableCents, after.reservedCents, after.lifetimeRedeemedCents],
+      [0, 3000, 2000],
+      "A was spent exactly once; B's hold is intact",
+    );
+
+    // The reverse order too: a released hold cannot then be committed against `reserved`.
+    const relB = await releaseReservedCredits({ redemptionRef: "B", ports: port });
+    assert.equal(relB.ok, true);
+    const lateCommit = await commitReservedCredits({ redemptionRef: "B", ports: port });
+    // It becomes a RE-DEBIT, which is correct and takes from available — never from another
+    // reservation's share of `reserved`.
+    assert.equal(lateCommit.ok, true);
+    assert.equal((lateCommit as { outcome: string }).outcome, "recommitted");
+    const end = await walletOf(port, OWNER);
+    assert.deepEqual(
+      [end.availableCents, end.reservedCents, end.lifetimeRedeemedCents],
+      [0, 0, 5000],
+      "5000 held, 5000 spent, nothing created and nothing stranded",
+    );
+  });
+
+  await check("N4c: a failed re-debit can NEVER consume another reservation's credits", async () => {
+    // THE BLOCKER. Reproduced exactly as an adversarial review produced it: 2000 cents out of
+    // nothing, plus 1000 cents stranded in `reserved` that no operation could free.
+    const t0 = Date.parse("2026-09-21T12:00:00.000Z");
+    const { port } = makeStore({ now: () => t0 });
+    await seedAvailable(port, OWNER, 10_000, "n4c");
+
+    // Hold A is taken, then expires and is returned.
+    await reserveCreditsForPurchase({ owner: OWNER, requestedCents: 2000, amountDueCents: 90_000, redemptionRef: "A", contextKind: "stripe_checkout", nowMs: t0, ports: port });
+    await runReservationExpirySweep({ nowMs: t0 + 31 * 60_000, limit: 10, ports: port });
+    assert.equal((await walletOf(port, OWNER)).availableCents, 10_000, "A was returned in full");
+
+    // Hold B is an unrelated, live checkout.
+    await reserveCreditsForPurchase({ owner: OWNER, requestedCents: 3000, amountDueCents: 90_000, redemptionRef: "B", contextKind: "stripe_checkout", nowMs: t0 + 32 * 60_000, ports: port });
+    const held = await walletOf(port, OWNER);
+    assert.deepEqual([held.availableCents, held.reservedCents], [7000, 3000]);
+
+    // A's payment lands anyway. Inject a transient failure on the FIRST re-debit attempt only.
+    const realPost = port.postEntry.bind(port);
+    let failNext = true;
+    port.postEntry = async (entry) => {
+      if (failNext && entry.entryType === "redeem_recommit") {
+        failNext = false;
+        return { ok: false, error: "transient" };
+      }
+      return realPost(entry);
+    };
+    const first = await commitReservedCredits({ redemptionRef: "A", ports: port });
+    assert.equal(first.ok, false, "the transient failure is reported");
+    const afterFail = await walletOf(port, OWNER);
+    assert.deepEqual(
+      [afterFail.availableCents, afterFail.reservedCents],
+      [7000, 3000],
+      "a failed re-debit leaves the wallet exactly as it was",
+    );
+
+    // The webhook is redelivered. This is where money used to appear from nowhere.
+    const second = await commitReservedCredits({ redemptionRef: "A", ports: port });
+    assert.equal(second.ok, true, "the retry now succeeds cleanly");
+    const afterRetry = await walletOf(port, OWNER);
+    assert.deepEqual(
+      [afterRetry.availableCents, afterRetry.reservedCents],
+      [5000, 3000],
+      "A's 2000 came out of AVAILABLE — B's 3000 hold is untouched",
+    );
+
+    // And B's own honest commit still works, which it did not before.
+    port.postEntry = realPost;
+    const bCommit = await commitReservedCredits({ redemptionRef: "B", ports: port });
+    assert.equal(bCommit.ok, true, "B commits normally");
+    const final = await walletOf(port, OWNER);
+    assert.deepEqual(
+      [final.availableCents, final.reservedCents, final.lifetimeRedeemedCents],
+      [5000, 0, 5000],
+      "5000 granted as discount, 5000 debited — nothing created, nothing stranded",
+    );
   });
 
   await check("N5: a reservation whose ledger post is refused does not survive as a live hold", async () => {
