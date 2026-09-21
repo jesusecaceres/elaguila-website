@@ -36,6 +36,16 @@ const ENTRY_LABELS: Record<string, { es: string; en: string }> = {
   chargeback_reversal: { es: "Reverso por contracargo", en: "Reversed — chargeback" },
   manual_adjustment: { es: "Ajuste de Leonix", en: "Leonix adjustment" },
   expire: { es: "Créditos vencidos", en: "Credits expired" },
+  // EVERY ENTRY TYPE THE LEDGER CAN HOLD NEEDS A LABEL, or the customer reads the machine's word
+  // for it. These four are precisely the ones this change makes reachable — a won dispute, an
+  // expired hold that was re-debited, and the two halves of a recovery debt — so the customer
+  // most likely to see them is the one whose money has already had an eventful month. The
+  // fallback renders `r.entry_type`, which for a Spanish-speaking customer meant a line in their
+  // activity list reading `reversal_restoration`.
+  reversal_restoration: { es: "Créditos devueltos (disputa ganada)", en: "Credits returned — dispute won" },
+  redeem_recommit: { es: "Créditos usados (cobro tardío)", en: "Credits used — late settlement" },
+  recovery_accrue: { es: "Saldo por recuperar", en: "Balance to recover" },
+  recovery_offset: { es: "Saldo recuperado", en: "Recovered balance" },
 };
 
 export async function GET(request: NextRequest) {

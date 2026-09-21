@@ -149,6 +149,26 @@ export function hasPaymentTrackerAccess(ctx: AdminAccessContext): boolean {
   return ctx.permissions.includes("can_view_payments");
 }
 
+/**
+ * May this operator reach the two IX REWARDS money screens?
+ *
+ * THE NAVIGATION MUST ASK THE SAME QUESTION THE PAGE ASKS. Both screens call
+ * `requireRevenueProtectedWriteAccess()`, which demands a roster role of exactly `super_admin`.
+ * The shell listed them under `hasPaymentTrackerAccess` — owner_admin OR any roster member with
+ * `can_view_payments` — so a billing-support member saw "IX Rewards" and "Rewards refunds" in the
+ * sidebar and was bounced to `/admin/team?access_denied=1` every time they clicked. Redirecting
+ * to a page that explains itself fixed the destination; it left the dead end in the navigation.
+ *
+ * This is the NECESSARY condition of that gate, evaluated from the context the shell already has.
+ * It is deliberately not the whole gate: the gate re-verifies the cookie identity against live
+ * auth on every request, which a synchronous nav predicate cannot and must not try to do. Showing
+ * strictly fewer links than the gate admits is the safe direction; showing more is the dead end.
+ */
+export function hasRewardsWorkspaceAccess(ctx: AdminAccessContext): boolean {
+  if (!ctx.hasAdminCookie || !ctx.rosterResolved) return false;
+  return String(ctx.rosterRole ?? "").trim().toLowerCase() === "super_admin";
+}
+
 export type RevenueWriteDenialReason =
   | "no_admin_cookie"
   | "bootstrap_not_allowed"
@@ -518,11 +538,16 @@ export function getAllowedWorkspaceNavHrefs(ctx: AdminAccessContext): string[] {
   // access check (owner_admin, or an active roster member with can_view_payments).
   if (hasPaymentTrackerAccess(ctx)) {
     hrefs.push("/admin/workspace/payment-tracker");
-    // IX REWARDS. The refund-resolution queue is the whole mechanism that keeps an unattributable
-    // refund from being silently dropped — money went back to a customer and the credits it
-    // earned are still spendable. A backlog with no link in the shell is, operationally, the
-    // silent drop it exists to prevent: staff had to already know the URL. Both rewards screens
-    // are money screens, so they ride the same permission the payment tracker does.
+  }
+  // IX REWARDS. The refund-resolution queue is the whole mechanism that keeps an unattributable
+  // refund from being silently dropped — money went back to a customer and the credits it earned
+  // are still spendable. A backlog with no link in the shell is, operationally, the silent drop it
+  // exists to prevent: staff had to already know the URL.
+  //
+  // These ride `hasRewardsWorkspaceAccess`, NOT the payment tracker's permission, because the
+  // screens themselves demand a roster `super_admin`. See that function for what the mismatch
+  // cost.
+  if (hasRewardsWorkspaceAccess(ctx)) {
     hrefs.push("/admin/workspace/rewards");
     hrefs.push("/admin/workspace/rewards-refunds");
   }

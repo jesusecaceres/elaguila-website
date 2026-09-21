@@ -460,9 +460,12 @@ export function PublishCheckoutCheckpoint({
           className="mt-3 rounded-xl border px-3 py-2 text-xs"
           style={{ borderColor: `${LEONIX_BORDER}99`, color: LEONIX_MUTED }}
         >
+          {/* "…stays available for one-time purchases" was not true: no online surface accepts
+              credits today, so the sentence sent the customer looking for a checkout that does not
+              exist. It now says where they ARE spendable. */}
           {lang === "en"
-            ? "Leonix Credits do not apply to monthly plans yet. Your balance is untouched and stays available for one-time purchases."
-            : "Los Créditos Leonix aún no aplican a planes mensuales. Tu saldo queda intacto y disponible para compras únicas."}
+            ? "Leonix Credits do not apply to monthly plans yet. Your balance is untouched — Leonix staff can apply it to a payment in the office."
+            : "Los Créditos Leonix aún no aplican a planes mensuales. Tu saldo queda intacto — el personal de Leonix puede aplicarlo a un pago en la oficina."}
         </p>
       ) : null}
 

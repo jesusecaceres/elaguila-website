@@ -53,6 +53,11 @@ import {
 // The pure input rules live in their own module so the verifier can CALL them with crafted
 // inputs rather than grepping this file for reassuring substrings.
 import { isUuid, sanitizeSearchTerm } from "@/app/lib/rewards/rewardsStaffQuery";
+import {
+  queuedRefundAmountIsCumulative,
+  refiledRefundResolution,
+  resolutionIdempotencyAnchor,
+} from "@/app/lib/rewards/rewardsPolicy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -180,7 +185,16 @@ export async function POST(request: NextRequest) {
     // accept `reversed` on a won-dispute row — closing it as a clawback, moving nothing (its basis
     // is zero) and destroying the obligation — and `restored` on an ordinary refund row. The
     // screen's own discriminator is a render decision; this is the one that binds.
-    if (row.isRestorationWork && !wantsRestore) {
+    //
+    // `no_action_required` IS NOT A CONTRADICTION, AND REFUSING IT LEFT THE ROW UNCLOSEABLE.
+    // Refusing every non-restore outcome meant a won-dispute row that genuinely needs nothing —
+    // already settled by hand, a duplicate of a row already restored — had no working control at
+    // all: Restore 409s `restoration_moved_nothing`, No-action 409s
+    // `row_requires_restoration_outcome`, and the operator reads a raw error code either way. The
+    // row stayed open for ever. What must be refused is `reversed`, which files a CLAWBACK as the
+    // resolution of an obligation to give credits BACK; an audited, noted decision to close it
+    // moving nothing is a legitimate staff outcome.
+    if (row.isRestorationWork && !wantsRestore && outcome !== "no_action_required") {
       return NextResponse.json(
         { ok: false, error: "row_requires_restoration_outcome" },
         { status: 409 },
@@ -193,6 +207,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // THE IDEMPOTENCY ANCHOR COMES FROM THE ROW, NEVER FROM THE KEYBOARD.
+    //
+    // See `resolutionIdempotencyAnchor`. Checking a typed id against ids already on the ledger —
+    // which is what the block below does — cannot catch the attack it was written for, because the
+    // defining property of that attack is that the key is still FREE at the moment it is typed.
+    // Taking the anchor from the row removes staff control over the key entirely; the block below
+    // stays as a second line for rows whose own ref was filed wrong.
+    const anchor = resolutionIdempotencyAnchor(row, wantsRestore ? disputeId : refundExternalId, {
+      wantsRestore,
+    });
+    if (!anchor.ok) return NextResponse.json({ ok: false, error: anchor.error }, { status: 409 });
+    const resolutionExternalId = anchor.anchor;
+
     // A TYPED ID THAT ALREADY BELONGS TO ANOTHER PAYMENT IS A TYPO, NOT A REVERSAL — AND THIS
     // REFUSES BEFORE THE CLAIM, like every other refusal on this path.
     //
@@ -204,7 +231,7 @@ export async function POST(request: NextRequest) {
     // and it is silent.
     if (!wantsRestore && outcome === "reversed") {
       const existingUnderKey = await ports.findLedgerEntryByIdempotencyKey(
-        reversalIdempotencyKey(row.kind, refundExternalId),
+        reversalIdempotencyKey(row.kind, resolutionExternalId),
       );
       if (existingUnderKey) {
         const { data: ownerRow } = await db
@@ -238,7 +265,7 @@ export async function POST(request: NextRequest) {
       note,
       actorAuthUserId,
       actorRosterId,
-      refundExternalId: wantsRestore ? disputeId : outcome === "reversed" ? refundExternalId : null,
+      refundExternalId: wantsRestore ? resolutionExternalId : outcome === "reversed" ? resolutionExternalId : null,
     });
     if (!claimed.ok) {
       return NextResponse.json({ ok: false, error: claimed.error }, { status: 409 });
@@ -249,7 +276,7 @@ export async function POST(request: NextRequest) {
     if (wantsRestore) {
       const restored = await restoreCreditsForWonDispute({
         paymentRecordId: row.paymentRecordId,
-        externalId: disputeId,
+        externalId: resolutionExternalId,
       });
       if (!restored.ok) {
         // `requeued` REPORTS WHAT HAPPENED. It used to be asserted unconditionally while the
@@ -262,11 +289,14 @@ export async function POST(request: NextRequest) {
           // Prefixed, so the re-filed row is still recognised as restoration work and still
           // offers the only control that can settle it. Without the prefix it rendered as an
           // ordinary chargeback whose every button closes it having moved nothing.
-          reason: `${RESTORATION_WORK_REASON_PREFIX}_retry: staff_resolution_failed: ${restored.reason ?? "unknown"}`,
+          reason: `${RESTORATION_WORK_REASON_PREFIX}_retry${refiledRefundResolution(row, disputeId).evidenceSuffix}: staff_resolution_failed: ${restored.reason ?? "unknown"}`,
           stripeChargeId: row.stripeChargeId,
-          // Carried through so the re-filed row is about THIS dispute. Without it, a payment with
-          // two unresolved disputes collapses both into one row at cumulative position zero.
-          externalRef: row.externalRef ?? disputeId,
+          // CARRIED THROUGH, NEVER INVENTED — see `refiledRefundResolution`. Keeping the row's own
+          // `external_ref` is what keeps a payment's two unresolved disputes in two rows instead
+          // of collapsing them at cumulative position zero and, just as importantly, what stops a
+          // re-file turning a cumulative amount into a per-event one. The typed id is evidence in
+          // the reason, never semantics in the key.
+          externalRef: refiledRefundResolution(row, disputeId).externalRef,
         }).catch(() => ({ ok: false as const, error: "enqueue_threw" }));
         return NextResponse.json(
           { ok: false, error: restored.reason ?? "restoration_failed", requeued: refiled.ok },
@@ -291,9 +321,10 @@ export async function POST(request: NextRequest) {
           cumulativeRefundedCents: row.cumulativeRefundedCents,
           // THE PREFIX IS LOAD-BEARING: it is what keeps the re-filed row classified as
           // restoration work, so the screen still offers the control that can settle it.
-          reason: `${RESTORATION_WORK_REASON_PREFIX}_retry: ${restoredReason || "moved_nothing"}`,
+          reason: `${RESTORATION_WORK_REASON_PREFIX}_retry${refiledRefundResolution(row, disputeId).evidenceSuffix}: ${restoredReason || "moved_nothing"}`,
           stripeChargeId: row.stripeChargeId,
-          externalRef: row.externalRef ?? disputeId,
+          // Same rule as above: the row's own ref, never one supplied by this call.
+          externalRef: refiledRefundResolution(row, disputeId).externalRef,
         }).catch(() => ({ ok: false as const, error: "enqueue_threw" }));
         return NextResponse.json(
           { ok: false, error: restoredReason || "restoration_moved_nothing", requeued: refiled.ok },
@@ -322,13 +353,13 @@ export async function POST(request: NextRequest) {
       // computed `max(0, 5000 - 5000) = 0`, moved nothing, returned 200, and closed the row as
       // `reversed` — while burning `reverse:refund:<id>` with a zero-amount entry so the real
       // delivery could never fix it. 450 credits written off with an audit row saying otherwise.
-      const perEvent = Boolean(row.externalRef);
+      const perEvent = !queuedRefundAmountIsCumulative(row);
       const reversed = await reverseCreditsForRefundOrDispute({
         paymentRecordId: row.paymentRecordId,
         refundedCents: row.cumulativeRefundedCents,
         cumulativeRefundedCents: perEvent ? null : row.cumulativeRefundedCents,
         kind: row.kind,
-        externalId: refundExternalId,
+        externalId: resolutionExternalId,
       });
       if (!reversed.ok) {
         // The claim is already recorded, so the obligation would otherwise vanish. Re-file it as a
@@ -337,9 +368,21 @@ export async function POST(request: NextRequest) {
           paymentRecordId: row.paymentRecordId,
           kind: row.kind,
           cumulativeRefundedCents: row.cumulativeRefundedCents,
-          reason: `staff_resolution_reversal_failed: ${reversed.reason ?? "unknown"}`,
+          // A RE-FILE MUST NOT CHANGE WHAT THE AMOUNT MEANS.
+          //
+          // `external_ref` is not decoration: its presence is what says the stored amount is a
+          // PER-EVENT figure, and its absence is what says the amount is a CUMULATIVE rail
+          // position (the truncated-payload case, twenty lines above). Re-filing a cumulative row
+          // with `?? refundExternalId` attached an external ref to a number it did not change,
+          // flipping that number's meaning on the next resolution. Measured, on a $100.00 payment
+          // that earned 900 with a first $25.00 refund already reversed: a second $25.00 refund
+          // filed as cumulative 5000 then re-filed with an external ref reversed 675 instead of
+          // 450 — 225 credits clawed back that the customer still owned, and on a spent balance
+          // the excess would land as `recovery_cents` they never owed, freezing their redemptions.
+          // The supplied id goes in the REASON, where it is evidence rather than semantics.
+          reason: `staff_resolution_reversal_failed${refiledRefundResolution(row, refundExternalId).evidenceSuffix}: ${reversed.reason ?? "unknown"}`,
           stripeChargeId: row.stripeChargeId,
-          externalRef: row.externalRef ?? refundExternalId,
+          externalRef: refiledRefundResolution(row, refundExternalId).externalRef,
         }).catch(() => ({ ok: false as const, error: "enqueue_threw" }));
         return NextResponse.json(
           { ok: false, error: reversed.reason ?? "reversal_failed", requeued: refiled.ok },

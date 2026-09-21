@@ -1009,6 +1009,13 @@ export async function POST(request: NextRequest) {
       ownerUserId: creditsOwnerUserId,
       requestedCents: creditsAppliedCents,
       amountDueCents: amountCents,
+      // DEFENCE IN DEPTH, AND MEASURED AS SUCH. `requestedCents` above is already the PLANNED
+      // figure, which `planCheckoutCredits` capped against this same subtotal — so this ceiling
+      // can only ever bind if the planning step is wrong. Quadrupling it here alone was verified
+      // to change no amount at all (the route suite stays green, and the hold is identical), which
+      // is why the mutation that proves the 50% ceiling attacks the PLANNING call instead. It
+      // stays because the reserve is the movement of record and should not depend on its caller
+      // having got the arithmetic right.
       eligiblePurchaseCents: subtotalCents,
       paymentRecordId: paymentInsert.paymentRecordId,
     });

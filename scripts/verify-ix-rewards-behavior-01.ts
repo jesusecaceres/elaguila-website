@@ -25,6 +25,7 @@
  * SECTION M — no expiration at launch, and honest surfaces
  */
 import { strict as assert } from "node:assert";
+import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import {
   CARD_SETTLEMENT_PENDING_DAYS,
@@ -3772,139 +3773,42 @@ async function main() {
     assert.ok(queue.includes('error: "note_required"'), "a resolution is explained");
     assert.ok(queue.includes('error: "actor_required"'), "and attributed");
 
-    const api = readFileSync("app/api/admin/rewards/route.ts", "utf8");
-    const resolveBlock = api.slice(api.indexOf('if (action === "refund_resolve")'), api.indexOf("// SEARCH — name and phone"));
-    assert.ok(resolveBlock.length > 500, "the resolve block was actually located");
-    assert.ok(resolveBlock.includes("reverseCreditsForRefundOrDispute("), "it settles through the one reversal path");
-
-    // EVERY ORDERING ASSERTION GUARDS BOTH SIDES.
+    // THE STAFF RESOLUTION PATH IS NOT ASSERTED HERE ANY MORE — IT IS EXECUTED.
     //
-    // `indexOf` returns -1 when a string is absent, and -1 < N is TRUE — so an unguarded
-    // comparison passes when the thing it is asserting about has been DELETED, while announcing
-    // the opposite. Three checks in this suite were written that way, each guarding a documented
-    // double-payment defect. `at()` refuses a missing marker by name instead.
-    const at = (haystack: string, needle: string, what: string): number => {
-      const i = haystack.indexOf(needle);
-      assert.ok(i >= 0, `${what} — expected to find ${JSON.stringify(needle)}`);
-      return i;
-    };
-
-    const claimAt = at(resolveBlock, "closeRefundResolution(", "the row is claimed");
-    const moveAt = at(resolveBlock, "reverseCreditsForRefundOrDispute(", "the reversal is performed");
-    const refundIdGuardAt = at(resolveBlock, "refund_external_id_required", "a canonical refund id is required");
-    const disputeIdGuardAt = at(resolveBlock, "dispute_id_required", "a dispute id is required to restore");
-
-    // THE CONDITION, NOT THE MESSAGE. An error string survives `if (false)`, and an adversarial
-    // review proved it: the literal and the ordering both stayed put while the guard was disabled,
-    // and an operator who left the box empty destroyed the obligation with every check green.
-    assert.ok(
-      /if \(wantsRestore && disputeId\.length < 4\) \{/.test(resolveBlock),
-      "the dispute-id refusal is a live condition on the supplied value",
-    );
-    assert.ok(
-      /if \(!wantsRestore && outcome === "reversed" && \(!refundExternalId \|\| refundExternalId\.length < 4\)\) \{/.test(resolveBlock),
-      "and so is the refund-id refusal",
-    );
-    // THE ROW'S OWN KIND DECIDES WHICH OUTCOME IS POSSIBLE. `wantsRestore` comes from the request
-    // body, and nothing compared it to the row: the API would accept `reversed` on a won-dispute
-    // row, closing it as a clawback that moves nothing and destroying the obligation.
-    assert.ok(
-      /if \(row\.isRestorationWork && !wantsRestore\) \{/.test(resolveBlock),
-      "a restoration row cannot be settled as a reversal",
-    );
-    assert.ok(
-      /if \(!row\.isRestorationWork && wantsRestore\) \{/.test(resolveBlock),
-      "nor an ordinary refund row as a restoration",
-    );
-    assertOrder(
-      resolveBlock,
-      "row_requires_restoration_outcome",
-      "closeRefundResolution(",
-      "and both are decided before the row closes",
-    );
-    // A RESTORATION THAT MOVED NOTHING IS NOT A RESOLUTION. Reporting `movedCents: 0` as a success
-    // on an already-claimed row closed the obligation: the clawback arrived minutes later and no
-    // key would ever restore it.
-    assert.ok(
-      /const movedNothing = restored\.outcome !== "restored" && !quietSkip;/.test(resolveBlock),
-      "a restoration that moved nothing is not reported as done",
-    );
-    assert.ok(
-      /if \(movedNothing\) \{[\s\S]{0,800}enqueueUnattributableRefund\(/.test(resolveBlock),
-      "it is re-filed instead",
-    );
-    assert.ok(
-      /RESTORATION_WORK_REASON_PREFIX\}_retry/.test(resolveBlock),
-      "under a reason that keeps it classified as restoration work, so the screen still offers the control that can settle it",
-    );
-
-    // WHAT THE STORED AMOUNT MEANS DEPENDS ON WHY THE ROW EXISTS.
+    // Everything this check used to claim about `app/api/admin/rewards/route.ts` it claimed by
+    // reading the file: which literal appeared, and in what order `indexOf` found it. An
+    // independent reviewer showed exactly what that is worth. They relocated the refund-id guard
+    // to AFTER `closeRefundResolution` and left a comment mentioning it where the guard had been —
+    // `indexOf` found the comment, the ordering assertion passed, and an operator who typed a bad
+    // id now destroyed the obligation silently. They also rewrote `Boolean(row.externalRef)` as
+    // `row.externalRef !== null && row.externalRef !== ""` — identical behaviour — and this check
+    // went RED. Green for a hole, red for a rename: the wrong sign on both axes.
     //
-    // A row with no `external_ref` is the truncated-payload case and its number IS the rail's
-    // cumulative position. A row WITH one is a single refund or dispute whose reversal failed, and
-    // its number is that event's OWN amount. Passing a per-event amount as a cumulative position
-    // made the resolver compute `max(0, 5000 - 5000) = 0` for a second $50.00 refund: it moved
-    // nothing, returned 200, closed the row as `reversed`, and burned the refund's key with a
-    // zero-amount entry so the real delivery could never fix it.
-    assert.ok(
-      /const perEvent = Boolean\(row\.externalRef\);/.test(resolveBlock),
-      "the row says whether its amount is one event's or the rail's cumulative position",
-    );
-    assert.ok(
-      /cumulativeRefundedCents: perEvent \? null : row\.cumulativeRefundedCents,/.test(resolveBlock),
-      "and a per-event amount is never passed as a cumulative one",
-    );
-    // A typed id that already belongs to another payment poisons a globally-unique key.
-    assert.ok(
-      /refund_external_id_belongs_to_another_payment/.test(resolveBlock),
-      "a refund id already spent on a different payment is refused",
-    );
-    assertOrder(
-      resolveBlock,
-      "refund_external_id_belongs_to_another_payment",
-      "closeRefundResolution(",
-      "and refused before the row closes",
-    );
-
-    // THE ROW IS CLAIMED BEFORE THE MONEY MOVES.
+    // `scripts/verify-ix-rewards-route-behavior-01.ts` CALLS the handler instead. Y1 sends a bad
+    // refund id and asserts the row is still open; Y2 and Y3 settle a won-dispute row the two ways
+    // it can and cannot be settled; Y4 and Y5 assert the idempotency anchor comes from the row;
+    // Y6 races two staff on one row; Y7 and Y8 assert a re-file changes neither the meaning of the
+    // amount nor which dispute it is about. Each one fails for the DEFECT and survives the rename.
     //
-    // Moving first meant two staff opening the same row with different refund ids produced two
-    // idempotency keys, both read the same prior position, and both posted the same delta —
-    // clawing back twice what was owed. The compare-and-set from `open` is the mutual exclusion.
-    assert.ok(claimAt < moveAt, "the row is CLAIMED before any movement, so only one caller can move it");
+    // What stays here is the one claim that suite cannot make: that those checks exist at all, so
+    // the coverage cannot be deleted while this check goes on passing.
+    const routeSuite = readFileSync("scripts/verify-ix-rewards-route-behavior-01.ts", "utf8");
+    for (const [name, what] of [
+      ["Y1", "a refusal leaves the row open"],
+      ["Y2", "a won-dispute row cannot be settled as a clawback"],
+      ["Y3", "but CAN be closed by an audited no-action decision"],
+      ["Y4", "a typed id that disagrees with the row is refused"],
+      ["Y5", "a cumulative row is never keyed on a typed id"],
+      ["Y6", "the claim is exclusive"],
+      ["Y7", "a re-file keeps a cumulative amount cumulative"],
+      ["Y8", "a re-file keeps the dispute it is about"],
+    ] as const) {
+      assert.ok(
+        routeSuite.includes(`await check("${name}:`),
+        `the executable check ${name} (${what}) must exist — this check no longer covers it`,
+      );
+    }
 
-    // ...AND EVERY REFUSAL HAPPENS BEFORE THE CLAIM.
-    //
-    // The claim CLOSES the row. A validation that runs after it returns a 400 while leaving the
-    // row `resolved` with nothing moved: the obligation ceases to exist, invisibly, and the
-    // customer keeps credits for money they got back. Both id checks used to sit on the wrong
-    // side of this line — a staff member who left the refund-id box empty destroyed the row.
-    assert.ok(
-      refundIdGuardAt < claimAt,
-      "the canonical refund id is demanded BEFORE the claim, or a refusal silently closes the row",
-    );
-    assert.ok(
-      disputeIdGuardAt < claimAt,
-      "and so is the dispute id, for the same reason",
-    );
-
-    // A failed movement must not swallow the obligation the claim removed.
-    assert.ok(
-      /if \(!reversed\.ok\) \{[\s\S]{0,600}enqueueUnattributableRefund\(/.test(resolveBlock),
-      "a failed movement re-files the work rather than losing it",
-    );
-    // ...and the re-filed row must name WHICH problem it is, or two disputes collapse into one.
-    assert.ok(
-      /enqueueUnattributableRefund\(\{[\s\S]{0,500}externalRef:/.test(resolveBlock),
-      "the re-filed row carries the dispute or refund id, so two problems stay two rows",
-    );
-
-    // A RESTORATION IS RECORDED AS A RESTORATION. Collapsing it into `reversed` made the audit
-    // record state the opposite of the movement: credits given back, filed as clawed back.
-    assert.ok(
-      /outcome: wantsRestore \? "restored" :/.test(resolveBlock),
-      "a restoration closes the row as `restored`, not as `reversed`",
-    );
     const sql = readFileSync(MIGRATION_PATH, "utf8");
     assert.ok(
       /resolution_outcome IN \('reversed', 'restored', 'no_action_required'\)/.test(sql),
@@ -3913,10 +3817,22 @@ async function main() {
 
     // THE QUEUE IS REACHABLE. A backlog nobody can navigate to is a silent drop with extra steps.
     const acl = readFileSync("app/admin/_lib/adminAccessControl.ts", "utf8");
-    const nav = acl.slice(at(acl, "export function getAllowedWorkspaceNavHrefs", "the workspace nav allowlist"));
+    const navAt = acl.indexOf("export function getAllowedWorkspaceNavHrefs");
+    assert.ok(navAt >= 0, "the workspace nav allowlist was located");
+    const nav = acl.slice(navAt);
     for (const href of ["/admin/workspace/rewards", "/admin/workspace/rewards-refunds"]) {
       assert.ok(nav.includes(`"${href}"`), `${href} is reachable from the workspace navigation`);
     }
+    // AND IT IS GATED BY THE SAME AUTHORITY THE SCREENS DEMAND.
+    //
+    // They rode `hasPaymentTrackerAccess` — owner_admin or any roster member with
+    // `can_view_payments` — while both pages require a roster `super_admin`. A billing-support
+    // member saw both links and was bounced to `/admin/team?access_denied=1` every time they
+    // clicked: the dead end moved from the API to the navigation rather than closing.
+    assert.ok(
+      /if \(hasRewardsWorkspaceAccess\(ctx\)\) \{[\s\S]{0,400}\/admin\/workspace\/rewards-refunds/.test(nav),
+      "the two rewards links ride the rewards gate, not the payment tracker's",
+    );
     const navComponent = readFileSync("app/admin/_components/AdminWorkspaceNav.tsx", "utf8");
     assert.ok(navComponent.includes('"/admin/workspace/rewards-refunds"'), "and the nav component renders it");
 
@@ -5195,6 +5111,23 @@ async function main() {
       assert.ok(suite.includes(`-- ${marker}.`) || suite.includes(`'${marker} `), `the SQL suite covers ${why}`);
     }
     assert.ok(/concurrency: two sessions/.test(runner), "and two genuinely concurrent sessions are exercised");
+
+    // THE TIMING FLOOR IS EXECUTED, NOT READ.
+    //
+    // The two cross-session races are proofs only because the racing session is MEASURED waiting on
+    // the wallet lock. An independent reviewer set that floor to zero and left both suites green:
+    // "queued on the lock" became a caption over a number nothing checked. Reading the arithmetic
+    // out of the file would not have caught it either — the arithmetic was correct, the floor was
+    // not. So the guard is RUN, with a degenerate value, and must refuse.
+    const degenerate = spawnSync("bash", ["scripts/verify-ix-rewards-sql-behavior-01.sh"], {
+      env: { ...process.env, LEONIX_HOLD_SECONDS: "0" },
+      encoding: "utf8",
+    });
+    assert.equal(degenerate.status, 1, "a degenerate timing floor is refused outright");
+    assert.ok(
+      /degenerate concurrency timing floor/.test(`${degenerate.stdout ?? ""}${degenerate.stderr ?? ""}`),
+      "and says so by name rather than passing quietly",
+    );
   });
 
   await check("Z1: the certification document cites only checks that exist", () => {

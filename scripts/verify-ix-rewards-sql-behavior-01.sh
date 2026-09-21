@@ -27,6 +27,24 @@ DB="leonix_rewards_sql_probe_$$"
 # A floor under the assertion count. A harness that quietly stops asserting is worse than none.
 MIN_ASSERTIONS=142
 
+# THE CONCURRENCY PROOF'S TIMING FLOOR, AND A GUARD ON THE FLOOR ITSELF.
+#
+# The two cross-session races below are only proofs because the racing session is MEASURED waiting
+# on the wallet lock. An independent reviewer set `MIN_MS=0` and left both suites green: with the
+# floor at zero, "queued on the lock" reverts to a caption over a number nobody checks — the exact
+# failure the block's own comment says it exists to prevent. `HOLD_SECONDS=0` did the same through
+# a plausible-looking constant tweak.
+#
+# So the floor is derived, and then CHECKED, before anything else runs. `LEONIX_HOLD_SECONDS` exists
+# so a test can hand this guard a degenerate value and watch it refuse — which is how the guard is
+# itself proven, rather than asserted.
+HOLD_SECONDS="${LEONIX_HOLD_SECONDS:-3}"
+MIN_MS=$(( (HOLD_SECONDS - 1) * 1000 ))
+if [ "$HOLD_SECONDS" -lt 2 ] || [ "$MIN_MS" -lt 1000 ]; then
+  echo "verify-ix-rewards-sql-behavior-01: degenerate concurrency timing floor (HOLD_SECONDS=${HOLD_SECONDS}, MIN_MS=${MIN_MS}); the race would be asserted by caption, not by measurement" >&2
+  exit 1
+fi
+
 # REFUSE A REMOTE TARGET, LOUDLY. A unix socket path or an explicit loopback address only.
 case "${PGHOST:-}" in
   ""|/*|localhost|127.0.0.1|::1) ;;
@@ -123,7 +141,6 @@ cleanup_work() { rm -rf "$WORK"; }
 trap 'cleanup_work; cleanup' EXIT
 
 # --- Session A: takes the wallet lock and HOLDS it for HOLD_SECONDS before committing.
-HOLD_SECONDS=3
 mkfifo "$WORK/a_in"
 (
   psql -q -d "$DB" -v ON_ERROR_STOP=1 -f "$WORK/a_in" > "$WORK/a_out" 2>&1
@@ -181,7 +198,9 @@ grep -q '600' "$WORK/a_out" || {
 
 # B must have BLOCKED for most of the hold. A short duration means it never queued, which is the
 # exact way the previous version of this check passed while proving nothing.
-MIN_MS=$(( (HOLD_SECONDS - 1) * 1000 ))
+# An EMPTY `B_MS` used to make `[ "$B_MS" -lt "$MIN_MS" ]` return 2, which `if` treats as false —
+# a silent pass on a session that produced no measurement at all. Defaulted, so it reads as 0.
+B_MS="${B_MS:-0}"
 if [ "$B_MS" -lt "$MIN_MS" ]; then
   echo "verify-ix-rewards-sql-behavior-01: the racing session returned in ${B_MS}ms without waiting for the lock (expected at least ${MIN_MS}ms)" >&2
   exit 1
@@ -243,6 +262,7 @@ D_MS="$(cat "$WORK/d_ms" 2>/dev/null || echo 0)"
 D_OUT="$(tr -d ' \n' < "$WORK/d_out" 2>/dev/null || true)"
 [ "$C_RC" = "0" ] || { echo "the holding session failed (rc=$C_RC)" >&2; cat "$WORK/c_out" >&2; exit 1; }
 [ "$D_RC" = "0" ] || { echo "the recompute failed (rc=$D_RC)" >&2; cat "$WORK/d_out" >&2; exit 1; }
+D_MS="${D_MS:-0}"
 if [ "$D_MS" -lt "$MIN_MS" ]; then
   echo "verify-ix-rewards-sql-behavior-01: the recompute returned in ${D_MS}ms without waiting for the wallet lock" >&2
   exit 1

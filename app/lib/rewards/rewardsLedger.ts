@@ -12,7 +12,10 @@
  */
 import "server-only";
 
+import { randomUUID } from "node:crypto";
+
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { readPostedEntry, type PostedLedgerRow } from "@/app/lib/rewards/rewardsLedgerRow";
 import {
   REVERSAL_POSITION_MOVED,
   reserveIdempotencyKey,
@@ -148,6 +151,30 @@ export function buildRewardsStorePort(): RewardsStorePort {
             .eq(column, value)
             .maybeSingle();
           if (raced) return { ok: true as const, wallet: toSnapshot(raced as unknown as WalletRow) };
+
+          // TWO UNIQUE INDEXES CAN REFUSE THIS INSERT, AND ONLY ONE OF THEM MEANS "RACED".
+          //
+          // The read above resolves the owner-index collision. A collision on
+          // `leonix_rewards_wallets_bound_user_idx` is a different thing: some OTHER wallet still
+          // names this user as its bound identity — a business binding whose release has not
+          // landed yet, or one this process could not write. Returning the raw duplicate-key
+          // string there is what left customers unable to earn, spend or be corrected at all.
+          //
+          // The wallet is created WITHOUT the binding instead. It is reachable by
+          // `owner_user_id`, which is how `resolveWalletOwnerForUser` reaches it once the stale
+          // binding is gone, and the binding is re-pinned by the `existing` branch above on the
+          // next resolution after the release lands. A wallet with no binding is a wallet that
+          // works; a wallet that cannot be created is a customer who silently stops earning.
+          if (bindUserId) {
+            const { data: unbound, error: unboundError } = await db
+              .from("leonix_rewards_wallets")
+              .insert({ [column]: value })
+              .select(WALLET_COLUMNS)
+              .single();
+            if (!unboundError && unbound) {
+              return { ok: true as const, wallet: toSnapshot(unbound as unknown as WalletRow) };
+            }
+          }
         }
         return { ok: false as const, error: insertError.message.slice(0, 300) };
       }
@@ -169,6 +196,20 @@ export function buildRewardsStorePort(): RewardsStorePort {
         .eq("idempotency_key", input.idempotencyKey)
         .maybeSingle();
 
+      // A NONCE IS THE ONLY EXACT DEDUPE SIGNAL AVAILABLE TO A CALLER.
+      //
+      // The pre-read above loses the race it exists to detect: `leonix_rewards_post_entry`
+      // short-circuits on `idempotency_key` BEFORE it takes the wallet lock, so a caller whose
+      // competitor committed between the read and the call is handed the competitor's row and
+      // would report its own empty pre-read. Two concurrent deliveries of one won dispute each
+      // claimed to have restored 900 while the ledger held a single 900-cent row, and
+      // `/api/admin/rewards` would have answered `movedCents: 900` for a call that moved nothing.
+      // No money moved twice — the audit log simply lied about which call moved it.
+      //
+      // Every post now carries a nonce of its own. The function returns the row that EXISTS, so a
+      // returned nonce that is not this call's is proof that this call created nothing. No schema
+      // change, no second round trip, and exact rather than best-effort.
+      const postNonce = randomUUID();
       const { data, error } = await db.rpc("leonix_rewards_post_entry", {
         p_wallet_id: input.walletId,
         p_entry_type: input.entryType,
@@ -181,7 +222,7 @@ export function buildRewardsStorePort(): RewardsStorePort {
         p_reason: input.reason ?? null,
         p_actor_auth_user_id: input.actorAuthUserId ?? null,
         p_actor_roster_id: input.actorRosterId ?? null,
-        p_meta: input.meta ?? {},
+        p_meta: { ...(input.meta ?? {}), post_nonce: postNonce },
         // The compare-and-swap token. Null for every movement whose amount does not depend on a
         // payment's reversal history, which is all of them except a reversal and a restoration.
         p_expected_position_rows: input.expectedPositionRows ?? null,
@@ -207,20 +248,19 @@ export function buildRewardsStorePort(): RewardsStorePort {
         return { ok: false as const, error: refused ? "negative_balance_refused" : error.message.slice(0, 300) };
       }
 
-      const row = (Array.isArray(data) ? data[0] : data) as { id?: string } | null;
-      if (!row?.id) return { ok: false as const, error: "post_entry_returned_no_row" };
-
-      return {
-        ok: true as const,
-        entry: {
-          id: String(row.id),
+      // REPORT THE ROW THAT EXISTS, NEVER THE ROW THAT WAS ASKED FOR. The rules, and the reasons
+      // for them, live in `readPostedEntry` so the verifier can call them with crafted rows.
+      return readPostedEntry(
+        {
           walletId: input.walletId,
           entryType: input.entryType,
           amountCents: Math.floor(input.amountCents),
           idempotencyKey: input.idempotencyKey,
-          deduplicated: Boolean(prior?.id),
+          postNonce,
+          priorEntryId: prior?.id ? String(prior.id) : null,
         },
-      };
+        (Array.isArray(data) ? data[0] : data) as PostedLedgerRow,
+      );
     },
 
     async createRedemption(input) {
@@ -585,6 +625,43 @@ export async function resolveWalletOwnerForPayment(input: {
  * FAILS OPEN. A table we cannot read is not evidence of anything, and re-routing someone's money
  * on a transient error would be its own defect.
  */
+/**
+ * The binding is over, so LET GO OF IT.
+ *
+ * `leonix_rewards_wallets_bound_user_idx` is a GLOBAL partial unique index: one wallet per bound
+ * user, across every wallet in the system. Deciding that a business binding is revoked therefore
+ * is not enough on its own — while `bound_user_id` still names the customer on the business
+ * wallet, the personal wallet they now resolve to cannot be created:
+ *
+ *     insert leonix_rewards_wallets (owner_user_id, bound_user_id) ->
+ *       duplicate key value violates unique constraint "leonix_rewards_wallets_bound_user_idx"
+ *
+ * and the `23505` recovery below re-reads by `owner_user_id`, which finds nothing, because the
+ * collision was on the BINDING index rather than the owner index. Every rewards path for that
+ * customer then failed, permanently and silently: the earn is best-effort, so their purchases
+ * succeeded and the 9% was never granted, on that payment and on every future one; checkout could
+ * not resolve a wallet; and a staff correction by user id returned the raw duplicate-key string.
+ * The population it hit is exactly the one the revocation rule was written for — a primary owner
+ * whose `business_memberships` row leaves `active`.
+ *
+ * Releasing is a COMPARE-AND-SET on both the wallet and the user, so two concurrent resolutions
+ * cannot release someone else's binding, and a re-run after the row already moved is a no-op. It
+ * moves no money: the business wallet keeps its balance under `business_id`, which is how every
+ * other path reaches it. A failure here is not escalated — the caller is a read path, and the
+ * customer is no worse off than before the attempt.
+ */
+async function releaseRevokedBusinessBinding(businessId: string, userId: string): Promise<void> {
+  try {
+    await getAdminSupabase()
+      .from("leonix_rewards_wallets")
+      .update({ bound_user_id: null, updated_at: new Date().toISOString() })
+      .eq("business_id", businessId)
+      .eq("bound_user_id", userId);
+  } catch {
+    /* A read path never fails because a repair could not be written. */
+  }
+}
+
 async function businessBindingRevoked(businessId: string, userId: string): Promise<boolean> {
   try {
     const { data, error } = await getAdminSupabase()
@@ -614,7 +691,10 @@ export async function findBoundWalletOwner(ownerUserId: string | null): Promise<
   const row = data as { business_id?: string | null; owner_user_id?: string | null } | null;
   if (row?.business_id) {
     const businessId = String(row.business_id);
-    if (await businessBindingRevoked(businessId, ownerUserId)) return null;
+    if (await businessBindingRevoked(businessId, ownerUserId)) {
+      await releaseRevokedBusinessBinding(businessId, ownerUserId);
+      return null;
+    }
     return { kind: "business", businessId };
   }
   if (row?.owner_user_id) return { kind: "user", ownerUserId: String(row.owner_user_id) };
@@ -651,6 +731,10 @@ export async function resolveWalletOwnerForUser(ownerUserId: string | null): Pro
     if (!(await businessBindingRevoked(businessId, ownerUserId))) {
       return { kind: "business", businessId };
     }
+    // Revoked. Release the binding before falling through, or the personal wallet this customer
+    // now resolves to collides with it on the global `bound_user_id` index and they stop earning
+    // for ever. See `releaseRevokedBusinessBinding`.
+    await releaseRevokedBusinessBinding(businessId, ownerUserId);
   } else if (boundRow?.owner_user_id) {
     return { kind: "user", ownerUserId: String(boundRow.owner_user_id) };
   }

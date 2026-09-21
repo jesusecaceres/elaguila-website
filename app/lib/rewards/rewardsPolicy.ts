@@ -406,9 +406,23 @@ export function recoveryBalanceCopy(
 export function redemptionRulesCopy(lang: "es" | "en"): string {
   const min = formatCreditsCents(REDEMPTION_MINIMUM_CENTS);
   const pct = REDEMPTION_MAX_FRACTION_BASIS_POINTS / 100;
+  // WHERE, NOT JUST HOW MUCH — AND ONLY WHERE IT IS TRUE TODAY.
+  //
+  // This copy promised the customer they could apply credits to "an eligible purchase", and the
+  // wallet panel shows it to everyone who has a balance. There is no such purchase online: the
+  // only surface that passes `creditsEligible` to the checkout is the servicios preview, and both
+  // of its packages are `monthly_subscription`, which the server refuses by name. So the panel
+  // never mounts anywhere, every online checkout refuses credits, and the one path that does spend
+  // them is the staff counter. Telling a customer they can spend money they cannot spend is the
+  // same defect class as a phantom discount — it just fails later, at the counter, in person.
+  //
+  // The amount rules are unchanged and still true: they bind the counter redemption exactly as
+  // they would have bound an online one. Only the promise about WHERE has been corrected. See the
+  // certification document's owner-decision section: enabling online redemption needs a per-
+  // checkout `duration: "once"` coupon on the payment rail, which is unbuilt.
   return lang === "en"
-    ? `Apply at least ${min} in credits, and up to ${pct}% of an eligible purchase. Credits are held while you pay and are only spent once the payment succeeds. Your credits do not expire.`
-    : `Aplica al menos ${min} en créditos, y hasta el ${pct}% de una compra elegible. Los créditos se reservan mientras pagas y solo se usan cuando el pago se completa. Tus créditos no vencen.`;
+    ? `Apply at least ${min} in credits, and up to ${pct}% of an eligible purchase. Leonix staff apply your credits to a payment in the office — online checkout does not accept credits yet. Credits are held while you pay and are only spent once the payment succeeds. Your credits do not expire.`
+    : `Aplica al menos ${min} en créditos, y hasta el ${pct}% de una compra elegible. El personal de Leonix aplica tus créditos a un pago en la oficina — la compra en línea aún no acepta créditos. Los créditos se reservan mientras pagas y solo se usan cuando el pago se completa. Tus créditos no vencen.`;
 }
 
 // ---------------------------------------------------------------------------
@@ -497,4 +511,90 @@ export function isPaymentPromotableFromFacts(facts: {
     return sum;
   }, 0);
   return outstandingDisputeCents <= 0;
+}
+
+// ---------------------------------------------------------------------------
+// WHAT A QUEUED REFUND ROW'S AMOUNT MEANS
+// ---------------------------------------------------------------------------
+
+/**
+ * Is a queue row's stored amount a CUMULATIVE rail position rather than one event's own amount?
+ *
+ * THE ROW'S `external_ref` IS THE ANSWER, AND IT IS THE ONLY ANSWER. A row that names a refund or
+ * dispute holds THAT event's amount; a row that names none is the truncated-payload case, where
+ * the rail gave `charge.amount_refunded` — a running total — and no refund object to attribute it
+ * to. The two are passed to the reversal resolver through different parameters, so confusing them
+ * does not fail: it moves the wrong amount of real money.
+ *
+ * Pure, exported and tested directly, because the consequence is not local to the call site.
+ */
+export function queuedRefundAmountIsCumulative(row: { externalRef: string | null }): boolean {
+  return !row.externalRef;
+}
+
+/**
+ * What a RE-FILE of a queue row must carry.
+ *
+ * A staff resolution that fails re-files the row so the obligation is not lost. That re-file used
+ * to attach the staff-supplied event id to a row that had none (`row.externalRef ?? suppliedId`),
+ * which changed the meaning of a number it did not change: a cumulative amount became a per-event
+ * one, and the next resolution added it to the prior basis instead of measuring against it.
+ *
+ * Measured, on a $100.00 payment that earned 900 with a first $25.00 refund already reversed: a
+ * second $25.00 refund filed as cumulative 5000 and then re-filed with an external ref reversed
+ * **675 instead of 450** — 225 credits clawed back that the customer still owned, and on a spent
+ * balance the excess lands as `recovery_cents` they never owed, which also freezes redemption.
+ *
+ * So the row's own ref is carried through unchanged, and the supplied id becomes EVIDENCE in the
+ * reason rather than semantics in the key. The invariant this function exists to hold is
+ * `queuedRefundAmountIsCumulative(row) === queuedRefundAmountIsCumulative(refiled)`.
+ */
+export function refiledRefundResolution(
+  row: { externalRef: string | null; cumulativeRefundedCents: number },
+  suppliedExternalId: string | null,
+): { externalRef: string | null; cumulativeRefundedCents: number; evidenceSuffix: string } {
+  return {
+    externalRef: row.externalRef,
+    cumulativeRefundedCents: row.cumulativeRefundedCents,
+    evidenceSuffix: suppliedExternalId ? `[${suppliedExternalId}]` : "",
+  };
+}
+
+/**
+ * WHICH IDEMPOTENCY ANCHOR A STAFF RESOLUTION IS ALLOWED TO USE.
+ *
+ * `reverse:<kind>:<id>` and `restore:<id>` are globally unique keys that decide whether a future
+ * webhook delivery moves money or silently deduplicates. Letting a human TYPE that id put the key
+ * under their fingers: one wrong character writes a reversal on payment A under customer B's
+ * *future* refund id, and when B's `charge.refunded` arrives the posting function finds the key,
+ * deduplicates, and B's genuine clawback never happens while the ledger claims it did. Checking
+ * the typed id against ids already on the ledger cannot catch that, because the defining property
+ * of the attack is that the key is still FREE when it is typed.
+ *
+ * So the anchor is taken from the ROW, never from the request:
+ *
+ * - A row that names an event (`external_ref`) is resolved under THAT id, and a typed id that
+ *   disagrees is a typo — refused by name rather than written. The genuine webhook delivery uses
+ *   the same key, so the two still deduplicate against each other exactly as they should.
+ * - A row that names none is the truncated-payload case: there is no event to key on, the amount
+ *   is a cumulative rail position, and the row itself is the only stable identity available. The
+ *   typed id is recorded as evidence in the note and reason, never as semantics.
+ * - A restoration must name its dispute. Restoring a dispute nobody can name is refused, because
+ *   the per-dispute bound that stops a won dispute giving back another dispute's clawback is
+ *   computed from exactly that id.
+ */
+export function resolutionIdempotencyAnchor(
+  row: { id: string; externalRef: string | null },
+  suppliedExternalId: string,
+  opts: { wantsRestore: boolean },
+): { ok: true; anchor: string } | { ok: false; error: string } {
+  const supplied = suppliedExternalId.trim();
+  if (row.externalRef) {
+    if (supplied && supplied !== row.externalRef) {
+      return { ok: false, error: "supplied_id_does_not_match_row" };
+    }
+    return { ok: true, anchor: row.externalRef };
+  }
+  if (opts.wantsRestore) return { ok: false, error: "restoration_row_has_no_dispute_id" };
+  return { ok: true, anchor: `queue:${row.id}` };
 }
