@@ -4,7 +4,7 @@ Branch: `claude/leonix-ix-rewards-global-2026-09`
 Branched from QUICK_FREEZE_SHA: `4cb34be6d519b541606eecf9ff4afa3d0824814b`
 
 Nothing in this document describes intent. Every invariant listed here is either enforced by a
-database constraint or proven by `scripts/verify-ix-rewards-behavior-01.ts` (124 behavioral checks,
+database constraint or proven by `scripts/verify-ix-rewards-behavior-01.ts` (131 behavioral checks,
 no database, no network, no Stripe).
 
 ---
@@ -53,15 +53,39 @@ earn:payment:<paymentRecordId>
 promote:payment:<paymentRecordId>
 reverse:refund:<stripeRefundId>       reverse:chargeback:<stripeDisputeId>
 reserve:<ref>   commit:<ref>   release:<ref>
+recommit:<ref>
 adjust:<ref>
+csv:<reference>
+```
+
+`<ref>` is the payment record's id. `recommit:<ref>` exists because a hold can expire before the
+payment lands: the credits are taken AGAIN, as ONE `redeem_recommit` entry moving available →
+spent. It was briefly a reserve+commit pair with a compensating unwind; that was wrong, because
+every key is permanent, so after an unwind a redelivery found the reserve key spent and the commit
+key fresh and posted anyway — spending a neighbouring reservation's credits. One movement, one
+key.
+
+```
 ```
 
 Each row also stores the three bucket balances **after** it, so history can be audited without
 replaying it.
 
 ### `leonix_rewards_redemptions`
-The reserve → commit / release lifecycle. A partial unique index allows at most one `reserved` row
-per checkout session, so two browser tabs cannot double-reserve.
+The reserve → commit / release lifecycle.
+
+**The reservation is the unit, not the bucket.** `reserved_cents` is one fungible number shared by
+every live hold on a wallet, so `leonix_rewards_post_entry` locks the redemption ROW for
+`redeem_commit`, `redeem_release` and `redeem_recommit`, refuses unless its status permits the
+movement, and advances that status in the same statement. The money movement and the state
+transition are one atomic act. Before that, a commit could consume a different reservation's
+credits, and a commit racing the expiry sweep could see both movements land before either learned
+it had lost.
+
+A partial unique index on `stripe_checkout_session_id` exists for a future caller that has a
+session id at reservation time. **It does not currently apply**: the hold is taken before the
+Stripe session exists, so that column is always NULL and the index never matches. What actually
+stops one purchase holding twice is `checkout_attempt_key` uniqueness on the payment record.
 
 ### `leonix_rewards_post_entry()`
 The only supported way to move credits. `SECURITY DEFINER`, and:
@@ -116,8 +140,9 @@ in-memory store that reproduces `UNIQUE(idempotency_key)` and the non-negative C
 |---|---|---|
 | `checkout.session.completed` → payment marked paid | `awardCreditsForSettledPayment` | `earn_pending` (card money can still be refunded) |
 | settlement window passes | `promoteSettledCredits` | `earn_promote`: pending → available |
-| `charge.refunded` | `reverseCreditsForRefundOrDispute`, fanned out over `charge.refunds` | `refund_reversal` per REFUND OBJECT id — never the charge id, which repeats on every delivery |
+| `charge.refunded` | `reverseCreditsForRefundOrDispute`, fanned out over `charge.refunds` | `refund_reversal` per REFUND OBJECT id — never the charge id, which repeats on every delivery. A payload carrying NO refund objects reverses **nothing** and audits a retryable skip: a second, cumulative-keyed scheme used to cover that case, and because basis contributions from both schemes are summed, the same refunded dollars were counted once under each and the customer was over-charged |
 | `charge.dispute.created` | same | `chargeback_reversal`, keyed on dispute id |
+| `invoice.paid` (a renewal) | `decideInvoiceRenewalEarn` -> `awardCreditsForSettledPayment` | `earn_pending` on the renewal's own payment record. The subscription's FIRST invoice earns nothing here — checkout already awarded it — and an ABSENT `billing_reason` fails CLOSED with an audited, retryable skip |
 | manual payment verified cleared | `awardCreditsForSettledPayment` | `earn_available` — cash is final on clearance, so it is spendable at once |
 
 **Idempotency has two layers.** The existing `leonix_stripe_webhook_events` claim already prevents
@@ -228,15 +253,23 @@ Each item is reachable from real application code and covered by the behavioural
    re-resolved at reversal time. A duplicate delivery is recorded and reports **zero movement**
    rather than the amount it would have moved on a first delivery.
 3. **Settlement promotion** — `runRewardsSettlementPromotionSweep` promotes card credits after 30
-   calendar days, only for payments not refunded, disputed, reversed or otherwise invalidated.
-   Idempotent per payment; the eligibility question fails **closed**.
+   calendar days. A payment that is **disputed**, failed, canceled or unreadable promotes nothing
+   and the eligibility question fails **closed**. A **partially refunded** payment promotes its
+   RESIDUAL — `earned − reversed` — because the refunded share has already been clawed back
+   proportionally and what remains is credits for money the customer really paid. Refusing
+   outright stranded that remainder in `pending` forever, on every sweep, while the customer is
+   told in both languages that their credits do not expire. Idempotent per payment.
 4. **Checkout redemption** — `rewardsCheckoutRedemption.ts` reserves against the live balance
    through the one `planRedemption` policy, threads the reduced amount through the SAME
    `finalAmountCents` seam the promo and verified-intro discounts use, commits only after
    `checkout.session.completed`, and releases on a stale attempt, a payment-record failure, a
-   synchronous Stripe failure and an expired session. The reference is the existing
-   `checkoutAttemptKey`, so a retry reuses the hold instead of stacking a second one, and a reused
-   reference reports `deduplicated` rather than a fresh discount.
+   synchronous Stripe failure and an expired session. The reference is the PAYMENT RECORD's id,
+   not the reusable `checkoutAttemptKey`: an attempt key is reused across retries and across a
+   later renewal, which would have re-served a spent hold as a fresh discount. A reused reference
+   reports `deduplicated` with the amount STILL HELD — zero for a committed, released or expired
+   hold. A hold that expired before the payment landed is RE-DEBITED at commit under its own
+   `recommit:*` keys, the redemption row is finalised as `committed`, and a failed re-commit is
+   unwound so credits are never stranded in `reserved`.
 5. **Reservation expiry** — `expires_at` is written on reserve (a live hold without one is refused
    by a CHECK), and `runRewardsReservationExpirySweep` releases anything past 30 minutes.
 6. **The scheduler seam** — `POST/GET /api/revenue-os/admin/rewards-sweep`, modelled on the
@@ -294,7 +327,18 @@ These are named because they are genuinely open, not because they were forgotten
    compensating entry type — the `manual_adjustment` CHECK requires a human actor and a webhook has
    none — which is a schema change this mission may not apply. **Not built, and not claimed.**
 
-7. **Reversal arithmetic assumes refund events are processed SERIALLY.** The cumulative position
+7. **A refund payload with no refund objects reverses nothing.** `charge.refunds.data` is
+   normally present, but Stripe may truncate or omit it. There is exactly one accounting scheme
+   now — the refund object's own id — so an unattributable payload is audited as a retryable skip
+   for an operator rather than reversed under a second, cumulative-keyed scheme. The old fallback
+   double-counted: 810 cents reversed where 540 was owed.
+
+8. **A reversal refused for insufficient balance records its BASIS but moves no money.** When the
+   customer has already spent the credits the wallet cannot go negative. A zero-amount reversal
+   entry is written so the cumulative position stays exact, and the shortfall is reported — but
+   Leonix is out those credits until a person posts a correction. There is no automatic recovery.
+
+9. **Reversal arithmetic assumes refund events are processed SERIALLY.** The cumulative position
    (`sumReversalBasisForPayment` + `sumReversedForPayment`) is read outside the wallet lock; only
    the final post takes `FOR UPDATE`. Two `charge.refunded` deliveries for one charge handled in
    parallel can each read the same prior total and under-reverse by a rounding cent. The
@@ -302,14 +346,25 @@ These are named because they are genuinely open, not because they were forgotten
    is a residual rather than a live defect — but it is an assumption, not a guarantee this module
    makes on its own.
 
-8. **`leonix_rewards_recompute_wallet()` replays by `created_at`, which is transaction START time,
+10. **`leonix_rewards_recompute_wallet()` replays by `created_at`, which is transaction START time,
    not the serialization point.** Two overlapping transactions can commit in the opposite order to
    their `created_at` values, in which case the replay reconstructs a different — possibly
    negative — intermediate state and refuses. That refusal is safe (it never writes a wrong
    balance) but it can be a false alarm on a genuinely consistent ledger. A monotonic sequence
    column assigned inside the lock would fix it, and is a schema change this mission may not apply.
 
-9. **No Vercel deployment, no live Stripe call, no remote Supabase mutation, no live data import**
+11. **Earn and redeem resolve a wallet through different functions.** `resolveWalletOwnerForPayment`
+   prefers a *verified* `business_external_links` row for that payment, while
+   `resolveWalletOwnerForUser` (used to quote and redeem) does not consult that table at all. So
+   staff linking a payment to a business sends that payment's 9% to the business wallet while the
+   customer spends from their user wallet. Wallets are never merged automatically (item 3), which
+   makes this visible rather than silent, but the split itself is not yet reconciled.
+
+12. **A WON dispute, a reversed refund and a failed refund all leave the clawback standing.** Item
+   6 covers the dispute; the same shape applies when `amount_refunded` returns to zero. Restoring
+   credits needs a compensating entry, and the ledger is append-only.
+
+13. **No Vercel deployment, no live Stripe call, no remote Supabase mutation, no live data import**
    occurred at any point. Every CSV fixture in the verifier is invented.
 
 ---

@@ -256,7 +256,11 @@ export async function promoteSettledCredits(input: {
  * must never promote: its credits stay pending until the reversal takes them, because promoting
  * first moves the clawback's target into `available` — money the customer may already have spent.
  */
-const NON_PROMOTABLE_PAYMENT_STATUSES = new Set(["refunded", "disputed", "failed", "canceled"]);
+// `refunded` is deliberately NOT here. `recordRefundOnPaymentRecord` sets that status for a
+// PARTIAL refund as well as a full one, so treating it as invalidation froze the un-refunded
+// remainder of the earn in `pending` permanently. A refund is handled by proportional reversal
+// plus residual promotion; only a payment that is contested, failed or canceled is invalid.
+const NON_PROMOTABLE_PAYMENT_STATUSES = new Set(["disputed", "failed", "canceled"]);
 
 /**
  * Is this payment still good, 30 days on?
@@ -282,17 +286,24 @@ async function isPaymentStillPromotable(paymentRecordId: string): Promise<boolea
     refunded_at: string | null;
     manual_state: string | null;
   };
-  if (row.refunded_at) return false;
   if (row.payment_status && NON_PROMOTABLE_PAYMENT_STATUSES.has(row.payment_status)) return false;
   if (row.manual_state === "reversed" || row.manual_state === "rejected") return false;
 
-  const { data: reversals } = await db
+  // A DISPUTE invalidates the payment outright: the money is contested, so nothing it earned
+  // becomes spendable. A REFUND does not, because refunds are proportional — the refunded share
+  // has already been clawed back and the remainder is credits for money the customer really paid.
+  //
+  // `refunded_at` used to disqualify on its own, and so did the existence of ANY reversal row.
+  // Both are set by a PARTIAL refund too, which is how the residual came to be stranded in
+  // `pending` forever while the customer was told their credits never expire. The sweep now
+  // promotes `earned - reversed` and this predicate answers only "is this payment still valid".
+  const { data: disputes } = await db
     .from("leonix_rewards_ledger")
     .select("id")
     .eq("payment_record_id", paymentRecordId)
-    .in("entry_type", ["refund_reversal", "chargeback_reversal"])
+    .eq("entry_type", "chargeback_reversal")
     .limit(1);
-  if ((reversals ?? []).length > 0) return false;
+  if ((disputes ?? []).length > 0) return false;
 
   return true;
 }

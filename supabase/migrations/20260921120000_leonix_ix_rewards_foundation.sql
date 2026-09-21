@@ -6,7 +6,7 @@
 -- docs/rewards/LEONIX_IX_REWARDS_ARCHITECTURE.md.
 --
 -- SECURITY AND CONCURRENCY POSTURE (repaired in place, still unapplied)
---   * Both SECURITY DEFINER functions pin `search_path = pg_catalog, public, pg_temp` and
+--   * Every SECURITY DEFINER function pins `search_path = pg_catalog, public, pg_temp` and
 --     schema-qualify every identifier, so a temporary object cannot shadow anything they call.
 --   * EXECUTE is revoked from PUBLIC/anon/authenticated and granted EXPLICITLY to service_role,
 --     rather than left to Postgres's default grant-to-PUBLIC.
@@ -138,6 +138,7 @@ CREATE TABLE IF NOT EXISTS public.leonix_rewards_ledger (
     'redeem_reserve',      -- available is held for an in-flight purchase
     'redeem_commit',       -- the held amount is actually spent
     'redeem_release',      -- the hold is returned after a failed/expired checkout
+    'redeem_recommit',     -- an EXPIRED hold re-debited in ONE movement: available -> spent
     'refund_reversal',     -- a refund claws back the credits that payment earned
     'chargeback_reversal', -- a dispute claws back the credits that payment earned
     'manual_adjustment',   -- authorized staff correction, signed, always with a reason
@@ -264,6 +265,80 @@ COMMENT ON TABLE public.leonix_rewards_redemptions IS
 -- one statement, so a balance can never drift from its history. Bucket deltas are derived HERE, in
 -- SQL, rather than supplied by the caller: a buggy or malicious caller therefore cannot invent a
 -- movement that the entry type does not mean.
+-- THE RESERVATION IS THE UNIT, NOT THE BUCKET.
+--
+-- `reserved_cents` is a single fungible number shared by every live hold on a wallet, so a commit
+-- or release that merely decremented it could consume a DIFFERENT reservation's credits. An
+-- adversarial review turned that into money from nothing: a commit posted against a hold that had
+-- already been released took its 2000 cents out of an unrelated checkout's 3000, that checkout's
+-- own commit was then refused forever, and its credits were stranded in `reserved` with no
+-- operation able to free them.
+--
+-- The same read-then-post shape also raced the expiry sweep: commit and release each read the
+-- redemption row, each posted, and only afterwards did a compare-and-set decide which had "won" —
+-- after both movements had already landed.
+--
+-- So this locks the redemption row inside the caller's transaction, refuses unless its status
+-- permits the movement, and ADVANCES that status in the same step. The money movement and the
+-- state transition are one atomic act; a second delivery finds a status that no longer permits it
+-- and is refused by name.
+CREATE OR REPLACE FUNCTION public.leonix_rewards_claim_redemption(
+  p_redemption_id uuid,
+  p_wallet_id uuid,
+  p_amount_cents integer,
+  p_entry_type text
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public, pg_temp
+AS $$
+DECLARE
+  v_redemption public.leonix_rewards_redemptions;
+BEGIN
+  IF p_redemption_id IS NULL THEN
+    RAISE EXCEPTION 'leonix_rewards_claim_redemption: % requires a redemption id', p_entry_type
+      USING ERRCODE = 'check_violation';
+  END IF;
+  SELECT * INTO v_redemption FROM public.leonix_rewards_redemptions
+    WHERE id = p_redemption_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'leonix_rewards_claim_redemption: redemption % not found', p_redemption_id
+      USING ERRCODE = 'no_data_found';
+  END IF;
+  IF v_redemption.wallet_id <> p_wallet_id THEN
+    RAISE EXCEPTION 'leonix_rewards_claim_redemption: redemption % belongs to another wallet', p_redemption_id
+      USING ERRCODE = 'check_violation';
+  END IF;
+  IF v_redemption.amount_cents <> p_amount_cents THEN
+    RAISE EXCEPTION 'leonix_rewards_claim_redemption: % of % does not match reservation % of %',
+      p_entry_type, p_amount_cents, p_redemption_id, v_redemption.amount_cents
+      USING ERRCODE = 'check_violation';
+  END IF;
+
+  IF p_entry_type = 'redeem_recommit' THEN
+    IF v_redemption.status NOT IN ('released', 'expired') THEN
+      RAISE EXCEPTION 'leonix_rewards_claim_redemption: redemption % is % and cannot be re-debited',
+        p_redemption_id, v_redemption.status
+        USING ERRCODE = 'check_violation';
+    END IF;
+    UPDATE public.leonix_rewards_redemptions
+      SET status = 'committed', updated_at = now() WHERE id = p_redemption_id;
+    RETURN;
+  END IF;
+
+  IF v_redemption.status <> 'reserved' THEN
+    RAISE EXCEPTION 'leonix_rewards_claim_redemption: redemption % is %, not reserved',
+      p_redemption_id, v_redemption.status
+      USING ERRCODE = 'check_violation';
+  END IF;
+  UPDATE public.leonix_rewards_redemptions
+    SET status = CASE WHEN p_entry_type = 'redeem_release' THEN 'released' ELSE 'committed' END,
+        updated_at = now()
+    WHERE id = p_redemption_id;
+END;
+$$;
+
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.leonix_rewards_post_entry(
   p_wallet_id uuid,
@@ -342,11 +417,34 @@ BEGIN
       v_available_delta := -p_amount_cents;
       v_reserved_delta := p_amount_cents;
     WHEN 'redeem_commit' THEN
+      PERFORM public.leonix_rewards_claim_redemption(p_redemption_id, p_wallet_id, p_amount_cents, 'redeem_commit');
+      IF v_wallet.reserved_cents < p_amount_cents THEN
+        RAISE EXCEPTION 'leonix_rewards_post_entry: commit of % exceeds reserved % on wallet %',
+          p_amount_cents, v_wallet.reserved_cents, p_wallet_id
+          USING ERRCODE = 'check_violation';
+      END IF;
       v_reserved_delta := -p_amount_cents;
       v_redeemed_delta := p_amount_cents;
     WHEN 'redeem_release' THEN
+      PERFORM public.leonix_rewards_claim_redemption(p_redemption_id, p_wallet_id, p_amount_cents, 'redeem_release');
+      IF v_wallet.reserved_cents < p_amount_cents THEN
+        RAISE EXCEPTION 'leonix_rewards_post_entry: release of % exceeds reserved % on wallet %',
+          p_amount_cents, v_wallet.reserved_cents, p_wallet_id
+          USING ERRCODE = 'check_violation';
+      END IF;
       v_reserved_delta := -p_amount_cents;
       v_available_delta := p_amount_cents;
+    WHEN 'redeem_recommit' THEN
+      -- An EXPIRED hold, re-debited in ONE movement because the payment landed anyway. The
+      -- credits are back in `available`, so that is where they come from.
+      PERFORM public.leonix_rewards_claim_redemption(p_redemption_id, p_wallet_id, p_amount_cents, 'redeem_recommit');
+      IF v_wallet.available_cents < p_amount_cents THEN
+        RAISE EXCEPTION 'leonix_rewards_post_entry: re-debit of % exceeds available % on wallet %',
+          p_amount_cents, v_wallet.available_cents, p_wallet_id
+          USING ERRCODE = 'check_violation';
+      END IF;
+      v_available_delta := -p_amount_cents;
+      v_redeemed_delta := p_amount_cents;
     WHEN 'refund_reversal', 'chargeback_reversal' THEN
       -- PENDING FIRST: take the clawback from credits that were never spendable, then from
       -- available. Reversing against pending first is what keeps a refund from consuming a
@@ -522,6 +620,11 @@ BEGIN
       WHEN 'redeem_release' THEN
         v_reserved := v_reserved - v_entry.amount_cents;
         v_available := v_available + v_entry.amount_cents;
+      WHEN 'redeem_recommit' THEN
+        -- One movement, available -> spent. The replay has to mirror the posting rule exactly or
+        -- reconciliation would report a false drift on every re-debited hold.
+        v_available := v_available - v_entry.amount_cents;
+        v_redeemed := v_redeemed + v_entry.amount_cents;
       WHEN 'refund_reversal', 'chargeback_reversal' THEN
         -- Pending first, then available — the posting rule, replayed against the balances as they
         -- stood at this point in the history.
@@ -641,6 +744,11 @@ REVOKE ALL ON FUNCTION public.leonix_rewards_post_entry(
   uuid, text, integer, text, text, text, uuid, uuid, text, uuid, uuid, jsonb
 ) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.leonix_rewards_recompute_wallet(uuid) FROM PUBLIC, anon, authenticated;
+-- The reservation claim is a money-adjacent state transition (it commits or releases a hold), so
+-- it is locked down exactly like the posting function. It is only ever called from inside
+-- `leonix_rewards_post_entry`, which runs as its owner, so no role needs EXECUTE on it directly.
+REVOKE ALL ON FUNCTION public.leonix_rewards_claim_redemption(uuid, uuid, integer, text)
+  FROM PUBLIC, anon, authenticated;
 
 GRANT EXECUTE ON FUNCTION public.leonix_rewards_post_entry(
   uuid, text, integer, text, text, text, uuid, uuid, text, uuid, uuid, jsonb
