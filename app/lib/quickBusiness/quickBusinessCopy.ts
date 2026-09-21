@@ -16,6 +16,24 @@ export const QUICK_BUSINESS_COPY = {
   chooserFullLink: { es: "¿Prefieres la aplicación completa?", en: "Prefer the full application?" },
   chooserFullLinkCta: { es: "Ver todas las opciones de publicación", en: "See all publishing options" },
   manageTitle: { es: "¿Ya publicaste tu negocio?", en: "Already published your business?" },
+  // Simple control doorway (mi-negocio). Every verb below is a link into an EXISTING canonical
+  // owner surface — this doorway never mutates a listing.
+  myBusinessTitle: { es: "Mi negocio", en: "My business" },
+  myBusinessBody: {
+    es: "Todo lo de tu negocio en un solo lugar. Elige qué quieres hacer.",
+    en: "Everything for your business in one place. Pick what you want to do.",
+  },
+  myBusinessPick: { es: "¿Cuál de tus negocios?", en: "Which of your businesses?" },
+  myBusinessView: { es: "Ver mi negocio", en: "View my business" },
+  myBusinessEdit: { es: "Editar mi información", en: "Edit my information" },
+  myBusinessPause: { es: "Pausar o reactivar", en: "Pause or reactivate" },
+  myBusinessEnd: { es: "Terminar o cancelar", en: "End or cancel" },
+  myBusinessBilling: { es: "Mi pago mensual", en: "My monthly payment" },
+  myBusinessHelp: { es: "Necesito ayuda", en: "I need help" },
+  myBusinessHelpBody: {
+    es: "Escríbenos y una persona real de Leonix te ayuda con tu negocio.",
+    en: "Write to us and a real person at Leonix will help you with your business.",
+  },
   manageServicios: { es: "Administrar mi servicio", en: "Manage my service" },
   manageRestaurantes: { es: "Administrar mi restaurante", en: "Manage my restaurant" },
   manageOther: { es: "Mis anuncios (autos y bienes raíces)", en: "My ads (autos and real estate)" },

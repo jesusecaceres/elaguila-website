@@ -2,15 +2,20 @@
  * Quick Business → AUTOS DEALER. Dealer identity + the customer's FIRST REAL vehicle → the EXISTING
  * `AutosNegociosDraftV1` (namespaced session + IndexedDB store used by the Full dealer application) → the EXISTING
  * `/clasificados/autos/negocios/preview`, which owns the pending row (`POST /api/clasificados/autos/listings`,
- * lane `negocios`), the `autos_dealer_monthly` checkout, photo upload and the activation RPC. Zero canonical code
- * is touched. Nothing is fabricated: year / make / model / price and the vehicle photos are the customer's own
- * answers; mileage, VIN, trim and condition stay undefined unless typed.
+ * lane `negocios`), the dealer checkout, photo upload and the activation RPC. Nothing is fabricated: year / make /
+ * model / price and the vehicle photos are the customer's own answers; mileage, VIN, trim and condition stay
+ * undefined unless typed.
+ *
+ * The handoff carries the Quick plan marker, so that shared preview charges the Quick package
+ * (`autos_dealer_quick_monthly`, SIMPLE, ONE active vehicle) rather than the Full dealer package
+ * with its ten-vehicle allowance.
  */
 
 import { createEmptyListing } from "@/app/clasificados/autos/negocios/lib/autoDealerDraftDefaults";
 import { resolveAutosNegociosDraftNamespace } from "@/app/clasificados/autos/negocios/lib/autosNegociosDraftNamespace";
 import { saveAutosNegociosDraftResolved } from "@/app/clasificados/autos/negocios/lib/autosNegociosDraftStorage";
 import { withLangParam } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
+import { withQuickPlanParam } from "@/app/lib/listingPlans/businessQuickPlanSignal";
 import type { AutoDealerListing, MediaImageEntry } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { rememberAutosDraftNamespaceHint } from "@/app/clasificados/autos/shared/lib/autosDraftPreviewNamespaceHint";
 import { getAutosPreviewCompletenessIssues, type AutosPreviewCompletenessKey } from "@/app/clasificados/autos/shared/lib/autosPreviewCompleteness";
@@ -23,7 +28,7 @@ import type { QuickIntakeStep, QuickLang } from "@/app/lib/quickClassifieds/quic
 import { quickStr, quickWholeDollars } from "@/app/lib/quickClassifieds/quickClassifiedValidation";
 import { buildVehicleTitle } from "@/app/publicar/autos/negocios/lib/autoDealerTitle";
 import { cityField, resolveCity } from "@/app/publicar/rapido/_adapters/quickAdapterShared";
-import { BUSINESS_CONTACT_AT_LEAST_ONE } from "./quickBusinessAdapterShared";
+import { BUSINESS_CONTACT_AT_LEAST_ONE, galleryMediaOnly } from "./quickBusinessAdapterShared";
 
 /** Existing preview route (registry `AUTOS_NEGOCIOS_ADAPTER` preview / `AutosNegociosApplication.tsx` previewHref). */
 const AUTOS_DEALER_PREVIEW_ROUTE = "/clasificados/autos/negocios/preview";
@@ -44,11 +49,14 @@ const STEPS: readonly QuickIntakeStep[] = [
       cityField("free", { es: "Ciudad del negocio", en: "Business city" }),
       { key: "zip", kind: "zip", label: { es: "Código postal del negocio", en: "Business ZIP code" }, required: true, inputMode: "numeric", autoComplete: "postal-code" },
       { key: "phone", kind: "phone", label: { es: "Teléfono del negocio", en: "Business phone" }, placeholder: { es: "(408) 555-0123", en: "(408) 555-0123" }, autoComplete: "tel", inputMode: "tel" },
+      // Bible §10.1: SMS explicit — maps to dealerSmsPhone, distinct from phone/WhatsApp.
+      { key: "sms", kind: "phone", label: { es: "SMS / mensajes de texto", en: "SMS / text messages" }, hint: { es: "Número para mensajes de texto (si es distinto al teléfono).", en: "Number for text messages (if different from your phone)." }, inputMode: "tel" },
       { key: "whatsapp", kind: "phone", label: { es: "WhatsApp", en: "WhatsApp" }, hint: { es: "Si es el mismo número, escríbelo también aquí.", en: "If it is the same number, enter it here too." }, inputMode: "tel" },
       { key: "email", kind: "email", label: { es: "Correo electrónico", en: "Email" }, autoComplete: "email", inputMode: "email" },
       { key: "website", kind: "text", label: { es: "Sitio web (opcional)", en: "Website (optional)" }, placeholder: { es: "https://…", en: "https://…" }, autoComplete: "url", maxLength: 200 },
     ],
-    atLeastOne: { keys: ["phone", "whatsapp", "email", "website"], message: BUSINESS_CONTACT_AT_LEAST_ONE },
+    // Bible §10.1: email and website cannot satisfy the direct-contact minimum; SMS is independent of phone.
+    atLeastOne: { keys: ["phone", "sms", "whatsapp"], message: BUSINESS_CONTACT_AT_LEAST_ONE },
   },
   {
     id: "vehicle",
@@ -101,7 +109,19 @@ export const autosDealerQuickBusinessAdapter: QuickBusinessCategoryAdapter = {
   async buildAndWriteCanonicalDraft({ values, media, ctx }) {
     // Existing vehicle media shape (`MediaImageEntry`, `sourceType: "file"`): the preview's existing
     // `resolveAutosDraftPhotosForPublish` uploads these exactly as it does for the Full application.
-    const mediaImages: MediaImageEntry[] = media.map((m, i) => ({ id: m.id, url: m.dataUrl, sourceType: "file", isPrimary: i === 0, sortOrder: i }));
+    //
+    // Gate QB-MEDIA-03 — the dealer's LOGO is an identity asset and never enters the vehicle
+    // gallery, and every image that does enter it carries the customer's own declared role. The
+    // dealer publish seam re-reads those roles server-side, so "a logo is not a vehicle photo" is
+    // enforced on the payload that actually arrives rather than trusted from the browser.
+    const mediaImages: MediaImageEntry[] = galleryMediaOnly(media).map((m, i) => ({
+      id: m.id,
+      url: m.dataUrl,
+      sourceType: "file",
+      isPrimary: i === 0,
+      sortOrder: i,
+      role: m.role,
+    }));
     const year = numberOrUndefined(quickStr(values, "year"));
     const make = quickStr(values, "make") || undefined;
     const model = quickStr(values, "model") || undefined;
@@ -131,6 +151,8 @@ export const autosDealerQuickBusinessAdapter: QuickBusinessCategoryAdapter = {
       country: AUTOS_DEFAULT_COUNTRY,
       dealerName: quickStr(values, "dealerName") || undefined,
       dealerPhoneOffice: quickStr(values, "phone") || undefined,
+      // Bible §10.1: explicit SMS — maps to dealerSmsPhone (distinct from phone/WhatsApp per autoDealerListing.ts §241).
+      dealerSmsPhone: quickStr(values, "sms") || undefined,
       dealerWhatsapp: quickStr(values, "whatsapp") || undefined,
       dealerEmail: quickStr(values, "email") || undefined,
       dealerWebsite: quickStr(values, "website") || undefined,
@@ -153,6 +175,12 @@ export const autosDealerQuickBusinessAdapter: QuickBusinessCategoryAdapter = {
       // First vehicle only — no bundled children; the included allowance and the inventory pack are untouched.
       additionalInventoryVehicles: [],
     });
-    return { ok: true, handoff: { kind: "preview", href: withLangParam(AUTOS_DEALER_PREVIEW_ROUTE, ctx.routeLang as SupportedLang) } };
+    return {
+      ok: true,
+      handoff: {
+        kind: "preview",
+        href: withQuickPlanParam(withLangParam(AUTOS_DEALER_PREVIEW_ROUTE, ctx.routeLang as SupportedLang)),
+      },
+    };
   },
 };

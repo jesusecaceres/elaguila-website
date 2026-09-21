@@ -327,7 +327,9 @@ export function QuickApplicationsLaunchpad() {
                     {direct && def.directReason ? <p className="mt-1 text-[11px] text-[#7A1E2C]">{def.directReason.reason.es} / {def.directReason.reason.en}</p> : null}
                     {def.staff.publishForClientSupported ? (
                       <p className="mt-1 text-[11px] text-[#2F6B3A]">{def.staff.note.es} / {def.staff.note.en}</p>
-                    ) : null}
+                    ) : (
+                      <p className="mt-1 text-[11px] text-[#7A5C1E]">{def.staff.note.es} / {def.staff.note.en}</p>
+                    )}
                   </div>
                 </div>
                 <div className="mt-3 grid grid-cols-1 gap-2">

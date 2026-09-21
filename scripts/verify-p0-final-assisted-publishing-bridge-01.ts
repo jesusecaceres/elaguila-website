@@ -48,13 +48,33 @@ const untrackedFiles = execSync("git status --short", { cwd: ROOT, encoding: "ut
   .map((l) => l.replace(/^\?\?\s+/, "").replace(/\\/g, "/"));
 const allTouched = [...changedFiles, ...untrackedFiles];
 
-// 1. Zero new database architecture --------------------------------------------------------------
-assert.ok(!allTouched.some((f) => f.startsWith("supabase/migrations/")), "no new Supabase migration — custody composed entirely from business_listing_links + the existing draft status value");
+// 1. Zero new CUSTODY database architecture -------------------------------------------------------
+// The claim this protects is that assisted custody is composed from the EXISTING
+// business_listing_links junction plus the existing draft status value — never from a second,
+// parallel custody store. Gate QB-LIFECYCLE-02 authors one additive migration that widens two
+// lifecycle CHECK constraints (no new table, no custody concept, and deliberately NOT applied), so
+// the guard is narrowed to the actual claim instead of a blanket "no migration may ever exist".
+const CUSTODY_TABLE_RE = /create\s+table[\s\S]{0,200}?(business_listing_links|custody|assisted_publish|prepared_listing)/i;
+for (const f of allTouched.filter((x) => x.startsWith("supabase/migrations/"))) {
+  const sql = read(f);
+  assert.ok(
+    !CUSTODY_TABLE_RE.test(sql),
+    `${f} must not create a parallel custody store — custody stays composed from business_listing_links + the existing draft status value`,
+  );
+}
 
 // 2. Assisted token carries a real authUserId, independent of rosterId ---------------------------
-const tokenSrc = read("app/lib/auth/assistedPublishingSession.ts");
+// Gate QB-STAFF-03 moved the token's mint/verify crypto into the pure, importable
+// assistedPublishingToken.ts so it can be attacked by a real test rather than matched as a string.
+// Same claims, same strictness, correct file. Behavioural proof (forgery, tampering of authUserId,
+// expiry extension) lives in scripts/verify-quick-assisted-operations-01.ts.
+const tokenSrc = read("app/lib/auth/assistedPublishingToken.ts");
 assert.ok(/authUserId:\s*string/.test(tokenSrc), "AssistedPublishingContext declares authUserId: string");
 assert.ok(/input\.authUserId/.test(tokenSrc) && /parsed\.authUserId/.test(tokenSrc), "authUserId is both minted from input and validated on read");
+assert.ok(
+  read("app/lib/auth/assistedPublishingSession.ts").includes('import "server-only";'),
+  "the secret-owning wrapper remains server-only",
+);
 assert.ok(/!parsed\.authUserId/.test(tokenSrc), "readAssistedPublishingContext fails closed when authUserId is missing, same as businessId/category/rosterId");
 
 const contextRouteSrc = read("app/api/admin/businesses/[businessId]/application-context/route.ts");
@@ -69,7 +89,11 @@ assert.ok(custodySrc.includes('.eq("manual_state", "cleared")'), "Publish for Cl
 
 // 4. Publish route — assisted branch isolated from the customer owner-mutation policy -------------
 const publishSrc = read("app/api/clasificados/servicios/publish/route.ts");
-assert.ok(publishSrc.includes("readAssistedPublishingContext(req.cookies)"), "publish route resolves assisted context server-side from signed cookies only");
+// Gate QB-STAFF-03 (2026-09-21) — the publish route redeems through the STRICTER reader: same
+// signed-cookie resolution, plus a live staff-roster re-check at redemption. `my-listing` below
+// is a READ and deliberately keeps the cheap synchronous reader.
+assert.ok(publishSrc.includes("readActiveAssistedPublishingContext(req.cookies)"), "publish route resolves assisted context server-side from signed cookies only");
+assert.ok(!/[^e]readAssistedPublishingContext\(/.test(publishSrc), "the publish route never redeems a write with the unchecked reader");
 assert.ok(publishSrc.includes('assistedActionRaw === "save_for_client"') && publishSrc.includes('assistedActionRaw === "publish_for_client"'), "two explicit, named assisted actions — no implicit/inferred assisted mode");
 assert.ok(publishSrc.includes('return NextResponse.json({ ok: false, error: "assisted_context_required" }, { status: 403 });'), "an assistedAction without a valid server-verified assisted context is refused, never silently ignored or silently treated as a normal save");
 
@@ -104,11 +128,45 @@ assert.ok(myListingSrc.includes('if (!token && !isAssistedRequest) {') && myList
 // header + extract the existing footer's step-transition handlers into named callbacks — no new
 // field, no new persistence call, no duplicate application. See
 // verify-p0-assisted-servicios-navigation-01.ts for the dedicated proof of that boundary.
+//
+// Gate 9 (the "Restaurantes adapter gap") is CLOSED: the Restaurantes publish route now carries a
+// real assisted branch, and Gate QB-IDENTITY-01 additionally gives it the canonical self-service
+// link write. The blanket "was not touched" check therefore no longer expresses a true claim about
+// that file — it would now be asserting that a gap which has been deliberately closed is still
+// open. The preview client remains untouched, and the two claims that actually matter for this
+// contract (no duplicate application; the assisted branch never fabricates customer ownership) are
+// re-proven directly below.
 for (const f of [
-  "app/api/clasificados/restaurantes/publish/route.ts",
   "app/(site)/clasificados/restaurantes/preview/RestaurantePreviewClient.tsx",
 ]) {
-  assert.ok(!allTouched.includes(f), `${f} was not touched — no duplicate application, and the Restaurantes adapter gap (Gate 9) is reported, not silently half-built`);
+  assert.ok(!allTouched.includes(f), `${f} was not touched — no duplicate application`);
+}
+
+// 7b. Restaurantes publish: the claims the blanket check used to stand in for, asserted directly.
+{
+  const rsrc = read("app/api/clasificados/restaurantes/publish/route.ts");
+  assert.ok(
+    rsrc.includes("save_for_client") && rsrc.includes("publish_for_client"),
+    "Gate 9 is genuinely closed — the Restaurantes route has a real assisted branch, not a reported gap",
+  );
+  assert.ok(
+    /const ownerUserId = isAssistedRequest \? null : verifiedOwnerId;/.test(rsrc),
+    "the assisted branch never fabricates customer ownership — owner_user_id stays unclaimed",
+  );
+  assert.ok(
+    rsrc.includes("linkAssistedListingToBusiness("),
+    "assisted custody is recorded through the shared business_listing_links primitive, not a second store",
+  );
+  // "No duplicate application" means the route must not DEFINE a second application model or a
+  // second intake shape — reusing the canonical model's types and merge helper is the point.
+  assert.ok(
+    !/export (type|interface) Restaurante\w*(Draft|ApplicationModel)\b/.test(rsrc),
+    "no duplicate application model is DEFINED inside the publish route — it reuses the canonical one",
+  );
+  assert.ok(
+    rsrc.includes("restauranteListingApplicationModel"),
+    "it reuses the canonical application model rather than re-deriving the draft shape",
+  );
 }
 
 // 8. UI — one context at the existing choke point, normal customer CTA untouched -----------------

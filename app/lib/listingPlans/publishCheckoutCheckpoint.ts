@@ -79,6 +79,17 @@ export const AUTOS_DEALER_BASE_INCLUDED_VEHICLES = 10;
 export const AUTOS_DEALER_TOTAL_WITH_INVENTORY_PACK_LIMIT =
   AUTOS_DEALER_BASE_INCLUDED_VEHICLES + AUTOS_DEALER_INVENTORY_PACK_ADDITIONAL_VEHICLES;
 
+/**
+ * The Quick (SIMPLE) allowance for the two inventory categories. Quick is the smaller product:
+ * one real vehicle / one real property, and no inventory pack is offered at all, so a $99
+ * customer can never reach the Full allowance by buying an add-on at checkout.
+ *
+ * These restate `includedInventory` on the Quick matrix entries; the verifier asserts they agree,
+ * so the number cannot drift away from the package that is actually sold.
+ */
+export const AUTOS_DEALER_QUICK_INCLUDED_VEHICLES = 1;
+export const BR_QUICK_INCLUDED_PROPERTIES = 1;
+
 export type PublishCheckpointMode = "checkout" | "free_publish";
 
 export type PublishCheckpointLanguage = "en" | "es";

@@ -12,6 +12,9 @@ import { countActiveDealerVehicles, summarizeDealerInventory, isDealerInventoryM
 import { AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY, AUTOS_DEALER_TOTAL_WITH_INVENTORY_PACK_LIMIT } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import { isListingPackageEntitlementRowActive } from "@/app/lib/listingPlans/listingPackageEntitlementPlacement";
 import { assertCommercialCapacityForWrite } from "@/app/lib/listingPlans/commercialWriteGuard";
+import { linkSelfServiceListingToBusiness } from "@/app/lib/business/canonicalListingLink";
+import { enforceQuickBusinessPublishMedia } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
+import { resolveQuickBusinessPublishIdentity } from "@/app/lib/listingPlans/quickBusinessProductIdentityServer";
 import type { AutosClassifiedsLane, AutosClassifiedsLang } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 import {
   AUTOS_LISTING_API_MAX_BODY_BYTES,
@@ -30,6 +33,14 @@ type Body = {
   lang?: AutosClassifiedsLang;
   parentListingId?: string;
   dealerInventoryGroupId?: string;
+  /**
+   * Gate QB-BOUNDARY-01 — the base package the caller believes it is publishing under. This is
+   * the caller's WORD, not authority: `resolveQuickBusinessPublishIdentity` reads it only when it
+   * names the category's SIMPLE key, and any server-owned record (entitlement row, checkout
+   * ledger, assisted context) overrides it in either direction. Declaring the Full key, or
+   * omitting it, can never lift a Quick customer out of the Quick contract.
+   */
+  basePackageKey?: string;
 };
 
 function dbNotConfigured(lang: AutosClassifiedsLang) {
@@ -231,6 +242,63 @@ export async function POST(request: Request) {
     }
   }
 
+  // Gate QB-BOUNDARY-01 — the Quick Business semantic media contract, run on the SERVER for a
+  // dealer listing the CUSTOMER created for themselves, and ONLY for a VERIFIED QUICK dealer.
+  //
+  // WHAT THIS REPLACES: the previous revision ran the contract for `body.lane === "negocios"`.
+  // That lane is the dealer lane, which BOTH the $99 Quick dealer package and the $399 Full
+  // dealer package publish through — so a FULL dealer was being held to a Quick product's rule,
+  // from a browser-supplied field. `lane` is not a product and never was.
+  //
+  // The product now comes from `resolveQuickBusinessPublishIdentity`: a verified staff assisted
+  // context, a live `listing_package_entitlements` row, the server-minted `leonix_payment_records`
+  // checkout ledger, or — only in the restricting direction, and only when nothing server-owned
+  // contradicts it — a declared SIMPLE package key. A `full` or `unverified` answer leaves the
+  // Full dealer's existing image / video / inventory behavior completely untouched.
+  //
+  // The privado (private-seller) lane is a different product with no Simple/Full split at all, so
+  // it cannot reach this branch and stays deliberately untouched.
+  //
+  // Counts are NOT imposed here — the Autos lane is uncapped by design — only the semantic
+  // requirement: at least one image DECLARED to depict the vehicle. An unroled Quick dealer
+  // gallery is answered with `role_declaration_required`, a correction, not a bare rejection.
+  if (body.lane === "negocios") {
+    const identity = await resolveQuickBusinessPublishIdentity({
+      category: "autos",
+      ownerUserId: userId,
+      listingId: parentListingId || null,
+      declaredPackageKey: typeof body.basePackageKey === "string" ? body.basePackageKey : null,
+    });
+    // External video links live in `videoUrls`, never in the image gallery, so they carry no
+    // `video/*` MIME and the contract could not see them. "Quick includes no video" was therefore
+    // unenforced on this seam: a Quick dealer could attach four YouTube links.
+    const dealerVideoUrls = (body.listing as { videoUrls?: unknown } | null)?.videoUrls;
+    const dealerExternalVideoCount = Array.isArray(dealerVideoUrls)
+      ? dealerVideoUrls.filter((v) => typeof v === "string" && v.trim().length > 0).length
+      : 0;
+    const semanticMedia = identity.enforceQuickContract
+      ? enforceQuickBusinessPublishMedia({
+          category: "autos-dealer",
+          payload: body.listing as unknown,
+          externalVideoCount: dealerExternalVideoCount,
+        })
+      : null;
+    if (semanticMedia && !semanticMedia.ok) {
+      return NextResponse.json(
+        {
+          ...buildAutosListingApiErrorPayload({
+            errorCode: "MEDIA_CONTRACT_VIOLATION",
+            message: lang === "es" ? semanticMedia.body.messageEs : semanticMedia.body.message,
+            details: semanticMedia.body.issues.join("; "),
+            legacyError: "media_contract_violation",
+          }),
+          ...semanticMedia.body,
+        },
+        { status: semanticMedia.status },
+      );
+    }
+  }
+
   const createInput = {
     ownerUserId: userId,
     lane: body.lane,
@@ -258,6 +326,18 @@ export async function POST(request: Request) {
       }),
       { status: errorCode === "AUTOS_SUPABASE_INSERT_FAILED" ? 500 : 500 },
     );
+  }
+
+  // Gate QB-IDENTITY-01 — record the canonical business↔listing relationship for a dealer
+  // identity row the customer created themselves, matching what the staff-assisted route writes.
+  // Only the dealer MAIN row is linked: an inventory vehicle is a child of that identity, not a
+  // second business listing. Idempotent, ownership re-proven server-side, never fails the create.
+  if (result.row.lane === "negocios" && !parentListingId) {
+    await linkSelfServiceListingToBusiness({
+      userId: createInput.ownerUserId,
+      listingSource: "autos_classifieds_listings",
+      listingId: result.row.id,
+    }).catch(() => undefined);
   }
 
   return NextResponse.json(

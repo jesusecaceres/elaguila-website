@@ -1,8 +1,12 @@
 /**
  * Quick Business → SERVICIOS. Feeds the EXISTING `ClasificadosServiciosApplicationState` through the category's
  * own default state + normalizer + readiness validator + draft store, then hands off to the EXISTING preview
- * (`/clasificados/publicar/servicios/preview`), which owns the pending row, the monthly base checkout
- * (`servicios_base_monthly`) and the assisted save/publish-for-client actions. Zero canonical code is touched.
+ * (`/clasificados/publicar/servicios/preview`), which owns the pending row, the monthly base checkout and the
+ * assisted save/publish-for-client actions.
+ *
+ * The handoff carries the Quick plan marker, so that shared preview charges the Quick package
+ * (`servicios_quick_monthly`, SIMPLE) instead of the Full one. Without it a Quick customer would
+ * reach the Full checkout, which is the product this intake exists to be cheaper than.
  */
 
 import { BUSINESS_TYPE_PRESETS, getBusinessTypePreset } from "@/app/clasificados/publicar/servicios/lib/businessTypePresets";
@@ -13,12 +17,13 @@ import { serviciosBusinessTypeUsesCustomCategoryLabel } from "@/app/clasificados
 import { syncServiciosContactEnables } from "@/app/clasificados/publicar/servicios/lib/serviciosContactVisibility";
 import { evaluateServiciosPublishReadiness } from "@/app/clasificados/publicar/servicios/lib/serviciosPublishReadiness";
 import { withClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
+import { withQuickPlanParam } from "@/app/lib/listingPlans/businessQuickPlanSignal";
 import type { SupportedLang } from "@/app/lib/language";
-import type { QuickBusinessCategoryAdapter } from "@/app/lib/quickBusiness/quickBusinessTypes";
-import type { QuickFieldOption, QuickIntakeStep, QuickIntakeValues, QuickMediaItem } from "@/app/lib/quickClassifieds/quickClassifiedTypes";
+import type { QuickBusinessCategoryAdapter, QuickBusinessMediaItem } from "@/app/lib/quickBusiness/quickBusinessTypes";
+import type { QuickFieldOption, QuickIntakeStep, QuickIntakeValues } from "@/app/lib/quickClassifieds/quickClassifiedTypes";
 import { quickList, quickStr } from "@/app/lib/quickClassifieds/quickClassifiedValidation";
 import { cityField, resolveCity } from "@/app/publicar/rapido/_adapters/quickAdapterShared";
-import { BUSINESS_DAY_ORDER, businessContactStep, businessHoursFields, readBusinessHours, splitFreeTextList } from "./quickBusinessAdapterShared";
+import { BUSINESS_DAY_ORDER, businessContactStep, businessHoursFields, readBusinessHours, splitFreeTextList, galleryMediaOnly } from "./quickBusinessAdapterShared";
 
 /** The 77 existing business-type presets (one universal Servicios application, many presets). */
 const BUSINESS_TYPE_OPTIONS: QuickFieldOption[] = BUSINESS_TYPE_PRESETS.map((p) => ({ value: p.id, label: { es: p.labelEs, en: p.labelEn } }));
@@ -63,8 +68,14 @@ function hoursFrom(values: QuickIntakeValues, base: DayHoursRow[]): DayHoursRow[
   });
 }
 
-function galleryFrom(media: readonly QuickMediaItem[]): GalleryItem[] {
-  return media.map((m) => ({ id: m.id, url: m.dataUrl, source: "file" as const }));
+/**
+ * Gate QB-MEDIA-03 — identity assets (a logo) never enter the business gallery. Servicios keeps
+ * its logo in its own non-gallery field, so the gallery that reaches the publish route is
+ * business media by construction; the server attributes the `business` subject role to it on
+ * exactly that basis (`SUBJECT_ATTRIBUTION.servicios === "structural"`).
+ */
+function galleryFrom(media: readonly QuickBusinessMediaItem[]): GalleryItem[] {
+  return galleryMediaOnly(media).map((m) => ({ id: m.id, url: m.dataUrl, source: "file" as const }));
 }
 
 export const serviciosQuickBusinessAdapter: QuickBusinessCategoryAdapter = {
@@ -77,6 +88,8 @@ export const serviciosQuickBusinessAdapter: QuickBusinessCategoryAdapter = {
     const gallery = galleryFrom(media);
     const contact = {
       phone: quickStr(values, "phone"),
+      // Bible §10.1: SMS explicit — maps to the canonical quoteMessagePhone CTA field.
+      quoteMessagePhone: quickStr(values, "sms"),
       whatsapp: quickStr(values, "whatsapp"),
       email: quickStr(values, "email"),
       website: quickStr(values, "website"),
@@ -107,6 +120,14 @@ export const serviciosQuickBusinessAdapter: QuickBusinessCategoryAdapter = {
     if (!readiness.ok) return { ok: false, issues: readiness.missing.map((m) => m.label) };
     const saved = await persistServiciosDraftForPreviewNavigation(state);
     if (!saved) return { ok: false, issues: [ctx.lang === "en" ? "Could not save your draft in this browser." : "No se pudo guardar tu borrador en este navegador."] };
-    return { ok: true, handoff: { kind: "preview", href: withClasificadosPublishLang("/clasificados/publicar/servicios/preview", ctx.routeLang as SupportedLang) } };
+    return {
+      ok: true,
+      handoff: {
+        kind: "preview",
+        href: withQuickPlanParam(
+          withClasificadosPublishLang("/clasificados/publicar/servicios/preview", ctx.routeLang as SupportedLang),
+        ),
+      },
+    };
   },
 };

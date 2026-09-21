@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import type { RestauranteListingDraft } from "@/app/clasificados/restaurantes/application/restauranteDraftTypes";
@@ -34,6 +34,11 @@ import {
   validateProposedFinalMediaSet,
   warnDroppedUnpersistableMedia,
 } from "@/app/lib/media/listingMediaContract";
+import { readActiveAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
+import { linkAssistedListingToBusiness } from "@/app/lib/business/assistedListingCustody";
+import { linkSelfServiceListingToBusiness } from "@/app/lib/business/canonicalListingLink";
+import { enforceQuickBusinessPublishMedia } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
+import { resolveQuickBusinessPublishIdentity } from "@/app/lib/listingPlans/quickBusinessProductIdentityServer";
 
 /** Gallery cap mirrors MAX_GALLERY in RestaurantePublishMediaStrip.tsx:29 (local, unexported). */
 const RESTAURANTE_GALLERY_MAX = 24;
@@ -133,7 +138,7 @@ async function allocateSlug(base: string): Promise<string> {
   return `${base}-${Date.now()}`;
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   let body: unknown;
   try {
     body = await req.json();
@@ -231,7 +236,26 @@ export async function POST(req: Request) {
   const strict = isRestaurantesStrictPublishEnvironment();
   const verifiedOwnerId = await restauranteOwnerIdFromBearer(req);
 
-  if (strict && !verifiedOwnerId) {
+  // Staff-assisted publishing (mirrors servicios publish route Gate 5 pattern).
+  // An HMAC-signed cookie from `createAssistedPublishingSession` authorizes a staff actor to
+  // save or publish a draft on behalf of a client. The client's `owner_user_id` is intentionally
+  // null so the client can claim the listing through the normal Leonix-signup flow.
+  // Gate QB-STAFF-03 — the roster is re-checked HERE, at redemption, not only at mint time. A
+  // staff member deactivated or removed after their token was issued can no longer publish on a
+  // customer's behalf with it. Fails closed on an unreachable database.
+  const assistedContext = await readActiveAssistedPublishingContext(req.cookies);
+  const assistedActionRaw = typeof b.assistedAction === "string" ? b.assistedAction.trim() : "";
+  const isAssistedSaveForClient = assistedActionRaw === "save_for_client";
+  const isAssistedPublishForClient = assistedActionRaw === "publish_for_client";
+  const isAssistedRequest =
+    (isAssistedSaveForClient || isAssistedPublishForClient) &&
+    assistedContext !== null &&
+    assistedContext.category === "restaurantes";
+  if ((isAssistedSaveForClient || isAssistedPublishForClient) && !isAssistedRequest) {
+    return NextResponse.json({ ok: false, error: "assisted_context_required" }, { status: 403 });
+  }
+
+  if (strict && !verifiedOwnerId && !isAssistedRequest) {
     return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
   }
 
@@ -306,6 +330,57 @@ export async function POST(req: Request) {
     );
   }
 
+  // Gate QB-MEDIA-03 — the canonical Quick Business semantic media contract, run on the SERVER
+  // for a listing the CUSTOMER published for themselves. Restaurantes' own count/video truths
+  // above are untouched; this adds only the semantic one — at least one image that actually
+  // depicts the restaurant, with a declared logo never able to satisfy it.
+  //
+  // Gate QB-BOUNDARY-03 — IT IS SKIPPED ONLY FOR A PROVEN FULL PRODUCT.
+  //
+  // Restaurantes sells BOTH a Quick base package and a Full one through this same seam. Running
+  // the contract unconditionally held a FULL customer to a $99 product's rule, so the product now
+  // comes from the same server-owned resolver Autos and Bienes use.
+  //
+  // It is NOT gated on a positive `quick` answer. No Restaurantes client sends a package
+  // declaration, and a first publish precedes checkout, so a `quick` answer is unobtainable at
+  // exactly the publish this contract exists to govern — gating on it turned the check off for
+  // every real request. `enforceQuickContract` therefore means "not a PROVEN Full", which
+  // restores the pre-gate behaviour for everyone else and keeps the blocker closed for the
+  // customer whose entitlement or settled checkout actually names the Full package.
+  //
+  // `listingId` arrives from the body. It cannot buy an escape: the entitlement read is scoped to
+  // the bearer-verified owner, so naming someone else's Full listing yields no rows, and an
+  // unresolvable id yields `unverified`, which enforces.
+  const restauranteRequestBody = body as Record<string, unknown>;
+  const restauranteProductListingId =
+    typeof restauranteRequestBody.listingId === "string" ? restauranteRequestBody.listingId.trim() || null : null;
+  const restauranteDeclaredPackageKey =
+    typeof restauranteRequestBody.basePackageKey === "string" ? restauranteRequestBody.basePackageKey : null;
+  const restauranteProduct = await resolveQuickBusinessPublishIdentity({
+    category: "restaurantes",
+    ownerUserId: verifiedOwnerId ?? "",
+    listingId: restauranteProductListingId,
+    declaredPackageKey: restauranteDeclaredPackageKey,
+  });
+  // Same external-video blind spot as Servicios: the links are collected separately and never
+  // carry a `video/*` MIME, so the no-video rule could not reach them.
+  const restauranteExternalVideoCount = collectRestauranteExternalVideoUrls(draft).filter(
+    (u) => typeof u === "string" && u.trim().length > 0,
+  ).length;
+  const restauranteSemanticMedia = restauranteProduct.enforceQuickContract
+    ? enforceQuickBusinessPublishMedia({
+        category: "restaurantes",
+        externalVideoCount: restauranteExternalVideoCount,
+        items: [
+          ...(restauranteHeroUrl ? [{ role: null, mime: null }] : []),
+          ...restauranteGalleryUrls.map(() => ({ role: null, mime: null })),
+        ],
+      })
+    : null;
+  if (restauranteSemanticMedia && !restauranteSemanticMedia.ok) {
+    return NextResponse.json(restauranteSemanticMedia.body, { status: restauranteSemanticMedia.status });
+  }
+
   if (!isSupabaseAdminConfigured()) {
     return NextResponse.json(
       {
@@ -318,7 +393,8 @@ export async function POST(req: Request) {
   }
 
   // Owner identity is server-verified only — the client-supplied owner_user_id is never trusted.
-  const ownerUserId = verifiedOwnerId;
+  // Assisted requests intentionally leave owner_user_id null so the client claims the listing later.
+  const ownerUserId = isAssistedRequest ? null : verifiedOwnerId;
   const pendingPayment =
     b.activation_mode === "pending_payment" || b.activationMode === "pending_payment";
   const requestedLane = normalizePublicPublishPackageTier(
@@ -546,6 +622,27 @@ export async function POST(req: Request) {
       { ok: false, error: "publish_exception", detail: e instanceof Error ? e.message : "unknown" },
       { status: 500 },
     );
+  }
+
+  // Assisted request: link the saved listing to the business in the custody ledger.
+  if (isAssistedRequest && assistedContext && listingIdOut) {
+    await linkAssistedListingToBusiness({
+      businessId: assistedContext.businessId,
+      listingSource: "restaurantes_public_listings",
+      listingId: listingIdOut,
+      linkedByAuthUserId: assistedContext.authUserId,
+    });
+  }
+
+  // Gate QB-IDENTITY-01 — the self-service counterpart of the write above, so both publishing
+  // modes converge on one canonical business↔listing relationship. Idempotent; ownership is
+  // re-proven server-side; a failure never fails the publish.
+  if (!isAssistedRequest && ownerUserId && listingIdOut) {
+    await linkSelfServiceListingToBusiness({
+      userId: ownerUserId,
+      listingSource: "restaurantes_public_listings",
+      listingId: listingIdOut,
+    }).catch(() => undefined);
   }
 
   const deep = restaurantesDiscoveryParamsForRowDeepLink({

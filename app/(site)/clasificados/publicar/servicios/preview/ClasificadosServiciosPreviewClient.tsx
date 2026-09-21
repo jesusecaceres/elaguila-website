@@ -57,7 +57,12 @@ import {
   startRevenueCategoryCheckout,
   validateRevenuePromoForCheckout,
 } from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
-import { SERVICIOS_BASE_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
+import { SERVICIOS_BASE_CHECKOUT, SERVICIOS_QUICK_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
+import {
+  businessPlanFromSearchParams,
+  selectBusinessBaseCheckout,
+} from "@/app/lib/listingPlans/businessQuickPlanSignal";
+import { useBusinessBasePlanOffer } from "@/app/lib/listingPlans/businessBasePlanOfferClient";
 import {
   SERVICIOS_CHECKPOINT_CONFIRMATIONS,
   type PublishCheckpointConfig,
@@ -681,6 +686,26 @@ export function ClasificadosServiciosPreviewClient() {
   // update/republish button (already paid, no re-charge).
   const offersAddonSelected = Boolean(appState?.couponsAddOn);
   const serviciosPipeline = useProfessionalPreview ? "professional" : "trades";
+  // Quick Business intake hands off here with the Quick plan marker; the standard application
+  // arrives without it and keeps the Full package exactly as before. One preview, one draft, one
+  // publisher, one public listing — only the base package the customer pays for differs.
+  const quickPlan = businessPlanFromSearchParams(searchParams) === "quick";
+  // For a listing that already exists, the marker is not evidence: a Quick customer resuming an
+  // abandoned checkout arrives from the dashboard with no marker at all, and a paid SIMPLE
+  // customer upgrading is not asking for either package by URL. The server answers from the
+  // entitlement table and the payment ledger, and its answer wins over the marker.
+  const businessBasePlan = useBusinessBasePlanOffer({
+    category: SERVICIOS_BASE_CHECKOUT.category,
+    listingId,
+    enabled: listingBoundPreview,
+  });
+  const baseCheckout = selectBusinessBaseCheckout({
+    quick: SERVICIOS_QUICK_CHECKOUT,
+    full: SERVICIOS_BASE_CHECKOUT,
+    urlPlan: quickPlan ? "quick" : "full",
+    serverSellPackageKey: businessBasePlan?.sellPackageKey,
+  });
+
   const showFinalCheckout =
     !assistedUi &&
     (!listingBoundPreview || listingBoundAwaitsBasePurchase) &&
@@ -688,38 +713,43 @@ export function ClasificadosServiciosPreviewClient() {
     Boolean(profile) &&
     previewReadiness.ok;
 
-  // Package C Build 3 (C5/C6) — owner-locked: coupons/offers are included in the $399/mo base
+  // Package C Build 3 (C5/C6) — owner-locked: coupons/offers are included in the Full base
   // package. The toggle stays as content/setup intent only — never a checkout line item.
   const checkoutSubtotalCents = useMemo(() => {
-    return getRevenuePackageDefinition(SERVICIOS_BASE_CHECKOUT.packageKey)?.priceCents ?? 39900;
-  }, []);
+    const def = getRevenuePackageDefinition(baseCheckout.packageKey);
+    // Both base keys are static matrix entries, so the fallback is unreachable; it stays only to
+    // preserve the historical Full behaviour, and Quick never invents a second price literal.
+    return def ? def.priceCents : quickPlan ? 0 : 39900;
+  }, [baseCheckout, quickPlan]);
 
   const checkpointConfig = useMemo((): PublishCheckpointConfig => {
     return {
-      category: SERVICIOS_BASE_CHECKOUT.category,
-      packageKey: SERVICIOS_BASE_CHECKOUT.packageKey,
+      category: baseCheckout.category,
+      packageKey: baseCheckout.packageKey,
       lang,
       mode: "checkout",
       baseLineItem: {
         labelEn: useProfessionalPreview ? "Professional services" : "Services / trades",
         labelEs: useProfessionalPreview ? "Servicios profesionales" : "Servicios / oficios",
-        priceCents: getRevenuePackageDefinition(SERVICIOS_BASE_CHECKOUT.packageKey)?.priceCents ?? 39900,
+        priceCents: checkoutSubtotalCents,
       },
       confirmations: SERVICIOS_CHECKPOINT_CONFIRMATIONS,
       newsletterEligible: true,
-      promoEligible: true,
+      // Read from the package actually being sold: the matrix marks the Quick packages
+      // promo-ineligible, and offering a code the server would refuse is a broken promise.
+      promoEligible: getRevenuePackageDefinition(baseCheckout.packageKey)?.promoEligible ?? true,
       serviciosOffersAddonSelected: offersAddonSelected,
       pipeline: serviciosPipeline,
-      returnPath: SERVICIOS_BASE_CHECKOUT.returnPath,
+      returnPath: baseCheckout.returnPath,
     };
-  }, [lang, offersAddonSelected, serviciosPipeline, useProfessionalPreview]);
+  }, [baseCheckout, checkoutSubtotalCents, lang, offersAddonSelected, serviciosPipeline, useProfessionalPreview]);
 
   const handlePromoApply = useCallback(
     async (code: string) => {
       const result = await validateRevenuePromoForCheckout({
         code,
-        category: SERVICIOS_BASE_CHECKOUT.category,
-        packageKey: SERVICIOS_BASE_CHECKOUT.packageKey,
+        category: baseCheckout.category,
+        packageKey: baseCheckout.packageKey,
         subtotalCents: checkoutSubtotalCents,
         locale: lang,
       });
@@ -746,7 +776,7 @@ export function ClasificadosServiciosPreviewClient() {
               : `${result.discountLabel} applied. Total: $${total}/mo`,
       };
     },
-    [lang, checkoutSubtotalCents],
+    [baseCheckout, lang, checkoutSubtotalCents],
   );
 
   const onCheckout = useCallback(
@@ -784,7 +814,7 @@ export function ClasificadosServiciosPreviewClient() {
           preferredLanguage: lang,
           source: CHECKOUT_NEWSLETTER_SOURCES.servicios,
           // SVC-QA-29 — the retired Launch-25 interest tag is no longer attached to Servicios captures.
-          interests: ["package:servicios_base_monthly"],
+          interests: [`package:${baseCheckout.packageKey}`],
           checked: ctx.newsletterOptIn,
         });
 
@@ -807,7 +837,7 @@ export function ClasificadosServiciosPreviewClient() {
         }
 
         const checkout = await startRevenueCategoryCheckout({
-          ...SERVICIOS_BASE_CHECKOUT,
+          ...baseCheckout,
           listingId: pending.listingId,
           leonixAdId: pending.leonixAdId,
           locale: lang,
@@ -833,7 +863,7 @@ export function ClasificadosServiciosPreviewClient() {
         setCheckoutBusy(false);
       }
     },
-    [appState, lang, offersAddonSelected],
+    [appState, baseCheckout, lang, offersAddonSelected],
   );
 
   const backLabel = lang === "en" ? "Back to edit" : "Volver a editar";

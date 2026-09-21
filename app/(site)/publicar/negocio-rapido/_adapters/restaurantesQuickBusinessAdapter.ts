@@ -1,8 +1,11 @@
 /**
  * Quick Business → RESTAURANTES. Feeds the EXISTING `RestauranteListingDraft` through the category's own empty
  * draft + readiness audit + draft store, then hands off to the EXISTING preview (`/clasificados/restaurantes/preview`),
- * which owns the pending row, the checkout confirmations and the existing monthly base checkout (`restaurantes_base_monthly`).
+ * which owns the pending row, the checkout confirmations and the existing monthly base checkout.
  * No menu, coupon, cuisine, hours or delivery option is ever invented: the customer selects or types each one.
+ *
+ * The handoff carries the Quick plan marker, so that shared preview charges the Quick package
+ * (`restaurantes_quick_monthly`, SIMPLE) rather than the Full one.
  */
 
 import { createEmptyRestauranteDraft } from "@/app/clasificados/restaurantes/application/createEmptyRestauranteDraft";
@@ -19,12 +22,13 @@ import {
   labelForServiceMode,
 } from "@/app/clasificados/restaurantes/application/restauranteTaxonomy";
 import { withClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
+import { withQuickPlanParam } from "@/app/lib/listingPlans/businessQuickPlanSignal";
 import type { SupportedLang } from "@/app/lib/language";
 import type { QuickBusinessCategoryAdapter } from "@/app/lib/quickBusiness/quickBusinessTypes";
 import type { QuickIntakeStep, QuickIntakeValues } from "@/app/lib/quickClassifieds/quickClassifiedTypes";
 import { quickList, quickStr } from "@/app/lib/quickClassifieds/quickClassifiedValidation";
 import { cityField, resolveCity } from "@/app/publicar/rapido/_adapters/quickAdapterShared";
-import { BUSINESS_DAY_ORDER, businessContactStep, businessHoursFields, optionsFromKeyLabel, readBusinessHours, type BusinessDayKey } from "./quickBusinessAdapterShared";
+import { BUSINESS_DAY_ORDER, businessContactStep, businessHoursFields, optionsFromKeyLabel, readBusinessHours, type BusinessDayKey, galleryMediaOnly } from "./quickBusinessAdapterShared";
 
 const BUSINESS_TYPE_OPTIONS = optionsFromKeyLabel(RESTAURANTE_BUSINESS_TYPES, (k) => labelForBusinessType(k, "en"));
 const CUISINE_OPTIONS = optionsFromKeyLabel(RESTAURANTE_CUISINES, (k) => labelForCuisine(k, "en"));
@@ -81,7 +85,10 @@ export const restaurantesQuickBusinessAdapter: QuickBusinessCategoryAdapter = {
   confirmations: { kind: "none" },
   async buildAndWriteCanonicalDraft({ values, media, ctx }) {
     const base = createEmptyRestauranteDraft();
-    const [hero, ...rest] = media.map((m) => m.dataUrl);
+    // Gate QB-MEDIA-03 — a logo never becomes the hero or a gallery photo. Restaurantes keeps its
+    // logo in its own non-gallery field, so what reaches the publish route is restaurant media by
+    // construction (`SUBJECT_ATTRIBUTION.restaurantes === "structural"`).
+    const [hero, ...rest] = galleryMediaOnly(media).map((m) => m.dataUrl);
     const serviceModes = quickList(values, "serviceModes").filter((m): m is RestauranteServiceMode => RESTAURANTE_SERVICE_MODES.some((o) => o.key === m));
     const draft: RestauranteListingDraft = {
       ...base,
@@ -97,6 +104,7 @@ export const restaurantesQuickBusinessAdapter: QuickBusinessCategoryAdapter = {
       cityCanonical: resolveCity(values),
       ...weeklyHoursFrom(values),
       phoneNumber: quickStr(values, "phone") || undefined,
+      smsNumber: quickStr(values, "sms") || undefined,
       whatsAppNumber: quickStr(values, "whatsapp") || undefined,
       email: quickStr(values, "email") || undefined,
       websiteUrl: quickStr(values, "website") || undefined,
@@ -109,6 +117,14 @@ export const restaurantesQuickBusinessAdapter: QuickBusinessCategoryAdapter = {
     }
     const saved = await saveRestauranteDraftToStorageResolved(draft);
     if (!saved) return { ok: false, issues: [ctx.lang === "en" ? "Could not save your draft in this browser." : "No se pudo guardar tu borrador en este navegador."] };
-    return { ok: true, handoff: { kind: "preview", href: withClasificadosPublishLang("/clasificados/restaurantes/preview", ctx.routeLang as SupportedLang) } };
+    return {
+      ok: true,
+      handoff: {
+        kind: "preview",
+        href: withQuickPlanParam(
+          withClasificadosPublishLang("/clasificados/restaurantes/preview", ctx.routeLang as SupportedLang),
+        ),
+      },
+    };
   },
 };

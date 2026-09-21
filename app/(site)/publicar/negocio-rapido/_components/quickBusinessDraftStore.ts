@@ -8,13 +8,26 @@
 import { createDraftHeavyMediaIdbStore } from "@/app/lib/media/draftHeavyMediaIdb";
 import type { QuickBusinessCategoryKey, QuickBusinessConfirmations } from "@/app/lib/quickBusiness/quickBusinessTypes";
 import type { QuickIntakeValues, QuickMediaItem } from "@/app/lib/quickClassifieds/quickClassifiedTypes";
+import { isQuickMediaRole, type QuickMediaRole } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
 
 const STORE = createDraftHeavyMediaIdbStore("lx-quick-business-draft", "__LX_QUICK_BUSINESS_IDB__");
+
+/**
+ * Gate QB-MEDIA-03 — a photo IN THE INTAKE, before the customer has necessarily said what it is.
+ *
+ * `role: null` means "not yet declared". It is a legitimate in-progress state and the intake
+ * refuses to advance past the media step while any photo is still null. It is NEVER resolved to
+ * the family's subject role: a draft written before roles existed re-opens with every photo
+ * unmarked and a clear correction message, rather than silently becoming a set of "vehicle
+ * photos". The adapter boundary only ever receives `QuickBusinessMediaItem`, whose role is
+ * required, so an undeclared photo cannot reach a canonical draft.
+ */
+export type QuickBusinessDraftMediaItem = QuickMediaItem & { role: QuickMediaRole | null };
 
 export type QuickBusinessDraft = {
   v: 1;
   values: QuickIntakeValues;
-  media: QuickMediaItem[];
+  media: QuickBusinessDraftMediaItem[];
   confirmations: QuickBusinessConfirmations;
   stepIndex: number;
 };
@@ -39,7 +52,12 @@ export async function loadQuickBusinessDraft(category: QuickBusinessCategoryKey)
     const parsed = JSON.parse(raw) as Partial<QuickBusinessDraft>;
     if (parsed.v !== 1) return null;
     const base = emptyQuickBusinessDraft();
-    const media = Array.isArray(parsed.media) ? parsed.media.filter((m): m is QuickMediaItem => Boolean(m && typeof m === "object" && typeof (m as QuickMediaItem).id === "string")) : [];
+    const media: QuickBusinessDraftMediaItem[] = Array.isArray(parsed.media)
+      ? parsed.media
+          .filter((m): m is QuickBusinessDraftMediaItem => Boolean(m && typeof m === "object" && typeof (m as QuickMediaItem).id === "string"))
+          // An unknown or absent stored role stays UNDECLARED. Never upgraded to the subject role.
+          .map((m) => ({ ...m, role: isQuickMediaRole((m as { role?: unknown }).role) ? ((m as { role: QuickMediaRole }).role) : null }))
+      : [];
     const inlined = await STORE.inlinePhotoArray(ns(category), "photos", media.map((m) => m.dataUrl));
     return {
       v: 1,

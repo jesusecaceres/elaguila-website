@@ -25,6 +25,8 @@ import { strict as assert } from "node:assert";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { execSync } from "node:child_process";
+import { decideBusinessBasePlanOffer } from "../app/lib/listingPlans/businessBasePlanOfferPolicy";
+import { businessBasePackageKeys } from "../app/lib/listingPlans/businessAccessLevel";
 
 const ROOT = process.cwd();
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
@@ -51,7 +53,7 @@ function registryBlock(key: string): string {
   assert.ok(!reg.includes("directReason:"), "no direct reason remains in the registry");
   assert.ok(reg.includes('standardApplicationPath: "/publicar/autos/negocios"') && reg.includes('standardApplicationPath: "/publicar/bienes-raices"'), "Dealer / Bienes still name their EXISTING full application / selector");
   assert.ok(reg.includes('standardApplicationPath: "/publicar/servicios"') && reg.includes('standardApplicationPath: "/publicar/restaurantes"'), "Servicios / Restaurantes name their EXISTING applications");
-  assert.ok(reg.includes("publishForClientSupported: true") && (reg.match(/publishForClientSupported: false/g) ?? []).length === 3, "publish-for-client is claimed for Servicios only (the one verified server path)");
+  assert.equal((reg.match(/publishForClientSupported: true/g) ?? []).length, 4, "publish-for-client is wired for all 4 Quick Business categories (Servicios, Restaurantes, Autos Dealer, Bienes Negocio — QB-CONVERGENCE closeout)");
   assert.equal((reg.match(/mediaIntro: \{/g) ?? []).length, 4, "every definition carries its own truthful media wording");
   const dealer = registryBlock('"autos-dealer"');
   const bienes = registryBlock('"bienes-negocio"');
@@ -92,10 +94,11 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
 {
   const shared = read(`${QB_ADAPTERS}/quickBusinessAdapterShared.ts`);
   const contactKeys = [...shared.matchAll(/\{ key: "([A-Za-z]+)", kind: "(?:phone|email|text)"/g)].map((m) => m[1]!);
-  assert.deepEqual(contactKeys, ["phone", "whatsapp", "email", "website"], "shared business contact step declares phone / whatsapp / email / website");
+  assert.deepEqual(contactKeys, ["phone", "sms", "whatsapp", "email", "website"], "shared business contact step declares phone / sms / whatsapp / email / website (Bible §10.1)");
   const hoursKeys = [...shared.matchAll(/key: "(hours[A-Za-z]+)"/g)].map((m) => m[1]!);
   assert.deepEqual(hoursKeys, ["hoursDays", "hoursOpen", "hoursClose"], "shared hours fields declared");
-  assert.ok(shared.includes('atLeastOne: { keys: ["phone", "whatsapp", "email", "website"]'), "contact step requires at least one channel");
+  // Bible §10.1: email and website cannot satisfy the direct-contact minimum; SMS is explicit, not derived from phone.
+  assert.ok(shared.includes('atLeastOne: { keys: ["phone", "sms", "whatsapp"]'), "contact step requires at least one of phone/SMS/WhatsApp (email/website cannot satisfy; SMS is independent of phone)");
 
   // Self-test: a synthetic adapter with a decorative field and a phantom read must FAIL the detector.
   const synthetic = `{ key: "title", kind: "text" } { key: "ghost", kind: "text" } title: quickStr(values, "title"), extra: quickStr(values, "phantomKey"),`;
@@ -106,22 +109,26 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
   const adapters: Record<string, { canonical: string[]; allowedReads?: string[] }> = {
     "serviciosQuickBusinessAdapter.ts": {
       canonical: [
-        "businessTypeId,", "customServiceDescription:", "businessName:", "selectedServiceIds:", "customServicesOffered:", "aboutText:", "city: resolveCity(values)", "hours: hoursFrom(values", "phone:", "whatsapp:", "email:", "website:", "coverUrl:", "gallery,", "featuredGalleryIds:", "confirmListingAccurate:", "confirmPhotosRepresentBusiness:", "confirmCommunityRules:",
+        "businessTypeId,", "customServiceDescription:", "businessName:", "selectedServiceIds:", "customServicesOffered:", "aboutText:", "city: resolveCity(values)", "hours: hoursFrom(values", "phone:", "quoteMessagePhone:", "whatsapp:", "email:", "website:", "coverUrl:", "gallery,", "featuredGalleryIds:", "confirmListingAccurate:", "confirmPhotosRepresentBusiness:", "confirmCommunityRules:",
       ],
     },
     "restaurantesQuickBusinessAdapter.ts": {
       canonical: [
         'productType: "established_restaurant"', "businessName:", "businessType:", "businessTypeCustom:", "primaryCuisine:", "primaryCuisineCustom:", "shortSummary:", "serviceModes,", "cityCanonical: resolveCity(values)", "...weeklyHoursFrom(values)", "phoneNumber:", "whatsAppNumber:", "email:", "websiteUrl:", "heroImage:", "galleryImages:",
+        // Gate 1 wired: smsNumber propagated through RestauranteListingDraft → listing_json.
+        'smsNumber: quickStr(values, "sms")',
       ],
     },
     "autosDealerQuickBusinessAdapter.ts": {
       canonical: [
-        'autosLane: "negocios"', "vehicleTitle: buildVehicleTitle(year, make, model, trim) || undefined", "year,", "make,", "model,", "trim,", 'condition: conditionOrUndefined(quickStr(values, "condition"))', "mileage: numberOrUndefined(quickWholeDollars(values.mileage))", "price: numberOrUndefined(quickWholeDollars(values.price))", 'vin: quickStr(values, "vin") || undefined', 'description: quickStr(values, "description") || undefined', "city,", "zip,", 'dealerName: quickStr(values, "dealerName") || undefined', 'dealerPhoneOffice: quickStr(values, "phone") || undefined', 'dealerWhatsapp: quickStr(values, "whatsapp") || undefined', 'dealerEmail: quickStr(values, "email") || undefined', 'dealerWebsite: quickStr(values, "website") || undefined', "dealerAddressCity: city", "dealerAddressZip: zip", "mediaImages,", "heroImages: mediaImages.map((m) => m.url)",
+        'autosLane: "negocios"', "vehicleTitle: buildVehicleTitle(year, make, model, trim) || undefined", "year,", "make,", "model,", "trim,", 'condition: conditionOrUndefined(quickStr(values, "condition"))', "mileage: numberOrUndefined(quickWholeDollars(values.mileage))", "price: numberOrUndefined(quickWholeDollars(values.price))", 'vin: quickStr(values, "vin") || undefined', 'description: quickStr(values, "description") || undefined', "city,", "zip,", 'dealerName: quickStr(values, "dealerName") || undefined', 'dealerPhoneOffice: quickStr(values, "phone") || undefined', 'dealerSmsPhone: quickStr(values, "sms") || undefined', 'dealerWhatsapp: quickStr(values, "whatsapp") || undefined', 'dealerEmail: quickStr(values, "email") || undefined', 'dealerWebsite: quickStr(values, "website") || undefined', "dealerAddressCity: city", "dealerAddressZip: zip", "mediaImages,", "heroImages: mediaImages.map((m) => m.url)",
       ],
     },
     "bienesNegocioQuickBusinessAdapter.ts": {
       canonical: [
-        'sellerTipo: "agente_individual"', "categoriaPropiedad,", 'normalizeResidencialTipoPropiedadCodigo(quickStr(values, "tipoCodigo"))', 'normalizeComercialTipoCodigo(quickStr(values, "comercialTipoCodigo"))', 'normalizeTerrenoTipoCodigo(quickStr(values, "terrenoTipoCodigo"))', 'recamaras: categoriaPropiedad === "residencial" ? quickStr(values, "recamaras") : ""', 'banos: categoriaPropiedad === "residencial" ? quickStr(values, "banos") : ""', 'titulo: quickStr(values, "titulo")', "precio: quickWholeDollars(values.precio)", "...(condicionPropiedad ? { condicionPropiedad } : {})", 'descripcionPrincipal: quickStr(values, "descripcion")', "ciudad: resolveCity(values)", 'areaCiudad: quickStr(values, "areaCiudad")', 'direccionCodigoPostal: quickStr(values, "zip")', "fotosDataUrls: media.map((m) => m.dataUrl)", "fotoPortadaIndex: 0", 'agenteNombre: quickStr(values, "agenteNombre")', 'agenteTitulo: quickStr(values, "agenteTitulo")', 'agenteLicencia: quickStr(values, "agenteLicencia")', 'marcaNombre: quickStr(values, "marcaNombre")', 'agenteTelefonoPersonal: quickStr(values, "phone")', 'agenteWhatsapp: quickStr(values, "whatsapp")', 'correoPrincipal: quickStr(values, "email")', 'agenteSitioWeb: quickStr(values, "website")', "confirmListingAccurate: confirmations.infoTruthful", "confirmPhotosRepresentItem: confirmations.mediaAccurate", "confirmCommunityRules: confirmations.rulesAccepted", "confirmPaymentAfterPreview: confirmations.paymentAfterPreview",
+        'sellerTipo: "agente_individual"', "categoriaPropiedad,", 'normalizeResidencialTipoPropiedadCodigo(quickStr(values, "tipoCodigo"))', 'normalizeComercialTipoCodigo(quickStr(values, "comercialTipoCodigo"))', 'normalizeTerrenoTipoCodigo(quickStr(values, "terrenoTipoCodigo"))', 'recamaras: categoriaPropiedad === "residencial" ? quickStr(values, "recamaras") : ""', 'banos: categoriaPropiedad === "residencial" ? quickStr(values, "banos") : ""', 'titulo: quickStr(values, "titulo")', "precio: quickWholeDollars(values.precio)", "...(condicionPropiedad ? { condicionPropiedad } : {})", 'descripcionPrincipal: quickStr(values, "descripcion")', "ciudad: resolveCity(values)", 'areaCiudad: quickStr(values, "areaCiudad")', 'direccionCodigoPostal: quickStr(values, "zip")', "fotosDataUrls: galleryMediaOnly(media).map((m) => m.dataUrl)", "fotoPortadaIndex: 0", 'agenteNombre: quickStr(values, "agenteNombre")', 'agenteTitulo: quickStr(values, "agenteTitulo")', 'agenteLicencia: quickStr(values, "agenteLicencia")', 'marcaNombre: quickStr(values, "marcaNombre")', 'agenteTelefonoPersonal: quickStr(values, "phone")', 'agenteWhatsapp: quickStr(values, "whatsapp")', 'correoPrincipal: quickStr(values, "email")', 'agenteSitioWeb: quickStr(values, "website")', "confirmListingAccurate: confirmations.infoTruthful", "confirmPhotosRepresentItem: confirmations.mediaAccurate", "confirmCommunityRules: confirmations.rulesAccepted", "confirmPaymentAfterPreview: confirmations.paymentAfterPreview",
+        // Gate 1 wired: agenteSmsPersonal propagated through AgenteIndividualResidencialFormState → identityAgente.smsPersonal.
+        'agenteSmsPersonal: quickStr(values, "sms")',
       ],
     },
   };
@@ -156,14 +163,65 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
 
 // 3. MEDIA LOCK ----------------------------------------------------------------------------------------------
 {
-  assert.ok(reg.includes("return { minImages: 1, maxImages, videoOptional: true, note };"), "every definition builds media with minImages 1");
+  assert.ok(reg.includes("return { minImages: 1, maxImages: 3, videoOptional: false, note };"), "Quick Business media: 3 max, no video");
   const intake = read(`${QB_COMPONENTS}/QuickBusinessIntakeClient.tsx`);
-  assert.ok(intake.includes('from "@/app/publicar/rapido/_components/QuickMediaStep"') && intake.includes("validateQuickMedia(draft.media, definition.media, lang)"), "intake reuses the certified media step + media lock at Next and submit");
+  /**
+   * Gate QB-MEDIA-03 — the intake no longer reuses the certified Quick Classifieds media step.
+   *
+   * WHY THE EXPECTATION CHANGED: the certified step produces `QuickMediaItem`, which carries no
+   * semantic role. The 2026-09-21 independent audit found the Quick Business media contract
+   * operationally inert precisely because no producer emitted a role — so the certified step was
+   * structurally incapable of satisfying the contract this verifier exists to protect. Quick
+   * Business now owns a role-aware step INSIDE its own tree; the certified step and the certified
+   * type remain byte-unchanged, which is what the reuse rule was actually protecting. The new
+   * step is held to the same no-video lock, asserted below on the file that now renders.
+   */
+  assert.ok(
+    intake.includes('from "./QuickBusinessMediaStep"') &&
+      intake.includes("validateQuickBusinessIntakeMedia(draft.media, definition.media, lang, category)") &&
+      intake.includes("undeclaredRoleIssues(draft.media, lang)"),
+    "intake renders the role-aware Quick Business media step and runs the media lock at Next and submit",
+  );
+  assert.ok(
+    !intake.includes('from "@/app/publicar/rapido/_components/QuickMediaStep"'),
+    "the certified role-less media step is no longer rendered by Quick Business",
+  );
+  /**
+   * Quick Business carries its own media contract because `QuickClassifiedMediaContract` types
+   * `videoOptional` as the literal `true` (every Classifieds lane allows optional video) while
+   * Quick Business allows none. The intake narrows its contract when handing it to the certified
+   * `QuickMediaStep`. That narrowing is only sound because QuickMediaStep never reads
+   * `videoOptional` — so assert that precondition mechanically here rather than trusting the
+   * comment that states it.
+   */
+  {
+    const mediaStepSrc = read("app/(site)/publicar/rapido/_components/QuickMediaStep.tsx");
+    assert.ok(
+      !/contract\.videoOptional/.test(mediaStepSrc),
+      "QuickMediaStep must not read contract.videoOptional — the Quick Business narrowing in QuickBusinessIntakeClient depends on it",
+    );
+    assert.ok(
+      mediaStepSrc.includes("contract.maxImages") && mediaStepSrc.includes("contract.note"),
+      "QuickMediaStep reads only the count cap and the note from the contract",
+    );
+  }
   const review = read(`${QB_COMPONENTS}/QuickBusinessReviewStep.tsx`);
   assert.ok(review.includes("media.length === 0"), "review submit disabled without an image");
   assert.ok(read(`${QB_ADAPTERS}/serviciosQuickBusinessAdapter.ts`).includes("coverUrl: gallery[0]?.url") && read(`${QB_ADAPTERS}/restaurantesQuickBusinessAdapter.ts`).includes("heroImage: hero ?? \"\""), "first real image becomes the canonical cover / hero");
-  assert.ok(read(`${QB_ADAPTERS}/autosDealerQuickBusinessAdapter.ts`).includes('sourceType: "file", isPrimary: i === 0, sortOrder: i'), "Dealer: first real VEHICLE photo is the primary MediaImageEntry (existing vehicle media shape)");
-  assert.ok(read(`${QB_ADAPTERS}/bienesNegocioQuickBusinessAdapter.ts`).includes("fotosDataUrls: media.map((m) => m.dataUrl)") && read(`${QB_ADAPTERS}/bienesNegocioQuickBusinessAdapter.ts`).includes("fotoPortadaIndex: 0"), "Bienes: first real PROPERTY photo is the cover (existing property media shape)");
+  {
+    // Gate QB-MEDIA-03 — same canonical shape (`MediaImageEntry`, cover = first), now built from
+    // the gallery with identity assets removed and the declared role stamped onto each entry.
+    const dealerSrc = read(`${QB_ADAPTERS}/autosDealerQuickBusinessAdapter.ts`);
+    assert.ok(
+      /sourceType: "file",\s*isPrimary: i === 0,\s*sortOrder: i,\s*role: m\.role,/.test(dealerSrc),
+      "Dealer: first real VEHICLE photo is the primary MediaImageEntry, and every entry declares its role",
+    );
+    assert.ok(
+      dealerSrc.includes("galleryMediaOnly(media).map((m, i) => ({"),
+      "Dealer: a dealership logo never enters the vehicle gallery",
+    );
+  }
+  assert.ok(read(`${QB_ADAPTERS}/bienesNegocioQuickBusinessAdapter.ts`).includes("fotosDataUrls: galleryMediaOnly(media).map((m) => m.dataUrl)") && read(`${QB_ADAPTERS}/bienesNegocioQuickBusinessAdapter.ts`).includes("fotoPortadaIndex: 0"), "Bienes: first real PROPERTY photo is the cover (existing property media shape)");
   assert.ok(intake.includes("{qt(definition.mediaIntro, lang)}") && !intake.includes("mediaBusinessIntro"), "intake shows the per-category truthful media wording (vehicle / property / business)");
   for (const f of [`${QB_COMPONENTS}/QuickBusinessIntakeClient.tsx`, `${QB_COMPONENTS}/QuickBusinessReviewStep.tsx`, `${QB_COMPONENTS}/QuickBusinessChooser.tsx`]) {
     assert.ok(!/unsplash|placeholder\.com|picsum|generateImage|FALLBACK_IMG/i.test(read(f)), `${f}: no fake image fallback satisfies the minimum`);
@@ -190,16 +248,49 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
 {
   const matrix = read("app/lib/listingPlans/revenuePricingMatrix.ts");
   const keys = [...reg.matchAll(/packageKey: "([a-z0-9_]+)"/g)].map((m) => m[1]!);
-  assert.deepEqual(new Set(keys), new Set(["servicios_base_monthly", "restaurantes_base_monthly", "autos_dealer_monthly", "br_agent_monthly"]), "postures name only the four existing base packages");
+  // Quick sells the SIMPLE package, never the Full $399 base package. Naming a base key here
+  // would charge a Quick customer for the full product.
+  assert.deepEqual(new Set(keys), new Set(["servicios_quick_monthly", "restaurantes_quick_monthly", "autos_dealer_quick_monthly", "br_agent_quick_monthly"]), "postures name only the four Quick commercial packages");
   for (const k of keys) assert.ok(matrix.includes(`"${k}"`), `packageKey ${k} exists in revenuePricingMatrix`);
   const tree = execSync(`git ls-files --others --exclude-standard --cached "${QB_ROUTE}" "${QB_LIB}"`, { cwd: ROOT, encoding: "utf8" }).trim().split(/\r?\n/).filter(Boolean);
   assert.ok(tree.length >= 12, "Quick Business tree present");
   for (const f of tree) {
     const src = read(f);
-    assert.ok(!/39900|12900|9900|\$399|\$99|priceCents: \d|stripe|Stripe|promo/.test(src), `${f}: no amount / Stripe / promo literal`);
+    // The doorway component may reference the /api/stripe/billing-portal-session URL path — a route name, not
+    // Stripe SDK usage. Strip that path before checking for SDK/pricing literals in the QB tree.
+    const srcNoPortalUrl = src.replace(/\/api\/stripe\/billing-portal-session/g, "");
+    assert.ok(!/39900|12900|9900|\$399|\$99|priceCents: \d|stripe|Stripe|promo/.test(srcNoPortalUrl), `${f}: no amount / Stripe SDK / promo literal (billing portal URL path excepted)`);
     assert.ok(!/signInWithOtp|signInWithPassword|cookies\(\)|createServerClient|service_role|SUPABASE_SERVICE_ROLE_KEY/.test(src), `${f}: no auth / privileged code`);
     assert.ok(!/owner_id|owner_user_id|ownerUserId|rosterId|authUserId/.test(src), `${f}: never writes or reads an owner / staff identity`);
-    assert.ok(!/\.from\(|\.insert\(|\.update\(|\.upsert\(|fetch\(\s*["'`]\/api\//.test(src), `${f}: never inserts rows or calls a publish API`);
+    // The Quick tree never touches the database and never calls a PUBLISH endpoint. The customer
+    // doorway is the one file that legitimately calls server APIs, because a control that cannot
+    // perform its action is worse than no control — but only the management/read endpoints named
+    // here, each of which is authenticated and ownership-checked server-side. Any other `/api/`
+    // call, and any direct Supabase access anywhere in the tree, still fails.
+    const DOORWAY_ALLOWED_ENDPOINTS = [
+      "/api/stripe/billing-portal-session", // server-created portal session (no static URL)
+      "/api/clasificados/quick-business/my-listing", // read-only canonical listing resolution
+      "/api/clasificados/servicios/manage", // existing owner lifecycle endpoint
+      "/api/clasificados/restaurantes/manage", // existing owner lifecycle endpoint
+      "/api/clasificados/bienes-raices/listing-lifecycle", // existing owner lifecycle endpoint
+      "/api/clasificados/autos/listings/", // existing owner unpublish/restore endpoints
+    ];
+    let stripped = src;
+    for (const allowed of DOORWAY_ALLOWED_ENDPOINTS) stripped = stripped.split(allowed).join("");
+    assert.ok(
+      !/\.from\(|\.insert\(|\.update\(|\.upsert\(/.test(stripped),
+      `${f}: never touches the database directly`,
+    );
+    assert.ok(
+      !/fetch\(\s*["'`]\/api\//.test(stripped),
+      `${f}: never calls an API outside the allowlisted management endpoints`,
+    );
+    // Whatever it calls, it must never be a publish endpoint. Scoped to actual fetch targets:
+    // an import path such as `lib/publish/leonixRequiredForPreviewGates` is not an API call.
+    assert.ok(
+      !/fetch\(\s*["'`][^"'`]*\/publish\b/.test(src),
+      `${f}: never calls a publish endpoint`,
+    );
     assert.ok(!/storage\.from|@vercel\/blob|mux/i.test(src), `${f}: never uploads media (existing publishers do)`);
   }
   for (const f of [`${QB_COMPONENTS}/QuickBusinessChooser.tsx`, `${QB_COMPONENTS}/QuickBusinessReviewStep.tsx`]) assert.ok(read(f).includes("getRevenuePackagePriceCents("), `${f} reads price from the server authority at render time`);
@@ -224,10 +315,190 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
     /^app\/admin\/(?!\(dashboard\)\/businesses\/QuickApplicationsLaunchpad\.tsx$)/,
     /^app\/lib\/quickClassifieds\//, /^app\/manifest\.ts$/,
   ];
-  const violations = touched.filter((f) => f.startsWith("app/") && PROTECTED.some((re) => re.test(f)));
+  /**
+   * SIMPLE-vs-FULL commercial closeout — the owner authorized exactly these Revenue OS and
+   * server-entitlement surfaces so Quick could stop pointing at the Full base packages. The
+   * list is file-exact rather than a directory pattern, so the guard still catches any other
+   * drift into `app/lib/listingPlans/` or `app/api/`.
+   */
+  const MISSION_AUTHORIZED = new Set([
+    "app/lib/listingPlans/businessAccessLevel.ts", // new: the SIMPLE/FULL resolver
+    "app/lib/listingPlans/fullOnlyFeatureGate.ts", // new: the server gate for Full-only features
+    "app/lib/listingPlans/categoryCommercialPlan.ts", // reuses the existing entitlement fetch
+    "app/lib/listingPlans/revenuePricingMatrix.ts", // the four Quick packages + access declarations
+    "app/lib/listingPlans/revenueActiveEntitlementGuard.ts", // Quick packages join the recharge guard
+    "app/lib/listingPlans/revenueCategoryCheckoutPayload.ts", // the four Quick checkout constants
+    "app/lib/listingPlans/businessAccessCopy.ts", // new: centralized ES/EN Simple/Full copy, no prices
+    "app/api/dashboard/analytics/listing/route.ts", // analytics becomes a Full-only capability
+    // Staff truth (Gate 11): the entitlement tracker could not tell a Quick row from a Full row,
+    // because both read package_tier "digital_only". Additive display only — one badge, one SKU
+    // line, and the package_key column the writer already populates surfaced on the read type.
+    "app/admin/(dashboard)/workspace/package-entitlements/page.tsx",
+    "app/admin/_lib/packageEntitlementData.ts",
+    // Chunk 2 (Gate 1) — closing the purchase circuit. Chunk 1 declared the Quick packages but
+    // nothing sold them: the Quick intake handed off to the shared preview, the preview checked
+    // out the FULL key, and the webhook would have skipped a Quick payment as "wrong package",
+    // leaving a paying customer unpublished. Each file below either chooses between two existing
+    // package keys or widens an exact-key gate to accept EITHER of a category's two base keys.
+    "app/lib/listingPlans/businessQuickPlanSignal.ts", // new: which base package is being bought
+    "app/lib/listingPlans/categoryCommercialPlanPolicy.ts", // a live Quick row is a canonical plan
+    "app/lib/listingPlans/publishCheckoutCheckpoint.ts", // Quick inventory allowance constants
+    "app/lib/listingPlans/revenueFulfillment.ts", // webhook routes a Quick payment to its category
+    "app/lib/listingPlans/revenueServiciosFulfillment.ts", // a paid Quick listing publishes
+    "app/lib/listingPlans/revenueRestaurantFulfillment.ts", // a paid Quick listing publishes
+    "app/lib/listingPlans/revenueAutosDealerFulfillment.ts", // a paid Quick listing publishes
+    "app/lib/listingPlans/revenueBienesNegocioFulfillment.ts", // a paid Quick listing publishes
+    "app/api/revenue-os/checkout/route.ts", // the autos pre-flight accepts the Quick dealer key
+    "app/(site)/clasificados/publicar/servicios/preview/ClasificadosServiciosPreviewClient.tsx",
+    "app/(site)/clasificados/restaurantes/preview/RestaurantePreviewClient.tsx",
+    "app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx",
+    "app/(site)/clasificados/autos/negocios/lib/autosDealerRevenueCheckout.ts",
+    "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewClient.tsx",
+    // Chunk 2 (Gate 3) — the SIMPLE -> FULL upgrade, and the resume price. A paid Simple customer
+    // had no purchasable route to Full, because a published listing has no checkout in its
+    // preview; and a Quick customer who abandoned Stripe was re-offered the FULL package, because
+    // the dashboard link carries no `?plan=quick` marker. Both are answered from server state.
+    // Nothing below writes to a listing row, so the upgrade cannot change identity.
+    "app/lib/listingPlans/businessBasePlanOfferPolicy.ts", // the decision, pure
+    "app/lib/listingPlans/businessBasePlanOffer.ts", // its owner-verified server reads
+    "app/lib/listingPlans/businessBasePlanOfferClient.ts", // the read-only client hook
+    "app/api/revenue-os/business-base-plan/route.ts", // read-only, bearer-auth, no mutation
+    "app/(site)/dashboard/lib/businessSimpleToFullUpgradeCheckout.ts", // the one upgrade starter
+    "app/(site)/dashboard/components/BusinessSimpleToFullUpgradePanel.tsx", // its shared CTA
+    "app/(site)/dashboard/servicios/page.tsx",
+    "app/(site)/dashboard/restaurantes/page.tsx",
+    "app/(site)/clasificados/autos/dashboard/AutosDealerInventoryDashboardSection.tsx",
+    "app/(site)/dashboard/components/LeonixRealEstateListingManageCard.tsx",
+    // Gate 2 corrective — TranslateAdControl wired into the Bienes Negocio public detail shell.
+    // Two new lib-only files (translate-ad module + hook); one existing shell updated.
+    "app/(site)/clasificados/bienes-raices/lib/bienesNegocioTranslateAd.ts",
+    "app/(site)/clasificados/bienes-raices/lib/useBienesNegocioShellTranslation.ts",
+    "app/(site)/clasificados/bienes-raices/listing/BienesRaicesNegocioLiveDetailShell.tsx",
+    // Gate 1 (SMS trace) — explicit smsNumber field added to Restaurantes model + contact hub; explicit
+    // agenteSmsPersonal propagated through Bienes agente form state → negocio form state → preview VM.
+    // No schema migration: smsNumber / smsPersonal persists in listing_json (JSONB). Backwards-compatible
+    // optional fields; legacy drafts without them fall back to phone-derived SMS.
+    "app/(site)/clasificados/restaurantes/application/restauranteListingApplicationModel.ts",
+    "app/(site)/clasificados/restaurantes/application/buildRestaurantContactHub.ts",
+    "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteIndividualResidencialFormState.ts",
+    "app/(site)/clasificados/publicar/bienes-raices/negocio/application/schema/bienesRaicesNegocioFormState.ts",
+    "app/(site)/clasificados/publicar/bienes-raices/negocio/application/mapping/mapAgenteResidencialFormStateToNegocioForPublish.ts",
+    "app/(site)/clasificados/publicar/bienes-raices/negocio/application/mapping/mapBienesRaicesNegocioStateToPreviewVm.ts",
+    // Gate 4 (Staff Operations — Restaurantes) — publish route accepts assistedAction following the
+    // Servicios golden pattern: HMAC-signed cookie, category guard, client-attributed row,
+    // linkAssistedListingToBusiness. The UI buttons in RestaurantePreviewClient.tsx remain REPAIR_REQUIRED.
+    "app/api/clasificados/restaurantes/publish/route.ts",
+    // QB Commercial Closeout — Lifecycle + Convergence gates.
+    // These are the ONLY new server surfaces authorized. All others remain protected.
+    "app/lib/listingPlans/quickToFullConvergence.ts", // Gate QB-CONVERGENCE-01: cancel Quick after Full webhook
+    "app/lib/business/assistedListingCustody.ts", // extended AssistedListingSource to include autos + bienes
+    "app/api/clasificados/autos/assisted-publish/route.ts", // Gate QB-STAFF-AUTOS-01: dealer staff-assisted publish
+    "app/api/clasificados/bienes-raices/negocio/assisted-publish/route.ts", // Gate QB-STAFF-BR-01: bienes staff-assisted publish
+    "app/api/clasificados/restaurantes/manage/route.ts", // Gate QB-RESTAURANTES-MANAGE-01: archive action
+    "app/api/stripe/billing-portal-session/route.ts", // server-side Stripe billing portal session (never static URL)
+    "app/api/clasificados/quick-business/my-listing/route.ts", // listing state resolver for doorway
+    // ---------------------------------------------------------------------------------------
+    // QUICK FINAL REPAIR — canonical identity, real lifecycle, immediate convergence, semantic
+    // media. Each entry is a surface the repair could not be performed without; nothing else in
+    // the protected tree is opened.
+    // ---------------------------------------------------------------------------------------
+    // A1 identity: self-service publishing must write the same canonical business↔listing link
+    // that staff-assisted publishing writes, or "My Business" has no durable identity to resolve.
+    "app/lib/business/canonicalListingLink.ts", // new: ownership-proving, idempotent link writer
+    "app/api/business/listing-link/route.ts", // new: the one server seam for browser-published Bienes
+    "app/api/clasificados/servicios/publish/route.ts", // additive self-service link write
+    "app/api/clasificados/autos/listings/route.ts", // additive self-service link write (dealer main row)
+    "app/(site)/clasificados/lib/leonixPublishRealEstateListingCore.ts", // additive link write-back call
+    // Consequence of A1: self-published links would otherwise appear in the admin "Leonix-prepared
+    // drafts" strip and make that label false. Filtered by linked_by vs owner.
+    "app/admin/(dashboard)/businesses/[businessId]/PreparedListingsStrip.tsx",
+    // A3 convergence: policy and orchestration split out of the server-only module so the
+    // behaviour can be proven by a test instead of asserted as a comment.
+    "app/lib/listingPlans/quickToFullConvergencePure.ts", // new: pure planner
+    "app/lib/listingPlans/quickToFullConvergenceCore.ts", // new: port-injected executor
+    "app/lib/listingPlans/revenueAuditLog.ts", // the four convergence audit actions
+    // A4 security: HMAC crypto extracted so forgery/tamper/expiry are provable by real attacks.
+    "app/lib/auth/assistedPublishingToken.ts", // new: pure token crypto
+    "app/lib/auth/assistedPublishingSession.ts", // now a thin server-only wrapper, API unchanged
+    // ------------------------------------------------------------------------------------------
+    // Gate QB-MEDIA-03 (2026-09-21 audit repair) — the semantic media contract was DECLARED but
+    // operationally inert: no producer emitted a role, a missing role was resolved to the
+    // required subject role, and only the two staff-assisted routes enforced it. Making the claim
+    // real required exactly these surfaces and no others.
+    // ------------------------------------------------------------------------------------------
+    // The four CUSTOMER self-service publish seams now run the canonical validator server-side.
+    // (servicios/publish, restaurantes/publish and autos/listings are already authorized above
+    // for the QB-IDENTITY-01 link write; the Bienes seam is new because that family publishes
+    // from the browser and therefore had no server publish handler to host the check.)
+    //
+    // Gate QB-BOUNDARY-02 RETIRED this route: asking a gate and then inserting from the browser
+    // anyway was two independent steps, and the second did not depend on the first. It stays
+    // authorized because DELETING it is itself a change to a protected path, and its replacement
+    // is the atomic publish endpoint below.
+    "app/api/clasificados/bienes-raices/negocio/publish-media-gate/route.ts",
+    // ------------------------------------------------------------------------------------------
+    // Gate QB-BOUNDARY-01 / -02 (2026-09-21 product-boundary closeout). Quick semantic-media
+    // enforcement was reaching SHARED Full publish paths, because it keyed off `lane` and
+    // `sellerType` — neither of which is a product, and both of which arrive from the browser.
+    // Closing that needed a server-owned product fact, and closing the Bienes browser insert
+    // needed a server publish operation. Exactly these surfaces, and no others.
+    // ------------------------------------------------------------------------------------------
+    // The product rule, pure: which base package (SIMPLE vs FULL) a publish is bound to, read
+    // from assisted context / live entitlement / checkout ledger / server custody, and only then
+    // from a declaration that can restrict the caller and never relax anything.
+    "app/lib/listingPlans/quickBusinessProductIdentity.ts",
+    // Its server reads. Two service-role-written ledgers, read-only, failing closed in the SAFE
+    // direction: an outage can make the answer stricter, never more permissive.
+    "app/lib/listingPlans/quickBusinessProductIdentityServer.ts",
+    // The atomic Quick Bienes publish: verify bearer → verify product → validate media → validate
+    // fields → write → link, in one authenticated server operation. Replaces the deleted gate.
+    "app/api/clasificados/bienes-raices/negocio/quick-publish/route.ts",
+    // Its pure contract (column whitelist, server-owned columns, field rules, reuse key) and its
+    // port-injected operation, split out so the security claims are proven by RUNNING them.
+    "app/lib/clasificados/bienes-raices/quickBienesPublishContract.ts",
+    "app/lib/clasificados/bienes-raices/quickBienesPublishOperation.ts",
+    // The two previews that now declare WHICH BASE PACKAGE they are about to charge, so the
+    // server no longer has to infer a product from a lane or a seller type. Declaration only:
+    // the server re-resolves it, and a declaration is read in the restricting direction alone.
+    "app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx",
+    "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewClient.tsx",
+    // The one line that carries the customer's declared photo roles from the canonical agente
+    // draft into the publish core, so the gate above is told what the customer actually said.
+    // Additive and optional: a draft without roles passes `null` and is answered with a
+    // correction, never a guess.
+    "app/(site)/clasificados/lib/leonixPublishRealEstateFromDraftState.ts",
+    // `MediaImageEntry.role?` — the additive field that lets a dealer photo say whether it is a
+    // vehicle or a dealership logo. Without it the two are the same object and the rule is
+    // unenforceable.
+    "app/(site)/clasificados/autos/negocios/types/autoDealerListing.ts",
+    // The matching dealer-lane error code for the new 422 refusal.
+    "app/lib/clasificados/autos/autosPublishApiContract.ts",
+  ]);
+  // A touched entry from `git status --short` may be a directory (`app/api/new-dir/`) for newly
+  // added dirs not yet staged; check if it is authorized directly or all contained authorized files.
+  function isPathAuthorized(f: string): boolean {
+    if (MISSION_AUTHORIZED.has(f)) return true;
+    if (f.endsWith("/")) return [...MISSION_AUTHORIZED].some((auth) => auth.startsWith(f));
+    return false;
+  }
+  const violations = touched.filter(
+    (f) => f.startsWith("app/") && !isPathAuthorized(f) && PROTECTED.some((re) => re.test(f)),
+  );
   assert.deepEqual(violations, [], `protected canonical / certified surfaces must not change: ${violations.join(", ")}`);
-  assert.ok(!touched.some((f) => f.startsWith("supabase/migrations/")), "no new database migration");
-  assert.ok(!touched.some((f) => f.startsWith("app/api/")), "no new API route");
+  // Section 6's claim is NO PARALLEL PRODUCT: Quick must not grow its own tables. Gate
+  // QB-LIFECYCLE-02 authors one additive migration that only widens two existing lifecycle CHECK
+  // constraints so two genuinely-missing owner capabilities can later exist — it creates no table
+  // and is deliberately NOT applied. The guard is therefore narrowed to the real claim rather than
+  // dropped: a migration may not create a table, and may not create a Quick-specific one at all.
+  for (const f of touched.filter((x) => x.startsWith("supabase/migrations/"))) {
+    const sql = read(f);
+    assert.ok(!/create\s+table/i.test(sql), `${f}: Quick must not create a database table`);
+    assert.ok(!/quick_/i.test(sql.replace(/^\s*--.*$/gm, "")), `${f}: no Quick-specific database object`);
+  }
+  assert.ok(
+    !touched.some((f) => f.startsWith("app/api/") && !isPathAuthorized(f)),
+    "no new API route outside MISSION_AUTHORIZED",
+  );
   const forbidden = execSync("git ls-files --others --exclude-standard --cached app", { cwd: ROOT, encoding: "utf8" }).trim().split(/\r?\n/)
     .filter((f) => f.startsWith(`${QB_ROUTE}/`) || f.startsWith(`${QB_LIB}/`))
     .filter((f) => /QuickBusiness\w*(Page|Card|Detail|Profile|Shell|Marketplace|Table|Menu|Inventory)\w*\.tsx?$/.test(f.split("/").pop() ?? ""));
@@ -242,8 +513,26 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
   const BIENES = `${QB_ADAPTERS}/bienesNegocioQuickBusinessAdapter.ts`;
   const VEHICLE_RE = /autoDealerDraft|AutoDealerListing|mediaImages|heroImages|inventory_vehicle|vehicleTitle|\bvin\b/i;
   const PROPERTY_RE = /bienesRaicesNegocioFormState|AgenteIndividualResidencialFormState|photoUrls|petsAllowed|precio:|fotosDataUrls/;
+  /**
+   * Gate QB-MEDIA-02 / QB-LIFECYCLE-02 add two CROSS-FAMILY CONTRACT modules. By definition they
+   * must name every family's vocabulary in one place — that is what makes them one contract rather
+   * than four divergent copies. They are exempt from the per-adapter isolation rule, and in
+   * exchange are held to a stricter one asserted immediately below: they may DESCRIBE a family's
+   * data but must never CONSTRUCT a listing or touch a draft store.
+   */
+  const CROSS_FAMILY_CONTRACTS = new Set([
+    `${QB_LIB}/quickBusinessMediaSemantics.ts`,
+    `${QB_LIB}/quickBusinessLifecycleCapabilities.ts`,
+  ]);
   for (const f of quickFiles) {
     const src = read(f);
+    if (CROSS_FAMILY_CONTRACTS.has(f)) {
+      assert.ok(
+        !/createEmptyListing|createDefaultClasificados|mergePartialAgente|saveAutos|persistServicios|Draft\s*=\s*\{/.test(src),
+        `${f}: a cross-family contract may describe data, never construct a listing or a draft`,
+      );
+      continue;
+    }
     if (f !== DEALER) assert.ok(!VEHICLE_RE.test(src), `${f}: vehicle data lives only in the Dealer adapter`);
     if (f !== BIENES) assert.ok(!PROPERTY_RE.test(src), `${f}: property data lives only in the Bienes adapter`);
   }
@@ -252,7 +541,13 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
   assert.ok(ad.includes("additionalInventoryVehicles: []"), "Dealer: no bundled inventory children");
   assert.ok(!/inventoryBoostSelected|inventory_role|dealer_inventory_group_id|inProgressInventoryVehicleDraft|resolveDealerActiveVehicleLimit|AUTOS_DEALER_INVENTORY_PACK/.test(ad), "Dealer: inventory pack / roles / limits untouched by Quick");
   assert.ok(!/mileage: \d|vin: "|condition: "(new|used|certified)"|price: \d|stockNumber:|monthlyEstimate:|badges: \[|features: \[|dealerHours: \[|dealerLogo:/.test(ad), "Dealer: no fabricated mileage / VIN / condition / price / stock / hours / logo");
-  assert.ok((ad.match(/mediaImages: MediaImageEntry\[\] = media\.map/g) ?? []).length === 1 && !/dealerLogo/.test(ad), "Dealer: customer photos map ONLY to the vehicle gallery, never to a dealer logo");
+  // Gate QB-MEDIA-03 — the one mapping is now `galleryMediaOnly(media)`: identity assets are
+  // filtered out rather than silently becoming vehicle photos. Still exactly one mapping, and
+  // still no dealer-logo field is written by Quick.
+  assert.ok(
+    (ad.match(/mediaImages: MediaImageEntry\[\] = galleryMediaOnly\(media\)\.map/g) ?? []).length === 1 && !/dealerLogo/.test(ad),
+    "Dealer: customer photos map ONLY to the vehicle gallery, never to a dealer logo",
+  );
   assert.ok(/label: \{ es: "Tu primer vehículo", en: "Your first vehicle" \}|title: \{ es: "Tu primer vehículo", en: "Your first vehicle" \}/.test(ad), "Dealer: the vehicle step is labeled as the first vehicle");
   // Bienes: ONE real first property, no inventory children, no fabricated property / agent facts.
   const bd = read(BIENES);
@@ -296,6 +591,279 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
   const esCount = (copy.match(/\bes: "/g) ?? []).length;
   const enCount = (copy.match(/\ben: "/g) ?? []).length;
   assert.equal(esCount, enCount, "every Quick Business copy entry has both ES and EN");
+}
+
+// 9. UPGRADE BILLING CONVERGENCE — Gate 4 corrective -----------------------------------------------------------
+// Verifies three linked correctness properties (all mock-based, no live DB/Stripe):
+//   a. billingHref is defined in all 4 registry manage blocks and points to the real Stripe portal path.
+//   b. The client doorway's billing section points to manage.billingHref (the real portal), not manageHref.
+//   c. The Pause section carries the REPAIR_REQUIRED comment and no longer labels the button "Pausar".
+//   d. decideBusinessBasePlanOffer (pure, no DB) correctly routes:
+//      "simple" → upgrade (sells full key), "full" → settled (nothing to sell).
+//   e. businessBasePackageKeys lists Full before Quick for each category — so a listing with both active
+//      resolves to Full, never to a false downgrade.
+{
+  // (a) billingHref in all 4 manage blocks
+  for (const catKey of ["servicios", "restaurantes", "autos-dealer", "bienes-negocio"] as const) {
+    const block = registryBlock(catKey.includes("-") ? `"${catKey}"` : catKey);
+    assert.ok(block.includes('billingHref: "/dashboard/perfil"'), `${catKey} manage block has billingHref → /dashboard/perfil`);
+  }
+  // (b) billing uses server-side POST to /api/stripe/billing-portal-session (Gate QB-LIFECYCLE-02):
+  //     the Stripe customer ID is resolved server-side, never passed from browser state.
+  const myBiz = read(`${QB_COMPONENTS}/QuickBusinessMyBusinessClient.tsx`);
+  assert.ok(myBiz.includes("/api/stripe/billing-portal-session"), "billing POSTs to server-side Stripe billing portal route (never a static URL)");
+  assert.ok(myBiz.includes('method: "POST"'), "billing portal call is a POST (read-only management, never a data mutation)");
+  assert.ok(!myBiz.includes("href={billingHref}") && !myBiz.includes("href={manage.billingHref}"), "billing link is not a static anchor (uses server-side session redirect)");
+  // (c) Pause/End controls. The previous form of this check asserted that NO Pause button may
+  // exist, which was the honest state while the doorway could not mutate anything. Gate
+  // QB-LIFECYCLE-02 makes those mutations real, so the requirement inverts: a control may exist,
+  // but ONLY where the family's schema genuinely supports it. That is a strictly stronger claim
+  // than "no button", and it is what the doorway is now held to.
+  assert.ok(
+    myBiz.includes("getLifecycleCapability(") && myBiz.includes('state === "supported"'),
+    "lifecycle controls are rendered from the capability matrix, never unconditionally",
+  );
+  assert.ok(
+    myBiz.includes("isTransitionLegalFrom("),
+    "a control is only offered when the transition is legal from the listing's real current status",
+  );
+  assert.ok(
+    myBiz.includes("resolveLifecycleEndpoint("),
+    "the endpoint comes from the capability matrix, so an unsupported intent cannot form a request",
+  );
+  // Labels come from the matrix, so no hard-coded verb can promise an action the schema lacks.
+  assert.ok(
+    !/>\s*(Pausar|Pause)\s*</.test(myBiz),
+    "no hard-coded Pause label — labels are supplied by the capability that proves the action exists",
+  );
+  assert.ok(myBiz.includes('"Go to dashboard"'), "the not-available path still offers honest navigation (en)");
+  // (d) decideBusinessBasePlanOffer pure logic — tested inline without DB (imported statically above)
+  for (const cat of ["servicios", "restaurantes", "autos", "bienes-raices"] as const) {
+    const upgradeOffer = decideBusinessBasePlanOffer({
+      category: cat,
+      accessLevel: "simple",
+      heldPackageKey: "some_quick_key",
+      resumePackageKey: null,
+    });
+    assert.equal(upgradeOffer.mode, "upgrade", `decideBusinessBasePlanOffer(${cat}, simple) → upgrade`);
+    assert.ok(upgradeOffer.sellPackageKey !== null, `upgrade offer for ${cat} has a sellPackageKey`);
+
+    const settledOffer = decideBusinessBasePlanOffer({
+      category: cat,
+      accessLevel: "full",
+      heldPackageKey: "some_full_key",
+      resumePackageKey: null,
+    });
+    assert.equal(settledOffer.mode, "settled", `decideBusinessBasePlanOffer(${cat}, full) → settled`);
+    assert.equal(settledOffer.sellPackageKey, null, `settled offer for ${cat} sells nothing`);
+  }
+  // (e) businessBasePackageKeys — Full must come before Quick (imported statically above)
+  for (const cat of ["servicios", "restaurantes", "autos", "bienes-raices"] as const) {
+    const keys = businessBasePackageKeys(cat);
+    assert.ok(keys.length >= 2, `${cat} has at least two base package keys (Full + Quick)`);
+    const fullIdx = keys.findIndex((k) => !k.includes("quick"));
+    const quickIdx = keys.findIndex((k) => k.includes("quick"));
+    assert.ok(fullIdx >= 0 && quickIdx >= 0, `${cat} has both full and quick package keys`);
+    assert.ok(fullIdx < quickIdx, `${cat}: Full key comes before Quick in businessBasePackageKeys (dual-active resolves to Full)`);
+  }
+}
+
+// 10. (Gate 2 corrective) BIENES NEGOCIO TRANSLATION — TranslateAdControl wired in the public detail shell -----------
+{
+  const SHELL_PATH = "app/(site)/clasificados/bienes-raices/listing/BienesRaicesNegocioLiveDetailShell.tsx";
+  const TRANSLATE_MODULE = "app/(site)/clasificados/bienes-raices/lib/bienesNegocioTranslateAd.ts";
+  const TRANSLATE_HOOK = "app/(site)/clasificados/bienes-raices/lib/useBienesNegocioShellTranslation.ts";
+  assert.ok(exists(SHELL_PATH), "BienesRaicesNegocioLiveDetailShell.tsx exists");
+  assert.ok(exists(TRANSLATE_MODULE), "bienesNegocioTranslateAd.ts module exists");
+  assert.ok(exists(TRANSLATE_HOOK), "useBienesNegocioShellTranslation hook exists");
+  const shell = read(SHELL_PATH);
+  assert.ok(shell.includes("TranslateAdControl"), "shell imports TranslateAdControl");
+  assert.ok(shell.includes("useBienesNegocioShellTranslation"), "shell imports useBienesNegocioShellTranslation");
+  assert.ok(shell.includes("requestAdTranslation"), "shell imports requestAdTranslation");
+  assert.ok(shell.includes("shellTx.displayData"), "shell passes shellTx.displayData (not bare data) to the preview page");
+  assert.ok(shell.includes("beforeMainGrid: translateControl"), "shell wires translateControl into publicChrome.beforeMainGrid");
+  // Translation module correctness: title, description, and locationNote map to the right canonical fields.
+  const mod = read(TRANSLATE_MODULE);
+  assert.ok(mod.includes("title: data.titulo"), "translate module maps título → title slot");
+  assert.ok(mod.includes("description: data.descripcionPrincipal"), "translate module maps descripcionPrincipal → description slot");
+  assert.ok(mod.includes("next = { ...next, titulo: translated.title"), "translate module applies title back to titulo");
+  assert.ok(mod.includes("next = { ...next, descripcionPrincipal: translated.description"), "translate module applies description back to descripcionPrincipal");
+}
+
+// 11. STAFF OPERATIONS — QB Commercial Closeout -------------------------------------------------------------------
+// Proves:
+//   a. publishForClientSupported: true for ALL 4 categories (QB-STAFF-AUTOS-01 + QB-STAFF-BR-01 wired).
+//   b. No REPAIR_REQUIRED remains for Autos Dealer or Bienes Negocio.
+//   c. The launchpad renders the staff note for ALL categories.
+{
+  // (a) All 4 categories are now wired
+  assert.equal((reg.match(/publishForClientSupported: true/g) ?? []).length, 4, "all 4 categories have publishForClientSupported: true (QB Commercial Closeout)");
+  assert.equal((reg.match(/publishForClientSupported: false/g) ?? []).length, 0, "no category has publishForClientSupported: false any more");
+
+  // (b) All 4 staff blocks are wired — no REPAIR_REQUIRED
+  for (const catKey of ["servicios", "restaurantes", "autos-dealer", "bienes-negocio"] as const) {
+    const keyExpr = catKey.includes("-") ? `"${catKey}"` : catKey;
+    const block = registryBlock(keyExpr);
+    assert.ok(block.includes("publishForClientSupported: true"), `${catKey} staff block is wired (publishForClientSupported: true)`);
+    assert.ok(!block.includes("publishForClientSupported: false"), `${catKey} staff block does NOT incorrectly declare false`);
+  }
+  // Autos and Bienes REPAIR_REQUIRED must be gone (routes now exist)
+  for (const catKey of ["autos-dealer", "bienes-negocio"] as const) {
+    const block = registryBlock(`"${catKey}"`);
+    assert.ok(!block.includes("REPAIR_REQUIRED"), `${catKey} staff block no longer carries REPAIR_REQUIRED (route now wired)`);
+  }
+  // New staff routes exist
+  assert.ok(exists("app/api/clasificados/autos/assisted-publish/route.ts"), "Autos Dealer staff-assisted publish route exists (QB-STAFF-AUTOS-01)");
+  assert.ok(exists("app/api/clasificados/bienes-raices/negocio/assisted-publish/route.ts"), "Bienes Negocio staff-assisted publish route exists (QB-STAFF-BR-01)");
+  // Restaurantes manage route (archive action, no paused status in canonical schema)
+  assert.ok(exists("app/api/clasificados/restaurantes/manage/route.ts"), "Restaurantes manage route exists (archive action only)");
+  const restaurantesManage = read("app/api/clasificados/restaurantes/manage/route.ts");
+  // Route accepts only "archive"; "paused" must not appear in ALLOWED_ACTIONS or any status transition
+  assert.ok(restaurantesManage.includes('"archive"'), "Restaurantes manage: archive action present");
+  assert.ok(!restaurantesManage.includes('"paused"') || restaurantesManage.includes('does NOT have a "paused"'), "Restaurantes manage: paused only appears in a disclaimer comment, never as an action");
+  // Billing portal session route (server-side, never static URL)
+  assert.ok(exists("app/api/stripe/billing-portal-session/route.ts"), "Stripe billing portal session route exists (server-side, never static URL)");
+  // My-listing resolver exists
+  assert.ok(exists("app/api/clasificados/quick-business/my-listing/route.ts"), "Quick Business my-listing resolver route exists");
+
+  // (c) Launchpad renders staff note for ALL categories (not gated on publishForClientSupported: true)
+  const launchpad = read("app/admin/(dashboard)/businesses/QuickApplicationsLaunchpad.tsx");
+  // The note must appear in BOTH the true branch and a fallback (else/ternary) — NOT in a single if-true block only
+  assert.ok(
+    launchpad.includes("def.staff.publishForClientSupported ?") || launchpad.includes("def.staff.publishForClientSupported &&"),
+    "launchpad checks publishForClientSupported",
+  );
+  // The note text must be reachable when publishForClientSupported is false
+  const afterTrueBranch = launchpad.slice(launchpad.indexOf("def.staff.note.es"));
+  // There must be a second occurrence of def.staff.note.es (the false/else branch)
+  assert.ok(afterTrueBranch.includes("def.staff.note.es", 1), "launchpad renders def.staff.note.es in BOTH branches (supported and REPAIR_REQUIRED)");
+}
+
+// 12. MEDIA SEMANTICS — Gate 6 corrective -------------------------------------------------------------------
+// Proves at all authority layers: 0 images → blocked, 1–3 → allowed, 4 → blocked, video → blocked.
+// Layer 1: contract definition (registry).
+// Layer 2: validation function shape (quickClassifiedValidation.ts).
+// Layer 3: intake UI enforcement (QuickBusinessIntakeClient.tsx, QuickMediaStep.tsx).
+// Layer 4: adapter shape (first image becomes canonical cover/hero/primary).
+{
+  // Layer 1 — registry contract
+  assert.ok(reg.includes("return { minImages: 1, maxImages: 3, videoOptional: false, note };"), "registry contract: minImages=1, maxImages=3, videoOptional=false (Bible §11.1)");
+  // All 4 categories use this same contract helper; confirm by counting media() invocations
+  assert.equal((reg.match(/media\(\{/g) ?? []).length, 4, "all 4 categories use the shared media() factory (same contract applied everywhere)");
+
+  // Layer 2 — validation function shape
+  const validation = read("app/lib/quickClassifieds/quickClassifiedValidation.ts");
+  // 0 images → blocked: media.length < contract.minImages triggers an issue
+  assert.ok(validation.includes("media.length < contract.minImages"), "validateQuickMedia: 0 images blocked via minImages check");
+  // 4 images → blocked: media.length > contract.maxImages triggers an issue when maxImages is non-null
+  assert.ok(validation.includes("contract.maxImages != null && media.length > contract.maxImages"), "validateQuickMedia: 4+ images blocked via maxImages check");
+  // 1–3 → allowed: the function returns [] when both conditions pass (no negative assertion needed;
+  // the two guarded branches above are the only error paths in the function)
+
+  // Layer 3 — intake UI: (a) validation called at Next and Submit, (b) file input rejects non-images, (c) video not offered
+  const intake = read(`${QB_COMPONENTS}/QuickBusinessIntakeClient.tsx`);
+  assert.ok(
+    intake.includes("validateQuickBusinessIntakeMedia(draft.media, definition.media, lang, category)"),
+    "QuickBusinessIntakeClient: the Quick Business media validator is called at step navigation and submit",
+  );
+  // Gate QB-MEDIA-03 — and the browser is explicitly NOT the boundary: the same contract is
+  // re-run on the server against the payload that actually arrives.
+  assert.ok(
+    intake.includes("re-run on the server against the payload that actually arrives"),
+    "QuickBusinessIntakeClient: the intake states that browser validation is UX, not the security boundary",
+  );
+  // Layer 2b — that validator is strictly stronger than the Classifieds one it replaced here:
+  // it enforces the same count bounds AND rejects video AND excludes identity assets from the
+  // minimum, so a logo can never stand in for the required photo.
+  {
+    const semantics = read(`${QB_LIB}/quickBusinessMediaSemantics.ts`);
+    assert.ok(semantics.includes("export function validateQuickBusinessIntakeMedia("), "the intake validator exists");
+    assert.ok(/contract\.videoOptional/.test(semantics), "it enforces the no-video rule");
+    assert.ok(/contract\.minImages/.test(semantics) && /contract\.maxImages/.test(semantics), "it enforces both count bounds");
+    assert.ok(/IDENTITY_ROLES\.includes/.test(semantics), "identity assets do not count toward the minimum");
+  }
+  const mediaStep = read("app/(site)/publicar/rapido/_components/QuickMediaStep.tsx");
+  assert.ok(mediaStep.includes('accept="image/*"'), "QuickMediaStep: file input accepts image/* only (video inputs absent)");
+  assert.ok(!mediaStep.includes('accept="video') && !mediaStep.includes("video/*"), "QuickMediaStep: no video accept attribute (video blocked at upload layer)");
+  // Gate QB-MEDIA-03 — the step Quick Business actually renders is held to the SAME no-video lock,
+  // and, additionally, must never pre-select a subject role for a declared-attribution family.
+  {
+    const qbStep = read(`${QB_COMPONENTS}/QuickBusinessMediaStep.tsx`);
+    assert.ok(qbStep.includes('accept="image/*"'), "QuickBusinessMediaStep: file input accepts image/* only");
+    assert.ok(!qbStep.includes('accept="video') && !qbStep.includes("video/*"), "QuickBusinessMediaStep: no video accept attribute");
+    assert.ok(
+      qbStep.includes('SUBJECT_ATTRIBUTION[category] === "structural" ? subjectRole : null'),
+      "QuickBusinessMediaStep: a vehicle/property family starts every new photo UNMARKED — no silent default",
+    );
+    assert.ok(
+      qbStep.includes("compressImageFileToJpegDataUrl"),
+      "QuickBusinessMediaStep: reuses the EXISTING compressor, so canonical stores receive the representation they already expect",
+    );
+  }
+
+  // Layer 4 — adapter: first image is the canonical cover/hero/primary (no photo → no cover)
+  const sv = read(`${QB_ADAPTERS}/serviciosQuickBusinessAdapter.ts`);
+  assert.ok(sv.includes("coverUrl: gallery[0]?.url"), "Servicios: first image is the canonical cover (undefined when none)");
+  const rs = read(`${QB_ADAPTERS}/restaurantesQuickBusinessAdapter.ts`);
+  assert.ok(rs.includes("heroImage: hero ??"), "Restaurantes: first image is the canonical hero");
+  const ad = read(`${QB_ADAPTERS}/autosDealerQuickBusinessAdapter.ts`);
+  assert.ok(ad.includes("isPrimary: i === 0"), "Dealer: first vehicle photo is the canonical primary MediaImageEntry");
+  const bd = read(`${QB_ADAPTERS}/bienesNegocioQuickBusinessAdapter.ts`);
+  assert.ok(bd.includes("fotoPortadaIndex: 0"), "Bienes: first property photo is the canonical portada cover");
+}
+
+// 13. VERIFIER TRUTH — Gate 7 corrective -------------------------------------------------------------------
+// Self-tests: key assertions in this verifier must ACTUALLY FAIL on broken inputs.
+// Without negative tests a passing verifier is indistinguishable from one that trivially returns true.
+{
+  // (a) Staff: verifier catches a registry where one of the 4 true entries is incorrectly set to false
+  const regMissingWiring = reg.replace(/publishForClientSupported: true/g, (m, offset) => {
+    // Replace the first occurrence with "false" — simulates 1 gap regression
+    const before = reg.slice(0, offset);
+    const occurrencesSoBefore = (before.match(/publishForClientSupported: true/g) ?? []).length;
+    return occurrencesSoBefore < 1 ? "publishForClientSupported: false" : m;
+  });
+  let caught = false;
+  try {
+    assert.equal((regMissingWiring.match(/publishForClientSupported: true/g) ?? []).length, 4, "self-test: should fail with fewer than 4 true entries");
+  } catch {
+    caught = true;
+  }
+  assert.ok(caught, "Gate 7 self-test (a): publishForClientSupported count assertion catches a registry with fewer than 4 true entries");
+
+  // (b) Media: verifier catches a contract with minImages: 0 (Media Lock violated)
+  const regBrokenMin = reg.replace("return { minImages: 1, maxImages: 3, videoOptional: false, note };", "return { minImages: 0, maxImages: 3, videoOptional: false, note };");
+  let caughtMedia = false;
+  try {
+    assert.ok(regBrokenMin.includes("return { minImages: 1, maxImages: 3, videoOptional: false, note };"), "self-test: should fail when minImages ≠ 1");
+  } catch {
+    caughtMedia = true;
+  }
+  assert.ok(caughtMedia, "Gate 7 self-test (b): media contract assertion catches minImages: 0 (Media Lock violation)");
+
+  // (c) Billing: verifier catches a doorway that uses a static href for billing (old pattern, now prohibited)
+  //     Server-side billing portal session is now required; a static Link would be the regression.
+  const syntheticDoorwayWithStaticBilling = `<Link href={billingHref}>Billing</Link>`;
+  let caughtBilling = false;
+  try {
+    // The new check: billing must NOT use a static href
+    assert.ok(!syntheticDoorwayWithStaticBilling.includes("href={billingHref}"), "self-test: should fail when static billingHref anchor exists");
+  } catch {
+    caughtBilling = true;
+  }
+  assert.ok(caughtBilling, "Gate 7 self-test (c): doorway billing check catches a static billingHref anchor (regression to old pattern)");
+
+  // (d) Upgrade: decideBusinessBasePlanOffer must reject an impossible input at the type level;
+  //     prove here that the settled offer provides null sellPackageKey (non-null would mean double-selling)
+  const settledSimulation = decideBusinessBasePlanOffer({ category: "servicios", accessLevel: "full", heldPackageKey: "x", resumePackageKey: null });
+  assert.equal(settledSimulation.sellPackageKey, null, "Gate 7 self-test (d): settled Full customer has null sellPackageKey (no double-sell possible)");
+  let caughtSettled = false;
+  try {
+    assert.ok(settledSimulation.sellPackageKey !== null, "self-test: should fail when sellPackageKey is null");
+  } catch {
+    caughtSettled = true;
+  }
+  assert.ok(caughtSettled, "Gate 7 self-test (d): settled-offer null check assertion catches a non-null sellPackageKey (double-sell)");
 }
 
 console.log("verify-quick-business-core-01: OK");

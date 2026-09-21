@@ -88,6 +88,17 @@ export type MediaImageEntry = {
   sourceType: MediaImageSourceType;
   isPrimary: boolean;
   sortOrder: number;
+  /**
+   * Gate QB-MEDIA-03 — what this image DEPICTS (`vehicle` | `logo` | `business` | …), as declared
+   * by whoever uploaded it. Optional and additive: every existing reader ignores it and every
+   * existing draft stays valid on load.
+   *
+   * It exists because "at least one real photo of the vehicle" is otherwise unenforceable — a
+   * dealership logo and a vehicle photo are the same `MediaImageEntry` without it. The dealer
+   * publish seam re-reads this server-side and refuses a listing whose declared roles cannot
+   * satisfy the vehicle requirement, so the rule holds regardless of what the browser did.
+   */
+  role?: string;
 };
 
 /**

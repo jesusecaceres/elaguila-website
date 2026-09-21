@@ -29,10 +29,35 @@ export type EntitlementRowFacts = {
   endsAt: string | null;
 };
 
+/**
+ * The FULL base package per category. Still the single key an admin print grant is stamped with
+ * and the key whose capabilities the print fallback confers, because a print bundle that includes
+ * digital business access is the Full product, not the Quick one.
+ */
 export const CATEGORY_BASE_PACKAGE_KEY: Readonly<Record<string, string>> = {
   restaurantes: "restaurantes_base_monthly",
   servicios: "servicios_base_monthly",
 };
+
+/**
+ * Every package key that counts as a canonical base subscription for a category, best first.
+ *
+ * Quick (SIMPLE, $99) and Full ($399) are two price/access levels of ONE product sharing one
+ * listing row, so a live Quick row is a real, paid, canonical plan — not "no package". Ordering is
+ * significant: a customer who holds both (the window between an upgrade being paid and the Quick
+ * subscription ending) resolves to Full, so an upgrade never reads as a downgrade.
+ *
+ * Capabilities are still read from whichever package actually won, so Quick confers Quick's
+ * capabilities (none) and never Full's.
+ */
+const CATEGORY_BASE_PACKAGE_KEYS: Readonly<Record<string, readonly string[]>> = {
+  restaurantes: ["restaurantes_base_monthly", "restaurantes_quick_monthly"],
+  servicios: ["servicios_base_monthly", "servicios_quick_monthly"],
+};
+
+function baseKeysFor(category: string): readonly string[] {
+  return CATEGORY_BASE_PACKAGE_KEYS[category] ?? [];
+}
 
 export const CATEGORY_ADDON_PACKAGE_KEY: Readonly<Record<string, string>> = {
   restaurantes: "restaurantes_offers_addon",
@@ -82,12 +107,17 @@ export function resolveCanonicalEntitlement(input: {
   rows: EntitlementRowFacts[];
   nowMs: number;
 }): CanonicalResolution {
-  const baseKey = CATEGORY_BASE_PACKAGE_KEY[input.category];
+  const baseKeys = baseKeysFor(input.category);
   const addonKey = CATEGORY_ADDON_PACKAGE_KEY[input.category];
   const live = input.rows.filter((r) => isRowCurrentlyLive(r, input.nowMs));
   const notLive = input.rows.filter((r) => !isRowCurrentlyLive(r, input.nowMs));
 
-  let canonical: EntitlementRowFacts | null = baseKey ? live.find((r) => r.packageKey === baseKey) ?? null : null;
+  // Best-first: Full before Quick, so holding both resolves to Full.
+  let canonical: EntitlementRowFacts | null = null;
+  for (const key of baseKeys) {
+    canonical = live.find((r) => r.packageKey === key) ?? null;
+    if (canonical) break;
+  }
   let canonicalIsPrintFallback = false;
   if (!canonical) {
     const fallback = live.find((r) => qualifiesForLegacyPrintIncludedFallback(r, input.category)) ?? null;
@@ -101,11 +131,10 @@ export function resolveCanonicalEntitlement(input: {
 
   let expiredCanonicalCandidate: EntitlementRowFacts | null = null;
   if (!canonical) {
-    const expiredBase = baseKey
-      ? notLive
-          .filter((r) => r.packageKey === baseKey)
-          .sort((a, b) => Date.parse(b.endsAt ?? "") - Date.parse(a.endsAt ?? ""))[0] ?? null
-      : null;
+    const expiredBase =
+      notLive
+        .filter((r) => r.packageKey != null && baseKeys.includes(r.packageKey))
+        .sort((a, b) => Date.parse(b.endsAt ?? "") - Date.parse(a.endsAt ?? ""))[0] ?? null;
     const expiredFallback =
       notLive.filter((r) => qualifiesForLegacyPrintIncludedFallback(r, input.category))
         .sort((a, b) => Date.parse(b.endsAt ?? "") - Date.parse(a.endsAt ?? ""))[0] ?? null;

@@ -1,0 +1,476 @@
+/**
+ * Business access level — the SIMPLE vs FULL commercial dimension (pure: no DB, no Stripe, no env).
+ *
+ * Leonix sells two orthogonal things to a business:
+ *
+ *   1. PRINT PACKAGE TIER  (`package_tier`: quarter_page | half_page | full_page | premium | …)
+ *      — magazine placement plus the print VISIBILITY benefits already modelled by
+ *        `packageEntitlements.ts` (destacados, results priority, republish, boost, print badge).
+ *
+ *   2. BUSINESS ACCESS LEVEL (this module: none | simple | full)
+ *      — how much of the DIGITAL business product the customer may use.
+ *
+ * They are deliberately NOT conflated. Overloading the print tier enum with digital access
+ * would corrupt ranking, because ranking reads the tier. A quarter-page advertiser keeps its
+ * quarter-page ranking AND gets `simple` digital access; a half-page advertiser keeps its
+ * half-page ranking AND gets `full` digital access.
+ *
+ * Nothing here is stored. The level is DERIVED at read time from columns that already exist on
+ * `listing_package_entitlements` (`package_key`, `package_tier`, `status`, `ends_at`), so this
+ * model needs no migration and no new table. Two independent sources can grant it:
+ *
+ *   - a digital package the customer bought   -> `RevenuePackageDefinition.businessAccessLevel`
+ *   - a print package the customer bought     -> `businessAccessLevelForPrintTier` (the bridge)
+ *
+ * When a customer holds both, the HIGHEST level wins. A print half-page subscriber who also
+ * bought a $99 Quick package is `full`, never `simple` — this module can only ever upgrade a
+ * customer, never silently downgrade one.
+ */
+
+import { isRowCurrentlyLive, type EntitlementRowFacts } from "./categoryCommercialPlanPolicy";
+import { normalizePackageEntitlementTier, type PackageEntitlementTier } from "./packageEntitlements";
+import { getRevenuePackageDefinition } from "./revenuePricingMatrix";
+
+export type BusinessAccessLevel = "none" | "simple" | "full";
+
+/**
+ * Capabilities gated by ACCESS LEVEL. Deliberately disjoint from
+ * `RevenuePackageDefinition.capabilities` (today: `coupons_offers`), which stays the per-package
+ * grant it already is. Keeping them separate is what stops this module from silently widening an
+ * existing product: granting `full` never invents `coupons_offers` for a category whose package
+ * never declared it.
+ */
+export type BusinessAccessCapability =
+  // Included at SIMPLE and above.
+  | "public_listing"
+  | "contact_ctas"
+  | "simple_management"
+  | "upgrade_to_full"
+  // FULL only.
+  | "business_hub"
+  | "analytics"
+  | "leads"
+  | "business_tools"
+  | "business_concierge"
+  | "inventory_expansion"
+  | "advanced_media";
+
+const SIMPLE_CAPABILITIES: readonly BusinessAccessCapability[] = [
+  "public_listing",
+  "contact_ctas",
+  "simple_management",
+  "upgrade_to_full",
+];
+
+/** Everything SIMPLE has, plus the operator-grade surfaces Simple is explicitly sold without. */
+const FULL_ONLY_CAPABILITIES: readonly BusinessAccessCapability[] = [
+  "business_hub",
+  "analytics",
+  "leads",
+  "business_tools",
+  "business_concierge",
+  "inventory_expansion",
+  "advanced_media",
+];
+
+export const BUSINESS_ACCESS_FULL_ONLY_CAPABILITIES = FULL_ONLY_CAPABILITIES;
+
+const RANK: Record<BusinessAccessLevel, number> = { none: 0, simple: 1, full: 2 };
+
+export function compareBusinessAccessLevel(a: BusinessAccessLevel, b: BusinessAccessLevel): number {
+  return RANK[a] - RANK[b];
+}
+
+/** The higher of two levels. Used everywhere two grants overlap — never the newer or the cheaper. */
+export function maxBusinessAccessLevel(
+  a: BusinessAccessLevel,
+  b: BusinessAccessLevel,
+): BusinessAccessLevel {
+  return RANK[a] >= RANK[b] ? a : b;
+}
+
+export function capabilitiesForBusinessAccessLevel(
+  level: BusinessAccessLevel,
+): BusinessAccessCapability[] {
+  if (level === "full") return [...SIMPLE_CAPABILITIES, ...FULL_ONLY_CAPABILITIES];
+  if (level === "simple") return [...SIMPLE_CAPABILITIES];
+  return [];
+}
+
+export function businessAccessAllows(
+  level: BusinessAccessLevel,
+  capability: BusinessAccessCapability,
+): boolean {
+  return capabilitiesForBusinessAccessLevel(level).includes(capability);
+}
+
+export function isFullOnlyCapability(capability: BusinessAccessCapability): boolean {
+  return FULL_ONLY_CAPABILITIES.includes(capability);
+}
+
+/**
+ * OWNER COMMERCIAL LOCK — the print-to-digital business-access bridge.
+ *
+ * Quarter page includes SIMPLE digital access; half page, full page and premium include FULL.
+ * This grants DIGITAL PRODUCT ACCESS only. Print ranking and print visibility benefits are
+ * untouched and continue to come from `packageEntitlements.getPackageEntitlementBenefits`, which
+ * this function deliberately does not call: the two dimensions must stay independently auditable.
+ *
+ * `classified_print` and `digital_only` are NOT business packages, so they bridge to nothing —
+ * a digital-only row's access comes from its own `package_key`, not from its tier.
+ */
+export function businessAccessLevelForPrintTier(
+  tier: PackageEntitlementTier | string | null | undefined,
+): BusinessAccessLevel {
+  const normalized = normalizePackageEntitlementTier(tier);
+  switch (normalized) {
+    case "premium":
+    case "full_page":
+    case "half_page":
+      return "full";
+    case "quarter_page":
+      return "simple";
+    default:
+      return "none";
+  }
+}
+
+/** The access level a purchased digital package confers, declared on the package itself. */
+export function businessAccessLevelForPackageKey(
+  packageKey: string | null | undefined,
+): BusinessAccessLevel {
+  const key = String(packageKey ?? "").trim().toLowerCase();
+  if (!key) return "none";
+  const def = getRevenuePackageDefinition(key);
+  if (!def?.businessAccessLevel) return "none";
+  return def.businessAccessLevel;
+}
+
+export type BusinessAccessRowGrant = {
+  level: BusinessAccessLevel;
+  kind: BusinessAccessGrantSourceKind;
+  packageKey: string | null;
+  printTier: PackageEntitlementTier | null;
+};
+
+/**
+ * What ONE entitlement row grants. One row is one purchase, so it yields at most one grant.
+ *
+ * The print tier WINS over the row's own `package_key` whenever the row is a print row, and that
+ * precedence is load-bearing rather than cosmetic. Package C Build 3 stamps the category's base
+ * (Full) package key onto print-tier admin grants in restaurantes/servicios so the pre-existing
+ * capability resolver can find the base definition by exact key. That stamp records which
+ * category catalog entry to read — it is NOT evidence the customer bought the $399 digital
+ * product. Taking the max of the two dimensions here would hand every quarter-page advertiser
+ * FULL access off the back of a bookkeeping field, breaking the owner lock that quarter page
+ * includes SIMPLE only. Reading the tier first keeps the print ladder authoritative for print
+ * rows while leaving the stamp doing its original capability job, untouched.
+ *
+ * Rows with no print tier (`digital_only`, `classified_print`) fall through to the package key,
+ * which is how a standalone $99 Quick or $399 Full purchase is recognized.
+ */
+export function businessAccessGrantForRow(input: {
+  packageKey?: string | null;
+  packageTier?: string | null;
+}): BusinessAccessRowGrant | null {
+  const fromPrint = businessAccessLevelForPrintTier(input.packageTier);
+  if (fromPrint !== "none") {
+    return {
+      level: fromPrint,
+      kind: "print_package",
+      packageKey: null,
+      printTier: normalizePackageEntitlementTier(input.packageTier),
+    };
+  }
+
+  const fromPackage = businessAccessLevelForPackageKey(input.packageKey);
+  if (fromPackage !== "none") {
+    return {
+      level: fromPackage,
+      kind: "digital_package",
+      packageKey: input.packageKey ?? null,
+      printTier: null,
+    };
+  }
+
+  return null;
+}
+
+/**
+ * The Simple/Full package pair per business category — the ONE place that knows which package
+ * key a given access level buys. Quick intake reads `simple`, standard intake reads `full`, and
+ * the upgrade contract reads `full` as its target. Nothing else may pair these keys, so a Quick
+ * flow can never silently point at the Full package again.
+ *
+ * Categories absent from this map have no Simple/Full split (Comida Local, Viajes, every
+ * classified category) and are deliberately untouched by the access model.
+ */
+export const BUSINESS_CATEGORY_PACKAGE_PAIR: Readonly<
+  Record<string, { readonly simple: string; readonly full: string }>
+> = {
+  servicios: { simple: "servicios_quick_monthly", full: "servicios_base_monthly" },
+  restaurantes: { simple: "restaurantes_quick_monthly", full: "restaurantes_base_monthly" },
+  autos: { simple: "autos_dealer_quick_monthly", full: "autos_dealer_monthly" },
+  "bienes-raices": { simple: "br_agent_quick_monthly", full: "br_agent_monthly" },
+};
+
+/** True when a category participates in the Simple/Full split at all. */
+export function isBusinessAccessCategory(category: string | null | undefined): boolean {
+  return Boolean(BUSINESS_CATEGORY_PACKAGE_PAIR[String(category ?? "").trim().toLowerCase()]);
+}
+
+/** The package key a category sells at a given level. `none` never maps to a package. */
+export function businessPackageKeyForLevel(
+  category: string | null | undefined,
+  level: BusinessAccessLevel,
+): string | null {
+  const pair = BUSINESS_CATEGORY_PACKAGE_PAIR[String(category ?? "").trim().toLowerCase()];
+  if (!pair || level === "none") return null;
+  return level === "full" ? pair.full : pair.simple;
+}
+
+/** The Full package a Simple customer upgrades INTO. Null when the category has no split. */
+export function upgradeTargetPackageKey(category: string | null | undefined): string | null {
+  return businessPackageKeyForLevel(category, "full");
+}
+
+/**
+ * The upgrade to offer a listing whose CURRENT base package is `heldPackageKey`, or null when
+ * there is nothing to offer (already Full, no base package, or a category outside the split).
+ *
+ * Owner surfaces call this with the package key the SERVER resolved for the row, so an upgrade
+ * button is shown from real entitlement truth rather than from anything the page inferred. Pure,
+ * so the same rule is testable and cannot be restated differently per dashboard.
+ */
+export function businessUpgradeOfferedForHeldPackageKey(
+  category: string | null | undefined,
+  heldPackageKey: string | null | undefined,
+): string | null {
+  const pair = BUSINESS_CATEGORY_PACKAGE_PAIR[String(category ?? "").trim().toLowerCase()];
+  if (!pair) return null;
+  return String(heldPackageKey ?? "").trim().toLowerCase() === pair.simple ? pair.full : null;
+}
+
+/**
+ * Both base subscriptions a category sells, Full first.
+ *
+ * Quick and Full are two price/access levels of ONE product, not two products: they share the
+ * canonical draft, preview, publisher, listing row and public page. Every gate that used to ask
+ * "is this THE base package key?" must therefore ask "is this ONE OF the category's base package
+ * keys?", or a paid Quick customer is treated as though they never bought anything — their
+ * listing never activates and their plan resolves to `none`.
+ *
+ * Full is listed first so a customer holding both (the moment an upgrade completes, before the
+ * Quick subscription is cancelled) resolves to Full rather than to whichever row is found first.
+ */
+export function businessBasePackageKeys(category: string | null | undefined): readonly string[] {
+  const pair = BUSINESS_CATEGORY_PACKAGE_PAIR[String(category ?? "").trim().toLowerCase()];
+  return pair ? [pair.full, pair.simple] : [];
+}
+
+/** True when `packageKey` is either base subscription for `category` (Quick or Full). */
+export function isBusinessBasePackageKey(
+  category: string | null | undefined,
+  packageKey: string | null | undefined,
+): boolean {
+  const key = String(packageKey ?? "").trim().toLowerCase();
+  return key.length > 0 && businessBasePackageKeys(category).includes(key);
+}
+
+export type BusinessAccessGrantSourceKind = "digital_package" | "print_package" | "none";
+
+export type BusinessAccessDecision = {
+  level: BusinessAccessLevel;
+  capabilities: BusinessAccessCapability[];
+  /** Which dimension produced the winning level — for honest staff/admin display. */
+  source: BusinessAccessGrantSourceKind;
+  /** The winning row's package key, when the winner was a digital package. Never fabricated. */
+  packageKey: string | null;
+  /** The winning row's print tier, when the winner was a print package. Never fabricated. */
+  printTier: PackageEntitlementTier | null;
+  /** Every live grant seen, highest first — so staff can see "print half page + quick". */
+  grants: BusinessAccessGrant[];
+};
+
+export type BusinessAccessGrant = {
+  level: BusinessAccessLevel;
+  kind: BusinessAccessGrantSourceKind;
+  packageKey: string | null;
+  printTier: PackageEntitlementTier | null;
+  entitlementId: string;
+  endsAt: string | null;
+};
+
+const NO_ACCESS: BusinessAccessDecision = {
+  level: "none",
+  capabilities: [],
+  source: "none",
+  packageKey: null,
+  printTier: null,
+  grants: [],
+};
+
+/**
+ * Decide business access from the caller's full live entitlement row set.
+ *
+ * Mirrors the liveness doctrine already established in `categoryCommercialPlanPolicy`: a listing
+ * may legitimately hold several simultaneously-live rows, and a stale `active` row past its own
+ * `ends_at` is not live even though nothing has swept it yet. A `suspended` subscription blocks
+ * access outright, matching the locked grace doctrine (grace keeps paid access usable).
+ */
+export function decideBusinessAccess(input: {
+  rows: readonly EntitlementRowFacts[];
+  nowMs: number;
+  subscriptionOverride?: "grace" | "suspended" | null;
+}): BusinessAccessDecision {
+  if (input.subscriptionOverride === "suspended") return { ...NO_ACCESS };
+
+  const grants: BusinessAccessGrant[] = [];
+  for (const row of input.rows ?? []) {
+    if (!isRowCurrentlyLive(row, input.nowMs)) continue;
+
+    const grant = businessAccessGrantForRow({
+      packageKey: row.packageKey,
+      packageTier: row.packageTier,
+    });
+    if (!grant) continue;
+
+    grants.push({ ...grant, entitlementId: row.id, endsAt: row.endsAt });
+  }
+
+  if (grants.length === 0) return { ...NO_ACCESS };
+
+  grants.sort((a, b) => RANK[b.level] - RANK[a.level]);
+  const winner = grants[0]!;
+
+  return {
+    level: winner.level,
+    capabilities: capabilitiesForBusinessAccessLevel(winner.level),
+    source: winner.kind,
+    packageKey: winner.packageKey,
+    printTier: winner.printTier,
+    grants,
+  };
+}
+
+/**
+ * The body every denied Full-only route returns. Pure and defined here rather than beside the
+ * server gate so it stays directly testable — importing the gate pulls in `server-only`, which
+ * by design cannot load outside a server context.
+ */
+export function fullOnlyFeatureDeniedBody(input: {
+  level: BusinessAccessLevel;
+  capability: BusinessAccessCapability;
+  upgradePackageKey: string | null;
+}): {
+  ok: false;
+  error: "upgrade_required";
+  required_level: "full";
+  business_access_level: BusinessAccessLevel;
+  capability: BusinessAccessCapability;
+  upgrade_package_key: string | null;
+} {
+  return {
+    ok: false,
+    error: "upgrade_required",
+    required_level: "full",
+    business_access_level: input.level,
+    capability: input.capability,
+    upgrade_package_key: input.upgradePackageKey,
+  };
+}
+
+export type BusinessAccessBadge = {
+  level: BusinessAccessLevel;
+  /** Whether a print package is part of this row's grant. */
+  fromPrint: boolean;
+  /** The print tier behind the grant, for a print row. Null for a standalone digital row. */
+  printTier: PackageEntitlementTier | null;
+  /**
+   * Staff-facing label. One of exactly six, matching the six commercial products a staff member
+   * has to be able to tell apart: `QUICK / SIMPLE`, `FULL`, `PRINT QUARTER + SIMPLE`,
+   * `PRINT HALF + FULL`, `PRINT FULL PAGE + FULL`, `PRINT PREMIUM + FULL`.
+   */
+  label: string;
+};
+
+/**
+ * The print tier, spelled the way staff say it out loud. Named here rather than in the admin page
+ * so the label a staff member reads and the level the server grants come from the same module and
+ * cannot drift — a badge reading "quarter" beside FULL access would be a lie about what the
+ * customer bought.
+ */
+function printTierStaffWord(tier: PackageEntitlementTier | null): string | null {
+  switch (tier) {
+    case "quarter_page":
+      return "QUARTER";
+    case "half_page":
+      return "HALF";
+    case "full_page":
+      return "FULL PAGE";
+    case "premium":
+      return "PREMIUM";
+    default:
+      return null;
+  }
+}
+
+/**
+ * Describe ONE entitlement row for staff, from the two columns the row already carries.
+ *
+ * Deliberately row-level rather than customer-level: the admin tracker lists individual
+ * entitlement rows, and a row is the thing a staff member extends, attaches or revokes. A
+ * customer holding both a print row and a digital row sees two honest badges rather than one
+ * merged verdict that hides which row grants what. Returns null when the row confers no business
+ * access at all, so a classified or placement row is never mislabelled as a business tier.
+ */
+export function describeBusinessAccessRow(input: {
+  packageKey?: string | null;
+  packageTier?: string | null;
+}): BusinessAccessBadge | null {
+  const grant = businessAccessGrantForRow(input);
+  if (!grant) return null;
+
+  const fromPrint = grant.kind === "print_package";
+  const digitalWord = grant.level === "full" ? "FULL" : "SIMPLE";
+  const printWord = fromPrint ? printTierStaffWord(grant.printTier) : null;
+  // The tier is named in the badge itself so "print quarter + Simple" and "print half + Full" are
+  // one glance apart. Falls back to the unqualified word rather than inventing a tier name.
+  const label = fromPrint
+    ? printWord
+      ? `PRINT ${printWord} + ${digitalWord}`
+      : `PRINT + ${digitalWord}`
+    : grant.level === "full"
+      ? "FULL"
+      : "QUICK / SIMPLE";
+  return { level: grant.level, fromPrint, printTier: grant.printTier, label };
+}
+
+export type BusinessAccessCapabilityDecision = {
+  allowed: boolean;
+  level: BusinessAccessLevel;
+  /** True when FULL would allow this and the customer is on SIMPLE — the upsell case. */
+  upgradeUnlocks: boolean;
+  requiredLevel: BusinessAccessLevel;
+};
+
+/**
+ * The single question every Full-only feature gate asks. Returning `upgradeUnlocks` is what lets
+ * a Simple customer be shown an honest upgrade path instead of a dead end, without any caller
+ * re-deriving the rule.
+ */
+export function decideBusinessAccessCapability(input: {
+  level: BusinessAccessLevel;
+  capability: BusinessAccessCapability;
+}): BusinessAccessCapabilityDecision {
+  const requiredLevel: BusinessAccessLevel = isFullOnlyCapability(input.capability)
+    ? "full"
+    : "simple";
+  const allowed = businessAccessAllows(input.level, input.capability);
+  return {
+    allowed,
+    level: input.level,
+    requiredLevel,
+    upgradeUnlocks: !allowed && businessAccessAllows("full", input.capability),
+  };
+}

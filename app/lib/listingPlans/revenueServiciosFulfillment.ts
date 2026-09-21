@@ -8,6 +8,7 @@
 
 import "server-only";
 import { randomBytes } from "node:crypto";
+import { isBusinessBasePackageKey } from "./businessAccessLevel";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import type { LeonixPaymentRecordRow } from "./revenuePaymentRecords";
 import { getRevenuePackageDefinition } from "./revenuePricingMatrix";
@@ -164,7 +165,10 @@ export async function activatePaidServiciosListingFromRevenueOs(input: {
   leonixAdId?: string | null;
 }): Promise<ServiciosRevenueActivationResult> {
   const packageKey = String(input.packageKey ?? "").trim().toLowerCase();
-  if (packageKey !== SERVICIOS_BASE_MONTHLY_PACKAGE_KEY) {
+  // Either base subscription activates the listing: Quick (SIMPLE) and Full are two price levels
+  // of one product and share this publisher. Matching only the Full key would take a Quick
+  // customer's payment and leave their listing sitting in pending_payment forever.
+  if (!isBusinessBasePackageKey("servicios", packageKey)) {
     return { ok: true, outcome: "skipped_wrong_package" };
   }
 

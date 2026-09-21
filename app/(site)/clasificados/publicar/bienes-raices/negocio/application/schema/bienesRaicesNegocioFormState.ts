@@ -158,6 +158,16 @@ export type BienesRaicesNegocioFormState = {
 
   media: {
     photoUrls: string[];
+    /**
+     * Gate QB-MEDIA-03 — declared semantic role per photo, keyed by the photo's own source string
+     * (the same value stored in `photoUrls`). Optional and additive: a draft written before roles
+     * existed simply has no entry, and every existing reader ignores the field.
+     *
+     * It exists because `photoUrls` is a bare string array, so "at least one real photo of the
+     * PROPERTY, not of the agent" cannot otherwise be checked. The business publish seam re-reads
+     * these roles server-side; a missing entry is answered with a correction, never a guess.
+     */
+    photoMediaRoles?: Record<string, string>;
     /** Cover photo index in `photoUrls` (visual portada in form). */
     primaryImageIndex: number;
     listingVideoSlots: [BienesRaicesMuxVideoSlotState, BienesRaicesMuxVideoSlotState];
@@ -192,6 +202,8 @@ export type BienesRaicesNegocioFormState = {
     licencia: string;
     telDirecto: string;
     telOficina: string;
+    /** Explicit SMS number — Quick intake writes this; empty string means derive from telDirecto. */
+    smsPersonal?: string;
     email: string;
     sitioWeb: string;
     redes: string[];

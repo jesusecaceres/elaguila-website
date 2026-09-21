@@ -4,6 +4,8 @@
  */
 
 import "server-only";
+import { isBusinessBasePackageKey } from "./businessAccessLevel";
+import { convergeQuickToFullAfterPayment } from "./quickToFullConvergence";
 import type Stripe from "stripe";
 import { isPaymentCleared } from "./paymentTracking";
 import { activateEntitlementsForPayment } from "./revenueEntitlementFulfillment";
@@ -11,14 +13,12 @@ import { writeRevenueAuditLog } from "./revenueAuditLog";
 import {
   activatePaidRestauranteListingFromRevenueOs,
   activateRestauranteCouponAddonFromRevenueOs,
-  RESTAURANTES_BASE_MONTHLY_PACKAGE_KEY,
   RESTAURANTES_OFFERS_ADDON_PACKAGE_KEY,
 } from "./revenueRestaurantFulfillment";
 import {
   activatePaidServiciosListingFromRevenueOs,
   grantServiciosOffersAddonEntitlementFromBasePayment,
   normalizeServiciosOffersAddonEntitlementSource,
-  SERVICIOS_BASE_MONTHLY_PACKAGE_KEY,
   SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
 } from "./revenueServiciosFulfillment";
 import { triggerServiciosSavedSearchMatchBestEffort } from "@/app/lib/saved-search/servicios/serviciosSavedSearchMatchOrchestrator";
@@ -50,7 +50,6 @@ import {
 } from "./revenueBienesFsboFulfillment";
 import {
   activatePaidBienesNegocioListingFromRevenueOs,
-  BIENES_NEGOCIO_BASE_PACKAGE_KEY,
 } from "./revenueBienesNegocioFulfillment";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { getOfertaLocalCommercialProductByPackageKey } from "@/app/lib/ofertas-locales/ofertasLocalesCommercial";
@@ -282,7 +281,7 @@ async function tryActivateRestauranteListingAfterEntitlement(input: {
   stripeEventId: string;
   stripeCheckoutSessionId: string;
 }): Promise<{ ok: boolean; code?: string; message?: string }> {
-  if (input.packageDef.packageKey !== RESTAURANTES_BASE_MONTHLY_PACKAGE_KEY) {
+  if (!isBusinessBasePackageKey("restaurantes", input.packageDef.packageKey)) {
     return { ok: true };
   }
 
@@ -529,7 +528,7 @@ async function tryActivateServiciosListingAfterEntitlement(input: {
   stripeEventId: string;
   stripeCheckoutSessionId: string;
 }): Promise<{ ok: boolean; code?: string; message?: string }> {
-  if (input.packageDef.packageKey !== SERVICIOS_BASE_MONTHLY_PACKAGE_KEY) {
+  if (!isBusinessBasePackageKey("servicios", input.packageDef.packageKey)) {
     return { ok: true };
   }
 
@@ -1172,7 +1171,7 @@ async function tryActivateBienesNegocioListingAfterEntitlement(input: {
   stripeEventId: string;
   stripePaymentIntentId?: string | null;
 }): Promise<{ ok: boolean; code?: string; message?: string }> {
-  if (input.packageDef.packageKey !== BIENES_NEGOCIO_BASE_PACKAGE_KEY) {
+  if (!isBusinessBasePackageKey("bienes-raices", input.packageDef.packageKey)) {
     return { ok: true };
   }
 
@@ -2049,6 +2048,37 @@ export async function fulfillCheckoutSessionCompleted(input: {
       placementEntitlementId: entitlementResult.placementEntitlementId,
       promoRedemptionId,
     };
+  }
+
+  // Gate QB-CONVERGENCE-02 — the customer just paid for a Full base plan, so any Quick
+  // subscription this Full plan supersedes is cancelled IMMEDIATELY (with proration), not at
+  // period end: a period-end cancellation would bill both plans concurrently for up to a month.
+  //
+  // This runs only AFTER the payment has been marked paid above, which is what makes the Full
+  // payment authoritative — an abandoned or failed checkout never reaches here, so Quick is
+  // preserved. The convergence module itself writes the attempted/completed/skipped/failed audit
+  // trail; a `failed` outcome is recorded as retryable rather than swallowed. It never throws,
+  // and its result deliberately does not gate the fulfillment return: a settled payment must not
+  // be reported as failed because a downstream cancellation had trouble.
+  if (refreshed.owner_user_id && refreshed.category && refreshed.package_key) {
+    await convergeQuickToFullAfterPayment({
+      full: {
+        ownerUserId: String(refreshed.owner_user_id),
+        category: String(refreshed.category),
+        packageKey: String(refreshed.package_key),
+        paid: true,
+        stripeCustomerId: refreshed.stripe_customer_id ? String(refreshed.stripe_customer_id) : null,
+        stripeSubscriptionId: refreshed.stripe_subscription_id ? String(refreshed.stripe_subscription_id) : null,
+      },
+      eventId,
+      paymentRecordId: paymentRecord.id,
+    }).catch((err: unknown) => {
+      console.error("[fulfillment] convergence threw", {
+        paymentRecordId: paymentRecord.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return null;
+    });
   }
 
   return {

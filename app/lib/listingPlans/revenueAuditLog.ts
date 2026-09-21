@@ -34,6 +34,18 @@ export type RevenueAuditAction =
   | "bienes_negocio_listing_activated_after_payment"
   | "revenue_webhook_ignored"
   | "revenue_webhook_validation_failed"
+  /**
+   * Gate QB-CONVERGENCE-02 — Quick→Full subscription convergence. Four distinct actions so the
+   * audit trail can answer "did convergence run, and what did it decide" without inference:
+   * `attempted` is written before any Stripe mutation, `completed` only after the superseded Quick
+   * subscription is actually cancelled, `skipped` when the pure planner declined for a benign
+   * reason, and `failed` when Stripe or the ledger errored — `failed` is the retryable state and
+   * is what an operator queries for.
+   */
+  | "revenue_quick_to_full_convergence_attempted"
+  | "revenue_quick_to_full_convergence_completed"
+  | "revenue_quick_to_full_convergence_skipped"
+  | "revenue_quick_to_full_convergence_failed"
   | "ofertas_locales_entitlement_fulfilled_after_payment"
   | "ofertas_locales_listing_activated_after_payment";
 

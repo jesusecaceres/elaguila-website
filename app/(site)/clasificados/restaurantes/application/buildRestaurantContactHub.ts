@@ -184,7 +184,9 @@ export function buildRestaurantContactHub(d: RestauranteListingDraft, lang: "es"
       action: "call",
       fullWidth: true,
     });
-    const sms = smsHref(phone);
+    // Prefer explicit smsNumber (Quick intake sets this; never fabricate SMS from phone when
+    // the customer provided a distinct SMS number). Fall back to phone for legacy listings.
+    const sms = smsHref(nonEmpty(d.smsNumber) ? d.smsNumber!.trim() : phone);
     if (sms) {
       pushUniqueButton(contactUs, {
         id: "sms",

@@ -34,12 +34,13 @@ import {
   SERVICIOS_LEONIX_LOCKED_STATUSES,
   serviciosSaveAwaitsBasePurchase,
 } from "@/app/clasificados/servicios/lib/serviciosOwnerMutationPolicy";
-import { readAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
+import { readActiveAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
 import {
   hasClearedManualPaymentForListing,
   isListingLinkedToBusiness,
   linkAssistedListingToBusiness,
 } from "@/app/lib/business/assistedListingCustody";
+import { linkSelfServiceListingToBusiness } from "@/app/lib/business/canonicalListingLink";
 import { resolveServiciosReactivationAuthority } from "@/app/clasificados/servicios/lib/serviciosReactivationAuthorityServer";
 import { resolveBusinessToolsAccess } from "@/app/lib/listingPlans/categoryCommercialPlan";
 import {
@@ -57,6 +58,8 @@ import {
   warnDroppedUnpersistableMedia,
 } from "@/app/lib/media/listingMediaContract";
 import { normalizeStrictExternalVideoUrl } from "@/app/lib/media/externalVideoUrlValidation";
+import { enforceQuickBusinessPublishMedia } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
+import { resolveQuickBusinessPublishIdentity } from "@/app/lib/listingPlans/quickBusinessProductIdentityServer";
 import { SERVICIOS_MAX_VIDEO_URLS } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
 
 /** Gallery cap mirrors GALLERY_MAX in ClasificadosServiciosApplication.tsx:141 (local, unexported). */
@@ -261,7 +264,10 @@ export async function POST(req: NextRequest) {
    * two new, explicitly-declared request shapes (`assistedAction`), each handled by its own
    * dedicated, isolated code path below, never interleaved with the customer owner-mutation policy.
    */
-  const assistedContext = readAssistedPublishingContext(req.cookies);
+  // Gate QB-STAFF-03 — the roster is re-checked HERE, at redemption, not only at mint time. A
+  // staff member deactivated or removed after their token was issued can no longer publish on a
+  // customer's behalf with it. Fails closed on an unreachable database.
+  const assistedContext = await readActiveAssistedPublishingContext(req.cookies);
   const assistedActionRaw = typeof b.assistedAction === "string" ? b.assistedAction.trim() : "";
   const isAssistedSaveForClient = assistedActionRaw === "save_for_client";
   const isAssistedPublishForClient = assistedActionRaw === "publish_for_client";
@@ -330,6 +336,67 @@ export async function POST(req: NextRequest) {
       { ok: false, error: "media_invalid", issues: serviciosMediaValidation.issues },
       { status: 422 },
     );
+  }
+
+  // Gate QB-MEDIA-03 — the canonical Quick Business semantic media contract, run on the SERVER
+  // for a listing the CUSTOMER published for themselves. Until that gate, only the two
+  // staff-assisted routes enforced it, so every self-service path was protected by browser code
+  // alone. The count/video truths above stay Servicios' own (gallery cap 24, its own video
+  // validator) — this guard adds only the semantic one: at least one image that actually depicts
+  // the business, with a declared logo never able to satisfy it.
+  //
+  // Gate QB-BOUNDARY-03 — IT RUNS FOR QUICK PRODUCTS ONLY.
+  //
+  // Servicios sells BOTH a Quick base package and a Full one, and this seam is shared by both.
+  // Running the contract unconditionally held a FULL customer to a $99 product's rule — the exact
+  // blocker the product-boundary work closed for Autos and Bienes, still open here and in
+  // Restaurantes. The product comes from the same server-owned resolver those two use: a verified
+  // assisted context, a live entitlement, the checkout ledger, and only then a declaration that
+  // can restrict its sender and never relax anything.
+  //
+  // The GALLERY IS NOT THE WHOLE GALLERY. Servicios' own readiness rule accepts a cover image with
+  // an empty gallery, so passing `state.gallery` alone refused a Quick customer who had in fact
+  // uploaded a photo of their business. The cover is included, and declared first, because it is
+  // the image the customer chose to lead with.
+  const serviciosProduct = await resolveQuickBusinessPublishIdentity({
+    category: "servicios",
+    ownerUserId: ownerUserId ?? "",
+    // The listing this publish is amending, when there is one; a first publish has none.
+    // THE CANONICAL ROW UUID, never the public slug. `listing_id` on both
+    // `listing_package_entitlements` and `leonix_payment_records` is the row's id; passing a
+    // name-derived slug matched nothing, so BOTH server legs answered empty on every republish
+    // and the product was permanently `unverified`.
+    listingId: typeof b.existingListingId === "string" ? b.existingListingId.trim() || null : null,
+    declaredPackageKey: typeof b.basePackageKey === "string" ? b.basePackageKey : null,
+  });
+  const serviciosMediaItems = [
+    // Servicios keeps identity media in its own non-gallery `logoUrl` field (`logoAllowed: false`
+    // on this route), so a cover or gallery item is subject media by construction — which is
+    // exactly what `SUBJECT_ATTRIBUTION.servicios === "structural"` states. There is no per-item
+    // role on this state to read, and inventing one would be a false declaration.
+    ...(state.coverUrl ? [{ role: null, mime: null }] : []),
+    ...state.gallery.map((g) => ({ role: (g as { role?: string }).role ?? null, mime: null })),
+  ];
+  // Servicios keeps external video in its own link list (up to SERVICIOS_MAX_VIDEO_URLS), which
+  // never carries a `video/*` MIME, so the contract could not see it and "Quick includes no
+  // video" went unenforced on this seam.
+  const serviciosExternalVideoCount = Array.isArray(state.videos)
+    ? state.videos.filter((v) => typeof v?.url === "string" && v.url.trim().length > 0).length
+    : 0;
+  const serviciosSemanticMedia = serviciosProduct.enforceQuickContract
+    ? enforceQuickBusinessPublishMedia({
+        category: "servicios",
+        items: serviciosMediaItems,
+        externalVideoCount: serviciosExternalVideoCount,
+      })
+    : null;
+  if (serviciosSemanticMedia && !serviciosSemanticMedia.ok) {
+    await insertServiciosAnalyticsEvent({
+      listingSlug: null,
+      eventType: "publish_validation_failed",
+      meta: { mediaIssues: serviciosSemanticMedia.body.issues },
+    });
+    return NextResponse.json(serviciosSemanticMedia.body, { status: serviciosSemanticMedia.status });
   }
 
   const baseSlug = slugifyServiciosBusinessName(state.businessName || "borrador");
@@ -935,6 +1002,18 @@ export async function POST(req: NextRequest) {
       publishedAt: now,
     });
     persistedToDevWorkspace = upsertServiciosDevPublishRow(row);
+  }
+
+  // Gate QB-IDENTITY-01 — a listing the CUSTOMER published for themselves gets the same durable
+  // business↔listing relationship the staff-assisted branch already writes, so "My Business" can
+  // resolve it canonically instead of scanning owner columns. Additive and idempotent; ownership
+  // is re-proven server-side inside the helper, and a failure here never fails the publish.
+  if (persistedToDatabase && persistedListingId && ownerUserId && !isAssistedRequest) {
+    await linkSelfServiceListingToBusiness({
+      userId: ownerUserId,
+      listingSource: "servicios_public_listings",
+      listingId: persistedListingId,
+    }).catch(() => undefined);
   }
 
   const persistence: ServiciosPublishPersistence = persistedToDatabase

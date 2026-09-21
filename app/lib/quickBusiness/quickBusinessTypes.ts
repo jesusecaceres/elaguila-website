@@ -19,8 +19,21 @@ import type {
   QuickText,
   QuickClassifiedMediaContract,
 } from "@/app/lib/quickClassifieds/quickClassifiedTypes";
+import type { QuickMediaRole } from "./quickBusinessMediaSemantics";
 
 export type { QuickLang, QuickText };
+
+/**
+ * Gate QB-MEDIA-03 — the Quick Business media item, which unlike the certified Quick Classifieds
+ * `QuickMediaItem` CARRIES AN EXPLICIT SEMANTIC ROLE.
+ *
+ * `QuickMediaItem` lives in the byte-frozen Quick Classifieds tree and is shared by every Quick
+ * Classifieds lane, none of which has a subject/identity distinction to make. Quick Business does:
+ * a dealer logo is not a vehicle photo and an agent headshot is not a property photo. So Quick
+ * Business extends the certified shape here rather than mutating it, and `role` is REQUIRED — the
+ * type system, not a convention, is what stops a producer from emitting an unroled item.
+ */
+export type QuickBusinessMediaItem = QuickMediaItem & { role: QuickMediaRole };
 
 /** The four Quick Business Core categories (owner priority order). */
 export const QUICK_BUSINESS_CATEGORY_KEYS = ["servicios", "restaurantes", "autos-dealer", "bienes-negocio"] as const;
@@ -57,12 +70,27 @@ export type QuickBusinessManageAdapter = {
   endNote: QuickText;
   /** Billing posture (monthly subscription through the existing Revenue OS). */
   billingNote: QuickText;
+  /** Real billing management path — always /dashboard/perfil (customer portal). */
+  billingHref: string;
 };
 
 export type QuickBusinessStaffCustody = {
   /** True only where an EXISTING server path lets Leonix staff save/publish for a client (Servicios today). */
   publishForClientSupported: boolean;
   note: QuickText;
+};
+
+/**
+ * Quick Business media contract.
+ *
+ * `QuickClassifiedMediaContract` declares `videoOptional: true` as a LITERAL, because every Quick
+ * Classifieds lane permits optional video. Quick Business permits none in any family, so it
+ * carries its own contract with `videoOptional` widened to boolean. Reusing the Classifieds type
+ * forced the registry to return `false` for a field typed `true` — a real, long-standing type
+ * error that blocked the production build.
+ */
+export type QuickBusinessMediaContract = Omit<QuickClassifiedMediaContract, "videoOptional"> & {
+  videoOptional: boolean;
 };
 
 export type QuickBusinessDefinition = {
@@ -75,7 +103,7 @@ export type QuickBusinessDefinition = {
   /** Existing standard application / selector (never a Quick route). */
   standardApplicationPath: string;
   pricing: QuickBusinessPricingPosture;
-  media: QuickClassifiedMediaContract;
+  media: QuickBusinessMediaContract;
   /**
    * Truthful media wording shown above the shared media step. Servicios / Restaurantes ask for BUSINESS photos;
    * Dealer asks for photos of the FIRST REAL VEHICLE; Bienes asks for photos of the FIRST REAL PROPERTY — the
@@ -121,7 +149,7 @@ export type QuickBusinessCategoryAdapter = {
   confirmations: QuickBusinessConfirmationSurface;
   buildAndWriteCanonicalDraft: (input: {
     values: QuickIntakeValues;
-    media: readonly QuickMediaItem[];
+    media: readonly QuickBusinessMediaItem[];
     confirmations: QuickBusinessConfirmations;
     ctx: QuickBusinessIntakeContext;
   }) => Promise<{ ok: true; handoff: QuickBusinessHandoff } | { ok: false; issues: string[] }>;

@@ -7,16 +7,44 @@ import { resolveClasificadosPublishLang } from "@/app/lib/clasificados/clasifica
 import { quickBusinessCopy } from "@/app/lib/quickBusiness/quickBusinessCopy";
 import { getQuickBusinessDefinition } from "@/app/lib/quickBusiness/quickBusinessRegistry";
 import { quickBusinessChooserPath } from "@/app/lib/quickBusiness/quickBusinessRoutes";
-import type { QuickBusinessCategoryKey, QuickBusinessConfirmations } from "@/app/lib/quickBusiness/quickBusinessTypes";
+import type { QuickBusinessCategoryKey, QuickBusinessConfirmations, QuickBusinessMediaItem } from "@/app/lib/quickBusiness/quickBusinessTypes";
 import { qt, quickCopy } from "@/app/lib/quickClassifieds/quickClassifiedCopy";
-import type { QuickIntakeValue, QuickIntakeValues, QuickMediaItem } from "@/app/lib/quickClassifieds/quickClassifiedTypes";
-import { quickFieldIsVisible, validateQuickMedia, validateQuickStep } from "@/app/lib/quickClassifieds/quickClassifiedValidation";
+import type { QuickIntakeValue, QuickIntakeValues } from "@/app/lib/quickClassifieds/quickClassifiedTypes";
+import { quickFieldIsVisible, validateQuickStep } from "@/app/lib/quickClassifieds/quickClassifiedValidation";
+import { validateQuickBusinessIntakeMedia } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
 import { QuickFieldRenderer } from "@/app/publicar/rapido/_components/QuickFieldRenderer";
-import { QuickMediaStep } from "@/app/publicar/rapido/_components/QuickMediaStep";
 import { QuickShell, quickCard, quickPrimaryBtn, quickSecondaryBtn } from "@/app/publicar/rapido/_components/QuickShell";
 import { getQuickBusinessAdapter } from "../_adapters";
+import { QuickBusinessMediaStep } from "./QuickBusinessMediaStep";
 import { QuickBusinessReviewStep } from "./QuickBusinessReviewStep";
-import { emptyQuickBusinessDraft, loadQuickBusinessDraft, saveQuickBusinessDraft, type QuickBusinessDraft } from "./quickBusinessDraftStore";
+import {
+  emptyQuickBusinessDraft,
+  loadQuickBusinessDraft,
+  saveQuickBusinessDraft,
+  type QuickBusinessDraft,
+  type QuickBusinessDraftMediaItem,
+} from "./quickBusinessDraftStore";
+
+/**
+ * Gate QB-MEDIA-03 — the media step cannot be left until every photo says what it shows.
+ *
+ * This is the producer-side half of the semantic media contract. It is UX, not the security
+ * boundary: the same contract is re-run on the server against the payload that actually arrives
+ * (`enforceQuickBusinessPublishMedia`), so a client that skips this screen gains nothing.
+ */
+const UNDECLARED_ROLE_MESSAGE = {
+  es: "Marca qué muestra cada foto (por ejemplo, foto del vehículo o logotipo) para continuar.",
+  en: "Mark what each photo shows (for example, photo of the vehicle or logo) to continue.",
+} as const;
+
+function undeclaredRoleIssues(media: readonly QuickBusinessDraftMediaItem[], lang: "es" | "en"): string[] {
+  return media.some((m) => m.role == null) ? [UNDECLARED_ROLE_MESSAGE[lang]] : [];
+}
+
+/** Narrow the in-progress draft media to the adapter contract. Callers must validate first. */
+function declaredMedia(media: readonly QuickBusinessDraftMediaItem[]): QuickBusinessMediaItem[] {
+  return media.filter((m): m is QuickBusinessMediaItem => m.role != null);
+}
 
 /**
  * SELECT BUSINESS TYPE → ESSENTIAL QUESTIONS → ≥ 1 REAL IMAGE → REVIEW → EXISTING PREVIEW.
@@ -79,7 +107,7 @@ export function QuickBusinessIntakeClient({ category }: { category: QuickBusines
   const setValue = useCallback((key: string, value: QuickIntakeValue) => {
     setDraft((d) => ({ ...d, values: { ...d.values, [key]: value } }));
   }, []);
-  const setMedia = useCallback((media: QuickMediaItem[]) => setDraft((d) => ({ ...d, media })), []);
+  const setMedia = useCallback((media: QuickBusinessDraftMediaItem[]) => setDraft((d) => ({ ...d, media })), []);
   const setConfirmations = useCallback((confirmations: QuickBusinessConfirmations) => setDraft((d) => ({ ...d, confirmations })), []);
   const goTo = useCallback((index: number) => {
     setIssues([]);
@@ -95,7 +123,10 @@ export function QuickBusinessIntakeClient({ category }: { category: QuickBusines
         return;
       }
     } else if (stepIndex === mediaIndex) {
-      const found = validateQuickMedia(draft.media, definition.media, lang);
+      const found = [
+        ...validateQuickBusinessIntakeMedia(draft.media, definition.media, lang, category),
+        ...undeclaredRoleIssues(draft.media, lang),
+      ];
       if (found.length) {
         setIssues(found);
         return;
@@ -111,14 +142,15 @@ export function QuickBusinessIntakeClient({ category }: { category: QuickBusines
     try {
       const allIssues: string[] = [];
       for (const s of steps) allIssues.push(...validateQuickStep(s, draft.values, lang));
-      allIssues.push(...validateQuickMedia(draft.media, definition.media, lang));
+      allIssues.push(...validateQuickBusinessIntakeMedia(draft.media, definition.media, lang, category));
+      allIssues.push(...undeclaredRoleIssues(draft.media, lang));
       if (allIssues.length) {
         setIssues(allIssues);
         return;
       }
       const result = await adapter.buildAndWriteCanonicalDraft({
         values: draft.values as QuickIntakeValues,
-        media: draft.media,
+        media: declaredMedia(draft.media),
         confirmations: draft.confirmations,
         ctx: { lang, routeLang },
       });
@@ -181,7 +213,20 @@ export function QuickBusinessIntakeClient({ category }: { category: QuickBusines
         <>
           {/* Truthful per-category wording: business photo (Servicios / Restaurantes) vs. VEHICLE photo (Dealer) vs. PROPERTY photo (Bienes). */}
           <p className="mb-2 text-sm text-[#5D4A25]/90">{qt(definition.mediaIntro, lang)}</p>
-          <QuickMediaStep lang={lang} contract={definition.media} media={draft.media} onChange={setMedia} />
+          {/* Gate QB-MEDIA-03 — Quick Business owns its own media step because the certified Quick
+              Classifieds `QuickMediaStep` produces role-less `QuickMediaItem`s, and a role-less
+              photo is exactly what the semantic contract must never accept for a vehicle or a
+              property. The certified component and the certified type stay untouched; this one
+              adds the "what does this photo show?" control and emits an explicit role. It carries
+              over the certified step's behaviour byte for byte otherwise, including having no
+              video affordance of any kind (`accept="image/*"`). */}
+          <QuickBusinessMediaStep
+            lang={lang}
+            category={category}
+            contract={definition.media}
+            media={draft.media}
+            onChange={setMedia}
+          />
         </>
       ) : (
         <QuickBusinessReviewStep

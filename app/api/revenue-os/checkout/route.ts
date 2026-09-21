@@ -15,13 +15,14 @@ import {
 } from "@/app/lib/listingPlans/revenueCheckout";
 import {
   AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY,
-  AUTOS_DEALER_MONTHLY_PACKAGE_KEY,
   AUTOS_PRIVADO_30D_PACKAGE_KEY,
   BR_INVENTORY_PACK_PACKAGE_KEY,
   OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY,
   OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY,
   SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
 } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
+import { isBusinessBasePackageKey } from "@/app/lib/listingPlans/businessAccessLevel";
+import { isBusinessBaseUpgradeInPlace } from "@/app/lib/listingPlans/businessBasePlanOffer";
 import {
   markOfertaLocalCheckoutStarted,
   validateOfertasLocalesCheckoutOwnership,
@@ -590,6 +591,20 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // ── SIMPLE -> FULL upgrade of a listing that is already live ────────────────────────────
+  // Server-derived from the entitlement table, never from the request. A live SIMPLE listing
+  // buying its category's FULL package is changing entitlement, not publishing: the first-purchase
+  // machinery below (a "not payable status" refusal written for drafts, and the flip to
+  // `pending_payment`) must not run, or paying more would take the customer's live ad offline.
+  const businessUpgradeInPlace =
+    listingRef && isBusinessBasePackageKey(packageDef.category, packageDef.packageKey)
+      ? await isBusinessBaseUpgradeInPlace({
+          category: packageDef.category,
+          packageKey: packageDef.packageKey,
+          listingId: listingRef,
+        })
+      : false;
+
   // ── Autos base-package pre-flight (2026-09-18 publication-circuit audit) ─────────────────
   // This route flips the Autos listing to `pending_payment` after the Stripe session is created.
   // That write used to be unconditional: any caller who knew a public vehicle UUID could POST a base
@@ -600,7 +615,7 @@ export async function POST(request: NextRequest) {
     packageDef.category === "autos" &&
     !isAutosPrivadoRenewalEarly &&
     (packageDef.packageKey === AUTOS_PRIVADO_30D_PACKAGE_KEY ||
-      packageDef.packageKey === AUTOS_DEALER_MONTHLY_PACKAGE_KEY) &&
+      isBusinessBasePackageKey("autos", packageDef.packageKey)) &&
     listingRef
   ) {
     const autosRow = await getAutosClassifiedsListingById(listingRef);
@@ -616,7 +631,7 @@ export async function POST(request: NextRequest) {
         { status: 403 },
       );
     }
-    if (!isAutosListingPayableStatus(autosRow.status)) {
+    if (!businessUpgradeInPlace && !isAutosListingPayableStatus(autosRow.status)) {
       return NextResponse.json(
         {
           ok: false,
@@ -1007,8 +1022,9 @@ export async function POST(request: NextRequest) {
 
   if (
     packageDef.category === "autos" &&
+    !businessUpgradeInPlace &&
     (packageDef.packageKey === AUTOS_PRIVADO_30D_PACKAGE_KEY ||
-      packageDef.packageKey === AUTOS_DEALER_MONTHLY_PACKAGE_KEY) &&
+      isBusinessBasePackageKey("autos", packageDef.packageKey)) &&
     listingRef
   ) {
     const flipped = await setAutosListingPendingPayment(listingRef, stripeResult.sessionId);

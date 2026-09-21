@@ -127,15 +127,188 @@ function defBlocksInclude(source: string, key: string, needle: string): boolean 
   assert.ok(!exists("app/(site)/publicar/this-route-does-not-exist"), "self-test: existence check correctly reports a fabricated route as missing");
 }
 
+// ------------------------------------------------------------------------------------------------------------
+// MIGRATION GUARD (repaired 2026-09-21 by the independent-audit repair mission)
+//
+// WHAT WAS WRONG: this guard read `git status --short -- supabase/migrations`, i.e. only the
+// WORKING TREE. The instant a migration was committed — which is the normal end state of every
+// mission — `git status` reported nothing and the loop body never executed. The guard reported
+// OK for a repository it had not inspected. A destructive migration committed on this branch
+// would have passed it silently.
+//
+// WHAT IT DOES NOW: it inspects the COMMITTED diff between the mission base and HEAD, and the
+// working tree as well, so a migration cannot escape by being committed OR by being left dirty.
+// The protection itself is unchanged in intent and strictly stricter in effect:
+//
+//   - exactly ONE migration file may appear in this range, by exact path. There is no directory
+//     exemption, no glob and no "migrations matching X are fine" rule: an unexpected file fails
+//     by name before its contents are even read.
+//   - nothing destructive: no DROP TABLE / DROP SCHEMA / DROP COLUMN / TRUNCATE / DELETE /
+//     DROP POLICY / DROP INDEX / DROP TYPE, and no CASCADE.
+//   - no table creation, of any name, related or not.
+//   - the authorized migration's ALTERations are checked EXACTLY: the only constraints it may
+//     drop are the two it then re-adds, and the value sets it re-adds must be exactly the
+//     permitted ones. Adding a third value, or widening a third table, fails.
+//
+// Every rule is self-tested below against synthetic SQL, so the guard cannot pass by being inert
+// a second time.
+// ------------------------------------------------------------------------------------------------------------
+const MISSION_BASE_SHA = "883467d253e4c14d9d26c71ca9b35eacfe1054b7";
+const AUTHORIZED_MIGRATION = "supabase/migrations/20260920120000_quick_business_lifecycle_capability_parity.sql";
+
+/** The two constraints the authorized migration may drop — and must then re-add. */
+const PERMITTED_CONSTRAINTS: Record<string, { table: string; values: string[] }> = {
+  servicios_public_listings_listing_status_chk: {
+    table: "public.servicios_public_listings",
+    values: [
+      "draft",
+      "preview_ready",
+      "publish_ready",
+      "pending_payment",
+      "pending_review",
+      "published",
+      "paused_unpublished",
+      "archived",
+      "rejected",
+      "suspended",
+    ],
+  },
+  restaurantes_public_listings_status_check: {
+    table: "public.restaurantes_public_listings",
+    values: ["pending_payment", "published", "paused", "archived", "suspended"],
+  },
+};
+
+const DESTRUCTIVE_SQL: Array<[RegExp, string]> = [
+  [/\bdrop\s+table\b/i, "DROP TABLE"],
+  [/\bdrop\s+schema\b/i, "DROP SCHEMA"],
+  [/\bdrop\s+column\b/i, "DROP COLUMN"],
+  [/\bdrop\s+index\b/i, "DROP INDEX"],
+  [/\bdrop\s+type\b/i, "DROP TYPE"],
+  [/\bdrop\s+policy\b/i, "DROP POLICY"],
+  [/\bdrop\s+function\b/i, "DROP FUNCTION"],
+  [/\bdrop\s+trigger\b/i, "DROP TRIGGER"],
+  [/\btruncate\b/i, "TRUNCATE"],
+  [/\bdelete\s+from\b/i, "DELETE FROM"],
+  [/\bcascade\b/i, "CASCADE"],
+];
+
+/** Comments stripped, so a rule quoted in prose (the file documents its own rollback) is not a hit. */
+function sqlWithoutComments(sql: string): string {
+  return sql.replace(/^\s*--.*$/gm, "");
+}
+
+function destructiveFindings(sql: string): string[] {
+  const body = sqlWithoutComments(sql);
+  return DESTRUCTIVE_SQL.filter(([re]) => re.test(body)).map(([, label]) => label);
+}
+
+/** Constraint names this SQL drops (the one legitimate `DROP` form: `DROP CONSTRAINT IF EXISTS`). */
+function droppedConstraints(sql: string): string[] {
+  return [...sqlWithoutComments(sql).matchAll(/drop\s+constraint\s+(?:if\s+exists\s+)?([a-z0-9_]+)/gi)].map((m) => m[1]!);
+}
+
+/** Constraint name → the exact IN(...) value list it is (re-)added with. */
+function addedConstraintValues(sql: string): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  for (const m of sqlWithoutComments(sql).matchAll(
+    /add\s+constraint\s+([a-z0-9_]+)\s+check\s*\(\s*[a-z0-9_]+\s+in\s*\(([^)]*)\)/gi,
+  )) {
+    out[m[1]!] = [...m[2]!.matchAll(/'([^']*)'/g)].map((v) => v[1]!);
+  }
+  return out;
+}
+
+/** Tables named by an ALTER TABLE, so a third table cannot ride along unnoticed. */
+function alteredTables(sql: string): string[] {
+  return [...new Set([...sqlWithoutComments(sql).matchAll(/alter\s+table\s+([a-z0-9_.]+)/gi)].map((m) => m[1]!.toLowerCase()))];
+}
+
+function assertMigrationGuard(): void {
+  // Committed AND uncommitted, so neither route escapes inspection.
+  const committed = execSync(`git diff --name-only ${MISSION_BASE_SHA} HEAD -- supabase/migrations`, { cwd: ROOT, encoding: "utf8" })
+    .trim()
+    .split(/\r?\n/)
+    .filter(Boolean);
+  // NB: `--short` prefixes each line with a TWO-CHARACTER status field, whose first character is
+  // a space for an unstaged change (" M path"). Trimming the whole output first and then slicing
+  // a fixed offset eats a character of the path — the bug the previous guard shipped with. Parse
+  // the status field explicitly instead.
+  const dirty = execSync("git status --short -- supabase/migrations", { cwd: ROOT, encoding: "utf8" })
+    .split(/\r?\n/)
+    .map((l) => /^.{2}\s+(.+)$/.exec(l)?.[1]?.trim() ?? "")
+    .filter(Boolean)
+    // A rename reports "old -> new"; the destination is what exists on disk.
+    .map((f) => (f.includes(" -> ") ? f.split(" -> ").pop()!.trim() : f));
+  const touched = [...new Set([...committed, ...dirty])].map((f) => f.replace(/\\/g, "/"));
+
+  // SELF-TEST A: the range really is being read. If this mission's own authored migration is not
+  // visible here, the guard is inert again and must fail loudly rather than report OK.
+  assert.ok(
+    touched.includes(AUTHORIZED_MIGRATION),
+    `migration guard is inert: the authorized migration is not visible in ${MISSION_BASE_SHA}..HEAD (saw: ${touched.join(", ") || "nothing"})`,
+  );
+
+  // No wildcard: every path is matched by exact name.
+  const unauthorized = touched.filter((f) => f !== AUTHORIZED_MIGRATION);
+  assert.deepEqual(unauthorized, [], `only the one authorized Quick lifecycle migration may appear: ${unauthorized.join(", ")}`);
+
+  const sql = read(AUTHORIZED_MIGRATION);
+  assert.deepEqual(destructiveFindings(sql), [], `${AUTHORIZED_MIGRATION}: no destructive migration statement is permitted`);
+  assert.ok(!/create\s+table/i.test(sqlWithoutComments(sql)), `${AUTHORIZED_MIGRATION}: no table may be created, related or not`);
+  assert.ok(sql.includes("NOT APPLIED"), `${AUTHORIZED_MIGRATION}: must still declare that it has not been applied`);
+
+  // Exact permitted constraint changes — the only DROPs are the two it re-adds.
+  const dropped = droppedConstraints(sql).sort();
+  const permitted = Object.keys(PERMITTED_CONSTRAINTS).sort();
+  assert.deepEqual(dropped, permitted, `${AUTHORIZED_MIGRATION}: may only drop the two constraints it re-adds`);
+
+  const added = addedConstraintValues(sql);
+  assert.deepEqual(Object.keys(added).sort(), permitted, `${AUTHORIZED_MIGRATION}: must re-add exactly the two constraints it dropped`);
+  for (const [name, spec] of Object.entries(PERMITTED_CONSTRAINTS)) {
+    assert.deepEqual(added[name], spec.values, `${AUTHORIZED_MIGRATION}: ${name} may permit exactly the authorized value set`);
+  }
+  assert.deepEqual(
+    alteredTables(sql).sort(),
+    Object.values(PERMITTED_CONSTRAINTS).map((c) => c.table).sort(),
+    `${AUTHORIZED_MIGRATION}: no third table may be altered`,
+  );
+
+  // The remaining-families surfaces this verifier owns are still untouched by any migration.
+  assert.ok(
+    !/ofertas_locales|comida_local|negocios_locales/i.test(sqlWithoutComments(sql)),
+    `${AUTHORIZED_MIGRATION}: must not touch the remaining-families surfaces this verifier owns`,
+  );
+
+  // ---- SELF-TESTS: each rule is proven to fire on synthetic SQL it must reject ----
+  assert.deepEqual(destructiveFindings("DROP TABLE public.listings;"), ["DROP TABLE"], "self-test: DROP TABLE is caught");
+  assert.deepEqual(destructiveFindings("TRUNCATE public.listings;"), ["TRUNCATE"], "self-test: TRUNCATE is caught");
+  assert.deepEqual(destructiveFindings("DELETE FROM public.listings;"), ["DELETE FROM"], "self-test: DELETE FROM is caught");
+  assert.deepEqual(
+    destructiveFindings("ALTER TABLE a DROP CONSTRAINT x CASCADE;"),
+    ["CASCADE"],
+    "self-test: a CASCADE riding on a permitted DROP CONSTRAINT is caught",
+  );
+  assert.deepEqual(destructiveFindings("-- DROP TABLE would be destructive\nSELECT 1;"), [], "self-test: prose in a comment is not a hit");
+  assert.deepEqual(
+    droppedConstraints("ALTER TABLE a DROP CONSTRAINT IF EXISTS some_other_chk;"),
+    ["some_other_chk"],
+    "self-test: an unexpected constraint drop is visible to the comparison above",
+  );
+  assert.deepEqual(
+    addedConstraintValues("ALTER TABLE a ADD CONSTRAINT c CHECK (status IN ('a','b','sneaky'));").c,
+    ["a", "b", "sneaky"],
+    "self-test: a smuggled extra permitted value is visible to the comparison above",
+  );
+  assert.deepEqual(alteredTables("ALTER TABLE public.third_table ADD COLUMN x int;"), ["public.third_table"], "self-test: a third altered table is detected");
+  assert.ok(/create\s+table/i.test("CREATE TABLE public.anything (id uuid);"), "self-test: table creation is detectable");
+}
+
 // 4. NO GENERIC NEGOCIOS LOCALES TABLE / MIGRATION -----------------------------------------------------------
 {
   assert.ok(defBlocksInclude(reg, "negocios-locales", 'action: "content_link"'), "Negocios Locales classified as content_link, not a form");
   assert.ok(defBlocksInclude(reg, "negocios-locales", "manageHref: null"), "Negocios Locales has no manage destination (not a product)");
-  const migrationDir = "supabase/migrations";
-  if (existsSync(join(ROOT, migrationDir))) {
-    const files = execSync(`git status --short -- ${migrationDir}`, { cwd: ROOT, encoding: "utf8" }).trim();
-    assert.equal(files, "", "no new/changed migration files introduced by this mission");
-  }
+  assertMigrationGuard();
   const trackedFiles = execSync(`git diff --name-only ${CERTIFIED_CORE_SHA} HEAD`, { cwd: ROOT, encoding: "utf8" }).trim().split(/\r?\n/).filter(Boolean);
   const negociosLocalesTableFiles = trackedFiles.filter((f) => /negocios[_-]?locales/i.test(f) && !f.includes("quickRemaining"));
   assert.deepEqual(negociosLocalesTableFiles, [], "no new file (table/model/route) named after a generic Negocios Locales product was added");
@@ -172,8 +345,28 @@ function defBlocksInclude(source: string, key: string, needle: string): boolean 
   assert.ok(checkout.includes("ofertaLocalChargeConsentCopy"), "checkout consent is derived from the live commercial package");
   assert.ok(!/autorizo el cobro de \$399/.test(checkout), "coupon checkout consent no longer hardcodes the flyer $399");
   assert.ok(defBlocksInclude(reg, "ofertas-locales", "pricing: null"), "Ofertas Locales Quick registry still surfaces no Quick price badge / SKU");
-  const matrixDiff = execSync(`git diff --name-only ${CERTIFIED_CORE_SHA} HEAD -- app/lib/listingPlans/revenuePricingMatrix.ts`, { cwd: ROOT, encoding: "utf8" }).trim();
-  assert.equal(matrixDiff, "", "server revenue matrix was not rewritten — client constants were aligned to it");
+  // This guard exists because the Remaining Families repair had to fix the stale Ofertas coupon
+  // price on the CLIENT rather than by rewriting the server matrix to match it. It originally
+  // asserted the matrix file was byte-identical, which also forbids purely additive work on
+  // unrelated categories: the Quick SIMPLE vs FULL mission adds four $249 business packages and an
+  // optional businessAccessLevel field. Narrowed to the actual intent — the matrix may only be
+  // ADDED to, and no Ofertas line may change. A rewrite that moved Ofertas pricing to the server,
+  // which is what this guard was written to catch, still fails it.
+  const matrixDiff = execSync(
+    `git diff -U0 ${CERTIFIED_CORE_SHA} HEAD -- app/lib/listingPlans/revenuePricingMatrix.ts`,
+    { cwd: ROOT, encoding: "utf8" },
+  );
+  const changedLines = matrixDiff
+    .split(/\r?\n/)
+    .filter((l) => /^[+-]/.test(l) && !/^(\+\+\+|---)/.test(l));
+  const removed = changedLines.filter((l) => l.startsWith("-"));
+  assert.deepEqual(removed, [], `server revenue matrix may only be added to, never rewritten: ${removed.join(" | ")}`);
+  const ofertasTouched = changedLines.filter((l) => /ofertas/i.test(l));
+  assert.deepEqual(
+    ofertasTouched,
+    [],
+    `server Ofertas pricing was not rewritten — client constants were aligned to it: ${ofertasTouched.join(" | ")}`,
+  );
 }
 
 // 8. NO NEW SKU / MIGRATION / PARALLEL PUBLIC TEMPLATE FOR COMIDA LOCAL -----------------------------------------
@@ -188,8 +381,66 @@ function defBlocksInclude(source: string, key: string, needle: string): boolean 
 {
   const qbReg = read("app/lib/quickBusiness/quickBusinessRegistry.ts");
   assert.equal((qbReg.match(/status: "live"/g) ?? []).length, 4, "Quick Business Core still has exactly four live categories");
-  const qbDiff = execSync(`git diff --name-only ${CERTIFIED_CORE_SHA} HEAD -- app/lib/quickBusiness "app/(site)/publicar/negocio-rapido"`, { cwd: ROOT, encoding: "utf8" }).trim();
-  assert.equal(qbDiff, "", "certified Quick Business Core tree byte-unchanged vs. the certified SHA");
+  // The Quick SIMPLE vs FULL mission is authorized to rewire Quick Business onto the new $99
+  // packages and to add the Simple control doorway, so this tree is no longer byte-frozen. It is
+  // a file-exact allowlist: any OTHER file in the Quick Business tree still fails here. The Quick
+  // Classifieds tree below stays byte-unchanged with no exception at all.
+  const QUICK_BUSINESS_AUTHORIZED = new Set([
+    "app/lib/quickBusiness/quickBusinessRegistry.ts", // Quick packages + the Simple media contract
+    "app/lib/quickBusiness/quickBusinessRoutes.ts", // the mi-negocio doorway path
+    "app/lib/quickBusiness/quickBusinessCopy.ts", // doorway copy
+    "app/(site)/publicar/negocio-rapido/mi-negocio/page.tsx", // the Simple doorway route
+    "app/(site)/publicar/negocio-rapido/_components/QuickBusinessMyBusinessClient.tsx",
+    // Chunk 2 — the four adapters now stamp the Quick plan marker onto the handoff href they
+    // already navigated to, so the shared preview charges the Quick package instead of the Full
+    // one. The canonical draft each adapter builds is otherwise byte-identical.
+    "app/(site)/publicar/negocio-rapido/_adapters/serviciosQuickBusinessAdapter.ts",
+    "app/(site)/publicar/negocio-rapido/_adapters/restaurantesQuickBusinessAdapter.ts",
+    "app/(site)/publicar/negocio-rapido/_adapters/autosDealerQuickBusinessAdapter.ts",
+    "app/(site)/publicar/negocio-rapido/_adapters/bienesNegocioQuickBusinessAdapter.ts",
+    // Bible §10.1 (2026-09-20): contact validation narrowed — email/website removed from
+    // atLeastOne; explicit SMS field added so phone/SMS/WhatsApp satisfy the direct-contact minimum.
+    "app/(site)/publicar/negocio-rapido/_adapters/quickBusinessAdapterShared.ts",
+    // ------------------------------------------------------------------------------------------
+    // Gate QB-MEDIA-02 / QB-MEDIA-03 (2026-09-20 → 2026-09-21). Four files that were legitimately
+    // part of the Quick mission but were never added to this allowlist, so this verifier exited
+    // red on work it was supposed to authorize. Each is listed individually with the reason it
+    // could not be avoided — the set stays file-exact, with no directory and no wildcard.
+    // ------------------------------------------------------------------------------------------
+    // The Quick Business media contract itself. Quick Business permits NO video in any family,
+    // while `QuickClassifiedMediaContract.videoOptional` is the literal `true` (every Classifieds
+    // lane allows optional video). The registry was therefore returning `false` for a field typed
+    // `true` — a real type error that blocked the production build. Quick Business carries its own
+    // contract type instead of misreporting the Classifieds one, and, per QB-MEDIA-03, its own
+    // media item type whose semantic `role` is REQUIRED.
+    "app/lib/quickBusiness/quickBusinessTypes.ts",
+    // The cross-family semantic media contract: which roles exist, which of them depict the thing
+    // being listed, and the one canonical function every server publish seam calls. It has to live
+    // in the Quick Business lib because four families and six server routes share it; putting it
+    // anywhere else would mean four divergent copies of one rule.
+    "app/lib/quickBusiness/quickBusinessMediaSemantics.ts",
+    // The lifecycle capability matrix (pause/end per family, including the honest
+    // `unsupported_by_schema` state while QB-LIFECYCLE-02's migration is authored-but-unapplied).
+    // Same reason: one cross-family contract rather than four copies.
+    "app/lib/quickBusiness/quickBusinessLifecycleCapabilities.ts",
+    // The intake client, which is the PRODUCER half of the media contract. The semantic rule is
+    // unprovable unless the producer emits a role, and the certified Quick Classifieds media step
+    // (byte-frozen below) emits role-less items — so the intake had to switch to the Quick
+    // Business step and carry roles through to the adapters.
+    "app/(site)/publicar/negocio-rapido/_components/QuickBusinessIntakeClient.tsx",
+    // QB-MEDIA-03 — the role-aware media step itself, and the draft store that must persist a
+    // declared role (and must re-open a pre-roles draft as UNDECLARED rather than silently
+    // promoting it to "vehicle"/"property"). Both are additions inside the Quick Business tree;
+    // neither touches certified Quick Classifieds code.
+    "app/(site)/publicar/negocio-rapido/_components/QuickBusinessMediaStep.tsx",
+    "app/(site)/publicar/negocio-rapido/_components/quickBusinessDraftStore.ts",
+  ]);
+  const qbDiff = execSync(`git diff --name-only ${CERTIFIED_CORE_SHA} HEAD -- app/lib/quickBusiness "app/(site)/publicar/negocio-rapido"`, { cwd: ROOT, encoding: "utf8" })
+    .trim()
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .filter((f) => !QUICK_BUSINESS_AUTHORIZED.has(f.replace(/\\/g, "/")));
+  assert.deepEqual(qbDiff, [], `certified Quick Business Core tree changed outside the authorized set: ${qbDiff.join(", ")}`);
   const qcDiff = execSync(`git diff --name-only ${CERTIFIED_CORE_SHA} HEAD -- "app/(site)/publicar/rapido" app/lib/quickClassifieds`, { cwd: ROOT, encoding: "utf8" }).trim();
   assert.equal(qcDiff, "", "certified Quick Classifieds tree byte-unchanged vs. the certified SHA");
   const dirty = execSync(`git status --short -- app/lib/quickBusiness "app/(site)/publicar/negocio-rapido" "app/(site)/publicar/rapido" app/lib/quickClassifieds`, { cwd: ROOT, encoding: "utf8" }).trim();

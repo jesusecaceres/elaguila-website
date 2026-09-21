@@ -87,9 +87,166 @@ const ADAPTERS = `${QUICK_ROUTE}/_adapters`;
     /^app\/admin\/(?!\(dashboard\)\/businesses\/(StaffCommandCenter|QuickApplicationsLaunchpad)\.tsx$)/,
     /^app\/manifest\.ts$/,
   ];
-  const violations = touched.filter((f) => PROTECTED.some((re) => re.test(f)));
+  // Quick SIMPLE vs FULL commercial closeout (branch
+  // cursor/quick-simple-vs-full-commercial-closeout-2026-09): the owner authorized a new SIMPLE
+  // business access level sold at $99 beside the existing $399 Full packages. It is file-exact on
+  // purpose — every other file under the trees above stays locked, and the blast radius of this
+  // mission is asserted independently by scripts/verify-quick-business-access-level-01.ts and
+  // scripts/verify-quick-business-core-01.ts.
+  const MISSION_AUTHORIZED = new Set([
+    "app/lib/listingPlans/businessAccessLevel.ts", // the SIMPLE/FULL resolver
+    "app/lib/listingPlans/fullOnlyFeatureGate.ts", // the server gate for Full-only features
+    "app/lib/listingPlans/businessAccessCopy.ts", // centralized ES/EN copy, no prices
+    "app/lib/listingPlans/categoryCommercialPlan.ts", // reuses the existing entitlement fetch
+    "app/lib/listingPlans/revenuePricingMatrix.ts", // the four $249 packages + access declarations
+    "app/lib/listingPlans/revenueActiveEntitlementGuard.ts", // Quick joins the recharge guard
+    "app/lib/listingPlans/revenueCategoryCheckoutPayload.ts", // the four Quick checkout constants
+    "app/api/dashboard/analytics/listing/route.ts", // analytics becomes a Full-only capability
+    "app/admin/(dashboard)/workspace/package-entitlements/page.tsx", // staff can see the access level
+    "app/admin/_lib/packageEntitlementData.ts", // surfaces the package_key the writer already stores
+    // Chunk 2 — actually SELLING the Quick package. Chunk 1 defined the $99 packages but nothing
+    // purchased them: Quick intake handed off to the shared preview, which checked out the Full
+    // key, and the webhook would not have activated a Quick payment. These files close that
+    // circuit. Each one either selects between two existing package keys or widens an exact-key
+    // gate to accept EITHER of a category's two base keys; none adds a price, a Stripe id, a
+    // parallel checkout, a second listing table or a second public page.
+    "app/lib/listingPlans/businessQuickPlanSignal.ts", // which base package a checkout is buying
+    "app/lib/listingPlans/categoryCommercialPlanPolicy.ts", // a live Quick row is a canonical plan
+    "app/lib/listingPlans/publishCheckoutCheckpoint.ts", // Quick inventory allowance constants
+    "app/lib/listingPlans/revenueFulfillment.ts", // webhook routes a Quick payment to its category
+    "app/lib/listingPlans/revenueServiciosFulfillment.ts", // a paid Quick listing publishes
+    "app/lib/listingPlans/revenueRestaurantFulfillment.ts", // a paid Quick listing publishes
+    "app/lib/listingPlans/revenueAutosDealerFulfillment.ts", // a paid Quick listing publishes
+    "app/lib/listingPlans/revenueBienesNegocioFulfillment.ts", // a paid Quick listing publishes
+    "app/api/revenue-os/checkout/route.ts", // the autos pre-flight accepts the Quick dealer key
+    // The four shared previews. Each reads the Quick marker off its own URL and picks the Quick
+    // checkout constant instead of the Full one — the SAME preview, draft, publisher and public
+    // page either way. Without the marker every one of them behaves exactly as before.
+    "app/(site)/clasificados/publicar/servicios/preview/ClasificadosServiciosPreviewClient.tsx",
+    "app/(site)/clasificados/restaurantes/preview/RestaurantePreviewClient.tsx",
+    "app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx",
+    "app/(site)/clasificados/autos/negocios/lib/autosDealerRevenueCheckout.ts",
+    "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewClient.tsx",
+    // Chunk 2 — the SIMPLE -> FULL upgrade, and the resume price. A paid Simple customer had no
+    // purchasable route to Full (a published listing has no checkout in its preview), and a Quick
+    // customer who abandoned Stripe was re-offered the Full package because the dashboard link
+    // carries no `?plan=quick` marker. Both are answered from server state, not from the URL.
+    // None of these adds a price, a Stripe id, a parallel checkout, a second listing table, a
+    // second public page, or a write to any listing row.
+    "app/lib/listingPlans/businessBasePlanOfferPolicy.ts", // the decision, pure
+    "app/lib/listingPlans/businessBasePlanOffer.ts", // its owner-verified server reads
+    "app/lib/listingPlans/businessBasePlanOfferClient.ts", // the read-only client hook
+    "app/api/revenue-os/business-base-plan/route.ts", // read-only, bearer-auth, no mutation
+    // The owner surfaces that carry the upgrade CTA. Each buys the category's EXISTING Full
+    // package for a listing that already exists, through the one Revenue OS checkout.
+    "app/(site)/dashboard/lib/businessSimpleToFullUpgradeCheckout.ts",
+    "app/(site)/dashboard/components/BusinessSimpleToFullUpgradePanel.tsx",
+    "app/(site)/dashboard/servicios/page.tsx",
+    "app/(site)/dashboard/restaurantes/page.tsx",
+    "app/(site)/clasificados/autos/dashboard/AutosDealerInventoryDashboardSection.tsx",
+    "app/(site)/dashboard/components/LeonixRealEstateListingManageCard.tsx",
+    // -----------------------------------------------------------------------
+    // Gates QB-LIFECYCLE + CONVERGENCE + STAFF (commit 883467d25). Quick stopped
+    // being a price and became a lifecycle: a Quick customer can manage, converge
+    // and bill their own listing. Each file widens an EXISTING owner-verified seam
+    // to recognize the Quick base package beside the Full one. None adds a price,
+    // a Stripe id, a parallel checkout, a second listing table or a public page.
+    // -----------------------------------------------------------------------
+    "app/lib/listingPlans/quickToFullConvergence.ts", // the convergence server reads
+    "app/api/clasificados/quick-business/my-listing/route.ts", // owner reads their own Quick listing
+    "app/api/clasificados/autos/assisted-publish/route.ts", // assisted Quick stays staff-gated
+    "app/api/clasificados/bienes-raices/negocio/assisted-publish/route.ts", // same, Bienes
+    "app/api/clasificados/restaurantes/manage/route.ts", // Quick owner manage parity
+    "app/api/stripe/billing-portal-session/route.ts", // a Quick subscription reaches the portal
+    // -----------------------------------------------------------------------
+    // Quick final repair (commit 2b2192d51): canonical identity, real lifecycle,
+    // immediate convergence, semantic media. The assisted-publishing session and
+    // token become the canonical staff-assisted context every Quick seam reads,
+    // and convergence moves from a claim to a committed server operation.
+    // -----------------------------------------------------------------------
+    "app/lib/auth/assistedPublishingSession.ts", // the canonical assisted context
+    "app/lib/auth/assistedPublishingToken.ts", // its verified token
+    "app/lib/listingPlans/quickToFullConvergenceCore.ts", // convergence, against ports
+    "app/lib/listingPlans/quickToFullConvergencePure.ts", // its pure decision
+    "app/lib/listingPlans/revenueAuditLog.ts", // convergence and Quick writes are audited
+    "app/api/business/listing-link/route.ts", // canonical business-listing linkage
+    "app/api/clasificados/autos/listings/route.ts", // the Autos Quick media seam
+    "app/api/clasificados/servicios/publish/route.ts", // the Servicios Quick media seam
+    "app/(site)/clasificados/lib/leonixPublishRealEstateListingCore.ts", // the Bienes publish core
+    "app/admin/(dashboard)/businesses/[businessId]/PreparedListingsStrip.tsx", // staff sees Quick state
+    "supabase/migrations/20260920120000_quick_business_lifecycle_capability_parity.sql", // authored, not applied
+    // -----------------------------------------------------------------------
+    // Semantic media role declarations (commits 4ea02a374, 4ce07a6b6, 79ade5fd7).
+    // Quick's media contract has to know what an image IS, so the editors that
+    // already know emit an explicit role. These are ADDITIVE metadata changes on
+    // Full surfaces: nothing here subjects a Full product to a Quick rule.
+    // -----------------------------------------------------------------------
+    "app/(site)/clasificados/autos/negocios/types/autoDealerListing.ts",
+    "app/(site)/clasificados/lib/leonixPublishRealEstateFromDraftState.ts",
+    "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteIndividualResidencialFormState.ts",
+    "app/(site)/clasificados/publicar/bienes-raices/negocio/application/mapping/mapAgenteResidencialFormStateToNegocioForPublish.ts",
+    "app/(site)/clasificados/publicar/bienes-raices/negocio/application/mapping/mapBienesRaicesNegocioStateToPreviewVm.ts",
+    "app/(site)/clasificados/publicar/bienes-raices/negocio/application/schema/bienesRaicesNegocioFormState.ts",
+    "app/(site)/clasificados/restaurantes/application/buildRestaurantContactHub.ts",
+    "app/(site)/clasificados/restaurantes/application/restauranteListingApplicationModel.ts",
+    "app/api/clasificados/restaurantes/publish/route.ts",
+    "app/(site)/clasificados/bienes-raices/lib/bienesNegocioTranslateAd.ts",
+    "app/(site)/clasificados/bienes-raices/lib/useBienesNegocioShellTranslation.ts",
+    "app/(site)/clasificados/bienes-raices/listing/BienesRaicesNegocioLiveDetailShell.tsx",
+    // -----------------------------------------------------------------------
+    // Quick product boundary (commit a98d6d9ff). The two refreeze blockers: Quick
+    // enforcement reaching shared FULL publish paths, and the bypassable Quick
+    // Bienes browser insert. Product identity is now a SERVER fact, and Quick
+    // Bienes publishes through one authenticated server-custody operation.
+    // -----------------------------------------------------------------------
+    "app/lib/listingPlans/quickBusinessProductIdentity.ts", // the pure product rule
+    "app/lib/listingPlans/quickBusinessProductIdentityServer.ts", // its server-owned reads
+    "app/api/clasificados/bienes-raices/negocio/quick-publish/route.ts", // atomic Quick Bienes custody
+    // -----------------------------------------------------------------------
+    // Round-3 adversarial repair. The custody route above is reached only when the BROWSER
+    // declares the Quick package key, so omitting that field dropped a business publish into the
+    // plain browser insert with no media check at all. This gate — which existed before the
+    // custody route and was removed when it landed — is restored for every NON-custody business
+    // publish, now resolving the product from the bearer instead of running unconditionally.
+    // -----------------------------------------------------------------------
+    "app/api/clasificados/bienes-raices/negocio/publish-media-gate/route.ts",
+  ]);
+  const violations = touched.filter((f) => !MISSION_AUTHORIZED.has(f) && PROTECTED.some((re) => re.test(f)));
   assert.deepEqual(violations, [], `protected canonical surfaces must not change: ${violations.join(", ")}`);
-  assert.ok(!touched.some((f) => f.startsWith("supabase/migrations/")), "no new database migration");
+  // NO NEW DATABASE MIGRATION — narrowed to the real claim, not dropped.
+  //
+  // This started as "no file under supabase/migrations/ may be touched at all", which was true
+  // when the Quick on-ramp was the only mission in this tree. It stopped being usable the moment a
+  // later AUTHORIZED Quick gate had to author one (the lifecycle/capability-parity migration), and
+  // it would fail again for any second mission sharing the worktree — the same failure mode
+  // commit 14ed879b8 fixed in the Quick Business core verifier.
+  //
+  // The claim worth keeping is stronger than "no file changed": the Quick on-ramp must not
+  // introduce a migration of its OWN, and no migration this branch carries may create a Quick
+  // product or listing table. Both are asserted below, so an unexpected migration still fails.
+  const AUTHORIZED_MIGRATIONS = new Set([
+    // Quick lifecycle + capability parity. Authored by an authorized Quick gate; NOT applied.
+    "supabase/migrations/20260920120000_quick_business_lifecycle_capability_parity.sql",
+  ]);
+  const migrationsTouched = touched.filter((f) => f.startsWith("supabase/migrations/"));
+  const unexpectedMigrations = migrationsTouched.filter((f) => !AUTHORIZED_MIGRATIONS.has(f));
+  assert.deepEqual(
+    unexpectedMigrations,
+    [],
+    `no new database migration beyond the authorized Quick set: ${unexpectedMigrations.join(", ")}`,
+  );
+  for (const migration of migrationsTouched) {
+    const sql = read(migration);
+    const createdTables = [...sql.matchAll(/CREATE TABLE(?:\s+IF NOT EXISTS)?\s+(?:public\.)?(\w+)/gi)].map(
+      (m) => m[1]!,
+    );
+    const quickProductTables = createdTables.filter((t) => /quick|listing|classified|clasificado/i.test(t));
+    assert.deepEqual(
+      quickProductTables,
+      [],
+      `Quick must not create a product or listing table (${migration} creates: ${quickProductTables.join(", ")})`,
+    );
+  }
   // Gateway change is additive (one link + one import)
   const gw = read("app/(site)/publicar/PublicarGatewayClient.tsx");
   assert.ok(gw.includes('quickClassifiedsChooserPath(routeLang, "gateway")'), "gateway carries the additive Quick entry");

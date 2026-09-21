@@ -2,15 +2,19 @@
  * Quick Business → BIENES RAÍCES NEGOCIO / AGENT. Professional identity + the customer's FIRST REAL property → the
  * EXISTING `AgenteIndividualResidencialFormState` (canonical merge + instance-scoped preview draft store used by the
  * Full agente application) → the EXISTING `…/negocio/agente-individual/preview`, which owns the pending insert
- * (`publishLeonixListingFromAgenteResidencialDraft`, `activationMode: "pending_payment"`), the `br_agent_monthly`
- * checkout, the `listing-images` upload and the lifecycle RPCs. Zero canonical code is touched. Nothing is
- * fabricated: title, price, city, property type, condition and the property photos are the customer's own answers;
- * license, brokerage, beds, baths, sqft, address and amenities stay empty unless typed.
+ * (`publishLeonixListingFromAgenteResidencialDraft`, `activationMode: "pending_payment"`), the agent checkout, the
+ * `listing-images` upload and the lifecycle RPCs. Nothing is fabricated: title, price, city, property type,
+ * condition and the property photos are the customer's own answers; license, brokerage, beds, baths, sqft, address
+ * and amenities stay empty unless typed.
+ *
+ * The handoff carries the Quick plan marker, so that shared preview charges the Quick package
+ * (`br_agent_quick_monthly`, SIMPLE, ONE active property) rather than the Full agent package.
  */
 
 import { type BrNegocioCategoriaPropiedad } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import { gateBienesRaicesNegocioPreview } from "@/app/clasificados/lib/publish/leonixRequiredForPreviewGates";
 import { withBrAgenteResLangParam } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/brAgenteResidencialLang";
+import { withQuickPlanParam } from "@/app/lib/listingPlans/businessQuickPlanSignal";
 import {
   createBrAgenteResApplicationInstanceId,
   persistAgenteResApplicationDraftResolved,
@@ -41,7 +45,7 @@ import type { QuickBusinessCategoryAdapter } from "@/app/lib/quickBusiness/quick
 import type { QuickIntakeStep, QuickIntakeValues } from "@/app/lib/quickClassifieds/quickClassifiedTypes";
 import { quickStr, quickWholeDollars } from "@/app/lib/quickClassifieds/quickClassifiedValidation";
 import { cityField, resolveCity } from "@/app/publicar/rapido/_adapters/quickAdapterShared";
-import { BUSINESS_CONTACT_AT_LEAST_ONE } from "./quickBusinessAdapterShared";
+import { BUSINESS_CONTACT_AT_LEAST_ONE, declaredMediaRoleMap, galleryMediaOnly } from "./quickBusinessAdapterShared";
 
 /** Existing preview route (`AgenteIndividualResidencialApplication.tsx` BR_AGENTE_RES_PREVIEW_ROUTE). */
 const BR_AGENTE_PREVIEW_ROUTE = "/clasificados/publicar/bienes-raices/negocio/agente-individual/preview";
@@ -79,11 +83,15 @@ const STEPS: readonly QuickIntakeStep[] = [
       { key: "agenteLicencia", kind: "text", label: { es: "Licencia DRE (opcional)", en: "DRE license (optional)" }, maxLength: 40 },
       { key: "marcaNombre", kind: "text", label: { es: "Brokerage / oficina (opcional)", en: "Brokerage / office (optional)" }, maxLength: 80 },
       { key: "phone", kind: "phone", label: { es: "Teléfono", en: "Phone" }, placeholder: { es: "(408) 555-0123", en: "(408) 555-0123" }, autoComplete: "tel", inputMode: "tel" },
+      // Bible §10.1: SMS explicit — distinct from phone; canonical model derives SMS CTA from agenteTelefonoPersonal
+      // (no separate SMS field in AgenteIndividualResidencialFormState), so this collected value is advisory only.
+      { key: "sms", kind: "phone", label: { es: "SMS / mensajes de texto", en: "SMS / text messages" }, hint: { es: "Número para mensajes de texto (si es distinto al teléfono).", en: "Number for text messages (if different from your phone)." }, inputMode: "tel" },
       { key: "whatsapp", kind: "phone", label: { es: "WhatsApp", en: "WhatsApp" }, hint: { es: "Si es el mismo número, escríbelo también aquí.", en: "If it is the same number, enter it here too." }, inputMode: "tel" },
       { key: "email", kind: "email", label: { es: "Correo electrónico", en: "Email" }, autoComplete: "email", inputMode: "email" },
       { key: "website", kind: "text", label: { es: "Sitio web (opcional)", en: "Website (optional)" }, placeholder: { es: "https://…", en: "https://…" }, autoComplete: "url", maxLength: 200 },
     ],
-    atLeastOne: { keys: ["phone", "whatsapp", "email", "website"], message: BUSINESS_CONTACT_AT_LEAST_ONE },
+    // Bible §10.1: email and website cannot satisfy the direct-contact minimum; SMS is independent of phone.
+    atLeastOne: { keys: ["phone", "sms", "whatsapp"], message: BUSINESS_CONTACT_AT_LEAST_ONE },
   },
   {
     id: "property",
@@ -137,7 +145,14 @@ export const bienesNegocioQuickBusinessAdapter: QuickBusinessCategoryAdapter = {
       areaCiudad: quickStr(values, "areaCiudad"),
       direccionCodigoPostal: quickStr(values, "zip"),
       // Existing property media shape: `fotosDataUrls` + cover index (offloaded to IndexedDB by the canonical store).
-      fotosDataUrls: media.map((m) => m.dataUrl),
+      //
+      // Gate QB-MEDIA-03 — the agent's HEADSHOT and any brokerage logo are identity assets and
+      // never enter the property gallery, and every photo that does enter it carries the
+      // customer's own declared role in the additive `fotoMediaRoles` map. The business publish
+      // seam re-reads those roles server-side, so "a headshot is not a property photo" is
+      // enforced on what actually arrives instead of trusted from the browser.
+      fotosDataUrls: galleryMediaOnly(media).map((m) => m.dataUrl),
+      fotoMediaRoles: declaredMediaRoleMap(galleryMediaOnly(media)),
       fotoPortadaIndex: 0,
       // Agent card (customer's own answers; license / brokerage stay empty unless typed).
       agenteNombre: quickStr(values, "agenteNombre"),
@@ -146,6 +161,7 @@ export const bienesNegocioQuickBusinessAdapter: QuickBusinessCategoryAdapter = {
       marcaNombre: quickStr(values, "marcaNombre"),
       agenteTelefonoPersonal: quickStr(values, "phone"),
       agenteWhatsapp: quickStr(values, "whatsapp"),
+      agenteSmsPersonal: quickStr(values, "sms") || undefined,
       correoPrincipal: quickStr(values, "email"),
       agenteSitioWeb: quickStr(values, "website"),
       confirmListingAccurate: confirmations.infoTruthful,
@@ -168,7 +184,15 @@ export const bienesNegocioQuickBusinessAdapter: QuickBusinessCategoryAdapter = {
     }
     return {
       ok: true,
-      handoff: { kind: "preview", href: withBrAgenteResLangParam(withBrAgenteResApplicationInstanceParam(BR_AGENTE_PREVIEW_ROUTE, applicationInstanceId), ctx.lang) },
+      handoff: {
+        kind: "preview",
+        href: withQuickPlanParam(
+          withBrAgenteResLangParam(
+            withBrAgenteResApplicationInstanceParam(BR_AGENTE_PREVIEW_ROUTE, applicationInstanceId),
+            ctx.lang,
+          ),
+        ),
+      },
     };
   },
 };
