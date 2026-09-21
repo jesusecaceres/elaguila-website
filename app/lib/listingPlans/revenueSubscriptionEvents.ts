@@ -19,7 +19,12 @@ import { writeRevenueAuditLog } from "./revenueAuditLog";
 import { attachStripeIdentitiesToConsent } from "./recurringConsent";
 import { extendEntitlementForInvoicePaid } from "./revenueEntitlementFulfillment";
 import { recordDisputeOnPaymentRecord, recordRefundOnPaymentRecord } from "./refundDisputeFoundations";
-import { awardCreditsForSettledPayment, reverseCreditsForRefundOrDispute } from "@/app/lib/rewards/rewardsFulfillment";
+import {
+  awardCreditsForSettledPayment,
+  restoreCreditsForWonDispute,
+  reverseCreditsForRefundOrDispute,
+} from "@/app/lib/rewards/rewardsFulfillment";
+import { enqueueUnattributableRefund } from "@/app/lib/rewards/rewardsRefundResolutionQueue";
 import { decideInvoiceRenewalEarn } from "./invoiceRenewalEarnPolicy";
 import {
   applyPaymentSuspension,
@@ -564,6 +569,7 @@ async function findPaymentRecordByIntentOrCharge(charge: Stripe.Charge): Promise
 async function reverseRewardsForChargeRefunds(input: {
   paymentRecordId: string;
   charge: Stripe.Charge;
+  eventId?: string | null;
 }): Promise<void> {
   const cumulativeRefundedCents = input.charge.amount_refunded ?? 0;
   const refunds = (input.charge.refunds?.data ?? []).filter(
@@ -584,17 +590,33 @@ async function reverseRewardsForChargeRefunds(input: {
     // retryable for an operator to settle, which is the same posture the renewal-earn decision
     // takes when `billing_reason` is absent.
     if (cumulativeRefundedCents > 0) {
+      // DURABLE, RETRYABLE, STAFF-VISIBLE. An audit line alone was not enough: money went back to
+      // the customer and the credits it earned are still spendable, so this has to sit in a queue
+      // a person works, not in a log a person might read.
+      const queued = await enqueueUnattributableRefund({
+        paymentRecordId: input.paymentRecordId,
+        kind: "refund",
+        cumulativeRefundedCents,
+        reason: "charge_refunds_absent_from_payload",
+        stripeChargeId: input.charge.id,
+        stripeEventId: input.eventId ?? null,
+      });
       await writeRevenueAuditLog({
         action: "revenue_payment_completed",
         targetType: "leonix_rewards_ledger",
         targetId: input.paymentRecordId,
         meta: {
           rewards_action: "rewards_reverse",
-          rewards_outcome: "skipped",
+          rewards_outcome: "queued_for_resolution",
           rewards_reason: "charge_refunds_absent_from_payload",
           retryable: true,
           stripe_charge_id: input.charge.id,
           cumulative_refunded_cents: cumulativeRefundedCents,
+          resolution_id: queued.ok ? queued.id : null,
+          resolution_deduplicated: queued.ok ? queued.deduplicated : null,
+          // A queue write that itself failed is the one case where the log is the last line of
+          // defence, so it says so explicitly rather than reading like a success.
+          resolution_enqueue_error: queued.ok ? null : queued.error,
         },
       }).catch(() => undefined);
     }
@@ -636,7 +658,7 @@ export async function handleChargeRefunded(input: { charge: Stripe.Charge; event
   // leaves the customer holding credits for money they already got back.
   //
   // Best-effort: a rewards problem must not make a correctly-recorded refund look failed to Stripe.
-  await reverseRewardsForChargeRefunds({ paymentRecordId: record.id, charge: input.charge }).catch(() => null);
+  await reverseRewardsForChargeRefunds({ paymentRecordId: record.id, charge: input.charge, eventId: input.eventId }).catch(() => null);
 
   return result.ok ? { ok: true, outcome: "completed" } : { ok: false, outcome: "failed_retryable", code: result.message };
 }
@@ -725,6 +747,20 @@ export async function handleDisputeClosed(input: { dispute: Stripe.Dispute; even
       }
     }
   }
+  // LEONIX IX REWARDS — a WON dispute gives the credits back.
+  //
+  // `charge.dispute.created` clawed them back the moment the money was contested, which is right.
+  // Closing as WON means Leonix kept the money and the customer kept what they bought — so
+  // leaving the clawback standing charged the customer their rewards for a charge they had in
+  // fact paid. Bounded by what was reversed, keyed on the dispute, landing on the wallet that was
+  // debited. Best-effort, like every other rewards hook: a rewards problem never fails a webhook.
+  if (won) {
+    await restoreCreditsForWonDispute({
+      paymentRecordId: String(paymentRecord.id),
+      externalId: input.dispute.id,
+    }).catch(() => null);
+  }
+
   await writeRevenueAuditLog({
     action: won ? "revenue_entitlement_activated" : "revenue_webhook_validation_failed",
     targetType: "payment_record",

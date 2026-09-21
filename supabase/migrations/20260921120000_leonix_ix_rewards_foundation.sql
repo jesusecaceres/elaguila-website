@@ -73,6 +73,30 @@ CREATE TABLE IF NOT EXISTS public.leonix_rewards_wallets (
   lifetime_redeemed_cents integer NOT NULL DEFAULT 0,
   lifetime_reversed_cents integer NOT NULL DEFAULT 0,
 
+  -- RECOVERY BALANCE — what the customer OWES back, never a negative wallet.
+  --
+  -- A refund or chargeback claws back the credits its payment earned. When the customer has
+  -- already SPENT them the wallet cannot go negative, so the shortfall is recorded here instead.
+  -- Recovery is not a balance the customer holds; it is a balance they owe. Future earnings repay
+  -- it before becoming spendable, which is what makes the clawback real without ever producing a
+  -- negative number a customer could see or a redemption could draw on.
+  recovery_cents integer NOT NULL DEFAULT 0,
+  lifetime_recovery_accrued_cents integer NOT NULL DEFAULT 0,
+  lifetime_recovery_offset_cents integer NOT NULL DEFAULT 0,
+  -- Credits given BACK after a dispute was won. Tracked separately from `lifetime_earned` so a
+  -- restoration never reads as new earning, and separately from `lifetime_reversed` because the
+  -- ledger is append-only and the original reversal row stands.
+  lifetime_restored_cents integer NOT NULL DEFAULT 0,
+
+  -- THE CANONICAL BINDING. The auth user this wallet serves, pinned at first use and never
+  -- reassigned. Without it, wallet identity was a live query over `business_memberships`: a
+  -- customer who earned as an individual and later became primary owner of a business silently
+  -- started resolving to the BUSINESS wallet, and their own balance vanished from every surface.
+  -- Earn, promotion, redemption, reversal, release and restoration all resolve through this, so
+  -- one customer has exactly one wallet identity for the whole lifecycle. It effects no merge:
+  -- a wallet that already exists for another binding is never taken over.
+  bound_user_id uuid NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
+
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
 
@@ -85,7 +109,13 @@ CREATE TABLE IF NOT EXISTS public.leonix_rewards_wallets (
   CONSTRAINT leonix_rewards_wallets_available_nonneg_chk CHECK (available_cents >= 0),
   CONSTRAINT leonix_rewards_wallets_reserved_nonneg_chk CHECK (reserved_cents >= 0),
   CONSTRAINT leonix_rewards_wallets_lifetime_nonneg_chk
-    CHECK (lifetime_earned_cents >= 0 AND lifetime_redeemed_cents >= 0 AND lifetime_reversed_cents >= 0)
+    CHECK (lifetime_earned_cents >= 0 AND lifetime_redeemed_cents >= 0 AND lifetime_reversed_cents >= 0),
+  -- Recovery is an amount OWED. It is non-negative for the same reason the buckets are: an
+  -- over-repayment would mean the customer paid back more than was ever clawed back.
+  CONSTRAINT leonix_rewards_wallets_recovery_nonneg_chk CHECK (recovery_cents >= 0),
+  CONSTRAINT leonix_rewards_wallets_recovery_lifetime_nonneg_chk
+    CHECK (lifetime_recovery_accrued_cents >= 0 AND lifetime_recovery_offset_cents >= 0),
+  CONSTRAINT leonix_rewards_wallets_restored_nonneg_chk CHECK (lifetime_restored_cents >= 0)
 );
 
 -- One wallet per entity. Partial uniques because exactly one owner column is populated.
@@ -93,6 +123,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS leonix_rewards_wallets_business_idx
   ON public.leonix_rewards_wallets (business_id) WHERE business_id IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS leonix_rewards_wallets_user_idx
   ON public.leonix_rewards_wallets (owner_user_id) WHERE owner_user_id IS NOT NULL;
+-- One customer, one wallet. The partial unique is what makes the binding an identity rather than
+-- a hint: a second wallet can never claim a user who is already bound.
+CREATE UNIQUE INDEX IF NOT EXISTS leonix_rewards_wallets_bound_user_idx
+  ON public.leonix_rewards_wallets (bound_user_id) WHERE bound_user_id IS NOT NULL;
 
 COMMENT ON TABLE public.leonix_rewards_wallets IS
   'LEONIX IX REWARDS — one canonical credit wallet per paying entity (a business, or an individual auth user when there is no business). Bucket balances are a maintained cache of the immutable leonix_rewards_ledger; non-negativity is enforced here by CHECK constraints so over-redemption aborts at the database.';
@@ -139,6 +173,9 @@ CREATE TABLE IF NOT EXISTS public.leonix_rewards_ledger (
     'redeem_commit',       -- the held amount is actually spent
     'redeem_release',      -- the hold is returned after a failed/expired checkout
     'redeem_recommit',     -- an EXPIRED hold re-debited in ONE movement: available -> spent
+    'reversal_restoration',-- a WON dispute gives back exactly what its reversal took
+    'recovery_accrue',     -- a clawback the wallet could not cover, recorded as owed
+    'recovery_offset',     -- future earnings repaying that debt before becoming spendable
     'refund_reversal',     -- a refund claws back the credits that payment earned
     'chargeback_reversal', -- a dispute claws back the credits that payment earned
     'manual_adjustment',   -- authorized staff correction, signed, always with a reason
@@ -156,8 +193,17 @@ CREATE TABLE IF NOT EXISTS public.leonix_rewards_ledger (
   -- magnitude, and the entry_type says which direction.
   CONSTRAINT leonix_rewards_ledger_amount_chk CHECK (
     (entry_type = 'manual_adjustment' AND amount_cents <> 0)
-    OR (entry_type IN ('refund_reversal', 'chargeback_reversal') AND amount_cents >= 0)
-    OR (entry_type NOT IN ('manual_adjustment', 'refund_reversal', 'chargeback_reversal') AND amount_cents > 0)
+    -- A reversal, a restoration and a recovery movement may all be ZERO for the same reason: the
+    -- event still has to be RECORDED under its idempotency key so the next delivery is a no-op
+    -- and the cumulative position keeps its basis, even when nothing moved.
+    OR (entry_type IN (
+          'refund_reversal', 'chargeback_reversal', 'reversal_restoration',
+          'recovery_accrue', 'recovery_offset'
+        ) AND amount_cents >= 0)
+    OR (entry_type NOT IN (
+          'manual_adjustment', 'refund_reversal', 'chargeback_reversal',
+          'reversal_restoration', 'recovery_accrue', 'recovery_offset'
+        ) AND amount_cents > 0)
   ),
   -- A staff correction is never anonymous and never unexplained.
   CONSTRAINT leonix_rewards_ledger_manual_reason_chk CHECK (
@@ -168,6 +214,24 @@ CREATE TABLE IF NOT EXISTS public.leonix_rewards_ledger (
     balance_pending_after >= 0 AND balance_available_after >= 0 AND balance_reserved_after >= 0
   )
 );
+
+-- DETERMINISTIC REPLAY ORDER.
+--
+-- `created_at` is transaction START time, not the serialization point: two overlapping
+-- transactions can commit in the opposite order to their timestamps, and a replay ordered by
+-- `created_at` then reconstructs an intermediate state that never existed — possibly negative, in
+-- which case recomputation refuses a ledger that is in fact perfectly consistent.
+--
+-- `entry_seq` is drawn from a sequence INSIDE the wallet lock, so it is assigned in the exact
+-- order movements actually serialized on that wallet. It is the canonical replay order and the
+-- tie-breaker nothing else can supply.
+CREATE SEQUENCE IF NOT EXISTS public.leonix_rewards_ledger_seq AS bigint;
+ALTER TABLE public.leonix_rewards_ledger
+  ADD COLUMN IF NOT EXISTS entry_seq bigint;
+CREATE UNIQUE INDEX IF NOT EXISTS leonix_rewards_ledger_entry_seq_idx
+  ON public.leonix_rewards_ledger (entry_seq) WHERE entry_seq IS NOT NULL;
+CREATE INDEX IF NOT EXISTS leonix_rewards_ledger_wallet_seq_idx
+  ON public.leonix_rewards_ledger (wallet_id, entry_seq);
 
 -- Duplicate external events cannot produce a second balance movement.
 CREATE UNIQUE INDEX IF NOT EXISTS leonix_rewards_ledger_idempotency_idx
@@ -265,6 +329,78 @@ COMMENT ON TABLE public.leonix_rewards_redemptions IS
 -- one statement, so a balance can never drift from its history. Bucket deltas are derived HERE, in
 -- SQL, rather than supplied by the caller: a buggy or malicious caller therefore cannot invent a
 -- movement that the entry type does not mean.
+-- -----------------------------------------------------------------------------
+-- 3b. UNATTRIBUTABLE REFUND RESOLUTION QUEUE
+-- -----------------------------------------------------------------------------
+--
+-- A refund is identified by its own refund object. When a `charge.refunded` payload arrives with
+-- no `charge.refunds.data` — a truncated delivery, an older API version, a manual replay — the
+-- refund cannot be attributed, and reversing it under a charge-derived key was the defect that
+-- once double-counted the same refunded dollars and over-charged a customer.
+--
+-- Refusing to reverse is correct. SILENTLY refusing is not: money went back to the customer and
+-- the credits it earned are still spendable. Every such event lands here instead — durable,
+-- retryable, staff-visible, and resolvable exactly once.
+CREATE TABLE IF NOT EXISTS public.leonix_rewards_refund_resolutions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  -- WHAT THE RAIL TOLD US. Kept verbatim so a human can reconcile against Stripe without
+  -- trusting anything this application derived.
+  payment_record_id uuid NOT NULL REFERENCES public.leonix_payment_records (id) ON DELETE RESTRICT,
+  stripe_charge_id text NULL,
+  stripe_event_id text NULL,
+  kind text NOT NULL,
+  cumulative_refunded_cents integer NOT NULL DEFAULT 0,
+
+  status text NOT NULL DEFAULT 'open',
+  attempts integer NOT NULL DEFAULT 1,
+  last_attempt_at timestamptz NOT NULL DEFAULT now(),
+  reason text NOT NULL,
+
+  -- HOW IT ENDED. A resolution is an authorized staff act, so it is attributed like every other
+  -- money write in this system.
+  resolved_at timestamptz NULL,
+  resolved_by_auth_user_id uuid NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
+  resolved_by_roster_id uuid NULL,
+  resolution_outcome text NULL,
+  resolution_note text NULL,
+  -- The refund object id a human supplied, which is what makes the eventual reversal idempotent
+  -- under the SAME `reverse:refund:<id>` key any later webhook would use.
+  resolved_refund_external_id text NULL,
+  resolved_ledger_id uuid NULL REFERENCES public.leonix_rewards_ledger (id) ON DELETE RESTRICT,
+
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+
+  CONSTRAINT leonix_rewards_refund_resolutions_kind_chk CHECK (kind IN ('refund', 'chargeback')),
+  CONSTRAINT leonix_rewards_refund_resolutions_status_chk
+    CHECK (status IN ('open', 'resolved', 'dismissed')),
+  CONSTRAINT leonix_rewards_refund_resolutions_outcome_chk
+    CHECK (resolution_outcome IS NULL OR resolution_outcome IN ('reversed', 'no_action_required')),
+  -- A resolved row is never anonymous and never unexplained, exactly like a manual adjustment.
+  CONSTRAINT leonix_rewards_refund_resolutions_resolved_chk CHECK (
+    status = 'open'
+    OR (resolved_at IS NOT NULL AND resolved_by_auth_user_id IS NOT NULL
+        AND resolution_outcome IS NOT NULL
+        AND resolution_note IS NOT NULL AND length(btrim(resolution_note)) >= 3)
+  ),
+  CONSTRAINT leonix_rewards_refund_resolutions_nonneg_chk
+    CHECK (cumulative_refunded_cents >= 0 AND attempts >= 1)
+);
+
+-- ONE OPEN ROW PER (payment, kind, cumulative position). A redelivered webhook bumps `attempts`
+-- on the existing row instead of filling the queue with duplicates of one problem.
+CREATE UNIQUE INDEX IF NOT EXISTS leonix_rewards_refund_resolutions_open_idx
+  ON public.leonix_rewards_refund_resolutions (payment_record_id, kind, cumulative_refunded_cents)
+  WHERE status = 'open';
+CREATE INDEX IF NOT EXISTS leonix_rewards_refund_resolutions_status_idx
+  ON public.leonix_rewards_refund_resolutions (status, created_at DESC);
+
+COMMENT ON TABLE public.leonix_rewards_refund_resolutions IS
+  'LEONIX IX REWARDS — refund and dispute events that could not be attributed to a canonical refund object. Durable and retryable: money went back to the customer, so the credits it earned must be dealt with by a person rather than silently left spendable.';
+
+ALTER TABLE public.leonix_rewards_refund_resolutions ENABLE ROW LEVEL SECURITY;
+
 -- THE RESERVATION IS THE UNIT, NOT THE BUCKET.
 --
 -- `reserved_cents` is a single fungible number shared by every live hold on a wallet, so a commit
@@ -371,6 +507,12 @@ DECLARE
   v_earned_delta integer := 0;
   v_redeemed_delta integer := 0;
   v_reversed_delta integer := 0;
+  v_recovery_delta integer := 0;
+  v_recovery_accrued_delta integer := 0;
+  v_recovery_offset_delta integer := 0;
+  v_restored_delta integer := 0;
+  v_offset integer := 0;
+  v_cover integer := 0;
   v_draw integer := 0;
   v_wallet public.leonix_rewards_wallets;
   v_row public.leonix_rewards_ledger;
@@ -391,8 +533,21 @@ BEGIN
 
   CASE p_entry_type
     WHEN 'earn_pending' THEN
-      v_pending_delta := p_amount_cents;
+      -- RECOVERY IS REPAID FIRST. A clawback the wallet could not cover is a debt, and the next
+      -- credits this customer earns settle it before any of them become theirs to spend. Doing it
+      -- here, in the same statement that posts the earn, is what makes the debt real without ever
+      -- showing a negative balance or letting a redemption draw on value that is owed back.
+      v_offset := LEAST(p_amount_cents, v_wallet.recovery_cents);
+      v_pending_delta := p_amount_cents - v_offset;
       v_earned_delta := p_amount_cents;
+      v_recovery_delta := -v_offset;
+      v_recovery_offset_delta := v_offset;
+    WHEN 'earn_available' THEN
+      v_offset := LEAST(p_amount_cents, v_wallet.recovery_cents);
+      v_available_delta := p_amount_cents - v_offset;
+      v_earned_delta := p_amount_cents;
+      v_recovery_delta := -v_offset;
+      v_recovery_offset_delta := v_offset;
     WHEN 'earn_promote' THEN
       -- Promotion may only move credits that are actually still pending. A payment reversed
       -- between the earn and the settlement window has nothing left to promote.
@@ -403,10 +558,16 @@ BEGIN
       END IF;
       v_pending_delta := -p_amount_cents;
       v_available_delta := p_amount_cents;
-    WHEN 'earn_available' THEN
-      v_available_delta := p_amount_cents;
-      v_earned_delta := p_amount_cents;
     WHEN 'redeem_reserve' THEN
+      -- NO SPENDING WHILE A CLAWBACK IS OUTSTANDING. Recovery means money went back to the
+      -- customer for credits they had already spent. Letting them hold a fresh discount while
+      -- that debt stands would hand out the same value twice. Their next earnings repay it
+      -- automatically, so this is a pause, not a penalty, and it is stated by name.
+      IF v_wallet.recovery_cents > 0 THEN
+        RAISE EXCEPTION 'leonix_rewards_post_entry: wallet % has an outstanding recovery balance of %',
+          p_wallet_id, v_wallet.recovery_cents
+          USING ERRCODE = 'check_violation';
+      END IF;
       -- THE over-redemption refusal, stated explicitly rather than left to the CHECK, so the
       -- caller gets a named error instead of a generic constraint message.
       IF v_wallet.available_cents < p_amount_cents THEN
@@ -450,21 +611,27 @@ BEGIN
       -- available. Reversing against pending first is what keeps a refund from consuming a
       -- balance the customer could already have spent.
       --
-      -- A reversal larger than pending + available cannot be posted: the caller has already
-      -- clamped the movement to what the payment actually earned, so reaching here means the
-      -- wallet drifted, and the right answer is to refuse and reconcile rather than to clamp.
-      IF v_wallet.pending_cents + v_wallet.available_cents < p_amount_cents THEN
-        RAISE EXCEPTION 'leonix_rewards_post_entry: reversal of % exceeds pending % plus available % on wallet %',
-          p_amount_cents, v_wallet.pending_cents, v_wallet.available_cents, p_wallet_id
-          USING ERRCODE = 'check_violation';
-      END IF;
-      IF v_wallet.pending_cents >= p_amount_cents THEN
-        v_pending_delta := -p_amount_cents;
+      -- WHAT THE WALLET CANNOT COVER BECOMES A DEBT, NOT A REFUSAL.
+      --
+      -- This used to refuse outright when the customer had already spent the credits. Refusing is
+      -- safe for the wallet and terrible for the books: money went back to the customer and the
+      -- clawback simply never happened, with no record that anything was owed. Leonix was out
+      -- those credits until a human noticed.
+      --
+      -- Now the reversal takes everything the wallet holds — pending first, then available, the
+      -- same order as before — and records the remainder as `recovery_cents`. Buckets stay
+      -- non-negative, `lifetime_reversed` counts only what actually moved, and the shortfall is
+      -- repaid out of future earnings before they become spendable.
+      v_cover := LEAST(p_amount_cents, v_wallet.pending_cents + v_wallet.available_cents);
+      IF v_wallet.pending_cents >= v_cover THEN
+        v_pending_delta := -v_cover;
       ELSE
         v_pending_delta := -v_wallet.pending_cents;
-        v_available_delta := -(p_amount_cents - v_wallet.pending_cents);
+        v_available_delta := -(v_cover - v_wallet.pending_cents);
       END IF;
-      v_reversed_delta := p_amount_cents;
+      v_reversed_delta := v_cover;
+      v_recovery_delta := p_amount_cents - v_cover;
+      v_recovery_accrued_delta := p_amount_cents - v_cover;
     WHEN 'manual_adjustment' THEN
       IF p_amount_cents > 0 THEN
         -- A positive correction is spendable at once; staff have already authorized it.
@@ -491,6 +658,43 @@ BEGIN
         END IF;
         v_reversed_delta := v_draw;
       END IF;
+    WHEN 'reversal_restoration' THEN
+      -- A WON DISPUTE GIVES BACK EXACTLY WHAT ITS REVERSAL TOOK.
+      --
+      -- The ledger is append-only, so the original clawback row stands and this is a compensating
+      -- movement rather than an edit. The caller has already clamped the amount to
+      -- (reversed - already restored) for this payment, so restoring more than was taken is
+      -- impossible before we get here; the guard below is the database saying so too.
+      --
+      -- A restoration repays the customer's RECOVERY DEBT first. Handing back spendable credits
+      -- while they still owe the shortfall from the same clawback would give the value twice.
+      IF p_amount_cents > v_wallet.lifetime_reversed_cents + v_wallet.recovery_cents
+                          - v_wallet.lifetime_restored_cents THEN
+        RAISE EXCEPTION 'leonix_rewards_post_entry: restoration of % exceeds what was reversed on wallet %',
+          p_amount_cents, p_wallet_id
+          USING ERRCODE = 'check_violation';
+      END IF;
+      v_offset := LEAST(p_amount_cents, v_wallet.recovery_cents);
+      v_recovery_delta := -v_offset;
+      v_recovery_offset_delta := v_offset;
+      -- Restored credits are SPENDABLE. The money is final: the dispute is closed and won, so
+      -- there is no settlement window left to wait out.
+      v_available_delta := p_amount_cents - v_offset;
+      v_restored_delta := p_amount_cents;
+    WHEN 'recovery_accrue' THEN
+      -- A debt recorded on its own, outside a reversal — a staff correction of an under-recovered
+      -- position. Never touches a spendable bucket.
+      v_recovery_delta := p_amount_cents;
+      v_recovery_accrued_delta := p_amount_cents;
+    WHEN 'recovery_offset' THEN
+      -- A debt forgiven or settled outside the earnings path (staff write-off, cash repayment).
+      IF v_wallet.recovery_cents < p_amount_cents THEN
+        RAISE EXCEPTION 'leonix_rewards_post_entry: offset of % exceeds recovery % on wallet %',
+          p_amount_cents, v_wallet.recovery_cents, p_wallet_id
+          USING ERRCODE = 'check_violation';
+      END IF;
+      v_recovery_delta := -p_amount_cents;
+      v_recovery_offset_delta := p_amount_cents;
     WHEN 'expire' THEN
       -- No launch policy emits this. It exists so expiry could be introduced later without a
       -- schema change; nothing in the application writes it, and no surface claims expiry.
@@ -519,6 +723,10 @@ BEGIN
         lifetime_earned_cents = lifetime_earned_cents + v_earned_delta,
         lifetime_redeemed_cents = lifetime_redeemed_cents + v_redeemed_delta,
         lifetime_reversed_cents = lifetime_reversed_cents + v_reversed_delta,
+        recovery_cents = recovery_cents + v_recovery_delta,
+        lifetime_recovery_accrued_cents = lifetime_recovery_accrued_cents + v_recovery_accrued_delta,
+        lifetime_recovery_offset_cents = lifetime_recovery_offset_cents + v_recovery_offset_delta,
+        lifetime_restored_cents = lifetime_restored_cents + v_restored_delta,
         updated_at = now()
     WHERE id = p_wallet_id
     RETURNING * INTO v_wallet;
@@ -526,11 +734,14 @@ BEGIN
     INSERT INTO public.leonix_rewards_ledger (
       wallet_id, entry_type, amount_cents, source_kind, source_id, payment_record_id,
       redemption_id, idempotency_key, balance_pending_after, balance_available_after,
-      balance_reserved_after, reason, actor_auth_user_id, actor_roster_id, meta
+      balance_reserved_after, reason, actor_auth_user_id, actor_roster_id, meta, entry_seq
     ) VALUES (
       p_wallet_id, p_entry_type, p_amount_cents, p_source_kind, p_source_id, p_payment_record_id,
       p_redemption_id, p_idempotency_key, v_wallet.pending_cents, v_wallet.available_cents,
-      v_wallet.reserved_cents, p_reason, p_actor_auth_user_id, p_actor_roster_id, COALESCE(p_meta, '{}'::jsonb)
+      v_wallet.reserved_cents, p_reason, p_actor_auth_user_id, p_actor_roster_id, COALESCE(p_meta, '{}'::jsonb),
+      -- Drawn INSIDE the wallet lock, so it records the order movements actually serialized on
+      -- this wallet rather than the order their transactions started.
+      nextval('public.leonix_rewards_ledger_seq')
     )
     RETURNING * INTO v_row;
   EXCEPTION
@@ -585,6 +796,12 @@ DECLARE
   v_earned integer := 0;
   v_redeemed integer := 0;
   v_reversed integer := 0;
+  v_recovery integer := 0;
+  v_recovery_accrued integer := 0;
+  v_recovery_offset integer := 0;
+  v_restored integer := 0;
+  v_offset integer := 0;
+  v_cover integer := 0;
   v_take integer := 0;
 BEGIN
   SELECT * INTO v_wallet FROM public.leonix_rewards_wallets WHERE id = p_wallet_id FOR UPDATE;
@@ -593,23 +810,51 @@ BEGIN
       USING ERRCODE = 'no_data_found';
   END IF;
 
-  -- Posting order. `created_at` alone is not a total order under concurrency, so `id` breaks ties
-  -- deterministically: the same history always replays to the same answer.
+  -- CANONICAL POSTING ORDER.
+  --
+  -- `created_at` is transaction START time. Two overlapping transactions can commit in the
+  -- opposite order to their timestamps, so a replay ordered by it reconstructs an intermediate
+  -- state that never existed — possibly negative, in which case this function refused a ledger
+  -- that was in fact consistent.
+  --
+  -- `entry_seq` is drawn from a sequence inside the wallet lock, so it IS the serialization order
+  -- on this wallet. It sorts first; `created_at` and `id` remain only as the tie-break for rows
+  -- written before the sequence existed, which keeps the order total in every case.
   FOR v_entry IN
     SELECT *
     FROM public.leonix_rewards_ledger
     WHERE wallet_id = p_wallet_id
-    ORDER BY created_at ASC, id ASC
+    ORDER BY entry_seq ASC NULLS LAST, created_at ASC, id ASC
   LOOP
     CASE v_entry.entry_type
+      WHEN 'reversal_restoration' THEN
+        v_offset := LEAST(v_entry.amount_cents, v_recovery);
+        v_recovery := v_recovery - v_offset;
+        v_recovery_offset := v_recovery_offset + v_offset;
+        v_available := v_available + (v_entry.amount_cents - v_offset);
+        v_restored := v_restored + v_entry.amount_cents;
+      WHEN 'recovery_accrue' THEN
+        v_recovery := v_recovery + v_entry.amount_cents;
+        v_recovery_accrued := v_recovery_accrued + v_entry.amount_cents;
+      WHEN 'recovery_offset' THEN
+        v_recovery := v_recovery - v_entry.amount_cents;
+        v_recovery_offset := v_recovery_offset + v_entry.amount_cents;
       WHEN 'earn_pending' THEN
-        v_pending := v_pending + v_entry.amount_cents;
+        -- Recovery is repaid before anything becomes the customer's to spend, exactly as the
+        -- posting rule does it. Replaying without this would rebuild a wallet that never existed.
+        v_offset := LEAST(v_entry.amount_cents, v_recovery);
+        v_recovery := v_recovery - v_offset;
+        v_recovery_offset := v_recovery_offset + v_offset;
+        v_pending := v_pending + (v_entry.amount_cents - v_offset);
         v_earned := v_earned + v_entry.amount_cents;
       WHEN 'earn_promote' THEN
         v_pending := v_pending - v_entry.amount_cents;
         v_available := v_available + v_entry.amount_cents;
       WHEN 'earn_available' THEN
-        v_available := v_available + v_entry.amount_cents;
+        v_offset := LEAST(v_entry.amount_cents, v_recovery);
+        v_recovery := v_recovery - v_offset;
+        v_recovery_offset := v_recovery_offset + v_offset;
+        v_available := v_available + (v_entry.amount_cents - v_offset);
         v_earned := v_earned + v_entry.amount_cents;
       WHEN 'redeem_reserve' THEN
         v_available := v_available - v_entry.amount_cents;
@@ -627,14 +872,18 @@ BEGIN
         v_redeemed := v_redeemed + v_entry.amount_cents;
       WHEN 'refund_reversal', 'chargeback_reversal' THEN
         -- Pending first, then available — the posting rule, replayed against the balances as they
-        -- stood at this point in the history.
-        IF v_pending >= v_entry.amount_cents THEN
-          v_pending := v_pending - v_entry.amount_cents;
+        -- stood at this point in the history. `amount_cents` is what the reversal ACTUALLY moved,
+        -- so a clawback that outran the wallet is replayed as the partial movement it was; the
+        -- shortfall it recorded is carried by its own `recovery_accrue` entry, not re-derived
+        -- here. Deriving it twice would double the debt on every recomputation.
+        v_cover := LEAST(v_entry.amount_cents, v_pending + v_available);
+        IF v_pending >= v_cover THEN
+          v_pending := v_pending - v_cover;
         ELSE
-          v_available := v_available - (v_entry.amount_cents - v_pending);
+          v_available := v_available - (v_cover - v_pending);
           v_pending := 0;
         END IF;
-        v_reversed := v_reversed + v_entry.amount_cents;
+        v_reversed := v_reversed + v_cover;
       WHEN 'manual_adjustment' THEN
         IF v_entry.amount_cents > 0 THEN
           v_available := v_available + v_entry.amount_cents;
@@ -663,9 +912,9 @@ BEGIN
   -- A replay that lands on a negative bucket means the LEDGER is inconsistent, not the cache.
   -- Refusing here is the point: writing a negative balance would violate the wallet CHECKs anyway,
   -- and silently clamping would hide a real accounting defect behind a plausible number.
-  IF v_pending < 0 OR v_available < 0 OR v_reserved < 0 THEN
-    RAISE EXCEPTION 'leonix_rewards_recompute_wallet: wallet % replays to a negative bucket (pending %, available %, reserved %); the ledger is inconsistent',
-      p_wallet_id, v_pending, v_available, v_reserved
+  IF v_pending < 0 OR v_available < 0 OR v_reserved < 0 OR v_recovery < 0 THEN
+    RAISE EXCEPTION 'leonix_rewards_recompute_wallet: wallet % replays to a negative bucket (pending %, available %, reserved %, recovery %); the ledger is inconsistent',
+      p_wallet_id, v_pending, v_available, v_reserved, v_recovery
       USING ERRCODE = 'check_violation';
   END IF;
 
@@ -676,6 +925,10 @@ BEGIN
       lifetime_earned_cents = v_earned,
       lifetime_redeemed_cents = v_redeemed,
       lifetime_reversed_cents = v_reversed,
+      recovery_cents = v_recovery,
+      lifetime_recovery_accrued_cents = v_recovery_accrued,
+      lifetime_recovery_offset_cents = v_recovery_offset,
+      lifetime_restored_cents = v_restored,
       updated_at = now()
   WHERE id = p_wallet_id
   RETURNING * INTO v_wallet;
@@ -769,5 +1022,17 @@ GRANT SELECT ON TABLE public.leonix_rewards_redemptions TO authenticated;
 GRANT ALL ON TABLE public.leonix_rewards_wallets TO service_role;
 GRANT ALL ON TABLE public.leonix_rewards_ledger TO service_role;
 GRANT ALL ON TABLE public.leonix_rewards_redemptions TO service_role;
+
+-- The refund resolution queue is STAFF-ONLY. It names payment records, charge ids and refunded
+-- amounts for customers other than the reader, so unlike the wallet tables there is no
+-- customer-facing SELECT policy and no `authenticated` grant of any kind: it is reached solely
+-- through the service-role staff API, behind the same authorization as every other money screen.
+REVOKE ALL ON TABLE public.leonix_rewards_refund_resolutions FROM anon, authenticated;
+GRANT ALL ON TABLE public.leonix_rewards_refund_resolutions TO service_role;
+
+-- The ledger sequence must not be advanced from a browser session either: burning sequence values
+-- is not a money movement, but it is not a browser's business.
+REVOKE ALL ON SEQUENCE public.leonix_rewards_ledger_seq FROM PUBLIC, anon, authenticated;
+GRANT USAGE ON SEQUENCE public.leonix_rewards_ledger_seq TO service_role;
 
 COMMIT;

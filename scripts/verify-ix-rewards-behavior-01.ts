@@ -127,14 +127,29 @@ function makeStore(opts?: { now?: () => number }) {
    * entry type, so a change to one that is not made to the other fails the suite.
    */
   function deltasFor(entryType: string, amount: number, w: WalletSnapshot) {
-    const d = { pending: 0, available: 0, reserved: 0, earned: 0, redeemed: 0, reversed: 0 };
+    const d = {
+      pending: 0, available: 0, reserved: 0, earned: 0, redeemed: 0, reversed: 0,
+      recovery: 0, recoveryAccrued: 0, recoveryOffset: 0, restored: 0,
+    };
+    const recoveryNow = w.recoveryCents ?? 0;
     switch (entryType) {
-      case "earn_pending": d.pending = amount; d.earned = amount; break;
+      case "earn_pending": {
+        // Recovery is repaid before anything becomes spendable — the SQL rule, modelled.
+        const off = Math.min(amount, recoveryNow);
+        d.pending = amount - off; d.earned = amount; d.recovery = -off; d.recoveryOffset = off;
+        break;
+      }
       case "earn_promote":
         if (w.pendingCents < amount) throw new Error("promotion_exceeds_pending");
         d.pending = -amount; d.available = amount; break;
-      case "earn_available": d.available = amount; d.earned = amount; break;
+      case "earn_available": {
+        const off = Math.min(amount, recoveryNow);
+        d.available = amount - off; d.earned = amount; d.recovery = -off; d.recoveryOffset = off;
+        break;
+      }
       case "redeem_reserve":
+        // No spending while a clawback is outstanding: the customer's next earnings settle it.
+        if (recoveryNow > 0) throw new Error("recovery_outstanding");
         if (w.availableCents < amount) throw new Error("redemption_exceeds_available");
         d.available = -amount; d.reserved = amount; break;
       case "redeem_commit":
@@ -148,13 +163,30 @@ function makeStore(opts?: { now?: () => number }) {
         if (w.availableCents < amount) throw new Error("recommit_exceeds_available");
         d.available = -amount; d.redeemed = amount; break;
       case "refund_reversal":
-      case "chargeback_reversal":
-        if (w.pendingCents + w.availableCents < amount) throw new Error("reversal_exceeds_balance");
-        // PENDING FIRST.
-        if (w.pendingCents >= amount) d.pending = -amount;
-        else { d.pending = -w.pendingCents; d.available = -(amount - w.pendingCents); }
-        d.reversed = amount;
+      case "chargeback_reversal": {
+        // WHAT THE WALLET CANNOT COVER BECOMES A DEBT, not a refusal. Pending first, then
+        // available; the remainder is recovery, repaid out of future earnings.
+        const cover = Math.min(amount, w.pendingCents + w.availableCents);
+        if (w.pendingCents >= cover) d.pending = -cover;
+        else { d.pending = -w.pendingCents; d.available = -(cover - w.pendingCents); }
+        d.reversed = cover;
+        d.recovery = amount - cover;
+        d.recoveryAccrued = amount - cover;
         break;
+      }
+      case "reversal_restoration": {
+        // A won dispute repays the debt it created before handing anything back as spendable.
+        const off = Math.min(amount, recoveryNow);
+        d.recovery = -off; d.recoveryOffset = off;
+        d.available = amount - off;
+        d.restored = amount;
+        break;
+      }
+      case "recovery_accrue":
+        d.recovery = amount; d.recoveryAccrued = amount; break;
+      case "recovery_offset":
+        if (recoveryNow < amount) throw new Error("offset_exceeds_recovery");
+        d.recovery = -amount; d.recoveryOffset = amount; break;
       case "manual_adjustment":
         if (amount > 0) { d.available = amount; d.earned = amount; }
         else {
@@ -183,6 +215,8 @@ function makeStore(opts?: { now?: () => number }) {
       id: walletId,
       pendingCents: 0, availableCents: 0, reservedCents: 0,
       lifetimeEarnedCents: 0, lifetimeRedeemedCents: 0, lifetimeReversedCents: 0,
+      recoveryCents: 0, lifetimeRecoveryAccruedCents: 0, lifetimeRecoveryOffsetCents: 0,
+      lifetimeRestoredCents: 0,
     };
     const ordered = entries
       .filter((e) => e.walletId === walletId)
@@ -195,6 +229,10 @@ function makeStore(opts?: { now?: () => number }) {
       acc.lifetimeEarnedCents += d.earned;
       acc.lifetimeRedeemedCents += d.redeemed;
       acc.lifetimeReversedCents += d.reversed;
+      acc.recoveryCents = (acc.recoveryCents ?? 0) + d.recovery;
+      acc.lifetimeRecoveryAccruedCents = (acc.lifetimeRecoveryAccruedCents ?? 0) + d.recoveryAccrued;
+      acc.lifetimeRecoveryOffsetCents = (acc.lifetimeRecoveryOffsetCents ?? 0) + d.recoveryOffset;
+      acc.lifetimeRestoredCents = (acc.lifetimeRestoredCents ?? 0) + d.restored;
     }
     return acc;
   }
@@ -207,6 +245,8 @@ function makeStore(opts?: { now?: () => number }) {
         id: `w${++seq}`, owner: key,
         pendingCents: 0, availableCents: 0, reservedCents: 0,
         lifetimeEarnedCents: 0, lifetimeRedeemedCents: 0, lifetimeReversedCents: 0,
+        recoveryCents: 0, lifetimeRecoveryAccruedCents: 0, lifetimeRecoveryOffsetCents: 0,
+        lifetimeRestoredCents: 0,
       };
       wallets.set(wallet.id, wallet);
       return { ok: true, wallet: { ...wallet } };
@@ -255,15 +295,20 @@ function makeStore(opts?: { now?: () => number }) {
         pendingCents: w.pendingCents + d.pending,
         availableCents: w.availableCents + d.available,
         reservedCents: w.reservedCents + d.reserved,
+        recoveryCents: (w.recoveryCents ?? 0) + d.recovery,
       };
-      // The database CHECK constraints: refuse, never clamp.
-      if (next.pendingCents < 0 || next.availableCents < 0 || next.reservedCents < 0) {
+      // The database CHECK constraints: refuse, never clamp. Recovery is an amount OWED, so it is
+      // non-negative for the same reason the buckets are.
+      if (next.pendingCents < 0 || next.availableCents < 0 || next.reservedCents < 0 || next.recoveryCents < 0) {
         return { ok: false, error: "negative_balance_refused" };
       }
       Object.assign(w, next, {
         lifetimeEarnedCents: w.lifetimeEarnedCents + d.earned,
         lifetimeRedeemedCents: w.lifetimeRedeemedCents + d.redeemed,
         lifetimeReversedCents: w.lifetimeReversedCents + d.reversed,
+        lifetimeRecoveryAccruedCents: (w.lifetimeRecoveryAccruedCents ?? 0) + d.recoveryAccrued,
+        lifetimeRecoveryOffsetCents: (w.lifetimeRecoveryOffsetCents ?? 0) + d.recoveryOffset,
+        lifetimeRestoredCents: (w.lifetimeRestoredCents ?? 0) + d.restored,
       });
       const id = `e${++seq}`;
       entries.push({ ...input, id, createdAtMs: now() });
@@ -630,10 +675,27 @@ async function main() {
     await commitReservedCredits({ redemptionRef: "rr1", ports: port });
     assert.equal((await walletOf(port, OWNER)).availableCents, 0, "all credits spent");
 
+    // THE CLAWBACK NOW HAPPENS, AS A DEBT. Refusing left the books wrong: money went back to the
+    // customer and the reversal simply never occurred, with nothing recording that anything was
+    // owed. The wallet still cannot go negative — the shortfall lands in `recovery_cents`.
     const res = await reverseForRefundOrChargeback({ paymentRecordId: "p2", eventRefundedCents: 10000, cumulativeRefundedCentsForKind: 10000, kind: "refund", externalId: "re_2", ports: port });
-    assert.equal(res.ok, false, "the store must REFUSE rather than allow a negative balance");
+    assert.equal(res.ok, true, "the clawback is recorded, not abandoned");
+    assert.equal((res as { reversedCents: number }).reversedCents, 0, "nothing could be taken from the buckets");
+    assert.equal((res as { recoveryAccruedCents: number }).recoveryAccruedCents, 900, "so the whole 900 became a debt");
     const w2 = await walletOf(port, OWNER);
     assert.ok(w2.availableCents >= 0 && w2.pendingCents >= 0, "balances stay non-negative");
+    assert.equal(w2.recoveryCents, 900, "and the debt is visible on the wallet");
+
+    // NO FURTHER SPENDING while that debt stands.
+    const blocked = await reserveCreditsForPurchase({ owner: OWNER, requestedCents: 100, amountDueCents: 5000, redemptionRef: "rr_blocked", contextKind: "stripe_checkout", ports: port });
+    assert.equal(blocked.ok, false, "a customer who owes a clawback cannot hold a fresh discount");
+
+    // FUTURE EARNINGS REPAY IT FIRST, and only the remainder becomes spendable.
+    await earnFromSettledPayment({ owner: OWNER, paymentRecordId: "p2b", facts: settled({ amountPaidCents: 20000 }), sourceKind: "stripe_payment", pendingUntilSettlementFinal: false, ports: port });
+    const w3 = await walletOf(port, OWNER);
+    assert.equal(w3.recoveryCents, 0, "9% of $200 = 1800 clears the 900 debt");
+    assert.equal(w3.availableCents, 900, "and 900 of it becomes spendable");
+    assert.equal(w3.lifetimeEarnedCents, 900 + 1800, "the customer still EARNED the full amount");
   });
 
   await check("B14: the webhook keys refunds on each REFUND object, not the charge", () => {
@@ -1171,7 +1233,30 @@ async function main() {
   await check("G8: over-redemption and over-reversal are REFUSED by name, before any balance moves", () => {
     const sql = readFileSync(MIGRATION_PATH, "utf8");
     assert.ok(/redemption of % exceeds available/.test(sql), "over-redemption is refused explicitly");
-    assert.ok(/reversal of % exceeds pending % plus available %/.test(sql), "over-reversal is refused explicitly");
+    // A REVERSAL THAT OUTRUNS THE WALLET NO LONGER REFUSES — it records a debt.
+    //
+    // Refusing was safe for the wallet and wrong for the books: money went back to the customer
+    // and the clawback simply never happened. The reversal now takes everything the wallet holds
+    // and accrues the remainder as `recovery_cents`, which future earnings repay first.
+    assert.ok(
+      !/reversal of % exceeds pending % plus available %/.test(sql),
+      "a reversal no longer refuses when the credits were already spent",
+    );
+    assert.ok(
+      /v_cover := LEAST\(p_amount_cents, v_wallet\.pending_cents \+ v_wallet\.available_cents\);/.test(sql),
+      "it takes what the wallet holds",
+    );
+    assert.ok(
+      /v_recovery_delta := p_amount_cents - v_cover;/.test(sql),
+      "and records the shortfall as a recovery balance",
+    );
+    // The bounded movements that DO still refuse by name.
+    assert.ok(/restoration of % exceeds what was reversed/.test(sql), "over-restoration is refused explicitly");
+    assert.ok(/offset of % exceeds recovery/.test(sql), "over-repayment of a debt is refused explicitly");
+    assert.ok(
+      /has an outstanding recovery balance of %/.test(sql),
+      "a redemption is refused by name while a clawback is outstanding",
+    );
     assert.ok(/promotion of % exceeds pending/.test(sql), "over-promotion is refused explicitly");
     assert.ok(/adjustment of % exceeds available % plus pending %/.test(sql), "an over-large staff debit is refused");
     assert.ok(/ERRCODE = 'check_violation'/.test(sql), "refusals carry a recognizable SQLSTATE");
@@ -1188,14 +1273,18 @@ async function main() {
 
   await check("G10: a zero-amount reversal is storable, so no event is lost", () => {
     const sql = readFileSync(MIGRATION_PATH, "utf8");
-    assert.ok(
-      /entry_type IN \('refund_reversal', 'chargeback_reversal'\) AND amount_cents >= 0/.test(sql),
-      "a reversal that moves nothing is still recordable",
-    );
-    assert.ok(
-      /entry_type NOT IN \('manual_adjustment', 'refund_reversal', 'chargeback_reversal'\) AND amount_cents > 0/.test(sql),
-      "everything else still requires a positive magnitude",
-    );
+    // The zero-amount family is the set of entry types that must be RECORDED even when nothing
+    // moved: their idempotency key is what makes the next delivery a no-op, and their meta carries
+    // the basis the cumulative arithmetic depends on.
+    const zeroAllowed = /entry_type IN \(([\s\S]*?)\) AND amount_cents >= 0/.exec(sql)?.[1] ?? "";
+    for (const t of ["refund_reversal", "chargeback_reversal", "reversal_restoration", "recovery_accrue", "recovery_offset"]) {
+      assert.ok(zeroAllowed.includes(`'${t}'`), `${t} must be storable at zero`);
+    }
+    const positiveOnly = /entry_type NOT IN \(([\s\S]*?)\) AND amount_cents > 0/.exec(sql)?.[1] ?? "";
+    assert.ok(positiveOnly.includes("'manual_adjustment'"), "everything else still requires a positive magnitude");
+    for (const t of ["refund_reversal", "reversal_restoration", "recovery_accrue"]) {
+      assert.ok(positiveOnly.includes(`'${t}'`), `${t} is excluded from the positive-only rule consistently`);
+    }
   });
 
   // =========================================================================
@@ -1298,27 +1387,39 @@ async function main() {
     await commitReservedCredits({ redemptionRef: "b15_spend", ports: port });
     assert.equal((await walletOf(port, OWNER)).availableCents, 0);
 
-    // Refund #1 of $30 can move nothing — but its basis must survive.
+    // Refund #1 of $30 can move nothing — it becomes a DEBT, and its basis must survive.
     const first = await reverseForRefundOrChargeback({ paymentRecordId: "b15", eventRefundedCents: 3000, kind: "refund", externalId: "re_b15_1", ports: port });
-    assert.equal(first.ok, false, "the movement is refused, not clamped silently");
-    assert.equal((first as { basisRecorded?: boolean }).basisRecorded, true, "but the basis IS recorded");
-    assert.equal((first as { shortfallCents?: number }).shortfallCents, 270, "and the shortfall is reported");
+    assert.equal(first.ok, true, "the clawback is recorded rather than abandoned");
+    assert.equal((first as { reversedCents: number }).reversedCents, 0, "no bucket could cover it");
+    assert.equal((first as { recoveryAccruedCents: number }).recoveryAccruedCents, 270, "so 270 is owed");
     const recorded = entries.filter((e) => e.entryType === "refund_reversal" && e.paymentRecordId === "b15");
-    assert.equal(recorded.length, 1, "exactly one record for the refused event");
-    assert.equal(recorded[0]!.amountCents, 0, "recorded as a ZERO-amount entry — no money moved");
+    assert.equal(recorded.length, 1, "exactly one record for the event");
     assert.equal(
       Number((recorded[0]!.meta as { basis_contribution_cents?: number }).basis_contribution_cents),
       3000,
-      "carrying this event's refunded basis",
+      "carrying this event's refunded basis, which the next refund's delta is measured against",
     );
+    assert.equal((await walletOf(port, OWNER)).recoveryCents, 270, "the debt is on the wallet");
 
-    // A goodwill correction restores a balance, then refund #2 arrives.
+    // A goodwill correction pays the debt down first, then refund #2 arrives.
     await postManualAdjustment({ owner: OWNER, amountCents: 1000, reason: "goodwill", actorAuthUserId: "staff-1", adjustmentRef: "b15_goodwill", ports: port });
     const second = await reverseForRefundOrChargeback({ paymentRecordId: "b15", eventRefundedCents: 3000, kind: "refund", externalId: "re_b15_2", ports: port });
     assert.equal(second.ok, true);
-    // $60 of $100 refunded => floor(900 * 6000/10000) = 540 owed in total. 0 was taken before,
-    // so this event owes the whole 540 — NOT the 270 a lost basis would have produced.
-    assert.equal((second as { reversedCents: number }).reversedCents, 540, "the running position is exact");
+    // $60 of $100 refunded => floor(900 * 6000/10000) = 540 in total. The first event moved
+    // nothing, so this one owes the whole 540 — NOT the 270 a lost basis would have produced.
+    assert.equal(
+      await port.sumReversedForPayment("b15"),
+      540,
+      "the running position is exact regardless of what the wallet could cover",
+    );
+
+    // The three numbers have to add up: what the buckets gave, plus what is still owed, is the
+    // whole clawback. A staff goodwill credit is NOT an earning, so it does not repay the debt —
+    // only eligible earnings do, which is exactly what the owner decision says.
+    const end = await walletOf(port, OWNER);
+    assert.equal(end.lifetimeReversedCents, 270, "270 came out of the buckets");
+    assert.equal(end.recoveryCents, 270, "270 is still owed");
+    assert.equal(end.availableCents, 730, "the goodwill credit stayed spendable");
   });
 
   await check("B16: one adjustment reference can never be applied to a SECOND wallet", async () => {
@@ -1619,14 +1720,28 @@ async function main() {
   await check("J5: the SQL recomputation is a REPLAY, not an aggregate", () => {
     const sql = readFileSync(MIGRATION_PATH, "utf8");
     const fn = sql.slice(sql.indexOf("FUNCTION public.leonix_rewards_recompute_wallet"));
-    assert.ok(/FOR v_entry IN[\s\S]{0,300}ORDER BY created_at ASC, id ASC/.test(fn), "entries are replayed in posting order");
+    // CANONICAL ORDER. `created_at` is transaction START time, so under concurrency it is not a
+    // total order and a replay using it alone can reconstruct a state that never existed — and
+    // then refuse a ledger that is in fact consistent. `entry_seq` is drawn inside the wallet
+    // lock, so it IS the serialization order; the timestamp survives only as a tie-break for rows
+    // written before the sequence existed.
+    assert.ok(
+      /FOR v_entry IN[\s\S]{0,600}ORDER BY entry_seq ASC NULLS LAST, created_at ASC, id ASC/.test(fn),
+      "entries are replayed in canonical sequence order",
+    );
+    assert.ok(
+      /nextval\('public\.leonix_rewards_ledger_seq'\)/.test(sql),
+      "and that sequence is assigned by the posting function",
+    );
     assert.ok(/LOOP[\s\S]*?END LOOP/.test(fn), "there is an actual loop");
     assert.ok(/lifetime_earned_cents = v_earned/.test(fn), "lifetime totals are rebuilt, not left stale");
     assert.ok(/lifetime_redeemed_cents = v_redeemed/.test(fn));
     assert.ok(/lifetime_reversed_cents = v_reversed/.test(fn));
     assert.ok(/replays to a negative bucket/.test(fn), "an inconsistent ledger is refused, not clamped");
     // Both path-dependent orders must be present in the replay.
-    assert.ok(/IF v_pending >= v_entry\.amount_cents THEN/.test(fn), "reversal replays pending-first");
+    assert.ok(/IF v_pending >= v_cover THEN/.test(fn), "reversal replays pending-first");
+    assert.ok(/recovery_cents = v_recovery/.test(fn), "the recovery balance is rebuilt too");
+    assert.ok(/lifetime_restored_cents = v_restored/.test(fn), "and so is what a won dispute gave back");
     assert.ok(/IF v_available >= v_take THEN/.test(fn), "negative adjustment replays available-first");
   });
 

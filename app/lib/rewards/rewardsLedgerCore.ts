@@ -61,7 +61,18 @@ export function manualAdjustmentIdempotencyKey(ref: string): string {
 // ---------------------------------------------------------------------------
 
 export type WalletOwnerRef =
-  | { kind: "business"; businessId: string }
+  | {
+      kind: "business";
+      businessId: string;
+      /**
+       * The auth user this business wallet is being resolved FOR, when one is in hand. Recorded on
+       * the wallet as its canonical binding so the customer's later lookups — redemption, wallet
+       * read, restoration — return this same wallet instead of re-deriving it from a membership
+       * table that can change under them. Optional: a webhook resolving a business by id alone has
+       * no user to bind, and binds nothing.
+       */
+      boundUserId?: string | null;
+    }
   | { kind: "user"; ownerUserId: string };
 
 export type WalletSnapshot = {
@@ -72,6 +83,19 @@ export type WalletSnapshot = {
   lifetimeEarnedCents: number;
   lifetimeRedeemedCents: number;
   lifetimeReversedCents: number;
+  /**
+   * WHAT THE CUSTOMER OWES BACK — never a negative wallet.
+   *
+   * A refund claws back the credits its payment earned. When those credits were already SPENT the
+   * buckets cannot absorb it, so the shortfall is recorded here. Recovery is not value the
+   * customer holds; it is value they owe, and their next earnings repay it before becoming
+   * spendable. Absent on a store that predates it, so readers must treat `undefined` as zero.
+   */
+  recoveryCents?: number;
+  lifetimeRecoveryAccruedCents?: number;
+  lifetimeRecoveryOffsetCents?: number;
+  /** Credits given back because a dispute was WON. Never counted as new earning. */
+  lifetimeRestoredCents?: number;
 };
 
 export type LedgerEntryInput = {
@@ -86,6 +110,9 @@ export type LedgerEntryInput = {
     | "redeem_recommit"
     | "refund_reversal"
     | "chargeback_reversal"
+    | "reversal_restoration"
+    | "recovery_accrue"
+    | "recovery_offset"
     | "manual_adjustment"
     | "expire";
   amountCents: number;
@@ -171,6 +198,11 @@ export type RewardsStorePort = {
   ): Promise<{ id: string; walletId: string; entryType: string; amountCents: number } | null>;
   /** Total already reversed against a payment, so partial refunds cannot over-reverse. */
   sumReversedForPayment(paymentRecordId: string): Promise<number>;
+  /**
+   * What a WON dispute has already given back on this payment. A restoration can never exceed
+   * `reversed - restored`, so this is the other half of that bound.
+   */
+  sumRestoredForPayment?(paymentRecordId: string): Promise<number>;
   /**
    * The earn entry originally produced by this payment, if any — INCLUDING the wallet it credited.
    *
@@ -448,6 +480,12 @@ export type ReversalResult =
       totalReversedCents: number;
       /** True when the event had already been applied and nothing moved. */
       deduplicated: boolean;
+      /**
+       * What this clawback could NOT take, because the customer had already spent the credits.
+       * Recorded on the wallet as a recovery balance and repaid out of future earnings before they
+       * become spendable — so the clawback is real even when the buckets were empty.
+       */
+      recoveryAccruedCents: number;
       reason?: string;
     }
   | { ok: true; outcome: "nothing_to_reverse"; reason: string; reversedCents: 0; totalReversedCents: number }
@@ -534,6 +572,11 @@ export async function reverseForRefundOrChargeback(input: {
     alreadyReversedCents,
   });
 
+  // Read BEFORE the movement so the recovery accrual can be reported as a fact rather than
+  // re-derived from arithmetic the database may have clamped differently.
+  const walletBefore = await input.ports.getWalletById(original.walletId);
+  const recoveryBefore = Math.max(0, Number(walletBefore?.recoveryCents ?? 0) || 0);
+
   // The wallet that was CREDITED, read from the earn entry — not re-resolved from the payer.
   const posted = await input.ports.postEntry({
     walletId: original.walletId,
@@ -597,17 +640,30 @@ export async function reverseForRefundOrChargeback(input: {
       reversedCents: 0,
       totalReversedCents: alreadyReversedCents,
       deduplicated: true,
+      recoveryAccruedCents: 0,
       reason: "duplicate_delivery",
     };
   }
 
+  // WHAT THE WALLET COULD NOT COVER IS NOW A DEBT, NOT A FAILURE.
+  //
+  // The posting function takes everything the buckets hold and records the remainder as
+  // `recovery_cents`. Reading the wallet back is what lets this report the split truthfully: how
+  // much actually moved, and how much the customer now owes out of future earnings.
+  const walletAfter = await input.ports.getWalletById(original.walletId);
+  const recoveryAfter = Math.max(0, Number(walletAfter?.recoveryCents ?? 0) || 0);
+  const recoveryAccruedCents = Math.max(0, recoveryAfter - recoveryBefore);
+  const movedCents = Math.max(0, deltaCents - recoveryAccruedCents);
+
   return {
     ok: true,
-    outcome: deltaCents > 0 ? "reversed" : "no_movement",
-    reversedCents: deltaCents,
-    totalReversedCents: alreadyReversedCents + deltaCents,
+    outcome: movedCents > 0 || recoveryAccruedCents > 0 ? "reversed" : "no_movement",
+    reversedCents: movedCents,
+    totalReversedCents: alreadyReversedCents + movedCents,
     deduplicated: false,
+    recoveryAccruedCents,
     ...(deltaCents === 0 ? { reason: "already_at_proportional_target" } : {}),
+    ...(recoveryAccruedCents > 0 ? { reason: "partially_recovered_as_debt" } : {}),
   };
 }
 
@@ -869,6 +925,127 @@ export async function releaseReservedCredits(input: {
   });
 
   return { ok: true, outcome: "released", amountCents: reservation.amountCents };
+}
+
+// ---------------------------------------------------------------------------
+// WON-DISPUTE RESTORATION
+// ---------------------------------------------------------------------------
+
+/** `restore:<disputeId>` — one restoration per dispute, whatever the delivery count. */
+export function restorationIdempotencyKey(externalId: string): string {
+  return `restore:${externalId}`;
+}
+
+export type RestorationResult =
+  | {
+      ok: true;
+      outcome: "restored" | "nothing_to_restore";
+      restoredCents: number;
+      /** How much of the restoration repaid the customer's recovery debt instead of becoming spendable. */
+      recoveryOffsetCents: number;
+      deduplicated: boolean;
+      reason?: string;
+    }
+  | { ok: false; error: string };
+
+/**
+ * Give back the credits a reversal took, because the dispute was WON.
+ *
+ * WHY THIS EXISTS. `charge.dispute.created` claws the credits back immediately — correct, because
+ * at that moment the money is genuinely contested. When the dispute later closes as WON, Leonix
+ * keeps the money and the customer keeps the purchase, but the credits stayed clawed back. The
+ * customer paid, and was silently charged the rewards for it.
+ *
+ * THE THREE PROPERTIES THIS FUNCTION EXISTS FOR
+ *
+ *  1. IT CAN NEVER GIVE BACK MORE THAN WAS TAKEN. The amount is clamped to
+ *     `reversed - alreadyRestored` for this payment, read from the ledger, and the database
+ *     refuses anything larger as a second line of defence.
+ *  2. IT LANDS ON THE WALLET THAT WAS DEBITED. Ownership is read off the ORIGINAL earn entry,
+ *     exactly as the reversal does. A membership change between the charge and the dispute
+ *     closing cannot move someone else's credits.
+ *  3. IT HAPPENS ONCE. `restore:<disputeId>` is derived from the dispute itself, so a redelivered
+ *     `charge.dispute.closed` moves nothing and says so.
+ *
+ * A restoration repays the customer's RECOVERY DEBT before handing back anything spendable — if
+ * the clawback could not be covered at the time, giving credits back while the debt stands would
+ * hand over the same value twice. The database performs that split inside the posting statement.
+ */
+export async function restoreReversedCredits(input: {
+  paymentRecordId: string;
+  /** The DISPUTE's id. Never the charge id. */
+  externalId: string;
+  /** What the caller believes should come back; clamped to what was actually reversed. */
+  requestedCents?: number | null;
+  ports: RewardsStorePort;
+}): Promise<RestorationResult> {
+  const original = await input.ports.findEarnForPayment(input.paymentRecordId);
+  if (!original || original.amountCents <= 0) {
+    return { ok: true, outcome: "nothing_to_restore", restoredCents: 0, recoveryOffsetCents: 0, reason: "payment_earned_nothing", deduplicated: false };
+  }
+
+  const [reversedCents, restoredCents] = await Promise.all([
+    input.ports.sumReversedForPayment(input.paymentRecordId),
+    input.ports.sumRestoredForPayment?.(input.paymentRecordId) ?? Promise.resolve(0),
+  ]);
+
+  // The bound. `reversed` counts what reversals actually MOVED; a clawback that outran the wallet
+  // recorded the rest as recovery, and the recovery entry carries its own restoration path.
+  const outstanding = Math.max(0, Math.floor(reversedCents) - Math.floor(restoredCents));
+  const requested =
+    typeof input.requestedCents === "number" && Number.isFinite(input.requestedCents)
+      ? Math.max(0, Math.floor(input.requestedCents))
+      : outstanding;
+  const restoreCents = Math.min(requested, outstanding);
+
+  if (restoreCents <= 0) {
+    return {
+      ok: true,
+      outcome: "nothing_to_restore",
+      restoredCents: 0,
+      recoveryOffsetCents: 0,
+      reason: reversedCents <= 0 ? "nothing_was_reversed" : "already_restored",
+      deduplicated: false,
+    };
+  }
+
+  const before = await input.ports.getWalletById(original.walletId);
+  const recoveryBefore = Math.max(0, Number(before?.recoveryCents ?? 0) || 0);
+
+  const posted = await input.ports.postEntry({
+    // THE WALLET THAT WAS DEBITED, read from the earn entry — never re-resolved from the payer.
+    walletId: original.walletId,
+    entryType: "reversal_restoration",
+    amountCents: restoreCents,
+    sourceKind: "stripe_dispute",
+    sourceId: input.externalId,
+    paymentRecordId: input.paymentRecordId,
+    idempotencyKey: restorationIdempotencyKey(input.externalId),
+    reason: "dispute won; reversed credits restored",
+    meta: {
+      reversed_cents: reversedCents,
+      already_restored_cents: restoredCents,
+      requested_cents: requested,
+      recovery_before_cents: recoveryBefore,
+    },
+  });
+  if (!posted.ok) return { ok: false, error: posted.error };
+
+  if (posted.entry.deduplicated) {
+    // A redelivered `dispute.closed`. NOTHING moved, and the report says so rather than repeating
+    // the amount a first delivery would have moved.
+    return { ok: true, outcome: "restored", restoredCents: 0, recoveryOffsetCents: 0, deduplicated: true, reason: "duplicate_delivery" };
+  }
+
+  const after = await input.ports.getWalletById(original.walletId);
+  const recoveryAfter = Math.max(0, Number(after?.recoveryCents ?? 0) || 0);
+  return {
+    ok: true,
+    outcome: "restored",
+    restoredCents: restoreCents,
+    recoveryOffsetCents: Math.max(0, recoveryBefore - recoveryAfter),
+    deduplicated: false,
+  };
 }
 
 // ---------------------------------------------------------------------------

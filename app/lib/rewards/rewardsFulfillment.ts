@@ -24,6 +24,7 @@ import {
   runPendingPromotionSweep,
   runReservationExpirySweep,
   type WalletOwnerRef,
+  restoreReversedCredits,
 } from "./rewardsLedgerCore";
 import { buildRewardsStorePort, isRewardsConfigured, resolveWalletOwnerForPayment } from "./rewardsLedger";
 import {
@@ -39,7 +40,16 @@ export { earnBaseFromPaymentMetadata };
 
 export type RewardsHookResult =
   | { ok: true; outcome: "earned"; earnCents: number; deduplicated: boolean }
-  | { ok: true; outcome: "reversed"; reversedCents: number; deduplicated: boolean }
+  | {
+      ok: true;
+      outcome: "reversed";
+      reversedCents: number;
+      /** What the wallet could not cover, now owed and repaid out of future earnings. */
+      recoveryAccruedCents?: number;
+      deduplicated: boolean;
+    }
+  | { ok: true; outcome: "restored"; restoredCents: number; recoveryOffsetCents: number; deduplicated: boolean }
+  | { ok: true; outcome: "queued"; resolutionId: string; reason: string }
   | { ok: true; outcome: "promoted"; deduplicated: boolean }
   | { ok: true; outcome: "skipped"; reason: string }
   | { ok: false; outcome: "failed"; reason: string; retryable: true };
@@ -49,7 +59,13 @@ export type RewardsHookResult =
  * customer something. A failure here is never silent.
  */
 async function auditRewards(entry: {
-  action: "rewards_earn" | "rewards_reversal" | "rewards_promote" | "rewards_redemption";
+  action:
+    | "rewards_earn"
+    | "rewards_reversal"
+    | "rewards_promote"
+    | "rewards_redemption"
+    | "rewards_restoration"
+    | "rewards_resolution_queued";
   outcome: string;
   paymentRecordId: string | null;
   reason?: string | null;
@@ -209,12 +225,84 @@ export async function reverseCreditsForRefundOrDispute(input: {
         deduplicated: res.deduplicated,
         moved_cents: res.reversedCents,
         total_reversed_cents: res.totalReversedCents,
+        // What the wallet could not cover and the customer now owes. An operator reading this log
+        // needs to see the DEBT as plainly as the movement: a clawback that landed entirely in
+        // recovery moved zero cents and is still a completed clawback.
+        recovery_accrued_cents: res.recoveryAccruedCents,
       },
     });
-    return { ok: true, outcome: "reversed", reversedCents: res.reversedCents, deduplicated: res.deduplicated };
+    return {
+      ok: true,
+      outcome: "reversed",
+      reversedCents: res.reversedCents,
+      recoveryAccruedCents: res.recoveryAccruedCents,
+      deduplicated: res.deduplicated,
+    };
   } catch (e) {
     const reason = e instanceof Error ? e.message.slice(0, 300) : "unknown";
     await auditRewards({ action: "rewards_reversal", outcome: "failed", paymentRecordId: input.paymentRecordId, reason, retryable: true });
+    return { ok: false, outcome: "failed", reason, retryable: true };
+  }
+}
+
+/**
+ * Give back the credits a chargeback reversal took, because the dispute was WON.
+ *
+ * `charge.dispute.created` claws the credits back the moment the money is contested — correct.
+ * When the dispute later closes as won, Leonix keeps the money and the customer keeps what they
+ * bought, but the credits stayed clawed back: the customer paid in full and was silently charged
+ * the rewards for it. This is the compensating movement, and it exists because the ledger is
+ * append-only and the original reversal row must stand.
+ *
+ * Bounded by what was actually reversed, keyed on the DISPUTE, landing on the wallet the reversal
+ * debited. A restoration repays the customer's recovery debt before anything becomes spendable.
+ */
+export async function restoreCreditsForWonDispute(input: {
+  paymentRecordId: string;
+  /** The DISPUTE's id — the idempotency anchor. Never the charge id. */
+  externalId: string;
+  requestedCents?: number | null;
+}): Promise<RewardsHookResult> {
+  if (!isRewardsConfigured()) return { ok: true, outcome: "skipped", reason: "rewards_not_configured" };
+  try {
+    const res = await restoreReversedCredits({
+      paymentRecordId: input.paymentRecordId,
+      externalId: input.externalId,
+      requestedCents: input.requestedCents ?? null,
+      ports: buildRewardsStorePort(),
+    });
+    if (!res.ok) {
+      await auditRewards({ action: "rewards_restoration", outcome: "failed", paymentRecordId: input.paymentRecordId, reason: res.error, retryable: true });
+      return { ok: false, outcome: "failed", reason: res.error, retryable: true };
+    }
+    if (res.outcome === "nothing_to_restore") {
+      await auditRewards({ action: "rewards_restoration", outcome: "skipped", paymentRecordId: input.paymentRecordId, reason: res.reason });
+      return { ok: true, outcome: "skipped", reason: res.reason ?? "nothing_to_restore" };
+    }
+    await auditRewards({
+      action: "rewards_restoration",
+      outcome: res.deduplicated ? "deduplicated" : "restored",
+      paymentRecordId: input.paymentRecordId,
+      // What MOVED. A redelivered `dispute.closed` moves nothing and the log says nothing moved.
+      amountCents: res.restoredCents,
+      reason: res.reason ?? null,
+      meta: {
+        dispute_id: input.externalId,
+        deduplicated: res.deduplicated,
+        restored_cents: res.restoredCents,
+        recovery_offset_cents: res.recoveryOffsetCents,
+      },
+    });
+    return {
+      ok: true,
+      outcome: "restored",
+      restoredCents: res.restoredCents,
+      recoveryOffsetCents: res.recoveryOffsetCents,
+      deduplicated: res.deduplicated,
+    };
+  } catch (e) {
+    const reason = e instanceof Error ? e.message.slice(0, 300) : "unknown";
+    await auditRewards({ action: "rewards_restoration", outcome: "failed", paymentRecordId: input.paymentRecordId, reason, retryable: true });
     return { ok: false, outcome: "failed", reason, retryable: true };
   }
 }

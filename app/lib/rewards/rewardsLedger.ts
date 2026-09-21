@@ -30,6 +30,11 @@ type WalletRow = {
   lifetime_earned_cents: number;
   lifetime_redeemed_cents: number;
   lifetime_reversed_cents: number;
+  recovery_cents?: number | null;
+  lifetime_recovery_accrued_cents?: number | null;
+  lifetime_recovery_offset_cents?: number | null;
+  lifetime_restored_cents?: number | null;
+  bound_user_id?: string | null;
 };
 
 function toSnapshot(row: WalletRow): WalletSnapshot {
@@ -41,6 +46,10 @@ function toSnapshot(row: WalletRow): WalletSnapshot {
     lifetimeEarnedCents: Number(row.lifetime_earned_cents ?? 0),
     lifetimeRedeemedCents: Number(row.lifetime_redeemed_cents ?? 0),
     lifetimeReversedCents: Number(row.lifetime_reversed_cents ?? 0),
+    recoveryCents: Number(row.recovery_cents ?? 0),
+    lifetimeRecoveryAccruedCents: Number(row.lifetime_recovery_accrued_cents ?? 0),
+    lifetimeRecoveryOffsetCents: Number(row.lifetime_recovery_offset_cents ?? 0),
+    lifetimeRestoredCents: Number(row.lifetime_restored_cents ?? 0),
   };
 }
 
@@ -88,6 +97,10 @@ export function buildRewardsStorePort(): RewardsStorePort {
     async resolveWallet(owner: WalletOwnerRef) {
       const column = owner.kind === "business" ? "business_id" : "owner_user_id";
       const value = owner.kind === "business" ? owner.businessId : owner.ownerUserId;
+      // The auth user this resolution is FOR, which is what gets pinned to the wallet so every
+      // later lookup returns the same one. A business wallet reached through its primary owner is
+      // bound to that owner; a business reached without a user in hand binds nothing.
+      const bindUserId = owner.kind === "user" ? owner.ownerUserId : (owner.boundUserId ?? null);
 
       const { data: existing, error: readError } = await db
         .from("leonix_rewards_wallets")
@@ -95,11 +108,23 @@ export function buildRewardsStorePort(): RewardsStorePort {
         .eq(column, value)
         .maybeSingle();
       if (readError) return { ok: false as const, error: readError.message.slice(0, 300) };
-      if (existing) return { ok: true as const, wallet: toSnapshot(existing as unknown as WalletRow) };
+      if (existing) {
+        // PIN IT, ONCE. A wallet with no binding yet adopts this user; one already bound keeps its
+        // binding, so a second customer can never take over the first customer's wallet identity.
+        const row = existing as unknown as WalletRow & { bound_user_id?: string | null };
+        if (bindUserId && !row.bound_user_id) {
+          await db
+            .from("leonix_rewards_wallets")
+            .update({ bound_user_id: bindUserId, updated_at: new Date().toISOString() })
+            .eq("id", row.id)
+            .is("bound_user_id", null);
+        }
+        return { ok: true as const, wallet: toSnapshot(existing as unknown as WalletRow) };
+      }
 
       const { data: created, error: insertError } = await db
         .from("leonix_rewards_wallets")
-        .insert({ [column]: value })
+        .insert({ [column]: value, ...(bindUserId ? { bound_user_id: bindUserId } : {}) })
         .select(WALLET_COLUMNS)
         .single();
 
@@ -267,6 +292,15 @@ export function buildRewardsStorePort(): RewardsStorePort {
         entryType: String(row.entry_type),
         amountCents: Number(row.amount_cents ?? 0),
       };
+    },
+
+    async sumRestoredForPayment(paymentRecordId: string) {
+      const { data } = await db
+        .from("leonix_rewards_ledger")
+        .select("amount_cents")
+        .eq("payment_record_id", paymentRecordId)
+        .eq("entry_type", "reversal_restoration");
+      return ((data ?? []) as { amount_cents: number }[]).reduce((a, r) => a + Number(r.amount_cents ?? 0), 0);
     },
 
     async sumReversedForPayment(paymentRecordId: string) {
@@ -444,6 +478,26 @@ export async function resolveWalletOwnerForUser(ownerUserId: string | null): Pro
   if (!ownerUserId || !isSupabaseAdminConfigured()) return null;
   const db = getAdminSupabase();
 
+  // THE BINDING IS THE IDENTITY, AND IT IS PINNED AT FIRST USE.
+  //
+  // Everything below this line is a LIVE query over `business_memberships`, which means the answer
+  // could change under the customer: someone who earned as an individual and later became primary
+  // owner of a business silently started resolving to the BUSINESS wallet, and their own balance
+  // vanished from every surface while their credits sat in a wallet nothing would spend from.
+  //
+  // Once a wallet has been bound to this user it IS their wallet, for earning, promotion,
+  // redemption, reversal, release and restoration alike. The membership rules below decide only
+  // which wallet to bind the FIRST time, and never get to change the answer afterwards. This
+  // effects no merge: a wallet already bound to someone else is never taken over.
+  const { data: bound } = await db
+    .from("leonix_rewards_wallets")
+    .select("business_id, owner_user_id")
+    .eq("bound_user_id", ownerUserId)
+    .maybeSingle();
+  const boundRow = bound as { business_id?: string | null; owner_user_id?: string | null } | null;
+  if (boundRow?.business_id) return { kind: "business", businessId: String(boundRow.business_id) };
+  if (boundRow?.owner_user_id) return { kind: "user", ownerUserId: String(boundRow.owner_user_id) };
+
   const { data: memberships } = await db
     .from("business_memberships")
     .select("business_id, is_primary_owner")
@@ -452,9 +506,12 @@ export async function resolveWalletOwnerForUser(ownerUserId: string | null): Pro
     .limit(10);
   const rows = (memberships ?? []) as { business_id: string; is_primary_owner: boolean | null }[];
 
-  // A single business they actually OWN is their business wallet.
+  // A single business they actually OWN is their business wallet — and the binding is carried
+  // through, so this membership query decides the answer ONCE and never again for this customer.
   const owned = rows.filter((r) => r.is_primary_owner === true);
-  if (owned.length === 1) return { kind: "business", businessId: owned[0]!.business_id };
+  if (owned.length === 1) {
+    return { kind: "business", businessId: owned[0]!.business_id, boundUserId: ownerUserId };
+  }
 
   // Otherwise the money is theirs personally: no owned business, several owned businesses, or
   // membership of a business they do not own.
