@@ -227,11 +227,18 @@ function subjectWords(role: QuickMediaRole): { es: string; en: string } {
 export function validateQuickBusinessMediaSemantics(
   items: readonly SemanticMediaItem[],
   limits: QuickMediaSemanticLimits,
+  /**
+   * External video the publish also carries — a YouTube/Vimeo link list, not an item in the image
+   * gallery. Counted separately because it never appears as a `video/*` MIME here: the Autos
+   * dealer lane stores up to 4 such links and Servicios/Restaurantes up to 8 each, and on those
+   * three seams "Quick includes no video" was previously unenforceable.
+   */
+  externalVideoCount = 0,
 ): QuickMediaIssue[] {
   const issues: QuickMediaIssue[] = [];
   const words = subjectWords(limits.requiredSubjectRole);
 
-  if (!limits.videoAllowed && items.some((i) => isVideoMime(i.mime))) {
+  if (!limits.videoAllowed && (items.some((i) => isVideoMime(i.mime)) || externalVideoCount > 0)) {
     issues.push({
       code: "video_not_allowed",
       messageEs: "El video no está incluido en este paquete. Sube solo fotos.",
@@ -363,11 +370,14 @@ export function enforceQuickBusinessPublishMedia(input: {
   category: string;
   payload?: unknown;
   items?: readonly SemanticMediaItem[];
+  /** External video links this publish carries, which never surface as a gallery MIME. */
+  externalVideoCount?: number;
 }): QuickMediaEnforcementResult | null {
   if (!isQuickBusinessMediaCategory(input.category)) return null;
   const limits = buildQuickPublishMediaLimits(input.category)!;
   const items = input.items ?? extractSemanticMediaItems(input.payload);
-  const issues = validateQuickBusinessMediaSemantics(items, limits);
+  const externalVideoCount = Math.max(0, Math.floor(Number(input.externalVideoCount ?? 0)) || 0);
+  const issues = validateQuickBusinessMediaSemantics(items, limits, externalVideoCount);
   if (!issues.length) return { ok: true, category: input.category };
   return {
     ok: false,

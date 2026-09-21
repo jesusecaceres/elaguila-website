@@ -202,6 +202,14 @@ const ADAPTERS = `${QUICK_ROUTE}/_adapters`;
     "app/lib/listingPlans/quickBusinessProductIdentity.ts", // the pure product rule
     "app/lib/listingPlans/quickBusinessProductIdentityServer.ts", // its server-owned reads
     "app/api/clasificados/bienes-raices/negocio/quick-publish/route.ts", // atomic Quick Bienes custody
+    // -----------------------------------------------------------------------
+    // Round-3 adversarial repair. The custody route above is reached only when the BROWSER
+    // declares the Quick package key, so omitting that field dropped a business publish into the
+    // plain browser insert with no media check at all. This gate — which existed before the
+    // custody route and was removed when it landed — is restored for every NON-custody business
+    // publish, now resolving the product from the bearer instead of running unconditionally.
+    // -----------------------------------------------------------------------
+    "app/api/clasificados/bienes-raices/negocio/publish-media-gate/route.ts",
   ]);
   const violations = touched.filter((f) => !MISSION_AUTHORIZED.has(f) && PROTECTED.some((re) => re.test(f)));
   assert.deepEqual(violations, [], `protected canonical surfaces must not change: ${violations.join(", ")}`);

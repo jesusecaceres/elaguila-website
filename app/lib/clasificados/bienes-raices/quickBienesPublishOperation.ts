@@ -162,10 +162,14 @@ export async function executeQuickBienesPublish(
   //
   // The roles and the URLs must line up one-for-one. Validating N descriptors and persisting a
   // different list (or none) would make this check decorative, which is exactly what it replaced.
-  const mediaUrls = (Array.isArray(request.mediaUrls) ? request.mediaUrls : [])
+  // The length compare happens on the RAW list, BEFORE empties are dropped. Filtering first let
+  // roles=["logo","property"] pair with urls=["", "a", "b"]: the counts matched after the filter
+  // while every role described a different photo than the one it was declared for.
+  const rawMediaUrls = Array.isArray(request.mediaUrls) ? request.mediaUrls : [];
+  const mediaUrls = rawMediaUrls
     .filter((u): u is string => typeof u === "string" && u.trim().length > 0)
     .map((u) => u.trim());
-  if (mediaUrls.length !== request.mediaRoles.length) {
+  if (rawMediaUrls.length !== request.mediaRoles.length || mediaUrls.length !== request.mediaRoles.length) {
     return fail(
       422,
       quickBienesRefusal("invalid_body", {

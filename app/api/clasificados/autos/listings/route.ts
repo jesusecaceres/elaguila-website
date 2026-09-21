@@ -269,10 +269,18 @@ export async function POST(request: Request) {
       listingId: parentListingId || null,
       declaredPackageKey: typeof body.basePackageKey === "string" ? body.basePackageKey : null,
     });
+    // External video links live in `videoUrls`, never in the image gallery, so they carry no
+    // `video/*` MIME and the contract could not see them. "Quick includes no video" was therefore
+    // unenforced on this seam: a Quick dealer could attach four YouTube links.
+    const dealerVideoUrls = (body.listing as { videoUrls?: unknown } | null)?.videoUrls;
+    const dealerExternalVideoCount = Array.isArray(dealerVideoUrls)
+      ? dealerVideoUrls.filter((v) => typeof v === "string" && v.trim().length > 0).length
+      : 0;
     const semanticMedia = identity.enforceQuickContract
       ? enforceQuickBusinessPublishMedia({
           category: "autos-dealer",
           payload: body.listing as unknown,
+          externalVideoCount: dealerExternalVideoCount,
         })
       : null;
     if (semanticMedia && !semanticMedia.ok) {

@@ -335,13 +335,22 @@ export async function POST(req: NextRequest) {
   // above are untouched; this adds only the semantic one — at least one image that actually
   // depicts the restaurant, with a declared logo never able to satisfy it.
   //
-  // Gate QB-BOUNDARY-03 — IT RUNS FOR QUICK PRODUCTS ONLY.
+  // Gate QB-BOUNDARY-03 — IT IS SKIPPED ONLY FOR A PROVEN FULL PRODUCT.
   //
   // Restaurantes sells BOTH a Quick base package and a Full one through this same seam. Running
-  // the contract unconditionally held a FULL customer to a $99 product's rule — the blocker the
-  // product-boundary work closed for Autos and Bienes but not here. The product comes from the
-  // same server-owned resolver those two use, so there is one product fact in this codebase and
-  // not a second one invented per category.
+  // the contract unconditionally held a FULL customer to a $99 product's rule, so the product now
+  // comes from the same server-owned resolver Autos and Bienes use.
+  //
+  // It is NOT gated on a positive `quick` answer. No Restaurantes client sends a package
+  // declaration, and a first publish precedes checkout, so a `quick` answer is unobtainable at
+  // exactly the publish this contract exists to govern — gating on it turned the check off for
+  // every real request. `enforceQuickContract` therefore means "not a PROVEN Full", which
+  // restores the pre-gate behaviour for everyone else and keeps the blocker closed for the
+  // customer whose entitlement or settled checkout actually names the Full package.
+  //
+  // `listingId` arrives from the body. It cannot buy an escape: the entitlement read is scoped to
+  // the bearer-verified owner, so naming someone else's Full listing yields no rows, and an
+  // unresolvable id yields `unverified`, which enforces.
   const restauranteRequestBody = body as Record<string, unknown>;
   const restauranteProductListingId =
     typeof restauranteRequestBody.listingId === "string" ? restauranteRequestBody.listingId.trim() || null : null;
@@ -353,9 +362,15 @@ export async function POST(req: NextRequest) {
     listingId: restauranteProductListingId,
     declaredPackageKey: restauranteDeclaredPackageKey,
   });
+  // Same external-video blind spot as Servicios: the links are collected separately and never
+  // carry a `video/*` MIME, so the no-video rule could not reach them.
+  const restauranteExternalVideoCount = collectRestauranteExternalVideoUrls(draft).filter(
+    (u) => typeof u === "string" && u.trim().length > 0,
+  ).length;
   const restauranteSemanticMedia = restauranteProduct.enforceQuickContract
     ? enforceQuickBusinessPublishMedia({
         category: "restaurantes",
+        externalVideoCount: restauranteExternalVideoCount,
         items: [
           ...(restauranteHeroUrl ? [{ role: null, mime: null }] : []),
           ...restauranteGalleryUrls.map(() => ({ role: null, mime: null })),

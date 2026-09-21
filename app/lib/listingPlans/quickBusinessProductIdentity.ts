@@ -57,12 +57,33 @@
  *     which a caller can declare its way OUT of the Quick contract.
  *   - Any server-owned fact (legs 1–4) OVERRIDES the declaration outright, in both directions.
  *
- * WHAT `unverified` MEANS, AND WHY IT DOES NOT ENFORCE
- * ---------------------------------------------------
- * `unverified` is "no server record names a base package and nothing declared Quick". Imposing
- * Quick limits there is precisely the blocker being closed — it is what subjected Full dealers and
- * Full agents to a $99 product's rules. So `unverified` does NOT enforce the Quick contract, and
- * each family's own Full validators keep running exactly as they did.
+ * WHAT `unverified` MEANS, AND WHY IT STILL ENFORCES
+ * --------------------------------------------------
+ * `unverified` is "this category HAS a Quick product, but no server record names a base package
+ * for this publish and nothing declared Quick".
+ *
+ * The first revision of this module made `unverified` skip the contract. An adversarial review
+ * falsified that: a customer's FIRST publish always precedes their payment, so legs 1–4 are
+ * silent by construction and the ONLY remaining signal is a declaration the browser can simply
+ * omit. Skipping on `unverified` therefore did not protect Full dealers — it made the whole
+ * contract OPT-IN FROM THE BROWSER. Omitting one field published a Quick Autos listing with a
+ * dealership logo and no vehicle photo, which is exactly what this gate exists to refuse, and it
+ * was strictly weaker than the behaviour that shipped before the gate existed.
+ *
+ * So the rule is inverted to FAIL SAFE, which is also what the owner's contract says in as many
+ * words: a missing declaration must fail safely, never pass. The contract is skipped ONLY on a
+ * PROVEN `full`, from a server-owned record. That keeps the real blocker closed — a $399 dealer
+ * whose entitlement, ledger or assisted context names the Full package is untouched — while an
+ * absent or unreadable signal lands on the stricter side rather than the permissive one.
+ *
+ * What this costs a genuine Full customer is nothing they were not already paying before this
+ * module existed: the publish-seam contract imposes NO count cap in any family
+ * (`QUICK_BUSINESS_PUBLISH_MAX_IMAGES` is `null` throughout), only "at least one image declared to
+ * depict the subject, and no video". Every one of those seams enforced exactly that, on every
+ * publish, before this module was introduced.
+ *
+ * A category with no Simple/Full split at all — Autos Privado, Bienes FSBO, every private
+ * classified — answers `source: "no_quick_product"` and is never touched by any of this.
  *
  * Pure and IO-free. The server reads that feed it live in
  * `app/lib/listingPlans/quickBusinessProductIdentityServer.ts`.
@@ -78,7 +99,10 @@ import {
  * The product a publish belongs to.
  *  - `"quick"`      — a verified SIMPLE ($99) business publish. The Quick contract applies.
  *  - `"full"`       — a verified FULL ($399) business publish. The Quick contract NEVER applies.
- *  - `"unverified"` — no server record names a base package and nothing declared Quick.
+ *  - `"unverified"` — the category HAS a Quick product, but no server record names a base package
+ *                     for this publish and nothing declared Quick. FAILS SAFE: the contract still
+ *                     applies, because the only other signal available at a first publish is one
+ *                     the browser can omit.
  */
 export type QuickBusinessProduct = "quick" | "full" | "unverified";
 
@@ -89,6 +113,8 @@ export type QuickBusinessProductSource =
   | "checkout_ledger"
   | "server_custody_route"
   | "declared_simple_package"
+  /** The category has no Simple/Full split at all, so no Quick product can exist for it. */
+  | "no_quick_product"
   | "none";
 
 /** One live `listing_package_entitlements` row, reduced to the two columns that name a product. */
@@ -188,7 +214,7 @@ export function resolveQuickBusinessProduct(
   const pair = packagePair(facts.category);
   // A category with no Simple/Full split (Autos Privado, Bienes FSBO, every classified) has no
   // Quick product at all, so nothing here can ever put it under the Quick contract.
-  if (!pair) return { product: "unverified", source: "none", packageKey: null };
+  if (!pair) return { product: "unverified", source: "no_quick_product", packageKey: null };
 
   const assisted = productForBasePackageKey(facts.category, facts.assistedPackageKey);
   if (assisted) {
@@ -220,11 +246,19 @@ export function resolveQuickBusinessProduct(
 /**
  * Whether the Quick Business semantic media contract applies to this publish.
  *
- * ONLY a verified Quick publish. `full` and `unverified` both keep their family's own Full
- * image / video / inventory behavior untouched — that is the whole point of this module.
+ * FAIL SAFE. The contract is skipped on exactly two answers:
+ *   - `no_quick_product` — the category has no Simple/Full split, so there is no Quick product to
+ *     enforce and never was. Autos Privado, Bienes FSBO and every private classified land here.
+ *   - a PROVEN `full`, named by a server-owned record (assisted context, live entitlement or the
+ *     server-minted checkout ledger). This is the blocker the module was written to close.
+ *
+ * Everything else — including `unverified` — enforces. A first publish precedes payment, so an
+ * undetermined product is the NORMAL case for the very requests this contract exists to govern;
+ * treating it as permission to skip made the contract opt-in from the browser.
  */
-export function quickContractAppliesTo(product: QuickBusinessProduct): boolean {
-  return product === "quick";
+export function quickContractAppliesTo(decision: QuickBusinessProductDecision): boolean {
+  if (decision.source === "no_quick_product") return false;
+  return decision.product !== "full";
 }
 
 /**
@@ -234,5 +268,5 @@ export function shouldEnforceQuickBusinessContract(
   facts: QuickBusinessProductFacts,
 ): { enforce: boolean; decision: QuickBusinessProductDecision } {
   const decision = resolveQuickBusinessProduct(facts);
-  return { enforce: quickContractAppliesTo(decision.product), decision };
+  return { enforce: quickContractAppliesTo(decision), decision };
 }

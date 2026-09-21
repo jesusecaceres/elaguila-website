@@ -39,14 +39,23 @@ import {
 async function readLiveEntitlementRows(input: {
   category: string;
   listingId: string;
+  ownerUserId: string;
 }): Promise<ProductEntitlementRowFacts[]> {
-  if (!isSupabaseAdminConfigured() || !input.listingId) return [];
+  if (!isSupabaseAdminConfigured() || !input.listingId || !input.ownerUserId) return [];
   try {
+    // OWNER-SCOPED. `listingId` reaches some seams from a request body, and listing ids are public
+    // (they appear in dashboard and share URLs). Without this filter a caller could name ANY live
+    // Full listing and have the resolver answer `full` for their own Quick publish, escaping the
+    // contract entirely. The owner here is always bearer-verified, never a body field.
     const { data, error } = await getAdminSupabase()
       .from("listing_package_entitlements")
       .select("package_key, package_tier, status, starts_at, ends_at, revoked_at")
       .eq("category", input.category)
       .eq("listing_id", input.listingId)
+      // `owner_user_id` is nullable on rows predating the Revenue OS contract. Filtering on it can
+      // therefore only ever DROP a row and land the answer on `unverified` — which now enforces —
+      // so this filter can over-protect but never under-protect.
+      .eq("owner_user_id", input.ownerUserId)
       .neq("status", "revoked")
       .is("revoked_at", null)
       .limit(25);
@@ -102,12 +111,15 @@ async function readCheckoutLedgerBasePackageKey(input: {
     const { data, error } = await query;
     if (error || !data?.length) return null;
     const rows = data as { package_key?: unknown; payment_status?: unknown }[];
+    // ONLY A SETTLED ROW NAMES A PRODUCT. An open attempt is an intention, not a purchase: a
+    // dealer who opened a Quick checkout, abandoned it without it ever being marked canceled and
+    // then bought Full would otherwise resolve to `quick` off the stale attempt. Falling through
+    // to `unverified` is now the safe answer anyway, since `unverified` enforces.
     const settled = rows.find((r) => {
       const s = String(r.payment_status ?? "").trim().toLowerCase();
       return s === "paid" || s === "succeeded";
     });
-    const winner = settled ?? rows[0];
-    const key = String(winner?.package_key ?? "").trim();
+    const key = String(settled?.package_key ?? "").trim();
     return key || null;
   } catch {
     return null;
@@ -143,14 +155,13 @@ export async function resolveQuickBusinessPublishIdentity(
 ): Promise<QuickBusinessPublishIdentity> {
   const category = String(input.category ?? "").trim().toLowerCase();
   const listingId = String(input.listingId ?? "").trim();
+  const ownerUserId = String(input.ownerUserId ?? "").trim();
 
   const [liveEntitlementRows, checkoutLedgerPackageKey] = await Promise.all([
-    listingId ? readLiveEntitlementRows({ category, listingId }) : Promise.resolve([]),
-    readCheckoutLedgerBasePackageKey({
-      category,
-      ownerUserId: String(input.ownerUserId ?? "").trim(),
-      listingId: listingId || null,
-    }),
+    listingId && ownerUserId
+      ? readLiveEntitlementRows({ category, listingId, ownerUserId })
+      : Promise.resolve([]),
+    readCheckoutLedgerBasePackageKey({ category, ownerUserId, listingId: listingId || null }),
   ]);
 
   const decision = resolveQuickBusinessProduct({
@@ -162,5 +173,5 @@ export async function resolveQuickBusinessPublishIdentity(
     declaredPackageKey: input.declaredPackageKey ?? null,
   });
 
-  return { ...decision, enforceQuickContract: quickContractAppliesTo(decision.product) };
+  return { ...decision, enforceQuickContract: quickContractAppliesTo(decision) };
 }
