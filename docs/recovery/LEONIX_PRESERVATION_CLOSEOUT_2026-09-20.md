@@ -2,7 +2,7 @@
 
 ## Executive Result
 
-The preservation effort created remote recovery references for the approved meaningful work while leaving the original branches, worktrees, and stashes untouched. The remaining dirt was limited to documented local noise and excluded sensitive inspection output.
+The preservation effort created remote recovery references for the approved meaningful work while leaving the original worktrees, project branch pointers, and stash objects unchanged. The remaining dirt was limited to documented local noise and excluded sensitive inspection output.
 
 ## Original Repository State
 
