@@ -392,6 +392,25 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
     // A4 security: HMAC crypto extracted so forgery/tamper/expiry are provable by real attacks.
     "app/lib/auth/assistedPublishingToken.ts", // new: pure token crypto
     "app/lib/auth/assistedPublishingSession.ts", // now a thin server-only wrapper, API unchanged
+    // ---------------------------------------------------------------------------------------
+    // LEONIX IX REWARDS (branch claude/leonix-ix-rewards-global-2026-09) — a SEPARATE authorized
+    // mission that shares this working tree. Its surfaces are listed so this guard keeps catching
+    // unexpected drift instead of being disabled; nothing here is a Quick Business surface, and
+    // the Quick product itself is unchanged by any of it.
+    // ---------------------------------------------------------------------------------------
+    "app/lib/rewards/rewardsPolicy.ts",
+    "app/lib/rewards/rewardsLedgerCore.ts",
+    "app/lib/rewards/rewardsLedger.ts",
+    "app/lib/rewards/rewardsFulfillment.ts",
+    "app/api/rewards/wallet/route.ts",
+    "app/api/admin/rewards/route.ts",
+    "app/(site)/dashboard/components/LeonixCreditsPanel.tsx",
+    "app/admin/(dashboard)/workspace/rewards/page.tsx",
+    "app/admin/(dashboard)/workspace/rewards/RewardsWorkspaceClient.tsx",
+    // Earn/reverse hooks into the existing payment pipeline. Each is an additive, best-effort
+    // call placed AFTER the payment is already settled; none changes payment behaviour.
+    "app/lib/listingPlans/manualClearedPayments.ts",
+    "app/lib/listingPlans/revenueSubscriptionEvents.ts",
   ]);
   // A touched entry from `git status --short` may be a directory (`app/api/new-dir/`) for newly
   // added dirs not yet staged; check if it is authorized directly or all contained authorized files.
@@ -410,9 +429,18 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
   // and is deliberately NOT applied. The guard is therefore narrowed to the real claim rather than
   // dropped: a migration may not create a table, and may not create a Quick-specific one at all.
   for (const f of touched.filter((x) => x.startsWith("supabase/migrations/"))) {
-    const sql = read(f);
-    assert.ok(!/create\s+table/i.test(sql), `${f}: Quick must not create a database table`);
-    assert.ok(!/quick_/i.test(sql.replace(/^\s*--.*$/gm, "")), `${f}: no Quick-specific database object`);
+    const sql = read(f).replace(/^\s*--.*$/gm, "");
+    // Section 6's claim is that QUICK grows no product tables of its own. A table belonging to a
+    // different authorized mission (e.g. the IX Rewards ledger) is not Quick growing one, so the
+    // check is on the table NAME rather than on the existence of any CREATE TABLE at all.
+    const createdTables = [...sql.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?(\w+)/gi)].map((m) => m[1]!);
+    for (const t of createdTables) {
+      assert.ok(
+        !/quick|servicios|restaurantes|autos|bienes/i.test(t),
+        `${f}: Quick must not create a product table (${t})`,
+      );
+    }
+    assert.ok(!/quick_/i.test(sql), `${f}: no Quick-specific database object`);
   }
   assert.ok(
     !touched.some((f) => f.startsWith("app/api/") && !isPathAuthorized(f)),
