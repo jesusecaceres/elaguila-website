@@ -16,16 +16,19 @@ unverified is called complete.
 The previous round repeatedly discovered real money defects, so nothing was inherited: every
 financial assertion was treated as untrusted and re-derived by running the code.
 
-It found **eleven defects that move money incorrectly**, of which four create or destroy credits
-outright and one lets an unauthenticated caller spend another customer's balance. All eleven are
-repaired, and each repair is pinned by a test that has been shown to fail when the defect is put
-back.
+The first pass found **twenty defects that move money incorrectly or expose it** (§3): six
+BLOCKER, nine HIGH, five launch-impacting MEDIUM. Four of the six create or destroy credits
+outright and one lets an unauthenticated caller spend another customer's balance. Round 1's five
+independent reviewers then found **nineteen more** (§3b), six of which the §3 repairs had
+introduced. All thirty-nine are repaired, and each repair is pinned by a test that has been shown
+to fail when the defect is put back — 45 of them mechanically, by
+`scripts/verify-ix-rewards-mutation-01.ts`.
 
 The single most important structural change is that **the SQL money engine is now proven by
 execution** rather than by grep. The migration is applied to a throwaway local PostgreSQL 16, and
-98 assertions plus two genuinely concurrent sessions exercise the posting function, the replay, the
-locks, the constraints and the grants. Before this round, every statement about PL/pgSQL in this
-repository rested on reading the file.
+142 in-session assertions plus two genuinely concurrent sessions exercise the posting function, the
+replay, the locks, the constraints and the grants. Before this round, every statement about
+PL/pgSQL in this repository rested on reading the file.
 
 ---
 
@@ -97,7 +100,10 @@ before the repair and the right number after it.
 | A3 | A "preview" (`planCheckoutCredits`) creates a wallet row and pins `bound_user_id`. | No ledger entry and no redemption row is written. The anonymous vector closed with B4: the identity is now server-verified, so the binding is pinned for the person it belongs to. |
 | A4 | `invoice.paid` with an absent `billing_reason` fails closed and skips the earn, audited as retryable but not queued. | Failing closed is correct (it prevents a double earn at signup). The customer loses 9% on a replayed or older-API-version renewal with only a log line. The refund queue is the wrong home for an earn gap; an earn-gap queue is unbuilt — **see §10.** |
 | A5 | `promoteSettledCredits` in `rewardsFulfillment.ts` has no production caller. | Harmless while unreachable; it takes a caller-supplied `walletId` with no verification, so it is named here as a foot-gun if ever wired up. |
-| A6 | The `earn_promote` idempotency key can be burned on a PARTIAL promotion, leaving that payment's remainder permanently unpromotable. | Demonstrated, and demonstrated to be **value-neutral**: `pending` is one fungible bucket, so a later payment's promotion moves the same credits. The wallet total is right; the per-payment attribution is not. Recorded as a known modelling limit — **see §8.** |
+| A6 | The `earn_promote` idempotency key can be burned on a PARTIAL promotion, leaving that payment's remainder permanently unpromotable. | Demonstrated, and demonstrated to be **value-neutral**: `pending` is one fungible bucket, so a later payment's promotion moves the same credits. The wallet total is right; the per-payment attribution is not. Independently confirmed by the round-1 financial reviewer, which could not make the wallet total wrong. Recorded as a known modelling limit — **see §8.** |
+| A7 | `basisNeutralizedCents` withdraws `floor(restored × eligibleNet / earned)`, the floor of the inverse of a figure that was already floored, so a won dispute can leave up to a cent of money-returned position behind. | Measured across 1,200 randomised sequences by the round-1 financial reviewer: the error was **never larger than one cent**, appeared only in sequences containing a win, and provably does not accumulate (twelve dispute/win cycles at five different bases all land on exactly the right final position). Correcting it exactly would require storing the withdrawal alongside the reversal rather than re-deriving it, which is a schema change for a one-cent bound. |
+| A8 | `deduplicated` is derived from a read taken before the RPC, so two genuinely racing deliveries of one event can each report the full amount as moved. | Reporting only: the ledger holds one row and the wallet moves once, which `Q5` asserts. It affects an audit line and an operator-facing figure, not money. Fixing it means having the posting function return whether it inserted, which is a signature change to the one function everything goes through. |
+| A9 | `lifetime_recovery_accrued_cents` no longer means only "clawbacks that could not be covered": `accrueUnfundedRedemption` adds unfunded REDEMPTIONS to the same counter, which loosens the wallet-level restoration guard that reads it. | Safe because that guard is now a backstop rather than a load-bearing bound: the payment-scoped and per-dispute bounds are strictly tighter and, since R1-13, each stands alone — mutations #36 and #37 delete one of them each and `S5` catches both. The counter has to include unfunded redemptions for the debt to be repayable out of earnings at all. Named here because the field's comment is now narrower than its contents. |
 
 ---
 
@@ -209,6 +215,115 @@ not pretend otherwise. §8 records the limit and its blast radius.
 
 ---
 
+## 4b. Financial scenario matrix
+
+Every row is exercised by a named check. `Q*`/`R*`/`S*`/letter codes are check names in
+`scripts/verify-ix-rewards-behavior-01.ts` and `scripts/sql/verify-ix-rewards-sql-behavior-01.sql`.
+
+### Earning
+
+| Scenario | Expected | Proven by |
+|---|---|---|
+| Eligible settled card payment | 9% of net, PENDING | `A1`, `A7` |
+| Eligible cleared manual payment | 9% of net, AVAILABLE | `A6`, `A8` |
+| Payment part-funded by credits | earns on the NET only; credits never earn credits | `A3`, `A5` |
+| A record already net of credits | not double-subtracted | `A7`, `R8` |
+| Unsettled, wrong source, excluded category, zero net | earns nothing, by name | `A4`, `A5` |
+| Guest / unattributed payment | no wallet, no credits, no backfill | traced in §3, `P15` |
+| Earn landing on an outstanding debt | repays the debt FIRST; only the remainder is spendable | `S3`, `S8`, `Q12` |
+| Split payment | `earn(a) + earn(b) ≤ earn(a+b)` — splitting cannot manufacture credits | `A2` |
+
+### Reversal
+
+| Scenario | Expected | Proven by |
+|---|---|---|
+| Full refund | the whole award comes back | `B1`, `S4` |
+| Partial refund | exactly proportional, rounded down | `B2`, `B3` |
+| Sequence of partial refunds | converges on the exact total, no per-step rounding drift | `B4`, `B5` |
+| Out-of-order delivery | same total whatever the order | `B5` |
+| Duplicate delivery of one refund | moves money once; the replay reports zero moved | `D1`, `Q5` |
+| Refund + dispute on one payment | the money returned is accounted for once | `Q3`, `S4` |
+| Clawback the wallet cannot cover | becomes recovery debt; no bucket goes negative | `B12`, `S3` |
+| Reversal beyond the payment's award | refused at the database | `S4` |
+| Reversal aimed at the wrong wallet | refused; no debt invented; the payment's budget survives | `S5` |
+| Two concurrent reversals | land on exactly the sequential answer | `Q1`–`Q3`, `Q6` |
+| A reversal that cannot be posted | nothing written, key not burned, work queued | `Q15`, `R6` |
+
+### Dispute and restoration
+
+| Scenario | Expected | Proven by |
+|---|---|---|
+| Dispute created | claws back like a refund, keyed on the DISPUTE | `B9`, `S5` |
+| Dispute lost | the clawback stands; nothing further moves | traced in §3 |
+| Dispute WON | restores exactly what THAT dispute took | `Q4`, `S5` |
+| Payment with two disputes, one won | restores only the won one's clawback | `Q4`, `S5` |
+| A dispute restored twice | refused, by the per-dispute bound alone | `S5` |
+| Two won disputes delivered concurrently | each gives back its own, once | `Q4b` |
+| Duplicate `dispute.closed` | restores zero and says so | `P19`, `Q4` |
+| A refund's clawback restored by a dispute | refused | `S5` |
+| Restoration beyond the wallet's whole clawback history | refused | `S5` |
+| A debt repaid out of earnings, then the dispute won | the restoration is still honoured | `S5` |
+| Won dispute, then a legitimate refund | the refund basis is correct; only what was lost is taken | `S5` |
+| `closed(won)` before `created` | restores nothing and files staff work | `P19`, `R6` |
+| A won dispute's residual | promotes; nothing is stranded | `R4` |
+
+### Redemption
+
+| Scenario | Expected | Proven by |
+|---|---|---|
+| Preview | writes no ledger entry and no redemption row | `N2`, `F1` |
+| Reserve | available → reserved, under the row lock | `C8`, `S7` |
+| Commit after payment | reserved → spent, in one statement | `C8`, `S7` |
+| Release / 30-minute expiry | the hold returns to available | `I1`–`I3`, `S7` |
+| Commit after the hold expired | ONE re-debit out of available | `S7`, `R3` |
+| Re-debit the balance cannot cover | recorded as recovery debt; the hold finalised | `R3` |
+| Transient commit failure with the hold still live | retryable; NO debt, nothing finalised | `R3` (`hold_still_live`) |
+| Duplicate `checkout.session.completed` | commits once | `D4`, `S7` |
+| Commit vs release, commit vs expiry sweep | exactly one settlement | `Q8`, `Q9`, `S7` |
+| Two checkouts racing one balance | one wins; timed on the real lock | `Q7`, runner |
+| Below $1.00 / above 50% / below the rail floor | refused or capped, server-side | `C2`, `C3`, `C5`, `Q3b` |
+| Purchase larger than what is still due | the residual cap binds, leaving the rail's floor | `Q3b` |
+| Redemption while a debt is outstanding | refused by name | `S3`, `R3` |
+| Credits on a recurring plan | refused, explained, control not shown | `R2`, `P9` |
+
+### Identity, staff and replay
+
+| Scenario | Expected | Proven by |
+|---|---|---|
+| Reversal or restoration after ownership would resolve elsewhere | lands on the wallet the earn credited | `Q16` |
+| Membership revoked after binding | the business binding ends; a personal one never does | `R7` |
+| Bound through a staff-verified payment link, no membership | the binding STANDS | `R7` |
+| Staff correction by user id | resolves through the canonical binding | `R8` |
+| Staff adjustment reference reused on another wallet | refused by name | `B16` |
+| Staff outcome contradicting the queue row | refused | `P8` |
+| Refund id already spent on another payment | refused before the row closes | `P8` |
+| Recompute after any sequence | reproduces the live wallet on all ten fields | `Q12`, `S8` |
+| Recompute of an inconsistent ledger | refused, naming the entry | `Q12b`, `S8` |
+| Twelve entries in one millisecond | replay follows `entry_seq` | `Q13`, `S9` |
+
+---
+
+## 4c. Where each mandated adversarial area is answered
+
+The mission named nine areas. This is the index; each cell points at executable evidence, not prose.
+
+| Area | Question asked | Answered in | Executable evidence |
+|---|---|---|---|
+| A | Multi-payment reversal attribution | §4, §10 | `Q11` (40 randomised streams, per-payment ceiling), `Q6`, `S4`, `S5` |
+| B | Concurrency and locking; the cumulative read outside the lock | §5 | `Q1`–`Q3`, `Q6`–`Q9`, `Q10`; runner's two timed cross-session races |
+| C | Replay and deterministic recomputation; not `created_at` alone | §6 | `Q12`, `Q12b`, `Q13`, `S8`, `S9` (`entry_seq`) |
+| D | Restoration bounds | §4b "Dispute and restoration" | `Q4`, `Q4b`, `S5` (per-dispute bound standing alone: mutations #36, #37) |
+| E | Canonical wallet identity | §4b "Identity, staff and replay" | `Q16`, `R7`, `R8`, `B16` |
+| F | Refund / dispute resolution queue | §3b, §4b | `R6`, `P8`, `P19`, `R5` |
+| G | Redemption 30-minute lifecycle | §4b "Redemption" | `C8`, `I1`–`I3`, `R3`, `Q7`–`Q9`, `S7` |
+| H | Quick boundary regression | §12 regression sweep | five Quick/revenue verifiers re-run at both SHAs, byte-identical outcomes |
+| I | Migration safety, without applying either migration to any hosted database | §8 | both migrations executed twice against a throwaway local PostgreSQL 16; `verify-ix-rewards-sql-behavior-01.sh` (142 assertions), seven synthetic schema shapes for the Quick parity block |
+
+Area A is the one place where the answer is a bound rather than an exactness claim, and §10 states the
+residual in the same words used here rather than softer ones.
+
+---
+
 ## 5. Concurrency and lock analysis (adversarial area B)
 
 Every financial decision is now either taken under the wallet row lock or protected by an atomic
@@ -306,7 +421,9 @@ the only way the statements below could be established.
   `service_role` can. The staff refund queue is revoked from every browser role. All executed.
 - RLS enabled on all four tables with **no write policy of any kind**.
 - The ledger is append-only, enforced by trigger; a direct `UPDATE`, `DELETE`, duplicate
-  idempotency key, or negative bucket write is refused (`S10`).
+  idempotency key, or negative bucket write is refused (`S10`). `TRUNCATE` — which no row trigger
+  sees — is refused by a statement trigger *and* revoked from `service_role`, so the one command
+  that could erase the whole financial history in a single statement now fails twice over.
 - Lock order is wallet → redemption, in one function.
 - Entry-type vocabulary is closed and complete: every value the CHECK admits has a delta arm, proven
   by calling the function once per type.
@@ -440,8 +557,8 @@ Run at the final committed state. `PGHOST`/`PGPORT`/`PGUSER` point at a throwawa
 
 | Command | Exit |
 |---|---|
-| `npx tsx scripts/verify-ix-rewards-behavior-01.ts` — 181 behavioural checks | 0 |
-| `bash scripts/verify-ix-rewards-sql-behavior-01.sh` — 132 in-session assertions + 2 **timed** cross-session concurrency proofs, against real PostgreSQL 16.13 | 0 |
+| `npx tsx scripts/verify-ix-rewards-behavior-01.ts` — 182 behavioural checks | 0 |
+| `bash scripts/verify-ix-rewards-sql-behavior-01.sh` — 142 in-session assertions + 2 **timed** cross-session concurrency proofs, against real PostgreSQL 16.13 | 0 |
 | `npx tsx scripts/verify-ix-rewards-mutation-01.ts` — 45 defects reintroduced, each caught by a named check | 0 |
 | `npx tsx scripts/verify-quick-product-boundary-01.ts` — 52 checks | 0 |
 | `npx tsx scripts/verify-quick-business-core-01.ts` | 0 |

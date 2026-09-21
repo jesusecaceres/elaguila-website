@@ -5197,6 +5197,42 @@ async function main() {
     assert.ok(/concurrency: two sessions/.test(runner), "and two genuinely concurrent sessions are exercised");
   });
 
+  await check("Z1: the certification document cites only checks that exist", () => {
+    // DOCUMENTATION MUST MATCH EXECUTABLE REALITY, and the cheapest way for it to stop doing so is
+    // for a check to be renamed or removed while a table in the document goes on citing it. Every
+    // check name the scenario matrix names is resolved against the two suites here, so the
+    // document cannot quietly become a list of tests that no longer exist.
+    const doc = readFileSync("docs/rewards/LEONIX_IX_REWARDS_FINANCIAL_CERTIFICATION.md", "utf8");
+    const start = doc.indexOf("## 4b. Financial scenario matrix");
+    const end = doc.indexOf("## 5. Concurrency and lock analysis");
+    assert.ok(start > 0 && end > start, "the scenario matrix section was located");
+    const section = doc.slice(start, end);
+
+    const suite = readFileSync("scripts/verify-ix-rewards-behavior-01.ts", "utf8");
+    const sqlSuite = readFileSync("scripts/sql/verify-ix-rewards-sql-behavior-01.sql", "utf8");
+    const behaviourNames = new Set([...suite.matchAll(/await check\("([A-Za-z0-9]+)/g)].map((m) => m[1]!));
+    const sqlNames = new Set([...sqlSuite.matchAll(/'(S\d+) /g)].map((m) => m[1]!));
+
+    const cited = new Set([...section.matchAll(/`([A-Z]\d+[a-z]?)`/g)].map((m) => m[1]!));
+    assert.ok(cited.size >= 40, `the matrix cites a meaningful number of checks (${cited.size})`);
+    for (const name of cited) {
+      assert.ok(
+        behaviourNames.has(name) || sqlNames.has(name),
+        `the certification document cites a check named ${name}, which exists in neither suite`,
+      );
+    }
+
+    // ...and the headline numbers it reports are the numbers these suites actually produce.
+    // Z1 is the last check, and `check()` has already counted it, so this is the final total the
+    // run will print.
+    assert.ok(
+      doc.includes(`${checks} behavioural checks`),
+      `the document reports this suite's check count (${checks})`,
+    );
+    const sqlFloor = /MIN_ASSERTIONS=(\d+)/.exec(readFileSync("scripts/verify-ix-rewards-sql-behavior-01.sh", "utf8"))?.[1];
+    assert.ok(sqlFloor && doc.includes(`${sqlFloor} in-session assertions`), `the document reports the SQL assertion count (${sqlFloor})`);
+  });
+
   if (failures.length) {
     console.error(`verify-ix-rewards-behavior-01: ${failures.length}/${checks} FAILED`);
     for (const f of failures) console.error("  ✗ " + f);

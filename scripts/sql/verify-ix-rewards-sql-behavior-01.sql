@@ -335,6 +335,78 @@ BEGIN
     'S5 the payment''s budget was never burned by the misaimed attempt');
 END $$;
 
+-- A DEBT THE CUSTOMER MADE GOOD ON MUST NOT COST THEM THE DISPUTE THEY WON.
+--
+-- The wallet-level restoration bound reads `lifetime_reversed + lifetime_recovery_accrued -
+-- lifetime_restored`, and the second term is there for exactly this: a clawback the wallet could
+-- not cover moved ZERO into `lifetime_reversed`, so a bound that used the remaining debt would
+-- shrink to nothing as future earnings paid it down — and winning the dispute would be refused,
+-- precisely for the customer who settled what they owed.
+DO $$
+DECLARE w uuid; p uuid; r uuid; v public.leonix_rewards_wallets;
+BEGIN
+  w := pg_temp.new_wallet(); p := pg_temp.new_payment();
+  PERFORM public.leonix_rewards_post_entry(w,'earn_available',900,'stripe_payment','e5i:'||p,NULL,p);
+  -- SPENT ON A PURCHASE, not written off by staff: a negative adjustment banks its draw as
+  -- `lifetime_reversed`, which would make this test measure something other than what it claims.
+  INSERT INTO public.leonix_rewards_redemptions (wallet_id, amount_cents, idempotency_key, expires_at)
+    VALUES (w, 900, 'reserve:r5i', now() + interval '30 min') RETURNING id INTO r;
+  PERFORM public.leonix_rewards_post_entry(w,'redeem_reserve',900,'checkout_redemption','reserve:r5i',NULL,NULL,r);
+  PERFORM public.leonix_rewards_post_entry(w,'redeem_commit',900,'checkout_redemption','commit:r5i',NULL,NULL,r);
+  PERFORM public.leonix_rewards_post_entry(w,'chargeback_reversal',900,'stripe_dispute','cb5i','dp_5i',p,NULL,NULL,NULL,NULL,'{}'::jsonb,pg_temp.pos(p));
+  SELECT * INTO v FROM public.leonix_rewards_wallets WHERE id = w;
+  PERFORM pg_temp.ok(v.recovery_cents = 900, 'S5 the clawback became debt');
+  PERFORM pg_temp.ok(v.lifetime_reversed_cents = 0, 'S5 and moved nothing, because there was nothing to move');
+
+  -- The customer earns again and the debt is settled in full.
+  PERFORM public.leonix_rewards_post_entry(w,'earn_available',900,'stripe_payment','e5j',NULL,pg_temp.new_payment());
+  SELECT * INTO v FROM public.leonix_rewards_wallets WHERE id = w;
+  PERFORM pg_temp.ok(v.recovery_cents = 0, 'S5 which their next earnings repay');
+  PERFORM pg_temp.ok(v.available_cents = 0, 'S5 leaving nothing spendable');
+
+  -- NOW they win the dispute. A bound measured on the REMAINING debt would refuse this.
+  PERFORM public.leonix_rewards_post_entry(w,'reversal_restoration',900,'stripe_dispute','res5i','dp_5i',p,NULL,NULL,NULL,NULL,'{}'::jsonb,pg_temp.pos(p));
+  SELECT * INTO v FROM public.leonix_rewards_wallets WHERE id = w;
+  PERFORM pg_temp.ok(v.available_cents = 900, 'S5 a repaid debt does not erase restoration eligibility');
+  PERFORM pg_temp.ok(v.lifetime_restored_cents = 900, 'S5 and the restoration is recorded as one');
+END $$;
+
+-- A WON DISPUTE FOLLOWED BY A LEGITIMATE REFUND COMPUTES THE RIGHT BASIS.
+--
+-- The restoration withdraws the money-returned position its dispute added, through a NEGATIVE
+-- `basis_contribution_cents`. Without that withdrawal the whole disputed charge stayed in the
+-- position for ever: a $100.00 payment whose dispute was won and which was then goodwill-refunded
+-- $50.00 computed a cumulative of $150.00 against a $100.00 purchase, targeted a 100% reversal,
+-- and took the customer's entire award instead of the 450 they had actually lost.
+DO $$
+DECLARE w uuid; p uuid; v public.leonix_rewards_wallets; v_basis integer;
+BEGIN
+  w := pg_temp.new_wallet(); p := pg_temp.new_payment();
+  PERFORM public.leonix_rewards_post_entry(w,'earn_available',900,'stripe_payment','e5k:'||p,NULL,p,
+    NULL,NULL,NULL,NULL,'{"eligible_net_cents": 10000}'::jsonb);
+  -- The whole charge is disputed, and won.
+  PERFORM public.leonix_rewards_post_entry(w,'chargeback_reversal',900,'stripe_dispute','cb5k','dp_5k',p,
+    NULL,NULL,NULL,NULL,'{"basis_contribution_cents": 10000}'::jsonb,pg_temp.pos(p));
+  PERFORM public.leonix_rewards_post_entry(w,'reversal_restoration',900,'stripe_dispute','res5k','dp_5k',p,
+    NULL,NULL,NULL,NULL,'{"basis_contribution_cents": -10000}'::jsonb,pg_temp.pos(p));
+  SELECT * INTO v FROM public.leonix_rewards_wallets WHERE id = w;
+  PERFORM pg_temp.ok(v.available_cents = 900, 'S5 winning the dispute leaves the customer whole');
+
+  -- The CHARGEBACK-kind basis, which is what a later refund measures against, is now back to zero.
+  SELECT GREATEST(0, COALESCE(SUM((l.meta->>'basis_contribution_cents')::integer), 0)) INTO v_basis
+    FROM public.leonix_rewards_ledger l
+   WHERE l.payment_record_id = p
+     AND l.entry_type IN ('chargeback_reversal', 'reversal_restoration');
+  PERFORM pg_temp.ok(v_basis = 0, 'S5 and withdraws the money-returned position it had added');
+
+  -- A genuine $50.00 refund afterwards therefore claws back 450, not 900.
+  PERFORM public.leonix_rewards_post_entry(w,'refund_reversal',450,'stripe_refund','rev5k','re_5k',p,
+    NULL,NULL,NULL,NULL,'{"basis_contribution_cents": 5000}'::jsonb,pg_temp.pos(p));
+  SELECT * INTO v FROM public.leonix_rewards_wallets WHERE id = w;
+  PERFORM pg_temp.ok(v.available_cents = 450, 'S5 so a later refund takes only what it is owed');
+  PERFORM pg_temp.ok(v.recovery_cents = 0, 'S5 and invents no debt');
+END $$;
+
 -- ---------------------------------------------------------------------------
 -- S6. THE COMPARE-AND-SWAP — a delta computed against a stale position is refused.
 -- ---------------------------------------------------------------------------

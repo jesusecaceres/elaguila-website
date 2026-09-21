@@ -25,7 +25,7 @@ MIGRATION="$REPO_ROOT/supabase/migrations/20260921120000_leonix_ix_rewards_found
 SUITE="$REPO_ROOT/scripts/sql/verify-ix-rewards-sql-behavior-01.sql"
 DB="leonix_rewards_sql_probe_$$"
 # A floor under the assertion count. A harness that quietly stops asserting is worse than none.
-MIN_ASSERTIONS=98
+MIN_ASSERTIONS=142
 
 # REFUSE A REMOTE TARGET, LOUDLY. A unix socket path or an explicit loopback address only.
 case "${PGHOST:-}" in
