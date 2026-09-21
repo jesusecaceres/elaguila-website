@@ -930,6 +930,13 @@ verifier to make a report green.
 
 ---
 
+## 12b. Certification result
+
+Filled at the final committed state, after the last reviewer's findings were resolved. See the
+report that accompanies this document for the per-item verdict.
+
+---
+
 ## 13. Prohibitions observed
 
 - No migration applied to any remote Supabase project. Both migrations were applied only to a
