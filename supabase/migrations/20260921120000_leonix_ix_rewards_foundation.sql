@@ -668,7 +668,15 @@ BEGIN
       --
       -- A restoration repays the customer's RECOVERY DEBT first. Handing back spendable credits
       -- while they still owe the shortfall from the same clawback would give the value twice.
-      IF p_amount_cents > v_wallet.lifetime_reversed_cents + v_wallet.recovery_cents
+      -- THE BOUND IS WHAT THE CLAWBACK TOOK, NOT WHAT IS STILL OWED.
+      --
+      -- `recovery_cents` is the debt REMAINING, and future earnings repay it. Using it here made
+      -- the guard shrink as the customer paid the debt down: a clawback of 900 that the wallet
+      -- could not cover, later settled in full out of earnings, left `reversed = 0` and
+      -- `recovery = 0`, so winning the dispute was REFUSED — the customer was charged the rewards
+      -- for a charge they had paid and then made good on. `lifetime_recovery_accrued_cents` never
+      -- shrinks, so the bound stays exactly what the reversal actually took, in either form.
+      IF p_amount_cents > v_wallet.lifetime_reversed_cents + v_wallet.lifetime_recovery_accrued_cents
                           - v_wallet.lifetime_restored_cents THEN
         RAISE EXCEPTION 'leonix_rewards_post_entry: restoration of % exceeds what was reversed on wallet %',
           p_amount_cents, p_wallet_id

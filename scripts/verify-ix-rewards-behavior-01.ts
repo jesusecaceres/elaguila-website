@@ -178,6 +178,12 @@ function makeStore(opts?: { now?: () => number }) {
         break;
       }
       case "reversal_restoration": {
+        // THE SAME BOUND THE SQL ENFORCES. `lifetime_recovery_accrued` never shrinks, so a debt
+        // already repaid out of earnings still counts toward what the clawback took — otherwise
+        // winning the dispute would be refused precisely for the customer who made good on it.
+        const takenEver =
+          w.lifetimeReversedCents + (w.lifetimeRecoveryAccruedCents ?? 0) - (w.lifetimeRestoredCents ?? 0);
+        if (amount > takenEver) throw new Error("restoration_exceeds_reversed");
         // A won dispute repays the debt it created before handing anything back as spendable.
         const off = Math.min(amount, recoveryNow);
         d.recovery = -off; d.recoveryOffset = off;
@@ -2765,6 +2771,33 @@ async function main() {
     const twice = await restoreReversedCredits({ paymentRecordId: "p4", externalId: "dp_p4", ports: port });
     assert.equal((twice as { restoredCents: number }).restoredCents, 0);
     assert.equal((await walletOf(port, OWNER)).availableCents, 0);
+  });
+
+  await check("P4b: winning a dispute still restores after the debt was already repaid", async () => {
+    // THE CASE THAT BROKE THE FIRST BOUND. The clawback could not be covered, so it became a
+    // 900-cent debt; the customer then earned and the debt was settled out of those earnings. At
+    // that point `lifetime_reversed` is 0 and `recovery` is 0 — so a bound built from those two
+    // said "nothing was ever taken" and REFUSED the restoration, charging the rewards to the one
+    // customer who had paid the charge AND made good on the clawback.
+    const { port } = makeStore();
+    await earnFromSettledPayment({ owner: OWNER, paymentRecordId: "p4b", facts: settled({ amountPaidCents: 10_000 }), sourceKind: "stripe_payment", pendingUntilSettlementFinal: false, ports: port });
+    await reserveCreditsForPurchase({ owner: OWNER, requestedCents: 900, amountDueCents: 90_000, redemptionRef: "p4b_spend", contextKind: "stripe_checkout", ports: port });
+    await commitReservedCredits({ redemptionRef: "p4b_spend", ports: port });
+    await reverseForRefundOrChargeback({ paymentRecordId: "p4b", eventRefundedCents: 10_000, kind: "chargeback", externalId: "dp_p4b", ports: port });
+    assert.equal((await walletOf(port, OWNER)).recoveryCents, 900, "the clawback became a debt");
+
+    await earnFromSettledPayment({ owner: OWNER, paymentRecordId: "p4b_next", facts: settled({ amountPaidCents: 10_000 }), sourceKind: "stripe_payment", pendingUntilSettlementFinal: false, ports: port });
+    const settledUp = await walletOf(port, OWNER);
+    assert.equal(settledUp.recoveryCents, 0, "the debt is paid");
+    assert.equal(settledUp.availableCents, 0, "and it consumed the whole new earn");
+    assert.equal(settledUp.lifetimeReversedCents, 0, "no bucket ever gave up the original clawback");
+
+    const res = await restoreReversedCredits({ paymentRecordId: "p4b", externalId: "dp_p4b", ports: port });
+    assert.equal(res.ok, true, "the restoration is not refused");
+    assert.equal((res as { restoredCents: number }).restoredCents, 900, "the full clawback comes back");
+    const end = await walletOf(port, OWNER);
+    assert.equal(end.availableCents, 900, "as spendable credits, since the debt is already settled");
+    assert.equal(end.lifetimeEarnedCents, 1_800, "and it is still not counted as new earning");
   });
 
   await check("P5: recovery copy is honest in both languages and never claims expiry", () => {
