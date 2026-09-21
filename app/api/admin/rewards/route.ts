@@ -32,7 +32,6 @@ import { getAdminSupabase, isSupabaseAdminConfigured, requireAdminCookie } from 
 import { buildRewardsStorePort, resolveWalletOwnerForUser } from "@/app/lib/rewards/rewardsLedger";
 import {
   commitReservedCredits,
-  forgiveRecoveryDebt,
   postManualAdjustment,
   releaseReservedCredits,
   reserveCreditsForPurchase,
@@ -211,10 +210,47 @@ export async function POST(request: NextRequest) {
     // get wrong, so this one asks the ledger the same question the restore path answers with money:
     // is any of this payment's chargeback still unrestored?
     if (row.isRestorationWork && outcome === "no_action_required") {
+      // FAIL CLOSED. Both reads are OPTIONAL on `RewardsStorePort`, and `?? 0` for a missing one
+      // would make this guard agree that nothing is outstanding on a store that simply cannot
+      // answer — a dismissal button that quietly works again on any port that drops a method. A
+      // guard whose absent input reads as "all clear" is not a guard.
+      if (!ports.sumReversedForPaymentByKind || !ports.sumRestoredForPayment) {
+        return NextResponse.json(
+          { ok: false, error: "restoration_state_unavailable" },
+          { status: 503 },
+        );
+      }
+      // THE ROW IS ABOUT ONE DISPUTE, SO THE QUESTION IS ABOUT THAT DISPUTE.
+      //
+      // Measuring the payment's chargeback total made the guard vacuous in precisely the case the
+      // row exists for: a row filed because the dispute was WON BEFORE its clawback landed has a
+      // chargeback sum of ZERO, so "outstanding" came out 0 and one click dismissed it. The
+      // clawback arrived minutes later and no key would ever restore it. A dispute whose own
+      // `chargeback_reversal` row does not exist YET is outstanding, not settled.
+      if (!row.externalRef) {
+        return NextResponse.json(
+          { ok: false, error: "restoration_row_has_no_dispute_id" },
+          { status: 409 },
+        );
+      }
+      const thisDispute = await ports.findLedgerEntryByIdempotencyKey(
+        reversalIdempotencyKey("chargeback", row.externalRef),
+      );
+      if (!thisDispute) {
+        return NextResponse.json(
+          { ok: false, error: "restoration_still_outstanding", reason: "clawback_has_not_landed" },
+          { status: 409 },
+        );
+      }
       const [clawedBack, givenBack] = await Promise.all([
-        ports.sumReversedForPaymentByKind?.(row.paymentRecordId, "chargeback") ?? Promise.resolve(0),
-        ports.sumRestoredForPayment?.(row.paymentRecordId) ?? Promise.resolve(0),
+        ports.sumReversedForPaymentByKind(row.paymentRecordId, "chargeback"),
+        ports.sumRestoredForPayment(row.paymentRecordId),
       ]);
+      // Both report `-1` when their read failed, and `-1 - -1` is 0 — which would read as "nothing
+      // outstanding" from two queries that never ran. The sentinel only helps if it is checked.
+      if (clawedBack < 0 || givenBack < 0) {
+        return NextResponse.json({ ok: false, error: "restoration_state_unavailable" }, { status: 503 });
+      }
       const outstandingCents = Math.max(0, Math.floor(clawedBack) - Math.floor(givenBack));
       if (outstandingCents > 0) {
         return NextResponse.json(
@@ -242,11 +278,19 @@ export async function POST(request: NextRequest) {
     // defining property of that attack is that the key is still FREE at the moment it is typed.
     // Taking the anchor from the row removes staff control over the key entirely; the block below
     // stays as a second line for rows whose own ref was filed wrong.
-    const anchor = resolutionIdempotencyAnchor(row, wantsRestore ? disputeId : refundExternalId, {
-      wantsRestore,
-    });
-    if (!anchor.ok) return NextResponse.json({ ok: false, error: anchor.error }, { status: 409 });
-    const resolutionExternalId = anchor.anchor;
+    //
+    // COMPUTED ONLY WHERE IT IS USED. Deriving it for `no_action_required` too made every
+    // truncated-payload row unclosable through the screen — the screen sends a refund id only for
+    // a reversal — which is the same "row that can never be closed" defect this file was repaired
+    // for on the won-dispute branch, reintroduced on the other one.
+    let resolutionExternalId = "";
+    if (wantsRestore || outcome === "reversed") {
+      const anchor = resolutionIdempotencyAnchor(row, wantsRestore ? disputeId : refundExternalId, {
+        wantsRestore,
+      });
+      if (!anchor.ok) return NextResponse.json({ ok: false, error: anchor.error }, { status: 409 });
+      resolutionExternalId = anchor.anchor;
+    }
 
     // A TYPED ID THAT ALREADY BELONGS TO ANOTHER PAYMENT IS A TYPO, NOT A REVERSAL — AND THIS
     // REFUSES BEFORE THE CLAIM, like every other refusal on this path.
@@ -417,9 +461,43 @@ export async function POST(request: NextRequest) {
           { status: 500 },
         );
       }
-      if (reversed.outcome === "reversed") {
+      // A REVERSAL THAT MOVED NOTHING IS NOT A RESOLUTION — the rule the restore path already has.
+      //
+      // Two truncated rows on one payment, resolved with the same refund id, produced a second
+      // call that deduplicated against the first: `no_movement`, 0 moved, and the route returned
+      // 200 and marked the row `resolved`. Measured on a $100.00 payment with rows at cumulative
+      // 2500 and 5000: 225 reversed where 450 was owed, the obligation closed, no trace.
+      // A DEDUPLICATED REVERSAL IS THE CASE THAT MUST NOT CLOSE THE ROW — not every zero.
+      //
+      // `skipped / payment_earned_nothing` is a truthful resolution: there is no award to claw
+      // back, so the obligation IS discharged and the row closes. A DEDUPLICATED call is the
+      // dangerous one: it means this key's movement was made by something else, so THIS row's
+      // obligation may still be unmet. Refusing every zero instead would have put a row that can
+      // never be settled back in the queue for ever, which is the defect this path was repaired
+      // for in the other direction.
+      const reversalDeduplicated =
+        reversed.outcome === "reversed" && reversed.deduplicated === true && reversed.reversedCents === 0;
+      if (reversed.outcome === "reversed" && !reversalDeduplicated) {
         movedCents = reversed.reversedCents;
         recoveryAccruedCents = reversed.recoveryAccruedCents ?? 0;
+      } else if (reversalDeduplicated) {
+        const refiled = await enqueueUnattributableRefund({
+          paymentRecordId: row.paymentRecordId,
+          kind: row.kind,
+          cumulativeRefundedCents: refiledRefundResolution(row, refundExternalId).cumulativeRefundedCents,
+          reason: `staff_resolution_moved_nothing${refiledRefundResolution(row, refundExternalId).evidenceSuffix}: ${"reason" in reversed ? String(reversed.reason ?? "duplicate_delivery") : "duplicate_delivery"}`,
+          stripeChargeId: row.stripeChargeId,
+          externalRef: refiledRefundResolution(row, refundExternalId).externalRef,
+        }).catch(() => ({ ok: false as const, error: "enqueue_threw" }));
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "reversal_moved_nothing",
+            reason: "reason" in reversed ? (reversed.reason ?? "duplicate_delivery") : "duplicate_delivery",
+            requeued: refiled.ok,
+          },
+          { status: 409 },
+        );
       }
     }
 
@@ -656,54 +734,6 @@ export async function POST(request: NextRequest) {
   // -------------------------------------------------------------------------
   // ADJUST — authorized correction. Signed, reasoned, attributed, audited.
   // -------------------------------------------------------------------------
-  // -------------------------------------------------------------------------
-  // FORGIVE RECOVERY DEBT — the one manual-resolution state that had no control.
-  // -------------------------------------------------------------------------
-  if (action === "forgive_recovery") {
-    const owner = await ownerFromBody(body);
-    if (!owner) return NextResponse.json({ ok: false, error: "owner_required" }, { status: 400 });
-
-    const amountCents = Number(body.amountCents);
-    const reason = typeof body.reason === "string" ? body.reason.trim() : "";
-    const adjustmentRef = typeof body.adjustmentRef === "string" ? body.adjustmentRef.trim() : "";
-    if (!Number.isFinite(amountCents) || !reason || !adjustmentRef) {
-      return NextResponse.json({ ok: false, error: "invalid_body" }, { status: 400 });
-    }
-
-    const res = await forgiveRecoveryDebt({
-      owner,
-      amountCents: Math.floor(amountCents),
-      reason,
-      actorAuthUserId,
-      actorRosterId,
-      adjustmentRef,
-      ports,
-    });
-    if (!res.ok) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: res.error,
-          ...(typeof res.recoveryCents === "number"
-            ? {
-                recoveryCents: res.recoveryCents,
-                recoveryDisplay: formatCreditsCents(res.recoveryCents),
-              }
-            : {}),
-        },
-        { status: res.error === "exceeds_recovery_debt" || res.error === "no_recovery_debt" ? 409 : 400 },
-      );
-    }
-    return NextResponse.json({
-      ok: true,
-      forgivenCents: res.amountCents,
-      forgivenDisplay: formatCreditsCents(res.amountCents),
-      remainingRecoveryCents: res.remainingRecoveryCents,
-      remainingRecoveryDisplay: formatCreditsCents(res.remainingRecoveryCents),
-      deduplicated: res.deduplicated,
-    });
-  }
-
   if (action === "adjust") {
     const owner = await ownerFromBody(body);
     if (!owner) return NextResponse.json({ ok: false, error: "owner_required" }, { status: 400 });

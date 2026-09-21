@@ -578,10 +578,17 @@ async function findPaymentRecordByIntentOrCharge(
  * Reverse rewards for every refund object carried on a `charge.refunded` event.
  *
  * `charge.refunds.data` may be absent or truncated on a webhook payload — Stripe caps the embedded
- * list. When no refund object is available, the anchor falls back to the charge id with a
- * `:cum<N>` suffix taken from the CUMULATIVE refunded amount, so a second partial refund still
- * produces a DIFFERENT key and still reverses instead of colliding with the first. That suffix is
- * a fallback for a truncated payload, not the design: a real refund id is always preferred.
+ * list. THERE IS NO FALLBACK ANCHOR. A `<chargeId>:cum<N>` scheme used to fill that gap, and it was
+ * removed because it was a SECOND accounting scheme living beside the per-refund-id one: the two
+ * are additive, so the same refunded dollars were clawed back twice. This comment described that
+ * scheme for a while after the code stopped implementing it, which in a certification that reads
+ * comments as evidence is its own defect — and the same idea was reintroduced once more, as a
+ * `queue:<rowid>` anchor on the staff queue, before a reviewer measured 900 clawed back where 450
+ * was owed.
+ *
+ * A truncated payload is QUEUED for a human instead, who supplies the canonical refund id off
+ * Stripe. That id is the anchor on both paths, so the staff resolution and the rail's own later
+ * delivery share one key and the second is a no-op. There is exactly one scheme.
  */
 async function reverseRewardsForChargeRefunds(input: {
   paymentRecordId: string;

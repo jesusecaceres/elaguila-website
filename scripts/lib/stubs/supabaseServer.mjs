@@ -19,7 +19,7 @@
 
 const tables = new Map();
 const authUsers = new Map();
-const failingReads = new Set();
+const failingReads = new Map();
 const rpcCalls = [];
 let rpcHandler = null;
 let idSeq = 0;
@@ -27,6 +27,8 @@ let idSeq = 0;
 export function __reset() {
   tables.clear();
   authUsers.clear();
+  // A check that throws mid-body would otherwise poison every later check with failing reads.
+  failingReads.clear();
   rpcCalls.length = 0;
   rpcHandler = null;
   idSeq = 0;
@@ -50,9 +52,15 @@ export function __setAuthUsers(users) {
  * produce a read error can never reach them, and the comments claiming they are load-bearing go
  * unverified.
  */
-export function __failReadsOn(table) {
-  if (table) failingReads.add(table);
-  else failingReads.clear();
+export function __failReadsOn(table, selectEquals) {
+  if (!table) {
+    failingReads.clear();
+    return;
+  }
+  // `selectEquals` narrows the failure to reads that request EXACTLY that column list, so a test
+  // can break one query without breaking every other read of the same table. Without it, a check
+  // meant to exercise one sentinel fails an earlier lookup instead and never reaches it.
+  failingReads.set(table, selectEquals ?? null);
 }
 
 export function __seed(table, rows) {
@@ -129,9 +137,11 @@ class Query {
     this.payload = null;
     this.wantCount = false;
     this.headOnly = false;
+    this.selectedColumns = null;
   }
 
-  select(_columns, options) {
+  select(columns, options) {
+    this.selectedColumns = columns;
     if (options && options.count === "exact") this.wantCount = true;
     if (options && options.head === true) this.headOnly = true;
     if (this.mode !== "select") this.returning = true;
@@ -161,7 +171,10 @@ class Query {
     return this;
   }
   in(column, values) {
-    const set = new Set((values ?? []).map((v) => String(v)));
+    const list = Array.isArray(values)
+      ? values
+      : String(values ?? "").replace(/^\(/, "").replace(/\)$/, "").split(",");
+    const set = new Set(list.map((v) => String(v).trim()));
     this.predicates.push((r) => set.has(String(r[column])));
     return this;
   }
@@ -179,7 +192,13 @@ class Query {
       return this;
     }
     if (op === "in") {
-      const set = new Set((value ?? []).map((v) => String(v)));
+      // PostgREST takes BOTH forms, and this repository uses the string one —
+      // `.not("payment_status", "in", "(canceled,failed)")`. Assuming an array threw an unnamed
+      // TypeError, which is the opposite of "refuse rather than guess".
+      const values = Array.isArray(value)
+        ? value
+        : String(value ?? "").replace(/^\(/, "").replace(/\)$/, "").split(",");
+      const set = new Set(values.map((v) => String(v).trim()));
       this.predicates.push((r) => !set.has(String(r[column])));
       return this;
     }
@@ -278,7 +297,10 @@ class Query {
       tables.set(this.table, store.filter((r) => !ids.has(r.id)));
       return { data: targets, error: null };
     }
-    if (failingReads.has(this.table)) {
+    if (
+      failingReads.has(this.table) &&
+      (failingReads.get(this.table) === null || failingReads.get(this.table) === this.selectedColumns)
+    ) {
       return { data: null, count: null, error: { code: "57014", message: "harness: read failed" } };
     }
     const data = this._matching();

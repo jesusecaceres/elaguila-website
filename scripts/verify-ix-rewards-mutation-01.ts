@@ -529,8 +529,8 @@ const MUTATIONS: readonly Mutation[] = [
       "A re-filed truncated-payload row is stamped with the staff-typed refund id, turning a CUMULATIVE " +
       "amount into a per-event one: 675 clawed back where 450 was owed.",
     file: ADMIN,
-    find: "          externalRef: refiledRefundResolution(row, refundExternalId).externalRef,",
-    replace: "          externalRef: row.externalRef ?? refundExternalId,",
+    find: "          reason: `staff_resolution_reversal_failed${refiledRefundResolution(row, refundExternalId).evidenceSuffix}: ${reversed.reason ?? \"unknown\"}`,\n          stripeChargeId: row.stripeChargeId,\n          externalRef: refiledRefundResolution(row, refundExternalId).externalRef,",
+    replace: "          reason: `staff_resolution_reversal_failed${refiledRefundResolution(row, refundExternalId).evidenceSuffix}: ${reversed.reason ?? \"unknown\"}`,\n          stripeChargeId: row.stripeChargeId,\n          externalRef: row.externalRef ?? refundExternalId,",
     suite: "route",
     expect: ["Y7"],
   },
@@ -751,21 +751,11 @@ const MUTATIONS: readonly Mutation[] = [
   },
   {
     defect:
-      "A staff write-off of recovery debt stops being bounded by the debt, so a mistyped figure drives " +
-      "the offset past what is owed.",
-    file: CORE,
-    find: "  if (amountCents > recoveryCents) {",
-    replace: "  if (amountCents > recoveryCents && false) {",
-    suite: "route",
-    expect: ["Y15"],
-  },
-  {
-    defect:
       "A failed position read is reported as a position of ZERO, so a first reversal proceeds on a read " +
       "that never succeeded while the code's comment claims the sentinel is load-bearing.",
     file: ADAPTER,
-    find: "      if (error) return -1;",
-    replace: "      if (error) return 0;",
+    find: "      if (error) return -1;\n      return Number(count ?? 0);",
+    replace: "      if (error) return 0;\n      return Number(count ?? 0);",
     suite: "route",
     expect: ["Z15"],
   },
@@ -776,6 +766,97 @@ const MUTATIONS: readonly Mutation[] = [
     file: "scripts/lib/stubs/supabaseServer.mjs",
     find: "    if (rows.length > 1) {",
     replace: "    if (false) {",
+    suite: "route",
+    expect: ["Z17"],
+  },
+  {
+    defect:
+      "The restoration-outstanding guard stops checking the `-1` sentinel, so `-1 - -1` reads as " +
+      "\"nothing outstanding\" from two queries that never ran and the dismissal button works again.",
+    file: ADMIN,
+    find: "      if (clawedBack < 0 || givenBack < 0) {",
+    replace: "      if (false) {",
+    suite: "route",
+    expect: ["Y3b"],
+  },
+  {
+    defect:
+      "A failed restoration-sum read is reported as a sum of ZERO, so the per-dispute bound becomes as " +
+      "permissive as the entire clawback and a reversal is sized from a position that was never read.",
+    file: ADAPTER,
+    find: "      if (error) return -1;\n      return ((data ?? []) as { amount_cents: number }[]).reduce((a, r) => a + Number(r.amount_cents ?? 0), 0);\n    },\n\n    async sumReversedForPaymentByKind",
+    replace: "      return ((data ?? []) as { amount_cents: number }[]).reduce((a, r) => a + Number(r.amount_cents ?? 0), 0);\n    },\n\n    async sumReversedForPaymentByKind",
+    suite: "route",
+    expect: ["Z18"],
+  },
+  {
+    defect:
+      "A failed earn lookup reads as \"this payment earned nothing\", so a clawback does nothing, reports " +
+      "success, and is never queued: the customer gets their money back and keeps the credits.",
+    file: ADAPTER,
+    find: "      if (error) throw new Error(`leonix_rewards_earn_lookup_failed: ${error.message.slice(0, 200)}`);",
+    replace: "      void error;",
+    suite: "route",
+    expect: ["Z18"],
+  },
+  {
+    defect:
+      "The dismissal guard measures the PAYMENT's chargeback total instead of THIS dispute's, so a row " +
+      "filed because the dispute was won before its clawback landed reads as settled and one click " +
+      "writes off the customer's restoration.",
+    file: ADMIN,
+    find: "      if (!thisDispute) {",
+    replace: "      if (false) {",
+    suite: "route",
+    expect: ["Y3c"],
+  },
+  {
+    defect:
+      "The idempotency anchor is derived for EVERY outcome again, so every truncated-payload row — the " +
+      "whole reason this queue exists — becomes unclosable through the screen.",
+    file: ADMIN,
+    find: "    if (wantsRestore || outcome === \"reversed\") {",
+    replace: "    if (true) {",
+    suite: "route",
+    expect: ["Y3d"],
+  },
+  {
+    defect:
+      "A DEDUPLICATED reversal closes the queue row as resolved with nothing moved, so two truncated rows " +
+      "resolved under one refund id reverse 225 where 450 is owed and the second obligation vanishes.",
+    file: ADMIN,
+    find: "      } else if (reversalDeduplicated) {",
+    replace: "      } else if (false) {",
+    suite: "route",
+    expect: ["Y16"],
+  },
+  {
+    defect:
+      "The staff resolution is keyed on the row again for a production-length refund id, restoring the " +
+      "double clawback for every real Stripe refund while leaving short-id fixtures green.",
+    file: ADMIN,
+    find: "      resolutionExternalId = anchor.anchor;",
+    replace: "      resolutionExternalId = refundExternalId.length > 20 && !row.externalRef ? `queue:${row.id}` : anchor.anchor;",
+    suite: "route",
+    expect: ["Y5"],
+  },
+  {
+    defect:
+      "Releasing a revoked binding drops its USER scope, so one customer's revocation clears the identity " +
+      "of a successor bound to the same business wallet.",
+    file: ADAPTER,
+    find: "      .eq(\"business_id\", businessId)\n      .eq(\"bound_user_id\", userId);",
+    replace: "      .eq(\"business_id\", businessId)\n      .not(\"bound_user_id\", \"is\", null);",
+    suite: "route",
+    expect: ["Z16"],
+  },
+  {
+    defect:
+      "The harness's multi-row `maybeSingle` fidelity is scoped to one table, so every other route read " +
+      "over a non-unique column passes in the harness and errors in production.",
+    file: "scripts/lib/stubs/supabaseServer.mjs",
+    find: "    if (rows.length > 1) {",
+    replace: "    if (rows.length > 1 && this.table === \"leonix_payment_records\") {",
     suite: "route",
     expect: ["Z17"],
   },

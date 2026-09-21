@@ -24,12 +24,23 @@ Round 2's two reviewers found **ten more** (§3c), three of them HIGH. Round 3's
 who drove the real core against real PL/pgSQL, which neither suite did — found **eight more**
 (§3d), including **a BLOCKER that Round 2's own repair had introduced**: a double clawback on a
 real customer, in the one workflow the refund queue exists to make safe, which not one of the 426
-checks then in place could see in either direction. Every one is repaired.
+checks then in place could see in either direction. Round 4 then verified Round 3 and found
+**nine more** (§3e), including **two BLOCKERs that Round 3's own repairs had introduced** — a staff
+write-off that creates credits when a dispute is later won, and a fixture so much shorter than a
+real Stripe refund id that the double clawback could be put straight back with all four suites
+green. Every one is repaired or, where repairing it would ship money-creating code, **removed**.
 
 That is the shape of this whole mission, said once: **every round's repairs introduced defects that
-the round's own tests could not see.** Six of Round 1's nineteen findings were mine; Round 3's
-BLOCKER was mine. The only reason any of them is not in the shipped code is that each round's
-reviewers were given the complete diff and told nothing had been fixed.
+the round's own tests could not see — without exception, in four rounds.** Six of Round 1's
+nineteen findings were mine; Round 3's BLOCKER was mine; both of Round 4's were mine. The only
+reason none of them is in the shipped code is that each round's reviewers were given the complete
+diff and told nothing had been fixed.
+
+The honest conclusion to draw from that is not that the code is now finally correct. It is that
+**a repair is not evidence, and the round that makes one cannot be the round that certifies it.**
+Every claim in this document is therefore tied to a named check that an independent reviewer has
+tried to defeat, and the two places where a check could not be built are said plainly (§3e, U10
+and U11) rather than counted.
 
 **The most important finding of the whole mission was about the tests.** Round 2's second reviewer
 reintroduced nineteen defects — including two straight authorization bypasses, a doubled discount
@@ -45,9 +56,9 @@ Two structural changes carry this certification:
    grants.
 2. **The HTTP layer is proven by execution too.** The route handlers are CALLED — the customer
    wallet read, the staff API, the CSV reconciliation and the customer checkout — against stubs the
-   test drives, with a Stripe recorder in place of any call. 43 checks, no text matching.
+   test drives, with a Stripe recorder in place of any call. 47 checks, no text matching.
 
-The mutation harness reintroduces **75 defects** and requires a NAMED check to fail for each. Every
+The mutation harness reintroduces **83 defects** and requires a NAMED check to fail for each. Every
 one of the nineteen that previously survived is now caught.
 
 ---
@@ -253,7 +264,7 @@ certification is the real one.
 `scripts/verify-ix-rewards-route-behavior-01.ts` (35 checks) calls `GET /api/rewards/wallet`,
 `GET`/`POST /api/admin/rewards`, `POST /api/admin/rewards/reconciliation` and
 `POST /api/revenue-os/checkout`, and asserts the answers and the writes. The mutation harness now
-carries **75 mutations, up from 45**, and **every one of the nineteen survivors is caught**, each by
+carries **83 mutations, up from 45**, and **every one of the nineteen survivors is caught**, each by
 a named check that fails for the defect and passes for the rename.
 
 The one exception is recorded rather than quietly dropped: quadrupling the ceiling passed to
@@ -338,6 +349,43 @@ and 900 *reported*, at every N, because of the nonce); K = 3/5/8 simultaneous di
 refunds (losers write nothing and burn no key, and retried serially land on the exact proportional
 total); the full 30-minute hold lifecycle through expiry, re-debit and unfunded accrual; and the
 migration applied **four times with live data present**, leaving exactly one `post_entry` overload.
+
+---
+
+## 3e. Round 4 — verifying Round 3's repairs, which had introduced two BLOCKERs
+
+A verification reviewer was given Round 3's diff and told what its predecessors had found: that
+**every round's repairs introduced defects the round's own tests could not see.** They assumed the
+same of Round 3, built a `RewardsStorePort` over real PostgreSQL 16.13, and were right.
+
+| # | Finding | Severity | Demonstrated | Disposition |
+|---|---|---|---|---|
+| U1 | **The staff recovery write-off creates credits.** `forgive_recovery` (added in Round 3 to close T5) posts a `recovery_offset` with no `payment_record_id` and no `source_id`, so it is invisible to the SQL restoration bound, which is scoped by both. A staff write-off and a won-dispute restoration discharge the SAME clawback, and nothing linked them. | **BLOCKER** | $100.00 payment, 900 earned and spent, full chargeback → debt 900. Forgive the 900, then win the dispute: **`available_cents` 900, correct 0.** $9.00 created per $100.00, scaling with payment size. `leonix_rewards_recompute_wallet` **agrees** with the wrong number, so reconciliation cannot find it. | **REMOVED.** The action, its core function and its key were deleted in the same round that added them. Doing it properly needs four changes together — attribution on the offset, a per-payment read, a tightened TypeScript bound and **the same subtraction inside the SQL restoration arm**, because the database bound is the authoritative one. A partial fix here would be a money defect with a clean replay. `Y15` now asserts the ABSENCE behaviourally: no action on this route may post a `recovery_offset`. The gap returns to §9 as an owner decision. |
+| U2 | **The BLOCKER Round 3 repaired could be reintroduced with all four suites green.** `Y5`'s fixture refund id was `re_REAL123` — ten characters. Every genuine Stripe refund id is twenty-seven. A reintroduction conditioned on `refundExternalId.length > 20` passed the behavioural, route, SQL and mutation suites while the double clawback was live for **every real customer**. | **BLOCKER (evidence)** | Same construction against real PL/pgSQL: with the 10-character fixture id, 450 reversed (correct); with a real 27-character id, **900 reversed**. | **Repaired.** Every refund and dispute fixture in the suite is now a production-length `re_`/`dp_` id, and `Y5` asserts the reversal key is **byte-equal** to `reverse:refund:<supplied>` rather than merely free of `queue:`. A fixture shorter than production is a fixture the defect hides behind. |
+| U3 | **A dismissal guard that is vacuous in the case the row exists for.** The Round 3 guard measured the PAYMENT's chargeback total. A row filed for the ORDERING case — the dispute won before its clawback landed — has a chargeback sum of **zero**, so "outstanding" came out 0 and one click dismissed it. | **HIGH** | Driven through the route: `200 {ok:true, outcome:"no_action_required"}`, row `resolved`. 900 credits the customer is owed, gone. | **Repaired.** The guard asks about THIS dispute, using the same fact `attemptRestoration` uses: a dispute whose own `chargeback_reversal` row does not exist yet is outstanding, not settled. `Y3c` proves it. |
+| U4 | **Two truncated rows on one payment under-reverse by half, and both close 200 OK.** Under the rail's key they share one anchor, so the second resolution deduplicates and the route closed the row having moved nothing. | **HIGH** | Rows at cumulative 2500 and 5000 on a $100.00 payment: **225 reversed where 450 was owed**, obligation closed, no trace. | **Repaired.** A DEDUPLICATED reversal re-files and returns 409, exactly as the restore path already did. Narrowed deliberately to the deduplicated case: `skipped / payment_earned_nothing` is a truthful resolution and must still close, or the row becomes unclosable — the defect in the other direction. `Y16` proves the refusal; `Y6` proves the truthful close still works. |
+| U5 | **`no_action_required` on a truncated-payload row became impossible.** Round 3 derived the anchor for every outcome, and the anchor demands a canonical refund id, which the screen sends only for a reversal. Every `charge_refunds_absent_from_payload` row — the whole reason the queue exists — was unclosable unless staff invented an id. | **MEDIUM (launch-impacting)** | `409 {"error":"refund_external_id_required"}`, row stays open for ever. | **Repaired.** The anchor is computed only on the paths that use it. `Y3d` proves a truncated row still closes. |
+| U6 | **`Z17` proved one table, not the harness rule.** Scoping the multi-row `maybeSingle` fidelity to the single table the check seeded left every other route read over a non-unique column passing in the harness and erroring in production. `not(col, "in", "(a,b)")` — the string form this repository actually uses — threw an unnamed `TypeError`. | **MEDIUM (evidence integrity)** | Mutation; both suites green. | **Repaired.** `Z17` loops over three tables and asserts both the refusal and that one row is still one row, and the `in` operator accepts both PostgREST forms. |
+| U7 | **`Z16` proved neither predicate it was cited for.** Its two wallets differed in business AND in bound user, so either scope alone isolated them — including the dangerous direction, which releases a successor bound to the same business wallet. | **LOW** | Two mutations, both green. | **Repaired.** A third wallet shares the business and differs in the user. The code comment claiming the user scope was "unproven" is now false in the right direction — it is proven, by `Z16`. |
+| U8 | `__failReadsOn` survived `__reset()`, so a check that threw mid-body would poison every later check. | **LOW** | Executed. | **Repaired.** One line in `__reset()`. |
+| U9 | A doc comment still described the `<chargeId>:cum<N>` fallback that had been removed, twenty lines above code saying there is exactly one scheme. | **LOW** | Read. | **Repaired**, and it now names both times that idea came back — the removed fallback and Round 2's `queue:<rowid>` anchor — because in a certification that reads comments as evidence, a comment describing a removed accounting scheme is its own defect. |
+
+### Accepted, with reasons
+
+| # | Finding | Why |
+|---|---|---|
+| U10 | A staff typo of a refund id that is still FREE burns that key, and the customer whose refund it really belongs to then has an obligation no route action can settle (`reversal_key_belongs_to_another_wallet`, for ever). | Reproduced. The cost is bounded and LOUD: the clawback fails by name, the row stays open, and nothing is silently lost or double-taken. The alternative on the table — a derived repair key — is a second accounting scheme in the one place this system has now been burned by that idea three times. It is recorded as an owner decision (§9) with the shape of the real fix: a staff control that re-anchors a row whose canonical key is provably spent on another payment. |
+| U11 | `Z13` asserts mixed membership statuses, which `UNIQUE (business_id, user_id)` makes unreachable. | Harmless and deliberately defensive: the rule is `every(r => revoked)`, and the check pins it for a schema that gains a second row per pair. The single-status cases — `invited`, `active`, `revoked` — are the ones that matter, and they are real. |
+
+### Negative results
+
+240 concurrent forgiveness calls across 40 trials (before the feature was removed) never drove
+`recovery_cents` negative and never double-forgave. 60 randomised differential trials of 14
+operations each found **0 replay mismatches, 0 negative buckets, 0 replay refusals**. Five
+behaviour-preserving refactors produced **0 false reds** — the suites are no longer spelling-shaped
+in the places the earlier rounds' reviewers broke. No path was found where
+`reversal_key_belongs_to_another_wallet` refuses a legitimate retry: `findEarnForPayment` returns
+the earn's own `wallet_id`, which is stable across binding changes.
 
 ---
 
@@ -646,7 +694,19 @@ These are product-policy choices, not defects, and they were not made unilateral
    offer the control on the one-time packages that already exist (empleos, autos privado, rentas,
    bienes FSBO, ofertas) — the server already accepts credits there; only the previews do not pass
    `creditsEligible`.
-2. **Does a RELEASED hold repay an outstanding recovery debt?** Today it does not: a clawback that
+2. **Is there to be a staff exit from recovery debt at all?** One was built in Round 3 and removed
+   in Round 4, because it creates money: a staff `recovery_offset` and a won-dispute restoration
+   discharge the same clawback and nothing linked them, so forgiving a debt and then winning the
+   dispute hands back credits the customer already spent — with a replay that agrees. Doing it
+   safely needs the offset attributed to its payment and dispute AND the subtraction added to the
+   SQL restoration arm, because the database bound is the authoritative one. Until then the debt is
+   discharged only by future earnings, exactly as the locked policy says. §3e, U1.
+3. **How should a poisoned refund key be repaired?** A staff typo of a refund id that is still free
+   burns that key; the customer whose refund it really is then has an obligation no route action
+   can settle. It fails loudly and loses nothing, but it needs a control — a re-anchor for a row
+   whose canonical key is provably spent on another payment. Deliberately not built here, because
+   every version of "a second key scheme" this system has tried has cost real money. §3e, U10.
+4. **Does a RELEASED hold repay an outstanding recovery debt?** Today it does not: a clawback that
    landed while credits were reserved becomes a debt, and when the abandoned checkout's hold is
    released those credits return to `available` while the debt stands — so the customer holds
    spendable credits they cannot spend until an unrelated future earning clears it. The arithmetic
@@ -655,10 +715,10 @@ These are product-policy choices, not defects, and they were not made unilateral
    unilaterally. Making a release repay the debt would need a new entry type that moves `available`
    and `recovery` together, across SQL, replay, the CHECK vocabulary, the TypeScript union, the
    adapter and the test store.
-3. **The 50% ceiling's base.** A1: half of the pre-promo subtotal, or half of what is actually due?
+5. **The 50% ceiling's base.** A1: half of the pre-promo subtotal, or half of what is actually due?
    The current behaviour is deliberate and documented; with a 50% promo it leaves the customer paying
    $0.50 cash.
-4. **The office/manual redeem's purchase amount.** A2: should it be bounded by the payment record
+6. **The office/manual redeem's purchase amount.** A2: should it be bounded by the payment record
    when one is supplied, rather than typed?
 
 ---
@@ -670,7 +730,8 @@ These are product-policy choices, not defects, and they were not made unilateral
 | Per-payment attribution inside the shared buckets is approximate (A6). | Wallet totals are correct and the per-payment ceiling is enforced; what is imprecise is which payment a promotion or a clawback consumed. Visible only in a per-payment reconciliation, never in a customer's balance. |
 | **Credits cannot be spent online anywhere** (§9.1). | Every online checkout refuses them; the only spend path is the staff counter. Customers earn correctly and see a balance they cannot spend by themselves. The copy now says so. This is the largest functional gap in the change and it is a product decision, not a defect. |
 | A released hold does not repay an outstanding recovery debt (§9.2). | Value-neutral, and policy-conformant. A customer in that state holds spendable credits they cannot spend until a future earning clears the debt. Reachable only when a clawback lands while credits are reserved. |
-| The `bound_user_id` compare-and-set in the binding release is unproven by test (§3d, T9). | Unreachable by construction in a single resolution; it defends a concurrent window that cannot be staged from outside the module. Recorded as unproven rather than counted as evidence. |
+| A staff typo of a still-free refund id burns that key, leaving the real owner's obligation unsettleable by any route action (§3e, U10). | Bounded and LOUD: the clawback fails by name, the row stays open, nothing is silently lost or double-taken. Needs a re-anchor control, which is an owner decision (§9.3). |
+| There is no staff exit from recovery debt (§3e, U1, §9.2). | A customer whose clawback exceeded their balance waits for a future purchase to clear it. The write-off that would have fixed it creates credits, so it was removed rather than shipped. |
 | 202 of the behavioural suite's 961 assertions are still regexes over source (§3d, T10). | Every one whose defect a reviewer demonstrated could survive a text-preserving reintroduction has been replaced by an executable check. The rest assert structural facts about the webhook handlers, the UI and the migration text, which the route harness does not reach. Corroboration, not proof. |
 | The route harness models PostgREST, not PostgreSQL. | `scripts/lib/stubs/supabaseServer.mjs` implements the query surface the routes use plus the unique indexes that matter. It proves what a route DOES — its gate, its ordering, its arguments, its answer. It proves nothing about PL/pgSQL, which is why the SQL suite exists and runs against a real server. |
 | An `invoice.paid` with no `billing_reason` skips the earn without queueing (A4). | The customer loses 9% of one renewal, recorded in the audit log as retryable. Needs an earn-gap queue. |
@@ -691,7 +752,7 @@ It runs on a **disposable copy of the tree**, never on the repository — an ear
 the live working tree, and an interrupted run was shown to leave money-moving source files
 defective on disk.
 
-The harness carries **75** mutations. They fall into five groups, and the groups matter more than
+The harness carries **83** mutations. They fall into five groups, and the groups matter more than
 the individual rows:
 
 1. **The original repairs** (#1–15) — each money defect from §3, put back.
@@ -807,9 +868,9 @@ Run at the final committed state. `PGHOST`/`PGPORT`/`PGUSER` point at a throwawa
 | Command | Exit |
 |---|---|
 | `npx tsx scripts/verify-ix-rewards-behavior-01.ts` — 182 behavioural checks | 0 |
-| `npx tsx --tsconfig scripts/lib/tsconfig.harness.json scripts/verify-ix-rewards-route-behavior-01.ts` — 43 checks that EXECUTE the route handlers and the production adapter | 0 |
+| `npx tsx --tsconfig scripts/lib/tsconfig.harness.json scripts/verify-ix-rewards-route-behavior-01.ts` — 47 checks that EXECUTE the route handlers and the production adapter | 0 |
 | `bash scripts/verify-ix-rewards-sql-behavior-01.sh` — 142 in-session assertions + 2 **timed** cross-session concurrency proofs, against real PostgreSQL 16.13 | 0 |
-| `npx tsx scripts/verify-ix-rewards-mutation-01.ts` — 75 defects reintroduced, each caught by a named check, on a disposable copy of the tree | 0 |
+| `npx tsx scripts/verify-ix-rewards-mutation-01.ts` — 83 defects reintroduced, each caught by a named check, on a disposable copy of the tree | 0 |
 | `npx tsx scripts/verify-quick-product-boundary-01.ts` — 52 checks | 0 |
 | `npx tsx scripts/verify-quick-business-core-01.ts` | 0 |
 | `npx tsx scripts/verify-quick-lifecycle-media-behavior-01.ts` — 35 checks | 0 |

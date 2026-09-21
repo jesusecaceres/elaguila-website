@@ -358,21 +358,30 @@ export function buildRewardsStorePort(): RewardsStorePort {
       };
     },
 
+    // A FAILED READ IS NOT A SUM OF ZERO — the same rule `countPaymentPositionRows` follows.
+    //
+    // Both of these discarded the error and returned 0. Every caller then read "nothing has been
+    // restored yet" from a query that never ran: the per-dispute restoration bound became as
+    // permissive as the whole clawback, and the staff dismissal guard agreed that no obligation
+    // was outstanding. `-1` can never be a real sum, so a caller can tell "nothing" from "we do
+    // not know" and refuse rather than proceed.
     async sumRestoredForPayment(paymentRecordId: string) {
-      const { data } = await db
+      const { data, error } = await db
         .from("leonix_rewards_ledger")
         .select("amount_cents")
         .eq("payment_record_id", paymentRecordId)
         .eq("entry_type", "reversal_restoration");
+      if (error) return -1;
       return ((data ?? []) as { amount_cents: number }[]).reduce((a, r) => a + Number(r.amount_cents ?? 0), 0);
     },
 
     async sumReversedForPaymentByKind(paymentRecordId: string, kind: "refund" | "chargeback") {
-      const { data } = await db
+      const { data, error } = await db
         .from("leonix_rewards_ledger")
         .select("amount_cents")
         .eq("payment_record_id", paymentRecordId)
         .eq("entry_type", kind === "refund" ? "refund_reversal" : "chargeback_reversal");
+      if (error) return -1;
       return ((data ?? []) as { amount_cents: number }[]).reduce((a, r) => a + Number(r.amount_cents ?? 0), 0);
     },
 
@@ -430,7 +439,7 @@ export function buildRewardsStorePort(): RewardsStorePort {
       // `wallet_id` is selected because a reversal must debit the wallet this payment CREDITED.
       // Re-resolving the payer's wallet at reversal time would send the clawback wherever that
       // payer maps TODAY, which is not necessarily where the credits went.
-      const { data } = await db
+      const { data, error } = await db
         .from("leonix_rewards_ledger")
         .select("wallet_id, amount_cents, meta")
         .eq("payment_record_id", paymentRecordId)
@@ -438,6 +447,13 @@ export function buildRewardsStorePort(): RewardsStorePort {
         .order("created_at", { ascending: true })
         .limit(1)
         .maybeSingle();
+      // "THIS PAYMENT EARNED NOTHING" AND "WE COULD NOT FIND OUT" ARE DIFFERENT ANSWERS.
+      //
+      // Returning null for both made a failed read look like a payment with no award, so a
+      // clawback did nothing, reported `nothing_to_reverse / payment_earned_nothing` as a SUCCESS,
+      // and nothing was queued: the customer got their money back and kept the credits, silently.
+      // Throwing puts it on the failure path the webhook already has, which queues and retries.
+      if (error) throw new Error(`leonix_rewards_earn_lookup_failed: ${error.message.slice(0, 200)}`);
       if (!data) return null;
       const row = data as unknown as {
         wallet_id: string;

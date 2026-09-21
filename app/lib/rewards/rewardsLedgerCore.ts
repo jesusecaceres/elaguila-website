@@ -657,7 +657,20 @@ async function attemptReversal(input: {
     ? Math.max(0, Math.floor(input.eventRefundedCents))
     : 0;
 
-  const original = await input.ports.findEarnForPayment(input.paymentRecordId);
+  // A LOOKUP THAT THREW IS NOT A PAYMENT THAT EARNED NOTHING. The adapter throws rather than
+  // returning null when its read failed, so this cannot report a silent success for a clawback it
+  // never even sized.
+  let original: Awaited<ReturnType<RewardsStorePort["findEarnForPayment"]>>;
+  try {
+    original = await input.ports.findEarnForPayment(input.paymentRecordId);
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message.slice(0, 200) : "earn_lookup_failed",
+      basisRecorded: false,
+      shortfallCents: 0,
+    };
+  }
   if (!original || original.amountCents <= 0) {
     return { ok: true, outcome: "nothing_to_reverse", reason: "payment_earned_nothing", reversedCents: 0, totalReversedCents: 0 };
   }
@@ -679,6 +692,15 @@ async function attemptReversal(input: {
     input.ports.sumReversedForPayment(input.paymentRecordId),
     input.ports.sumRestoredForPayment?.(input.paymentRecordId) ?? Promise.resolve(0),
   ]);
+
+  // `-1` MEANS "WE DO NOT KNOW", AND A REVERSAL MUST NOT BE SIZED FROM THAT.
+  //
+  // `sumRestoredForPayment` reports it when its query errored. Reading that as 0 makes
+  // `alreadyReversedCents` too LARGE, which under-reverses — the customer keeps credits for money
+  // they got back — and the failure is silent. Refusing is retryable: the caller queues it.
+  if (restoredSoFarCents < 0) {
+    return { ok: false, error: "reversal_state_unavailable", basisRecorded: false, shortfallCents: 0 };
+  }
 
   // A RESTORATION PUTS CREDITS BACK, SO IT UNDOES PART OF THE REVERSED POSITION.
   //
@@ -1251,7 +1273,13 @@ async function attemptRestoration(input: {
   requestedCents?: number | null;
   ports: RewardsStorePort;
 }): Promise<RestorationResult | typeof POSITION_RETRY> {
-  const original = await input.ports.findEarnForPayment(input.paymentRecordId);
+  let original: Awaited<ReturnType<RewardsStorePort["findEarnForPayment"]>>;
+  try {
+    original = await input.ports.findEarnForPayment(input.paymentRecordId);
+  } catch (err) {
+    // Same rule as the reversal path: a read that failed must not read as "nothing was earned".
+    return { ok: false, error: err instanceof Error ? err.message.slice(0, 200) : "earn_lookup_failed" };
+  }
   if (!original || original.amountCents <= 0) {
     return { ok: true, outcome: "nothing_to_restore", restoredCents: 0, recoveryOffsetCents: 0, reason: "payment_earned_nothing", deduplicated: false };
   }
@@ -1274,6 +1302,16 @@ async function attemptRestoration(input: {
     // `reverse:chargeback:<disputeId>`.
     input.ports.findLedgerEntryByIdempotencyKey(reversalIdempotencyKey(kind, input.externalId)),
   ]);
+
+  // A BOUND COMPUTED FROM A READ THAT FAILED IS NOT A BOUND.
+  //
+  // Both sums report `-1` when their query errored, because "nothing has been restored yet" and
+  // "we could not find out" are different facts and only one of them permits giving credits back.
+  // Reading a failed read as 0 made the per-dispute bound as permissive as the entire clawback.
+  // Refusing is retryable and leaves the obligation in the queue; proceeding is not.
+  if (reversedCents < 0 || restoredCents < 0) {
+    return { ok: false, error: "restoration_state_unavailable" };
+  }
 
   // TWO BOUNDS, AND THE TIGHTER ONE WINS.
   //
@@ -1433,81 +1471,28 @@ export async function postManualAdjustment(input: {
 }
 
 /**
- * FORGIVE AN OUTSTANDING RECOVERY DEBT — the staff exit that did not exist.
+ * WHY THERE IS NO STAFF WRITE-OFF FOR RECOVERY DEBT — AND WHAT IT WOULD TAKE.
  *
- * A clawback larger than the spendable balance becomes `recovery_cents`, and locked policy says
- * redemption is prohibited while a debt stands and that future eligible earnings repay it first.
- * That is correct, and it had no manual exit. A positive `manual_adjustment` does NOT repay a debt
- * — `leonix_rewards_post_entry`'s `manual_adjustment` arm credits `available` with no offset,
- * unlike the earn arms — so a staff "correction" of +900 to a customer owing 900 handed them 900
- * credits they still could not spend, and the debt stood. The only way out was an unrelated future
- * purchase. A manual-resolution state that no control can resolve is a customer stuck for ever.
+ * One was built in this round and REMOVED in the same round, because an independent reviewer
+ * proved it creates money. A staff `recovery_offset` and a won-dispute restoration are two ways of
+ * discharging the SAME clawback, and nothing linked them. Measured against real PL/pgSQL on a
+ * $100.00 payment whose 900 credits were spent before a full chargeback: forgive the 900 debt,
+ * then win the dispute, and the restoration hands back 900 SPENDABLE credits the customer already
+ * spent and the business already absorbed. `leonix_rewards_recompute_wallet` agrees with the wrong
+ * number, so reconciliation cannot find it. $9.00 created per $100.00, scaling with payment size.
  *
- * `recovery_offset` already exists in the ledger's vocabulary and in the replay for exactly this:
- * a debt settled or written off outside the earnings path. It reduces the debt and touches no
- * spendable bucket, which is what a write-off IS — it does not hand the customer credits, it stops
- * the debt blocking them. The posting function refuses an offset larger than the debt, so this can
- * never manufacture a negative one.
+ * The staff offset is invisible to the bound that would have caught it: the SQL restoration bound
+ * is scoped by `payment_record_id` and `source_id`, and the offset carried neither.
  *
- * Keyed on the staff reference, so a double click forgives once.
+ * Building it properly needs four things together, not one:
+ *   1. the `recovery_offset` post carries `payment_record_id` and the `source_id` of the dispute
+ *      whose clawback it discharges;
+ *   2. a port read summing staff offsets per payment;
+ *   3. `attemptRestoration`'s bound tightened to subtract them;
+ *   4. the SAME subtraction inside `leonix_rewards_post_entry`'s restoration arm, because the
+ *      database bound is the authoritative one and a TypeScript-only fix is not a fix.
+ *
+ * Until then the debt is discharged only by future earnings, which is what the locked policy
+ * says, and the gap is recorded as an owner decision rather than closed with code that creates
+ * credits from nothing.
  */
-export function recoveryOffsetIdempotencyKey(ref: string): string {
-  return `recovery_offset:${ref.trim()}`;
-}
-
-export async function forgiveRecoveryDebt(input: {
-  owner: WalletOwnerRef;
-  amountCents: number;
-  reason: string;
-  actorAuthUserId: string;
-  actorRosterId?: string | null;
-  adjustmentRef: string;
-  ports: RewardsStorePort;
-}): Promise<
-  | { ok: true; amountCents: number; remainingRecoveryCents: number; deduplicated: boolean }
-  | { ok: false; error: string; recoveryCents?: number }
-> {
-  const amountCents = Math.floor(Number(input.amountCents));
-  if (!Number.isFinite(amountCents) || amountCents <= 0) return { ok: false, error: "amount_must_be_positive" };
-  if (!input.reason || input.reason.trim().length < 3) return { ok: false, error: "reason_required" };
-  if (!input.adjustmentRef.trim()) return { ok: false, error: "reference_required" };
-  if (!input.actorAuthUserId) return { ok: false, error: "actor_required" };
-
-  const walletRes = await input.ports.resolveWallet(input.owner);
-  if (!walletRes.ok) return { ok: false, error: walletRes.error };
-
-  const recoveryCents = Math.max(0, Math.floor(Number(walletRes.wallet.recoveryCents ?? 0) || 0));
-  if (recoveryCents <= 0) return { ok: false, error: "no_recovery_debt", recoveryCents: 0 };
-  if (amountCents > recoveryCents) {
-    // Refused rather than clamped: a staff member who typed the wrong figure should see the real
-    // one, not have it silently corrected into a number they did not intend.
-    return { ok: false, error: "exceeds_recovery_debt", recoveryCents };
-  }
-
-  const posted = await input.ports.postEntry({
-    walletId: walletRes.wallet.id,
-    entryType: "recovery_offset",
-    amountCents,
-    sourceKind: "staff_adjustment",
-    idempotencyKey: recoveryOffsetIdempotencyKey(input.adjustmentRef),
-    reason: input.reason.trim(),
-    actorAuthUserId: input.actorAuthUserId,
-    actorRosterId: input.actorRosterId ?? null,
-    meta: { recovery_before_cents: recoveryCents },
-  });
-  if (!posted.ok) return { ok: false, error: posted.error };
-
-  // THE SAME REFERENCE ON A SECOND WALLET IS A MISTAKE, NOT A REPLAY — the rule the staff
-  // adjustment path already enforces, applied to the one other reference staff type by hand.
-  if (posted.entry.deduplicated && posted.entry.walletId !== walletRes.wallet.id) {
-    return { ok: false, error: "reference_belongs_to_another_wallet" };
-  }
-
-  const after = await input.ports.getWalletById(walletRes.wallet.id);
-  return {
-    ok: true,
-    amountCents,
-    remainingRecoveryCents: Math.max(0, Math.floor(Number(after?.recoveryCents ?? 0) || 0)),
-    deduplicated: posted.entry.deduplicated,
-  };
-}

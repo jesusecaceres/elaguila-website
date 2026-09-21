@@ -66,6 +66,20 @@ const BUSINESS = "33333333-3333-4333-8333-333333333333";
 const STAFF_AUTH = "44444444-4444-4444-8444-444444444444";
 const STAFF_EMAIL = "staff@leonixmedia.com";
 const PAYMENT_A = "55555555-5555-4555-8555-555555555555";
+// REAL STRIPE IDS, AT REAL LENGTH.
+//
+// These fixtures used ten-character ids like `re_REAL123`. A reviewer reintroduced the double
+// clawback behind `refundExternalId.length > 20` — the length of every genuine Stripe refund id,
+// which is 27 — and all four suites stayed green while the defect was live for every real
+// customer. A fixture that is shorter than production is a fixture the defect can hide behind.
+const REAL_REFUND_ID = "re_3MtwBwLkdIwHu7ix0dGrPjTB";
+const OTHER_REFUND_ID = "re_3PqZzzLkdIwHu7ix1aBcDeFg";
+const TYPED_REFUND_ID = "re_3QrYyyLkdIwHu7ix2cDeFgHi";
+const REFUND_ONE = "re_3RsXxxLkdIwHu7ix3dEfGhIj";
+const REFUND_TWO = "re_3TuWwwLkdIwHu7ix4eFgHiJk";
+const COLLIDING_REFUND_ID = "re_3VwVvvLkdIwHu7ix5fGhIjKl";
+const DISPUTE_ONE = "dp_3WxUuuLkdIwHu7ix6gHiJkLm";
+
 const PAYMENT_B = "66666666-6666-4666-8666-666666666666";
 
 /** A ledger that honours idempotency and reports buckets, which is all the ROUTES can observe. */
@@ -302,7 +316,7 @@ async function main(): Promise<void> {
     const id = seedQueueRow({
       kind: "chargeback",
       reason: "won_dispute_restoration_failed: boom",
-      external_ref: "dp_1",
+      external_ref: "dp_3AaBbCcLkdIwHu7ix7hIjKlMn",
     });
     const res = await adminRewards.POST(
       jsonRequest("http://x/api/admin/rewards", {
@@ -310,7 +324,7 @@ async function main(): Promise<void> {
         resolutionId: id,
         note: "claw it back",
         outcome: "reversed",
-        refundExternalId: "dp_1",
+        refundExternalId: "dp_3AaBbCcLkdIwHu7ix7hIjKlMn",
       }) as never,
     );
     assert.equal(res.status, 409);
@@ -325,13 +339,13 @@ async function main(): Promise<void> {
     signInAsSuperAdmin();
     // Nothing is outstanding on this payment: the clawback of 450 was already given back by hand.
     __seed("leonix_rewards_ledger", [
-      { id: "cb-1", wallet_id: "wallet-a", entry_type: "chargeback_reversal", amount_cents: 450, payment_record_id: PAYMENT_A, source_id: "dp_2", idempotency_key: "reverse:chargeback:dp_2", created_at: new Date().toISOString() },
-      { id: "rs-1", wallet_id: "wallet-a", entry_type: "reversal_restoration", amount_cents: 450, payment_record_id: PAYMENT_A, source_id: "dp_2", idempotency_key: "restore:dp_2", created_at: new Date().toISOString() },
+      { id: "cb-1", wallet_id: "wallet-a", entry_type: "chargeback_reversal", amount_cents: 450, payment_record_id: PAYMENT_A, source_id: "dp_3BbCcDdLkdIwHu7ix8iJkLmNo", idempotency_key: "reverse:chargeback:dp_3BbCcDdLkdIwHu7ix8iJkLmNo", created_at: new Date().toISOString() },
+      { id: "rs-1", wallet_id: "wallet-a", entry_type: "reversal_restoration", amount_cents: 450, payment_record_id: PAYMENT_A, source_id: "dp_3BbCcDdLkdIwHu7ix8iJkLmNo", idempotency_key: "restore:dp_3BbCcDdLkdIwHu7ix8iJkLmNo", created_at: new Date().toISOString() },
     ]);
     const id = seedQueueRow({
       kind: "chargeback",
       reason: "won_dispute_restoration_found_nothing_to_restore",
-      external_ref: "dp_2",
+      external_ref: "dp_3BbCcDdLkdIwHu7ix8iJkLmNo",
     });
     const res = await adminRewards.POST(
       jsonRequest("http://x/api/admin/rewards", {
@@ -358,9 +372,9 @@ async function main(): Promise<void> {
     // reopen it, and 900 credits the customer is owed simply gone.
     __seed("leonix_rewards_ledger", [
       { id: "earn-1", wallet_id: "wallet-a", entry_type: "earn_available", amount_cents: 900, payment_record_id: PAYMENT_A, idempotency_key: `earn:payment:${PAYMENT_A}`, meta: { eligible_net_cents: 10000 }, created_at: new Date().toISOString() },
-      { id: "cb-1", wallet_id: "wallet-a", entry_type: "chargeback_reversal", amount_cents: 900, payment_record_id: PAYMENT_A, source_id: "dp_open", idempotency_key: "reverse:chargeback:dp_open", meta: { basis_contribution_cents: 10000 }, created_at: new Date().toISOString() },
+      { id: "cb-1", wallet_id: "wallet-a", entry_type: "chargeback_reversal", amount_cents: 900, payment_record_id: PAYMENT_A, source_id: "dp_3GgHhIiLkdIwHu7ixDnOpQrSt", idempotency_key: "reverse:chargeback:dp_3GgHhIiLkdIwHu7ixDnOpQrSt", meta: { basis_contribution_cents: 10000 }, created_at: new Date().toISOString() },
     ]);
-    const id = seedQueueRow({ kind: "chargeback", external_ref: "dp_open", reason: "won_dispute_restoration_failed: boom" });
+    const id = seedQueueRow({ kind: "chargeback", external_ref: "dp_3GgHhIiLkdIwHu7ixDnOpQrSt", reason: "won_dispute_restoration_failed: boom" });
     const res = await adminRewards.POST(
       jsonRequest("http://x/api/admin/rewards", {
         action: "refund_resolve", resolutionId: id, note: "looks fine to me", outcome: "no_action_required",
@@ -371,20 +385,125 @@ async function main(): Promise<void> {
     assert.equal(body.error, "restoration_still_outstanding");
     assert.equal(body.outstandingCents, 900, "and the operator is told exactly what is owed");
     assert.equal(__rows("leonix_rewards_refund_resolutions")[0]!.status, "open", "the row stays in the queue");
+
+    // AND WHEN THE STATE CANNOT BE READ AT ALL, IT IS STILL REFUSED.
+    //
+    // Both sums report `-1` on a failed read, and `-1 - -1` is 0 — which would read as "nothing
+    // outstanding" from two queries that never ran. The sentinel only helps if it is checked.
+    __failReadsOn("leonix_rewards_ledger", "amount_cents");
+    try {
+      const blind = await adminRewards.POST(
+        jsonRequest("http://x/api/admin/rewards", {
+          action: "refund_resolve", resolutionId: id, note: "looks fine to me", outcome: "no_action_required",
+        }) as never,
+      );
+      assert.equal(blind.status, 503, "a guard that cannot read the state must refuse, not agree");
+      assert.equal(((await blind.json()) as { error?: string }).error, "restoration_state_unavailable");
+    } finally {
+      __failReadsOn();
+    }
+    assert.equal(__rows("leonix_rewards_refund_resolutions")[0]!.status, "open", "and the row is still open");
+  });
+
+  await check("Y3c: `no_action_required` is refused while the dispute's own clawback has not landed", async () => {
+    // THE VACUOUS HALF OF THE GUARD. A row filed for the ORDERING case — the dispute was won
+    // before its clawback arrived — has a chargeback SUM of zero for the payment, so a guard that
+    // measures the payment's total agreed that nothing was outstanding and one click dismissed it.
+    // The clawback landed minutes later and no key would ever restore it.
+    __reset();
+    installLedgerRpc();
+    signInAsSuperAdmin();
+    __seed("payment_records", [{ id: PAYMENT_A, payment_status: "disputed", stripe_charge_id: "ch_1" }]);
+    __seed("leonix_rewards_wallets", [
+      { id: "wallet-a", owner_user_id: CUSTOMER_A, available_cents: 900, pending_cents: 0, reserved_cents: 0, lifetime_earned_cents: 900, lifetime_redeemed_cents: 0, lifetime_reversed_cents: 0, recovery_cents: 0, lifetime_restored_cents: 0 },
+    ]);
+    __seed("leonix_rewards_ledger", [
+      { id: "earn-1", wallet_id: "wallet-a", entry_type: "earn_available", amount_cents: 900, payment_record_id: PAYMENT_A, idempotency_key: `earn:payment:${PAYMENT_A}`, meta: { eligible_net_cents: 10000 }, created_at: new Date().toISOString() },
+    ]);
+    const id = seedQueueRow({
+      kind: "chargeback",
+      external_ref: DISPUTE_ONE,
+      cumulative_refunded_cents: 0,
+      reason: "won_dispute_restoration_failed: nothing_was_reversed",
+    });
+    const res = await adminRewards.POST(
+      jsonRequest("http://x/api/admin/rewards", {
+        action: "refund_resolve", resolutionId: id, note: "nothing to see here", outcome: "no_action_required",
+      }) as never,
+    );
+    assert.equal(res.status, 409, "a clawback that has not landed is outstanding, not settled");
+    assert.equal(((await res.json()) as { error?: string }).error, "restoration_still_outstanding");
+    assert.equal(__rows("leonix_rewards_refund_resolutions")[0]!.status, "open");
+  });
+
+  await check("Y3d: a TRUNCATED-PAYLOAD row can still be closed with `no_action_required`", async () => {
+    // The anchor rule demands a canonical refund id, and the screen sends one only for a reversal.
+    // Deriving the anchor for EVERY outcome made every `charge_refunds_absent_from_payload` row —
+    // the whole reason this queue exists — unclosable unless staff invented an id.
+    __reset();
+    installLedgerRpc();
+    signInAsSuperAdmin();
+    __seed("payment_records", [{ id: PAYMENT_A, payment_status: "paid", stripe_charge_id: "ch_1" }]);
+    const id = seedQueueRow();
+    const res = await adminRewards.POST(
+      jsonRequest("http://x/api/admin/rewards", {
+        action: "refund_resolve", resolutionId: id, note: "rail corrected the charge; nothing owed", outcome: "no_action_required",
+      }) as never,
+    );
+    assert.equal(res.status, 200, await res.clone().text());
+    assert.equal(__rows("leonix_rewards_refund_resolutions")[0]!.status, "resolved");
+  });
+
+  await check("Y16: two truncated rows resolved under ONE refund id do not close the second for free", async () => {
+    // Under the row-keyed anchor the two rows had distinct keys and composed correctly. Under the
+    // rail's key they share one, so the second call deduplicates — and returning 200 with
+    // `movedCents: 0` closed an obligation that was never discharged. Measured on a $100.00
+    // payment with rows at cumulative 2500 and 5000: 225 reversed where 450 was owed.
+    __reset();
+    installLedgerRpc();
+    signInAsSuperAdmin();
+    __seed("payment_records", [{ id: PAYMENT_A, payment_status: "paid", stripe_charge_id: "ch_1" }]);
+    __seed("leonix_rewards_wallets", [
+      { id: "wallet-a", owner_user_id: CUSTOMER_A, available_cents: 900, pending_cents: 0, reserved_cents: 0, lifetime_earned_cents: 900, lifetime_redeemed_cents: 0, lifetime_reversed_cents: 0, recovery_cents: 0, lifetime_restored_cents: 0 },
+    ]);
+    __seed("leonix_rewards_ledger", [
+      { id: "earn-1", wallet_id: "wallet-a", entry_type: "earn_available", amount_cents: 900, payment_record_id: PAYMENT_A, idempotency_key: `earn:payment:${PAYMENT_A}`, meta: { eligible_net_cents: 10000 }, created_at: new Date().toISOString() },
+    ]);
+    __seed("leonix_rewards_refund_resolutions", [
+      { id: "aaaaaaa1-1111-4111-8111-111111111111", payment_record_id: PAYMENT_A, stripe_charge_id: "ch_1", kind: "refund", cumulative_refunded_cents: 2500, external_ref: null, status: "open", attempts: 1, last_attempt_at: new Date().toISOString(), reason: "charge_refunds_absent_from_payload", created_at: new Date().toISOString() },
+      { id: "aaaaaaa2-2222-4222-8222-222222222222", payment_record_id: PAYMENT_A, stripe_charge_id: "ch_1", kind: "refund", cumulative_refunded_cents: 5000, external_ref: null, status: "open", attempts: 1, last_attempt_at: new Date().toISOString(), reason: "charge_refunds_absent_from_payload", created_at: new Date().toISOString() },
+    ]);
+    const first = await adminRewards.POST(
+      jsonRequest("http://x/api/admin/rewards", {
+        action: "refund_resolve", resolutionId: "aaaaaaa1-1111-4111-8111-111111111111",
+        note: "first truncated row", outcome: "reversed", refundExternalId: REAL_REFUND_ID,
+      }) as never,
+    );
+    assert.equal(first.status, 200, await first.clone().text());
+    const second = await adminRewards.POST(
+      jsonRequest("http://x/api/admin/rewards", {
+        action: "refund_resolve", resolutionId: "aaaaaaa2-2222-4222-8222-222222222222",
+        note: "second truncated row, same id typed", outcome: "reversed", refundExternalId: REAL_REFUND_ID,
+      }) as never,
+    );
+    assert.equal(second.status, 409, `a deduplicated reversal moved nothing: ${await second.clone().text()}`);
+    assert.equal(((await second.json()) as { error?: string }).error, "reversal_moved_nothing");
+    const stillOpen = __rows("leonix_rewards_refund_resolutions").filter((r) => r.status === "open");
+    assert.ok(stillOpen.length >= 1, "the unmet obligation is back in the queue, not written off");
   });
 
   await check("Y4: the idempotency anchor comes from the ROW — a typed id that disagrees is refused, not written", async () => {
     __reset();
     installLedgerRpc();
     signInAsSuperAdmin();
-    const id = seedQueueRow({ external_ref: "re_genuine" });
+    const id = seedQueueRow({ external_ref: REAL_REFUND_ID });
     const res = await adminRewards.POST(
       jsonRequest("http://x/api/admin/rewards", {
         action: "refund_resolve",
         resolutionId: id,
         note: "one character wrong",
         outcome: "reversed",
-        refundExternalId: "re_someone_elses_future_refund",
+        refundExternalId: OTHER_REFUND_ID,
       }) as never,
     );
     assert.equal(res.status, 409);
@@ -404,7 +523,7 @@ async function main(): Promise<void> {
     // A truncated `charge.refunded` carries a cumulative figure and no refund object, so the row is
     // filed with no `external_ref` and staff are REQUIRED to type the canonical refund id off
     // Stripe. Keying the resolution on the row instead of on that id produced two keys for one
-    // refund — `reverse:refund:queue:<uuid>` and `reverse:refund:re_REAL` — which do not
+    // refund — `reverse:refund:queue:<uuid>` and `reverse:refund:re_3MtwBwLkdIwHu7ix0dGrPjTB` — which do not
     // deduplicate against each other, and whose `basis_contribution_cents` ADD. The rail's own
     // later delivery then clawed the same money back a second time.
     //
@@ -427,18 +546,20 @@ async function main(): Promise<void> {
         resolutionId: id,
         note: "resolving the truncated payload",
         outcome: "reversed",
-        refundExternalId: "re_REAL123",
+        refundExternalId: REAL_REFUND_ID,
       }) as never,
     );
 
     const keys = __rpcCalls("leonix_rewards_post_entry").map((c) => String(c.params.p_idempotency_key));
-    assert.ok(
-      keys.includes("reverse:refund:re_REAL123"),
-      `the staff resolution must use the rail's own key, got ${JSON.stringify(keys)}`,
+    // BYTE-EQUAL TO THE SUPPLIED ID, not merely "contains no `queue:`". A reintroduction
+    // conditioned on the id's LENGTH passed every literal this check used to match, because the
+    // fixture id was ten characters and every genuine Stripe refund id is twenty-seven.
+    const reversalKeys = keys.filter((k) => k.startsWith("reverse:"));
+    assert.deepEqual(
+      reversalKeys,
+      [`reverse:refund:${REAL_REFUND_ID}`],
+      `the staff resolution must be keyed byte-for-byte on the rail's own id, got ${JSON.stringify(keys)}`,
     );
-    for (const key of keys) {
-      assert.ok(!key.includes("queue:"), `a second accounting scheme appeared: ${key}`);
-    }
 
     // NOW THE RAIL DELIVERS THE SAME REFUND PROPERLY. It must move nothing.
     const { reverseCreditsForRefundOrDispute } = await import("@/app/lib/rewards/rewardsFulfillment");
@@ -447,7 +568,7 @@ async function main(): Promise<void> {
       refundedCents: 5000,
       cumulativeRefundedCents: 5000,
       kind: "refund",
-      externalId: "re_REAL123",
+      externalId: REAL_REFUND_ID,
     });
     const reversals = __rows("leonix_rewards_ledger").filter((r) => r.entry_type === "refund_reversal");
     const totalReversed = reversals.reduce((sum, r) => sum + Number(r.amount_cents ?? 0), 0);
@@ -468,12 +589,12 @@ async function main(): Promise<void> {
     const [first, second] = await Promise.all([
       adminRewards.POST(
         jsonRequest("http://x/api/admin/rewards", {
-          action: "refund_resolve", resolutionId: id, note: "staff one resolving", outcome: "reversed", refundExternalId: "re_x",
+          action: "refund_resolve", resolutionId: id, note: "staff one resolving", outcome: "reversed", refundExternalId: REAL_REFUND_ID,
         }) as never,
       ),
       adminRewards.POST(
         jsonRequest("http://x/api/admin/rewards", {
-          action: "refund_resolve", resolutionId: id, note: "staff two resolving", outcome: "reversed", refundExternalId: "re_x",
+          action: "refund_resolve", resolutionId: id, note: "staff two resolving", outcome: "reversed", refundExternalId: REAL_REFUND_ID,
         }) as never,
       ),
     ]);
@@ -500,7 +621,7 @@ async function main(): Promise<void> {
         resolutionId: id,
         note: "this attempt will fail",
         outcome: "reversed",
-        refundExternalId: "re_typed_by_a_human",
+        refundExternalId: TYPED_REFUND_ID,
       }) as never,
     );
     assert.ok(res.status >= 400, "the operator is told it failed");
@@ -564,7 +685,7 @@ async function main(): Promise<void> {
       entryType: "reversal_restoration",
       amountCents: 900,
       sourceKind: "stripe_dispute",
-      idempotencyKey: "restore:dp_W",
+      idempotencyKey: "restore:dp_3DdEeFfLkdIwHu7ixAkLmNoPq",
     });
     assert.ok(loser.ok);
     assert.equal(
@@ -626,7 +747,7 @@ async function main(): Promise<void> {
       entryType: "refund_reversal",
       amountCents: 450,
       sourceKind: "stripe_refund",
-      idempotencyKey: "reverse:refund:re_1",
+      idempotencyKey: "reverse:refund:re_3RsXxxLkdIwHu7ix3dEfGhIj",
       expectedPositionRows: 0,
     });
     assert.ok(!res.ok);
@@ -796,19 +917,19 @@ async function main(): Promise<void> {
     ]);
     __seed("leonix_rewards_ledger", [
       { id: "earn-1", wallet_id: "wallet-a", entry_type: "earn_available", amount_cents: 900, payment_record_id: PAYMENT_A, idempotency_key: `earn:payment:${PAYMENT_A}`, meta: { eligible_net_cents: 10000 }, created_at: new Date().toISOString() },
-      { id: "cb-1", wallet_id: "wallet-a", entry_type: "chargeback_reversal", amount_cents: 900, payment_record_id: PAYMENT_A, source_id: "dp_9", idempotency_key: "reverse:chargeback:dp_9", meta: { basis_contribution_cents: 10000 }, created_at: new Date().toISOString() },
+      { id: "cb-1", wallet_id: "wallet-a", entry_type: "chargeback_reversal", amount_cents: 900, payment_record_id: PAYMENT_A, source_id: "dp_3CcDdEeLkdIwHu7ix9jKlMnOp", idempotency_key: "reverse:chargeback:dp_3CcDdEeLkdIwHu7ix9jKlMnOp", meta: { basis_contribution_cents: 10000 }, created_at: new Date().toISOString() },
     ]);
-    const id = seedQueueRow({ kind: "chargeback", external_ref: "dp_9", reason: "won_dispute_restoration_failed: boom" });
+    const id = seedQueueRow({ kind: "chargeback", external_ref: "dp_3CcDdEeLkdIwHu7ix9jKlMnOp", reason: "won_dispute_restoration_failed: boom" });
     __onRpc(() => ({ data: null, error: { code: "XX000", message: "connection reset" } }));
     const res = await adminRewards.POST(
       jsonRequest("http://x/api/admin/rewards", {
-        action: "refund_resolve", resolutionId: id, note: "this attempt will fail", outcome: "restored", disputeId: "dp_9",
+        action: "refund_resolve", resolutionId: id, note: "this attempt will fail", outcome: "restored", disputeId: "dp_3CcDdEeLkdIwHu7ix9jKlMnOp",
       }) as never,
     );
     assert.ok(res.status >= 400, "the operator is told it failed");
     const open = __rows("leonix_rewards_refund_resolutions").filter((r) => r.status === "open");
     assert.equal(open.length, 1, "the obligation was re-filed");
-    assert.equal(open[0]!.external_ref, "dp_9", "and it still names ITS dispute — two disputes must stay two rows");
+    assert.equal(open[0]!.external_ref, "dp_3CcDdEeLkdIwHu7ix9jKlMnOp", "and it still names ITS dispute — two disputes must stay two rows");
     assert.ok(
       String(open[0]!.reason).startsWith("won_dispute_restoration"),
       "and it is still classified as restoration work, or the screen offers no control that can settle it",
@@ -821,11 +942,11 @@ async function main(): Promise<void> {
     __seed("leonix_rewards_refund_resolutions", []);
     const a = await queue.enqueueUnattributableRefund({
       paymentRecordId: PAYMENT_A, kind: "chargeback", cumulativeRefundedCents: 0,
-      reason: "won_dispute_restoration_failed: a", externalRef: "dp_a",
+      reason: "won_dispute_restoration_failed: a", externalRef: "dp_3EeFfGgLkdIwHu7ixBlMnOpQr",
     });
     const b = await queue.enqueueUnattributableRefund({
       paymentRecordId: PAYMENT_A, kind: "chargeback", cumulativeRefundedCents: 0,
-      reason: "won_dispute_restoration_failed: b", externalRef: "dp_b",
+      reason: "won_dispute_restoration_failed: b", externalRef: "dp_3FfGgHhLkdIwHu7ixCmNoPqRs",
     });
     assert.ok(a.ok && b.ok, "both filed");
     const open = __rows("leonix_rewards_refund_resolutions").filter((r) => r.status === "open");
@@ -833,7 +954,7 @@ async function main(): Promise<void> {
     // ...and a REDELIVERY of one of them is still one row.
     await queue.enqueueUnattributableRefund({
       paymentRecordId: PAYMENT_A, kind: "chargeback", cumulativeRefundedCents: 0,
-      reason: "won_dispute_restoration_failed: a again", externalRef: "dp_a",
+      reason: "won_dispute_restoration_failed: a again", externalRef: "dp_3EeFfGgLkdIwHu7ixBlMnOpQr",
     });
     assert.equal(
       __rows("leonix_rewards_refund_resolutions").filter((r) => r.status === "open").length,
@@ -940,13 +1061,13 @@ async function main(): Promise<void> {
     // $100.00 earned 900. A first $25.00 refund already took 225.
     __seed("leonix_rewards_ledger", [
       { id: "earn-1", wallet_id: "wallet-a", entry_type: "earn_available", amount_cents: 900, payment_record_id: PAYMENT_A, idempotency_key: `earn:payment:${PAYMENT_A}`, meta: { eligible_net_cents: 10000 }, created_at: new Date().toISOString() },
-      { id: "rev-1", wallet_id: "wallet-a", entry_type: "refund_reversal", amount_cents: 225, payment_record_id: PAYMENT_A, source_id: "re_1", idempotency_key: "reverse:refund:re_1", meta: { basis_contribution_cents: 2500 }, created_at: new Date().toISOString() },
+      { id: "rev-1", wallet_id: "wallet-a", entry_type: "refund_reversal", amount_cents: 225, payment_record_id: PAYMENT_A, source_id: REFUND_ONE, idempotency_key: "reverse:refund:re_3RsXxxLkdIwHu7ix3dEfGhIj", meta: { basis_contribution_cents: 2500 }, created_at: new Date().toISOString() },
     ]);
     // The queue row is about a SECOND $25.00 refund, and its number is that event's OWN amount.
-    const id = seedQueueRow({ external_ref: "re_2", cumulative_refunded_cents: 2500, reason: "refund_reversal_failed: boom" });
+    const id = seedQueueRow({ external_ref: REFUND_TWO, cumulative_refunded_cents: 2500, reason: "refund_reversal_failed: boom" });
     await adminRewards.POST(
       jsonRequest("http://x/api/admin/rewards", {
-        action: "refund_resolve", resolutionId: id, note: "resolving the second refund", outcome: "reversed", refundExternalId: "re_2",
+        action: "refund_resolve", resolutionId: id, note: "resolving the second refund", outcome: "reversed", refundExternalId: REFUND_TWO,
       }) as never,
     );
     const posted = __rpcCalls("leonix_rewards_post_entry").filter(
@@ -957,7 +1078,7 @@ async function main(): Promise<void> {
       Number(posted[0]!.params.p_amount_cents),
       225,
       "passing the per-event amount as a cumulative position computes max(0, 2500-2500) = 0: it moves nothing, " +
-        "closes the row as reversed, and burns `reverse:refund:re_2` so the real delivery can never fix it",
+        "closes the row as reversed, and burns `reverse:refund:re_3TuWwwLkdIwHu7ix4eFgHiJk` so the real delivery can never fix it",
     );
   });
 
@@ -975,10 +1096,10 @@ async function main(): Promise<void> {
     __seed("leonix_rewards_ledger", [
       { id: "earn-1", wallet_id: "wallet-a", entry_type: "earn_available", amount_cents: 900, payment_record_id: PAYMENT_A, idempotency_key: `earn:payment:${PAYMENT_A}`, meta: { eligible_net_cents: 10000 }, created_at: new Date().toISOString() },
     ]);
-    const id = seedQueueRow({ kind: "chargeback", external_ref: "dp_pending", cumulative_refunded_cents: 0, reason: "won_dispute_restoration_failed: nothing_was_reversed" });
+    const id = seedQueueRow({ kind: "chargeback", external_ref: "dp_3HhIiJjLkdIwHu7ixEoPqRsTu", cumulative_refunded_cents: 0, reason: "won_dispute_restoration_failed: nothing_was_reversed" });
     const res = await adminRewards.POST(
       jsonRequest("http://x/api/admin/rewards", {
-        action: "refund_resolve", resolutionId: id, note: "the customer says they won", outcome: "restored", disputeId: "dp_pending",
+        action: "refund_resolve", resolutionId: id, note: "the customer says they won", outcome: "restored", disputeId: "dp_3HhIiJjLkdIwHu7ixEoPqRsTu",
       }) as never,
     );
     assert.ok(res.status >= 400, `a restoration that moved nothing is an error, got ${res.status}`);
@@ -1005,7 +1126,7 @@ async function main(): Promise<void> {
     __seed("leonix_rewards_ledger", [
       { id: "earn-a", wallet_id: "wallet-a", entry_type: "earn_available", amount_cents: 900, payment_record_id: PAYMENT_A, idempotency_key: `earn:payment:${PAYMENT_A}`, meta: { eligible_net_cents: 10000 }, created_at: new Date().toISOString() },
       { id: "earn-b", wallet_id: "wallet-b", entry_type: "earn_available", amount_cents: 900, payment_record_id: PAYMENT_B, idempotency_key: `earn:payment:${PAYMENT_B}`, meta: { eligible_net_cents: 10000 }, created_at: new Date().toISOString() },
-      { id: "rev-a", wallet_id: "wallet-a", entry_type: "refund_reversal", amount_cents: 450, payment_record_id: PAYMENT_A, source_id: "re_collide", idempotency_key: "reverse:refund:re_collide", meta: { basis_contribution_cents: 5000 }, created_at: new Date().toISOString() },
+      { id: "rev-a", wallet_id: "wallet-a", entry_type: "refund_reversal", amount_cents: 450, payment_record_id: PAYMENT_A, source_id: COLLIDING_REFUND_ID, idempotency_key: "reverse:refund:re_3VwVvvLkdIwHu7ix5fGhIjKl", meta: { basis_contribution_cents: 5000 }, created_at: new Date().toISOString() },
     ]);
 
     const { reverseCreditsForRefundOrDispute } = await import("@/app/lib/rewards/rewardsFulfillment");
@@ -1014,80 +1135,45 @@ async function main(): Promise<void> {
       refundedCents: 5000,
       cumulativeRefundedCents: 5000,
       kind: "refund",
-      externalId: "re_collide",
+      externalId: COLLIDING_REFUND_ID,
     });
     assert.equal(result.ok, false, `a key held by another wallet must not report success: ${JSON.stringify(result)}`);
     const walletB = __rows("leonix_rewards_wallets").find((r) => r.id === "wallet-b")!;
     assert.equal(Number(walletB.available_cents), 900, "and B's balance is untouched, pending a real resolution");
   });
 
-  await check("Y15: recovery debt has a staff exit, bounded by the debt and keyed on the reference", async () => {
+  await check("Y15: nothing outside the earnings path discharges a recovery debt", async () => {
+    // A STAFF WRITE-OFF WAS BUILT AND REMOVED IN THE SAME ROUND, because it creates money: a
+    // `recovery_offset` and a won-dispute restoration discharge the SAME clawback and nothing
+    // linked them, so forgiving a 900 debt and then winning the dispute handed back 900 SPENDABLE
+    // credits the customer had already spent. The replay agreed with the wrong number.
+    //
+    // This asserts the absence behaviourally: no action on this route may post a `recovery_offset`.
     __reset();
+    installLedgerRpc();
     signInAsSuperAdmin();
-    // A clawback larger than the spendable balance leaves a debt that blocks every redemption, and
-    // a positive `manual_adjustment` does NOT repay one — the posting function's adjustment arm
-    // credits `available` with no offset. So a customer owing 900 could be "corrected" +900 and
-    // still spend nothing. There was no control that could clear it.
-    const wallet = {
-      id: "wallet-a", owner_user_id: CUSTOMER_A, available_cents: 0, pending_cents: 0, reserved_cents: 0,
-      lifetime_earned_cents: 900, lifetime_redeemed_cents: 900, lifetime_reversed_cents: 900,
-      recovery_cents: 900, lifetime_recovery_accrued_cents: 900, lifetime_recovery_offset_cents: 0,
-      lifetime_restored_cents: 0,
-    };
-    __seed("leonix_rewards_wallets", [wallet]);
-    __onRpc((fn, params) => {
-      if (fn !== "leonix_rewards_post_entry") return { data: null, error: { code: "P0001", message: fn } };
-      const rows = __rows("leonix_rewards_ledger");
-      const prior = rows.find((r) => r.idempotency_key === params.p_idempotency_key);
-      if (prior) return { data: prior, error: null };
-      if (String(params.p_entry_type) === "recovery_offset") {
-        const live = __rows("leonix_rewards_wallets")[0]!;
-        const next = Math.max(0, Number(live.recovery_cents) - Number(params.p_amount_cents));
-        __seed("leonix_rewards_wallets", [{ ...live, recovery_cents: next }]);
-      }
-      const row = {
-        id: `entry-${rows.length + 1}`, wallet_id: params.p_wallet_id, entry_type: params.p_entry_type,
-        amount_cents: params.p_amount_cents, idempotency_key: params.p_idempotency_key,
-        meta: params.p_meta ?? {}, created_at: new Date().toISOString(),
-      };
-      __seed("leonix_rewards_ledger", [...rows, row]);
-      return { data: row, error: null };
-    });
-
-    // More than is owed is refused outright, with the real figure, rather than silently clamped.
-    const tooMuch = await adminRewards.POST(
-      jsonRequest("http://x/api/admin/rewards", {
-        action: "forgive_recovery", ownerUserId: CUSTOMER_A, amountCents: 1500,
-        adjustmentRef: "WRITEOFF-1", reason: "goodwill after a rail error",
-      }) as never,
-    );
-    assert.equal(tooMuch.status, 409);
-    assert.equal(((await tooMuch.json()) as { error?: string }).error, "exceeds_recovery_debt");
-
-    const ok = await adminRewards.POST(
-      jsonRequest("http://x/api/admin/rewards", {
-        action: "forgive_recovery", ownerUserId: CUSTOMER_A, amountCents: 900,
-        adjustmentRef: "WRITEOFF-1", reason: "goodwill after a rail error",
-      }) as never,
-    );
-    assert.equal(ok.status, 200, await ok.clone().text());
-    const body = (await ok.json()) as { forgivenCents?: number; remainingRecoveryCents?: number };
-    assert.equal(body.forgivenCents, 900);
-    assert.equal(body.remainingRecoveryCents, 0, "the customer can redeem again");
-
+    __seed("leonix_rewards_wallets", [
+      { id: "wallet-a", owner_user_id: CUSTOMER_A, available_cents: 0, pending_cents: 0, reserved_cents: 0, lifetime_earned_cents: 900, lifetime_redeemed_cents: 900, lifetime_reversed_cents: 900, recovery_cents: 900, lifetime_restored_cents: 0 },
+    ]);
+    for (const action of ["forgive_recovery", "recovery_offset", "adjust"]) {
+      await adminRewards.POST(
+        jsonRequest("http://x/api/admin/rewards", {
+          action, ownerUserId: CUSTOMER_A, amountCents: 900,
+          adjustmentRef: `REF-${action}`, reason: "clearing the debt",
+        }) as never,
+      );
+    }
     const offsets = __rpcCalls("leonix_rewards_post_entry").filter(
       (c) => String(c.params.p_entry_type) === "recovery_offset",
     );
-    assert.equal(offsets.length, 1, "and it moved once");
-
-    // A second click on the same reference forgives nothing further.
-    const again = await adminRewards.POST(
-      jsonRequest("http://x/api/admin/rewards", {
-        action: "forgive_recovery", ownerUserId: CUSTOMER_A, amountCents: 900,
-        adjustmentRef: "WRITEOFF-1", reason: "goodwill after a rail error",
-      }) as never,
+    assert.equal(
+      offsets.length,
+      0,
+      "a staff-posted recovery_offset is invisible to the SQL restoration bound, which is scoped by " +
+        "payment and dispute — so it creates credits when the dispute is later won",
     );
-    assert.equal(again.status, 409, "there is no debt left to forgive");
+    const wallet = __rows("leonix_rewards_wallets")[0]!;
+    assert.equal(Number(wallet.recovery_cents), 900, "the debt stands, as the locked policy says it must");
   });
 
   await check("Z10: the compare-and-swap token counts the payment's REAL reversal rows", async () => {
@@ -1115,22 +1201,113 @@ async function main(): Promise<void> {
     // non-unique column passes here and errors in production — the one divergence that would have
     // hidden the defect that repair exists for.
     __reset();
-    __seed("leonix_payment_records", [
-      { id: "p1", stripe_payment_intent_id: "pi_dup" },
-      { id: "p2", stripe_payment_intent_id: "pi_dup" },
-    ]);
     const client = getHarnessClient() as unknown as {
       from(t: string): {
-        select(c: string): { eq(a: string, b: string): { maybeSingle(): Promise<{ error?: { code?: string } | null }> } };
+        select(c: string): {
+          eq(a: string, b: string): {
+            maybeSingle(): Promise<{ data?: unknown; error?: { code?: string } | null }>;
+          };
+          not(a: string, op: string, v: string): { then(cb: (r: { data?: unknown[] }) => void): Promise<void> };
+        };
       };
     };
-    const res = await client
-      .from("leonix_payment_records")
+    // SEVERAL TABLES, because the rule is about `maybeSingle`, not about one fixture. Scoping the
+    // fidelity to the single table a check happened to seed leaves every other route read over a
+    // non-unique column passing here and erroring in production.
+    for (const table of ["leonix_payment_records", "leonix_rewards_ledger", "business_memberships"]) {
+      __seed(table, [
+        { id: "row1", marker: "same" },
+        { id: "row2", marker: "same" },
+      ]);
+      const res = await client.from(table).select("id").eq("marker", "same").maybeSingle();
+      assert.ok(res.error, `${table}: two rows for a maybeSingle must be an ERROR, not the first row`);
+      assert.equal(res.error?.code, "PGRST116", `${table}: and the real PostgREST code`);
+      __seed(table, [{ id: "row1", marker: "same" }]);
+      const one = await client.from(table).select("id").eq("marker", "same").maybeSingle();
+      assert.ok(!one.error && one.data, `${table}: one row is still one row`);
+    }
+
+    // AND THE `not(col, "in", ...)` STRING FORM, which this repository uses and the harness threw on.
+    __seed("payment_records", [
+      { id: "ok", payment_status: "paid" },
+      { id: "bad", payment_status: "canceled" },
+    ]);
+    const filtered = (await (client
+      .from("payment_records")
       .select("id")
-      .eq("stripe_payment_intent_id", "pi_dup")
-      .maybeSingle();
-    assert.ok(res.error, "two rows for a maybeSingle must be an ERROR, not the first row");
-    assert.equal(res.error?.code, "PGRST116");
+      .not("payment_status", "in", "(canceled,failed)") as unknown as Promise<{ data?: { id: string }[] }>));
+    assert.deepEqual(
+      (filtered.data ?? []).map((r) => r.id),
+      ["ok"],
+      "PostgREST's string form of `in` must filter, not throw an unnamed TypeError",
+    );
+  });
+
+  await check("Z18: a reversal or restoration whose state read FAILED is refused, not sized from zero", async () => {
+    // `sumRestoredForPayment` and `sumReversedForPaymentByKind` discarded their error and returned
+    // 0, so every bound computed from them read "nothing has been restored yet" from a query that
+    // never ran: the per-dispute restoration bound became as permissive as the entire clawback,
+    // and a reversal's already-reversed position came out too large, under-reversing in silence.
+    for (const kind of ["reverse", "restore"] as const) {
+      __reset();
+      installLedgerRpc();
+      __seed("payment_records", [{ id: PAYMENT_A, payment_status: "paid", stripe_charge_id: "ch_1" }]);
+      __seed("leonix_rewards_wallets", [
+        { id: "wallet-a", owner_user_id: CUSTOMER_A, available_cents: 900, pending_cents: 0, reserved_cents: 0, lifetime_earned_cents: 900, lifetime_redeemed_cents: 0, lifetime_reversed_cents: 0, recovery_cents: 0, lifetime_restored_cents: 0 },
+      ]);
+      __seed("leonix_rewards_ledger", [
+        { id: "earn-1", wallet_id: "wallet-a", entry_type: "earn_available", amount_cents: 900, payment_record_id: PAYMENT_A, idempotency_key: `earn:payment:${PAYMENT_A}`, meta: { eligible_net_cents: 10000 }, created_at: new Date().toISOString() },
+        { id: "cb-1", wallet_id: "wallet-a", entry_type: "chargeback_reversal", amount_cents: 900, payment_record_id: PAYMENT_A, source_id: "dp_3AaBbCcLkdIwHu7ix7hIjKlMn", idempotency_key: "reverse:chargeback:dp_3AaBbCcLkdIwHu7ix7hIjKlMn", meta: { basis_contribution_cents: 10000 }, created_at: new Date().toISOString() },
+      ]);
+      const fulfillment = await import("@/app/lib/rewards/rewardsFulfillment");
+      // ONLY the `amount_cents` sums fail. Failing every read of the table would break the earn
+      // lookup first and never reach the sentinel this check is about.
+      __failReadsOn("leonix_rewards_ledger", "amount_cents");
+      try {
+        const res =
+          kind === "reverse"
+            ? await fulfillment.reverseCreditsForRefundOrDispute({
+                paymentRecordId: PAYMENT_A, refundedCents: 5000, cumulativeRefundedCents: 5000,
+                kind: "refund", externalId: REFUND_ONE,
+              })
+            : await fulfillment.restoreCreditsForWonDispute({ paymentRecordId: PAYMENT_A, externalId: "dp_3AaBbCcLkdIwHu7ix7hIjKlMn" });
+        assert.equal(res.ok, false, `${kind}: a state read that failed must refuse, got ${JSON.stringify(res)}`);
+      } finally {
+        __failReadsOn();
+      }
+      const posted = __rpcCalls("leonix_rewards_post_entry").filter(
+        (c) => String(c.params.p_entry_type) !== "earn_available",
+      );
+      assert.equal(posted.length, 0, `${kind}: and must move nothing`);
+    }
+
+    // AND THE EARN LOOKUP ITSELF. Returning null for both "this payment earned nothing" and
+    // "the query failed" made a clawback do nothing, report `nothing_to_reverse` as a SUCCESS, and
+    // never reach the queue: the customer got their money back and kept the credits, silently.
+    __reset();
+    installLedgerRpc();
+    __seed("payment_records", [{ id: PAYMENT_A, payment_status: "paid", stripe_charge_id: "ch_1" }]);
+    __seed("leonix_rewards_wallets", [
+      { id: "wallet-a", owner_user_id: CUSTOMER_A, available_cents: 900, pending_cents: 0, reserved_cents: 0, lifetime_earned_cents: 900, lifetime_redeemed_cents: 0, lifetime_reversed_cents: 0, recovery_cents: 0, lifetime_restored_cents: 0 },
+    ]);
+    __seed("leonix_rewards_ledger", [
+      { id: "earn-1", wallet_id: "wallet-a", entry_type: "earn_available", amount_cents: 900, payment_record_id: PAYMENT_A, idempotency_key: `earn:payment:${PAYMENT_A}`, meta: { eligible_net_cents: 10000 }, created_at: new Date().toISOString() },
+    ]);
+    const fulfillment2 = await import("@/app/lib/rewards/rewardsFulfillment");
+    __failReadsOn("leonix_rewards_ledger", "wallet_id, amount_cents, meta");
+    try {
+      const res = await fulfillment2.reverseCreditsForRefundOrDispute({
+        paymentRecordId: PAYMENT_A, refundedCents: 5000, cumulativeRefundedCents: 5000,
+        kind: "refund", externalId: REFUND_ONE,
+      });
+      assert.equal(
+        res.ok,
+        false,
+        `an earn lookup that failed must not read as "this payment earned nothing": ${JSON.stringify(res)}`,
+      );
+    } finally {
+      __failReadsOn();
+    }
   });
 
   await check("Z15: a failed position read is NOT reported as an empty position", async () => {
@@ -1156,9 +1333,15 @@ async function main(): Promise<void> {
     __reset();
     installLedgerRpc();
     const OTHER_BUSINESS = "88888888-8888-4888-8888-888888888888";
+    // THE FIXTURE HAS TO ISOLATE BOTH PREDICATES, or it proves neither. With two wallets that
+    // differ in business AND in bound user, either scope alone picks the right row — so dropping
+    // one was undetectable. The third wallet shares the BUSINESS and differs in the user, which is
+    // the dangerous direction: releasing on business alone would clear a successor's identity.
+    const SUCCESSOR = "99999999-9999-4999-8999-999999999999";
     __seed("leonix_rewards_wallets", [
       { id: "wallet-b1", business_id: BUSINESS, bound_user_id: CUSTOMER_A, available_cents: 0, pending_cents: 0, reserved_cents: 0, lifetime_earned_cents: 0, lifetime_redeemed_cents: 0, lifetime_reversed_cents: 0, recovery_cents: 0, lifetime_restored_cents: 0 },
       { id: "wallet-b2", business_id: OTHER_BUSINESS, bound_user_id: CUSTOMER_B, available_cents: 900, pending_cents: 0, reserved_cents: 0, lifetime_earned_cents: 900, lifetime_redeemed_cents: 0, lifetime_reversed_cents: 0, recovery_cents: 0, lifetime_restored_cents: 0 },
+      { id: "wallet-b3", business_id: BUSINESS, bound_user_id: SUCCESSOR, available_cents: 500, pending_cents: 0, reserved_cents: 0, lifetime_earned_cents: 500, lifetime_redeemed_cents: 0, lifetime_reversed_cents: 0, recovery_cents: 0, lifetime_restored_cents: 0 },
     ]);
     __seed("business_memberships", [
       { id: "m1", user_id: CUSTOMER_A, business_id: BUSINESS, membership_status: "revoked", is_primary_owner: true },
@@ -1169,7 +1352,12 @@ async function main(): Promise<void> {
     assert.equal(
       wallets.find((w) => w.id === "wallet-b2")!.bound_user_id,
       CUSTOMER_B,
-      "and no other customer's identity is touched",
+      "and no other business's customer is touched",
+    );
+    assert.equal(
+      wallets.find((w) => w.id === "wallet-b3")!.bound_user_id,
+      SUCCESSOR,
+      "nor a SUCCESSOR bound to the same business — the failure the user scope exists to prevent",
     );
   });
 
