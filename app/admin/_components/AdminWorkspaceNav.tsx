@@ -46,6 +46,16 @@ export const ADMIN_WORKSPACE_MONETIZATION_NAV: WorkspaceNavItem[] = [
     labelKey: "workspaceNav.link.paymentTracker",
     hintKey: "workspaceNav.paymentTracker.hint",
   },
+  // QUICK ASSISTED SALE. The workspace that holds a prospect's draft, its private preview link and
+  // its post-payment publish. It was reachable only by typing the URL, which for a screen a rep is
+  // meant to open in front of a customer is the same as not existing. Listed under the same
+  // capability its own page and APIs demand (`assisted_category_publishing`), so a member who can
+  // see the link can actually use it — and one who cannot see it learns nothing from its absence.
+  {
+    href: "/admin/workspace/quick-sales",
+    labelKey: "workspaceNav.link.quickSales",
+    hintKey: "workspaceNav.quickSales.hint",
+  },
   {
     href: "/admin/workspace/rewards",
     labelKey: "workspaceNav.link.rewards",

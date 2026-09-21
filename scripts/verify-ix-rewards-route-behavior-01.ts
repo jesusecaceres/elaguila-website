@@ -1888,6 +1888,103 @@ async function main(): Promise<void> {
     );
   });
 
+  await check("S2b: with the verified 15% intro discount in play, the 50% ceiling binds on the FIRST CHARGE, not the list price", async () => {
+    // THE GAP THIS CLOSES. S2 above exercises a monthly checkout with NO intro discount, where the
+    // list price and the first charge are the same number — so measuring the ceiling against the
+    // wrong one changes nothing S2 can see, and the mutation that swaps `firstChargeBeforeCredits`
+    // for `subtotalCents` survived the whole suite. This check makes the two numbers different:
+    // $249.00 list, 15% verified intro, $211.65 actually charged first. Half of the list price is
+    // 12450; half of the real first charge is 10582. A customer must not be able to spend the
+    // difference.
+    __reset();
+    __resetStripe();
+    echoingLedger();
+    // The identity-hash key is a real server secret in production; here it only has to EXIST, so
+    // the route's fail-closed `identity_hash_unavailable` branch is not what this check measures.
+    process.env.LEONIX_IDENTITY_HASH_KEY = "harness-identity-hash-key";
+    // A REAL verified identity, as the route resolves it: the email and its confirmation come from
+    // the bearer token, and the phone from the identity table — never from the request body.
+    __setBearerTokens({
+      tok: { id: BEARER, email: "qa-verified@leonix.test", email_confirmed_at: "2026-01-02T00:00:00.000Z" },
+    });
+    __seed("leonix_verified_phone_identities", [
+      { id: "vpi-1", owner_user_id: BEARER, phone_e164: "+15125550147" },
+    ]);
+    seedTwoWallets(500000);
+
+    const res = await postCheckout({
+      ...QUICK_MONTHLY,
+      requestVerifiedIntroDiscount: true,
+      requestedCreditsCents: 999999,
+    });
+    const text = await res.clone().text();
+    assert.equal(res.status, 200, text);
+    const body = JSON.parse(text) as {
+      creditsAppliedCents?: number;
+      amountCents?: number;
+      amountBeforeCreditsCents?: number;
+      recurringAmountCents?: number;
+      remainingDueCents?: number;
+    };
+
+    // The intro discount really applied: the first charge before credits is 249.00 - 15%.
+    const FIRST_CHARGE = QUICK_MONTHLY_CENTS - Math.floor((QUICK_MONTHLY_CENTS * 15) / 100); // 21165
+    assert.equal(FIRST_CHARGE, 21165, "the fixture is the documented $211.65 first charge");
+    assert.equal(
+      body.amountBeforeCreditsCents,
+      FIRST_CHARGE,
+      `the first charge must be the post-intro figure: ${text}`,
+    );
+
+    // THE ASSERTION THE MUTATION BREAKS. The ceiling is half of 21165, not half of 24900.
+    const applied = body.creditsAppliedCents ?? 0;
+    assert.ok(applied > 0, `credits must apply on a verified-intro monthly checkout: ${text}`);
+    assert.ok(
+      applied <= Math.floor(FIRST_CHARGE / 2),
+      `the ceiling must bind on the first charge (max ${Math.floor(FIRST_CHARGE / 2)}), got ${applied}`,
+    );
+    assert.ok(
+      applied > Math.floor(QUICK_MONTHLY_CENTS / 2) === false,
+      "and must never reach half of the undiscounted list price",
+    );
+    assert.ok(applied >= 100, "the $1.00 minimum still applies");
+
+    // At least $0.50 must remain for the card rail, measured on what is actually charged.
+    assert.ok(
+      FIRST_CHARGE - applied >= 50,
+      `at least $0.50 must remain for the card: ${FIRST_CHARGE - applied}`,
+    );
+    assert.equal(body.amountCents, FIRST_CHARGE - applied, "the reported charge is first charge minus credits");
+    assert.equal(body.remainingDueCents, body.amountCents);
+
+    // THE RENEWAL IS UNTOUCHED. Neither the intro discount nor the credits may reduce the
+    // subscription's own price — both ride a first-invoice coupon.
+    const sessions = __stripeSessions();
+    assert.equal(sessions.length, 1, "one session");
+    assert.deepEqual(unitAmounts(sessions[0]!), [QUICK_MONTHLY_CENTS], "the recurring line item stays at $249");
+    assert.equal(body.recurringAmountCents, QUICK_MONTHLY_CENTS, "and the response says so");
+
+    // ONE discount slot, carrying the WHOLE first-invoice reduction, exactly once.
+    const attached = couponOn(sessions[0]!);
+    assert.ok(attached?.coupon, `a coupon must be attached: ${JSON.stringify(sessions[0])}`);
+    const minted = __stripeCoupons().find((c) => c.id === attached!.coupon);
+    assert.ok(minted, "the attached coupon must be one this route created");
+    assert.equal(minted!.duration, "once", "first invoice only — never a permanent price cut");
+    assert.equal(
+      minted!.amount_off,
+      QUICK_MONTHLY_CENTS - FIRST_CHARGE + applied,
+      "the coupon is the intro discount PLUS the credits, counted once",
+    );
+
+    // THE BROWSER ASSERTS NONE OF THIS. The same request with a forged eligibility claim in the
+    // body cannot change the discount, the ceiling, or the coupon.
+    assert.equal(
+      (sessions[0] as { metadata?: Record<string, string> }).metadata?.leonix_source,
+      "revenue_os",
+      "the session is the server's own, not a client-shaped one",
+    );
+  });
+
   await check("S3: a balance below $1.00 is refused by name, and nothing is held or discounted", async () => {
     __reset();
     __resetStripe();

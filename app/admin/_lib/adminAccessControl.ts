@@ -34,6 +34,11 @@ import {
 } from "@/app/lib/supabase/adminSession";
 import type { AdminPermissionKey, AdminTeamRole } from "@/app/admin/_lib/teamTypes";
 import { ADMIN_LEADS_PROMO_INBOX_HREF } from "@/app/admin/_lib/adminNavOps";
+import {
+  capabilitiesForRole,
+  hasCapability,
+  isSalesWorkspaceRole,
+} from "@/app/admin/_lib/salesWorkspaceCapabilities";
 
 export type NormalizedAdminRole =
   | "owner_admin"
@@ -167,6 +172,28 @@ export function hasPaymentTrackerAccess(ctx: AdminAccessContext): boolean {
 export function hasRewardsWorkspaceAccess(ctx: AdminAccessContext): boolean {
   if (!ctx.hasAdminCookie || !ctx.rosterResolved) return false;
   return String(ctx.rosterRole ?? "").trim().toLowerCase() === "super_admin";
+}
+
+/**
+ * May this operator reach the Quick assisted-sale workspace?
+ *
+ * SAME QUESTION THE PAGE ASKS. `/admin/workspace/quick-sales` and every API behind it require the
+ * `assisted_category_publishing` capability, so the nav predicate is derived from the SAME
+ * canonical capability map rather than from a second hand-maintained role list — a list that
+ * drifts is exactly how a link becomes either a dead end or an advertisement for a screen the
+ * person cannot open.
+ *
+ * It is the NECESSARY condition of that gate, not the whole gate: the real check re-verifies the
+ * cookie identity against live auth and the roster on every request, which a synchronous nav
+ * predicate cannot and must not attempt. Showing strictly fewer links than the gate admits is the
+ * safe direction. And an operator without the capability simply does not see the link — its
+ * absence tells them nothing, and typing the URL still lands on the same server-side refusal.
+ */
+export function hasQuickSalesWorkspaceAccess(ctx: AdminAccessContext): boolean {
+  if (!ctx.hasAdminCookie || !ctx.rosterResolved) return false;
+  const role = String(ctx.rosterRole ?? "").trim().toLowerCase();
+  if (!isSalesWorkspaceRole(role)) return false;
+  return hasCapability(capabilitiesForRole(role), "assisted_category_publishing");
 }
 
 export type RevenueWriteDenialReason =
@@ -547,6 +574,10 @@ export function getAllowedWorkspaceNavHrefs(ctx: AdminAccessContext): string[] {
   // These ride `hasRewardsWorkspaceAccess`, NOT the payment tracker's permission, because the
   // screens themselves demand a roster `super_admin`. See that function for what the mismatch
   // cost.
+  // QUICK ASSISTED SALE — listed under its own capability, not the rewards or payment gate.
+  if (hasQuickSalesWorkspaceAccess(ctx)) {
+    hrefs.push("/admin/workspace/quick-sales");
+  }
   if (hasRewardsWorkspaceAccess(ctx)) {
     hrefs.push("/admin/workspace/rewards");
     hrefs.push("/admin/workspace/rewards-refunds");

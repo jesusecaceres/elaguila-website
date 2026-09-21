@@ -726,7 +726,9 @@ const MUTATIONS: readonly Mutation[] = [
     find: "      eligiblePurchaseCents: isRecurringCheckout ? firstChargeBeforeCreditsCents : subtotalCents,",
     replace: "      eligiblePurchaseCents: subtotalCents,",
     suite: "route",
-    expect: ["S2"],
+    // S2b is the check that can SEE this: it is the only one where the list price and the first
+    // charge are different numbers. S2 alone left this mutation alive through a whole suite.
+    expect: ["S2b"],
   },
   {
     defect:

@@ -62,7 +62,7 @@ Two structural changes carry this certification:
    grants.
 2. **The HTTP layer is proven by execution too.** The route handlers are CALLED — the customer
    wallet read, the staff API, the CSV reconciliation and the customer checkout — against stubs the
-   test drives, with a Stripe recorder in place of any call. 56 checks, no text matching.
+   test drives, with a Stripe recorder in place of any call. 57 checks, no text matching.
 
 The mutation harness reintroduces **91 defects** and requires a NAMED check to fail for each. Every
 one of the nineteen that previously survived is now caught.
@@ -267,7 +267,7 @@ specifiers — `server-only`, `next/headers`, `@supabase/supabase-js` and
 captures what the route asked Stripe to charge without making a call. Every module under
 certification is the real one.
 
-`scripts/verify-ix-rewards-route-behavior-01.ts` (35 checks) calls `GET /api/rewards/wallet`,
+`scripts/verify-ix-rewards-route-behavior-01.ts` (57 checks) calls `GET /api/rewards/wallet`,
 `GET`/`POST /api/admin/rewards`, `POST /api/admin/rewards/reconciliation` and
 `POST /api/revenue-os/checkout`, and asserts the answers and the writes. The mutation harness now
 carries **91 mutations, up from 45**. On the 2026-09-21 re-run, **one mutation survives** and is
@@ -702,7 +702,7 @@ and `S12` (every type the CHECK admits is reachable through the posting function
 
 | Layer | What proves it | What it cannot prove |
 |---|---|---|
-| Route handlers (`wallet`, `admin/rewards`, `admin/rewards/reconciliation`, `revenue-os/checkout`) | `verify-ix-rewards-route-behavior-01.ts` CALLS them: 35 checks over the auth gates, the order of refusals, the arguments passed to the ledger, and the answers returned | Anything about PL/pgSQL — the store is an in-memory PostgREST model |
+| Route handlers (`wallet`, `admin/rewards`, `admin/rewards/reconciliation`, `revenue-os/checkout`) | `verify-ix-rewards-route-behavior-01.ts` CALLS them: 57 checks over the auth gates, the order of refusals, the arguments passed to the ledger, and the answers returned | Anything about PL/pgSQL — the store is an in-memory PostgREST model |
 | Production adapter (`rewardsLedger.ts`) | The same suite drives the REAL `buildRewardsStorePort()` through that model: the posted-row contract, the `LX001` mapping, the position count, wallet resolution and binding release | The same |
 | Posted-row contract (`rewardsLedgerRow.ts`) | Called directly with crafted rows, and used by the adapter, so the test and production cannot disagree about it | — |
 | Stripe | A recorder captures the session parameters; what the route ASKED to charge is asserted | Stripe's own behaviour. No call is made, by instruction |
@@ -945,7 +945,7 @@ Run at the final committed state. `PGHOST`/`PGPORT`/`PGUSER` point at a throwawa
 | Command | Exit |
 |---|---|
 | `npx tsx scripts/verify-ix-rewards-behavior-01.ts` — 182 behavioural checks | 0 |
-| `npx tsx --tsconfig scripts/lib/tsconfig.harness.json scripts/verify-ix-rewards-route-behavior-01.ts` — 56 checks that EXECUTE the route handlers and the production adapter | 0 |
+| `npx tsx --tsconfig scripts/lib/tsconfig.harness.json scripts/verify-ix-rewards-route-behavior-01.ts` — 57 checks that EXECUTE the route handlers and the production adapter | 0 |
 | `bash scripts/verify-ix-rewards-sql-behavior-01.sh` — 142 in-session assertions + 2 **timed** cross-session concurrency proofs, against real PostgreSQL 16.13 | 0 |
 | `npx tsx scripts/verify-ix-rewards-mutation-01.ts` — 91 defects reintroduced on a disposable copy of the tree; 90 caught by a named check, **1 open survivor** (see §11a) | 0 |
 | `npx tsx scripts/verify-quick-product-boundary-01.ts` — 52 checks | 0 |

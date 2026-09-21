@@ -26,7 +26,13 @@ type SupabaseHarness = {
 };
 
 type HeadersHarness = { __setCookies(entries: Record<string, string>): void };
-type SupabaseJsHarness = { __setBearerTokens(map: Record<string, string>): void };
+/**
+ * A bearer token maps to a user id, or to a full user object when a check needs the VERIFIED
+ * identity fields (`email`, `email_confirmed_at`) that the intro-discount gates read off the
+ * token. The union is deliberate: every existing caller keeps passing a plain id.
+ */
+type HarnessBearerUser = string | { id: string; email?: string | null; email_confirmed_at?: string | null };
+type SupabaseJsHarness = { __setBearerTokens(map: Record<string, HarnessBearerUser>): void };
 type StripeHarness = {
   __stripeSessions(): Record<string, unknown>[];
   __resetStripe(): void;

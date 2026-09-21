@@ -7,18 +7,26 @@
  */
 const tokens = new Map();
 
+/**
+ * A token maps to a user. The value may be a plain user id (the common case) or a full user
+ * object, which is what the VERIFIED-identity gates read: `getVerifiedBearerUser` needs `email`
+ * and `email_confirmed_at`, and a stub that returned only an id could never carry a checkout past
+ * `emailVerified`. That is why the verified-intro discount path had no executed coverage at all.
+ */
 export function __setBearerTokens(map) {
   tokens.clear();
-  for (const [token, userId] of Object.entries(map ?? {})) tokens.set(token, userId);
+  for (const [token, value] of Object.entries(map ?? {})) {
+    tokens.set(token, typeof value === "string" ? { id: value } : { ...value });
+  }
 }
 
 export function createClient() {
   return {
     auth: {
       async getUser(token) {
-        const userId = tokens.get(token);
-        if (!userId) return { data: { user: null }, error: { message: "invalid token" } };
-        return { data: { user: { id: userId } }, error: null };
+        const user = tokens.get(token);
+        if (!user) return { data: { user: null }, error: { message: "invalid token" } };
+        return { data: { user: { ...user } }, error: null };
       },
     },
   };
