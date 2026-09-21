@@ -5207,7 +5207,7 @@ async function main() {
     );
     // And the mutation harness's, because "67 mutations" is a load-bearing claim in §11.
     const mutationSrc = readFileSync("scripts/verify-ix-rewards-mutation-01.ts", "utf8");
-    const mutations = (mutationSrc.match(/\n    suite: "(behavior|sql|route)",/g) ?? []).length;
+    const mutations = (mutationSrc.match(/\n {4}suite: "(behavior|sql|route)",/g) ?? []).length;
     assert.ok(
       doc.includes(`The harness carries **${mutations}** mutations`),
       `the document reports the mutation count (${mutations})`,

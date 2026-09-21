@@ -1,6 +1,7 @@
 # LEONIX QUICK + IX REWARDS — definitive financial certification
 
 **Starting SHA:** `fe5df09f08d1e3f90362d55e2a06199c15cb4ed2`
+**Certification result:** see §12b — **NO for production**, YES for a staging migration and preview.
 **Branch:** `integration/quick-rewards-final-convergence-2026-09-21` (identical content on
 `claude/leonix-rewards-final-certification-hxfl0w`)
 **Date:** 2026-09-21
@@ -924,6 +925,7 @@ Run at the final committed state. `PGHOST`/`PGPORT`/`PGUSER` point at a throwawa
 | `npx tsx scripts/verify-quick-lifecycle-media-behavior-01.ts` — 35 checks | 0 |
 | `npx tsx scripts/verify-revenue-os-stripe-golden-contract.ts` | 0 |
 | `npx tsx scripts/verify-revenue-write-security-hardening-01.ts` — 11 checks | 0 |
+| `npx eslint <every changed .ts/.tsx>` | 0 |
 | `npx tsc --noEmit --incremental false` (with the generated `next-env.d.ts`) | 0 |
 | `npx tsc --noEmit --incremental false` (fresh clone, no `next-env.d.ts`) | 2 — see below |
 
@@ -979,8 +981,37 @@ verifier to make a report green.
 
 ## 12b. Certification result
 
-Filled at the final committed state, after the last reviewer's findings were resolved. See the
-report that accompanies this document for the per-item verdict.
+**CERTIFICATION: NO — for production. YES for applying the migration in staging and for a staging
+preview.**
+
+Every finding raised in five review rounds is repaired, removed or recorded with its reason, and at
+the final commit all four suites are green: 182 behavioural checks, 50 executed route checks,
+142 SQL assertions plus two timed concurrency proofs, and 88 mutations each caught by a named
+check. `tsc` exits 0 and the changed files lint clean. No verifier that passed at the starting SHA
+fails now.
+
+**So why not YES for production.** Across five rounds, *every* round's repairs introduced defects
+that the round's own tests could not see. Not most rounds — all five, including three BLOCKERs that
+move real money, one of them inside the database function everything else defers to. The base rate
+of "this round's repairs were clean" is zero out of five.
+
+The repairs made in the final round have **not been through that process**. They are pinned by
+mutations and by executed checks, which is the best evidence available without another round, and
+the prior four rounds show what that evidence is worth on its own: each round was also green, by
+its own suites, when it handed over.
+
+Certifying production on an unverified round would be asserting exactly the thing this mission has
+disproved five times. What the evidence *does* support is the narrower claim below.
+
+| Question | Answer | Why |
+|---|---|---|
+| `SAFE_TO_APPLY_MIGRATION_IN_STAGING` | **YES** | Applied four times with live data against real PostgreSQL 16.13, re-appliable, exactly one `post_entry` overload, grants and RLS asserted by execution, append-only and TRUNCATE-proof. §8. |
+| `SAFE_FOR_STAGING_PREVIEW` | **YES** | The behaviour is exercised end to end, including the HTTP layer, and every known defect is repaired. A staging preview is where the unverified round gets its verification. |
+| `SAFE_FOR_PRODUCTION` | **NO** | This mission performs source certification only — no deployment, no live rail, no hosted database was touched — and the final round is unverified against the pattern described above. |
+
+**What would change the answer:** one more independent round against this exact commit, of the kind
+§3f describes, finding nothing that moves money. That is a bounded, hours-long task, and it is the
+honest precondition for a production YES rather than a formality.
 
 ---
 
