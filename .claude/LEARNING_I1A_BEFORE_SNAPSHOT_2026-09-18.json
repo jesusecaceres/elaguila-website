@@ -1,0 +1,730 @@
+{
+ "purpose": "I-1A before-snapshot — rollback source for the 80 guarded repairs (Parts B + C). Public content only; no learner data, no secrets.",
+ "project": {
+  "name": "Leonix Media",
+  "ref": "xuieateniufcrsfdomwl"
+ },
+ "captured_at_utc": "2026-09-19T02:26:57.097Z",
+ "git_head": "d2b6741150552ca7df6bd24f8271228cf1b50caa",
+ "how_captured": "Read-only. Live md5(col), md5(replace(col, chr(13), '')), char_length and a CR flag were read for all 78 columns immediately before the apply: every live md5 equalled original_md5 below and no value contained a CR, so original_value is byte-identical to the live text. All 78 rows had updated_at = 2026-09-08 21:53:43.952587+00 (untouched since seeding).",
+ "live_counts_before": {
+  "categories": 6,
+  "lessons": 16,
+  "published": 8,
+  "planned": 8,
+  "resources": 25,
+  "business_learning_progress": 8,
+  "business_capability_records": 0,
+  "i1_lesson_keys_present": 0
+ },
+ "flag_before": {
+  "flag_key": "business_learning_center",
+  "enabled": true,
+  "emergency_disabled": false,
+  "updated_at": "2026-09-09 00:32:35.641082+00"
+ },
+ "columns": [
+  {
+   "table": "business_learning_categories",
+   "keyColumn": "category_key",
+   "key": "fundamentos_del_negocio",
+   "column": "summary_es",
+   "original_md5": "902d0e751fc8c037046486a1dfa8b97c",
+   "original_length": 105,
+   "original_value": "Las bases que necesita todo negocio: informacion clara, identidad definida y consistencia en todos lados."
+  },
+  {
+   "table": "business_learning_categories",
+   "keyColumn": "category_key",
+   "key": "clientes_y_demanda",
+   "column": "summary_es",
+   "original_md5": "5123455ed3f138ada96abc3bc2f7cd95",
+   "original_length": 60,
+   "original_value": "Como entender a tus clientes y hacer que te recomienden mas."
+  },
+  {
+   "table": "business_learning_categories",
+   "keyColumn": "category_key",
+   "key": "dinero_y_capacidad",
+   "column": "summary_es",
+   "original_md5": "df2a375501db4caffa3151988cc3bb3a",
+   "original_length": 70,
+   "original_value": "Como distinguir ingresos de ganancia y cuidar tu capacidad de trabajo."
+  },
+  {
+   "table": "business_learning_categories",
+   "keyColumn": "category_key",
+   "key": "visibilidad_y_publicidad",
+   "column": "summary_es",
+   "original_md5": "c2a1d04987e926f6862cc8182bdf5cd6",
+   "original_length": 71,
+   "original_value": "Como aparecer donde tus clientes buscan y anunciarte con un plan claro."
+  },
+  {
+   "table": "business_learning_categories",
+   "keyColumn": "category_key",
+   "key": "comunicacion_y_reputacion",
+   "column": "title_es",
+   "original_md5": "ce5efa854d8292a755410b121bdb0baa",
+   "original_length": 25,
+   "original_value": "Comunicacion y reputacion"
+  },
+  {
+   "table": "business_learning_categories",
+   "keyColumn": "category_key",
+   "key": "comunicacion_y_reputacion",
+   "column": "summary_es",
+   "original_md5": "75b60a7720dd8142f73cfde1f9a713a4",
+   "original_length": 55,
+   "original_value": "Como responder rapido y manejar tu reputacion en linea."
+  },
+  {
+   "table": "business_learning_categories",
+   "keyColumn": "category_key",
+   "key": "proteccion_y_datos",
+   "column": "title_es",
+   "original_md5": "a8b6196c4cd4d650f05958c1cd19378a",
+   "original_length": 19,
+   "original_value": "Proteccion de datos"
+  },
+  {
+   "table": "business_learning_categories",
+   "keyColumn": "category_key",
+   "key": "proteccion_y_datos",
+   "column": "summary_es",
+   "original_md5": "82d125caaea223fcd26b8aad4c9089b4",
+   "original_length": 64,
+   "original_value": "Como cuidar la informacion de tus clientes de forma responsable."
+  },
+  {
+   "table": "business_learning_lessons",
+   "keyColumn": "lesson_key",
+   "key": "consistent_business_information",
+   "column": "title_es",
+   "original_md5": "8f5c463dbd6e0c3043fe44fbd51462d7",
+   "original_length": 35,
+   "original_value": "Informacion consistente del negocio"
+  },
+  {
+   "table": "business_learning_lessons",
+   "keyColumn": "lesson_key",
+   "key": "consistent_business_information",
+   "column": "summary_es",
+   "original_md5": "1a4717e33e94e92f5dc5a6dcbd4e8204",
+   "original_length": 80,
+   "original_value": "Por que tu nombre, direccion, telefono y horario deben coincidir en todos lados."
+  },
+  {
+   "table": "business_learning_lessons",
+   "keyColumn": "lesson_key",
+   "key": "consistent_business_information",
+   "column": "body_es",
+   "original_md5": "011abfe3a401830dc755ef2f1940b784",
+   "original_length": 1831,
+   "original_value": "Cuando el nombre, la direccion, el telefono y el horario de tu negocio aparecen de forma distinta en cada lugar donde la gente te busca, generas confusion y pierdes clientes que simplemente se rinden y buscan a alguien mas.\n\nPor que importa: un cliente que encuentra dos numeros de telefono diferentes para tu negocio no sabe cual es el correcto y puede llamar al equivocado. Un cliente que ve un horario en un lugar y otro horario distinto en otro lugar puede llegar a tu negocio cuando esta cerrado. Cada inconsistencia es una oportunidad perdida, no solo una molestia menor. La informacion consistente tambien ayuda a que las personas confien mas en tu negocio, porque ven la misma historia en todos lados.\n\nPasos practicos:\n1. Escribe en un solo documento el nombre exacto de tu negocio, la direccion completa, el telefono principal, el correo electronico y el horario real de atencion, incluyendo dias festivos si aplica.\n2. Haz una lista de cada lugar donde tu negocio aparece hoy: tu perfil de Google Business, tus redes sociales, tu sitio web si tienes uno, directorios locales, tarjetas de presentacion y cualquier anuncio impreso.\n3. Revisa cada lugar de la lista y compara la informacion contra tu documento maestro. Anota cada diferencia que encuentres, por pequena que sea.\n4. Corrige cada lugar, uno por uno, hasta que toda la informacion coincida exactamente con tu documento maestro.\n5. Marca en tu calendario una revision cada tres o cuatro meses, porque los horarios y numeros de telefono cambian y es facil que un lugar se quede desactualizado sin que te des cuenta.\n\nUn dato importante: mantener tu informacion consistente no garantiza mas clientes ni mejores resultados en busquedas. Lo que si hace es eliminar una fuente comun de confusion que puede alejar a clientes que ya estaban interesados en tu negocio."
+  },
+  {
+   "table": "business_learning_lessons",
+   "keyColumn": "lesson_key",
+   "key": "who_is_your_customer",
+   "column": "title_es",
+   "original_md5": "736b2a88fef149209c9834adad87219b",
+   "original_length": 19,
+   "original_value": "Quien es tu cliente"
+  },
+  {
+   "table": "business_learning_lessons",
+   "keyColumn": "lesson_key",
+   "key": "who_is_your_customer",
+   "column": "summary_es",
+   "original_md5": "16754ad7f53d142881386507fc88ffdf",
+   "original_length": 66,
+   "original_value": "Como definir a tu cliente ideal para escribir mensajes mas claros."
+  },
+  {
+   "table": "business_learning_lessons",
+   "keyColumn": "lesson_key",
+   "key": "who_is_your_customer",
+   "column": "body_es",
+   "original_md5": "caf6c71d0352f9c312de516d142be64d",
+   "original_length": 1599,
+   "original_value": "Muchos negocios intentan venderle a todo el mundo, y el resultado casi siempre es un mensaje confuso que no le habla claramente a nadie. Saber exactamente quien es tu cliente ideal te permite escribir anuncios mas claros, elegir mejor donde anunciarte y responder preguntas con mas confianza.\n\nPor que importa: cuando entiendes a tu cliente, sabes que palabras usar, que problemas mencionar primero y que preocupaciones responder antes de que las pregunten. Un mensaje dirigido a una persona especifica casi siempre funciona mejor que un mensaje generico dirigido a nadie en particular.\n\nPasos practicos:\n1. Piensa en tres clientes reales que hayas atendido y que quedaron satisfechos. Escribe que necesitaban, por que te eligieron a ti y como se enteraron de tu negocio.\n2. Busca lo que esos tres clientes tienen en comun: edad aproximada, zona donde viven o trabajan, el problema especifico que necesitaban resolver, y como prefieren comunicarse.\n3. Escribe una descripcion corta de tu cliente ideal usando esos patrones, por ejemplo: duenos de restaurantes pequenos en tu ciudad que necesitan ayuda con su menu digital.\n4. Revisa tus anuncios, tu perfil y tus publicaciones actuales y pregunta: le hablan directamente a esta persona, o le hablan a cualquiera?\n5. Ajusta tu lenguaje para que hable directamente a esa persona, mencionando su problema especifico y como tu negocio lo resuelve.\n\nUn dato importante: definir a tu cliente ideal no significa rechazar a otros clientes que lleguen. Es una herramienta para escribir mensajes mas claros, no una regla estricta sobre a quien puedes atender."
+  },
+  {
+   "table": "business_learning_lessons",
+   "keyColumn": "lesson_key",
+   "key": "revenue_vs_profit",
+   "column": "body_es",
+   "original_md5": "7c040ad64bb234eb2cb2b1c3cbb8e607",
+   "original_length": 1523,
+   "original_value": "Vender mucho no siempre significa ganar dinero. Muchos duenos de negocio confunden ingresos, que es todo el dinero que entra, con ganancia, que es lo que sobra despues de pagar todos los costos. Esta confusion puede hacer que un negocio parezca exitoso mientras en realidad esta perdiendo dinero cada mes.\n\nPor que importa: si solo miras cuanto vendes sin restar tus costos, puedes tomar decisiones equivocadas, como bajar precios pensando que asi venderas mas, sin darte cuenta de que cada venta te esta costando dinero en lugar de generarlo.\n\nPasos practicos:\n1. Durante un mes completo, anota todo el dinero que entra a tu negocio por ventas. Ese numero es tu ingreso, no tu ganancia.\n2. En una lista separada, anota todos tus costos del mismo mes: materiales, renta, transporte, sueldos, servicios, y cualquier otro gasto relacionado con el negocio.\n3. Resta el total de costos del total de ingresos. El numero que queda es tu ganancia real de ese mes, positiva o negativa.\n4. Revisa cuales de tus productos o servicios dejan mas ganancia despues de restar sus costos especificos, no solo cuales se venden mas.\n5. Repite este ejercicio cada mes durante al menos tres meses para ver un patron real, en lugar de sacar conclusiones de un solo mes que pudo ser inusual.\n\nUn dato importante: esta leccion no te dice cuanto deberias ganar ni garantiza que tu negocio sera rentable. Solo te da una forma clara de ver la diferencia entre lo que entra y lo que realmente te queda, para que tomes decisiones con informacion real."
+  },
+  {
+   "table": "business_learning_lessons",
+   "keyColumn": "lesson_key",
+   "key": "healthy_boundaries_and_capacity",
+   "column": "title_es",
+   "original_md5": "c306f2a85f8ea5076b31d2eeec750ba6",
+   "original_length": 25,
+   "original_value": "Limites sanos y capacidad"
+  },
+  {
+   "table": "business_learning_lessons",
+   "keyColumn": "lesson_key",
+   "key": "healthy_boundaries_and_capacity",
+   "column": "summary_es",
+   "original_md5": "2053b412baa47af1cfafd34896a7c913",
+   "original_length": 80,
+   "original_value": "Como proteger la calidad de tu trabajo sin aceptar mas de lo que puedes manejar."
+  },
+  {
+   "table": "business_learning_lessons",
+   "keyColumn": "lesson_key",
+   "key": "healthy_boundaries_and_capacity",
+   "column": "body_es",
+   "original_md5": "6583522e26e1d05cc2c5b99dcee8cb62",
+   "original_length": 1525,
+   "original_value": "Muchos duenos de negocio piensan que decir que si a cada cliente, cada pedido y cada solicitud es la unica forma de crecer. Pero cuando aceptas mas trabajo del que realmente puedes manejar bien, la calidad baja, los clientes actuales se sienten descuidados y tu terminas agotado.\n\nPor que importa: un negocio que crece mas rapido de lo que su capacidad real permite suele terminar con clientes insatisfechos, entregas tardias y un dueno agotado que no puede sostener ese ritmo por mucho tiempo. Proteger tu capacidad es proteger la calidad de lo que ofreces.\n\nPasos practicos:\n1. Anota, durante una semana normal, cuantas horas realmente dedicas a atender clientes, producir tu producto o servicio, y manejar la parte administrativa del negocio.\n2. Compara esas horas con las horas que tienes disponibles de forma sostenible, sin sacrificar tu descanso o tu salud de forma constante.\n3. Identifica el punto donde aceptar mas trabajo empieza a bajar la calidad de lo que entregas o a atrasar tus tiempos de entrega.\n4. Define con claridad cuantos clientes o pedidos puedes aceptar por semana o por mes sin cruzar ese punto.\n5. Practica decir que no o proponer una fecha mas realista cuando una solicitud sobrepasa tu capacidad actual, explicando el motivo con honestidad.\n\nUn dato importante: reconocer tus limites no es una debilidad ni significa que tu negocio no puede crecer. Es una forma de proteger la calidad de tu trabajo y tu propia salud mientras encuentras formas sostenibles de aumentar tu capacidad con el tiempo."
+  },
+  {
+   "table": "business_learning_lessons",
+   "keyColumn": "lesson_key",
+   "key": "google_business_basics",
+   "column": "summary_es",
+   "original_md5": "6d84bbf886ff4fae554e5f801f077242",
+   "original_length": 60,
+   "original_value": "Como crear y mantener un perfil completo en Google Business."
+  },
+  {
+   "table": "business_learning_lessons",
+   "keyColumn": "lesson_key",
+   "key": "google_business_basics",
+   "column": "body_es",
+   "original_md5": "e73d35bbf42b81c0c86c4406d2771813",
+   "original_length": 1550,
+   "original_value": "Cuando alguien busca un negocio como el tuyo en Google o en Google Maps, lo primero que ve suele ser tu perfil de Google Business, no tu sitio web. Un perfil completo y correcto ayuda a que las personas encuentren tu negocio, confien en la informacion que ven y decidan contactarte.\n\nPor que importa: un perfil incompleto, con informacion vieja o sin fotos, hace que las personas duden si tu negocio todavia existe o si la informacion es confiable. Muchas veces esa duda es suficiente para que elijan a otro negocio en su lugar.\n\nPasos practicos:\n1. Busca tu negocio en Google para ver si ya tienes un perfil de Google Business. Si no existe, puedes crear uno gratis siguiendo las instrucciones que Google proporciona.\n2. Verifica que el nombre, la direccion, el telefono y el horario coincidan exactamente con tu documento maestro de informacion del negocio.\n3. Escribe una descripcion clara de tu negocio: que ofreces, a quien atiendes y que te hace diferente, usando un lenguaje sencillo y directo.\n4. Sube al menos ocho a diez fotos reales de tu negocio: el local, tus productos o servicios, y tu equipo si es apropiado para tu tipo de negocio.\n5. Revisa tu perfil cada mes para actualizar horarios especiales, responder preguntas de clientes y confirmar que toda la informacion siga siendo correcta.\n\nUn dato importante: tener un perfil completo no garantiza que apareceras primero en las busquedas ni que recibiras mas clientes. Lo que si hace es asegurar que, cuando alguien te busque, encuentre informacion clara y confiable sobre tu negocio."
+  },
+  {
+   "table": "business_learning_lessons",
+   "keyColumn": "lesson_key",
+   "key": "advertising_fundamentals",
+   "column": "summary_es",
+   "original_md5": "487b09daaa6b2f1155313fb3d4e2f933",
+   "original_length": 55,
+   "original_value": "Conceptos basicos antes de pagar por tu primer anuncio."
+  },
+  {
+   "table": "business_learning_lessons",
+   "keyColumn": "lesson_key",
+   "key": "advertising_fundamentals",
+   "column": "body_es",
+   "original_md5": "5f6cdf3974253a8cf66e46db31e91965",
+   "original_length": 1570,
+   "original_value": "Anunciarte sin un plan claro suele significar gastar dinero sin saber realmente si esta funcionando. Antes de pagar por un anuncio, vale la pena entender algunos conceptos basicos que te ayudaran a decidir donde, como y cuanto anunciarte.\n\nPor que importa: un anuncio dirigido a la persona equivocada, con un mensaje confuso o sin una forma clara de que te contacten, puede costar dinero sin traer resultados. Entender lo basico te ayuda a evitar ese desperdicio.\n\nPasos practicos:\n1. Define un objetivo claro para tu anuncio: quieres que la gente llame, que visite tu negocio, que envie un mensaje de WhatsApp, o que compre en linea. Un anuncio no puede hacer todo a la vez de forma efectiva.\n2. Escribe tu mensaje pensando en el cliente que definiste en la leccion sobre quien es tu cliente, mencionando su problema especifico y como lo resuelves.\n3. Incluye siempre una accion clara: llama ahora, visitanos hoy, escribenos por WhatsApp, con la informacion de contacto correcta y facil de encontrar.\n4. Elige el lugar donde anunciarte segun donde realmente esta tu cliente: redes sociales, Google, medios locales, o una combinacion, en lugar de elegir por costumbre.\n5. Antes de repetir un anuncio, revisa si tuvo algun resultado que puedas medir, como llamadas, mensajes o visitas, y ajusta el mensaje o el lugar si no fue claro.\n\nUn dato importante: ningun anuncio garantiza ventas ni un numero especifico de clientes nuevos. La publicidad ayuda a que mas personas conozcan tu negocio, pero el resultado final tambien depende de tu oferta, tus precios y tu servicio."
+  },
+  {
+   "table": "business_learning_lessons",
+   "keyColumn": "lesson_key",
+   "key": "whatsapp_business_basics",
+   "column": "summary_es",
+   "original_md5": "8637fd3ea376ecc18d0dfde521a29c2f",
+   "original_length": 62,
+   "original_value": "Como configurar y usar WhatsApp Business para responder mejor."
+  },
+  {
+   "table": "business_learning_lessons",
+   "keyColumn": "lesson_key",
+   "key": "whatsapp_business_basics",
+   "column": "body_es",
+   "original_md5": "9683c9903418f289f38b02bae167878f",
+   "original_length": 1654,
+   "original_value": "Para muchos negocios pequenos, WhatsApp es el primer lugar donde un cliente hace contacto. Responder rapido, con informacion clara y de forma organizada, puede ser la diferencia entre ganar un cliente y perderlo frente a otro negocio que respondio primero.\n\nPor que importa: un cliente que espera mucho tiempo una respuesta, o que recibe una respuesta confusa, facilmente busca a otro negocio que le conteste mas rapido. WhatsApp Business ofrece herramientas gratuitas que ayudan a responder mejor sin necesidad de contratar a alguien mas.\n\nPasos practicos:\n1. Descarga la aplicacion WhatsApp Business, que es gratuita y separada de tu WhatsApp personal, y configura tu perfil de negocio con tu nombre, direccion, horario y una breve descripcion.\n2. Crea un mensaje de bienvenida automatico que se envie cuando alguien te escribe por primera vez, agradeciendo el contacto y explicando en cuanto tiempo responderas.\n3. Configura un mensaje de ausencia para cuando estas fuera de tu horario de atencion, para que el cliente sepa que su mensaje fue recibido y cuando le responderas.\n4. Prepara respuestas rapidas guardadas para las preguntas que recibes con mas frecuencia, como precios, horarios o ubicacion, para responder mas rapido sin escribir todo de nuevo cada vez.\n5. Define un tiempo maximo razonable para responder mensajes durante tu horario de atencion, y revisa tu telefono con esa frecuencia para no dejar a nadie esperando demasiado.\n\nUn dato importante: responder rapido no garantiza que cada persona se convierta en cliente. Lo que si hace es asegurar que ninguna oportunidad se pierda simplemente porque la respuesta llego demasiado tarde."
+  },
+  {
+   "table": "business_learning_lessons",
+   "keyColumn": "lesson_key",
+   "key": "reviews_and_customer_response",
+   "column": "title_es",
+   "original_md5": "deb0b19f8813a77d4e0c22fa3f7b86b7",
+   "original_length": 30,
+   "original_value": "Resenas y respuesta a clientes"
+  },
+  {
+   "table": "business_learning_lessons",
+   "keyColumn": "lesson_key",
+   "key": "reviews_and_customer_response",
+   "column": "summary_es",
+   "original_md5": "dac806d1119ca2c26140c44c65d1de79",
+   "original_length": 66,
+   "original_value": "Como responder resenas positivas y dificiles de forma profesional."
+  },
+  {
+   "table": "business_learning_lessons",
+   "keyColumn": "lesson_key",
+   "key": "reviews_and_customer_response",
+   "column": "body_es",
+   "original_md5": "3b4671f2ad99949c9160e8878f011c83",
+   "original_length": 1578,
+   "original_value": "Las resenas en linea influyen en la decision de muchas personas antes de elegir un negocio. Como respondes a esas resenas, tanto las buenas como las dificiles, dice mucho sobre como tratas a tus clientes en general.\n\nPor que importa: una resena negativa sin respuesta puede parecer que al negocio no le importa la opinion de sus clientes. Una respuesta cuidadosa, incluso a una critica dificil, muestra que tomas en serio la experiencia de tus clientes y que estas dispuesto a mejorar.\n\nPasos practicos:\n1. Revisa las resenas que ya tienes en tu perfil de Google Business y en otras plataformas donde tu negocio aparezca, y anota cuales aun no tienen respuesta.\n2. Para las resenas positivas, responde con un agradecimiento breve y personal, mencionando algo especifico de lo que la persona escribio si es posible.\n3. Para las resenas dificiles, espera un momento antes de responder si sientes molestia, y luego escribe una respuesta calmada que reconozca la preocupacion sin ponerte a la defensiva.\n4. Nunca compartas informacion privada del cliente en tu respuesta publica, y si el problema requiere mas detalle, invita a la persona a contactarte directamente por telefono o WhatsApp.\n5. Pide resenas de forma natural a clientes satisfechos despues de una buena experiencia, por ejemplo enviando un enlace directo a tu perfil de Google Business.\n\nUn dato importante: responder bien a las resenas no garantiza que dejaras de recibir criticas, ni que subiras en las busquedas. Lo que si hace es mostrar a futuros clientes como tratas a las personas cuando algo no sale perfecto."
+  },
+  {
+   "table": "business_learning_lessons",
+   "keyColumn": "lesson_key",
+   "key": "branding_basics",
+   "column": "summary_es",
+   "original_md5": "90d68213b6e74fb6a4b95a3b4ddbb663",
+   "original_length": 82,
+   "original_value": "Proximamente: como definir una identidad visual y de mensaje simple y consistente."
+  },
+  {
+   "table": "business_learning_lessons",
+   "keyColumn": "lesson_key",
+   "key": "referrals_basics",
+   "column": "summary_es",
+   "original_md5": "b6053151cbd599949643ba848d7fe893",
+   "original_length": 68,
+   "original_value": "Proximamente: como pedir referidos de forma natural y sin incomodar."
+  },
+  {
+   "table": "business_learning_lessons",
+   "keyColumn": "lesson_key",
+   "key": "profitable_service_basics",
+   "column": "summary_es",
+   "original_md5": "8cbe14406fd640ebcf59ae6ad89596cf",
+   "original_length": 76,
+   "original_value": "Proximamente: como identificar que servicios realmente te convienen ofrecer."
+  },
+  {
+   "table": "business_learning_lessons",
+   "keyColumn": "lesson_key",
+   "key": "simple_analytics",
+   "column": "title_es",
+   "original_md5": "d216c7f9ac6f8315744f746ebb9eca8b",
+   "original_length": 32,
+   "original_value": "Analitica simple para tu negocio"
+  },
+  {
+   "table": "business_learning_lessons",
+   "keyColumn": "lesson_key",
+   "key": "simple_analytics",
+   "column": "summary_es",
+   "original_md5": "3868abfe1fb3346ddf6f5eb1ea95ca58",
+   "original_length": 66,
+   "original_value": "Proximamente: como leer numeros basicos sin necesitar ser experto."
+  },
+  {
+   "table": "business_learning_lessons",
+   "keyColumn": "lesson_key",
+   "key": "local_seo_basics",
+   "column": "summary_es",
+   "original_md5": "58834bb02c3f60c101e38a615c675d99",
+   "original_length": 73,
+   "original_value": "Proximamente: como ayudar a que tu negocio aparezca en busquedas locales."
+  },
+  {
+   "table": "business_learning_lessons",
+   "keyColumn": "lesson_key",
+   "key": "product_photography_basics",
+   "column": "title_es",
+   "original_md5": "8e811bb6ece87098bba150e67222afb1",
+   "original_length": 29,
+   "original_value": "Fotografia de producto basica"
+  },
+  {
+   "table": "business_learning_lessons",
+   "keyColumn": "lesson_key",
+   "key": "product_photography_basics",
+   "column": "summary_es",
+   "original_md5": "00e7944bfdea49f43dcbefcd5eb6aeb4",
+   "original_length": 69,
+   "original_value": "Proximamente: como tomar mejores fotos de tu negocio con tu telefono."
+  },
+  {
+   "table": "business_learning_lessons",
+   "keyColumn": "lesson_key",
+   "key": "short_video_basics",
+   "column": "title_es",
+   "original_md5": "7862085effd7bd822a0273cde592f7e3",
+   "original_length": 18,
+   "original_value": "Video corto basico"
+  },
+  {
+   "table": "business_learning_lessons",
+   "keyColumn": "lesson_key",
+   "key": "short_video_basics",
+   "column": "summary_es",
+   "original_md5": "95b14f63cd23969894a956a5fe2adfde",
+   "original_length": 68,
+   "original_value": "Proximamente: como grabar videos cortos simples para redes sociales."
+  },
+  {
+   "table": "business_learning_lessons",
+   "keyColumn": "lesson_key",
+   "key": "customer_data_protection",
+   "column": "title_es",
+   "original_md5": "9459fd1df42c94c975525390d21e2527",
+   "original_length": 31,
+   "original_value": "Proteccion de datos del cliente"
+  },
+  {
+   "table": "business_learning_lessons",
+   "keyColumn": "lesson_key",
+   "key": "customer_data_protection",
+   "column": "summary_es",
+   "original_md5": "30fe67b123174a3084dd287ee63de15f",
+   "original_length": 70,
+   "original_value": "Proximamente: como manejar con cuidado la informacion de tus clientes."
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "glossary_google_business_profile",
+   "column": "body_es",
+   "original_md5": "1b0db1ed9a10e98f2e3ccfb8d260749a",
+   "original_length": 151,
+   "original_value": "El perfil gratuito que aparece en Google Busqueda y Google Maps cuando alguien busca tu negocio, con tu nombre, direccion, telefono, horario y resenas."
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "glossary_seo",
+   "column": "body_es",
+   "original_md5": "c2ca89eec184e09aa5793295dc2aebf3",
+   "original_length": 160,
+   "original_value": "Conjunto de practicas que ayudan a que un sitio web o perfil aparezca en los resultados de busqueda cuando alguien escribe palabras relacionadas con tu negocio."
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "glossary_local_seo",
+   "column": "body_es",
+   "original_md5": "c1906b3f23c28f87048cc36df12da71d",
+   "original_length": 124,
+   "original_value": "La parte del SEO enfocada en aparecer en busquedas hechas por personas cerca de tu ubicacion, como restaurantes cerca de mi."
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "glossary_landing_page",
+   "column": "title_es",
+   "original_md5": "fc71dfd2ad40c99e4fe92fd945bd19f9",
+   "original_length": 20,
+   "original_value": "Pagina de aterrizaje"
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "glossary_landing_page",
+   "column": "body_es",
+   "original_md5": "773a260f192f1a72618786b1fc9ed60c",
+   "original_length": 121,
+   "original_value": "Una pagina web sencilla disenada para que la persona que llega tome una accion especifica, como llamar o dejar sus datos."
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "glossary_cta",
+   "column": "title_es",
+   "original_md5": "df0a10a027ec24adbdd2451822304fcf",
+   "original_length": 19,
+   "original_value": "Llamada a la accion"
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "glossary_cta",
+   "column": "body_es",
+   "original_md5": "cc8cbf484b0d4b65183789baf4d42197",
+   "original_length": 116,
+   "original_value": "La frase o boton que le dice claramente a la persona que hacer despues, como llamar ahora o escribenos por WhatsApp."
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "glossary_lead",
+   "column": "body_es",
+   "original_md5": "9601d0de6927b39f5651118a8e93551a",
+   "original_length": 127,
+   "original_value": "Una persona que mostro interes en tu negocio, por ejemplo dejando su telefono o escribiendote, pero que todavia no ha comprado."
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "glossary_conversion",
+   "column": "title_es",
+   "original_md5": "3bb1503332637805beddb73a2dd1fe1b",
+   "original_length": 10,
+   "original_value": "Conversion"
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "glossary_conversion",
+   "column": "body_es",
+   "original_md5": "9e18197fd3ca0a98d95134846a86ce27",
+   "original_length": 110,
+   "original_value": "El momento en que una persona interesada toma la accion que buscabas, como comprar, llamar o agendar una cita."
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "glossary_engagement",
+   "column": "title_es",
+   "original_md5": "7f30074f0a1c40ee3c7553f487ff05e0",
+   "original_length": 11,
+   "original_value": "Interaccion"
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "glossary_engagement",
+   "column": "body_es",
+   "original_md5": "bd0202a771eaacabc27d9ad9fca2be43",
+   "original_length": 126,
+   "original_value": "La forma en que las personas interactuan con tus publicaciones, como comentarios, mensajes y veces que comparten tu contenido."
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "glossary_branding",
+   "column": "body_es",
+   "original_md5": "da02300ae9f209fca332e992fb664a43",
+   "original_length": 114,
+   "original_value": "El conjunto de colores, logo, tono de voz e imagenes que hacen que tu negocio se vea y suene igual en todos lados."
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "glossary_target_customer",
+   "column": "body_es",
+   "original_md5": "d1817e8d3b898410404110a2010a2789",
+   "original_length": 125,
+   "original_value": "La descripcion de la persona que tu negocio busca atender de forma principal, basada en necesidades y caracteristicas reales."
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "glossary_review",
+   "column": "title_es",
+   "original_md5": "81daf2193425fc7345a48a7d64f580af",
+   "original_length": 6,
+   "original_value": "Resena"
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "glossary_review",
+   "column": "body_es",
+   "original_md5": "9537c221952a25d0d7e57b97142d1be3",
+   "original_length": 112,
+   "original_value": "El comentario y calificacion que un cliente deja sobre su experiencia con tu negocio en plataformas como Google."
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "glossary_whatsapp_business",
+   "column": "body_es",
+   "original_md5": "4ef1d8d5f13ae038c31d3819a16f373d",
+   "original_length": 121,
+   "original_value": "La version gratuita de WhatsApp disenada para negocios, con perfil de negocio, respuestas rapidas y mensajes automaticos."
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "glossary_analytics",
+   "column": "title_es",
+   "original_md5": "a0a79ce3242f61e8558c53dcd3acb55e",
+   "original_length": 9,
+   "original_value": "Analitica"
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "glossary_analytics",
+   "column": "body_es",
+   "original_md5": "090b2d6d945c8a6fc5cb31654d263f07",
+   "original_length": 117,
+   "original_value": "Los numeros que muestran como se comporta tu negocio o tus publicaciones, como cuantas personas vieron o contactaron."
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "glossary_referral",
+   "column": "body_es",
+   "original_md5": "3f39ee4d61346852b4b442921cee9e9e",
+   "original_length": 84,
+   "original_value": "Un cliente nuevo que llega a tu negocio porque otro cliente satisfecho lo recomendo."
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "glossary_profit_margin",
+   "column": "body_es",
+   "original_md5": "545dfbad332f4c86f8b5e827060b9f55",
+   "original_length": 118,
+   "original_value": "La parte del precio de venta que queda como ganancia despues de restar los costos directos de ese producto o servicio."
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "glossary_overhead",
+   "column": "body_es",
+   "original_md5": "1f6fb2aa2015e23eac060684e0a5755f",
+   "original_length": 107,
+   "original_value": "Los gastos que tu negocio paga sin importar cuanto vendas, como renta, servicios basicos y ciertos sueldos."
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "glossary_customer_data",
+   "column": "body_es",
+   "original_md5": "25e9b45258a873e0e8cf3e527ac1872e",
+   "original_length": 105,
+   "original_value": "Cualquier informacion personal de un cliente que tu negocio guarda, como su telefono, correo o direccion."
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "checklist_business_info_consistency",
+   "column": "title_es",
+   "original_md5": "aa7e8664c60ed266645a6b4a24da48b2",
+   "original_length": 46,
+   "original_value": "Lista de verificacion: informacion consistente"
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "checklist_business_info_consistency",
+   "column": "body_es",
+   "original_md5": "370d04ee80d2faddc1dbbe0192f8dc12",
+   "original_length": 277,
+   "original_value": "Nombre exacto del negocio escrito igual en todos lados\nDireccion completa y correcta en cada perfil\nTelefono principal correcto en cada perfil\nCorreo electronico correcto en cada perfil\nHorario de atencion actualizado en cada perfil\nRevision programada cada tres a cuatro meses"
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "checklist_whatsapp_weekly_response",
+   "column": "title_es",
+   "original_md5": "a61c54066c838204f4f9873d7cc77f65",
+   "original_length": 52,
+   "original_value": "Lista de verificacion: respuesta semanal en WhatsApp"
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "checklist_whatsapp_weekly_response",
+   "column": "body_es",
+   "original_md5": "3924231f06e7c8393f54d3520ecda5ff",
+   "original_length": 228,
+   "original_value": "Mensaje de bienvenida automatico configurado\nMensaje de ausencia configurado para fuera de horario\nRespuestas rapidas guardadas para preguntas frecuentes\nTiempo maximo de respuesta definido\nRevision diaria de mensajes pendientes"
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "checklist_google_business_setup",
+   "column": "title_es",
+   "original_md5": "392ecb014e3c8b70c94172c4f525d4e1",
+   "original_length": 48,
+   "original_value": "Lista de verificacion: perfil de Google Business"
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "checklist_google_business_setup",
+   "column": "body_es",
+   "original_md5": "b0e24ee9e54781c9853151ad599995fe",
+   "original_length": 224,
+   "original_value": "Perfil creado y verificado\nNombre, direccion, telefono y horario correctos\nDescripcion clara del negocio escrita\nAl menos ocho fotos reales subidas\nCategoria del negocio seleccionada correctamente\nRevision mensual programada"
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "template_review_response",
+   "column": "title_es",
+   "original_md5": "7c1b2aa17103746473c85e3728ff0e03",
+   "original_length": 30,
+   "original_value": "Plantilla: respuesta a resenas"
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "template_review_response",
+   "column": "body_es",
+   "original_md5": "84e4de2ba894b739a15e841033041ef2",
+   "original_length": 337,
+   "original_value": "Para resenas positivas: Gracias [nombre] por tu comentario, nos alegra mucho haberte ayudado con [detalle especifico].\nPara resenas dificiles: Gracias por contarnos tu experiencia, [nombre]. Lamentamos que [problema] no haya sido lo que esperabas. Nos gustaria conocer mas detalles, puedes escribirnos directamente a [telefono o correo]."
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "template_monthly_expense_tracker",
+   "column": "body_es",
+   "original_md5": "b54dffa01cf4d4d8a46324a27794773d",
+   "original_length": 247,
+   "original_value": "Columnas sugeridas: Fecha, Descripcion del gasto, Categoria (materiales, renta, servicios, transporte, sueldos, otros), Monto.\nAl final del mes suma cada categoria y compara el total contra tus ingresos del mismo mes para conocer tu ganancia real."
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "checklist_photo_shoot_prep",
+   "column": "title_es",
+   "original_md5": "8e6f7efaf1380233aab75316c4f3a777",
+   "original_length": 45,
+   "original_value": "Lista de verificacion: preparacion para fotos"
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "checklist_photo_shoot_prep",
+   "column": "body_es",
+   "original_md5": "0ce9bd6444609422051b915c4ff82fba",
+   "original_length": 255,
+   "original_value": "Local limpio y ordenado antes de tomar fotos\nBuena luz natural disponible, evitar flash directo\nProductos o espacios acomodados de forma atractiva\nVarios angulos tomados de cada producto o espacio\nFotos revisadas y las mejores seleccionadas antes de subir"
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "template_referral_ask_script",
+   "column": "title_es",
+   "original_md5": "cd07cfb7e9601c7d159c8b1a658d099e",
+   "original_length": 33,
+   "original_value": "Plantilla: como pedir un referido"
+  },
+  {
+   "table": "business_learning_resources",
+   "keyColumn": "resource_key",
+   "key": "template_referral_ask_script",
+   "column": "body_es",
+   "original_md5": "1087110c154c05f300c01544990ec982",
+   "original_length": 212,
+   "original_value": "Ejemplo de mensaje: Hola [nombre], me alegra mucho que hayas quedado contento con [producto o servicio]. Si conoces a alguien que pueda necesitar algo similar, se lo agradeceria mucho si le compartes mi contacto."
+  },
+  {
+   "table": "business_learning_categories",
+   "keyColumn": "category_key",
+   "key": "proteccion_y_datos",
+   "column": "summary_en",
+   "original_md5": "61153ca6ae17df64237779105644c441",
+   "original_length": 53,
+   "original_value": "How to handle your customers information responsibly."
+  },
+  {
+   "table": "business_learning_lessons",
+   "keyColumn": "lesson_key",
+   "key": "customer_data_protection",
+   "column": "summary_en",
+   "original_md5": "7fd2ec686bc8596c285ab8613d17d8d0",
+   "original_length": 64,
+   "original_value": "Coming soon: how to carefully handle your customers information."
+  },
+  {
+   "table": "business_learning_lessons",
+   "keyColumn": "lesson_key",
+   "key": "reviews_and_customer_response",
+   "column": "body_en",
+   "original_md5": "6ced81b086210c27545f9c82f68939f6",
+   "original_length": 1547,
+   "original_value": "Online reviews influence many people decisions before they choose a business. How you respond to those reviews, both the good ones and the difficult ones, says a lot about how you treat your customers in general.\n\nWhy it matters: a negative review with no response can make it look like the business does not care about its customers opinions. A thoughtful response, even to a difficult criticism, shows that you take your customers experience seriously and that you are willing to improve.\n\nPractical steps:\n1. Review the feedback you already have on your Google Business profile and any other platforms where your business appears, and note which ones still have no response.\n2. For positive reviews, respond with a brief and personal thank you, mentioning something specific from what the person wrote if possible.\n3. For difficult reviews, wait a moment before responding if you feel upset, then write a calm reply that acknowledges the concern without becoming defensive.\n4. Never share private customer information in your public response, and if the issue needs more detail, invite the person to contact you directly by phone or WhatsApp.\n5. Ask satisfied customers for reviews in a natural way after a good experience, for example by sending a direct link to your Google Business profile.\n\nAn important note: responding well to reviews does not guarantee that you will stop receiving criticism, or that you will rank higher in search results. What it does is show future customers how you treat people when something does not go perfectly."
+  }
+ ]
+}
