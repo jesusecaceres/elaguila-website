@@ -43,6 +43,7 @@ import {
 import type { JobModalitySlug } from "@/app/clasificados/empleos/data/empleosJobTypes";
 
 import { EmpleosFieldLabel, EmpleosSectionCard } from "@/app/publicar/empleos/shared/ui/empleosFormPrimitives";
+import { AssistedSaveForClientBar } from "@/app/clasificados/components/AssistedSaveForClientBar";
 
 const INPUT = "mt-1 w-full min-h-[44px] rounded-lg border border-black/10 px-3 py-2 text-sm";
 const SELECT = `${INPUT} bg-white`;
@@ -76,6 +77,8 @@ export default function EmpleoQuickApplicationClient() {
     EMPLEOS_SESSION_KEYS.quick,
     emptyEmpleosQuickDraft()
   );
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
   const [stagedNotice, setStagedNotice] = useState(false);
   const [serverListingId, setServerListingId] = useState<string | null>(null);
@@ -243,6 +246,15 @@ export default function EmpleoQuickApplicationClient() {
             </p>
           </div>
         </header>
+        <AssistedSaveForClientBar
+          category="empleos"
+          lang={lang === "en" ? "en" : "es"}
+          buildPayload={() => ({
+            category: "empleos",
+            envelope: buildEmpleosPublishEnvelopeFromQuick(stateRef.current, lang) as unknown as Record<string, unknown>,
+            lang: lang === "en" ? "en" : "es",
+          })}
+        />
 
         <EmpleosReadinessBanner visible={!gate.ok} intro={copy.gateFail} issues={previewIssues} />
 

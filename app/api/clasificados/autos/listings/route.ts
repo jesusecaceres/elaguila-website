@@ -7,6 +7,7 @@ import {
   createAutosClassifiedsListingWithInventoryParent,
   isAutosClassifiedsDbConfigured,
   listAutosClassifiedsListingsForOwner,
+  updateAutosClassifiedsListingDraft,
 } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
 import { countActiveDealerVehicles, summarizeDealerInventory, isDealerInventoryMainListing } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
 import { AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY, AUTOS_DEALER_TOTAL_WITH_INVENTORY_PACK_LIMIT } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
@@ -237,6 +238,45 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "staff_autos_privado_only" }, { status: 422 });
   }
   const resolvedOwnerUserId = assisted.assisted ? assisted.clientUserId : userId;
+
+  if (assisted.assisted && assisted.listingId) {
+    const updated = await updateAutosClassifiedsListingDraft(assisted.listingId, resolvedOwnerUserId, {
+      listing: body.listing,
+      lang,
+    });
+    if (!updated.row) {
+      return NextResponse.json(
+        buildAutosListingApiErrorPayload({
+          errorCode: updated.errorCode === "AUTOS_LISTING_NOT_FOUND_OR_FORBIDDEN" ? "NOT_FOUND" : "UPDATE_FAILED",
+          message: "Could not update Autos listing draft.",
+          details: updated.errorDetails,
+          legacyError: "update_failed",
+        }),
+        { status: updated.errorCode === "AUTOS_LISTING_NOT_FOUND_OR_FORBIDDEN" ? 404 : 500 },
+      );
+    }
+    await recordSalesWorkspaceAudit({
+      action: "quick_sales_save_for_client",
+      actorRosterId: assisted.ctx.rosterId,
+      businessId: assisted.ctx.businessId,
+      category: "autos-privado",
+      listingSource: "autos_classifieds_listings",
+      listingId: updated.row.id,
+      outcome: "ok",
+    });
+    return NextResponse.json(
+      {
+        ...buildAutosListingApiSuccessPayload({
+          id: updated.row.id,
+          leonixAdId: updated.row.leonix_ad_id ?? null,
+          lane: updated.row.lane,
+          status: updated.row.status,
+          persistWarnings: updated.persistWarnings,
+        }),
+        listingId: updated.row.id,
+      },
+    );
+  }
 
   // Package C Build 1 (decision 11) — server-side commercial write guard for dealer child
   // creation. Verifies the client-supplied parent is REAL, OWNED by the caller, and the dealer
