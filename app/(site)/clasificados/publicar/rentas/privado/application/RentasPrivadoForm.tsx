@@ -105,6 +105,29 @@ const PREVIEW_MUST_FINISH_LOADING: Record<OfficialLocale, string> = {
   tl: "Kailangang matapos mag-load ang published listing bago ang preview.",
 };
 
+const RENTAS_PRIVADO_UI: Record<OfficialLocale, { categoryAutoHint: string; addVideo: string; removeVideo: string }> = {
+  es: {
+    categoryAutoHint: "Se determina automáticamente según el tipo de renta (abajo) — ya no se puede elegir de forma independiente.",
+    addVideo: "+ Agregar video",
+    removeVideo: "Quitar",
+  },
+  en: {
+    categoryAutoHint: "Determined automatically from the rental type below — it can no longer be set independently.",
+    addVideo: "+ Add video",
+    removeVideo: "Remove",
+  },
+  pt: {
+    categoryAutoHint: "É determinado automaticamente pelo tipo de aluguel abaixo — não pode mais ser definido de forma independente.",
+    addVideo: "+ Adicionar vídeo",
+    removeVideo: "Remover",
+  },
+  tl: {
+    categoryAutoHint: "Awtomatikong tinutukoy mula sa uri ng renta sa ibaba — hindi na ito maaaring itakda nang hiwalay.",
+    addVideo: "+ Magdagdag ng video",
+    removeVideo: "Alisin",
+  },
+};
+
 const RESIDENTIAL_FLOW_HIGHLIGHTS_ONLY: Record<OfficialLocale, string> = {
   es: "Para este tipo de renta, los detalles de habitación o espacio compartido van arriba en “Anuncio”; aquí solo puedes marcar destacados si aplica.",
   en: "For this rental type, room or shared-space details are above under “Listing”; here you can only mark highlights if they apply.",
@@ -638,11 +661,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
         <section className={`${aiCardClass} min-w-0`}>
           <h2 className={aiTitleClass}>{rm.category.title}</h2>
           <p className={aiSubClass}>
-            {state.tipoDeRenta
-              ? lang === "en"
-                ? "Determined automatically from the rental type below — it can no longer be set independently."
-                : "Se determina automáticamente según el tipo de renta (abajo) — ya no se puede elegir de forma independiente."
-              : rm.category.hint}
+            {state.tipoDeRenta ? RENTAS_PRIVADO_UI[lang].categoryAutoHint : rm.category.hint}
           </p>
           <div className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
             {CATEGORIAS.map((c) => (
@@ -788,8 +807,8 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                 }}
                 fieldLabel={rm.media.videosByLink}
                 urlLabel={(n) => fillTemplate(rm.media.videoN, { n })}
-                addLabel={lang === "en" ? "+ Add video" : "+ Agregar video"}
-                removeLabel={lang === "en" ? "Remove" : "Quitar"}
+                addLabel={RENTAS_PRIVADO_UI[lang].addVideo}
+                removeLabel={RENTAS_PRIVADO_UI[lang].removeVideo}
                 addedLabel={rm.media.linksReady}
                 placeholder="https://youtube.com/..."
               />
