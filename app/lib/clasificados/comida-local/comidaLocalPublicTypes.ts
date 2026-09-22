@@ -73,6 +73,7 @@ export type ComidaLocalPublicListingCardVm = {
   detailHref: string;
   telHref: string | null;
   whatsappHref: string | null;
+  publicEndorsementCount?: number;
 };
 
 /** Detail uses shared preview shell VM + public identifiers only. */

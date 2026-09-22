@@ -10,6 +10,7 @@ import {
   CL_CHIP,
   CL_IMAGE_PLACEHOLDER,
 } from "./comidaLocalCustomerStyles";
+import { LeonixCommunityTrustCardStrip } from "@/app/components/leonixCommunityTrust/LeonixCommunityTrustCardStrip";
 
 type Props = {
   card: ComidaLocalPublicListingCardVm;
@@ -77,6 +78,10 @@ export function ComidaLocalListingCard({ card }: Props) {
             ))}
           </div>
         ) : null}
+
+        <div data-servicios-card-trust-strip="1">
+          <LeonixCommunityTrustCardStrip lang="es" count={card.publicEndorsementCount ?? 0} />
+        </div>
 
         <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
           <Link

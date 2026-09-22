@@ -228,6 +228,7 @@ export function mapComidaLocalRowToCardVm(row: ComidaLocalPublicListingRow): Com
     detailHref: `/clasificados/comida-local/${encodeURIComponent(slug)}`,
     telHref: buildComidaLocalTelHref(row.phone ?? ""),
     whatsappHref: buildComidaLocalWhatsAppHref(row.whatsapp ?? "", businessName),
+    publicEndorsementCount: 0,
   };
 }
 

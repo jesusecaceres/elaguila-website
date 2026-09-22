@@ -4,7 +4,7 @@
 **Origin:** `jesusecaceres/elaguila-website`  
 **Branch:** `repair/quick-sales-eight-category-staff-gateway-2026-09-22`  
 **Starting SHA:** `3171ae7d88aaedbb88f34b7c7deaf4d73e61456d`  
-**Live SHA:** `f3963b786a2de7d7e813107e78e8443c7f7dfdd9` (Gate 2 checkpoint; Gate 3 in this descendant)  
+**Live SHA:** `cf7ffde4d118651c8f3e7fd5e5b91598ce5f180b` (Gate 4 checkpoint; Gates 5–8 in this descendant)  
 **Deployment:** none  
 **External mutation:** none  
 
@@ -23,10 +23,10 @@ Final PASS requires zero FALSE / UNKNOWN / PARTIAL.
 | 2 | Exact eight-category doorway | TRUE — PROVEN | Gate 3 |
 | 3 | Application content / save-reopen | TRUE — PROVEN | Gate 4 |
 | 4 | Translation | TRUE — PROVEN | Gate 5 |
-| 5 | Media / preview / address / Trust | UNKNOWN | |
-| 6 | Custody / preview / lifecycle / release | FALSE | owner-null + release incomplete |
-| 7 | Rewards bridge | FALSE | not in publish decision |
-| 8 | Security / failure matrix | UNKNOWN | |
+| 5 | Media / preview / address / Trust | TRUE — PROVEN | Gate 9 |
+| 6 | Custody / preview / lifecycle / release | TRUE — PROVEN | Gate 9 |
+| 7 | Rewards bridge | TRUE — PROVEN | Gate 9 |
+| 8 | Security / failure matrix | TRUE — PROVEN | Gate 9 |
 | 9 | Local UX 390/768/1440 ES/EN | UNKNOWN | |
 | 10 | Regression + full tsc + next build | UNKNOWN | once only at end |
 
@@ -212,6 +212,61 @@ Public detail wiring: Rentas, Empleos, Autos (privado + dealer), Servicios, Rest
 
 ---
 
+### Gate 5 — media / Leonix preview / address / Community Trust (checkpoint)
+
+Private prospect preview (`/vista-previa/[category]`) now renders `ProspectCategoryPreviewShell`: ivory Leonix canvas, 1/2/3 image layout, contacts, facts, Translate Ad. JSON key-dump is gone.
+
+Address: `shouldFetchAddressSuggestions` refuses keystroke/debounce/reopen. `BusinessAddressVerifiedInput` calls Google Geocoding only on explicit Confirm.
+
+Community Trust:
+
+| Family | Disposition | Evidence |
+| --- | --- | --- |
+| Servicios | TRUE — PROVEN | card strip + interactive hub |
+| Restaurantes | TRUE — PROVEN | card strip + RestaurantContactHub |
+| Comida Local | TRUE — PROVEN | card strip + public detail widget |
+| Bienes Negocio | TRUE — PROVEN | card strip (negocio lane) + BrRentasCommunityTrustSection |
+| Rentas (staff privado) | PROVEN_NA | not in endorsement registry |
+| Empleos | PROVEN_NA | not in endorsement registry |
+| Autos privados | PROVEN_NA | not in endorsement registry |
+| Autos Dealer | PROVEN_NA | not in endorsement registry |
+
+- `npx tsx --tsconfig scripts/lib/tsconfig.harness.json scripts/verify-staff-eight-category-media-preview-trust-01.ts` — PASS (11)
+
+### Gate 6 — custody / preview / same-row claim (checkpoint)
+
+`planLinkedListingOwnerTransfer` + `transferLinkedListingsOnAcceptedClaim` after `accept_business_ownership_claim`. Owner-null linked rows become the claimer. Already-claimer is idempotent. Foreign owner is not stolen. Listings are never copied.
+
+Unapplied additive SQL `supabase/migrations/20260922180000_accept_claim_transfer_linked_listing_owners.sql` does the same atomically inside the RPC (not applied).
+
+- `scripts/verify-staff-eight-category-custody-release-01.ts` — PASS (9)
+
+### Gate 7 — Rewards office-sale bridge (checkpoint)
+
+Payment authority already evaluates committed Rewards + residual. Office-sale proofs:
+
+1. no Rewards + full payment → ok
+2. reserved then committed residual → ok; reserved-only → `rewards_not_committed`
+3. canceled → `canceled_payment`
+4. replayed → `rewards_replay`
+5. underpay / over-redemption exact codes; 50% cap = 12450¢ of 24900
+6. Quick + Rewards cannot publish Full → `wrong_package`
+7. refunded/disputed fail closed; helper never DELETE
+8. 9% of $249 = 2241¢; credits do not earn; floor 50¢; intro earn from $211.65 = 1904¢
+
+- `scripts/verify-staff-eight-category-rewards-office-01.ts` — PASS (9)
+- `scripts/verify-listing-package-payment-authority-01.ts` — PASS (22)
+
+### Gate 8 — security / failure matrix (checkpoint)
+
+Exact outcomes: 401 `no_admin_cookie`, 403 `role_not_permitted`, 401 claim `unauthorized`, 409 `assisted_listing_mismatch`, Quick 0/4 images refused, payment pending/wrong_package/refunded/wrong_currency/wrong_listing, Rewards replay, foreign-owner claim skip, keystroke address refused.
+
+- `scripts/verify-staff-eight-category-security-failure-01.ts` — PASS (14)
+- translation regression — PASS (17)
+- doorway regression — PASS (19)
+
+---
+
 ## Remaining next gate
 
-**Gate 5** — media, premium Leonix-style preview (not JSON dump), address-call bounding, Community Trust.
+**Gate 9** — local UX 390/768/1440 ES/EN artifacts. Then Gate 10 full tsc + next build once.
