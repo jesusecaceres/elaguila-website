@@ -269,8 +269,8 @@ check("Rewards over-redemption (>50%) fails", () => {
   if (!d.ok) assert.equal(d.error, "rewards_over_redemption");
 });
 
-check("live entitlement for the exact package qualifies; Quick entitlement cannot publish Full", () => {
-  const live = evaluateListingPackagePaymentAuthority({
+check("live entitlement is not payment unless prepaid/included provenance binds listing_source+category+package", () => {
+  const unpaid = evaluateListingPackagePaymentAuthority({
     listingSource: SRC,
     listingId: LISTING,
     packageKey: FULL,
@@ -284,10 +284,33 @@ check("live entitlement for the exact package qualifies; Quick entitlement canno
         revoked_at: null,
         starts_at: "2026-01-01T00:00:00Z",
         ends_at: "2027-01-01T00:00:00Z",
+        metadata: { payment_status: null },
       },
     ],
   });
-  assert.equal(live.ok, true);
+  assert.equal(unpaid.ok, false);
+  if (!unpaid.ok) assert.equal(unpaid.error, "unproven_entitlement");
+  const included = evaluateListingPackagePaymentAuthority({
+    listingSource: SRC,
+    listingId: LISTING,
+    packageKey: FULL,
+    category: "servicios",
+    records: [],
+    entitlements: [
+      {
+        listing_id: LISTING,
+        listing_source: SRC,
+        category: "servicios",
+        package_key: FULL,
+        grant_source: "print_included",
+        status: "active",
+        revoked_at: null,
+        starts_at: "2026-01-01T00:00:00Z",
+        ends_at: "2027-01-01T00:00:00Z",
+      },
+    ],
+  });
+  assert.equal(included.ok, true);
   const mismatch = evaluateListingPackagePaymentAuthority({
     listingSource: SRC,
     listingId: LISTING,
@@ -296,7 +319,10 @@ check("live entitlement for the exact package qualifies; Quick entitlement canno
     entitlements: [
       {
         listing_id: LISTING,
+        listing_source: SRC,
+        category: "servicios",
         package_key: QUICK,
+        grant_source: "print_included",
         status: "active",
         revoked_at: null,
         starts_at: "2026-01-01T00:00:00Z",
@@ -339,6 +365,11 @@ check("WIRING: listing-only helper is gone from custody; server helper selects p
   assert.ok(server.includes("leonix_payment_records"), "server helper reads the payment ledger");
   assert.ok(server.includes("listing_package_entitlements"), "server helper reads entitlements");
   assert.ok(server.includes("leonix_rewards_redemptions"), "server helper reads committed redemptions");
+  assert.ok(server.includes("if (payments.error)"), "payment query errors fail closed");
+  assert.ok(server.includes("if (entitlements.error)"), "entitlement query errors fail closed");
+  assert.ok(server.includes("if (redemption.error)"), "Rewards query errors fail closed");
+  assert.ok(server.includes('error: "ledger_read_failed"'), "query errors map to ledger_read_failed");
+  assert.equal(server.includes("replayed: false"), false, "runtime must not synthesize replayed: false");
   assert.ok(!/\.eq\(["']verified_state["']\)/.test(server), "must not add a verified_state column");
 });
 
@@ -362,6 +393,51 @@ check("four pair categories share the $249/$399 split; excluded families are not
   for (const cat of ["rentas", "empleos", "autos-privado", "comida-local"]) {
     assert.equal(cat in BUSINESS_CATEGORY_PACKAGE_PAIR, false, cat);
   }
+});
+
+check("MANDATORY NEGATIVE: same UUID wrong listing_source cannot publish", () => {
+  const d = decide({
+    records: [rec({ listing_source: "listings", category: "rentas" })],
+  });
+  assert.equal(d.ok, false);
+  if (!d.ok) assert.equal(d.error, "wrong_source");
+});
+
+check("MANDATORY NEGATIVE: Rewards metadata without committed redemption cannot publish", () => {
+  const d = decide({
+    records: [
+      rec({
+        amount_cents: 12450,
+        amount_paid_cents: 12450,
+        amount_total_cents: 12450,
+        metadata: { leonix_credits_applied_cents: 12450, leonix_amount_is_net_of_credits: true },
+      }),
+    ],
+    rewards: [],
+  });
+  assert.equal(d.ok, false);
+  if (!d.ok) assert.equal(d.error, "rewards_not_committed");
+});
+
+check("MANDATORY NEGATIVE: reversed / canceled / pending fail closed with exact codes", () => {
+  const reversed = decide({ records: [rec({ manual_state: "reversed" })] });
+  assert.equal(reversed.ok, false);
+  if (!reversed.ok) assert.equal(reversed.error, "reversed_payment");
+  const canceled = decide({ records: [rec({ payment_status: "canceled" })] });
+  assert.equal(canceled.ok, false);
+  if (!canceled.ok) assert.equal(canceled.error, "canceled_payment");
+  const pending = decide({ records: [rec({ source: "stripe_checkout", payment_status: "pending", manual_state: null })] });
+  assert.equal(pending.ok, false);
+  if (!pending.ok) assert.equal(pending.error, "pending_payment");
+});
+
+check("WIRING: stripe_terminal CHECK widening is authored and unapplied", () => {
+  const sql = read("supabase/migrations/20260922190000_leonix_payment_records_source_stripe_terminal.sql");
+  assert.ok(sql.includes("Additive, unapplied"));
+  assert.ok(sql.includes("stripe_terminal"));
+  assert.ok(sql.includes("leonix_payment_records_source_chk"));
+  const original = read("supabase/migrations/20260526120000_leonix_payment_records.sql");
+  assert.equal(original.includes("'stripe_terminal'"), false);
 });
 
 if (failures.length) {

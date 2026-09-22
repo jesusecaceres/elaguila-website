@@ -79,6 +79,8 @@ function main() {
     assert.ok(route.includes("acceptOwnershipClaim(callerClient"));
     assert.ok(route.includes("transferLinkedListingsOnAcceptedClaim"));
     assert.ok(route.includes("listingIds"));
+    assert.ok(route.includes("transfer.recorded !== true"));
+    assert.ok(route.includes("status: 409"));
     const repo = read("app/lib/business/ownership/repository.ts");
     assert.ok(repo.includes('callerClient.rpc("accept_business_ownership_claim"'));
     assert.equal(repo.includes("getAdminSupabase().rpc(\"accept_business_ownership_claim\""), false);
