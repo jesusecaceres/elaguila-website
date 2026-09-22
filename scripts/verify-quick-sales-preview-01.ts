@@ -265,7 +265,11 @@ check("B7: every category maps to exactly one canonical table and one EXISTING i
     const d = QUICK_SALES_CATEGORY_MAP[key];
     assert.equal(d.category, key);
     assert.ok(d.saveEndpoint.startsWith("/api/"), "the save endpoint must be a real API route");
-    assert.ok(d.intakePath.startsWith("/clasificados/"), "the intake must be the category's existing one");
+    if (key === "servicios") {
+      assert.equal(d.intakePath, "/publicar/negocio-rapido/servicios", "Servicios staff doorway is the existing Quick application, not the checkpoint redirect");
+    } else {
+      assert.ok(d.intakePath.startsWith("/clasificados/"), "the intake must be the category's existing one");
+    }
     sources.add(d.listingSource);
   }
   assert.equal(sources.size, 4, "four categories, four distinct canonical tables");

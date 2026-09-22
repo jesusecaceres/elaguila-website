@@ -7,9 +7,18 @@
  * In particular: this component never holds the authority for the row it is working on. It shows
  * whatever the server's custody status reports, and when it sends a listing id it is sending an
  * agreement, not an instruction — the server refuses a disagreement rather than following it.
+ *
+ * SERVICIOS doorway (slice 1): "Fill Quick Services" POSTs custody and only then same-tab
+ * navigates to `/publicar/negocio-rapido/servicios`. There is no fail-open
+ * `status?.intakePath ?? descriptor.intakePath`. No active custody ⇒ no public application.
  */
 import { useCallback, useEffect, useState } from "react";
 import { QUICK_SALES_CATEGORIES, QUICK_SALES_CATEGORY_MAP, type QuickSalesCategory } from "@/app/lib/sales/quickSalesCategories";
+import {
+  BEGIN_CLIENT_DRAFT_HREF,
+  resolveStaffNavigationFromCustodyPost,
+  resolveStaffOpenIntakeNavigation,
+} from "@/app/lib/sales/staffServiciosGateway";
 
 type BusinessRow = { id: string; name: string; city?: string | null };
 
@@ -150,6 +159,43 @@ export function QuickSalesWorkspaceClient({
     await refreshStatus();
   }, [refreshStatus]);
 
+  /**
+   * SERVICIOS primary action: mint server-issued Leonix custody, then SAME-TAB navigate into the
+   * existing Quick application. Never uses a client-side intake fallback; never opens a new tab;
+   * never navigates if the POST did not confirm custody.
+   */
+  const openServiciosWithCustody = useCallback(async () => {
+    if (category !== "servicios" || !businessId) return;
+    setBusy(true);
+    setMessage(null);
+    const { status: code, json } = await postJson("/api/admin/sales-preview/custody", {
+      category,
+      businessId,
+      clientUserId: clientUserId || undefined,
+      listingId: reopenListingId.trim() || undefined,
+    });
+    if (code !== 200 || json.ok !== true) {
+      setBusy(false);
+      setMessage(`Rechazado / Refused (${code}): ${String(json.error ?? "unknown")}`);
+      await refreshStatus();
+      return;
+    }
+    const nav = resolveStaffNavigationFromCustodyPost(json);
+    if (!nav.allowed) {
+      setBusy(false);
+      setMessage("Sin custodia confirmada — no se abre la aplicación. / No confirmed custody — application stays closed.");
+      await refreshStatus();
+      return;
+    }
+    setMessage("Custodia establecida / Custody established");
+    window.location.assign(nav.href);
+  }, [category, businessId, clientUserId, reopenListingId, refreshStatus]);
+
+  const openIntakeNav = resolveStaffOpenIntakeNavigation({
+    selectedCategory: category,
+    liveCustody: status ? { category: status.category, intakePath: status.intakePath } : null,
+  });
+
   const absolutePreview = previewLink
     ? `${typeof window !== "undefined" ? window.location.origin : ""}${previewLink}`
     : null;
@@ -192,6 +238,17 @@ export function QuickSalesWorkspaceClient({
 
       <section className="rounded-xl border border-[#E6DCC6] bg-white p-4">
         <h2 className="mb-2 font-bold">2. Negocio del cliente / Customer business</h2>
+        <p className="mb-2 text-xs text-[#5D4A25]">
+          Elige un negocio existente, o crea el registro canónico primero. · Pick an existing
+          business, or create the canonical record first.
+        </p>
+        <a
+          href={BEGIN_CLIENT_DRAFT_HREF}
+          className="mb-3 inline-block rounded-lg border border-[#E6DCC6] px-3 py-2 text-xs font-semibold"
+          data-begin-client-draft
+        >
+          Negocio nuevo (registro canónico) / New business (canonical record)
+        </a>
         <div className="flex gap-2">
           <input
             value={query}
@@ -287,14 +344,50 @@ export function QuickSalesWorkspaceClient({
           Se usa la herramienta de la categoría — no hay un formulario aparte aquí. · The category&apos;s
           own tool is used — there is no separate form here.
         </p>
-        <a
-          href={status?.intakePath ?? descriptor.intakePath}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-2 inline-block rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold"
-        >
-          Abrir {descriptor.labelEs} / Open {descriptor.labelEn}
-        </a>
+        {category === "servicios" ? (
+          <button
+            type="button"
+            disabled={busy || !businessId}
+            onClick={() => void openServiciosWithCustody()}
+            data-servicios-staff-primary
+            data-staff-open-intake="servicios"
+            data-staff-open-requires-custody="true"
+            className="mt-2 rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold disabled:opacity-40"
+          >
+            Llenar Servicios Quick / Fill Quick Services
+          </button>
+        ) : openIntakeNav.allowed ? (
+          <a
+            href={openIntakeNav.href}
+            data-staff-open-intake={category}
+            data-staff-open-requires-custody="true"
+            className="mt-2 inline-block rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold"
+          >
+            Abrir {descriptor.labelEs} / Open {descriptor.labelEn}
+          </a>
+        ) : (
+          <button
+            type="button"
+            disabled
+            data-staff-open-intake={category}
+            data-staff-open-blocked={openIntakeNav.reason}
+            data-staff-open-requires-custody="true"
+            className="mt-2 rounded-lg border border-[#E6DCC6] px-3 py-2 text-xs font-semibold opacity-40"
+          >
+            Abrir {descriptor.labelEs} / Open {descriptor.labelEn}
+          </button>
+        )}
+        {category === "servicios" && !businessId ? (
+          <p className="mt-2 text-xs text-[#8B4513]" data-staff-open-blocked="no_business">
+            Elige un negocio del cliente primero. / Select the client&apos;s business first.
+          </p>
+        ) : null}
+        {category !== "servicios" && !openIntakeNav.allowed ? (
+          <p className="mt-2 text-xs text-[#8B4513]" data-staff-open-blocked={openIntakeNav.reason}>
+            Sin custodia activa — no se abre la aplicación pública. / No active custody — the public
+            application stays closed.
+          </p>
+        ) : null}
       </section>
 
       <section className="rounded-xl border border-[#E6DCC6] bg-white p-4">
