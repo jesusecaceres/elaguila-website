@@ -22,7 +22,7 @@ Final PASS requires zero FALSE / UNKNOWN / PARTIAL.
 | 1 | Package/payment authority | TRUE — PROVEN | Gate 2 |
 | 2 | Exact eight-category doorway | TRUE — PROVEN | Gate 3 |
 | 3 | Application content / save-reopen | TRUE — PROVEN | Gate 4 |
-| 4 | Translation | UNKNOWN | reuse TranslateAdControl only |
+| 4 | Translation | TRUE — PROVEN | Gate 5 |
 | 5 | Media / preview / address / Trust | UNKNOWN | |
 | 6 | Custody / preview / lifecycle / release | FALSE | owner-null + release incomplete |
 | 7 | Rewards bridge | FALSE | not in publish decision |
@@ -202,6 +202,16 @@ Proofs: accents/`ñ`/apostrophes round-trip; cleared Rentas description stays cl
 
 ---
 
+### Gate 4 — translation (checkpoint)
+
+Reuse only `TranslateAdControl` + `requestAdTranslation` + `POST /api/translate-ad`. Click-only. Contacts masked. Failure leaves original copy. Legal/display names are not sent as Translate Ad title.
+
+Public detail wiring: Rentas, Empleos, Autos (privado + dealer), Servicios, Restaurantes, Comida Local, Bienes Negocio. Private prospect preview mounts `ProspectPreviewTranslateAd`. Servicios result cards reuse the shared control.
+
+- `npx tsx --tsconfig scripts/lib/tsconfig.harness.json scripts/verify-staff-eight-category-translation-01.ts` — PASS (17)
+
+---
+
 ## Remaining next gate
 
-**Gate 4** — translation matrix. Reuse only `TranslateAdControl`, `requestAdTranslation`, `/api/translate-ad`. Public detail + private preview must show Traducir anuncio / Translate Ad. No second provider.
+**Gate 5** — media, premium Leonix-style preview (not JSON dump), address-call bounding, Community Trust.

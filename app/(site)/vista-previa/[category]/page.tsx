@@ -25,6 +25,7 @@ import { PREVIEW_NOINDEX_METADATA } from "@/app/lib/seo/previewRouteMetadata";
 import { readProspectPreviewContext, PROSPECT_PREVIEW_TOKEN_PARAM } from "@/app/lib/auth/prospectPreviewSession";
 import { readProspectPreviewPayload } from "@/app/lib/sales/prospectPreviewReader";
 import { QUICK_SALES_CATEGORY_MAP, isQuickSalesCategory } from "@/app/lib/sales/quickSalesCategories";
+import { ProspectPreviewTranslateAd } from "./ProspectPreviewTranslateAd";
 
 export const dynamic = "force-dynamic";
 /** A preview link is per-recipient and expiring. It is never stored by a cache, anywhere. */
@@ -97,8 +98,20 @@ export default async function ProspectPreviewPage({ params, searchParams }: Page
         <p style={styles.badge}>
           {descriptor.labelEs} / {descriptor.labelEn}
         </p>
-        <h1 style={styles.heading}>{payload.title ?? "Borrador sin título / Untitled draft"}</h1>
-        {location ? <p style={styles.sub}>{location}</p> : null}
+        <ProspectPreviewTranslateAd
+          category={category}
+          listingId={payload.listingId}
+          title={payload.title}
+          content={payload.content}
+        >
+          {({ title, description }) => (
+            <>
+              <h1 style={styles.heading}>{title ?? "Borrador sin título / Untitled draft"}</h1>
+              {location ? <p style={styles.sub}>{location}</p> : null}
+              {description ? <p style={styles.body}>{description}</p> : null}
+            </>
+          )}
+        </ProspectPreviewTranslateAd>
 
         <p style={styles.body}>
           Así se verá tu anuncio. Todavía no está publicado y nadie más puede encontrarlo.
