@@ -19,7 +19,7 @@ import { quickBusinessCategoryPath, quickBusinessShareUrl } from "@/app/lib/quic
 import type { QuickBusinessDefinition } from "@/app/lib/quickBusiness/quickBusinessTypes";
 import { listQuickRemainingDefinitions } from "@/app/lib/quickRemaining/quickRemainingRegistry";
 import type { QuickRemainingDefinition } from "@/app/lib/quickRemaining/quickRemainingRegistry";
-import { buildQuickSalesHref, quickSalesCategoryForQuickBusinessKey } from "@/app/lib/sales/quickSalesRoutes";
+import { buildQuickSalesHref, quickSalesCategoryForClassifiedKey, quickSalesCategoryForQuickBusinessKey, quickSalesCategoryForRemainingKey } from "@/app/lib/sales/quickSalesRoutes";
 
 /**
  * ENLACES PARA EL CLIENTE / CUSTOMER SELF-SERVICE LINKS — the launchpad inside the Business Concierge PWA.
@@ -188,6 +188,18 @@ export function QuickApplicationsLaunchpad() {
           </div>
         </div>
         <div className="mt-3">{copyShare(customerUrl(def, linkLang), () => shareLink(def))}</div>
+        {(() => {
+          const salesCategory = quickSalesCategoryForClassifiedKey(def.key);
+          return salesCategory ? (
+            <Link
+              href={buildQuickSalesHref({ category: salesCategory, lang: linkLang })}
+              data-quick-sales-entry={salesCategory}
+              className="mt-2 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#7A1E2C] px-3 text-xs font-bold text-white"
+            >
+              ⚡ Crear gestionado (Venta asistida) / Create managed (Quick Sales)
+            </Link>
+          ) : null;
+        })()}
       </li>
     );
   };
@@ -343,6 +355,18 @@ export function QuickApplicationsLaunchpad() {
                   </div>
                 </div>
                 <div className="mt-3 grid grid-cols-1 gap-2">
+                  {(() => {
+                    const salesCategory = quickSalesCategoryForRemainingKey(def.key);
+                    return salesCategory ? (
+                      <Link
+                        href={buildQuickSalesHref({ category: salesCategory, lang: linkLang })}
+                        data-quick-sales-entry={salesCategory}
+                        className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#7A1E2C] px-3 text-xs font-bold text-white"
+                      >
+                        ⚡ Crear gestionado (Venta asistida) / Create managed (Quick Sales)
+                      </Link>
+                    ) : null;
+                  })()}
                   {def.action === "content_link" ? (
                     <Link href={withLang(def.href, linkLang)} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[#7A1E2C]/40 bg-[#7A1E2C]/5 px-3 text-xs font-bold text-[#7A1E2C]">
                       Abrir directorio / Open directory

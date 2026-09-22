@@ -4,7 +4,7 @@
 **Origin:** `jesusecaceres/elaguila-website`  
 **Branch:** `repair/quick-sales-eight-category-staff-gateway-2026-09-22`  
 **Starting SHA:** `3171ae7d88aaedbb88f34b7c7deaf4d73e61456d`  
-**Live SHA:** (updated after each checkpoint)  
+**Live SHA:** `ead5d18905ee095221cfbebc049a47d082d15675` (Gate 1; Gate 2 checkpoint is this commit)  
 **Deployment:** none  
 **External mutation:** none  
 
@@ -20,7 +20,7 @@ Final PASS requires zero FALSE / UNKNOWN / PARTIAL.
 | Start | origin / branch / HEAD / clean / no heavyweight process | TRUE — PROVEN | Gate 0 |
 | 0 | Forensic matrices from current source | TRUE — PROVEN (ledger) | Gate 1 |
 | 1 | Package/payment authority | TRUE — PROVEN | Gate 2 |
-| 2 | Exact eight-category doorway | FALSE | Servicios-only cockpit |
+| 2 | Exact eight-category doorway | TRUE — PROVEN | Gate 3 |
 | 3 | Application content / save-reopen | UNKNOWN | inspect after doorway |
 | 4 | Translation | UNKNOWN | reuse TranslateAdControl only |
 | 5 | Media / preview / address / Trust | UNKNOWN | |
@@ -117,6 +117,34 @@ Mandatory proofs:
 
 Manual record path validates package exists, category matches package, and amount is list or verified-intro ($211.65). Payment Tracker query params remain UI prefill; `POST /api/admin/revenue-os/manual-payments` reads JSON body only.
 
+### Gate 2 — exact eight-category doorway (checkpoint)
+
+Registry, cockpit, custody navigation, and owner-null adapters now cover exactly the eight required families. `FUTURE_STAFF_GATEWAY_*` is gone. `$249/$399` picker renders only for Servicios, Restaurantes, Autos Dealer, Bienes Negocio.
+
+| Family | Staff UI key | Canonical fill path | Listing table | Owner-null | Package | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| Rentas | `rentas` | `/clasificados/publicar/rentas/privado` | `listings` | `requiresClientUserId: false` | `rentas_30d` | TRUE — PROVEN |
+| Empleos | `empleos` | `/publicar/empleos/quick` | `empleos_public_listings` | already nullable | `empleos_job_post_paid` | TRUE — PROVEN |
+| Autos privados | `autos-privado` | `/publicar/autos/privado` | `autos_classifieds_listings` | same table; owner-null adapter | `autos_privado_30d` | TRUE — PROVEN |
+| Servicios | `servicios` | `/publicar/servicios` | `servicios_public_listings` | yes | pair `servicios_quick_monthly` / `servicios_base_monthly` | TRUE — PROVEN |
+| Restaurantes | `restaurantes` | `/publicar/restaurantes` | `restaurantes_public_listings` | yes | pair | TRUE — PROVEN |
+| Comida Local | `comida-local` | `/publicar/comida-local` | `comida_local_public_listings` | already nullable | `comida_local_base_monthly` | TRUE — PROVEN |
+| Autos Dealer | `autos` | `/publicar/autos/negocios` | `autos_classifieds_listings` | save writes `owner_user_id` null | pair `autos_dealer_quick_monthly` / `autos_dealer_monthly` | TRUE — PROVEN |
+| Bienes Negocio | `bienes-raices` | `/clasificados/publicar/bienes-raices/negocio` | `listings` | insert omits `owner_id` | pair `br_agent_quick_monthly` / `br_agent_monthly` | TRUE — PROVEN |
+| Viajes / Iglesias / Recursos | excluded | n/a | n/a | n/a | n/a | PROVEN_NA |
+
+Classified launchpad key `autos` maps to staff family `autos-privado`. Staff key `autos` remains dealer so assisted-publish `expectedCategory: "autos"` stays intact.
+
+Cockpit primary action is `openIntakeWithCustody` for all eight: same-tab navigation only after custody POST. No fail-open `descriptor.intakePath` href. Pair picker only when `staffBusinessOffers(category).length`. Client user optional.
+
+Owner-null:
+
+- Autos Dealer assisted save without `clientUserId` writes `owner_user_id` null. Additive unapplied migration `supabase/migrations/20260922120000_autos_classifieds_owner_null_organizational_custody.sql` drops `NOT NULL` (not applied; schema currently `uuid not null`).
+- Bienes assisted save without `clientUserId` omits `owner_id`.
+- Supplied non-member `clientUserId` still 403 `client_not_authorized_for_business`.
+
+Publish-readiness `assessStoredRowExists` is a temporary exist-check so new families do not 422 at the doorway; Gate 3 must map real category contracts.
+
 ---
 
 ## Commands / counts
@@ -134,6 +162,19 @@ Manual record path validates package exists, category matches package, and amoun
 
 ---
 
+### Gate 2
+
+- `npx tsx --tsconfig scripts/lib/tsconfig.harness.json scripts/verify-staff-eight-category-gateway-01.ts` — PASS (19)
+- `verify-servicios-staff-gateway-01.ts` — PASS (31)
+- `verify-quick-sales-entry-consolidation-01.ts` — PASS (19)
+- `verify-quick-sales-preview-01.ts` — PASS (138)
+- `verify-quick-assisted-operations-01.ts` — PASS (24)
+- `verify-quick-sales-canonical-publish-readiness-01.ts` — PASS (35)
+- `verify-listing-package-payment-authority-01.ts` — PASS (22)
+- `verify-p0-assisted-servicios-navigation-01.ts` — PASS (7)
+
+---
+
 ## Remaining next gate
 
-**Gate 2** — generalize the staff registry and cockpit to exactly the eight required families. Remove `FUTURE_STAFF_GATEWAY_*` placeholders. Owner-null organizational custody for Autos Dealer and Bienes. Category-priced families must not show $249/$399.
+**Gate 3** — per-family application content and save-reopen parity from each canonical application. No generic form. Map Quick/staff control → persisted field → public renderer → edit rehydration. Prove first save creates one row, repeated save updates that row, reopen hydrates, cleared fields stay cleared.

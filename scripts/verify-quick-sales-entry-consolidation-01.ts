@@ -38,6 +38,7 @@ import {
   QUICK_SALES_WORKSPACE_PATH,
   buildQuickSalesHref,
   isQuickSalesGatewayKey,
+  quickSalesCategoryForClassifiedKey,
   quickSalesCategoryForQuickBusinessKey,
 } from "../app/lib/sales/quickSalesRoutes";
 import { clasificadosQueueSurfaceForSlug } from "../app/admin/(dashboard)/workspace/clasificados/_lib/clasificadosQueueSurfaceMeta";
@@ -141,7 +142,8 @@ check("A1: buildQuickSalesHref carries category/business/listing and drops an un
   assert.equal(u.searchParams.get("businessId"), BIZ);
   assert.equal(u.searchParams.get("listingId"), "row-1");
   assert.equal(u.searchParams.get("lang"), "en");
-  assert.equal(new URL(buildQuickSalesHref({ category: "empleos" }), "http://x").searchParams.get("category"), null, "a non-Quick category must not be forwarded");
+  assert.equal(new URL(buildQuickSalesHref({ category: "viajes" }), "http://x").searchParams.get("category"), null, "an excluded category must not be forwarded");
+  assert.equal(new URL(buildQuickSalesHref({ category: "empleos" }), "http://x").searchParams.get("category"), "empleos");
   for (const c of QUICK_SALES_CATEGORIES) assert.ok(isQuickSalesGatewayKey(c));
   assert.equal(isQuickSalesGatewayKey("ofertas-locales"), false);
 });
@@ -149,17 +151,22 @@ check("A2: every live Quick Business registry key maps to a Quick Sales category
   const defs = listQuickBusinessDefinitions();
   assert.ok(defs.length >= 4);
   const mapped = new Set(defs.map((d) => quickSalesCategoryForQuickBusinessKey(d.key)));
-  for (const c of QUICK_SALES_CATEGORIES) assert.ok(mapped.has(c), `registry reaches ${c}`);
+  for (const c of ["servicios", "restaurantes", "autos", "bienes-raices"] as const) {
+    assert.ok(mapped.has(c), `business registry reaches ${c}`);
+  }
   assert.equal(quickSalesCategoryForQuickBusinessKey("comida-local"), null);
+  assert.equal(quickSalesCategoryForClassifiedKey("autos"), "autos-privado");
+  assert.equal(quickSalesCategoryForClassifiedKey("rentas"), "rentas");
+  assert.equal(quickSalesCategoryForClassifiedKey("empleos"), "empleos");
 });
-check("A3: category queue 'publish' links for the four paid categories are the cockpit, never a public application", () => {
+check("A3: category queue 'publish' links for staff-gateway families are the cockpit, never a public application", () => {
   for (const c of QUICK_SALES_CATEGORIES) {
     const href = clasificadosQueueSurfaceForSlug(c).publishHref ?? "";
     assert.ok(href.startsWith(`${QUICK_SALES_WORKSPACE_PATH}?`), `${c}: ${href}`);
     assert.equal(new URL(href, "http://x").searchParams.get("category"), c);
     assert.ok(!PUBLIC_CREATE.test(href));
   }
-  assert.ok(PUBLIC_CREATE.test(clasificadosQueueSurfaceForSlug("empleos").publishHref ?? ""), "non-Quick lanes keep their existing publish link");
+  assert.ok(PUBLIC_CREATE.test(clasificadosQueueSurfaceForSlug("viajes").publishHref ?? ""), "excluded lanes keep their existing publish link");
 });
 check("A4: staff OS home leads with Quick Sales for a capable actor and never drops Create for Client", () => {
   const caps = new Set(["view_business_list", "assisted_category_publishing"]) as never;
@@ -180,12 +187,13 @@ check("A5: customer self-service links are PUBLIC routes whose gate leads to /lo
     assert.equal(decodeURIComponent(new URL(login, "http://x").searchParams.get("redirect") ?? ""), p, "login returns the customer to the same application");
   }
 });
-await checkAsync("A6: Create for Client (business selected) — the four paid cards go to the cockpit; no paid card opens a public application", async () => {
+await checkAsync("A6: Create for Client (business selected) — staff-gateway cards go to the cockpit; no paid card opens a public application", async () => {
   __reset(); signInAsSalesStaff(); seedBusiness();
   const mod = await import("../app/admin/(dashboard)/businesses/create-for-client/page");
   const tree = await mod.default({ searchParams: Promise.resolve({ businessId: BIZ }) });
   const hrefs = collectHrefs(tree);
-  for (const c of QUICK_SALES_CATEGORIES) {
+  const createForClientKeys = QUICK_SALES_CATEGORIES.filter((c) => c !== "autos-privado");
+  for (const c of createForClientKeys) {
     const lane = hrefs.find((h) => h.props["data-quick-sales-lane"] === c);
     assert.ok(lane, `card for ${c}`);
     const u = new URL(lane!.href, "http://x");
@@ -195,15 +203,16 @@ await checkAsync("A6: Create for Client (business selected) — the four paid ca
     assert.equal(lane!.props.target, undefined, "same tab — never a detached public tab");
   }
   const laneHrefs = hrefs.filter((h) => typeof h.props["data-quick-sales-lane"] === "string").map((h) => h.href);
-  assert.equal(laneHrefs.length, 4);
+  assert.equal(laneHrefs.length, createForClientKeys.length);
   assert.ok(laneHrefs.every((h) => !PUBLIC_CREATE.test(h) && !h.includes("/handoff")));
 });
-await checkAsync("A7: Create for Client (no business yet) — the four paid cards STILL go to the cockpit, not to the public gateway", async () => {
+await checkAsync("A7: Create for Client (no business yet) — staff-gateway cards STILL go to the cockpit, not to the public gateway", async () => {
   __reset(); signInAsSalesStaff();
   const mod = await import("../app/admin/(dashboard)/businesses/create-for-client/page");
   const tree = await mod.default({ searchParams: Promise.resolve({}) });
   const hrefs = collectHrefs(tree);
-  for (const c of QUICK_SALES_CATEGORIES) {
+  const createForClientKeys = QUICK_SALES_CATEGORIES.filter((c) => c !== "autos-privado");
+  for (const c of createForClientKeys) {
     const lane = hrefs.find((h) => h.props["data-quick-sales-lane"] === c);
     assert.ok(lane, `card for ${c}`);
     assert.ok(lane!.href.startsWith(`${QUICK_SALES_WORKSPACE_PATH}?`), lane!.href);
@@ -429,9 +438,9 @@ await checkAsync("C9: the cockpit page resolves preselection server-side and ref
   assert.equal(client!.initialCategory, "autos");
   assert.deepEqual(client!.initialBusiness, { id: BIZ, name: "Taquería Sol" });
   assert.equal(client!.initialListingId, "row-1");
-  const bad = await mod.default({ searchParams: Promise.resolve({ category: "empleos", businessId: "nope" }) });
+  const bad = await mod.default({ searchParams: Promise.resolve({ category: "viajes", businessId: "nope" }) });
   const badClient = collectClient(bad);
-  assert.equal(badClient!.initialCategory, null, "an unknown category is not preselected");
+  assert.equal(badClient!.initialCategory, null, "an excluded category is not preselected");
   assert.equal(badClient!.initialBusiness, null, "an unknown business id is not preselected");
 });
 function collectClient(node: unknown): { initialCategory: unknown; initialBusiness: unknown; initialListingId: unknown } | null {

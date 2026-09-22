@@ -9,8 +9,9 @@
  * agreement, not an instruction — the server refuses a disagreement rather than following it.
  *
  * SERVICIOS doorway: staff picks Quick ($249 Simple) or Full ($399 Full), POSTs custody, then
- * same-tab navigates into the canonical `/publicar/servicios` application. There is no fail-open
- * intake fallback. No active custody ⇒ no public application. Quick vs Full is entitlement only.
+ * same-tab navigates into the canonical fillable application for the selected family. There is no
+ * fail-open intake fallback. No active custody ⇒ no public application. Quick vs Full is
+ * entitlement only, and only on the four business pair categories.
  */
 import { useCallback, useEffect, useState } from "react";
 import { QUICK_SALES_CATEGORIES, QUICK_SALES_CATEGORY_MAP, type QuickSalesCategory } from "@/app/lib/sales/quickSalesCategories";
@@ -170,12 +171,12 @@ export function QuickSalesWorkspaceClient({
   }, [refreshStatus]);
 
   /**
-   * SERVICIOS primary action: mint server-issued Leonix custody with the chosen Quick or Full
-   * package, then SAME-TAB navigate into the canonical application. Never uses a client-side
-   * intake fallback; never opens a new tab; never navigates if the POST did not confirm custody.
+   * Primary action for every family: mint server-issued Leonix custody with the chosen package,
+   * then SAME-TAB navigate into the canonical application. Never uses a client-side intake
+   * fallback; never opens a new tab; never navigates if the POST did not confirm custody.
    */
-  const openServiciosWithCustody = useCallback(async () => {
-    if (category !== "servicios" || !businessId) return;
+  const openIntakeWithCustody = useCallback(async () => {
+    if (!businessId) return;
     setBusy(true);
     setMessage(null);
     const { status: code, json } = await postJson("/api/admin/sales-preview/custody", {
@@ -183,7 +184,7 @@ export function QuickSalesWorkspaceClient({
       businessId,
       clientUserId: clientUserId || undefined,
       listingId: reopenListingId.trim() || undefined,
-      plan,
+      plan: pairOffers.length ? plan : undefined,
     });
     if (code !== 200 || json.ok !== true) {
       setBusy(false);
@@ -200,7 +201,7 @@ export function QuickSalesWorkspaceClient({
     }
     setMessage("Custodia establecida / Custody established");
     window.location.assign(nav.href);
-  }, [category, businessId, clientUserId, reopenListingId, plan, refreshStatus]);
+  }, [category, businessId, clientUserId, reopenListingId, plan, pairOffers.length, refreshStatus]);
 
   const openIntakeNav = resolveStaffOpenIntakeNavigation({
     selectedCategory: category,
@@ -263,12 +264,11 @@ export function QuickSalesWorkspaceClient({
             </div>
           </div>
         ) : null}
-        {descriptor.requiresClientUserId ? (
-          <p className="mt-2 text-xs text-[#5D4A25]">
-            Esta categoría guarda el anuncio en la cuenta del cliente, así que requiere su usuario. ·
-            This category saves the ad into the customer&apos;s account, so it requires their user.
-          </p>
-        ) : null}
+        <p className="mt-2 text-xs text-[#5D4A25]">
+          El anuncio pertenece a Leonix, no a la cuenta personal del empleado. El usuario del cliente
+          es opcional hasta una cesión. · The ad belongs to Leonix, not the employee&apos;s personal
+          account. The customer user is optional until a later claim.
+        </p>
       </section>
 
       <section className="rounded-xl border border-[#E6DCC6] bg-white p-4">
@@ -317,11 +317,7 @@ export function QuickSalesWorkspaceClient({
         <input
           value={clientUserId}
           onChange={(e) => setClientUserId(e.target.value)}
-          placeholder={
-            descriptor.requiresClientUserId
-              ? "Usuario del cliente (requerido) / Customer user id (required)"
-              : "Usuario del cliente (opcional) / Customer user id (optional)"
-          }
+          placeholder="Usuario del cliente (opcional) / Customer user id (optional)"
           className="mt-3 w-full rounded-lg border border-[#E6DCC6] px-3 py-2 font-mono text-xs"
         />
       </section>
@@ -386,46 +382,23 @@ export function QuickSalesWorkspaceClient({
           Se usa la herramienta de la categoría — no hay un formulario aparte aquí. · The category&apos;s
           own tool is used — there is no separate form here.
         </p>
-        {category === "servicios" ? (
-          <button
-            type="button"
-            disabled={busy || !businessId}
-            onClick={() => void openServiciosWithCustody()}
-            data-servicios-staff-primary
-            data-staff-open-intake="servicios"
-            data-staff-open-requires-custody="true"
-            data-staff-plan={plan}
-            className="mt-2 rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold disabled:opacity-40"
-          >
-            Llenar Servicios / Fill Services
-          </button>
-        ) : openIntakeNav.allowed ? (
-          <a
-            href={openIntakeNav.href}
-            data-staff-open-intake={category}
-            data-staff-open-requires-custody="true"
-            className="mt-2 inline-block rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold"
-          >
-            Abrir {descriptor.labelEs} / Open {descriptor.labelEn}
-          </a>
-        ) : (
-          <button
-            type="button"
-            disabled
-            data-staff-open-intake={category}
-            data-staff-open-blocked={openIntakeNav.reason}
-            data-staff-open-requires-custody="true"
-            className="mt-2 rounded-lg border border-[#E6DCC6] px-3 py-2 text-xs font-semibold opacity-40"
-          >
-            Abrir {descriptor.labelEs} / Open {descriptor.labelEn}
-          </button>
-        )}
-        {category === "servicios" && !businessId ? (
+        <button
+          type="button"
+          disabled={busy || !businessId}
+          onClick={() => void openIntakeWithCustody()}
+          data-servicios-staff-primary={category === "servicios" ? "true" : undefined}
+          data-staff-open-intake={category}
+          data-staff-open-requires-custody="true"
+          data-staff-plan={pairOffers.length ? plan : undefined}
+          className="mt-2 rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold disabled:opacity-40"
+        >
+          Llenar {descriptor.labelEs} / Fill {descriptor.labelEn}
+        </button>
+        {!businessId ? (
           <p className="mt-2 text-xs text-[#8B4513]" data-staff-open-blocked="no_business">
             Elige un negocio del cliente primero. / Select the client&apos;s business first.
           </p>
-        ) : null}
-        {category !== "servicios" && !openIntakeNav.allowed ? (
+        ) : !openIntakeNav.allowed ? (
           <p className="mt-2 text-xs text-[#8B4513]" data-staff-open-blocked={openIntakeNav.reason}>
             Sin custodia activa — no se abre la aplicación pública. / No active custody — the public
             application stays closed.

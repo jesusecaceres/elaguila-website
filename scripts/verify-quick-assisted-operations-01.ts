@@ -264,9 +264,6 @@ check("B5 WIRING: all four write the canonical business_listing_links relationsh
 check("B6 WIRING: ownership is never taken from the client body", () => {
   for (const r of ASSISTED_ROUTES.filter((x) => x.category)) {
     const code = readCode(r.path);
-    // clientUserId is accepted, but only because the staff actor authenticated via the cookie.
-    assert.ok(code.includes("client_user_id_required"), `${r.family} requires an explicit client user id`);
-    // The business is ALWAYS taken from the signed cookie, never from the body.
     assert.ok(
       code.includes("assistedContext.businessId"),
       `${r.family} must take businessId from the signed context`,
@@ -275,13 +272,15 @@ check("B6 WIRING: ownership is never taken from the client body", () => {
       !/businessId:\s*body\./.test(code),
       `${r.family} must NEVER read businessId from the request body`,
     );
+    assert.equal(code.includes("client_user_id_required"), false, `${r.family} no longer requires a fake customer owner`);
+    assert.ok(code.includes("resolvedOwnerUserId") || code.includes("if (clientUserId)"), `${r.family} still proves a supplied client id`);
   }
 });
 
 check("B7 WIRING: the Bienes route allowlists the columns it will write", () => {
   const code = readCode("app/api/clasificados/bienes-raices/negocio/assisted-publish/route.ts");
   assert.ok(code.includes("ALLOWED_LISTING_COLUMNS"), "a server-side field allowlist must exist");
-  assert.ok(code.includes("owner_id: clientUserId"), "ownership is set server-side from the resolved client id");
+  assert.ok(code.includes("if (clientUserId) insertRow.owner_id = clientUserId"), "ownership is set server-side only when a proven client id exists");
   assert.ok(
     code.includes("delete patch.owner_id"),
     "an update must never overwrite ownership — that would let a re-save steal a row",

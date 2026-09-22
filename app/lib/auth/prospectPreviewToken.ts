@@ -37,10 +37,14 @@ import { createHmac, timingSafeEqual } from "node:crypto";
  */
 export const PROSPECT_PREVIEW_MAX_AGE_SEC = 72 * 60 * 60;
 
-/** The four paid Quick categories, and nothing else. A token names exactly one. */
+/** The eight staff-gateway families a prospect preview token may name. */
 export const PROSPECT_PREVIEW_CATEGORIES = [
+  "rentas",
+  "empleos",
+  "autos-privado",
   "servicios",
   "restaurantes",
+  "comida-local",
   "autos",
   "bienes-raices",
 ] as const;
@@ -51,12 +55,14 @@ export function isProspectPreviewCategory(value: unknown): value is ProspectPrev
   return typeof value === "string" && (PROSPECT_PREVIEW_CATEGORIES as readonly string[]).includes(value);
 }
 
-/** The four listing tables an assisted Quick draft can live in. Mirrors `AssistedListingSource`. */
+/** The listing tables an assisted Quick draft can live in. Mirrors `AssistedListingSource`. */
 export const PROSPECT_PREVIEW_SOURCES = [
   "servicios_public_listings",
   "restaurantes_public_listings",
   "autos_classifieds_listings",
   "listings",
+  "empleos_public_listings",
+  "comida_local_public_listings",
 ] as const;
 
 export type ProspectPreviewSource = (typeof PROSPECT_PREVIEW_SOURCES)[number];

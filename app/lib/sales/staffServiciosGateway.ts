@@ -1,30 +1,23 @@
 /**
- * LEONIX SERVICIOS STAFF GATEWAY — Recovery slice 1 + Quick/Full entitlement.
+ * LEONIX STAFF GATEWAY — navigation authority for the eight-family Quick Sales doorway.
  *
- * Pure navigation authority for the staff "Open Services" doorway. The workspace client must
- * never invent an intake URL: a href is returned only after the server has confirmed assisted
- * custody, and that href is the EXISTING canonical Servicios application
- * (`/publicar/servicios`) — the same ClasificadosServiciosApplication a Full customer fills.
- * Quick vs Full is stamped on the assisted token as a package key; it does not change the form,
- * the listing id, or Leonix custody.
+ * The workspace client must never invent an intake URL: a href is returned only after the server
+ * has confirmed assisted custody, and that href is the EXISTING canonical fillable application
+ * for the selected family. Quick vs Full is stamped on the assisted token as a package key; it
+ * does not change the form, the listing id, or Leonix custody.
  *
- * Why this is not `/clasificados/publicar/servicios`: that path redirects to the paid-product
- * CHECKPOINT (`/clasificados/publicar/servicios/checkpoint`). Without a server-issued assisted
- * cookie, `PublishAuthGate` sends the tab to customer login ("Accede para publicar").
+ * Exact families: Rentas, Empleos, Autos privados, Servicios, Restaurantes, Comida Local,
+ * Autos Dealer, Bienes Raíces Negocio.
+ * Exclude: Viajes, Iglesias, Recursos.
  *
- * Why this is not `/publicar/negocio-rapido/servicios`: that is the customer Quick ADAPTER, a
- * shorter form. Staff-managed Quick and Full both use the canonical application.
- *
- * FULL GATEWAY SCOPE — recorded only; this slice does not implement the other families.
- * Eventually cover exactly: Rentas, Empleos, Autos privados, Servicios, Restaurantes,
- * Comida Local, Autos Dealer, Bienes Raíces Negocio.
- * Exclude: Viajes, Iglesias, Recursos, and unrelated categories.
- *
- * $249 Quick / $399 Full apply only to eligible Business pair categories (Servicios now;
- * Restaurantes, Autos Dealer, Bienes Raíces Negocio recorded). They are never applied to
- * Rentas, Empleos, Autos privados, or Comida Local.
+ * $249 Quick / $399 Full apply only to the four Business pair categories. They are never applied
+ * to Rentas, Empleos, Autos privados, or Comida Local.
  */
-import type { QuickSalesCategory } from "./quickSalesCategories";
+import {
+  QUICK_SALES_CATEGORY_MAP,
+  isQuickSalesCategory,
+  type QuickSalesCategory,
+} from "./quickSalesCategories";
 import {
   SERVICIOS_CANONICAL_INTAKE_PATH,
   SERVICIOS_CHECKPOINT_PATH,
@@ -37,18 +30,19 @@ export const BEGIN_CLIENT_DRAFT_HREF = "/admin/businesses/canvass?intent=create_
 /** The existing canonical Servicios application. Consumes the assisted cookie via `/publicar/layout.tsx`. */
 export const SERVICIOS_STAFF_INTAKE_PATH = SERVICIOS_CANONICAL_INTAKE_PATH;
 
-export const FUTURE_STAFF_GATEWAY_FAMILIES = [
+/** Live eight-family staff gateway. Not future scope. */
+export const STAFF_GATEWAY_FAMILIES = [
   "rentas",
   "empleos",
   "autos-privado",
   "servicios",
   "restaurantes",
   "comida-local",
-  "autos-dealer",
-  "bienes-raices-negocio",
+  "autos",
+  "bienes-raices",
 ] as const;
 
-export const FUTURE_STAFF_GATEWAY_EXCLUDED = ["viajes", "iglesias", "recursos"] as const;
+export const STAFF_GATEWAY_EXCLUDED = ["viajes", "iglesias", "recursos"] as const;
 
 export type StaffIntakeNavRefusal = "no_active_custody" | "category_mismatch" | "public_login_blocked" | "wrong_application";
 
@@ -64,11 +58,36 @@ function pathOnly(href: string): string {
   return trimmed(href).split("?")[0] || "";
 }
 
+/**
+ * Customer Quick adapters, hubs, branch choosers, and paid-product checkpoints. Staff fill
+ * destinations must be the canonical fillable application, never these.
+ */
+export const STAFF_INTAKE_FORBIDDEN_PATHS: Record<QuickSalesCategory, readonly string[]> = {
+  rentas: ["/clasificados/publicar/rentas", "/publicar/rapido", "/publicar/rentas"],
+  empleos: ["/publicar/empleos", "/publicar/empleos/feria", "/publicar/empleos/premium", "/clasificados/publicar/empleos"],
+  "autos-privado": ["/publicar/autos", "/publicar/autos/negocios", "/clasificados/publicar/autos"],
+  servicios: [SERVICIOS_CHECKPOINT_PATH, SERVICIOS_QUICK_ADAPTER_PATH],
+  restaurantes: ["/clasificados/publicar/restaurantes", "/publicar/negocio-rapido/restaurantes"],
+  "comida-local": ["/publicar/comida-local/rapido", "/publicar/comida-local/checkpoint", "/clasificados/publicar/restaurantes"],
+  autos: ["/clasificados/publicar/autos", "/publicar/autos", "/publicar/autos/privado", "/publicar/negocio-rapido/autos-dealer"],
+  "bienes-raices": ["/clasificados/publicar/bienes-raices", "/publicar/negocio-rapido/bienes-negocio"],
+};
+
 /** Customer publish login — the failure this doorway must never reach. */
 export function isPublicCustomerLoginPath(path: string): boolean {
   const p = trimmed(path).toLowerCase();
   if (!p) return false;
   return p === "/login" || p.startsWith("/login?") || p.includes("mode=post");
+}
+
+function isForbiddenStaffIntakePath(category: QuickSalesCategory, path: string): boolean {
+  const normalized = pathOnly(path);
+  return STAFF_INTAKE_FORBIDDEN_PATHS[category].some((forbidden) => normalized === forbidden);
+}
+
+function isCanonicalStaffIntakePath(category: QuickSalesCategory, path: string): boolean {
+  const expected = pathOnly(QUICK_SALES_CATEGORY_MAP[category].intakePath);
+  return pathOnly(path) === expected;
 }
 
 /**
@@ -87,14 +106,12 @@ export function resolveStaffOpenIntakeNavigation(input: {
   const href = trimmed(live.intakePath);
   if (!href) return { allowed: false, reason: "no_active_custody" };
   if (isPublicCustomerLoginPath(href)) return { allowed: false, reason: "public_login_blocked" };
-  if (input.selectedCategory === "servicios") {
-    const path = pathOnly(href);
-    if (path === SERVICIOS_CHECKPOINT_PATH || path === SERVICIOS_QUICK_ADAPTER_PATH) {
-      return { allowed: false, reason: "wrong_application" };
-    }
-    if (path !== SERVICIOS_STAFF_INTAKE_PATH) {
-      return { allowed: false, reason: "wrong_application" };
-    }
+  const path = pathOnly(href);
+  if (isForbiddenStaffIntakePath(input.selectedCategory, path)) {
+    return { allowed: false, reason: "wrong_application" };
+  }
+  if (!isCanonicalStaffIntakePath(input.selectedCategory, path)) {
+    return { allowed: false, reason: "wrong_application" };
   }
   return { allowed: true, href, sameTab: true };
 }
@@ -111,11 +128,11 @@ export function resolveStaffNavigationFromCustodyPost(json: {
   if (json.ok !== true) return { allowed: false, reason: "no_active_custody" };
   const category = trimmed(json.category);
   const intakePath = trimmed(json.intakePath);
-  if (category !== "servicios") {
+  if (!isQuickSalesCategory(category)) {
     return { allowed: false, reason: "category_mismatch" };
   }
   return resolveStaffOpenIntakeNavigation({
-    selectedCategory: "servicios",
+    selectedCategory: category,
     liveCustody: { category, intakePath },
   });
 }

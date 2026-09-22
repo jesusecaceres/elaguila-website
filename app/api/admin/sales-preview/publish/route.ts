@@ -63,10 +63,30 @@ const ACTIVATION: Record<
     patch: (nowIso) => ({ status: "active", published_at: nowIso, updated_at: nowIso }),
     fromStates: ["draft", "pending_payment", "payment_failed"],
   },
+  "autos-privado": {
+    table: "autos_classifieds_listings",
+    patch: (nowIso) => ({ status: "active", published_at: nowIso, updated_at: nowIso }),
+    fromStates: ["draft", "pending_payment", "payment_failed"],
+  },
   "bienes-raices": {
     table: "listings",
     patch: (nowIso) => ({ status: "active", is_published: true, published_at: nowIso, updated_at: nowIso }),
     fromStates: ["pending", "draft", "payment_failed"],
+  },
+  rentas: {
+    table: "listings",
+    patch: (nowIso) => ({ status: "active", is_published: true, published_at: nowIso, updated_at: nowIso }),
+    fromStates: ["pending", "draft", "payment_failed"],
+  },
+  empleos: {
+    table: "empleos_public_listings",
+    patch: (nowIso) => ({ lifecycle_status: "published", published_at: nowIso, updated_at: nowIso }),
+    fromStates: ["draft", "pending_review", "paused"],
+  },
+  "comida-local": {
+    table: "comida_local_public_listings",
+    patch: (nowIso) => ({ status: "published", published_at: nowIso, updated_at: nowIso }),
+    fromStates: ["draft", "pending_payment", "paused"],
   },
 };
 
@@ -74,7 +94,11 @@ const STATUS_COLUMN: Record<QuickSalesCategory, string> = {
   servicios: "listing_status",
   restaurantes: "status",
   autos: "status",
+  "autos-privado": "status",
   "bienes-raices": "status",
+  rentas: "status",
+  empleos: "lifecycle_status",
+  "comida-local": "status",
 };
 
 export async function POST(request: NextRequest) {

@@ -27,6 +27,7 @@ import {
   createProspectPreviewToken,
   isProspectPreviewConfigured,
 } from "@/app/lib/auth/prospectPreviewSession";
+import { isProspectPreviewCategory, isProspectPreviewSource } from "@/app/lib/auth/prospectPreviewToken";
 import { isListingLinkedToBusiness } from "@/app/lib/business/assistedListingCustody";
 import { resolveAssistedRowBinding } from "@/app/lib/sales/assistedSameRowBinding";
 import { recordSalesWorkspaceAudit } from "@/app/lib/sales/salesWorkspaceAudit";
@@ -94,6 +95,10 @@ export async function POST(request: NextRequest) {
   if (!isProspectPreviewConfigured()) {
     // An honest refusal. There is deliberately no unsigned fallback link.
     return NextResponse.json({ ok: false, error: "preview_signing_unavailable" }, { status: 503 });
+  }
+
+  if (!isProspectPreviewCategory(assistedContext.category) || !isProspectPreviewSource(descriptor.listingSource)) {
+    return NextResponse.json({ ok: false, error: "preview_category_unsupported" }, { status: 400 });
   }
 
   const requestedTtl = typeof body.ttlSec === "number" && Number.isFinite(body.ttlSec) ? Math.floor(body.ttlSec) : undefined;

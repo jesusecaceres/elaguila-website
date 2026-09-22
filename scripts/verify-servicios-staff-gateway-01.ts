@@ -30,8 +30,8 @@ import { QUICK_SALES_CATEGORY_MAP } from "../app/lib/sales/quickSalesCategories"
 import { resolveAssistedSessionConflict } from "../app/lib/sales/assistedSameRowBinding";
 import {
   BEGIN_CLIENT_DRAFT_HREF,
-  FUTURE_STAFF_GATEWAY_EXCLUDED,
-  FUTURE_STAFF_GATEWAY_FAMILIES,
+  STAFF_GATEWAY_EXCLUDED,
+  STAFF_GATEWAY_FAMILIES,
   SERVICIOS_STAFF_INTAKE_PATH,
   isPublicCustomerLoginPath,
   resolveStaffNavigationFromCustodyPost,
@@ -185,19 +185,19 @@ async function main() {
     assert.equal(SERVICIOS_STAFF_INTAKE_PATH, SERVICIOS_CANONICAL_INTAKE_PATH);
     assert.equal(SERVICIOS_STAFF_INTAKE_PATH, "/publicar/servicios");
   });
-  check("A8: future eight-family scope is recorded and Viajes/Iglesias/Recursos stay excluded", () => {
-    assert.deepEqual([...FUTURE_STAFF_GATEWAY_FAMILIES], [
+  check("A8: eight-family scope is live and Viajes/Iglesias/Recursos stay excluded", () => {
+    assert.deepEqual([...STAFF_GATEWAY_FAMILIES], [
       "rentas",
       "empleos",
       "autos-privado",
       "servicios",
       "restaurantes",
       "comida-local",
-      "autos-dealer",
-      "bienes-raices-negocio",
+      "autos",
+      "bienes-raices",
     ]);
-    assert.deepEqual([...FUTURE_STAFF_GATEWAY_EXCLUDED], ["viajes", "iglesias", "recursos"]);
-    assert.equal(FUTURE_STAFF_GATEWAY_FAMILIES.includes("servicios"), true);
+    assert.deepEqual([...STAFF_GATEWAY_EXCLUDED], ["viajes", "iglesias", "recursos"]);
+    assert.equal(STAFF_GATEWAY_FAMILIES.includes("servicios"), true);
   });
   check("A9: begin-client-draft reuses the proven canvass new-business path", () => {
     assert.equal(BEGIN_CLIENT_DRAFT_HREF, "/admin/businesses/canvass?intent=create_listing");
@@ -217,7 +217,7 @@ async function main() {
     assert.ok(clientSrc.includes("window.location.assign(nav.href)"), "Servicios primary action navigates same-tab after custody");
   });
   check("B3: primary action posts custody then navigates only if the helper allows it", () => {
-    assert.ok(clientSrc.includes("openServiciosWithCustody"));
+    assert.ok(clientSrc.includes("openIntakeWithCustody"));
     assert.ok(clientSrc.includes("resolveStaffNavigationFromCustodyPost"));
     assert.ok(clientSrc.includes('if (!nav.allowed)'));
     assert.ok(clientSrc.includes("window.location.assign(nav.href)"));

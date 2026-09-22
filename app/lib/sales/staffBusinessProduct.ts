@@ -30,7 +30,7 @@ export const SERVICIOS_CHECKPOINT_PATH = "/clasificados/publicar/servicios";
 
 /**
  * Categories that sell the Quick $249 Simple / Full $399 Full pair.
- * Recorded for the four live pair families; only Servicios' staff doorway is wired this slice.
+ * The four pair families share one application per category; Quick vs Full is entitlement only.
  */
 export const STAFF_BUSINESS_PAIR_CATEGORIES = ["servicios", "restaurantes", "autos", "bienes-raices"] as const;
 
@@ -43,6 +43,19 @@ export const STAFF_BUSINESS_PAIR_EXCLUDED_CATEGORIES = [
   "autos-privado",
   "comida-local",
 ] as const;
+
+/**
+ * Canonical packages for families that are NOT the $249/$399 pair. Stamped on assisted custody
+ * so publication evaluates the real category product, never a business-pair key.
+ */
+export const STAFF_CATEGORY_PRICED_PACKAGE_KEYS = {
+  rentas: "rentas_30d",
+  empleos: "empleos_job_post_paid",
+  "autos-privado": "autos_privado_30d",
+  "comida-local": "comida_local_base_monthly",
+} as const;
+
+export type StaffCategoryPricedFamily = keyof typeof STAFF_CATEGORY_PRICED_PACKAGE_KEYS;
 
 export type StaffBusinessPlan = BusinessPlanChoice;
 
@@ -95,20 +108,36 @@ export function staffBusinessPackageKeyForPlan(
   return businessPackageKeyForPlan(category, plan);
 }
 
+export function staffCategoryPricedPackageKey(category: string | null | undefined): string | null {
+  const key = trimmed(category).toLowerCase() as StaffCategoryPricedFamily;
+  return STAFF_CATEGORY_PRICED_PACKAGE_KEYS[key] ?? null;
+}
+
 /**
  * Resolve the package the staff actor is selling. Body plan/key wins; otherwise the live cookie
  * is preserved (so a remint that only binds listingId cannot silently drop Full). Omitted on a
- * pair category fails safe to Quick — the lesser product — never to Full.
+ * pair category fails safe to Quick — the lesser product — never to Full. Category-priced
+ * families stamp their existing canonical package and never receive $249/$399.
  */
 export function resolveStaffBusinessPackage(input: {
   category: string;
   requestedPlan?: unknown;
   requestedPackageKey?: unknown;
   livePackageKey?: unknown;
-}): { ok: true; plan: StaffBusinessPlan; packageKey: string } | { ok: false; error: "invalid_package_key" } | { ok: true; plan: null; packageKey: null } {
+}): { ok: true; plan: StaffBusinessPlan; packageKey: string } | { ok: false; error: "invalid_package_key" } | { ok: true; plan: null; packageKey: string | null } {
   const category = trimmed(input.category).toLowerCase();
-  if (!isStaffBusinessPairCategory(category) || isStaffBusinessPairExcluded(category)) {
-    return { ok: true, plan: null, packageKey: null };
+  if (isStaffBusinessPairExcluded(category) || !isStaffBusinessPairCategory(category)) {
+    const priced = staffCategoryPricedPackageKey(category);
+    const requestedKey = trimmed(input.requestedPackageKey);
+    if (requestedKey) {
+      if (priced && requestedKey.toLowerCase() !== priced) return { ok: false, error: "invalid_package_key" };
+      if (!priced) return { ok: false, error: "invalid_package_key" };
+    }
+    const liveKey = trimmed(input.livePackageKey);
+    if (liveKey && priced && liveKey.toLowerCase() === priced) {
+      return { ok: true, plan: null, packageKey: priced };
+    }
+    return { ok: true, plan: null, packageKey: priced };
   }
 
   const requestedKey = trimmed(input.requestedPackageKey);
@@ -165,8 +194,9 @@ export function staffIntakePathForCategory(
   plan: StaffBusinessPlan | null,
   fallback: string,
 ): string {
-  if (category === "servicios" && plan) return staffServiciosIntakeHref(plan);
-  return fallback;
+  const base = trimmed(fallback) || SERVICIOS_CANONICAL_INTAKE_PATH;
+  if (isStaffBusinessPairCategory(category) && plan === "quick") return withQuickPlanParam(base);
+  return base;
 }
 
 export function staffManualPaymentHref(input: {

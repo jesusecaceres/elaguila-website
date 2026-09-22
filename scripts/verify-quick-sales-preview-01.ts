@@ -40,6 +40,8 @@ import {
 } from "../app/lib/sales/assistedSameRowBinding";
 import { QUICK_SALES_CATEGORY_MAP, QUICK_SALES_CATEGORIES } from "../app/lib/sales/quickSalesCategories";
 import { BUSINESS_CATEGORY_PACKAGE_PAIR } from "../app/lib/listingPlans/businessAccessLevel";
+import { STAFF_CATEGORY_PRICED_PACKAGE_KEYS } from "../app/lib/sales/staffBusinessProduct";
+import { getRevenuePackageDefinition } from "../app/lib/listingPlans/revenuePricingMatrix";
 
 const PREVIEW_SECRET = "preview-secret-harness-only";
 const ASSISTED_SECRET = "assisted-secret-harness-only";
@@ -69,13 +71,26 @@ async function checkAsync(name: string, fn: () => Promise<void>) {
 const NOW = 1_800_000_000_000;
 
 const CATEGORY_SOURCE: Record<ProspectPreviewCategory, ProspectPreviewSource> = {
+  rentas: "listings",
+  empleos: "empleos_public_listings",
+  "autos-privado": "autos_classifieds_listings",
   servicios: "servicios_public_listings",
   restaurantes: "restaurantes_public_listings",
+  "comida-local": "comida_local_public_listings",
   autos: "autos_classifieds_listings",
   "bienes-raices": "listings",
 };
 
-const ALL: ProspectPreviewCategory[] = ["servicios", "restaurantes", "autos", "bienes-raices"];
+const ALL: ProspectPreviewCategory[] = [
+  "rentas",
+  "empleos",
+  "autos-privado",
+  "servicios",
+  "restaurantes",
+  "comida-local",
+  "autos",
+  "bienes-raices",
+];
 
 function mintPreview(category: ProspectPreviewCategory, listingId = "listing-1", ttlSec?: number) {
   return createProspectPreviewTokenWithSecret(
@@ -260,20 +275,33 @@ check("B6: a request naming a different business than the context is refused", (
   assert.equal(refusal?.status, 409);
 });
 
-check("B7: every category maps to exactly one canonical table and one EXISTING intake", () => {
+check("B7: every category maps to exactly one canonical table and one EXISTING fillable intake", () => {
   const sources = new Set<string>();
   for (const key of QUICK_SALES_CATEGORIES) {
     const d = QUICK_SALES_CATEGORY_MAP[key];
     assert.equal(d.category, key);
     assert.ok(d.saveEndpoint.startsWith("/api/"), "the save endpoint must be a real API route");
+    assert.equal(d.requiresClientUserId, false, `${key} is owner-null organizational custody`);
     if (key === "servicios") {
       assert.equal(d.intakePath, "/publicar/servicios", "Servicios staff doorway is the canonical application, not the checkpoint or Quick adapter");
-    } else {
-      assert.ok(d.intakePath.startsWith("/clasificados/"), "the intake must be the category's existing one");
+    } else if (key === "restaurantes") {
+      assert.equal(d.intakePath, "/publicar/restaurantes");
+    } else if (key === "autos") {
+      assert.equal(d.intakePath, "/publicar/autos/negocios");
+    } else if (key === "bienes-raices") {
+      assert.equal(d.intakePath, "/clasificados/publicar/bienes-raices/negocio");
+    } else if (key === "rentas") {
+      assert.equal(d.intakePath, "/clasificados/publicar/rentas/privado");
+    } else if (key === "empleos") {
+      assert.equal(d.intakePath, "/publicar/empleos/quick");
+    } else if (key === "autos-privado") {
+      assert.equal(d.intakePath, "/publicar/autos/privado");
+    } else if (key === "comida-local") {
+      assert.equal(d.intakePath, "/publicar/comida-local");
     }
     sources.add(d.listingSource);
   }
-  assert.equal(sources.size, 4, "four categories, four distinct canonical tables");
+  assert.equal(sources.size, 6, "eight families share six canonical tables (autos+privado, rentas+bienes)");
 });
 
 // =============================================================================
@@ -315,6 +343,14 @@ function makeRequest(body: unknown, cookieJar: Record<string, string> = {}) {
   } as never;
 }
 
+function packageFor(category: string): { key: string; cents: number } {
+  const pair = BUSINESS_CATEGORY_PACKAGE_PAIR[category];
+  if (pair) return { key: pair.simple, cents: 24900 };
+  const key = STAFF_CATEGORY_PRICED_PACKAGE_KEYS[category as keyof typeof STAFF_CATEGORY_PRICED_PACKAGE_KEYS];
+  const def = key ? getRevenuePackageDefinition(key) : null;
+  return { key: key ?? "", cents: def?.priceCents ?? 0 };
+}
+
 function assistedCookie(input: {
   category: string;
   listingId?: string | null;
@@ -323,7 +359,7 @@ function assistedCookie(input: {
   authUserId?: string;
   packageKey?: string | null;
 }): string {
-  const pair = BUSINESS_CATEGORY_PACKAGE_PAIR[input.category];
+  const pkg = packageFor(input.category);
   return createAssistedPublishingTokenWithSecret(
     {
       businessId: input.businessId ?? BIZ,
@@ -332,7 +368,7 @@ function assistedCookie(input: {
       authUserId: input.authUserId ?? STAFF_AUTH,
       listingId: input.listingId ?? null,
       assistedAction: "save_for_client",
-      packageKey: input.packageKey ?? pair?.simple ?? null,
+      packageKey: input.packageKey ?? pkg.key ?? null,
     },
     ASSISTED_SECRET,
   )!;
@@ -378,6 +414,14 @@ function readyRowsFor(category: ProspectPreviewCategory): Record<string, unknown
         { id: "row-1", status: "draft", inventory_role: "main", listing_payload: { businessName: "Dealer Uno" }, published_at: null, created_at: "2026-09-01T00:00:00Z" },
         { id: "row-1-v", status: "draft", inventory_role: "inventory_vehicle", dealer_inventory_parent_listing_id: "row-1", listing_payload: { images: [{ url: "https://cdn.example.test/car.jpg", role: "vehicle" }] }, published_at: null, created_at: "2026-09-01T00:00:01Z" },
       ];
+    case "autos-privado":
+      return [{ id: "row-1", status: "draft", lane: "privado", listing_payload: { title: "Honda Civic 2018" }, published_at: null }];
+    case "empleos":
+      return [{ id: "row-1", slug: "job-1", lane: "quick", title: "Cajero", company_name: "Taquería Sol", city: "San José", state: "CA", modality: "onsite", job_type: "full_time", experience: "entry", company_type: "restaurant", lifecycle_status: "draft", published_at: null }];
+    case "comida-local":
+      return [{ id: "row-1", slug: "comida-1", status: "draft", business_name: "Elote Loco", food_type: "street", city_display: "San José", que_vendes: "Elotes", published_at: null }];
+    case "rentas":
+      return [{ id: "row-1", status: "pending", is_published: false, published_at: null, title: "Cuarto en San José", category: "rentas" }];
     case "bienes-raices":
     default:
       return [{ id: "row-1", status: "pending", is_published: false, published_at: null, title: "Oficina", images: ["https://cdn.example.test/house.jpg"] }];
@@ -509,19 +553,20 @@ async function run() {
       // STORED row. The rows seeded here are therefore COMPLETE per that contract; the incomplete
       // variants live in verify-quick-sales-canonical-publish-readiness-01.ts.
       __seed(descriptor.listingSource, readyRowsFor(category));
+      const pkg = packageFor(category);
       __seed("leonix_payment_records", [
         {
           id: "pay-1",
           listing_source: descriptor.listingSource,
           listing_id: "row-1",
-          package_key: BUSINESS_CATEGORY_PACKAGE_PAIR[category].simple,
+          package_key: pkg.key,
           source: "admin_manual",
           manual_state: "cleared",
           payment_status: "paid",
           currency: "usd",
-          amount_cents: 24900,
-          amount_total_cents: 24900,
-          amount_paid_cents: 24900,
+          amount_cents: pkg.cents,
+          amount_total_cents: pkg.cents,
+          amount_paid_cents: pkg.cents,
         },
       ]);
       const jar = { leonix_assisted_publish: assistedCookie({ category, listingId: "row-1" }) };
@@ -549,7 +594,8 @@ async function run() {
       // Each category's own public value — servicios uses a separate lifecycle column, and
       // restaurantes' public state is "published" where autos/bienes use "active".
       if (category === "servicios") assert.equal(row.listing_status, "published");
-      else if (category === "restaurantes") assert.equal(row.status, "published");
+      else if (category === "restaurantes" || category === "comida-local") assert.equal(row.status, "published");
+      else if (category === "empleos") assert.equal(row.lifecycle_status, "published");
       else assert.equal(row.status, "active");
       if (isBienes) assert.equal(row.is_published, true);
 
@@ -820,7 +866,7 @@ run()
       process.exit(1);
     }
     console.log(
-      `verify-quick-sales-preview-01: OK (${checks} executed checks — 4 categories, real token attacks, real route calls, no DB, no network)`,
+      `verify-quick-sales-preview-01: OK (${checks} executed checks — eight families, real token attacks, real route calls, no DB, no network)`,
     );
   })
   .catch((e) => {

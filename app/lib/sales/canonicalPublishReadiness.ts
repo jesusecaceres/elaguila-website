@@ -54,6 +54,7 @@ import { resolveQuickBusinessPublishIdentity } from "@/app/lib/listingPlans/quic
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { RESTAURANTE_STATUS_TRANSITION_NOT_ALLOWED_ERROR, resolveRestauranteOwnerEditTargetStatus } from "@/app/lib/clasificados/restaurantes/restauranteOwnerEditStatusAuthority";
 import type { QuickSalesCategory } from "./quickSalesCategories";
+import { QUICK_SALES_CATEGORY_MAP } from "./quickSalesCategories";
 
 /**
  * QUICK IS ADDITIVE. The four normal category routes are NOT modified for this adapter (they are
@@ -436,5 +437,22 @@ export async function assessCanonicalPublishReadiness(input: {
       return assessAutos(listingId);
     case "bienes-raices":
       return assessBienes(listingId);
+    case "rentas":
+    case "empleos":
+    case "autos-privado":
+    case "comida-local":
+      return assessStoredRowExists(input.category, listingId);
   }
+}
+
+async function assessStoredRowExists(
+  category: QuickSalesCategory,
+  listingId: string,
+): Promise<CanonicalPublishAssessment> {
+  const table = QUICK_SALES_CATEGORY_MAP[category].listingSource;
+  const db = getAdminSupabase();
+  const { data, error } = await db.from(table).select("id").eq("id", listingId).maybeSingle();
+  if (error) return refuse(500, "listing_read_failed");
+  if (!data || typeof (data as { id?: unknown }).id !== "string") return refuse(409, "listing_not_found");
+  return { ok: true, category, listingId, childListingId: null };
 }

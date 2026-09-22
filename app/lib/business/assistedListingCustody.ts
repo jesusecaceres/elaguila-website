@@ -25,7 +25,9 @@ export type AssistedListingSource =
   | "servicios_public_listings"
   | "restaurantes_public_listings"
   | "autos_classifieds_listings"
-  | "listings";
+  | "listings"
+  | "empleos_public_listings"
+  | "comida_local_public_listings";
 
 /**
  * True when `listing_id` is already linked (status='verified') to `businessId` under
