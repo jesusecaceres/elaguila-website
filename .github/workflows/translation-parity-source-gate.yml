@@ -1,0 +1,72 @@
+name: Translation parity source gate
+
+on:
+  push:
+    branches:
+      - repair/translation-parity-all-classifieds-2026-09-22
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Prove clean checkout and local equals remote
+        shell: bash
+        run: |
+          git fetch origin "$GITHUB_REF_NAME"
+          echo "LOCAL_SHA=$(git rev-parse HEAD)"
+          echo "REMOTE_SHA=$(git rev-parse "origin/$GITHUB_REF_NAME")"
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "origin/$GITHUB_REF_NAME")"
+          test -z "$(git status --porcelain)"
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Translation parity category matrix
+        run: npx tsx scripts/verify-translation-parity-all-classifieds-01.ts
+
+      - name: Proven staff eight-category translation gate
+        run: npx tsx --tsconfig scripts/lib/tsconfig.harness.json scripts/verify-staff-eight-category-translation-01.ts
+
+      - name: Existing Translate Ad control gate
+        run: npx tsx scripts/verify-translate-ad-control-language-clarity.ts
+
+      - name: Existing globalization lifecycle and Translate Ad gate
+        run: npx tsx scripts/verify-globalization-lifecycle-translate-seo-04.ts
+
+      - name: Existing globalization closeout gate
+        run: npx tsx scripts/verify-globalization-final-closeout-05.ts
+
+      - name: Existing ES EN launch-language gate
+        run: npx tsx scripts/gate-i5-6-es-en-launch-language-controls-selftest.ts
+
+      - name: Existing i18n dictionaries and AST audit
+        run: npm run i18n:check
+
+      - name: Changed-file ESLint
+        run: >
+          npx eslint
+          "app/(site)/vista-previa/[category]/page.tsx"
+          "app/(site)/clasificados/publicar/en-venta/pro/page.tsx"
+          "scripts/verify-translation-parity-all-classifieds-01.ts"
+          --max-warnings 0
+
+      - name: Full typecheck
+        run: npm run typecheck
+
+      - name: Full build
+        run: npm run build

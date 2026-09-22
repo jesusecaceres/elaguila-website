@@ -15,7 +15,7 @@ export default async function EnVentaProPublishPage(props: { searchParams?: Prom
     <Suspense
       fallback={
         <main className="flex min-h-screen items-center justify-center bg-[#0f0f0f] pt-24 text-sm font-medium text-white/70">
-          Cargando…
+          {copyLang === "en" ? "Loading…" : "Cargando…"}
         </main>
       }
     >

@@ -29,6 +29,8 @@ export const metadata: Metadata = {
   title: "Vista previa / Preview",
 };
 
+type PreviewLang = "es" | "en";
+
 type PageProps = {
   params: Promise<{ category: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -39,23 +41,32 @@ function firstParam(value: string | string[] | undefined): string | null {
   return value ?? null;
 }
 
-function SafeRefusal() {
+function previewLang(value: string | string[] | undefined): PreviewLang {
+  return firstParam(value)?.trim().toLowerCase() === "en" ? "en" : "es";
+}
+
+function SafeRefusal({ lang }: { lang: PreviewLang }) {
+  const copy =
+    lang === "en"
+      ? {
+          badge: "Preview",
+          heading: "This link is no longer available",
+          body: "This preview link has expired or is not valid. Ask your Leonix representative to send you a new one.",
+        }
+      : {
+          badge: "Vista previa",
+          heading: "Este enlace ya no está disponible",
+          body: "El enlace de vista previa expiró o no es válido. Pídele a tu representante de Leonix que te envíe uno nuevo.",
+        };
+
   return (
     <main style={styles.shell} data-prospect-preview-clears-navbar="1">
       <div style={styles.card}>
-        <p style={styles.badge}>Vista previa / Preview</p>
+        <p style={styles.badge}>{copy.badge}</p>
         <h1 style={styles.heading} data-prospect-preview-heading="1">
-          Este enlace ya no está disponible
+          {copy.heading}
         </h1>
-        <p style={styles.sub}>This link is no longer available</p>
-        <p style={styles.body}>
-          El enlace de vista previa expiró o no es válido. Pídele a tu representante de Leonix que
-          te envíe uno nuevo.
-        </p>
-        <p style={styles.bodyEn}>
-          This preview link has expired or is not valid. Ask your Leonix representative to send you
-          a new one.
-        </p>
+        <p style={styles.body}>{copy.body}</p>
       </div>
     </main>
   );
@@ -64,15 +75,16 @@ function SafeRefusal() {
 export default async function ProspectPreviewPage({ params, searchParams }: PageProps) {
   const { category } = await params;
   const query = await searchParams;
+  const lang = previewLang(query.lang);
 
-  if (!isQuickSalesCategory(category)) return <SafeRefusal />;
+  if (!isQuickSalesCategory(category)) return <SafeRefusal lang={lang} />;
 
   const rawToken = firstParam(query[PROSPECT_PREVIEW_TOKEN_PARAM]);
   const ctx = readProspectPreviewContext(rawToken, category);
-  if (!ctx) return <SafeRefusal />;
+  if (!ctx) return <SafeRefusal lang={lang} />;
 
   const payload = await readProspectPreviewPayload(ctx);
-  if (!payload) return <SafeRefusal />;
+  if (!payload) return <SafeRefusal lang={lang} />;
 
   const descriptor = QUICK_SALES_CATEGORY_MAP[category];
   const expires = new Date(payload.expiresAtMs);
@@ -83,23 +95,27 @@ export default async function ProspectPreviewPage({ params, searchParams }: Page
     state: payload.state,
     content: payload.content,
   });
+  const categoryLabel = lang === "en" ? descriptor.labelEn : descriptor.labelEs;
+  const expiresLabel =
+    lang === "en"
+      ? `This link expires ${expires.toLocaleString("en-US")}`
+      : `Este enlace expira el ${expires.toLocaleString("es-MX")}`;
 
   return (
     <main style={styles.shell} data-prospect-preview-clears-navbar="1">
       <div style={styles.wrap}>
         <div style={styles.banner}>
-          <strong style={styles.bannerStrong}>Vista previa / Preview</strong>
-          <span style={styles.bannerText}>No publicado / Not published</span>
+          <strong style={styles.bannerStrong}>{lang === "en" ? "Preview" : "Vista previa"}</strong>
+          <span style={styles.bannerText}>{lang === "en" ? "Not published" : "No publicado"}</span>
         </div>
 
-        <p style={styles.badge}>
-          {descriptor.labelEs} / {descriptor.labelEn}
-        </p>
+        <p style={styles.badge}>{categoryLabel}</p>
         <ProspectPreviewTranslateAd
           category={category}
           listingId={payload.listingId}
           title={payload.title}
           content={payload.content}
+          siteLocale={lang}
         >
           {({ title, description }) => (
             <ProspectCategoryPreviewShell
@@ -107,24 +123,23 @@ export default async function ProspectPreviewPage({ params, searchParams }: Page
               title={title ?? vm.title}
               description={description}
               listingId={payload.listingId}
+              lang={lang}
             />
           )}
         </ProspectPreviewTranslateAd>
 
         <p style={styles.body}>
-          Así se verá tu anuncio. Todavía no está publicado y nadie más puede encontrarlo.
-        </p>
-        <p style={styles.bodyEn}>
-          This is how your ad will look. It is not published yet and nobody else can find it.
+          {lang === "en"
+            ? "This is how your ad will look. It is not published yet and nobody else can find it."
+            : "Así se verá tu anuncio. Todavía no está publicado y nadie más puede encontrarlo."}
         </p>
 
-        <p style={styles.footnote}>
-          Este enlace expira el {expires.toLocaleString("es-MX")} · This link expires{" "}
-          {expires.toLocaleString("en-US")}
-        </p>
+        <p style={styles.footnote}>{expiresLabel}</p>
         {payload.isPublic ? (
           <p style={styles.footnote}>
-            Este anuncio ya está activo / This ad is already live ({payload.lifecycleState})
+            {lang === "en"
+              ? `This ad is already live (${payload.lifecycleState})`
+              : `Este anuncio ya está activo (${payload.lifecycleState})`}
           </p>
         ) : null}
       </div>
@@ -136,7 +151,7 @@ const styles: Record<string, React.CSSProperties> = {
   shell: {
     minHeight: "100vh",
     background: "#F4EEE4",
-    // Navbar is `fixed top-0` (~4.5–5rem). Clear it so bilingual headings never sit under chrome.
+    // Navbar is `fixed top-0` (~4.5–5rem). Clear it so headings never sit under chrome.
     paddingTop: "calc(5.25rem + env(safe-area-inset-top, 0px))",
     paddingRight: 16,
     paddingBottom: 16,
