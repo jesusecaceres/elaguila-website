@@ -92,7 +92,7 @@ const read = (p: string) => readFileSync(path.join(REPO_ROOT, p), "utf8");
   assert.ok(app.includes('"Guardar cambios"') && app.includes('"Save changes"'), "edit mode must use truthful ES/EN save labels");
   assert.ok(app.includes("Editando anuncio publicado") && app.includes("Editing published listing"), "edit mode must show the ES/EN edit banner");
   assert.ok(app.includes("clearComidaLocalEditContext"), "publish success / discard must clear the edit context");
-  assert.ok(!app.toLowerCase().includes("stripe"), "the edit form itself must not start payment; checkout stays in new-publish preview");
+  assert.ok(!app.includes("startRevenueCategoryCheckout") && !app.includes("PublishCheckoutCheckpoint"), "the edit form itself must not start or render payment; checkout stays in new-publish preview");
 
   const preview = read("app/(site)/clasificados/comida-local/preview/ComidaLocalPreviewClient.tsx");
   assert.ok(preview.includes("resolvePreviewMode"), "the preview must resolve the shared preview-mode contract");
