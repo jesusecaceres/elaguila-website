@@ -630,8 +630,8 @@ export const UNIVERSAL_LANGUAGES_DROPDOWN_TRIGGER = "🌐 Languages";
 
 /** Honest browser/Google fallback note — official launch scope only. */
 export const OFFICIAL_LAUNCH_LANGUAGE_FALLBACK_NOTE: Record<OfficialLaunchLang, string> = {
-  es: "¿Necesitas otro idioma? Tu navegador puede ofrecer Google Translate y Google Lens puede ayudar con páginas impresas o visuales. Los idiomas oficiales de Leonix son Español, English, Português y Tagalog/Filipino.",
-  en: "Need another language? Your browser may offer Google Translate, and Google Lens can help translate printed or visual magazine pages. Leonix official launch languages are Spanish, English, Portuguese, and Tagalog/Filipino.",
+  es: "¿Necesitas otro idioma? Tu navegador puede ofrecer Google Translate y Google Lens puede ayudar con páginas impresas o visuales. Los idiomas oficiales de lanzamiento de Leonix son Español e English.",
+  en: "Need another language? Your browser may offer Google Translate, and Google Lens can help translate printed or visual magazine pages. Leonix official launch languages are Spanish and English.",
   pt: "Precisa de outro idioma? Seu navegador pode oferecer o Google Translate e o Google Lens pode ajudar com páginas impressas ou visuais. Os idiomas oficiais de lançamento da Leonix são Espanhol, Inglês, Português e Tagalog/Filipino.",
   tl: "Kailangan ng ibang wika? Maaaring mag-alok ang iyong browser ng Google Translate, at makakatulong ang Google Lens sa naka-print o visual na mga pahina. Ang opisyal na launch languages ng Leonix ay Spanish, English, Portuguese, at Tagalog/Filipino.",
 };
