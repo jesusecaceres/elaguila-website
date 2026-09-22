@@ -174,8 +174,9 @@ async function main() {
   // ===========================================================================
   const clientSrc = read("app/admin/(dashboard)/workspace/quick-sales/QuickSalesWorkspaceClient.tsx");
   check("B1: the fail-open `status?.intakePath ?? descriptor.intakePath` is gone", () => {
-    assert.equal(clientSrc.includes("status?.intakePath ?? descriptor.intakePath"), false);
     assert.equal(clientSrc.includes("?? descriptor.intakePath"), false);
+    assert.equal(/href=\{status\?\.intakePath/.test(clientSrc), false);
+    assert.ok(clientSrc.includes("resolveStaffOpenIntakeNavigation"));
   });
   check("B2: Open Services never uses target=_blank", () => {
     assert.equal(/data-staff-open-intake[\s\S]{0,400}target="_blank"/.test(clientSrc), false);

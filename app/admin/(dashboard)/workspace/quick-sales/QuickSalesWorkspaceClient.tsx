@@ -9,8 +9,8 @@
  * agreement, not an instruction — the server refuses a disagreement rather than following it.
  *
  * SERVICIOS doorway (slice 1): "Fill Quick Services" POSTs custody and only then same-tab
- * navigates to `/publicar/negocio-rapido/servicios`. There is no fail-open
- * `status?.intakePath ?? descriptor.intakePath`. No active custody ⇒ no public application.
+ * navigates to `/publicar/negocio-rapido/servicios`. There is no fail-open intake fallback.
+ * No active custody ⇒ no public application.
  */
 import { useCallback, useEffect, useState } from "react";
 import { QUICK_SALES_CATEGORIES, QUICK_SALES_CATEGORY_MAP, type QuickSalesCategory } from "@/app/lib/sales/quickSalesCategories";
