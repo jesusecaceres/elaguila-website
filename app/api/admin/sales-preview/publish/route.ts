@@ -29,10 +29,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireStaffWorkspaceWriteAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { readActiveAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
-import {
-  hasClearedManualPaymentForListing,
-  isListingLinkedToBusiness,
-} from "@/app/lib/business/assistedListingCustody";
+import { isListingLinkedToBusiness } from "@/app/lib/business/assistedListingCustody";
+import { refuseUnlessAuthoritativePayment } from "@/app/lib/listingPlans/listingPackagePaymentAuthorityServer";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { recordSalesWorkspaceAudit } from "@/app/lib/sales/salesWorkspaceAudit";
 import { activateAutosDealerListing, assessCanonicalPublishReadiness } from "@/app/lib/sales/canonicalPublishReadiness";
@@ -107,11 +105,15 @@ export async function POST(request: NextRequest) {
   }
 
   // PAYMENT FIRST, AND NOTHING IS WRITTEN BEFORE IT ANSWERS.
-  const cleared = await hasClearedManualPaymentForListing({
+  // Exact listing + exact signed package. A Quick payment cannot publish Full.
+  const packageKey = typeof ctx.packageKey === "string" ? ctx.packageKey.trim() : "";
+  const paid = await refuseUnlessAuthoritativePayment({
     listingSource: descriptor.listingSource,
     listingId,
+    packageKey: packageKey,
+    category,
   });
-  if (!cleared) {
+  if (!paid.ok) {
     await recordSalesWorkspaceAudit({
       action: "quick_sales_publish_attempted",
       actorRosterId: ctx.rosterId,
@@ -119,13 +121,13 @@ export async function POST(request: NextRequest) {
       category,
       listingSource: descriptor.listingSource,
       listingId,
-      paymentState: "manual_payment_not_cleared",
-      outcome: "manual_payment_not_cleared",
+      paymentState: paid.paymentState,
+      outcome: paid.error,
     });
     return NextResponse.json(
       {
         ok: false,
-        error: "manual_payment_not_cleared",
+        error: paid.error,
         message: "Record and clear the payment first. The draft stays private until it clears.",
         listingId,
       },

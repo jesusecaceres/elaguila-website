@@ -237,16 +237,16 @@ check("B3 WIRING: the two dedicated assisted routes bind to their own category",
   }
 });
 
-check("B4 WIRING: publish_for_client is gated on a REAL cleared manual payment", () => {
+check("B4 WIRING: publish_for_client is gated on authoritative listing+package payment", () => {
   for (const r of ASSISTED_ROUTES.filter((x) => x.category)) {
     const code = readCode(r.path);
-    assert.ok(code.includes("hasClearedManualPaymentForListing("), `${r.family} must check the payment ledger`);
-    assert.ok(code.includes("manual_payment_not_cleared"), `${r.family} must refuse with an explicit code`);
+    assert.ok(code.includes("refuseUnlessAuthoritativePayment("), `${r.family} must check the payment ledger`);
+    assert.ok(code.includes("packageKey:"), `${r.family} must bind the signed package`);
     assert.ok(code.includes("402"), `${r.family} must return 402 when unpaid`);
   }
-  // The gate reads the real ledger state, not a client-declared flag.
-  const custody = readCode("app/lib/business/assistedListingCustody.ts");
-  assert.ok(custody.includes('.eq("manual_state", "cleared")'), "the payment gate reads leonix_payment_records.manual_state");
+  const server = readCode("app/lib/listingPlans/listingPackagePaymentAuthorityServer.ts");
+  assert.ok(server.includes("leonix_payment_records"), "the payment gate reads leonix_payment_records");
+  assert.ok(server.includes("package_key"), "the payment gate is package-bound");
 });
 
 check("B5 WIRING: all four write the canonical business_listing_links relationship", () => {

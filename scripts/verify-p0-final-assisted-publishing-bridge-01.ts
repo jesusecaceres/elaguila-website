@@ -85,7 +85,10 @@ const custodySrc = read("app/lib/business/assistedListingCustody.ts");
 assert.ok(custodySrc.includes('import "server-only";'), "custody module is server-only");
 assert.ok(!/\.eq\("owner_user_id"|owner_user_id:\s/.test(custodySrc), "assistedListingCustody.ts never queries or writes any listing's owner_user_id — pure business_listing_links + leonix_payment_records reuse (doc comment may still name it for context)");
 assert.ok(custodySrc.includes("linked_by: input.linkedByAuthUserId") && !custodySrc.includes("linked_by: input.rosterId"), "business_listing_links.linked_by is attributed to the real authUserId, never a rosterId string");
-assert.ok(custodySrc.includes('.eq("manual_state", "cleared")'), "Publish for Client's payment gate checks the real leonix_payment_records cleared state, not a client-declared flag");
+assert.ok(custodySrc.includes("hasAuthoritativePaymentForListingPackage"), "Publish for Client's payment gate is the package-bound helper, not a listing-only boolean");
+const paySrc = read("app/lib/listingPlans/listingPackagePaymentAuthority.ts");
+assert.ok(paySrc.includes("manual_state"), "manual clearance remains a source-specific settled state");
+assert.ok(paySrc.includes("wrong_package"), "Quick payment cannot authorize Full");
 
 // 4. Publish route — assisted branch isolated from the customer owner-mutation policy -------------
 const publishSrc = read("app/api/clasificados/servicios/publish/route.ts");
@@ -103,7 +106,7 @@ assert.ok(assistedBranchStart > -1 && assistedBranchEnd > assistedBranchStart, "
 const assistedBranch = publishSrc.slice(assistedBranchStart, assistedBranchEnd);
 assert.ok(!/decideServiciosOwnerSaveStatus\(/.test(assistedBranch), "the assisted branch never CALLS decideServiciosOwnerSaveStatus (whose transition table assumes a proven customer owner) — a doc comment may still name it for contrast");
 assert.ok(!/owner_user_id\s*:/.test(assistedBranch), "the assisted branch's insert/update objects never set owner_user_id — stays unclaimed/null, Gate 5 #6");
-assert.ok(assistedBranch.includes("hasClearedManualPaymentForListing"), "Publish for Client requires a cleared manual payment, checked inside the assisted branch");
+assert.ok(assistedBranch.includes("refuseUnlessAuthoritativePayment"), "Publish for Client requires authoritative listing+package payment, checked inside the assisted branch");
 assert.ok(assistedBranch.includes("SERVICIOS_LEONIX_LOCKED_STATUSES.has(existingStatus)"), "a Leonix-locked row (suspended/rejected) still cannot be written through the assisted path either");
 assert.ok(assistedBranch.includes("linkAssistedListingToBusiness"), "a successful assisted persist always (re-)confirms the business_listing_links custody record");
 

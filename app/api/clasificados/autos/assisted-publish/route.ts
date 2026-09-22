@@ -18,10 +18,10 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { readActiveAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
 import {
-  hasClearedManualPaymentForListing,
   isListingLinkedToBusiness,
   linkAssistedListingToBusiness,
 } from "@/app/lib/business/assistedListingCustody";
+import { refuseUnlessAuthoritativePayment } from "@/app/lib/listingPlans/listingPackagePaymentAuthorityServer";
 import {
   createAutosClassifiedsListing,
   createAutosClassifiedsListingWithInventoryParent,
@@ -303,11 +303,13 @@ export async function POST(request: NextRequest) {
 
   // publish_for_client: verify cleared manual payment before activating
   if (isAssistedPublish) {
-    const cleared = await hasClearedManualPaymentForListing({
+    const paid = await refuseUnlessAuthoritativePayment({
       listingSource: "autos_classifieds_listings",
       listingId: mainListingId,
+      packageKey: assistedContext.packageKey ?? "",
+      category: "autos",
     });
-    if (!cleared) {
+    if (!paid.ok) {
       await recordSalesWorkspaceAudit({
         action: "quick_sales_publish_attempted",
         actorRosterId: assistedContext.rosterId,
@@ -316,11 +318,11 @@ export async function POST(request: NextRequest) {
         category: "autos",
         listingSource: "autos_classifieds_listings",
         listingId: mainListingId,
-        paymentState: "manual_payment_not_cleared",
-        outcome: "manual_payment_not_cleared",
+        paymentState: paid.paymentState,
+        outcome: paid.error,
       });
       return NextResponse.json(
-        { ok: false, error: "manual_payment_not_cleared", message: "Record and clear the manual payment in the Payment Tracker first." },
+        { ok: false, error: paid.error, message: "Record and clear the payment in the Payment Tracker first." },
         { status: 402 },
       );
     }

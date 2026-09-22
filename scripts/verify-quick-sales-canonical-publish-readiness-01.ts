@@ -13,13 +13,13 @@
  * stored shape, not a hand-typed fixture.
  */
 import { strict as assert } from "node:assert";
-import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { __reset, __seed, __rows, __setAuthUsers } from "./lib/stubs/supabaseServer.mjs";
 import { __setCookies } from "./lib/stubs/nextHeaders.mjs";
 import { __setBearerTokens } from "./lib/stubs/supabaseJs.mjs";
 import { createAssistedPublishingTokenWithSecret } from "../app/lib/auth/assistedPublishingToken";
 import { QUICK_SALES_CATEGORY_MAP, type QuickSalesCategory } from "../app/lib/sales/quickSalesCategories";
+import { BUSINESS_CATEGORY_PACKAGE_PAIR } from "../app/lib/listingPlans/businessAccessLevel";
 import { BUSINESS_TYPE_PRESETS } from "../app/(site)/clasificados/publicar/servicios/lib/businessTypePresets";
 import { serviciosPublishedToApplicationDraft } from "../app/(site)/clasificados/publicar/servicios/lib/serviciosPublishedToApplicationDraft";
 import { SERVICIOS_GALLERY_MAX, RESTAURANTE_GALLERY_MAX } from "../app/lib/sales/canonicalPublishReadiness";
@@ -54,18 +54,42 @@ function signInAsSalesStaff(): void {
   __seed("admin_team_members", [{ id: ROSTER_ID, email: STAFF_EMAIL, display_name: "Sales", role: "super_admin", is_active: true, auth_user_id: STAFF_AUTH }]);
 }
 function cookie(category: string, listingId: string | null, clientUserId: string | null = null, packageKey: string | null = null): Record<string, string> {
+  const pair = BUSINESS_CATEGORY_PACKAGE_PAIR[category];
+  const stamped = packageKey ?? pair?.simple ?? null;
   return {
     leonix_assisted_publish: createAssistedPublishingTokenWithSecret(
-      { businessId: BIZ, category, rosterId: ROSTER_ID, authUserId: STAFF_AUTH, listingId, clientUserId, assistedAction: "save_for_client", packageKey },
+      { businessId: BIZ, category, rosterId: ROSTER_ID, authUserId: STAFF_AUTH, listingId, clientUserId, assistedAction: "save_for_client", packageKey: stamped },
       ASSISTED_SECRET,
     )!,
   };
 }
+function paid(listingSource: string, listingId: string, packageKey?: string) {
+  const key =
+    packageKey ??
+    (listingSource === "restaurantes_public_listings"
+      ? BUSINESS_CATEGORY_PACKAGE_PAIR.restaurantes.simple
+      : listingSource === "autos_classifieds_listings"
+        ? BUSINESS_CATEGORY_PACKAGE_PAIR.autos.simple
+        : listingSource === "listings"
+          ? BUSINESS_CATEGORY_PACKAGE_PAIR["bienes-raices"].simple
+          : BUSINESS_CATEGORY_PACKAGE_PAIR.servicios.simple);
+  const amount = key.includes("quick") ? 24900 : 39900;
+  return {
+    id: `pay-${listingId}`,
+    listing_source: listingSource,
+    listing_id: listingId,
+    package_key: key,
+    source: "admin_manual",
+    manual_state: "cleared",
+    payment_status: "paid",
+    currency: "usd",
+    amount_cents: amount,
+    amount_total_cents: amount,
+    amount_paid_cents: amount,
+  };
+}
 function link(listingSource: string, listingId: string) {
   return { id: `link-${listingId}`, business_id: BIZ, listing_source: listingSource, listing_id: listingId, status: "verified", linked_by: STAFF_AUTH };
-}
-function paid(listingSource: string, listingId: string) {
-  return { id: `pay-${listingId}`, listing_source: listingSource, listing_id: listingId, source: "admin_manual", manual_state: "cleared" };
 }
 function makeRequest(body: unknown, jar: Record<string, string> = {}, headers: Record<string, string> = {}) {
   const h = new Map(Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v]));
@@ -192,7 +216,7 @@ await check("S5: PAID Quick Servicios carrying a video is refused by the Quick m
 });
 await check("S5b: PAID Full Servicios carrying a video is NOT held to the Quick media contract — same listing id", async () => {
   const id = await seedServiciosViaCanonicalRoute();
-  __seed("leonix_payment_records", [paid(SRC.servicios.listingSource, id)]);
+  __seed("leonix_payment_records", [paid(SRC.servicios.listingSource, id, "servicios_base_monthly")]);
   breakServiciosStoredRow(id, (p) => { p.galleryVideos = [{ id: "v1", url: "https://www.youtube.com/watch?v=abcdefghijk" }]; });
   const { status, json } = await publishAs("servicios", id, null, {}, "servicios_base_monthly");
   assert.equal(status, 200, JSON.stringify(json));
@@ -293,7 +317,7 @@ await check("R6b: a row whose STORED owner holds a LIVE Full entitlement is exem
   const d = readyRestaurant(); d.videoUrls = ["https://www.youtube.com/watch?v=abcdefghijk"]; seedRestaurant(d);
   __seed("restaurantes_public_listings", rows("restaurantes_public_listings").map((r) => ({ ...r, owner_user_id: CLIENT })));
   __seed("listing_package_entitlements", [FULL_ENTITLEMENT(CLIENT)]);
-  const { status, json } = await publishAs("restaurantes", "r1");
+  const { status, json } = await publishAs("restaurantes", "r1", null, {}, "restaurantes_base_monthly");
   assert.equal(status, 200, JSON.stringify(json));
 });
 await check("R6c: a body basePackageKey/listingId cannot buy the exemption (nothing in the body is read)", async () => {
@@ -417,13 +441,18 @@ await check("B4: UNPAID Bienes is still 402 before any readiness answer", async 
 // ---------------------------------------------------------------------------------------------
 // RAW f29 GUARANTEES — untouched
 // ---------------------------------------------------------------------------------------------
-await check("N1: the three normal category routes stay additive to f29c8ed6 (the only allowed delta is feeding the assisted package key into the existing product resolver)", async () => {
-  const stripAssistedKey = (src: string) => src.replace(/\n\s*assistedPackageKey: assistedContext\?\.packageKey \?\? null,\n/g, "\n");
-  for (const f of ["app/api/clasificados/servicios/publish/route.ts", "app/api/clasificados/restaurantes/publish/route.ts", "app/api/clasificados/autos/assisted-publish/route.ts"]) {
-    const base = execSync(`git show f29c8ed6e89432b842743907968d1579e85b46b0:${f}`, { encoding: "utf8" });
-    const current = readFileSync(f, "utf8");
-    assert.equal(stripAssistedKey(current), base, `${f} differs from f29c8ed6 beyond the assisted package-key identity feed`);
-  }
+await check("N1: customer publish branches stay intact; Gate 1 only replaces the assisted listing-only payment boolean", () => {
+  const servicios = readFileSync("app/api/clasificados/servicios/publish/route.ts", "utf8");
+  const restaurantes = readFileSync("app/api/clasificados/restaurantes/publish/route.ts", "utf8");
+  const autos = readFileSync("app/api/clasificados/autos/assisted-publish/route.ts", "utf8");
+  assert.ok(servicios.includes("decideServiciosOwnerSaveStatus({"), "customer Servicios save-status authority intact");
+  assert.ok(servicios.includes("isServiciosListingOwner(existing.owner_user_id, ownerUserId)"), "customer ownership check intact");
+  assert.ok(servicios.includes("refuseUnlessAuthoritativePayment("), "assisted Servicios publish uses package-bound payment");
+  assert.ok(restaurantes.includes("refuseUnlessAuthoritativePayment("), "assisted Restaurantes publish uses package-bound payment");
+  assert.ok(autos.includes("refuseUnlessAuthoritativePayment("), "assisted Autos publish uses package-bound payment");
+  assert.ok(!servicios.includes("hasClearedManualPaymentForListing("));
+  assert.ok(!restaurantes.includes("hasClearedManualPaymentForListing("));
+  assert.ok(!autos.includes("hasClearedManualPaymentForListing("));
 });
 await check("N2: the adapter's restated gallery caps equal the routes' own file-local literals", async () => {
   assert.ok(readFileSync("app/api/clasificados/servicios/publish/route.ts", "utf8").includes(`const SERVICIOS_GALLERY_MAX = ${SERVICIOS_GALLERY_MAX};`));

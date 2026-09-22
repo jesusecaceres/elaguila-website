@@ -26,10 +26,8 @@ import {
   applyAssistedPublishingCookie,
   readActiveAssistedPublishingContext,
 } from "@/app/lib/auth/assistedPublishingSession";
-import {
-  hasClearedManualPaymentForListing,
-  isListingLinkedToBusiness,
-} from "@/app/lib/business/assistedListingCustody";
+import { isListingLinkedToBusiness } from "@/app/lib/business/assistedListingCustody";
+import { readListingPackagePaymentAuthority } from "@/app/lib/listingPlans/listingPackagePaymentAuthorityServer";
 import { isClientAuthorizedForBusiness } from "@/app/lib/sales/assistedClientAuthorization";
 import { recordSalesWorkspaceAudit } from "@/app/lib/sales/salesWorkspaceAudit";
 import { QUICK_SALES_CATEGORY_MAP, isQuickSalesCategory } from "@/app/lib/sales/quickSalesCategories";
@@ -63,9 +61,24 @@ export async function GET(request: NextRequest) {
   });
   const plan = resolved.ok && resolved.plan ? resolved.plan : null;
   const packageKey = resolved.ok && resolved.packageKey ? resolved.packageKey : ctx.packageKey ?? null;
-  const paymentCleared = listingId
-    ? await hasClearedManualPaymentForListing({ listingSource: descriptor.listingSource, listingId })
-    : false;
+  const boundPackageKey = typeof ctx.packageKey === "string" ? ctx.packageKey.trim() : "";
+  const paymentDecision =
+    listingId && boundPackageKey
+      ? await readListingPackagePaymentAuthority({
+          listingSource: descriptor.listingSource,
+          listingId,
+          packageKey: boundPackageKey,
+          category: ctx.category,
+        })
+      : null;
+  const paymentCleared = paymentDecision?.ok === true;
+  const paymentState = listingId
+    ? paymentCleared
+      ? "cleared"
+      : paymentDecision && !paymentDecision.ok && paymentDecision.error === "wrong_package"
+        ? "wrong_package"
+        : "not_cleared"
+    : "no_listing";
   return NextResponse.json(
     {
       ok: true,
@@ -81,7 +94,7 @@ export async function GET(request: NextRequest) {
         packageKey,
         plan,
         expiresAtMs: ctx.expiresAtMs,
-        paymentState: listingId ? (paymentCleared ? "cleared" : "not_cleared") : "no_listing",
+        paymentState,
         publishReady: paymentCleared,
       },
     },

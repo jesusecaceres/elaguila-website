@@ -21,10 +21,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { readActiveAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
 import {
-  hasClearedManualPaymentForListing,
   isListingLinkedToBusiness,
   linkAssistedListingToBusiness,
 } from "@/app/lib/business/assistedListingCustody";
+import { refuseUnlessAuthoritativePayment } from "@/app/lib/listingPlans/listingPackagePaymentAuthorityServer";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import {
   assertAssistedIdentity,
@@ -233,8 +233,7 @@ export async function POST(request: NextRequest) {
   // the unpaid listing was live to the world.
   //
   // Every write below lands as PENDING. Activation is a separate step that happens only after
-  // `hasClearedManualPaymentForListing` says the money is in, which is the same order the Autos
-  // assisted route already used.
+  // `refuseUnlessAuthoritativePayment` says this listing has matching package payment.
   const insertRow: Record<string, unknown> = {
     ...filteredRow,
     owner_id: clientUserId,
@@ -266,10 +265,10 @@ export async function POST(request: NextRequest) {
     //
     // Forcing `pending` / `is_published: false` onto every write is right for an INSERT — an
     // unpaid listing must not be born live — but on an UPDATE it took a listing that was ALREADY
-    // live DARK. `hasClearedManualPaymentForListing` is true only for a cleared MANUAL payment,
-    // so a Stripe-paid listing fails it: staff opening the assisted tool to fix a typo on a live,
-    // fully-paid listing unpublished it and got a 402 with no rollback. That hit Full agents as
-    // well as Quick.
+    // live DARK. Listing-only manual clearance used to fail Stripe-paid live rows. The canonical
+    // helper now accepts webhook-backed paid/succeeded truth for the SAME package, so a Full
+    // Stripe payment cannot be unpublished by a later staff typo-fix — and a Quick payment still
+    // cannot activate Full.
     //
     // Lifecycle is not this route's to change on an existing row. A pending row stays pending, a
     // live row stays live, and the ONLY transition to live remains the post-payment activation
@@ -327,11 +326,13 @@ export async function POST(request: NextRequest) {
 
   // publish_for_client: verify cleared manual payment, and ONLY THEN activate.
   if (isAssistedPublish) {
-    const cleared = await hasClearedManualPaymentForListing({
+    const paid = await refuseUnlessAuthoritativePayment({
       listingSource: "listings",
       listingId,
+      packageKey: assistedContext.packageKey ?? "",
+      category: "bienes-raices",
     });
-    if (!cleared) {
+    if (!paid.ok) {
       await recordSalesWorkspaceAudit({
         action: "quick_sales_publish_attempted",
         actorRosterId: assistedContext.rosterId,
@@ -340,16 +341,14 @@ export async function POST(request: NextRequest) {
         category: "bienes-raices",
         listingSource: "listings",
         listingId,
-        paymentState: "manual_payment_not_cleared",
-        outcome: "manual_payment_not_cleared",
+        paymentState: paid.paymentState,
+        outcome: paid.error,
       });
-      // The row exists but is PENDING and unpublished, so nothing is public. Staff can clear the
-      // payment and re-run this action, which will find the same row and activate it.
       return NextResponse.json(
         {
           ok: false,
-          error: "manual_payment_not_cleared",
-          message: "Record and clear the manual payment in the Payment Tracker first.",
+          error: paid.error,
+          message: "Record and clear the payment in the Payment Tracker first.",
           listingId,
         },
         { status: 402 },

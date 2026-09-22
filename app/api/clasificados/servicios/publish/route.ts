@@ -38,10 +38,10 @@ import {
 } from "@/app/clasificados/servicios/lib/serviciosOwnerMutationPolicy";
 import { readActiveAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
 import {
-  hasClearedManualPaymentForListing,
   isListingLinkedToBusiness,
   linkAssistedListingToBusiness,
 } from "@/app/lib/business/assistedListingCustody";
+import { refuseUnlessAuthoritativePayment } from "@/app/lib/listingPlans/listingPackagePaymentAuthorityServer";
 import { linkSelfServiceListingToBusiness } from "@/app/lib/business/canonicalListingLink";
 import { resolveServiciosReactivationAuthority } from "@/app/clasificados/servicios/lib/serviciosReactivationAuthorityServer";
 import { resolveBusinessToolsAccess } from "@/app/lib/listingPlans/categoryCommercialPlan";
@@ -745,22 +745,24 @@ export async function POST(req: NextRequest) {
           }
           let nextStatus = "draft";
           if (isAssistedPublishForClient) {
-            const cleared = await hasClearedManualPaymentForListing({
+            const paid = await refuseUnlessAuthoritativePayment({
               listingSource: "servicios_public_listings",
               listingId: existingId,
+              packageKey: assistedContext?.packageKey ?? "",
+              category: "servicios",
             });
-            if (!cleared) {
+            if (!paid.ok) {
               await insertServiciosAnalyticsEvent({
                 listingSlug: slug,
                 eventType: "publish_failure",
-                meta: { reason: "manual_payment_not_cleared", assisted: true },
+                meta: { reason: paid.error, assisted: true },
               });
               return NextResponse.json(
                 {
                   ok: false,
-                  error: "manual_payment_not_cleared",
+                  error: paid.error,
                   message:
-                    "No cleared manual payment found for this listing yet. Record and clear it in the Payment Tracker first.",
+                    "No authoritative payment found for this listing and package yet. Record and clear it in the Payment Tracker first.",
                 },
                 { status: 402 },
               );

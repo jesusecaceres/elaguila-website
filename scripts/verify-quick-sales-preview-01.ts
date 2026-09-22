@@ -39,6 +39,7 @@ import {
   resolveAssistedRowBinding,
 } from "../app/lib/sales/assistedSameRowBinding";
 import { QUICK_SALES_CATEGORY_MAP, QUICK_SALES_CATEGORIES } from "../app/lib/sales/quickSalesCategories";
+import { BUSINESS_CATEGORY_PACKAGE_PAIR } from "../app/lib/listingPlans/businessAccessLevel";
 
 const PREVIEW_SECRET = "preview-secret-harness-only";
 const ASSISTED_SECRET = "assisted-secret-harness-only";
@@ -320,7 +321,9 @@ function assistedCookie(input: {
   businessId?: string;
   rosterId?: string;
   authUserId?: string;
+  packageKey?: string | null;
 }): string {
+  const pair = BUSINESS_CATEGORY_PACKAGE_PAIR[input.category];
   return createAssistedPublishingTokenWithSecret(
     {
       businessId: input.businessId ?? BIZ,
@@ -329,6 +332,7 @@ function assistedCookie(input: {
       authUserId: input.authUserId ?? STAFF_AUTH,
       listingId: input.listingId ?? null,
       assistedAction: "save_for_client",
+      packageKey: input.packageKey ?? pair?.simple ?? null,
     },
     ASSISTED_SECRET,
   )!;
@@ -506,7 +510,19 @@ async function run() {
       // variants live in verify-quick-sales-canonical-publish-readiness-01.ts.
       __seed(descriptor.listingSource, readyRowsFor(category));
       __seed("leonix_payment_records", [
-        { id: "pay-1", listing_source: descriptor.listingSource, listing_id: "row-1", manual_state: "cleared" },
+        {
+          id: "pay-1",
+          listing_source: descriptor.listingSource,
+          listing_id: "row-1",
+          package_key: BUSINESS_CATEGORY_PACKAGE_PAIR[category].simple,
+          source: "admin_manual",
+          manual_state: "cleared",
+          payment_status: "paid",
+          currency: "usd",
+          amount_cents: 24900,
+          amount_total_cents: 24900,
+          amount_paid_cents: 24900,
+        },
       ]);
       const jar = { leonix_assisted_publish: assistedCookie({ category, listingId: "row-1" }) };
       const res = await workspacePublish.POST(makeRequest({}, jar));
