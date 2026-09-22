@@ -788,8 +788,8 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                 }}
                 fieldLabel={rm.media.videosByLink}
                 urlLabel={(n) => fillTemplate(rm.media.videoN, { n })}
-                addLabel="+ Agregar video"
-                removeLabel="Quitar"
+                addLabel={lang === "en" ? "+ Add video" : "+ Agregar video"}
+                removeLabel={lang === "en" ? "Remove" : "Quitar"}
                 addedLabel={rm.media.linksReady}
                 placeholder="https://youtube.com/..."
               />

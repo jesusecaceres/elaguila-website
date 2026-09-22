@@ -16,9 +16,10 @@ export default function EnVentaResultsPage() {
   return (
     <Suspense
       fallback={
-        <div className={`min-h-screen bg-[#FAF6EE] ${underNavOffset} text-center text-sm text-[#5C5346]`}>
-          Loading…
-        </div>
+        <div
+          className={`min-h-screen bg-[#FAF6EE] ${underNavOffset}`}
+          aria-busy="true"
+        />
       }
     >
       <div className={underNavOffset}>

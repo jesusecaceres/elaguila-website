@@ -63,14 +63,14 @@ const LANE_ROUTES: Record<string, string> = {
 
 const APPLICATION_PROOFS: Record<string, string> = {
   restaurantes: "app/(site)/publicar/restaurantes/RestauranteApplicationClient.tsx",
-  servicios: "app/(site)/publicar/servicios/page.tsx",
+  servicios: "app/(site)/clasificados/publicar/servicios/components/ClasificadosServiciosApplication.tsx",
   comida_local: "app/(site)/publicar/comida-local/ComidaLocalApplicationClient.tsx",
   autos_negocios: "app/(site)/publicar/autos/negocios/components/AutosNegociosApplication.tsx",
   autos_privado: "app/(site)/publicar/autos/privado/components/AutosPrivadoApplication.tsx",
   bienes_raices_negocio:
     "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/application/AgenteIndividualResidencialApplication.tsx",
-  bienes_raices_privado: "app/(site)/publicar/bienes-raices/privado/page.tsx",
-  rentas_negocio: "app/(site)/publicar/rentas/negocio/page.tsx",
+  bienes_raices_privado: "app/(site)/clasificados/publicar/bienes-raices/privado/application/BienesRaicesPrivadoForm.tsx",
+  rentas_negocio: "app/(site)/clasificados/publicar/rentas/negocio/application/RentasNegocioForm.tsx",
   rentas_privado: "app/(site)/publicar/rentas/privado/page.tsx",
   empleos_quick: "app/(site)/publicar/empleos/quick/EmpleoQuickApplicationClient.tsx",
   empleos_premium: "app/(site)/publicar/empleos/premium/EmpleoPremiumApplicationClient.tsx",
@@ -87,22 +87,20 @@ const APPLICATION_PROOFS: Record<string, string> = {
   ofertas_locales: "app/(site)/publicar/ofertas-locales/OfertasLocalesApplicationClient.tsx",
 };
 
-const RESULT_SURFACES = [
-  "app/(site)/clasificados/restaurantes/resultados/page.tsx",
-  "app/(site)/clasificados/servicios/resultados/page.tsx",
-  "app/(site)/clasificados/bienes-raices/resultados/page.tsx",
-  "app/(site)/clasificados/dealers-de-autos/results/page.tsx",
-  "app/(site)/clasificados/autos/resultados/page.tsx",
-  "app/(site)/clasificados/rentas/results/page.tsx",
-  "app/(site)/clasificados/empleos/resultados/page.tsx",
-  "app/(site)/clasificados/en-venta/results/page.tsx",
-  "app/(site)/clasificados/ofertas-locales/results/page.tsx",
-  "app/(site)/clasificados/busco/resultados/page.tsx",
-  "app/(site)/clasificados/clases/resultados/page.tsx",
-  "app/(site)/clasificados/comunidad/resultados/page.tsx",
-  "app/(site)/clasificados/mascotas-y-perdidos/results/page.tsx",
-  "app/(site)/clasificados/viajes/resultados/page.tsx",
-] as const;
+const RESULT_SURFACES: Record<string, string> = {
+  restaurantes: "app/(site)/clasificados/restaurantes/resultados/RestaurantesResultsShell.tsx",
+  servicios: "app/(site)/clasificados/servicios/resultados/ServiciosResultsClient.tsx",
+  bienes_raices: "app/(site)/clasificados/bienes-raices/resultados/BienesRaicesResultsClient.tsx",
+  autos: "app/(site)/clasificados/autos/components/public/AutosPublicResultsShell.tsx",
+  rentas: "app/(site)/clasificados/rentas/components/RentasResultsClient.tsx",
+  empleos: "app/(site)/clasificados/empleos/components/EmpleosResultsView.tsx",
+  en_venta: "app/(site)/clasificados/en-venta/results/EnVentaResultsClient.tsx",
+  ofertas_locales: "app/(site)/clasificados/ofertas-locales/results/OfertasLocalesResultsClient.tsx",
+  busco: "app/(site)/clasificados/busco/BuscoResultsClient.tsx",
+  clases_comunidad: "app/(site)/clasificados/community/CommunityListingsResultsClient.tsx",
+  mascotas_y_perdidos: "app/(site)/clasificados/mascotas-y-perdidos/MascotasPerdidosResultsClient.tsx",
+  viajes: "app/(site)/clasificados/viajes/components/ViajesResultsShell.tsx",
+};
 
 function main() {
   const registry = read("app/lib/listingIdentity/categoryRouteRegistry.ts");
@@ -224,8 +222,8 @@ function main() {
     assert.ok(src.includes("redirect("));
   });
 
-  for (const file of RESULT_SURFACES) {
-    check(`results[${file}]: result surface has language propagation`, () => {
+  for (const [name, file] of Object.entries(RESULT_SURFACES)) {
+    check(`results[${name}]: rendered result client has language propagation`, () => {
       assert.ok(existsSync(file), file);
       const src = read(file);
       assert.ok(/lang|language|Locale|locale/.test(src), `${file} lacks language propagation evidence`);
@@ -252,12 +250,10 @@ function main() {
     'listing.category === "mascotas-y-perdidos"',
     'listing.category === "clases" || listing.category === "comunidad"',
   ]) {
-    check(`published[generic branch]: ${token} consumes translated overlay`, () => {
-      const at = sharedAnuncio.indexOf(token);
-      assert.ok(at >= 0, token);
-      const block = sharedAnuncio.slice(at, at + 9000);
-      assert.ok(block.includes("translateControl"), `${token} missing translate control`);
-      assert.ok(block.includes("proseListing"), `${token} missing translated display listing`);
+    check(`published[generic branch]: ${token} is rendered inside the translated generic detail shell`, () => {
+      assert.ok(sharedAnuncio.includes(token), token);
+      assert.ok(sharedAnuncio.includes("translateControl"), "generic shell missing Translate Ad control");
+      assert.ok(sharedAnuncio.includes("proseListing"), "generic shell missing translated listing overlay");
     });
   }
 
@@ -334,6 +330,37 @@ function main() {
   check("private Preview: business/display names never enter title translation", () => {
     const src = read("app/(site)/vista-previa/[category]/ProspectPreviewTranslateAd.tsx");
     assert.ok(src.includes("authoredTitle !== businessName"));
+  });
+
+  check("application[bienes privado]: English locale is not forced back to Spanish", () => {
+    const src = read("app/(site)/clasificados/publicar/bienes-raices/privado/application/BienesRaicesPrivadoForm.tsx");
+    assert.equal(src.includes('lang="es"'), false);
+    assert.ok(src.includes('brPrivateUi(lang, "Categoría", "Category")'));
+    assert.ok(src.includes('TIPO_PROPIEDAD_LABEL_EN'));
+    assert.ok(src.includes('COMERCIAL_TIPO_LABEL_EN'));
+    assert.ok(src.includes('TERRENO_TIPO_LABEL_EN'));
+  });
+
+  check("application[rentas negocio]: shared contact section and residual form copy honor lang", () => {
+    const src = read("app/(site)/clasificados/publicar/rentas/negocio/application/RentasNegocioForm.tsx");
+    assert.equal(src.includes('lang="es"'), false);
+    assert.ok(src.includes('lang={lang}'));
+    assert.ok(src.includes('rentasUiLabel(lang, "Videos por enlace (opcional)", "Videos by link (optional)")'));
+  });
+
+  check("application[rentas privado]: video action labels honor lang", () => {
+    const src = read("app/(site)/clasificados/publicar/rentas/privado/application/RentasPrivadoForm.tsx");
+    assert.ok(src.includes('addLabel={lang === "en" ? "+ Add video" : "+ Agregar video"}'));
+    assert.ok(src.includes('removeLabel={lang === "en" ? "Remove" : "Quitar"}'));
+  });
+
+  check("results: loading fallbacks do not expose the wrong application language", () => {
+    const jobs = read("app/(site)/clasificados/empleos/resultados/page.tsx");
+    const enVenta = read("app/(site)/clasificados/en-venta/results/page.tsx");
+    assert.equal(jobs.includes('aria-label="Cargando empleos"'), false);
+    assert.equal(enVenta.includes("Loading…"), false);
+    assert.ok(jobs.includes('aria-busy="true"'));
+    assert.ok(enVenta.includes('aria-busy="true"'));
   });
 
   check("staff eight-category source gate remains present as the proven Negocios/assisted reference", () => {

@@ -18,7 +18,7 @@ export default async function ClasificadosEmpleosResultadosPage() {
 
   return (
     <Suspense
-      fallback={<div className="min-h-screen bg-[#ECEAE7]" aria-busy="true" aria-label="Cargando empleos" />}
+      fallback={<div className="min-h-screen bg-[#ECEAE7]" aria-busy="true" />}
     >
       <EmpleosResultsView
         // Client will fetch the published live catalog via `/api/clasificados/empleos/listings` in live-only mode.
