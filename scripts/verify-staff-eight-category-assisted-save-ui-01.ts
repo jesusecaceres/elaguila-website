@@ -29,6 +29,10 @@ import {
   type AssistedSavePayload,
 } from "../app/lib/sales/assistedSaveForClientClient";
 import { QUICK_SALES_CATEGORIES, QUICK_SALES_CATEGORY_MAP, type QuickSalesCategory } from "../app/lib/sales/quickSalesCategories";
+import { createEmptyRentasPrivadoFormState } from "../app/(site)/clasificados/publicar/rentas/privado/schema/rentasPrivadoFormState";
+import { emptyEmpleosQuickDraft } from "../app/(site)/publicar/empleos/shared/types/empleosQuickDraft";
+import { buildEmpleosPublishEnvelopeFromQuick } from "../app/(site)/publicar/empleos/shared/publish/buildEmpleosPublishEnvelope";
+import { buildListingsInsertRowForLeonixPublish } from "../app/(site)/clasificados/lib/leonixPublishRealEstateListingCore";
 
 const ROOT = process.cwd();
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
@@ -67,12 +71,31 @@ const CANONICAL_APP: Record<QuickSalesCategory, string> = {
     "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewClient.tsx",
 };
 
+const INTAKE_LAYOUT: Record<QuickSalesCategory, string> = {
+  rentas: "app/(site)/clasificados/publicar/layout.tsx",
+  empleos: "app/(site)/publicar/layout.tsx",
+  "autos-privado": "app/(site)/publicar/layout.tsx",
+  servicios: "app/(site)/publicar/layout.tsx",
+  restaurantes: "app/(site)/publicar/layout.tsx",
+  "comida-local": "app/(site)/publicar/layout.tsx",
+  autos: "app/(site)/publicar/layout.tsx",
+  "bienes-raices": "app/(site)/clasificados/publicar/layout.tsx",
+};
+
 function payloadFor(category: QuickSalesCategory, listingId: string | null): AssistedSavePayload {
   switch (category) {
     case "rentas":
-      return { category, draft: { titulo: "Casa en San José" }, lane: "privado", lang: "es" };
-    case "empleos":
-      return { category, envelope: { listingId, payload: { title: "Cocinero" } }, lang: "es" };
+      return {
+        category,
+        draft: createEmptyRentasPrivadoFormState() as unknown as Record<string, unknown>,
+        lane: "privado",
+        lang: "es",
+      };
+    case "empleos": {
+      const envelope = buildEmpleosPublishEnvelopeFromQuick(emptyEmpleosQuickDraft(), "es") as unknown as Record<string, unknown>;
+      if (listingId) envelope.listingId = listingId;
+      return { category, envelope, lang: "es" };
+    }
     case "autos-privado":
       return { category, listing: { year: 2018, make: "Toyota", model: "Corolla" }, listingId, lang: "es" };
     case "servicios":
@@ -83,8 +106,27 @@ function payloadFor(category: QuickSalesCategory, listingId: string | null): Ass
       return { category, draft: { businessName: "Pupusas del Barrio" }, draftListingId: listingId, lang: "es" };
     case "autos":
       return { category, clientUserId: null, dealerListing: { businessName: "Dealer Uno" }, lang: "es" };
-    case "bienes-raices":
-      return { category, clientUserId: null, listingRow: { title: "Oficina", city: "San José" }, lang: "es" };
+    case "bienes-raices": {
+      const listingRow = buildListingsInsertRowForLeonixPublish(null, {
+        title: "Oficina en San José",
+        description: "Local comercial",
+        city: "San José",
+        state: "CA",
+        zip: "95112",
+        price: 250000,
+        isFree: false,
+        category: "bienes-raices",
+        sellerType: "business",
+        businessName: "Leonix Broker",
+        businessMetaJson: "{}",
+        detailPairs: [],
+        contactPhoneDigits: "4085550100",
+        contactEmail: "broker@test",
+        imageSources: ["https://example.test/office.jpg"],
+        lang: "es",
+      });
+      return { category, clientUserId: null, listingRow, lang: "es" };
+    }
   }
 }
 
@@ -349,6 +391,62 @@ async function main() {
   check("U7: preview control stays disabled until a canonical listing id exists", () => {
     const bar = read("app/(site)/clasificados/components/AssistedSaveForClientBar.tsx");
     assert.ok(bar.includes("disabled={busy || !ctx.listingId}"));
+  });
+
+  for (const category of QUICK_SALES_CATEGORIES) {
+    check(`U8[${category}]: canonical intake sits under PublishAuthGateLayout`, () => {
+      const layout = read(INTAKE_LAYOUT[category]);
+      assert.ok(layout.includes("PublishAuthGateLayout"), INTAKE_LAYOUT[category]);
+      const intake = QUICK_SALES_CATEGORY_MAP[category].intakePath;
+      if (category === "rentas" || category === "bienes-raices") {
+        assert.ok(intake.startsWith("/clasificados/publicar/"), intake);
+      } else {
+        assert.ok(intake.startsWith("/publicar/"), intake);
+        assert.equal(intake.startsWith("/clasificados/"), false, intake);
+      }
+    });
+  }
+
+  check("U9: PublishAuthGate skips customer login when assisted cookie is verified", () => {
+    const gate = read("app/components/auth/PublishAuthGate.tsx");
+    assert.ok(gate.includes("if (assisted)"));
+    assert.ok(gate.includes('setStatus("authed")'));
+    const loginIdx = gate.indexOf("window.location.replace(loginHref)");
+    const assistedIdx = gate.indexOf("if (assisted)");
+    assert.ok(assistedIdx >= 0 && loginIdx > assistedIdx);
+    const bar = read("app/(site)/clasificados/components/AssistedSaveForClientBar.tsx");
+    assert.ok(bar.includes("handleAssistedSaveClick"));
+    const servicios = read(CANONICAL_APP.servicios);
+    assert.equal(/assistedUi \? \(\s*<AssistedSaveForClientBar/.test(servicios), false);
+  });
+
+  check("U10: classified-family and owner-null payloads match the real application builders", () => {
+    const rentas = payloadFor("rentas", null);
+    assert.equal(rentas.category, "rentas");
+    if (rentas.category === "rentas") {
+      assert.equal(rentas.lane, "privado");
+      assert.equal(typeof rentas.draft, "object");
+    }
+    const empleos = payloadFor("empleos", null);
+    assert.equal(empleos.category, "empleos");
+    const bienes = payloadFor("bienes-raices", null);
+    assert.equal(bienes.category, "bienes-raices");
+    if (bienes.category === "bienes-raices") {
+      assert.equal(bienes.clientUserId, null);
+      assert.equal(Object.prototype.hasOwnProperty.call(bienes.listingRow, "owner_id"), false);
+    }
+    const autos = payloadFor("autos", null);
+    assert.equal(autos.category, "autos");
+    if (autos.category === "autos") assert.equal(autos.clientUserId, null);
+    const rentasSrc = read(CANONICAL_APP.rentas);
+    assert.ok(rentasSrc.includes('category: "rentas"'));
+    assert.ok(rentasSrc.includes('lane: "privado"'));
+    const empleosSrc = read(CANONICAL_APP.empleos);
+    assert.ok(empleosSrc.includes("buildEmpleosPublishEnvelopeFromQuick"));
+    const comidaSrc = read(CANONICAL_APP["comida-local"]);
+    assert.ok(comidaSrc.includes('category: "comida-local"'));
+    const autosSrc = read(CANONICAL_APP.autos);
+    assert.ok(autosSrc.includes("clientUserId: ctx.clientUserId ?? null"));
   });
 
   console.log(`\n${passed.length}/${checks} passed`);

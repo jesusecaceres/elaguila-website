@@ -9,6 +9,7 @@ import { __failReadsOn, __reset, __seed, __setAuthUsers, __rows, __onRpc } from 
 import { __setCookies } from "./lib/stubs/nextHeaders.mjs";
 import { __setBearerTokens, __setBearerRpc } from "./lib/stubs/supabaseJs.mjs";
 import { BUSINESS_CATEGORY_PACKAGE_PAIR } from "../app/lib/listingPlans/businessAccessLevel";
+import { evaluateListingPackagePaymentAuthority } from "../app/lib/listingPlans/listingPackagePaymentAuthority";
 import { readListingPackagePaymentAuthority } from "../app/lib/listingPlans/listingPackagePaymentAuthorityServer";
 import { transferLinkedListingsOnAcceptedClaim } from "../app/lib/business/ownership/linkedListingOwnerTransferServer";
 import { POST as acceptClaimPost } from "../app/api/business/ownership-claim/accept/route";
@@ -244,32 +245,96 @@ async function main() {
     if (!asQuick.ok) assert.equal(asQuick.error, "wrong_package");
   });
 
-  await checkAsync("P8: refunded/disputed/pending/wrong-currency/wrong-listing/wrong-package cannot publish", async () => {
+  await checkAsync("P8: refunded/disputed/reversed/canceled/pending/wrong-currency/wrong-listing/wrong-package cannot publish", async () => {
+    const base = {
+      listing_source: SRC,
+      listing_id: LISTING,
+      category: "servicios",
+      package_key: QUICK,
+      currency: "usd",
+      source: "admin_manual",
+      payment_status: "paid",
+      manual_state: "cleared",
+      amount_cents: 24900,
+      amount_paid_cents: 24900,
+      amount_total_cents: 24900,
+    };
+    const cases: Array<{ id: string; patch: Record<string, unknown>; error: string }> = [
+      { id: "pay-ref", patch: { payment_status: "refunded", refunded_at: "2026-09-22T00:00:00Z" }, error: "refunded_payment" },
+      { id: "pay-dis", patch: { payment_status: "disputed" }, error: "disputed_payment" },
+      { id: "pay-rev", patch: { manual_state: "reversed" }, error: "reversed_payment" },
+      { id: "pay-can", patch: { payment_status: "canceled" }, error: "canceled_payment" },
+      { id: "pay-pen", patch: { payment_status: "pending", manual_state: "pending_verification" }, error: "pending_payment" },
+      { id: "pay-cur", patch: { currency: "mxn" }, error: "wrong_currency" },
+      { id: "pay-pkg", patch: { package_key: FULL }, error: "wrong_package" },
+    ];
+    for (const row of cases) {
+      __reset();
+      __seed("leonix_payment_records", [{ ...base, id: row.id, ...row.patch }]);
+      const d = await readListingPackagePaymentAuthority({
+        listingSource: SRC,
+        listingId: LISTING,
+        packageKey: QUICK,
+        category: "servicios",
+      });
+      assert.equal(d.ok, false, row.id);
+      if (!d.ok) assert.equal(d.error, row.error, row.id);
+    }
     __reset();
     __seed("leonix_payment_records", [
-      {
-        id: "pay-6",
-        listing_source: SRC,
-        listing_id: LISTING,
-        category: "servicios",
-        package_key: QUICK,
-        currency: "usd",
-        source: "admin_manual",
-        payment_status: "refunded",
-        manual_state: "cleared",
-        amount_cents: 24900,
-        amount_paid_cents: 24900,
-        refunded_at: "2026-09-22T00:00:00Z",
-      },
+      { ...base, id: "pay-lis", listing_id: "00000000-0000-4000-8000-00000000othr" },
     ]);
-    const refunded = await readListingPackagePaymentAuthority({
+    const scoped = await readListingPackagePaymentAuthority({
       listingSource: SRC,
       listingId: LISTING,
       packageKey: QUICK,
       category: "servicios",
     });
-    assert.equal(refunded.ok, false);
-    if (!refunded.ok) assert.equal(refunded.error, "refunded_payment");
+    assert.equal(scoped.ok, false);
+    if (!scoped.ok) assert.equal(scoped.error, "no_matching_record");
+    const evaluated = evaluateListingPackagePaymentAuthority({
+      listingSource: SRC,
+      listingId: LISTING,
+      packageKey: QUICK,
+      category: "servicios",
+      records: [{ ...base, listing_id: "00000000-0000-4000-8000-00000000othr" }],
+    });
+    assert.equal(evaluated.ok, false);
+    if (!evaluated.ok) assert.equal(evaluated.error, "wrong_listing");
+  });
+
+  await checkAsync("P10: print_included entitlement with wrong listing_source cannot publish", async () => {
+    __reset();
+    __seed("listing_package_entitlements", [
+      {
+        id: "ent-src",
+        listing_id: LISTING,
+        listing_source: "listings",
+        category: "servicios",
+        package_key: QUICK,
+        status: "active",
+        grant_source: "print_included",
+      },
+    ]);
+    const d = await readListingPackagePaymentAuthority({
+      listingSource: SRC,
+      listingId: LISTING,
+      packageKey: QUICK,
+      category: "servicios",
+    });
+    assert.equal(d.ok, false);
+    if (!d.ok) assert.equal(d.error, "unproven_entitlement");
+  });
+
+  check("P11: stripe_terminal storage is blocked by unapplied CHECK; evaluator is not live insert proof", () => {
+    const sql = read("supabase/migrations/20260922190000_leonix_payment_records_source_stripe_terminal.sql");
+    assert.ok(sql.includes("Additive, unapplied"));
+    assert.ok(sql.includes("stripe_terminal"));
+    const current = read("supabase/migrations/20260526120000_leonix_payment_records.sql");
+    assert.ok(current.includes("leonix_payment_records_source_chk"));
+    assert.equal(/stripe_terminal/.test(current), false);
+    const server = read("app/lib/listingPlans/listingPackagePaymentAuthorityServer.ts");
+    assert.ok(server.includes("20260922190000_leonix_payment_records_source_stripe_terminal.sql"));
   });
 
   check("P9: runtime does not claim replayed:true; idempotency is the unique index", () => {
@@ -297,7 +362,7 @@ async function main() {
     assert.equal(__rows(SRC).length, 0);
   });
 
-  await checkAsync("C2: zero affected rows is classified and not recorded", async () => {
+  await checkAsync("C2: foreign owner is skipped, not stolen, and not treated as owner-null", async () => {
     __reset();
     __seed("business_listing_links", [
       { business_id: "biz-1", listing_source: SRC, listing_id: LISTING, status: "verified" },
@@ -394,6 +459,73 @@ async function main() {
     assert.ok(route.includes("transfer.recorded !== true"));
     assert.ok(route.includes('status: 409'));
     assert.equal(/ok:\s*true,\s*\n\s*businessId: result.businessId,\s*\n\s*listingIds,\s*\n\s*listingTransfers: transfer.ok/.test(route), false);
+  });
+
+  await checkAsync("C8: owner-null read + zero matching update rows is classified, not success", async () => {
+    __reset();
+    __seed("business_listing_links", [
+      { business_id: "biz-1", listing_source: SRC, listing_id: LISTING, status: "verified" },
+    ]);
+    __seed(SRC, [{ id: LISTING, owner_user_id: "" }]);
+    const transfer = await transferLinkedListingsOnAcceptedClaim({
+      businessId: "biz-1",
+      claimerUserId: "claimer-1",
+    });
+    assert.equal(transfer.ok, true);
+    if (transfer.ok) {
+      assert.equal(transfer.recorded, false);
+      assert.equal(transfer.error, "zero_affected_rows");
+    }
+    assert.equal((__rows(SRC)[0] as { owner_user_id: string }).owner_user_id, "");
+  });
+
+  await checkAsync("C9: first listing transfers and second zero-row update is partial_transfer, not complete", async () => {
+    __reset();
+    __seed("business_listing_links", [
+      { business_id: "biz-1", listing_source: SRC, listing_id: "svc-ok", status: "verified" },
+      { business_id: "biz-1", listing_source: SRC, listing_id: "svc-empty", status: "verified" },
+    ]);
+    __seed(SRC, [
+      { id: "svc-ok", owner_user_id: null },
+      { id: "svc-empty", owner_user_id: "" },
+    ]);
+    const transfer = await transferLinkedListingsOnAcceptedClaim({
+      businessId: "biz-1",
+      claimerUserId: "claimer-1",
+    });
+    assert.equal(transfer.ok, true);
+    if (transfer.ok) {
+      assert.equal(transfer.recorded, false);
+      assert.equal(transfer.error, "partial_transfer");
+    }
+    assert.equal((__rows(SRC).find((r) => r.id === "svc-ok") as { owner_user_id: string }).owner_user_id, "claimer-1");
+    assert.equal((__rows(SRC).find((r) => r.id === "svc-empty") as { owner_user_id: string }).owner_user_id, "");
+  });
+
+  await checkAsync("C10: HTTP accept returns 409 when transfer is not recorded", async () => {
+    __reset();
+    __setCookies({});
+    __seed("business_identity_flags", [
+      {
+        flag_key: "business_ownership_claim",
+        enabled: true,
+        pilot_user_ids: [],
+        emergency_disabled: false,
+      },
+    ]);
+    __setBearerTokens({ "claim-token": { id: "claimer-1", email: "owner@test" } });
+    __setBearerRpc({ data: "biz-1", error: null });
+    __seed("business_listing_links", [
+      { business_id: "biz-1", listing_source: SRC, listing_id: LISTING, status: "verified" },
+    ]);
+    __seed(SRC, [{ id: LISTING, owner_user_id: "" }]);
+    const res = await acceptClaimPost(
+      makeRequest({ token: "raw-claim" }, { authorization: "Bearer claim-token" }),
+    );
+    const json = (await res.json()) as { ok?: boolean; error?: string };
+    assert.equal(res.status, 409);
+    assert.equal(json.ok, false);
+    assert.equal(json.error, "zero_affected_rows");
   });
 
   console.log(`\n${passed.length}/${checks} passed`);

@@ -1361,17 +1361,15 @@ export function ClasificadosServiciosApplication() {
           lang={lang}
         />
       ) : null}
-      {assistedUi ? (
-        <AssistedSaveForClientBar
-          category="servicios"
-          lang={lang}
-          buildPayload={() => ({
-            category: "servicios",
-            state: stateRef.current as unknown as Record<string, unknown>,
-            lang,
-          })}
-        />
-      ) : null}
+      <AssistedSaveForClientBar
+        category="servicios"
+        lang={lang}
+        buildPayload={() => ({
+          category: "servicios",
+          state: stateRef.current as unknown as Record<string, unknown>,
+          lang,
+        })}
+      />
       {isExistingDashboardListingMode && editHydration.status === "error" ? (
         <main className="mx-auto max-w-lg px-4 pb-16 pt-24 sm:pt-28">
           <h1 className="text-xl font-bold text-[#3D2C12]">
