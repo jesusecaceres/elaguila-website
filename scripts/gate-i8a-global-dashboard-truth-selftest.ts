@@ -166,7 +166,7 @@ async function main() {
     const pageSrc = readSource("app/(site)/dashboard/mis-anuncios/page.tsx");
     assert.ok(pageSrc.includes("startRentasRenewal"), "Rentas renewal checkout handler must remain intact");
     assert.ok(pageSrc.includes("startListingRenewalCheckout"), "must still call the real checkout starter, not a plain href");
-    assert.ok(pageSrc.includes("onRenew={rentasLifecycle?.isRenewalEligible"), "renewal action must remain gated on real lifecycle eligibility");
+    assert.ok(/onRenew=\{\s*rentasLifecycle\?\.isRenewalEligible/.test(pageSrc), "renewal action must remain gated on real lifecycle eligibility");
   }
 
   /* ============================================================================================

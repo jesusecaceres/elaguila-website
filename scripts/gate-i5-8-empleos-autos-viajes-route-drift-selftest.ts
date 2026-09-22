@@ -85,8 +85,8 @@ async function main() {
       "utf8",
     );
     assert.ok(
-      laneCallerSrc.includes('"/clasificados/publicar/autos"'),
-      "the confirmed live caller of the Autos legacy value must still reference it unchanged",
+      laneCallerSrc.includes('"/publicar/autos/negocios"'),
+      "Negocios Locales Autos must route directly to the canonical dealer application",
     );
 
     // Real modern Autos publishing routes (registry-declared) remain completely unaffected.

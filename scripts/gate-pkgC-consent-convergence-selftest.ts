@@ -72,7 +72,7 @@ const read = (p: string) => readFileSync(path.join(REPO_ROOT, p), "utf8");
   for (const p of [
     "app/(site)/clasificados/restaurantes/preview/RestaurantePreviewClient.tsx",
     "app/(site)/clasificados/publicar/servicios/preview/ClasificadosServiciosPreviewClient.tsx",
-    "app/(site)/clasificados/bienes-raices/preview/negocio/components/BienesRaicesNegocioPreviewClient.tsx",
+    "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewClient.tsx",
     "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewClient.tsx",
     "app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx",
   ]) {

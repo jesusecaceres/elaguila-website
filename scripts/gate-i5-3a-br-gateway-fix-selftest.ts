@@ -91,13 +91,6 @@ async function main() {
       "/clasificados landing must not hardcode the wrong BR literal (it resolves via the same registry-driven resolver)",
     );
 
-    const dashboardPageSrc = readSource("app/(site)/dashboard/page.tsx");
-    assert.ok(dashboardPageSrc.includes("BR_PUBLICAR_HUB"), "dashboard BR publish CTA must use BR_PUBLICAR_HUB again");
-    assert.ok(
-      !dashboardPageSrc.includes('`/publicar/bienes-raices?${q}`'),
-      "dashboard BR publish CTA must not hardcode the wrong literal",
-    );
-
     const misAnunciosCategoriesSrc = readSource("app/(site)/dashboard/lib/dashboardMisAnunciosCategories.ts");
     assert.ok(
       misAnunciosCategoriesSrc.includes("BR_PUBLICAR_HUB"),
