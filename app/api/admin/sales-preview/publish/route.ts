@@ -138,9 +138,9 @@ export async function POST(request: NextRequest) {
   }
 
   // THE CATEGORY'S OWN CONTRACT, AGAINST THE STORED ROW, AFTER THE MONEY AND BEFORE ANY WRITE.
-  const body = await request.json().catch(() => ({})) as Record<string, unknown>;
-  const lang: "es" | "en" = body.lang === "en" ? "en" : "es";
-  const readiness = await assessCanonicalPublishReadiness({ category, listingId, lang });
+  // Nothing from the request body is read: listing, owner, product and readiness are all server
+  // truth bound to the signed context.
+  const readiness = await assessCanonicalPublishReadiness({ category, listingId });
   if (!readiness.ok) {
     await recordSalesWorkspaceAudit({
       action: "quick_sales_publish_attempted",
@@ -161,11 +161,28 @@ export async function POST(request: NextRequest) {
   let data: { id?: string } | null = null;
   let error: unknown = null;
   if (category === "autos") {
-    // The dealer parent publishes WITH its vehicle child — the same shared activation the Autos
-    // assisted route runs, so the two seams cannot publish a dealer two different ways.
+    // The dealer parent publishes WITH its required vehicle child, through the Quick-only
+    // activation whose semantics mirror the (unchanged) Autos assisted route.
+    if (!readiness.childListingId) {
+      return NextResponse.json({ ok: false, error: "vehicle_listing_required_for_publish", listingId }, { status: 400 });
+    }
     const activation = await activateAutosDealerListing({ mainListingId: listingId, vehicleListingId: readiness.childListingId });
     if (activation.ok) data = { id: listingId };
     else if (activation.status === 500) error = activation.error;
+    else {
+      // A zero-row child or parent write is a refusal with its own code, never a green tick.
+      await recordSalesWorkspaceAudit({
+        action: "quick_sales_publish_attempted",
+        actorRosterId: ctx.rosterId,
+        businessId: ctx.businessId,
+        category,
+        listingSource: descriptor.listingSource,
+        listingId,
+        paymentState: "cleared",
+        outcome: activation.error,
+      });
+      return NextResponse.json({ ok: false, error: activation.error, listingId }, { status: activation.status });
+    }
   } else {
     const plan = ACTIVATION[category];
     const res = await db

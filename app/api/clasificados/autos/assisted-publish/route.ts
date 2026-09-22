@@ -15,6 +15,7 @@
  *    to business, then requires a cleared manual payment before going live
  */
 import { NextResponse, type NextRequest } from "next/server";
+import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { readActiveAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
 import {
   hasClearedManualPaymentForListing,
@@ -35,9 +36,6 @@ import {
 import { isClientAuthorizedForBusiness } from "@/app/lib/sales/assistedClientAuthorization";
 import { recordSalesWorkspaceAudit } from "@/app/lib/sales/salesWorkspaceAudit";
 import { customerUserIdFromBearer } from "@/app/lib/auth/customerBearerUserId";
-// QUICK SALES canonical readiness — the vehicle-child lookup and the parent+child activation are
-// shared with the cockpit publisher, so both seams publish a dealer the same way.
-import { activateAutosDealerListing, findExistingAssistedVehicleChildId } from "@/app/lib/sales/canonicalPublishReadiness";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import {
   enforceQuickBusinessPublishMedia,
@@ -335,9 +333,30 @@ export async function POST(request: NextRequest) {
     // The activation is a compare-and-set from the pre-publish state, so a concurrent moderation
     // or webhook write is never overwritten, and a zero-row result is reported rather than
     // swallowed.
-    const activation = await activateAutosDealerListing({ mainListingId, vehicleListingId });
-    if (!activation.ok) {
-      return NextResponse.json({ ok: false, error: activation.error }, { status: activation.status });
+    const supabase = getAdminSupabase();
+    const nowIso = new Date().toISOString();
+    const { data: activated, error: activateError } = await supabase
+      .from("autos_classifieds_listings")
+      .update({ status: "active", published_at: nowIso, updated_at: nowIso })
+      .eq("id", mainListingId)
+      .in("status", ["draft", "pending_payment", "payment_failed"])
+      .select("id")
+      .maybeSingle();
+    if (activateError) {
+      return NextResponse.json({ ok: false, error: "autos_activate_failed" }, { status: 500 });
+    }
+    if (!activated?.id) {
+      return NextResponse.json(
+        { ok: false, error: "autos_status_transition_not_allowed" },
+        { status: 409 },
+      );
+    }
+    if (vehicleListingId) {
+      await supabase
+        .from("autos_classifieds_listings")
+        .update({ status: "active", published_at: nowIso, updated_at: nowIso })
+        .eq("id", vehicleListingId)
+        .in("status", ["draft", "pending_payment", "payment_failed"]);
     }
   }
 
@@ -361,4 +380,29 @@ export async function POST(request: NextRequest) {
     vehicleListingId,
     businessId: assistedContext.businessId,
   });
+}
+
+/**
+ * The inventory child already prepared under this dealer parent, if any. Ordered oldest-first so
+ * a draft that somehow acquired more than one child (from before this repair) keeps converging on
+ * the same row rather than walking through them.
+ */
+async function findExistingAssistedVehicleChildId(parentListingId: string): Promise<string | null> {
+  if (!parentListingId) return null;
+  try {
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase
+      .from("autos_classifieds_listings")
+      .select("id")
+      .eq("dealer_inventory_parent_listing_id", parentListingId)
+      .eq("inventory_role", "inventory_vehicle")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (error) return null;
+    const id = (data as { id?: string } | null)?.id;
+    return id ? String(id) : null;
+  } catch {
+    return null;
+  }
 }

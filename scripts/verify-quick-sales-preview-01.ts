@@ -362,7 +362,7 @@ function readyRowsFor(category: ProspectPreviewCategory): Record<string, unknown
       }];
     case "restaurantes":
       return [{
-        id: "row-1", slug: "sol", draft_listing_id: "draft-1", status: "draft", owner_user_id: null, published_at: null,
+        id: "row-1", slug: "sol", draft_listing_id: "draft-1", status: "pending_payment", owner_user_id: null, published_at: null,
         listing_json: { draftListingId: "draft-1", businessName: "Taquería Sol", businessType: "restaurant", primaryCuisine: "mexican", cityCanonical: "San José", heroImage: "https://cdn.example.test/hero.jpg", phoneNumber: "9150000000", serviceModes: ["dine_in"], monday: day, tuesday: day, wednesday: day, thursday: day, friday: day, saturday: day, sunday: day },
       }];
     case "autos":
@@ -372,7 +372,7 @@ function readyRowsFor(category: ProspectPreviewCategory): Record<string, unknown
       ];
     case "bienes-raices":
     default:
-      return [{ id: "row-1", status: "pending", is_published: false, published_at: null, title: "Oficina", listing_json: { images: [{ url: "https://cdn.example.test/house.jpg", role: "property" }] } }];
+      return [{ id: "row-1", status: "pending", is_published: false, published_at: null, title: "Oficina", images: ["https://cdn.example.test/house.jpg"] }];
   }
 }
 
@@ -506,7 +506,17 @@ async function run() {
       ]);
       const jar = { leonix_assisted_publish: assistedCookie({ category, listingId: "row-1" }) };
       const res = await workspacePublish.POST(makeRequest({}, jar));
-      const json = (await res.json()) as { ok?: boolean; listingId?: string; error?: string };
+      const json = (await res.json()) as { ok?: boolean; listingId?: string; error?: string; issues?: string[] };
+      if (category === "bienes-raices") {
+        // Bienes media ROLES are never persisted (only `listings.images` URLs are), so the canonical
+        // declared-attribution contract fails CLOSED from stored truth — a known technical blocker,
+        // asserted exactly rather than hidden. See verify-quick-sales-canonical-publish-readiness-01 B1.
+        assert.equal(res.status, 422, `expected 422, got ${res.status} (${JSON.stringify(json)})`);
+        assert.deepEqual(json.issues, ["role_declaration_required"]);
+        const rowB = (__rows(descriptor.listingSource) as Record<string, unknown>[]).find((r) => r.id === "row-1")!;
+        assert.equal(rowB.is_published, false); assert.equal(rowB.status, "pending");
+        return;
+      }
       assert.equal(res.status, 200, `expected 200, got ${res.status} (${JSON.stringify(json)})`);
       assert.equal(json.listingId, "row-1", "publication must return the SAME id the prospect reviewed");
 

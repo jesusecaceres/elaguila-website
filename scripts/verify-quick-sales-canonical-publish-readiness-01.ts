@@ -13,12 +13,16 @@
  * stored shape, not a hand-typed fixture.
  */
 import { strict as assert } from "node:assert";
+import { execSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { __reset, __seed, __rows, __setAuthUsers } from "./lib/stubs/supabaseServer.mjs";
 import { __setCookies } from "./lib/stubs/nextHeaders.mjs";
 import { __setBearerTokens } from "./lib/stubs/supabaseJs.mjs";
 import { createAssistedPublishingTokenWithSecret } from "../app/lib/auth/assistedPublishingToken";
 import { QUICK_SALES_CATEGORY_MAP, type QuickSalesCategory } from "../app/lib/sales/quickSalesCategories";
 import { BUSINESS_TYPE_PRESETS } from "../app/(site)/clasificados/publicar/servicios/lib/businessTypePresets";
+import { serviciosPublishedToApplicationDraft } from "../app/(site)/clasificados/publicar/servicios/lib/serviciosPublishedToApplicationDraft";
+import { SERVICIOS_GALLERY_MAX, RESTAURANTE_GALLERY_MAX } from "../app/lib/sales/canonicalPublishReadiness";
 
 process.env.PROSPECT_PREVIEW_SESSION_SECRET = "preview-secret-harness-only";
 process.env.ASSISTED_PUBLISHING_SESSION_SECRET = "assisted-secret-harness-only";
@@ -195,6 +199,17 @@ await check("S6: REPLAY — a second publish of the same paid Servicios row is r
   assert.equal(again.json.error, "already_published");
   assert.equal(audits().filter((a) => a.action === "quick_sales_publish_completed").length, 1, "exactly one completion audit");
 });
+await check("S8: Gate 7 source contract — the hydrator yields the three confirmations FALSE and the listing-bound cockpit publish still passes; a content gap does not", async () => {
+  const id = await seedServiciosViaCanonicalRoute();
+  __seed("leonix_payment_records", [paid(SRC.servicios.listingSource, id)]);
+  const row = rows("servicios_public_listings").find((r) => r.id === id)!;
+  const { state } = serviciosPublishedToApplicationDraft(row as never);
+  assert.equal(state.confirmListingAccurate, false); assert.equal(state.confirmPhotosRepresentBusiness, false); assert.equal(state.confirmCommunityRules, false);
+  // The preview client's own contract: listingBoundPreview || (all three) — see ClasificadosServiciosPreviewClient.tsx "Gate 7".
+  const src = readFileSync("app/(site)/clasificados/publicar/servicios/preview/ClasificadosServiciosPreviewClient.tsx", "utf8");
+  assert.ok(src.includes("(listingBoundPreview ||") && src.includes("appState.confirmListingAccurate && appState.confirmPhotosRepresentBusiness && appState.confirmCommunityRules"), "the cited Gate 7 exemption exists in source");
+  assert.equal((await publishAs("servicios", id)).status, 200, "exempt for an existing (listing-bound) row");
+});
 await check("S7: UNPAID ready Servicios is still 402 — the payment gate runs first and is intact", async () => {
   const id = await seedServiciosViaCanonicalRoute();
   const { status, json } = await publishAs("servicios", id);
@@ -213,7 +228,9 @@ function readyRestaurant(): Record<string, unknown> {
     monday: day, tuesday: day, wednesday: day, thursday: day, friday: day, saturday: day, sunday: day,
   };
 }
-function seedRestaurant(listingJson: Record<string, unknown>, status = "draft", pay = true) {
+// `pending_payment` is the status the assisted save actually leaves a Restaurantes row in
+// (RESTAURANTE_PENDING_CHECKOUT_STATUS, restaurantes/publish/route.ts `isAssistedSaveForClient`).
+function seedRestaurant(listingJson: Record<string, unknown>, status = "pending_payment", pay = true) {
   __reset(); signInAsSalesStaff();
   __seed("business_listing_links", [link(SRC.restaurantes.listingSource, "r1")]);
   __seed("restaurantes_public_listings", [{ id: "r1", slug: "sol", draft_listing_id: "draft-r1", status, owner_user_id: null, listing_json: listingJson, published_at: null }]);
@@ -237,7 +254,7 @@ await check("R2: PAID incomplete Restaurante (no cuisine, no hours) is refused 4
   assert.equal(json.error, "not_ready");
   const mf = json.missingFields as string[];
   assert.ok(mf.includes("cocina") && mf.includes("señal de horario"), mf.join(","));
-  assert.equal(rows("restaurantes_public_listings")[0]!.status, "draft");
+  assert.equal(rows("restaurantes_public_listings")[0]!.status, "pending_payment");
   assert.equal(lastAttemptOutcome(), "not_ready");
 });
 await check("R3: PAID Restaurante with NO contact path is refused", async () => {
@@ -256,14 +273,35 @@ await check("R5: PAID Quick Restaurante carrying an external video is refused by
   assert.equal(status, 422, JSON.stringify(json)); assert.equal(json.error, "media_contract_violation");
   assert.ok((json.issues as string[]).includes("video_not_allowed"));
 });
-await check("R6: a Restaurante with a LIVE Full entitlement is exempt from the Quick-only video rule (package/entitlement check honored)", async () => {
+const FULL_ENTITLEMENT = (ownerUserId: string | null) => ({ id: "e1", category: "restaurantes", listing_id: "r1", owner_user_id: ownerUserId, package_key: "restaurantes_base_monthly", package_tier: null, status: "active", starts_at: "2026-01-01T00:00:00Z", ends_at: "2027-01-01T00:00:00Z", revoked_at: null });
+await check("R6: an OWNER-NULL custody row cannot be scoped to any entitlement, so the resolver holds it to the Quick contract — video is refused 422 exactly", async () => {
   const d = readyRestaurant(); d.videoUrls = ["https://www.youtube.com/watch?v=abcdefghijk"]; seedRestaurant(d);
-  __seed("listing_package_entitlements", [{ id: "e1", category: "restaurantes", listing_source: SRC.restaurantes.listingSource, listing_id: "r1", owner_user_id: null, package_key: "restaurantes_base_monthly", status: "active", is_active: true, active_from: "2026-01-01T00:00:00Z", active_until: "2027-01-01T00:00:00Z", expires_at: "2027-01-01T00:00:00Z" }]);
+  __seed("listing_package_entitlements", [FULL_ENTITLEMENT(null)]);
   const { status, json } = await publishAs("restaurantes", "r1");
-  // Owner-null custody carries no bearer, so the entitlement read is unscoped: either the Full
-  // exemption applies (200) or the resolver cannot prove Full and enforces (422). What must NEVER
-  // happen is a 500 or a publish that skips the contract without a proven product.
-  assert.ok([200, 422].includes(status), JSON.stringify(json));
+  assert.equal(status, 422, JSON.stringify(json)); assert.equal(json.error, "media_contract_violation");
+});
+await check("R6b: a row whose STORED owner holds a LIVE Full entitlement is exempt from the Quick-only video rule (resolver-proven, never body-declared)", async () => {
+  const d = readyRestaurant(); d.videoUrls = ["https://www.youtube.com/watch?v=abcdefghijk"]; seedRestaurant(d);
+  __seed("restaurantes_public_listings", rows("restaurantes_public_listings").map((r) => ({ ...r, owner_user_id: CLIENT })));
+  __seed("listing_package_entitlements", [FULL_ENTITLEMENT(CLIENT)]);
+  const { status, json } = await publishAs("restaurantes", "r1");
+  assert.equal(status, 200, JSON.stringify(json));
+});
+await check("R6c: a body basePackageKey/listingId cannot buy the exemption (nothing in the body is read)", async () => {
+  const d = readyRestaurant(); d.videoUrls = ["https://www.youtube.com/watch?v=abcdefghijk"]; seedRestaurant(d);
+  const res = await publish.POST(makeRequest({ basePackageKey: "restaurantes_base_monthly", listingId: "r1", product: "full" }, cookie("restaurantes", "r1")));
+  assert.equal(res.status, 422);
+});
+await check("R8: a Restaurante whose stored status is unknown to the canonical authority (`draft`) fails closed 409 restaurante_status_transition_not_allowed", async () => {
+  seedRestaurant(readyRestaurant(), "draft");
+  const { status, json } = await publishAs("restaurantes", "r1");
+  assert.equal(status, 409, JSON.stringify(json)); assert.equal(json.error, "restaurante_status_transition_not_allowed");
+  assert.equal(rows("restaurantes_public_listings")[0]!.status, "draft");
+});
+await check("R9: an `archived` Restaurante is held where the canonical authority holds it — 409, never published from the cockpit", async () => {
+  seedRestaurant(readyRestaurant(), "archived");
+  const { status, json } = await publishAs("restaurantes", "r1");
+  assert.equal(status, 409); assert.equal(json.error, "restaurante_status_transition_not_allowed");
 });
 await check("R7: REPLAY on Restaurante is refused 409 already_published", async () => {
   seedRestaurant(readyRestaurant());
@@ -313,6 +351,18 @@ await check("A4: ZERO-ROW transition (parent already active) is refused, never r
   assert.equal(status, 409, JSON.stringify(json)); assert.equal(json.error, "already_published");
   assert.equal(audits().filter((a) => a.action === "quick_sales_publish_completed").length, 0);
 });
+await check("A6: a required vehicle child that matches ZERO rows on activation (already active) is a refusal 409 — and the parent is NOT flipped (child first)", async () => {
+  seedAutos({});
+  __seed("autos_classifieds_listings", rows("autos_classifieds_listings").map((r) => (r.id === "a1-v" ? { ...r, status: "active" } : r)));
+  const { status, json } = await publishAs("autos", "a1", CLIENT);
+  assert.equal(status, 409, JSON.stringify(json)); assert.equal(json.error, "autos_vehicle_status_transition_not_allowed");
+  assert.equal(rows("autos_classifieds_listings").find((r) => r.id === "a1")!.status, "draft", "parent untouched");
+  assert.equal(lastAttemptOutcome(), "autos_vehicle_status_transition_not_allowed");
+  assert.equal(audits().filter((a) => a.action === "quick_sales_publish_completed").length, 0);
+});
+// LIMITATION (stated, not papered over): the harness can fail READS (__failReadsOn) but has no way
+// to make an UPDATE return an error, so "child update errors → refusal" is covered by the
+// zero-row branch above and by the code path's explicit error handling, not by an executed error.
 await check("A5: UNPAID Autos is still 402", async () => {
   seedAutos({ pay: false });
   assert.equal((await publishAs("autos", "a1", CLIENT)).status, 402);
@@ -321,51 +371,61 @@ await check("A5: UNPAID Autos is still 402", async () => {
 // ---------------------------------------------------------------------------------------------
 // BIENES NEGOCIO — semantic property media on the stored row
 // ---------------------------------------------------------------------------------------------
-function seedBienes(listingJson: Record<string, unknown>, status = "pending", pay = true) {
+function seedBienes(row: Record<string, unknown>, status = "pending", pay = true) {
   __reset(); signInAsSalesStaff();
   __seed("business_listing_links", [link(SRC["bienes-raices"].listingSource, "b1")]);
-  __seed("listings", [{ id: "b1", status, is_published: false, owner_id: CLIENT, title: "Oficina", listing_json: listingJson, published_at: null }]);
+  __seed("listings", [{ id: "b1", status, is_published: false, owner_id: CLIENT, title: "Oficina", published_at: null, ...row }]);
   if (pay) __seed("leonix_payment_records", [paid(SRC["bienes-raices"].listingSource, "b1")]);
 }
-await check("B1: PAID + READY Bienes publishes the same row (active + is_published), no insert, audited", async () => {
-  seedBienes({ images: [{ url: "https://cdn.example.test/house.jpg", role: "property" }] });
-  const { status, json } = await publishAs("bienes-raices", "b1", CLIENT);
-  assert.equal(status, 200, JSON.stringify(json)); assert.equal(json.listingId, "b1");
-  assert.equal(rows("listings").length, 1);
-  const r = rows("listings")[0]!; assert.equal(r.status, "active"); assert.equal(r.is_published, true);
-  assert.ok(audits().some((a) => a.action === "quick_sales_publish_completed"));
-});
-await check("B2: PAID Bienes with NO property photo at all is refused by the semantic media contract", async () => {
-  seedBienes({});
+// SOURCE-PROVEN persisted gallery for `listings`: the `images` jsonb column (bare URL strings) —
+// written by buildQuickBienesListingRow (`images: [...mediaUrls]`), read by the public renderer
+// (anuncio/[id]/page.tsx imageUrlsFromJsonb(row.images)). Media ROLES are validated at request
+// time and never persisted, and the assisted route drops `images` entirely. The cockpit therefore
+// reads ONLY `images`, and the canonical DECLARED-attribution contract fails closed on its own codes.
+await check("B1: PAID Bienes with property URLs in `listings.images` fails CLOSED on the canonical contract (roles are not persisted) — 422 role_declaration_required, never published", async () => {
+  seedBienes({ images: ["https://cdn.example.test/house.jpg"] });
   const { status, json } = await publishAs("bienes-raices", "b1", CLIENT);
   assert.equal(status, 422, JSON.stringify(json)); assert.equal(json.error, "media_contract_violation");
-  assert.ok((json.issues as string[]).includes("too_few_subject_images"));
-  assert.equal(rows("listings")[0]!.is_published, false);
+  assert.deepEqual(json.issues, ["role_declaration_required"]);
+  assert.equal(rows("listings")[0]!.is_published, false); assert.equal(rows("listings")[0]!.status, "pending");
   assert.equal(lastAttemptOutcome(), "media_contract_violation");
 });
-await check("B3: PAID Bienes whose only photo is a HEADSHOT is refused (invalid semantic property media)", async () => {
-  seedBienes({ images: [{ url: "https://cdn.example.test/agent.jpg", role: "headshot" }] });
+await check("B2: PAID Bienes with NO images is refused 422 too_few_subject_images", async () => {
+  seedBienes({ images: [] });
   const { status, json } = await publishAs("bienes-raices", "b1", CLIENT);
-  assert.equal(status, 422, JSON.stringify(json)); assert.equal(json.error, "media_contract_violation");
+  assert.equal(status, 422, JSON.stringify(json)); assert.deepEqual(json.issues, ["too_few_subject_images"]);
 });
-await check("B4: REPLAY on Bienes is refused 409 already_published", async () => {
-  seedBienes({ images: [{ url: "https://cdn.example.test/house.jpg", role: "property" }] });
-  assert.equal((await publishAs("bienes-raices", "b1", CLIENT)).status, 200);
-  const again = await publishAs("bienes-raices", "b1", CLIENT);
-  assert.equal(again.status, 409); assert.equal(again.json.error, "already_published");
+await check("B3: media in listing_json / profile_json is NOT consulted (the inferred fallback is gone) — stored-column truth only", async () => {
+  seedBienes({ images: [], listing_json: { images: [{ url: "https://cdn.example.test/house.jpg", role: "property" }] }, profile_json: { images: [{ url: "https://cdn.example.test/house.jpg", role: "property" }] } });
+  const { status, json } = await publishAs("bienes-raices", "b1", CLIENT);
+  assert.equal(status, 422, JSON.stringify(json)); assert.deepEqual(json.issues, ["too_few_subject_images"]);
+});
+await check("B4: UNPAID Bienes is still 402 before any readiness answer", async () => {
+  seedBienes({ images: ["https://cdn.example.test/house.jpg"] }, "pending", false);
+  assert.equal((await publishAs("bienes-raices", "b1", CLIENT)).status, 402);
 });
 
 // ---------------------------------------------------------------------------------------------
 // RAW f29 GUARANTEES — untouched
 // ---------------------------------------------------------------------------------------------
+await check("N1: the three normal category routes are BYTE-IDENTICAL to f29c8ed6 (Quick is additive; no normal route was refactored)", async () => {
+  for (const f of ["app/api/clasificados/servicios/publish/route.ts", "app/api/clasificados/restaurantes/publish/route.ts", "app/api/clasificados/autos/assisted-publish/route.ts"]) {
+    const base = execSync(`git show f29c8ed6e89432b842743907968d1579e85b46b0:${f}`, { encoding: "utf8" });
+    assert.equal(readFileSync(f, "utf8"), base, `${f} differs from f29c8ed6`);
+  }
+});
+await check("N2: the adapter's restated gallery caps equal the routes' own file-local literals", async () => {
+  assert.ok(readFileSync("app/api/clasificados/servicios/publish/route.ts", "utf8").includes(`const SERVICIOS_GALLERY_MAX = ${SERVICIOS_GALLERY_MAX};`));
+  assert.ok(readFileSync("app/api/clasificados/restaurantes/publish/route.ts", "utf8").includes(`const RESTAURANTE_GALLERY_MAX = ${RESTAURANTE_GALLERY_MAX};`));
+});
 await check("G1: a body listing id cannot override the signed context (publish ignores body ids; a bound row still governs)", async () => {
   seedRestaurant(readyRestaurant());
-  __seed("restaurantes_public_listings", [...rows("restaurantes_public_listings"), { id: "r-other", status: "draft", listing_json: readyRestaurant(), owner_user_id: null }]);
+  __seed("restaurantes_public_listings", [...rows("restaurantes_public_listings"), { id: "r-other", status: "pending_payment", listing_json: readyRestaurant(), owner_user_id: null }]);
   const res = await publish.POST(makeRequest({ listingId: "r-other" }, cookie("restaurantes", "r1")));
   const json = (await res.json()) as Record<string, unknown>;
   assert.equal(res.status, 200, JSON.stringify(json));
   assert.equal(json.listingId, "r1", "the SIGNED row publishes, never the body's");
-  assert.equal(rows("restaurantes_public_listings").find((r) => r.id === "r-other")!.status, "draft");
+  assert.equal(rows("restaurantes_public_listings").find((r) => r.id === "r-other")!.status, "pending_payment");
 });
 await check("G2: mixed staff-assisted + unrelated customer session is still refused on the canonical Servicios route", async () => {
   await seedServiciosViaCanonicalRoute();

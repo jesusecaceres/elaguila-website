@@ -656,16 +656,13 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
     // never sufficient. The cockpit publisher re-runs each category's OWN publish contract against
     // the STORED row through one shared server service (the same readiness / media / product /
     // required-child predicates the category routes import), refuses a paid-but-incomplete draft
-    // with the category's own status and body, refuses replay explicitly, and publishes an Autos
-    // dealer through the same shared activation the Autos route now uses. No migration, no
-    // payment/rewards schema, no ownership change, no new custody table.
+    // with the category's own status and body, and refuses replay explicitly. QUICK IS ADDITIVE:
+    // the normal category routes are byte-identical to f29c8ed6 (pinned by the verifier). No
+    // migration, no payment/rewards schema, no ownership change, no new custody table.
     // Executed proof: scripts/verify-quick-sales-canonical-publish-readiness-01.ts.
     // -----------------------------------------------------------------------
-    "app/lib/sales/canonicalPublishReadiness.ts", // new: the shared canonical readiness + activation service
+    "app/lib/sales/canonicalPublishReadiness.ts", // new: the Quick-only canonical readiness + activation adapter
     "app/api/admin/sales-preview/publish/route.ts", // cockpit: readiness after payment, before any write
-    "app/api/clasificados/servicios/publish/route.ts", // shares the gallery cap + Quick media facts helper
-    "app/api/clasificados/restaurantes/publish/route.ts", // shares the gallery cap + media facts helper
-    "app/api/clasificados/autos/assisted-publish/route.ts", // shares the child lookup + activation
   ]);
   // A touched entry from `git status --short` may be a directory (`app/api/new-dir/`) for newly
   // added dirs not yet staged; check if it is authorized directly or all contained authorized files.

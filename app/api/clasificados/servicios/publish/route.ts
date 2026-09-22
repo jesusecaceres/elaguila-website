@@ -65,8 +65,7 @@ import { resolveQuickBusinessPublishIdentity } from "@/app/lib/listingPlans/quic
 import { SERVICIOS_MAX_VIDEO_URLS } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
 
 /** Gallery cap mirrors GALLERY_MAX in ClasificadosServiciosApplication.tsx:141 (local, unexported). */
-// QUICK SALES canonical readiness — the cap and the Quick media facts are shared with the cockpit publisher.
-import { SERVICIOS_GALLERY_MAX, serviciosQuickMediaFacts } from "@/app/lib/sales/canonicalPublishReadiness";
+const SERVICIOS_GALLERY_MAX = 24;
 
 export const runtime = "nodejs";
 
@@ -416,12 +415,26 @@ export async function POST(req: NextRequest) {
     listingId: typeof b.existingListingId === "string" ? b.existingListingId.trim() || null : null,
     declaredPackageKey: typeof b.basePackageKey === "string" ? b.basePackageKey : null,
   });
-  // Servicios keeps identity media in its own non-gallery `logoUrl` field (`logoAllowed: false`
-  // on this route), so a cover or gallery item is subject media by construction; external video
-  // lives in its own link list and never carries a `video/*` MIME. The facts are derived by the
-  // ONE helper the cockpit publisher also uses, so the two seams cannot count state two ways.
+  const serviciosMediaItems = [
+    // Servicios keeps identity media in its own non-gallery `logoUrl` field (`logoAllowed: false`
+    // on this route), so a cover or gallery item is subject media by construction — which is
+    // exactly what `SUBJECT_ATTRIBUTION.servicios === "structural"` states. There is no per-item
+    // role on this state to read, and inventing one would be a false declaration.
+    ...(state.coverUrl ? [{ role: null, mime: null }] : []),
+    ...state.gallery.map((g) => ({ role: (g as { role?: string }).role ?? null, mime: null })),
+  ];
+  // Servicios keeps external video in its own link list (up to SERVICIOS_MAX_VIDEO_URLS), which
+  // never carries a `video/*` MIME, so the contract could not see it and "Quick includes no
+  // video" went unenforced on this seam.
+  const serviciosExternalVideoCount = Array.isArray(state.videos)
+    ? state.videos.filter((v) => typeof v?.url === "string" && v.url.trim().length > 0).length
+    : 0;
   const serviciosSemanticMedia = serviciosProduct.enforceQuickContract
-    ? enforceQuickBusinessPublishMedia({ category: "servicios", ...serviciosQuickMediaFacts(state) })
+    ? enforceQuickBusinessPublishMedia({
+        category: "servicios",
+        items: serviciosMediaItems,
+        externalVideoCount: serviciosExternalVideoCount,
+      })
     : null;
   if (serviciosSemanticMedia && !serviciosSemanticMedia.ok) {
     await insertServiciosAnalyticsEvent({
