@@ -5,7 +5,7 @@
 **Branch:** `repair/quick-sales-eight-category-staff-gateway-2026-09-22`  
 **Rejected PASS SHA:** `4751382f13d3f7ff6aef8faa2a959dd5518d7601`  
 **Repair start SHA:** `4751382f13d3f7ff6aef8faa2a959dd5518d7601`  
-**Live SHA:** recorded at closeout  
+**Live SHA:** `d8e3ef6f0` (pre-closeout stamp; exact SHA in closeout receipts)  
 **Deployment:** none  
 **External mutation:** none  
 
@@ -531,4 +531,33 @@ No migrations were applied. No Supabase/Stripe/Vercel mutation.
 | Bienes Negocio | `bienes-raices` | `/clasificados/publicar/bienes-raices/negocio` | `listings` | omit `owner_id` | already nullable | pair $249/$399 | TRUE — PROVEN (component) |
 
 Viajes / Iglesias / Recursos: excluded. PROVEN_NA.
+
+---
+
+## Gate D closeout receipts
+
+Full TypeScript (after focused gates):
+
+- command: `NODE_OPTIONS=--max-old-space-size=8192 npm run typecheck`
+- result: exit 0, 0 errors
+- log: `/opt/cursor/artifacts/gate_d_typecheck.log`
+
+One `next build` (only after focused gates and typecheck passed):
+
+- command: `NODE_OPTIONS=--max-old-space-size=12288 npm run build`
+- compile-only public placeholders already in env (not runtime proof)
+- result: exit 0; `✓ Compiled successfully in 86s`; `✓ Generating static pages (391/391)`
+- cockpit route present: `/admin/workspace/quick-sales`
+- prospect preview route present: `/vista-previa/[category]`
+- log: `/opt/cursor/artifacts/gate_d_next_build.log`
+- no Vercel mutation; no deploy
+
+Changed-file ESLint: `/opt/cursor/artifacts/gate_d_eslint.log` — 0 errors / 0 warnings.
+
+Eight-family UI save: `/opt/cursor/artifacts/assisted-save-ui.log` — 39/39.
+Payment + claim runtime: `/opt/cursor/artifacts/payment-claim-runtime.log` — 21/21.
+
+`READY_FOR_PRODUCTION: false`
+`READY_FOR_SINGLE_PREVIEW_QA: false`
+
 
