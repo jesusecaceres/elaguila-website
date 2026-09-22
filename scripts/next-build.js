@@ -14,6 +14,32 @@ const { spawnSync } = require("node:child_process");
 
 process.env.NEXT_PRIVATE_WORKER_THREADS = "false";
 
+// Leonix operates one canonical application database. Preview deployments intentionally use the
+// same Leonix Media project as Production; the retired Staging and Certification projects must
+// never receive application traffic again. Keep this check Vercel-only so local placeholder URLs
+// can still be used for compile verification without weakening deployed-environment safety.
+const CANONICAL_SUPABASE_PROJECT_REF = "xuieateniufcrsfdomwl";
+
+function supabaseProjectRef(value) {
+  try {
+    const host = new URL(value ?? "").hostname;
+    return host.endsWith(".supabase.co") || host.endsWith(".supabase.in")
+      ? host.split(".")[0]
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+if (process.env.VERCEL === "1") {
+  const configuredRef = supabaseProjectRef(process.env.NEXT_PUBLIC_SUPABASE_URL);
+  if (configuredRef !== CANONICAL_SUPABASE_PROJECT_REF) {
+    throw new Error(
+      `[next-build] Refusing Vercel build: NEXT_PUBLIC_SUPABASE_URL must target canonical Leonix Media (${CANONICAL_SUPABASE_PROJECT_REF}); received ${configuredRef ?? "missing-or-invalid"}.`,
+    );
+  }
+}
+
 const nextCli = require.resolve("next/dist/bin/next");
 
 const args = process.argv.slice(2);
