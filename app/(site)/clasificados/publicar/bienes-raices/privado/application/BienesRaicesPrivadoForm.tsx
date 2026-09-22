@@ -1288,7 +1288,7 @@ export function BienesRaicesPrivadoForm() {
                   onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, zonificacion: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Condición">
+              <AiField label={brPrivateUi(lang, "Condición", "Condition")}>
                 <select
                   className={fieldClass}
                   value={state.comercial.condicion}
@@ -1346,7 +1346,7 @@ export function BienesRaicesPrivadoForm() {
           <section className={`${aiCardClass} min-w-0`}>
             <h2 className={aiTitleClass}>{brPrivateUi(lang, "Detalle terreno / lote", "Land / lot details")}</h2>
             <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
-              <AiField label="Tipo">
+              <AiField label={brPrivateUi(lang, "Tipo", "Type")}>
                 <select
                   className={fieldClass}
                   value={state.terreno.tipoCodigo}

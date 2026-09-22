@@ -828,7 +828,7 @@ export function RentasNegocioForm() {
                   className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-full border border-[#C9B46A]/70 bg-[#FFF6E7] px-4 text-sm font-semibold text-[#1E1810] transition hover:bg-[#FFEFD8]"
                   onClick={() => negocioLogoInputRef.current?.click()}
                 >
-                  Subir logo o foto
+                  {rentasUiLabel(lang, "Subir logo o foto", "Upload logo or photo")}
                 </button>
                 {state.negocioLogoDataUrl ? (
                   <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
@@ -848,7 +848,7 @@ export function RentasNegocioForm() {
                         })
                       }
                     >
-                      Quitar imagen
+                      {rentasUiLabel(lang, "Quitar imagen", "Remove image")}
                     </button>
                   </div>
                 ) : null}
@@ -1068,7 +1068,7 @@ export function RentasNegocioForm() {
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, mediosBanos: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Interior (ft²)">
+              <AiField label={rentasUiLabel(lang, "Interior (ft²)", "Interior (ft²)")}>
                 <input
                   className={fieldClass}
                   inputMode="numeric"
@@ -1077,7 +1077,7 @@ export function RentasNegocioForm() {
                 />
                 <RentasSqftPreview value={state.residencial.interiorSqft} lang={lang} />
               </AiField>
-              <AiField label="Lote (ft²)">
+              <AiField label={rentasUiLabel(lang, "Lote (ft²)", "Lot (ft²)")}>
                 <input
                   className={fieldClass}
                   inputMode="numeric"
@@ -1138,7 +1138,7 @@ export function RentasNegocioForm() {
                     onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, mediosBanos: e.target.value } }))}
                   />
                 </AiField>
-                <AiField label="Interior (ft²)">
+                <AiField label={rentasUiLabel(lang, "Interior (ft²)", "Interior (ft²)")}>
                   <input
                     className={fieldClass}
                     inputMode="numeric"
@@ -1157,13 +1157,16 @@ export function RentasNegocioForm() {
               </div>
             ) : (
               <p className={`${aiSubClass} mt-3`}>
-                Para este tipo de renta, los detalles de habitación o espacio compartido van arriba en “Anuncio”; aquí solo
-                puedes marcar destacados si aplica.
+                {rentasUiLabel(
+                  lang,
+                  "Para este tipo de renta, los detalles de habitación o espacio compartido van arriba en “Anuncio”; aquí solo puedes marcar destacados si aplica.",
+                  "For this rental type, room or shared-space details are entered above under “Listing”; here you can mark highlights when applicable.",
+                )}
               </p>
             )}
             <div className="mt-6">
-              <span className={aiLabelClass}>Destacados</span>
-              <p className={aiHintClass}>Opcional: qué destacar en la vista previa.</p>
+              <span className={aiLabelClass}>{rentasUiLabel(lang, "Destacados", "Highlights")}</span>
+              <p className={aiHintClass}>{rentasUiLabel(lang, "Opcional: qué destacar en la vista previa.", "Optional: what to highlight in the preview.")}</p>
               <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
                 {BR_HIGHLIGHT_PRESET_DEFS.map((d) => (
                   <label key={d.key} className="flex cursor-pointer items-start gap-3 text-sm leading-snug">
@@ -1260,7 +1263,7 @@ export function RentasNegocioForm() {
           <section className={`${aiCardClass} min-w-0`}>
             <h2 className={aiTitleClass}>{RENTAS_SECTION[lang].commercial}</h2>
             <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
-              <AiField label="Tipo comercial">
+              <AiField label={rentasUiLabel(lang, "Tipo comercial", "Commercial type")}>
                 <select
                   className={fieldClass}
                   value={state.comercial.tipoCodigo}
@@ -1292,7 +1295,7 @@ export function RentasNegocioForm() {
                 </select>
               </AiField>
               <div className="sm:col-span-2">
-                <AiField label="Uso">
+                <AiField label={rentasUiLabel(lang, "Uso", "Use")}>
                   <input
                     className={fieldClass}
                     value={state.comercial.uso}
@@ -1300,7 +1303,7 @@ export function RentasNegocioForm() {
                   />
                 </AiField>
               </div>
-              <AiField label="Interior (ft²)">
+              <AiField label={rentasUiLabel(lang, "Interior (ft²)", "Interior (ft²)")}>
                 <input
                   className={fieldClass}
                   inputMode="numeric"
@@ -1369,11 +1372,11 @@ export function RentasNegocioForm() {
                   checked={state.comercial.accesoCarga}
                   onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, accesoCarga: e.target.checked } }))}
                 />
-                <span className="text-sm font-medium text-[#2C2416]">Acceso de carga</span>
+                <span className="text-sm font-medium text-[#2C2416]">{rentasUiLabel(lang, "Acceso de carga", "Loading access")}</span>
               </label>
             </div>
             <div className="mt-6">
-              <span className={aiLabelClass}>Destacados</span>
+              <span className={aiLabelClass}>{rentasUiLabel(lang, "Destacados", "Highlights")}</span>
               <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
                 {COMERCIAL_DESTACADOS_CHECKLIST_DEFS.map((d) => (
                   <label key={d.id} className="flex cursor-pointer items-start gap-3 text-sm leading-snug">
@@ -1433,7 +1436,7 @@ export function RentasNegocioForm() {
                   ))}
                 </select>
               </AiField>
-              <AiField label="Lote (ft²)">
+              <AiField label={rentasUiLabel(lang, "Lote (ft²)", "Lot (ft²)")}>
                 <input
                   className={fieldClass}
                   inputMode="numeric"
@@ -1486,11 +1489,11 @@ export function RentasNegocioForm() {
                   checked={state.terreno.cercado}
                   onChange={(e) => setState((s) => ({ ...s, terreno: { ...s.terreno, cercado: e.target.checked } }))}
                 />
-                <span className="text-sm font-medium">Cercado</span>
+                <span className="text-sm font-medium">{rentasUiLabel(lang, "Cercado", "Fenced")}</span>
               </label>
             </div>
             <div className="mt-6">
-              <span className={aiLabelClass}>Destacados</span>
+              <span className={aiLabelClass}>{rentasUiLabel(lang, "Destacados", "Highlights")}</span>
               <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
                 {TERRENO_DESTACADOS_CHECKLIST_DEFS.map((d) => (
                   <label key={d.id} className="flex cursor-pointer items-start gap-3 text-sm leading-snug">
