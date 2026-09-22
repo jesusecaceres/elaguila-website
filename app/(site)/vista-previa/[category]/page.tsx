@@ -41,10 +41,12 @@ function firstParam(value: string | string[] | undefined): string | null {
 
 function SafeRefusal() {
   return (
-    <main style={styles.shell}>
+    <main style={styles.shell} data-prospect-preview-clears-navbar="1">
       <div style={styles.card}>
         <p style={styles.badge}>Vista previa / Preview</p>
-        <h1 style={styles.heading}>Este enlace ya no está disponible</h1>
+        <h1 style={styles.heading} data-prospect-preview-heading="1">
+          Este enlace ya no está disponible
+        </h1>
         <p style={styles.sub}>This link is no longer available</p>
         <p style={styles.body}>
           El enlace de vista previa expiró o no es válido. Pídele a tu representante de Leonix que
@@ -83,7 +85,7 @@ export default async function ProspectPreviewPage({ params, searchParams }: Page
   });
 
   return (
-    <main style={styles.shell}>
+    <main style={styles.shell} data-prospect-preview-clears-navbar="1">
       <div style={styles.wrap}>
         <div style={styles.banner}>
           <strong style={styles.bannerStrong}>Vista previa / Preview</strong>
@@ -134,7 +136,11 @@ const styles: Record<string, React.CSSProperties> = {
   shell: {
     minHeight: "100vh",
     background: "#F4EEE4",
-    padding: "16px",
+    // Navbar is `fixed top-0` (~4.5–5rem). Clear it so bilingual headings never sit under chrome.
+    paddingTop: "calc(5.25rem + env(safe-area-inset-top, 0px))",
+    paddingRight: 16,
+    paddingBottom: 16,
+    paddingLeft: 16,
     display: "flex",
     justifyContent: "center",
     alignItems: "flex-start",
@@ -142,6 +148,14 @@ const styles: Record<string, React.CSSProperties> = {
   wrap: {
     width: "100%",
     maxWidth: 720,
+  },
+  card: {
+    width: "100%",
+    maxWidth: 720,
+    background: "#FFFCF7",
+    border: "1px solid #E8D9C4",
+    borderRadius: 22,
+    padding: "20px 18px",
   },
   banner: {
     display: "flex",

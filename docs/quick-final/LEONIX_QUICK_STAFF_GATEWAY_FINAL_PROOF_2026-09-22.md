@@ -4,7 +4,7 @@
 **Origin:** `jesusecaceres/elaguila-website`  
 **Branch:** `repair/quick-sales-eight-category-staff-gateway-2026-09-22`  
 **Starting SHA:** `3171ae7d88aaedbb88f34b7c7deaf4d73e61456d`  
-**Live SHA:** `cf7ffde4d118651c8f3e7fd5e5b91598ce5f180b` (Gate 4 checkpoint; Gates 5–8 in this descendant)  
+**Live SHA:** `729788492d822cd6934dc36aa96749b919c6d742` (Gates 5–8 checkpoint; Gate 9 in this descendant)  
 **Deployment:** none  
 **External mutation:** none  
 
@@ -23,11 +23,11 @@ Final PASS requires zero FALSE / UNKNOWN / PARTIAL.
 | 2 | Exact eight-category doorway | TRUE — PROVEN | Gate 3 |
 | 3 | Application content / save-reopen | TRUE — PROVEN | Gate 4 |
 | 4 | Translation | TRUE — PROVEN | Gate 5 |
-| 5 | Media / preview / address / Trust | TRUE — PROVEN | Gate 9 |
-| 6 | Custody / preview / lifecycle / release | TRUE — PROVEN | Gate 9 |
-| 7 | Rewards bridge | TRUE — PROVEN | Gate 9 |
-| 8 | Security / failure matrix | TRUE — PROVEN | Gate 9 |
-| 9 | Local UX 390/768/1440 ES/EN | UNKNOWN | |
+| 5 | Media / preview / address / Trust | TRUE — PROVEN | Gate 10 |
+| 6 | Custody / preview / lifecycle / release | TRUE — PROVEN | Gate 10 |
+| 7 | Rewards bridge | TRUE — PROVEN | Gate 10 |
+| 8 | Security / failure matrix | TRUE — PROVEN | Gate 10 |
+| 9 | Local UX 390/768/1440 ES/EN | TRUE — PROVEN | Gate 10 |
 | 10 | Regression + full tsc + next build | UNKNOWN | once only at end |
 
 ---
@@ -267,6 +267,34 @@ Exact outcomes: 401 `no_admin_cookie`, 403 `role_not_permitted`, 401 claim `unau
 
 ---
 
+### Gate 9 — local UX 390 / 768 / 1440 ES / EN (checkpoint)
+
+LOCAL visual proof only. Not a deployed Preview. Staff cockpit without admin cookies honestly redirects to `/admin/login` (no fail-open public intake). Prospect preview without a signed token renders SafeRefusal (no JSON dump). Compile-only public Supabase placeholders; no live listing payload.
+
+Repairs:
+
+- cockpit category / plan / search / custody / preview / publish controls: `min-h-[44px]`, `aria-pressed`, bilingual `aria-label`, `overflow-x-hidden`
+- vista-previa shell `paddingTop: calc(5.25rem + env(safe-area-inset-top, 0px))` so the bilingual heading clears the fixed site navbar
+
+Executed:
+
+- `npx tsx --tsconfig scripts/lib/tsconfig.harness.json scripts/verify-staff-eight-category-local-ux-01.ts` — PASS (7/7)
+- `NODE_PATH=/workspace/node_modules node scripts/capture-staff-eight-category-local-ux-01.cjs` — PASS (18/18, overflow=0, headingClearsNav=true at 390/768/1440)
+
+Measured heading clearance (LOCAL):
+
+| Viewport | navBottom | headingTop | overflow |
+| --- | --- | --- | --- |
+| 390 | 49 | 129 | 0 |
+| 768 | 55 | 129 | 0 |
+| 1440 | 57 | 129 | 0 |
+
+Artifacts (LOCAL): `/opt/cursor/artifacts/gate9_local_v3_*.png` + `gate9_local_ux_receipts_v3.json`
+
+DEFERRED_BY_OWNER: staff-authenticated cockpit Quick/Full click-through (would require mutating auth / roster cookies). Source contract for eight bilingual family buttons + Quick/Full picker on the four business pairs is proven by U1/U2.
+
+---
+
 ## Remaining next gate
 
-**Gate 9** — local UX 390/768/1440 ES/EN artifacts. Then Gate 10 full tsc + next build once.
+**Gate 10** — one full `tsc --noEmit --incremental false` and one `next build`. No deploy.

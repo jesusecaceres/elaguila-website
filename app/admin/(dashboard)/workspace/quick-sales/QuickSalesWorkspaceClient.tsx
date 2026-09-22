@@ -213,7 +213,7 @@ export function QuickSalesWorkspaceClient({
     : null;
 
   return (
-    <div className="space-y-5 text-sm text-[#2F2A1F]">
+    <div className="space-y-5 overflow-x-hidden text-sm text-[#2F2A1F]">
       <p className="text-xs text-[#5D4A25]">Operador / Operator: {actorEmail}</p>
       {initialBusiness || initialCategory || initialListingId ? (
         <p className="rounded-lg border border-[#C9A84A]/60 bg-[#FFFDF7] p-3 text-xs text-[#5D4A25]" data-quick-sales-preselected>
@@ -232,7 +232,9 @@ export function QuickSalesWorkspaceClient({
               key={key}
               type="button"
               onClick={() => setCategory(key)}
-              className={`rounded-lg border px-3 py-2 text-xs font-semibold ${
+              aria-pressed={category === key}
+              aria-label={`${QUICK_SALES_CATEGORY_MAP[key].labelEs} / ${QUICK_SALES_CATEGORY_MAP[key].labelEn}`}
+              className={`min-h-[44px] rounded-lg border px-3 py-2 text-xs font-semibold ${
                 category === key ? "border-[#B8860B] bg-[#FFF6E7]" : "border-[#E6DCC6] bg-white"
               }`}
             >
@@ -253,9 +255,11 @@ export function QuickSalesWorkspaceClient({
                   type="button"
                   data-staff-plan={offer.plan}
                   onClick={() => setPlan(offer.plan)}
-                  className={`rounded-lg border px-3 py-2 text-xs font-semibold ${
+                  className={`min-h-[44px] rounded-lg border px-3 py-2 text-xs font-semibold ${
                     plan === offer.plan ? "border-[#B8860B] bg-[#FFF6E7]" : "border-[#E6DCC6] bg-white"
                   }`}
+                  aria-pressed={plan === offer.plan}
+                  aria-label={`${offer.plan === "quick" ? "Quick Business" : "Full Business"} $${(offer.priceCents / 100).toFixed(0)}`}
                 >
                   {offer.plan === "quick" ? "Quick Business" : "Full Business"} · $
                   {(offer.priceCents / 100).toFixed(0)}/mes · {offer.access === "simple" ? "Simple" : "Full"}
@@ -279,7 +283,7 @@ export function QuickSalesWorkspaceClient({
         </p>
         <a
           href={BEGIN_CLIENT_DRAFT_HREF}
-          className="mb-3 inline-block rounded-lg border border-[#E6DCC6] px-3 py-2 text-xs font-semibold"
+          className="mb-3 inline-flex min-h-[44px] items-center rounded-lg border border-[#E6DCC6] px-3 py-2 text-xs font-semibold"
           data-begin-client-draft
         >
           Negocio nuevo (registro canónico) / New business (canonical record)
@@ -289,9 +293,10 @@ export function QuickSalesWorkspaceClient({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Buscar negocio / Search business"
-            className="flex-1 rounded-lg border border-[#E6DCC6] px-3 py-2"
+            className="min-h-[44px] flex-1 rounded-lg border border-[#E6DCC6] px-3 py-2"
+            aria-label="Buscar negocio / Search business"
           />
-          <button type="button" onClick={() => void searchBusinesses()} className="rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold">
+          <button type="button" onClick={() => void searchBusinesses()} className="min-h-[44px] rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold">
             Buscar / Search
           </button>
         </div>
@@ -302,7 +307,7 @@ export function QuickSalesWorkspaceClient({
                 <button
                   type="button"
                   onClick={() => setBusinessId(b.id)}
-                  className={`w-full rounded-lg border px-3 py-2 text-left text-xs ${
+                  className={`min-h-[44px] w-full rounded-lg border px-3 py-2 text-left text-xs ${
                     businessId === b.id ? "border-[#B8860B] bg-[#FFF6E7]" : "border-[#E6DCC6]"
                   }`}
                 >
@@ -318,7 +323,8 @@ export function QuickSalesWorkspaceClient({
           value={clientUserId}
           onChange={(e) => setClientUserId(e.target.value)}
           placeholder="Usuario del cliente (opcional) / Customer user id (optional)"
-          className="mt-3 w-full rounded-lg border border-[#E6DCC6] px-3 py-2 font-mono text-xs"
+          className="mt-3 min-h-[44px] w-full rounded-lg border border-[#E6DCC6] px-3 py-2 font-mono text-xs"
+          aria-label="Usuario del cliente (opcional) / Customer user id (optional)"
         />
       </section>
 
@@ -329,7 +335,7 @@ export function QuickSalesWorkspaceClient({
             type="button"
             disabled={busy || !businessId}
             onClick={() => void establishCustody()}
-            className="rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold disabled:opacity-40"
+            className="min-h-[44px] rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold disabled:opacity-40"
           >
             Empezar anuncio nuevo / Start a new ad
           </button>
@@ -337,13 +343,14 @@ export function QuickSalesWorkspaceClient({
             value={reopenListingId}
             onChange={(e) => setReopenListingId(e.target.value)}
             placeholder="ID del borrador / Draft id"
-            className="rounded-lg border border-[#E6DCC6] px-3 py-2 font-mono text-xs"
+            className="min-h-[44px] rounded-lg border border-[#E6DCC6] px-3 py-2 font-mono text-xs"
+            aria-label="ID del borrador / Draft id"
           />
           <button
             type="button"
             disabled={busy || !businessId || !reopenListingId.trim()}
             onClick={() => void establishCustody(reopenListingId.trim())}
-            className="rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold disabled:opacity-40"
+            className="min-h-[44px] rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold disabled:opacity-40"
           >
             Reabrir el mismo borrador / Reopen the same draft
           </button>
@@ -390,7 +397,7 @@ export function QuickSalesWorkspaceClient({
           data-staff-open-intake={category}
           data-staff-open-requires-custody="true"
           data-staff-plan={pairOffers.length ? plan : undefined}
-          className="mt-2 rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold disabled:opacity-40"
+          className="mt-2 min-h-[44px] rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold disabled:opacity-40"
         >
           Llenar {descriptor.labelEs} / Fill {descriptor.labelEn}
         </button>
@@ -412,7 +419,7 @@ export function QuickSalesWorkspaceClient({
           type="button"
           disabled={busy || !status?.listingId}
           onClick={() => void issuePreview()}
-          className="rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold disabled:opacity-40"
+          className="min-h-[44px] rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold disabled:opacity-40"
         >
           Generar enlace / Generate link
         </button>
@@ -422,7 +429,7 @@ export function QuickSalesWorkspaceClient({
             <button
               type="button"
               onClick={() => void navigator.clipboard?.writeText(absolutePreview)}
-              className="rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold"
+              className="min-h-[44px] rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold"
             >
               Copiar / Copy
             </button>
@@ -451,7 +458,7 @@ export function QuickSalesWorkspaceClient({
               category: status.category,
             })}
             data-staff-record-payment
-            className="mt-2 mr-2 inline-block rounded-lg border border-[#E6DCC6] px-3 py-2 text-xs font-semibold"
+            className="mt-2 inline-flex min-h-[44px] items-center rounded-lg border border-[#E6DCC6] px-3 py-2 text-xs font-semibold"
           >
             Registrar o verificar pago / Record or verify payment
           </a>
@@ -460,7 +467,7 @@ export function QuickSalesWorkspaceClient({
           type="button"
           disabled={busy || !status?.listingId}
           onClick={() => void publishNow()}
-          className="mt-2 rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold disabled:opacity-40"
+          className="mt-2 min-h-[44px] rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold disabled:opacity-40"
         >
           Publicar ahora / Publish now
         </button>
