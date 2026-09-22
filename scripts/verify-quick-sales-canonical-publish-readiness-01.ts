@@ -317,6 +317,9 @@ await check("R6b: a row whose STORED owner holds a LIVE Full entitlement is exem
   const d = readyRestaurant(); d.videoUrls = ["https://www.youtube.com/watch?v=abcdefghijk"]; seedRestaurant(d);
   __seed("restaurantes_public_listings", rows("restaurantes_public_listings").map((r) => ({ ...r, owner_user_id: CLIENT })));
   __seed("listing_package_entitlements", [FULL_ENTITLEMENT(CLIENT)]);
+  // Entitlement is product identity for the media rule, not payment. Full publication still
+  // requires an authoritative Full payment record.
+  __seed("leonix_payment_records", [paid(SRC.restaurantes.listingSource, "r1", BUSINESS_CATEGORY_PACKAGE_PAIR.restaurantes.full)]);
   const { status, json } = await publishAs("restaurantes", "r1", null, {}, "restaurantes_base_monthly");
   assert.equal(status, 200, JSON.stringify(json));
 });
