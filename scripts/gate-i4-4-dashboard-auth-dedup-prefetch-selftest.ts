@@ -63,7 +63,7 @@ for (const forbidden of [/\bsearchParams\b/, /window\.location/, /localStorage\s
 }
 
 // 7 — the entitlement bearer-token flow is untouched.
-assert.match(misAnunciosSrc, /await supabase\.auth\.getSession\(\)/, "the entitlement bearer-token getSession() call must remain present and untouched");
+assert.match(misAnunciosSrc, /supabase\.auth\.getSession\(\)/, "the entitlement bearer-token getSession() call must remain present (it may run concurrently inside Promise.all)");
 
 // 8 — unauthenticated redirect behavior is untouched.
 assert.match(
