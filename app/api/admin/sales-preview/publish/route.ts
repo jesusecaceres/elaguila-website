@@ -16,6 +16,15 @@
  * The activation predicates below are the same ones the four assisted category routes use — a
  * compare-and-set from the pre-publish states only, so a concurrent moderation or webhook write is
  * never overwritten, and a zero-row result is reported rather than reported as success.
+ *
+ * CLEARED PAYMENT IS NECESSARY, NEVER SUFFICIENT. A `save_for_client` draft is allowed to be
+ * incomplete on purpose. Before any status is written, the category's OWN publish-time contract is
+ * re-run against the STORED row through `assessCanonicalPublishReadiness` — the same readiness,
+ * media, product and required-child predicates the category route runs on a request body — and a
+ * refusal is answered with the category route's own status and body, audited as a refusal.
+ *
+ * REPLAY IS REFUSED EXPLICITLY: a row that is already public answers 409 `already_published`
+ * before the compare-and-set even runs, so a double tap is never reported as a second success.
  */
 import { NextResponse, type NextRequest } from "next/server";
 import { requireStaffWorkspaceWriteAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
@@ -26,6 +35,7 @@ import {
 } from "@/app/lib/business/assistedListingCustody";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { recordSalesWorkspaceAudit } from "@/app/lib/sales/salesWorkspaceAudit";
+import { activateAutosDealerListing, assessCanonicalPublishReadiness } from "@/app/lib/sales/canonicalPublishReadiness";
 import {
   QUICK_SALES_CATEGORY_MAP,
   isQuickSalesCategory,
@@ -127,16 +137,47 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "db_not_configured" }, { status: 503 });
   }
 
-  const plan = ACTIVATION[category];
+  // THE CATEGORY'S OWN CONTRACT, AGAINST THE STORED ROW, AFTER THE MONEY AND BEFORE ANY WRITE.
+  const body = await request.json().catch(() => ({})) as Record<string, unknown>;
+  const lang: "es" | "en" = body.lang === "en" ? "en" : "es";
+  const readiness = await assessCanonicalPublishReadiness({ category, listingId, lang });
+  if (!readiness.ok) {
+    await recordSalesWorkspaceAudit({
+      action: "quick_sales_publish_attempted",
+      actorRosterId: ctx.rosterId,
+      businessId: ctx.businessId,
+      category,
+      listingSource: descriptor.listingSource,
+      listingId,
+      paymentState: "cleared",
+      outcome: readiness.error,
+      detail: { http_status: readiness.status },
+    });
+    return NextResponse.json({ ...readiness.body, listingId }, { status: readiness.status });
+  }
+
   const nowIso = new Date().toISOString();
   const db = getAdminSupabase();
-  const { data, error } = await db
-    .from(plan.table)
-    .update(plan.patch(nowIso))
-    .eq("id", listingId)
-    .in(STATUS_COLUMN[category], plan.fromStates)
-    .select("id")
-    .maybeSingle();
+  let data: { id?: string } | null = null;
+  let error: unknown = null;
+  if (category === "autos") {
+    // The dealer parent publishes WITH its vehicle child — the same shared activation the Autos
+    // assisted route runs, so the two seams cannot publish a dealer two different ways.
+    const activation = await activateAutosDealerListing({ mainListingId: listingId, vehicleListingId: readiness.childListingId });
+    if (activation.ok) data = { id: listingId };
+    else if (activation.status === 500) error = activation.error;
+  } else {
+    const plan = ACTIVATION[category];
+    const res = await db
+      .from(plan.table)
+      .update(plan.patch(nowIso))
+      .eq("id", listingId)
+      .in(STATUS_COLUMN[category], plan.fromStates)
+      .select("id")
+      .maybeSingle();
+    data = res.data as { id?: string } | null;
+    error = res.error;
+  }
 
   if (error) {
     await recordSalesWorkspaceAudit({
@@ -151,7 +192,7 @@ export async function POST(request: NextRequest) {
     });
     return NextResponse.json({ ok: false, error: "activate_failed", listingId }, { status: 500 });
   }
-  if (!(data as { id?: string } | null)?.id) {
+  if (!data?.id) {
     // Zero rows is not success: the row was not in a publishable state (already live, removed, or
     // moved on by a webhook). Staff are told, rather than shown a green tick over nothing.
     await recordSalesWorkspaceAudit({

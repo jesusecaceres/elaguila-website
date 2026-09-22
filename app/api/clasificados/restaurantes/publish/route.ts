@@ -24,9 +24,7 @@ import { allocateNextRestauranteLeonixAdId } from "@/app/clasificados/restaurant
 import { RESTAURANTE_PENDING_CHECKOUT_STATUS } from "@/app/lib/listingPlans/revenueRestaurantFulfillment";
 import { restauranteCouponsCapabilityActive } from "@/app/clasificados/restaurantes/lib/restauranteCouponCapabilityServer";
 import { resolveRestauranteOwnerEditTargetStatus } from "@/app/lib/clasificados/restaurantes/restauranteOwnerEditStatusAuthority";
-import { coerceRestauranteImageRefToString } from "@/app/clasificados/restaurantes/application/createEmptyRestauranteDraft";
 import {
-  collectRestauranteExternalVideoUrls,
   isValidRestauranteExternalVideoUrl,
   trimRestauranteVideoUrl,
   RESTAURANTE_MAX_EXTERNAL_VIDEO_URLS,
@@ -47,7 +45,8 @@ import { enforceQuickBusinessPublishMedia } from "@/app/lib/quickBusiness/quickB
 import { resolveQuickBusinessPublishIdentity } from "@/app/lib/listingPlans/quickBusinessProductIdentityServer";
 
 /** Gallery cap mirrors MAX_GALLERY in RestaurantePublishMediaStrip.tsx:29 (local, unexported). */
-const RESTAURANTE_GALLERY_MAX = 24;
+// QUICK SALES canonical readiness — the cap and the media facts are shared with the cockpit publisher.
+import { RESTAURANTE_GALLERY_MAX, restauranteQuickMediaFacts } from "@/app/lib/sales/canonicalPublishReadiness";
 
 function isUniqueViolation(err: { code?: string; message?: string } | null | undefined): boolean {
   return err?.code === "23505" || /duplicate key|unique constraint/i.test(err?.message ?? "");
@@ -347,13 +346,13 @@ export async function POST(req: NextRequest) {
   // collectRestauranteExternalVideoUrls() already validates/dedupes/caps video URLs using this
   // category's own validator — this is the authoritative last-line max/video truth for this
   // single, real save boundary (new listings and listing-edit both route through this handler).
-  const restauranteHeroUrl = coerceRestauranteImageRefToString(draft.heroImage);
-  const restauranteGalleryUrls = (draft.galleryImages ?? [])
-    .map((ref) => coerceRestauranteImageRefToString(ref))
-    .filter((u): u is string => Boolean(u));
+  // Hero, gallery and external video facts come from the ONE helper the cockpit publisher also
+  // uses, so the two seams cannot read the same draft two ways.
+  const { heroUrl: restauranteHeroUrl, galleryUrls: restauranteGalleryUrls, externalVideoUrls: restauranteExternalVideoUrls } =
+    restauranteQuickMediaFacts(draft);
   const restauranteFinalMedia = buildProposedFinalMediaSet({
     existing: [...(restauranteHeroUrl ? [restauranteHeroUrl] : []), ...restauranteGalleryUrls],
-    externalVideoUrls: collectRestauranteExternalVideoUrls(draft),
+    externalVideoUrls: restauranteExternalVideoUrls,
   });
   // Gate RESTAURANTES-1 — this engine has always returned `droppedUnpersistable` so callers can
   // warn, and this caller never read it: a `blob:`/`data:` image surviving into a draft was
@@ -410,7 +409,7 @@ export async function POST(req: NextRequest) {
   });
   // Same external-video blind spot as Servicios: the links are collected separately and never
   // carry a `video/*` MIME, so the no-video rule could not reach them.
-  const restauranteExternalVideoCount = collectRestauranteExternalVideoUrls(draft).filter(
+  const restauranteExternalVideoCount = restauranteExternalVideoUrls.filter(
     (u) => typeof u === "string" && u.trim().length > 0,
   ).length;
   const restauranteSemanticMedia = restauranteProduct.enforceQuickContract

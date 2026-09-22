@@ -342,6 +342,40 @@ function linkRow(listingSource: string, listingId: string, businessId = BIZ) {
   };
 }
 
+
+/** A COMPLETE stored row per category, as the canonical publish contract reads it back. */
+function readyRowsFor(category: ProspectPreviewCategory): Record<string, unknown>[] {
+  const day = { closed: false, openTime: "09:00", closeTime: "17:00" };
+  switch (category) {
+    case "servicios":
+      return [{
+        id: "row-1", slug: "sol", business_name: "Taquería Sol", city: "San José", listing_status: "draft", owner_user_id: null, published_at: null,
+        profile_json: {
+          identity: { slug: "sol", businessName: "Taquería Sol" },
+          hero: { coverImageUrl: "https://cdn.example.test/cover.jpg" },
+          contact: { phone: "4085551234" },
+          about: { text: "Servicio confiable en San José desde 2010." },
+          services: [{ id: "s1", title: "Reparación de fugas" }],
+          gallery: [],
+          opsMeta: { businessTypeId: "plomeria" },
+        },
+      }];
+    case "restaurantes":
+      return [{
+        id: "row-1", slug: "sol", draft_listing_id: "draft-1", status: "draft", owner_user_id: null, published_at: null,
+        listing_json: { draftListingId: "draft-1", businessName: "Taquería Sol", businessType: "restaurant", primaryCuisine: "mexican", cityCanonical: "San José", heroImage: "https://cdn.example.test/hero.jpg", phoneNumber: "9150000000", serviceModes: ["dine_in"], monday: day, tuesday: day, wednesday: day, thursday: day, friday: day, saturday: day, sunday: day },
+      }];
+    case "autos":
+      return [
+        { id: "row-1", status: "draft", inventory_role: "main", listing_payload: { businessName: "Dealer Uno" }, published_at: null, created_at: "2026-09-01T00:00:00Z" },
+        { id: "row-1-v", status: "draft", inventory_role: "inventory_vehicle", dealer_inventory_parent_listing_id: "row-1", listing_payload: { images: [{ url: "https://cdn.example.test/car.jpg", role: "vehicle" }] }, published_at: null, created_at: "2026-09-01T00:00:01Z" },
+      ];
+    case "bienes-raices":
+    default:
+      return [{ id: "row-1", status: "pending", is_published: false, published_at: null, title: "Oficina", listing_json: { images: [{ url: "https://cdn.example.test/house.jpg", role: "property" }] } }];
+  }
+}
+
 async function run() {
   const custody = (await import("../app/api/admin/sales-preview/custody/route")) as unknown as {
     POST: (r: never) => Promise<Response>;
@@ -462,9 +496,11 @@ async function run() {
       __reset();
       signInAsSalesStaff();
       __seed("business_listing_links", [linkRow(descriptor.listingSource, "row-1")]);
-      __seed(descriptor.listingSource, [
-        { id: "row-1", status: category === "bienes-raices" ? "pending" : "draft", listing_status: "draft", is_published: false, published_at: null },
-      ]);
+      // QUICK SALES canonical publish readiness (repair 2026-09-22): a cleared payment is no longer
+      // enough by itself — the cockpit re-runs the category's own publish contract against the
+      // STORED row. The rows seeded here are therefore COMPLETE per that contract; the incomplete
+      // variants live in verify-quick-sales-canonical-publish-readiness-01.ts.
+      __seed(descriptor.listingSource, readyRowsFor(category));
       __seed("leonix_payment_records", [
         { id: "pay-1", listing_source: descriptor.listingSource, listing_id: "row-1", manual_state: "cleared" },
       ]);
@@ -475,8 +511,8 @@ async function run() {
       assert.equal(json.listingId, "row-1", "publication must return the SAME id the prospect reviewed");
 
       const rows = __rows(descriptor.listingSource) as Record<string, unknown>[];
-      assert.equal(rows.length, 1, "publishing must never create a second listing");
-      const row = rows[0]!;
+      assert.equal(rows.length, readyRowsFor(category).length, "publishing must never create a second listing");
+      const row = rows.find((r) => r.id === "row-1")!;
       // Each category's own public value — servicios uses a separate lifecycle column, and
       // restaurantes' public state is "published" where autos/bienes use "active".
       if (category === "servicios") assert.equal(row.listing_status, "published");
