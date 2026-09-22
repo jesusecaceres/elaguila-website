@@ -42,6 +42,15 @@ import { QUICK_SALES_CATEGORY_MAP, QUICK_SALES_CATEGORIES } from "../app/lib/sal
 import { BUSINESS_CATEGORY_PACKAGE_PAIR } from "../app/lib/listingPlans/businessAccessLevel";
 import { STAFF_CATEGORY_PRICED_PACKAGE_KEYS } from "../app/lib/sales/staffBusinessProduct";
 import { getRevenuePackageDefinition } from "../app/lib/listingPlans/revenuePricingMatrix";
+import {
+  createEmptyRentasPrivadoFormState,
+  mergePartialRentasPrivadoState,
+} from "../app/(site)/clasificados/publicar/rentas/privado/schema/rentasPrivadoFormState";
+import { buildRentasPrivadoListingParams } from "../app/(site)/clasificados/lib/leonixPublishRealEstateFromDraftState";
+import { normalizeEmpleosQuickDraft } from "../app/(site)/publicar/empleos/shared/types/empleosQuickDraft";
+import { buildEmpleosPublishEnvelopeFromQuick } from "../app/(site)/publicar/empleos/shared/publish/buildEmpleosPublishEnvelope";
+import { createEmptyComidaLocalDraft } from "../app/lib/clasificados/comida-local/createEmptyComidaLocalDraft";
+import { mergeComidaLocalDraftFromStorage } from "../app/lib/clasificados/comida-local/comidaLocalDraftPersistence";
 
 const PREVIEW_SECRET = "preview-secret-harness-only";
 const ASSISTED_SECRET = "assisted-secret-harness-only";
@@ -411,17 +420,158 @@ function readyRowsFor(category: ProspectPreviewCategory): Record<string, unknown
       }];
     case "autos":
       return [
-        { id: "row-1", status: "draft", inventory_role: "main", listing_payload: { businessName: "Dealer Uno" }, published_at: null, created_at: "2026-09-01T00:00:00Z" },
-        { id: "row-1-v", status: "draft", inventory_role: "inventory_vehicle", dealer_inventory_parent_listing_id: "row-1", listing_payload: { images: [{ url: "https://cdn.example.test/car.jpg", role: "vehicle" }] }, published_at: null, created_at: "2026-09-01T00:00:01Z" },
+        {
+          id: "row-1",
+          status: "draft",
+          inventory_role: "main",
+          listing_payload: { businessName: "Dealer Uno", dealerName: "Dealer Uno", dealerPhoneOffice: "4085550110" },
+          published_at: null,
+          created_at: "2026-09-01T00:00:00Z",
+        },
+        {
+          id: "row-1-v",
+          status: "draft",
+          inventory_role: "inventory_vehicle",
+          dealer_inventory_parent_listing_id: "row-1",
+          listing_payload: {
+            year: 2018,
+            make: "Honda",
+            model: "Civic",
+            price: 12900,
+            city: "San Jose",
+            zip: "95116",
+            dealerPhoneOffice: "4085550111",
+            images: [{ url: "https://cdn.example.test/car.jpg", role: "vehicle" }],
+            mediaImages: [{ url: "https://cdn.example.test/car.jpg", role: "vehicle" }],
+          },
+          published_at: null,
+          created_at: "2026-09-01T00:00:01Z",
+        },
       ];
     case "autos-privado":
-      return [{ id: "row-1", status: "draft", lane: "privado", listing_payload: { title: "Honda Civic 2018" }, published_at: null }];
-    case "empleos":
-      return [{ id: "row-1", slug: "job-1", lane: "quick", title: "Cajero", company_name: "Taquería Sol", city: "San José", state: "CA", modality: "onsite", job_type: "full_time", experience: "entry", company_type: "restaurant", lifecycle_status: "draft", published_at: null }];
+      return [{
+        id: "row-1",
+        status: "draft",
+        lane: "privado",
+        listing_payload: {
+          year: 2018,
+          make: "Honda",
+          model: "Civic",
+          price: 12900,
+          city: "San Jose",
+          zip: "95116",
+          dealerPhoneOffice: "4085550111",
+          dealerWhatsapp: "4085550112",
+          mediaImages: [{ url: "https://cdn.example.test/civic.jpg", role: "vehicle" }],
+        },
+        published_at: null,
+      }];
+    case "empleos": {
+      const envelope = buildEmpleosPublishEnvelopeFromQuick(
+        normalizeEmpleosQuickDraft({
+          title: "Niño's Landscaping lead",
+          businessName: "El Sazón de Mamá",
+          city: "Oakland",
+          state: "CA",
+          stateRegion: "CA",
+          country: "United States",
+          jobType: "tiempo-completo",
+          schedule: "Lunes a viernes",
+          payAmount: "28",
+          payUnit: "hora",
+          description: "A-1 Plumbing adjacent crew. Accents and ñ stay.",
+          images: [{ id: "img1", url: "https://cdn.example.test/job.jpg", alt: "crew", isMain: true }],
+          phone: "5105550100",
+          whatsapp: "5105550101",
+          smsPhone: "5105550102",
+          email: "jobs@example.test",
+        }),
+        "es",
+      );
+      return [{
+        id: "row-1",
+        slug: "job-1",
+        lane: "quick",
+        title: "Niño's Landscaping lead",
+        company_name: "El Sazón de Mamá",
+        city: "Oakland",
+        state: "CA",
+        modality: "onsite",
+        job_type: "full_time",
+        experience: "entry",
+        company_type: "restaurant",
+        lifecycle_status: "draft",
+        listing_snapshot: { envelope },
+        published_at: null,
+      }];
+    }
     case "comida-local":
-      return [{ id: "row-1", slug: "comida-1", status: "draft", business_name: "Elote Loco", food_type: "street", city_display: "San José", que_vendes: "Elotes", published_at: null }];
-    case "rentas":
-      return [{ id: "row-1", status: "pending", is_published: false, published_at: null, title: "Cuarto en San José", category: "rentas" }];
+      return [{
+        id: "row-1",
+        slug: "comida-1",
+        status: "draft",
+        business_name: "Elote Loco",
+        food_type: "tacos",
+        city_display: "San José",
+        listing_json: mergeComidaLocalDraftFromStorage({
+          ...createEmptyComidaLocalDraft(),
+          businessName: "Elote Loco",
+          foodType: "tacos",
+          cityDisplay: "Oakland",
+          cityCanonical: "oakland",
+          queVendes: "Elotes preparados every morning at the corner stand.",
+          phone: "4085550199",
+          mainPhoto: { url: "https://cdn.example.test/elote.jpg", role: "main" },
+        }),
+        published_at: null,
+      }];
+    case "rentas": {
+      const built = buildRentasPrivadoListingParams(
+        mergePartialRentasPrivadoState({
+          ...createEmptyRentasPrivadoFormState(),
+          titulo: "José's Auto Repair loft",
+          rentaMensual: "1850",
+          tipoDeRenta: "apartamento",
+          ciudad: "San José",
+          direccionEstado: "CA",
+          direccionCodigoPostal: "95112",
+          direccionLinea1: "1601 Coleman Ave",
+          mostrarDireccionExacta: true,
+          seller: {
+            ...createEmptyRentasPrivadoFormState().seller,
+            nombre: "María & Sons",
+            telefono: "4085550199",
+            whatsapp: "4085550188",
+            mensajesTexto: "4085550177",
+          },
+          media: {
+            ...createEmptyRentasPrivadoFormState().media,
+            photoDataUrls: ["https://cdn.example.test/rental.jpg"],
+          },
+        }),
+        "es",
+      );
+      if (!built.ok) throw new Error(`rentas ready fixture failed: ${built.error}`);
+      return [{
+        id: "row-1",
+        status: "pending",
+        is_published: false,
+        published_at: null,
+        title: built.params.title,
+        description: built.params.description ?? "",
+        city: built.params.city,
+        state: built.params.state,
+        zip: built.params.zip,
+        price: built.params.price,
+        category: "rentas",
+        images: built.params.imageSources,
+        detail_pairs: built.params.detailPairs,
+        contact_phone: built.params.contactPhoneDigits,
+        contact_email: built.params.contactEmail,
+        listing_json: built.params.listingJson ?? null,
+        contact_json: built.params.contactJson ?? null,
+      }];
+    }
     case "bienes-raices":
     default:
       return [{ id: "row-1", status: "pending", is_published: false, published_at: null, title: "Oficina", images: ["https://cdn.example.test/house.jpg"] }];

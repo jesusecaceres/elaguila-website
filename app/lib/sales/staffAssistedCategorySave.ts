@@ -35,6 +35,12 @@ export type StaffAssistedSaveRefusal = {
   error: string;
 };
 
+export function isStaffAssistedSaveRefusal(
+  value: StaffAssistedSaveResolution | StaffAssistedSaveRefusal,
+): value is StaffAssistedSaveRefusal {
+  return "ok" in value;
+}
+
 export async function resolveStaffAssistedCategorySave(input: {
   request: NextRequest;
   expectedCategory: QuickSalesCategory;

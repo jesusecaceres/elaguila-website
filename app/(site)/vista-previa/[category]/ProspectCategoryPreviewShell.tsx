@@ -49,7 +49,6 @@ export function ProspectCategoryPreviewShell({
                   : "relative aspect-[4/3] overflow-hidden rounded-[16px] bg-[#F5F0E8]"
               }
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={img.src} alt={img.alt} className="h-full w-full object-cover" />
             </div>
           ))}

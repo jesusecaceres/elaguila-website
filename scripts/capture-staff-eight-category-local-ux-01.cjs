@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 /**
  * LOCAL-ONLY Gate 9 screenshots. Not a deployed Preview.
  *

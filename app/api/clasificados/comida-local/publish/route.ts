@@ -13,7 +13,7 @@ import { parseComidaLocalPublishRequest, normalizeComidaLocalDraftForPublish, no
 import { applyAssistedPublishingCookie } from "@/app/lib/auth/assistedPublishingSession";
 import { linkAssistedListingToBusiness } from "@/app/lib/business/assistedListingCustody";
 import { recordSalesWorkspaceAudit } from "@/app/lib/sales/salesWorkspaceAudit";
-import { resolveStaffAssistedCategorySave } from "@/app/lib/sales/staffAssistedCategorySave";
+import { resolveStaffAssistedCategorySave, isStaffAssistedSaveRefusal } from "@/app/lib/sales/staffAssistedCategorySave";
 import { buildComidaLocalSlugBase } from "@/app/lib/clasificados/comida-local/comidaLocalSlug";
 import {
   COMIDA_LOCAL_STATUS_TRANSITION_NOT_ALLOWED_ERROR,
@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
     bodyListingId: typeof b.draftListingId === "string" ? b.draftListingId : null,
     bodyClientUserId: typeof b.clientUserId === "string" ? b.clientUserId : null,
   });
-  if ("ok" in assisted && assisted.ok === false) {
+  if (isStaffAssistedSaveRefusal(assisted)) {
     return NextResponse.json({ ok: false, error: assisted.error }, { status: assisted.status });
   }
   if (assisted.assisted && assisted.isPublish) {

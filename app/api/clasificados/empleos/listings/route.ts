@@ -11,7 +11,7 @@ import { resolveCanonicalPlacementRankWeights } from "@/app/lib/listingPlans/pla
 import { applyAssistedPublishingCookie } from "@/app/lib/auth/assistedPublishingSession";
 import { isListingLinkedToBusiness, linkAssistedListingToBusiness } from "@/app/lib/business/assistedListingCustody";
 import { recordSalesWorkspaceAudit } from "@/app/lib/sales/salesWorkspaceAudit";
-import { resolveStaffAssistedCategorySave } from "@/app/lib/sales/staffAssistedCategorySave";
+import { resolveStaffAssistedCategorySave, isStaffAssistedSaveRefusal } from "@/app/lib/sales/staffAssistedCategorySave";
 
 export const runtime = "nodejs";
 
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     bodyListingId: envelope.listingId,
     bodyClientUserId: typeof b.clientUserId === "string" ? b.clientUserId : null,
   });
-  if ("ok" in assisted && assisted.ok === false) {
+  if (isStaffAssistedSaveRefusal(assisted)) {
     return NextResponse.json({ ok: false, error: assisted.error }, { status: assisted.status });
   }
 

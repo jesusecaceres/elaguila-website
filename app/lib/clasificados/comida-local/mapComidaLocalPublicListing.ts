@@ -5,7 +5,6 @@ import {
   COMIDA_LOCAL_SERVICE_OPTIONS,
 } from "./comidaLocalConstants";
 import {
-  buildComidaLocalSmsHref,
   buildComidaLocalTelHref,
   buildComidaLocalWhatsAppHref,
 } from "./comidaLocalFormatting";

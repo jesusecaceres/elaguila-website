@@ -15,7 +15,7 @@ import {
   detectAutosHeavyTransport,
   detectAutosLocalVideoTransport,
 } from "@/app/lib/clasificados/autos/autosPublishApiContract";
-import { resolveStaffAssistedCategorySave } from "@/app/lib/sales/staffAssistedCategorySave";
+import { resolveStaffAssistedCategorySave, isStaffAssistedSaveRefusal } from "@/app/lib/sales/staffAssistedCategorySave";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -70,7 +70,7 @@ export async function PATCH(request: NextRequest, { params }: Props) {
     bodyListingId: id,
     bodyClientUserId: typeof assistedProbe.clientUserId === "string" ? assistedProbe.clientUserId : null,
   });
-  if ("ok" in assisted && assisted.ok === false) {
+  if (isStaffAssistedSaveRefusal(assisted)) {
     return NextResponse.json({ ok: false, error: assisted.error }, { status: assisted.status });
   }
   if (!userId && !assisted.assisted) {
@@ -125,7 +125,8 @@ export async function PATCH(request: NextRequest, { params }: Props) {
     );
   }
   const lang: AutosClassifiedsLang | undefined = body.lang === "en" || body.lang === "es" ? body.lang : undefined;
-  const result = await updateAutosClassifiedsListingDraft(id, assisted.assisted ? assisted.clientUserId : userId, { listing: body.listing, lang });
+  const ownerForUpdate = assisted.assisted ? assisted.clientUserId : userId;
+  const result = await updateAutosClassifiedsListingDraft(id, ownerForUpdate, { listing: body.listing, lang });
   if (!result.row) {
     if (result.errorCode === "AUTOS_LISTING_NOT_FOUND_OR_FORBIDDEN") {
       return NextResponse.json(
@@ -168,7 +169,10 @@ export async function PATCH(request: NextRequest, { params }: Props) {
   // failures are surfaced, never silent.
   let childSync: { updatedChildIds: string[]; failedChildIds: string[] } | null = null;
   if (result.row.lane === "negocios" && result.row.inventory_role !== "inventory_vehicle") {
-    childSync = await syncDealerInventoryChildRowsFromParentPayload(result.row.id, userId);
+    const ownerForSync = assisted.assisted ? assisted.clientUserId : userId;
+    if (ownerForSync) {
+      childSync = await syncDealerInventoryChildRowsFromParentPayload(result.row.id, ownerForSync);
+    }
   }
   return NextResponse.json({
     ...buildAutosListingApiSuccessPayload({

@@ -15,7 +15,7 @@ import { assertCommercialCapacityForWrite } from "@/app/lib/listingPlans/commerc
 import { linkSelfServiceListingToBusiness } from "@/app/lib/business/canonicalListingLink";
 import { linkAssistedListingToBusiness } from "@/app/lib/business/assistedListingCustody";
 import { applyAssistedPublishingCookie } from "@/app/lib/auth/assistedPublishingSession";
-import { resolveStaffAssistedCategorySave } from "@/app/lib/sales/staffAssistedCategorySave";
+import { resolveStaffAssistedCategorySave, isStaffAssistedSaveRefusal } from "@/app/lib/sales/staffAssistedCategorySave";
 import { recordSalesWorkspaceAudit } from "@/app/lib/sales/salesWorkspaceAudit";
 import { enforceQuickBusinessPublishMedia } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
 import { resolveQuickBusinessPublishIdentity } from "@/app/lib/listingPlans/quickBusinessProductIdentityServer";
@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
     bodyListingId: typeof assistedProbe.listingId === "string" ? assistedProbe.listingId : null,
     bodyClientUserId: typeof assistedProbe.clientUserId === "string" ? assistedProbe.clientUserId : null,
   });
-  if ("ok" in assisted && assisted.ok === false) {
+  if (isStaffAssistedSaveRefusal(assisted)) {
     return NextResponse.json({ ok: false, error: assisted.error }, { status: assisted.status });
   }
   if (!userId && !assisted.assisted) {

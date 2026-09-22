@@ -1,5 +1,4 @@
 import type {
-  ComidaLocalFoodType,
   ComidaLocalImageDraft,
   ComidaLocalLanguageOption,
   ComidaLocalPaymentMethod,

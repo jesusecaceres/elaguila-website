@@ -11,7 +11,7 @@ import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEst
 import { applyAssistedPublishingCookie } from "@/app/lib/auth/assistedPublishingSession";
 import { linkAssistedListingToBusiness } from "@/app/lib/business/assistedListingCustody";
 import { recordSalesWorkspaceAudit } from "@/app/lib/sales/salesWorkspaceAudit";
-import { resolveStaffAssistedCategorySave } from "@/app/lib/sales/staffAssistedCategorySave";
+import { resolveStaffAssistedCategorySave, isStaffAssistedSaveRefusal } from "@/app/lib/sales/staffAssistedCategorySave";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
     bodyListingId: body.listingId,
     bodyClientUserId: body.clientUserId,
   });
-  if ("ok" in assisted && assisted.ok === false) {
+  if (isStaffAssistedSaveRefusal(assisted)) {
     return NextResponse.json({ ok: false, error: assisted.error }, { status: assisted.status });
   }
 

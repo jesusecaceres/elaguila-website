@@ -407,7 +407,7 @@ async function main() {
     seedBusiness();
     const minted = await custody.POST(makeRequest({ category: "comida-local", businessId: BIZ }));
     const token = cookieFrom(minted, "leonix_assisted_publish");
-    __onRpc((fn) => {
+    __onRpc((fn: string) => {
       if (fn === "leonix_allocate_formatted") return { data: "COMIDA-2026-000001", error: null };
       return { data: null, error: { code: "P0001", message: `harness: no rpc handler for ${fn}` } };
     });

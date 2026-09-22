@@ -39,7 +39,6 @@ export function ComidaLocalListingCard({ card }: Props) {
         className="relative block aspect-[4/3] w-full overflow-hidden border-b border-[#D4C4A8]/50 bg-[#FDF8F0]"
       >
         {card.mainImageSrc ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={card.mainImageSrc}
             alt={card.mainImageAlt}

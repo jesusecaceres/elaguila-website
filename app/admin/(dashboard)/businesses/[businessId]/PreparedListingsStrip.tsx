@@ -25,8 +25,12 @@ type PreparedRow = {
 };
 
 const CATEGORY_LABEL: Record<QuickSalesCategory, string> = {
+  rentas: "Rentas",
+  empleos: "Empleos",
+  "autos-privado": "Autos privados",
   servicios: "Servicios",
   restaurantes: "Restaurantes",
+  "comida-local": "Comida Local",
   autos: "Autos Dealer",
   "bienes-raices": "Bienes Raíces Negocio",
 };
@@ -63,9 +67,34 @@ type SourceSpec = {
   status: (row: Record<string, unknown>) => string;
   owner: (row: Record<string, unknown>) => string | null;
   title: (row: Record<string, unknown>) => string | null;
+  belongs?: (row: Record<string, unknown>) => boolean;
 };
 
 const SOURCE_SPEC: Record<QuickSalesCategory, SourceSpec> = {
+  rentas: {
+    select: "id, title, status, updated_at, owner_id, category",
+    status: (r) => str(r.status) ?? "",
+    owner: (r) => str(r.owner_id),
+    title: (r) => str(r.title),
+    belongs: (r) => str(r.category) === "rentas",
+  },
+  empleos: {
+    select: "id, title, company_name, lifecycle_status, updated_at, owner_user_id",
+    status: (r) => str(r.lifecycle_status) ?? "",
+    owner: (r) => str(r.owner_user_id),
+    title: (r) => str(r.title) ?? str(r.company_name),
+  },
+  "autos-privado": {
+    select: "id, status, updated_at, owner_user_id, listing_payload, lane",
+    status: (r) => str(r.status) ?? "",
+    owner: (r) => str(r.owner_user_id),
+    title: (r) => {
+      const payload = asRecord(r.listing_payload);
+      const composed = [payload?.year, payload?.make, payload?.model].filter(Boolean).join(" ").trim();
+      return str(payload?.vehicleTitle) ?? str(payload?.title) ?? (composed || null);
+    },
+    belongs: (r) => str(r.lane) === "privado",
+  },
   servicios: {
     select: "id, business_name, listing_status, updated_at, owner_user_id",
     status: (r) => str(r.listing_status) ?? "",
@@ -82,19 +111,27 @@ const SOURCE_SPEC: Record<QuickSalesCategory, SourceSpec> = {
     },
   },
   autos: {
-    select: "id, status, updated_at, owner_user_id, listing_payload",
+    select: "id, status, updated_at, owner_user_id, listing_payload, lane",
     status: (r) => str(r.status) ?? "",
     owner: (r) => str(r.owner_user_id),
     title: (r) => {
       const payload = asRecord(r.listing_payload);
       return str(payload?.businessName) ?? str(payload?.dealerName) ?? str(payload?.title);
     },
+    belongs: (r) => str(r.lane) !== "privado",
   },
   "bienes-raices": {
-    select: "id, title, status, updated_at, owner_id",
+    select: "id, title, status, updated_at, owner_id, category",
     status: (r) => str(r.status) ?? "",
     owner: (r) => str(r.owner_id),
     title: (r) => str(r.title),
+    belongs: (r) => str(r.category) !== "rentas",
+  },
+  "comida-local": {
+    select: "id, business_name, status, updated_at, owner_user_id",
+    status: (r) => str(r.status) ?? "",
+    owner: (r) => str(r.owner_user_id),
+    title: (r) => str(r.business_name),
   },
 };
 
@@ -126,6 +163,7 @@ async function listPreparedListingsForSource(businessId: string, category: Quick
       if (!id) return false;
       const linkedBy = linkedByByListingId.get(id);
       const owner = spec.owner(r);
+      if (spec.belongs && !spec.belongs(r)) return false;
       return !linkedBy || !owner || linkedBy !== owner;
     })
     .map((r) => {

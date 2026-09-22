@@ -441,7 +441,7 @@ await check("B4: UNPAID Bienes is still 402 before any readiness answer", async 
 // ---------------------------------------------------------------------------------------------
 // RAW f29 GUARANTEES — untouched
 // ---------------------------------------------------------------------------------------------
-await check("N1: customer publish branches stay intact; Gate 1 only replaces the assisted listing-only payment boolean", () => {
+await check("N1: customer publish branches stay intact; Gate 1 only replaces the assisted listing-only payment boolean", async () => {
   const servicios = readFileSync("app/api/clasificados/servicios/publish/route.ts", "utf8");
   const restaurantes = readFileSync("app/api/clasificados/restaurantes/publish/route.ts", "utf8");
   const autos = readFileSync("app/api/clasificados/autos/assisted-publish/route.ts", "utf8");

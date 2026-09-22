@@ -23,7 +23,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { __reset, __seed, __setAuthUsers, __rows } from "./lib/stubs/supabaseServer.mjs";
 import { __setCookies } from "./lib/stubs/nextHeaders.mjs";
 
-import { createAssistedPublishingTokenWithSecret, verifyAssistedPublishingTokenWithSecret } from "../app/lib/auth/assistedPublishingToken";
+import { verifyAssistedPublishingTokenWithSecret } from "../app/lib/auth/assistedPublishingToken";
 import { QUICK_SALES_CATEGORIES, QUICK_SALES_CATEGORY_MAP } from "../app/lib/sales/quickSalesCategories";
 import {
   BEGIN_CLIENT_DRAFT_HREF,

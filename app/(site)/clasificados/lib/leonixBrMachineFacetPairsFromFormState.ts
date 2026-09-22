@@ -12,7 +12,7 @@ import type { RentasNegocioFormState } from "@/app/clasificados/publicar/rentas/
 import { buildRentasStreetLine } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 import type { RentasPrivadoFormState } from "@/app/clasificados/publicar/rentas/privado/schema/rentasPrivadoFormState";
 import { normalizeZipForBrowse } from "@/app/clasificados/rentas/shared/rentasLocationNormalize";
-import { mergePartialBienesRaicesPrivadoState } from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
+import { mergePartialBienesRaicesPrivadoState, createEmptyBrPrivadoGate12dSlice } from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
 import type { BrResultsPropertyKind } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import {
   buildLeonixContactChannelsV1PayloadFromFormSlice,
@@ -163,6 +163,7 @@ export function buildLeonixMachineFacetPairsFromRentasPrivadoFormState(
       state.mostrarDireccionExacta === true ? buildRentasStreetLine(state) : state.direccionCruceCercano.trim(),
     mostrarDireccionExacta: state.mostrarDireccionExacta !== false,
     gate12d: {
+      ...createEmptyBrPrivadoGate12dSlice(),
       calleNumero: buildRentasStreetLine(state),
       colonia: state.zonaVecindario ?? "",
       estado: state.direccionEstado ?? "",

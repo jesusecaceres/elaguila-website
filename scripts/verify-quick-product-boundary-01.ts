@@ -316,7 +316,7 @@ async function sectionB() {
     assert.equal(r.enforced, false);
     // And the route reaches the contract only on the dealer lane at all.
     const route = read("app/api/clasificados/autos/listings/route.ts");
-    const guardIdx = route.indexOf('if (body.lane === "negocios") {\n    const identity = await resolveQuickBusinessPublishIdentity(');
+    const guardIdx = route.indexOf('if (body.lane === "negocios" && userId) {\n    const identity = await resolveQuickBusinessPublishIdentity(');
     assert.ok(guardIdx > -1, "the media branch is entered only for the dealer lane");
     assert.ok(
       !/lane === "privado"[\s\S]{0,400}enforceQuickBusinessPublishMedia/.test(route),
