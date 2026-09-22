@@ -413,6 +413,7 @@ export async function POST(req: NextRequest) {
     // name-derived slug matched nothing, so BOTH server legs answered empty on every republish
     // and the product was permanently `unverified`.
     listingId: typeof b.existingListingId === "string" ? b.existingListingId.trim() || null : null,
+    assistedPackageKey: assistedContext?.packageKey ?? null,
     declaredPackageKey: typeof b.basePackageKey === "string" ? b.basePackageKey : null,
   });
   const serviciosMediaItems = [

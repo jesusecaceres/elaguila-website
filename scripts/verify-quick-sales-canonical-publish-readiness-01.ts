@@ -53,10 +53,10 @@ function signInAsSalesStaff(): void {
   __setAuthUsers([{ id: STAFF_AUTH, email: STAFF_EMAIL }]);
   __seed("admin_team_members", [{ id: ROSTER_ID, email: STAFF_EMAIL, display_name: "Sales", role: "super_admin", is_active: true, auth_user_id: STAFF_AUTH }]);
 }
-function cookie(category: string, listingId: string | null, clientUserId: string | null = null): Record<string, string> {
+function cookie(category: string, listingId: string | null, clientUserId: string | null = null, packageKey: string | null = null): Record<string, string> {
   return {
     leonix_assisted_publish: createAssistedPublishingTokenWithSecret(
-      { businessId: BIZ, category, rosterId: ROSTER_ID, authUserId: STAFF_AUTH, listingId, clientUserId, assistedAction: "save_for_client" },
+      { businessId: BIZ, category, rosterId: ROSTER_ID, authUserId: STAFF_AUTH, listingId, clientUserId, assistedAction: "save_for_client", packageKey },
       ASSISTED_SECRET,
     )!,
   };
@@ -88,8 +88,8 @@ const publish = (await import("../app/api/admin/sales-preview/publish/route")) a
 const servicios = (await import("../app/api/clasificados/servicios/publish/route")) as unknown as { POST: (r: never) => Promise<Response> };
 const custody = (await import("../app/api/admin/sales-preview/custody/route")) as unknown as { POST: (r: never) => Promise<Response & { cookies: { get: (n: string) => { value: string } | undefined } }> };
 
-async function publishAs(category: QuickSalesCategory, listingId: string, clientUserId: string | null = null, headers: Record<string, string> = {}) {
-  const res = await publish.POST(makeRequest({}, cookie(category, listingId, clientUserId), headers));
+async function publishAs(category: QuickSalesCategory, listingId: string, clientUserId: string | null = null, headers: Record<string, string> = {}, packageKey: string | null = null) {
+  const res = await publish.POST(makeRequest({}, cookie(category, listingId, clientUserId, packageKey), headers));
   return { status: res.status, json: (await res.json()) as Record<string, unknown> };
 }
 
@@ -189,6 +189,15 @@ await check("S5: PAID Quick Servicios carrying a video is refused by the Quick m
   assert.ok((json.issues as string[]).includes("video_not_allowed"));
   assert.equal(rows("servicios_public_listings").find((r) => r.id === id)!.listing_status, "draft");
   assert.equal(lastAttemptOutcome(), "media_contract_violation");
+});
+await check("S5b: PAID Full Servicios carrying a video is NOT held to the Quick media contract — same listing id", async () => {
+  const id = await seedServiciosViaCanonicalRoute();
+  __seed("leonix_payment_records", [paid(SRC.servicios.listingSource, id)]);
+  breakServiciosStoredRow(id, (p) => { p.galleryVideos = [{ id: "v1", url: "https://www.youtube.com/watch?v=abcdefghijk" }]; });
+  const { status, json } = await publishAs("servicios", id, null, {}, "servicios_base_monthly");
+  assert.equal(status, 200, JSON.stringify(json));
+  assert.equal(json.listingId, id, "Full publishes the SAME canonical row");
+  assert.equal(rows("servicios_public_listings").find((r) => r.id === id)!.listing_status, "published");
 });
 await check("S6: REPLAY — a second publish of the same paid Servicios row is refused 409 already_published (no double success)", async () => {
   const id = await seedServiciosViaCanonicalRoute();
@@ -408,10 +417,12 @@ await check("B4: UNPAID Bienes is still 402 before any readiness answer", async 
 // ---------------------------------------------------------------------------------------------
 // RAW f29 GUARANTEES — untouched
 // ---------------------------------------------------------------------------------------------
-await check("N1: the three normal category routes are BYTE-IDENTICAL to f29c8ed6 (Quick is additive; no normal route was refactored)", async () => {
+await check("N1: the three normal category routes stay additive to f29c8ed6 (the only allowed delta is feeding the assisted package key into the existing product resolver)", async () => {
+  const stripAssistedKey = (src: string) => src.replace(/\n\s*assistedPackageKey: assistedContext\?\.packageKey \?\? null,\n/g, "\n");
   for (const f of ["app/api/clasificados/servicios/publish/route.ts", "app/api/clasificados/restaurantes/publish/route.ts", "app/api/clasificados/autos/assisted-publish/route.ts"]) {
     const base = execSync(`git show f29c8ed6e89432b842743907968d1579e85b46b0:${f}`, { encoding: "utf8" });
-    assert.equal(readFileSync(f, "utf8"), base, `${f} differs from f29c8ed6`);
+    const current = readFileSync(f, "utf8");
+    assert.equal(stripAssistedKey(current), base, `${f} differs from f29c8ed6 beyond the assisted package-key identity feed`);
   }
 });
 await check("N2: the adapter's restated gallery caps equal the routes' own file-local literals", async () => {

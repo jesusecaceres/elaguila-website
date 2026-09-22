@@ -127,7 +127,11 @@ export function serviciosQuickMediaFacts(state: ClasificadosServiciosApplication
   return { items, externalVideoCount };
 }
 
-async function assessServicios(listingId: string, lang: "es" | "en"): Promise<CanonicalPublishAssessment> {
+async function assessServicios(
+  listingId: string,
+  lang: "es" | "en",
+  assistedPackageKey?: string | null,
+): Promise<CanonicalPublishAssessment> {
   const row = await getServiciosPublicListingByIdFromDb(listingId, { visibility: "all" });
   if (!row?.id) return refuse(404, "listing_not_found");
   const status = String(row.listing_status ?? "").trim().toLowerCase();
@@ -165,17 +169,16 @@ async function assessServicios(listingId: string, lang: "es" | "en"): Promise<Ca
   });
   if (!mediaValidation.ok) return refuse(422, "media_invalid", { issues: mediaValidation.issues });
 
-  // PRODUCT IDENTITY comes only from server truth: the row's own stored owner (never a body
-  // field) scopes the resolver's entitlement/ledger reads, and `serverCustodyQuick` says what this
-  // seam IS — the Quick-only assisted publish operation reached through server-issued custody. A
-  // LIVE Full entitlement the resolver can prove for the stored owner is consulted first and
-  // exempts the Quick contract; an owner-null custody row has nothing to scope by, resolves Quick,
-  // and is held to the contract.
+  // PRODUCT IDENTITY comes from server truth: a staff assisted package key (Quick vs Full
+  // entitlement on this custody), then the row's stored owner for entitlement/ledger reads.
+  // `serverCustodyQuick` is the fail-safe fallback when the cookie names no package — it never
+  // overrides a stamped Full key. An owner-null Full custody row is therefore Full, not Quick.
   const product = await resolveQuickBusinessPublishIdentity({
     category: "servicios",
     ownerUserId: row.owner_user_id ?? "",
     listingId: row.id,
-    serverCustodyQuick: true,
+    assistedPackageKey: assistedPackageKey ?? null,
+    serverCustodyQuick: !assistedPackageKey,
   });
   if (product.enforceQuickContract) {
     const facts = serviciosQuickMediaFacts(state);
@@ -202,7 +205,10 @@ export function restauranteQuickMediaFacts(draft: RestauranteListingDraft): {
   return { heroUrl, galleryUrls, externalVideoUrls: collectRestauranteExternalVideoUrls(draft) };
 }
 
-async function assessRestaurantes(listingId: string): Promise<CanonicalPublishAssessment> {
+async function assessRestaurantes(
+  listingId: string,
+  assistedPackageKey?: string | null,
+): Promise<CanonicalPublishAssessment> {
   const db = getAdminSupabase();
   const { data, error } = await db
     .from("restaurantes_public_listings")
@@ -248,7 +254,8 @@ async function assessRestaurantes(listingId: string): Promise<CanonicalPublishAs
     category: "restaurantes",
     ownerUserId: row.owner_user_id ?? "",
     listingId: row.id,
-    serverCustodyQuick: true,
+    assistedPackageKey: assistedPackageKey ?? null,
+    serverCustodyQuick: !assistedPackageKey,
   });
   if (product.enforceQuickContract) {
     const semantic = enforceQuickBusinessPublishMedia({
@@ -415,15 +422,16 @@ export async function assessCanonicalPublishReadiness(input: {
   category: QuickSalesCategory;
   listingId: string;
   lang?: "es" | "en";
+  assistedPackageKey?: string | null;
 }): Promise<CanonicalPublishAssessment> {
   if (!isSupabaseAdminConfigured()) return refuse(503, "db_not_configured");
   const listingId = (input.listingId ?? "").trim();
   if (!listingId) return refuse(409, "no_bound_listing");
   switch (input.category) {
     case "servicios":
-      return assessServicios(listingId, input.lang ?? "es");
+      return assessServicios(listingId, input.lang ?? "es", input.assistedPackageKey ?? null);
     case "restaurantes":
-      return assessRestaurantes(listingId);
+      return assessRestaurantes(listingId, input.assistedPackageKey ?? null);
     case "autos":
       return assessAutos(listingId);
     case "bienes-raices":

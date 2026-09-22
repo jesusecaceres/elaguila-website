@@ -8,9 +8,9 @@
  * whatever the server's custody status reports, and when it sends a listing id it is sending an
  * agreement, not an instruction — the server refuses a disagreement rather than following it.
  *
- * SERVICIOS doorway (slice 1): "Fill Quick Services" POSTs custody and only then same-tab
- * navigates to `/publicar/negocio-rapido/servicios`. There is no fail-open intake fallback.
- * No active custody ⇒ no public application.
+ * SERVICIOS doorway: staff picks Quick ($249 Simple) or Full ($399 Full), POSTs custody, then
+ * same-tab navigates into the canonical `/publicar/servicios` application. There is no fail-open
+ * intake fallback. No active custody ⇒ no public application. Quick vs Full is entitlement only.
  */
 import { useCallback, useEffect, useState } from "react";
 import { QUICK_SALES_CATEGORIES, QUICK_SALES_CATEGORY_MAP, type QuickSalesCategory } from "@/app/lib/sales/quickSalesCategories";
@@ -19,6 +19,11 @@ import {
   resolveStaffNavigationFromCustodyPost,
   resolveStaffOpenIntakeNavigation,
 } from "@/app/lib/sales/staffServiciosGateway";
+import {
+  staffBusinessOffers,
+  staffManualPaymentHref,
+  type StaffBusinessPlan,
+} from "@/app/lib/sales/staffBusinessProduct";
 
 type BusinessRow = { id: string; name: string; city?: string | null };
 
@@ -30,6 +35,8 @@ type CustodyStatus = {
   intakePath: string;
   saveEndpoint: string;
   assistedAction: string | null;
+  packageKey?: string | null;
+  plan?: StaffBusinessPlan | null;
   expiresAtMs: number;
   paymentState: string;
   publishReady: boolean;
@@ -74,6 +81,7 @@ export function QuickSalesWorkspaceClient({
   const [businessId, setBusinessId] = useState(initialBusiness?.id ?? "");
   const [clientUserId, setClientUserId] = useState("");
   const [reopenListingId, setReopenListingId] = useState(initialListingId ?? "");
+  const [plan, setPlan] = useState<StaffBusinessPlan>("quick");
   const [status, setStatus] = useState<CustodyStatus>(null);
   const [previewLink, setPreviewLink] = useState<string | null>(null);
   const [previewExpiresAt, setPreviewExpiresAt] = useState<number | null>(null);
@@ -81,6 +89,7 @@ export function QuickSalesWorkspaceClient({
   const [busy, setBusy] = useState(false);
 
   const descriptor = QUICK_SALES_CATEGORY_MAP[category];
+  const pairOffers = staffBusinessOffers(category);
 
   const refreshStatus = useCallback(async () => {
     const res = await fetch("/api/admin/sales-preview/custody", { cache: "no-store" });
@@ -119,6 +128,7 @@ export function QuickSalesWorkspaceClient({
         businessId,
         clientUserId: clientUserId || undefined,
         listingId: listingId || undefined,
+        plan: pairOffers.length ? plan : undefined,
       });
       setBusy(false);
       if (code !== 200 || json.ok !== true) {
@@ -129,7 +139,7 @@ export function QuickSalesWorkspaceClient({
       setMessage("Custodia establecida / Custody established");
       await refreshStatus();
     },
-    [category, businessId, clientUserId, refreshStatus],
+    [category, businessId, clientUserId, plan, pairOffers.length, refreshStatus],
   );
 
   const issuePreview = useCallback(async () => {
@@ -160,9 +170,9 @@ export function QuickSalesWorkspaceClient({
   }, [refreshStatus]);
 
   /**
-   * SERVICIOS primary action: mint server-issued Leonix custody, then SAME-TAB navigate into the
-   * existing Quick application. Never uses a client-side intake fallback; never opens a new tab;
-   * never navigates if the POST did not confirm custody.
+   * SERVICIOS primary action: mint server-issued Leonix custody with the chosen Quick or Full
+   * package, then SAME-TAB navigate into the canonical application. Never uses a client-side
+   * intake fallback; never opens a new tab; never navigates if the POST did not confirm custody.
    */
   const openServiciosWithCustody = useCallback(async () => {
     if (category !== "servicios" || !businessId) return;
@@ -173,6 +183,7 @@ export function QuickSalesWorkspaceClient({
       businessId,
       clientUserId: clientUserId || undefined,
       listingId: reopenListingId.trim() || undefined,
+      plan,
     });
     if (code !== 200 || json.ok !== true) {
       setBusy(false);
@@ -189,7 +200,7 @@ export function QuickSalesWorkspaceClient({
     }
     setMessage("Custodia establecida / Custody established");
     window.location.assign(nav.href);
-  }, [category, businessId, clientUserId, reopenListingId, refreshStatus]);
+  }, [category, businessId, clientUserId, reopenListingId, plan, refreshStatus]);
 
   const openIntakeNav = resolveStaffOpenIntakeNavigation({
     selectedCategory: category,
@@ -228,6 +239,30 @@ export function QuickSalesWorkspaceClient({
             </button>
           ))}
         </div>
+        {pairOffers.length ? (
+          <div className="mt-3" data-staff-business-plan>
+            <p className="mb-2 text-xs text-[#5D4A25]">
+              Quick y Full usan la misma aplicación y el mismo anuncio. Solo cambia el acceso. · Quick
+              and Full use the same application and the same listing. Only access changes.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {pairOffers.map((offer) => (
+                <button
+                  key={offer.plan}
+                  type="button"
+                  data-staff-plan={offer.plan}
+                  onClick={() => setPlan(offer.plan)}
+                  className={`rounded-lg border px-3 py-2 text-xs font-semibold ${
+                    plan === offer.plan ? "border-[#B8860B] bg-[#FFF6E7]" : "border-[#E6DCC6] bg-white"
+                  }`}
+                >
+                  {offer.plan === "quick" ? "Quick Business" : "Full Business"} · $
+                  {(offer.priceCents / 100).toFixed(0)}/mes · {offer.access === "simple" ? "Simple" : "Full"}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
         {descriptor.requiresClientUserId ? (
           <p className="mt-2 text-xs text-[#5D4A25]">
             Esta categoría guarda el anuncio en la cuenta del cliente, así que requiere su usuario. ·
@@ -330,6 +365,13 @@ export function QuickSalesWorkspaceClient({
               <span className="font-mono">{status.listingId ?? "— (aún no guardado / not saved yet)"}</span>
             </p>
             <p>
+              Producto / Product:{" "}
+              <strong>
+                {status.plan === "full" ? "Full" : status.plan === "quick" ? "Quick" : "—"}{" "}
+                {status.packageKey ? <span className="font-mono">({status.packageKey})</span> : null}
+              </strong>
+            </p>
+            <p>
               Pago / Payment: <strong>{status.paymentState}</strong>
             </p>
           </div>
@@ -352,9 +394,10 @@ export function QuickSalesWorkspaceClient({
             data-servicios-staff-primary
             data-staff-open-intake="servicios"
             data-staff-open-requires-custody="true"
+            data-staff-plan={plan}
             className="mt-2 rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold disabled:opacity-40"
           >
-            Llenar Servicios Quick / Fill Quick Services
+            Llenar Servicios / Fill Services
           </button>
         ) : openIntakeNav.allowed ? (
           <a
@@ -423,9 +466,23 @@ export function QuickSalesWorkspaceClient({
         <h2 className="mb-2 font-bold">6. Publicar / Publish</h2>
         <p className="text-xs text-[#5D4A25]">
           Solo después de un pago confirmado por el servidor. Se publica el MISMO anuncio que el
-          cliente revisó. · Only after a payment the server itself confirmed. It publishes the SAME
-          listing the customer reviewed.
+          cliente revisó, con el acceso Quick o Full verificado. · Only after a payment the server
+          itself confirmed. It publishes the SAME listing the customer reviewed, with the verified
+          Quick or Full entitlement.
         </p>
+        {status?.listingId ? (
+          <a
+            href={staffManualPaymentHref({
+              listingId: status.listingId,
+              packageKey: status.packageKey,
+              category: status.category,
+            })}
+            data-staff-record-payment
+            className="mt-2 mr-2 inline-block rounded-lg border border-[#E6DCC6] px-3 py-2 text-xs font-semibold"
+          >
+            Registrar o verificar pago / Record or verify payment
+          </a>
+        ) : null}
         <button
           type="button"
           disabled={busy || !status?.listingId}

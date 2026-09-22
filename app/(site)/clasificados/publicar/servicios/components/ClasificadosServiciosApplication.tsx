@@ -84,6 +84,7 @@ import {
 import { useAssistedPublishingUi } from "@/app/components/auth/AssistedPublishingUiContext";
 import { readConciergeReturnContext } from "@/app/lib/business/applicationContext/conciergeReturnContext";
 import { AssistedServiciosStepHeader } from "./AssistedServiciosStepHeader";
+import { AssistedSaveForClientBar } from "@/app/clasificados/components/AssistedSaveForClientBar";
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
 import type { PublishReadinessMissingItem } from "../lib/serviciosPublishReadiness";
 import { evaluateServiciosPreviewReadiness } from "../lib/serviciosPreviewReadiness";
@@ -1358,6 +1359,17 @@ export function ClasificadosServiciosApplication() {
           onBack={handleAssistedHeaderBack}
           onNext={handleGoNext}
           lang={lang}
+        />
+      ) : null}
+      {assistedUi ? (
+        <AssistedSaveForClientBar
+          category="servicios"
+          lang={lang}
+          buildPayload={() => ({
+            category: "servicios",
+            state: stateRef.current as unknown as Record<string, unknown>,
+            lang,
+          })}
         />
       ) : null}
       {isExistingDashboardListingMode && editHydration.status === "error" ? (

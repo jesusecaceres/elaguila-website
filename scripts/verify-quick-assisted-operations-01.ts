@@ -165,6 +165,22 @@ check("A12: the constant-time comparator is correct on equal and unequal input",
   assert.notEqual(sig, signAssistedPayload("payload", OTHER_SECRET), "the secret genuinely affects the signature");
 });
 
+check("A12b: a stamped packageKey survives verify and a tampered packageKey does not", () => {
+  const now = 1_700_000_000_000;
+  const token = createAssistedPublishingTokenWithSecret(
+    { ...MINT, packageKey: "servicios_base_monthly" },
+    SECRET,
+    now,
+  )!;
+  const ctx = verifyAssistedPublishingTokenWithSecret(token, SECRET, now + 1000);
+  assert.equal(ctx?.packageKey, "servicios_base_monthly");
+  const [payload, signature] = token.split(".");
+  const parsed = JSON.parse(Buffer.from(payload!, "base64url").toString("utf8")) as Record<string, unknown>;
+  parsed.packageKey = "servicios_quick_monthly";
+  const tampered = `${Buffer.from(JSON.stringify(parsed), "utf8").toString("base64url")}.${signature}`;
+  assert.equal(verifyAssistedPublishingTokenWithSecret(tampered, SECRET, now + 1000), null, "rewriting packageKey must invalidate the signature");
+});
+
 check("A13: the server-only wrapper still owns the secret and cookie hardening", () => {
   const src = readFileSync("app/lib/auth/assistedPublishingSession.ts", "utf8");
   assert.ok(src.includes('import "server-only";'), "wrapper stays server-only");

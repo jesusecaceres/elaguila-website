@@ -56,6 +56,12 @@ export type AssistedPublishingContext = {
    * different assisted operation that may be added later.
    */
   assistedAction?: string;
+  /**
+   * Staff-chosen base package for this custody (Quick SIMPLE or Full). Entitlement only — it does
+   * not change listing identity, the application form, or Leonix custody. Optional so tokens
+   * minted before this field still verify; pair categories stamp it at the custody route.
+   */
+  packageKey?: string;
   issuedAtMs: number;
   expiresAtMs: number;
 };
@@ -85,6 +91,7 @@ export function createAssistedPublishingTokenWithSecret(
     listingId?: string | null;
     clientUserId?: string | null;
     assistedAction?: string | null;
+    packageKey?: string | null;
   },
   secret: string,
   nowMs: number = Date.now(),
@@ -95,6 +102,7 @@ export function createAssistedPublishingTokenWithSecret(
   const boundListingId = typeof input.listingId === "string" ? input.listingId.trim() : "";
   const boundClientUserId = typeof input.clientUserId === "string" ? input.clientUserId.trim() : "";
   const boundAction = typeof input.assistedAction === "string" ? input.assistedAction.trim() : "";
+  const boundPackageKey = typeof input.packageKey === "string" ? input.packageKey.trim() : "";
   const payloadObj: AssistedPublishingContext = {
     businessId: input.businessId,
     category: input.category,
@@ -103,6 +111,7 @@ export function createAssistedPublishingTokenWithSecret(
     ...(boundListingId ? { listingId: boundListingId } : {}),
     ...(boundClientUserId ? { clientUserId: boundClientUserId } : {}),
     ...(boundAction ? { assistedAction: boundAction } : {}),
+    ...(boundPackageKey ? { packageKey: boundPackageKey } : {}),
     issuedAtMs,
     expiresAtMs,
   };
@@ -154,6 +163,9 @@ export function verifyAssistedPublishingTokenWithSecret(
   if (parsed.assistedAction !== undefined && (typeof parsed.assistedAction !== "string" || !parsed.assistedAction)) {
     return null;
   }
+  if (parsed.packageKey !== undefined && (typeof parsed.packageKey !== "string" || !parsed.packageKey)) {
+    return null;
+  }
   if (parsed.issuedAtMs > nowMs) return null;
   if (parsed.expiresAtMs <= nowMs) return null;
   if (parsed.expiresAtMs - parsed.issuedAtMs > ASSISTED_PUBLISH_MAX_AGE_SEC * 1000) return null;
@@ -165,6 +177,7 @@ export function verifyAssistedPublishingTokenWithSecret(
     ...(parsed.listingId ? { listingId: parsed.listingId } : {}),
     ...(parsed.clientUserId ? { clientUserId: parsed.clientUserId } : {}),
     ...(parsed.assistedAction ? { assistedAction: parsed.assistedAction } : {}),
+    ...(parsed.packageKey ? { packageKey: parsed.packageKey } : {}),
     issuedAtMs: parsed.issuedAtMs,
     expiresAtMs: parsed.expiresAtMs,
   };

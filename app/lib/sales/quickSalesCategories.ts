@@ -6,9 +6,11 @@
  * category's form: it establishes custody and then hands the staff member to the intake that
  * already exists, so there is exactly one place per category where a Quick ad is built.
  *
- * SERVICIOS (slice 1): the staff doorway MUST open `/publicar/negocio-rapido/servicios` — the
- * existing Quick application under `PublishAuthGateLayout`. `/clasificados/publicar/servicios` is
- * a checkpoint redirect, not the fillable application, and is not interchangeable.
+ * SERVICIOS: the staff doorway MUST open `/publicar/servicios` — the EXISTING canonical
+ * ClasificadosServiciosApplication under `PublishAuthGateLayout`. Quick vs Full is an entitlement
+ * stamped on the assisted token, not a second form. `/clasificados/publicar/servicios` is a
+ * checkpoint redirect; `/publicar/negocio-rapido/servicios` is the customer Quick adapter. Neither
+ * is interchangeable with the canonical application.
  *
  * FULL GATEWAY SCOPE (record only — do not implement here): Rentas, Empleos, Autos privados,
  * Servicios, Restaurantes, Comida Local, Autos Dealer, Bienes Raíces Negocio. Exclude Viajes,
@@ -40,7 +42,7 @@ export const QUICK_SALES_CATEGORY_MAP: Record<QuickSalesCategory, QuickSalesCate
   servicios: {
     category: "servicios",
     listingSource: "servicios_public_listings",
-    intakePath: "/publicar/negocio-rapido/servicios",
+    intakePath: "/publicar/servicios",
     saveEndpoint: "/api/clasificados/servicios/publish",
     // Servicios rows are deliberately born with owner_user_id = NULL so the client can claim them
     // through the normal signup flow.

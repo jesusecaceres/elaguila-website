@@ -59,6 +59,7 @@ export function createAssistedPublishingToken(input: {
   listingId?: string | null;
   clientUserId?: string | null;
   assistedAction?: string | null;
+  packageKey?: string | null;
 }): string | null {
   const secret = getAssistedPublishingSecret();
   if (!secret) return null;
@@ -96,6 +97,7 @@ export function applyAssistedPublishingCookie(
     listingId?: string | null;
     clientUserId?: string | null;
     assistedAction?: string | null;
+    packageKey?: string | null;
   },
 ): boolean {
   const secure = process.env.NODE_ENV === "production";

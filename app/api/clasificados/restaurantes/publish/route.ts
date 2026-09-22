@@ -406,6 +406,7 @@ export async function POST(req: NextRequest) {
     category: "restaurantes",
     ownerUserId: verifiedOwnerId ?? "",
     listingId: restauranteProductListingId,
+    assistedPackageKey: assistedContext?.packageKey ?? null,
     declaredPackageKey: restauranteDeclaredPackageKey,
   });
   // Same external-video blind spot as Servicios: the links are collected separately and never

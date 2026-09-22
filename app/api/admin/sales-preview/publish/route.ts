@@ -140,7 +140,11 @@ export async function POST(request: NextRequest) {
   // THE CATEGORY'S OWN CONTRACT, AGAINST THE STORED ROW, AFTER THE MONEY AND BEFORE ANY WRITE.
   // Nothing from the request body is read: listing, owner, product and readiness are all server
   // truth bound to the signed context.
-  const readiness = await assessCanonicalPublishReadiness({ category, listingId });
+  const readiness = await assessCanonicalPublishReadiness({
+    category,
+    listingId,
+    assistedPackageKey: ctx.packageKey ?? null,
+  });
   if (!readiness.ok) {
     await recordSalesWorkspaceAudit({
       action: "quick_sales_publish_attempted",

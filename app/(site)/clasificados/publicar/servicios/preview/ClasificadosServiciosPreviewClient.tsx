@@ -699,10 +699,18 @@ export function ClasificadosServiciosPreviewClient() {
     listingId,
     enabled: listingBoundPreview,
   });
+  const assistedProductPlan =
+    assistedUi?.packageKey
+      ? (assistedUi.packageKey === SERVICIOS_QUICK_CHECKOUT.packageKey
+          ? "quick"
+          : assistedUi.packageKey === SERVICIOS_BASE_CHECKOUT.packageKey
+            ? "full"
+            : null)
+      : null;
   const baseCheckout = selectBusinessBaseCheckout({
     quick: SERVICIOS_QUICK_CHECKOUT,
     full: SERVICIOS_BASE_CHECKOUT,
-    urlPlan: quickPlan ? "quick" : "full",
+    urlPlan: assistedProductPlan ?? (quickPlan ? "quick" : "full"),
     serverSellPackageKey: businessBasePlan?.sellPackageKey,
   });
 

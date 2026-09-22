@@ -4,11 +4,12 @@
  *
  * Proves (executed code + source contracts):
  *  1. "No active custody" cannot open a public application (fail-open `?? descriptor.intakePath` is gone).
- *  2. Successful Servicios custody navigates to `/publicar/negocio-rapido/servicios` (existing Quick app).
- *  3. That route is not `/clasificados/publicar/servicios` (checkpoint redirect) and is not `/login`.
+ *  2. Successful Servicios custody navigates to `/publicar/servicios` (canonical application).
+ *  3. That route is not `/clasificados/publicar/servicios` (checkpoint) and not the Quick adapter.
  *  4. A server-verified assisted cookie makes PublishAuthGateLayout skip the customer login.
  *  5. Unrelated customer session conflict still fails closed (409) on the canonical Servicios save.
  *  6. Normal customer login copy ("Accede para publicar") is unchanged for unauthenticated traffic.
+ *  7. Quick vs Full is an entitlement on the same listing/application — not a second form.
  *
  * No database, no network, no live Stripe, no migration, no Vercel.
  */
@@ -23,7 +24,7 @@ import { __reset, __seed, __setAuthUsers, __rows } from "./lib/stubs/supabaseSer
 import { __setCookies } from "./lib/stubs/nextHeaders.mjs";
 import { __setBearerTokens } from "./lib/stubs/supabaseJs.mjs";
 
-import { createAssistedPublishingTokenWithSecret } from "../app/lib/auth/assistedPublishingToken";
+import { createAssistedPublishingTokenWithSecret, verifyAssistedPublishingTokenWithSecret } from "../app/lib/auth/assistedPublishingToken";
 import { buildPublishLoginHref } from "../app/lib/auth/publishLoginRedirect";
 import { QUICK_SALES_CATEGORY_MAP } from "../app/lib/sales/quickSalesCategories";
 import { resolveAssistedSessionConflict } from "../app/lib/sales/assistedSameRowBinding";
@@ -36,6 +37,18 @@ import {
   resolveStaffNavigationFromCustodyPost,
   resolveStaffOpenIntakeNavigation,
 } from "../app/lib/sales/staffServiciosGateway";
+import {
+  SERVICIOS_CANONICAL_INTAKE_PATH,
+  SERVICIOS_CHECKPOINT_PATH,
+  SERVICIOS_QUICK_ADAPTER_PATH,
+  STAFF_BUSINESS_PAIR_EXCLUDED_CATEGORIES,
+  STAFF_BUSINESS_PAIR_CATEGORIES,
+  resolveStaffBusinessPackage,
+  staffBusinessOffer,
+  staffServiciosIntakeHref,
+} from "../app/lib/sales/staffBusinessProduct";
+import { BUSINESS_CATEGORY_PACKAGE_PAIR } from "../app/lib/listingPlans/businessAccessLevel";
+import { resolveQuickBusinessProduct } from "../app/lib/listingPlans/quickBusinessProductIdentity";
 
 const ASSISTED_SECRET = "assisted-secret-harness-only";
 process.env.ASSISTED_PUBLISHING_SESSION_SECRET = ASSISTED_SECRET;
@@ -124,22 +137,42 @@ async function main() {
   check("A4: the clasificados checkpoint path is the WRONG application and is refused", () => {
     const nav = resolveStaffOpenIntakeNavigation({
       selectedCategory: "servicios",
-      liveCustody: { category: "servicios", intakePath: "/clasificados/publicar/servicios" },
+      liveCustody: { category: "servicios", intakePath: SERVICIOS_CHECKPOINT_PATH },
     });
     assert.equal(nav.allowed, false);
     assert.equal(nav.allowed === false && nav.reason, "wrong_application");
   });
-  check("A5: successful custody navigates to the existing Quick Servicios application, same tab", () => {
+  check("A4b: the customer Quick adapter is the WRONG application for staff and is refused", () => {
+    const nav = resolveStaffOpenIntakeNavigation({
+      selectedCategory: "servicios",
+      liveCustody: { category: "servicios", intakePath: SERVICIOS_QUICK_ADAPTER_PATH },
+    });
+    assert.equal(nav.allowed, false);
+    assert.equal(nav.allowed === false && nav.reason, "wrong_application");
+  });
+  check("A5: successful Quick custody navigates to the canonical Servicios application with the Quick marker, same tab", () => {
     const nav = resolveStaffNavigationFromCustodyPost({
       ok: true,
       category: "servicios",
-      intakePath: SERVICIOS_STAFF_INTAKE_PATH,
+      intakePath: staffServiciosIntakeHref("quick"),
     });
     assert.equal(nav.allowed, true);
     if (nav.allowed) {
-      assert.equal(nav.href, "/publicar/negocio-rapido/servicios");
+      assert.equal(nav.href, "/publicar/servicios?plan=quick");
       assert.equal(nav.sameTab, true);
       assert.equal(isPublicCustomerLoginPath(nav.href), false);
+    }
+  });
+  check("A5b: successful Full custody navigates to the SAME canonical application without the Quick marker", () => {
+    const nav = resolveStaffNavigationFromCustodyPost({
+      ok: true,
+      category: "servicios",
+      intakePath: staffServiciosIntakeHref("full"),
+    });
+    assert.equal(nav.allowed, true);
+    if (nav.allowed) {
+      assert.equal(nav.href, "/publicar/servicios");
+      assert.equal(nav.sameTab, true);
     }
   });
   check("A6: a failed custody POST cannot navigate", () => {
@@ -147,9 +180,10 @@ async function main() {
     assert.equal(nav.allowed, false);
     assert.equal(nav.allowed === false && nav.reason, "no_active_custody");
   });
-  check("A7: map + helper agree the staff intake is the Quick route", () => {
+  check("A7: map + helper agree the staff intake is the canonical Servicios application", () => {
     assert.equal(QUICK_SALES_CATEGORY_MAP.servicios.intakePath, SERVICIOS_STAFF_INTAKE_PATH);
-    assert.equal(SERVICIOS_STAFF_INTAKE_PATH, "/publicar/negocio-rapido/servicios");
+    assert.equal(SERVICIOS_STAFF_INTAKE_PATH, SERVICIOS_CANONICAL_INTAKE_PATH);
+    assert.equal(SERVICIOS_STAFF_INTAKE_PATH, "/publicar/servicios");
   });
   check("A8: future eight-family scope is recorded and Viajes/Iglesias/Recursos stay excluded", () => {
     assert.deepEqual([...FUTURE_STAFF_GATEWAY_FAMILIES], [
@@ -199,9 +233,13 @@ async function main() {
     const html = renderToStaticMarkup(createElement(QuickSalesWorkspaceClient, { actorEmail: STAFF_EMAIL }));
     assert.ok(html.includes("Sin custodia activa / No active custody"));
     assert.equal(html.includes('href="/clasificados/publicar/servicios"'), false, "checkpoint path must not be a live href");
-    assert.equal(html.includes('href="/publicar/negocio-rapido/servicios"'), false, "Quick path must not be a live href without custody");
+    assert.equal(html.includes('href="/publicar/negocio-rapido/servicios"'), false, "Quick adapter must not be a live href");
+    assert.equal(html.includes('href="/publicar/servicios"'), false, "canonical path must not be a live href without custody");
     assert.equal(html.includes('href="/login'), false);
     assert.ok(html.includes("data-servicios-staff-primary"));
+    assert.ok(html.includes("data-staff-business-plan"));
+    assert.ok(html.includes("data-staff-plan=\"quick\""));
+    assert.ok(html.includes("data-staff-plan=\"full\""));
     assert.ok(html.includes("data-begin-client-draft"));
     assert.ok(html.includes(`href="${BEGIN_CLIENT_DRAFT_HREF}"`));
   });
@@ -214,13 +252,13 @@ async function main() {
     assert.ok(src.includes("redirect("));
     assert.ok(src.includes("/clasificados/publicar/servicios/checkpoint"));
   });
-  check("C2: the Quick Servicios page exists and has no private auth layout of its own", () => {
-    const page = read("app/(site)/publicar/negocio-rapido/[category]/page.tsx");
-    assert.ok(page.includes("QuickBusinessIntakeClient"));
+  check("C2: /publicar/servicios is the canonical ClasificadosServiciosApplication under PublishAuthGateLayout", () => {
+    const page = read("app/(site)/publicar/servicios/page.tsx");
+    assert.ok(page.includes("ClasificadosServiciosApplication"));
     const layout = read("app/(site)/publicar/layout.tsx");
     assert.ok(layout.includes("PublishAuthGateLayout"));
   });
-  check("C3: Quick adapter still hands off to the existing Servicios preview (assisted save lives there)", () => {
+  check("C3: customer Quick adapter still exists and still hands off to the existing Servicios preview", () => {
     const adapter = read("app/(site)/publicar/negocio-rapido/_adapters/serviciosQuickBusinessAdapter.ts");
     assert.ok(adapter.includes("/clasificados/publicar/servicios/preview"));
     const preview = read("app/(site)/clasificados/publicar/servicios/preview/ClasificadosServiciosPreviewClient.tsx");
@@ -230,9 +268,9 @@ async function main() {
   check("C4: customer login copy for publish mode is still Accede para publicar (unchanged customer path)", () => {
     const login = read("app/(site)/login/page.tsx");
     assert.ok(login.includes('title: "Accede para publicar"'));
-    const href = buildPublishLoginHref("/publicar/negocio-rapido/servicios", "es");
+    const href = buildPublishLoginHref("/publicar/servicios", "es");
     assert.ok(href.startsWith("/login?mode=post"));
-    assert.equal(decodeURIComponent(new URL(href, "http://x").searchParams.get("redirect") ?? ""), "/publicar/negocio-rapido/servicios");
+    assert.equal(decodeURIComponent(new URL(href, "http://x").searchParams.get("redirect") ?? ""), "/publicar/servicios");
   });
 
   await checkAsync("C5: PublishAuthGateLayout with assisted cookie is authed; without it, customer path is login", async () => {
@@ -265,23 +303,47 @@ async function main() {
     POST: (r: never) => Promise<Response>;
   };
 
-  await checkAsync("D1: authorized staff POST custody for Servicios returns the Quick intake path and sets the cookie", async () => {
+  await checkAsync("D1: authorized staff POST custody for Servicios returns the canonical intake path and stamps Quick by default", async () => {
     __reset();
     signInAsSalesStaff();
     seedBusiness();
     const res = await custody.POST(makeRequest({ category: "servicios", businessId: BIZ }));
-    const json = (await res.json()) as { ok?: boolean; intakePath?: string; category?: string; error?: string };
+    const json = (await res.json()) as { ok?: boolean; intakePath?: string; category?: string; packageKey?: string; plan?: string; error?: string };
     assert.equal(res.status, 200, JSON.stringify(json));
     assert.equal(json.ok, true);
     assert.equal(json.category, "servicios");
-    assert.equal(json.intakePath, "/publicar/negocio-rapido/servicios");
+    assert.equal(json.plan, "quick");
+    assert.equal(json.packageKey, "servicios_quick_monthly");
+    assert.equal(json.intakePath, "/publicar/servicios?plan=quick");
     const nav = resolveStaffNavigationFromCustodyPost(json);
     assert.equal(nav.allowed, true);
-    if (nav.allowed) assert.equal(nav.href, "/publicar/negocio-rapido/servicios");
-    assert.ok(cookieFrom(res, "leonix_assisted_publish"), "custody cookie is issued before navigation");
+    if (nav.allowed) assert.equal(nav.href, "/publicar/servicios?plan=quick");
+    const token = cookieFrom(res, "leonix_assisted_publish");
+    assert.ok(token, "custody cookie is issued before navigation");
+    const ctx = verifyAssistedPublishingTokenWithSecret(token!, ASSISTED_SECRET);
+    assert.equal(ctx?.packageKey, "servicios_quick_monthly");
   });
 
-  await checkAsync("D2: GET custody after mint reports the same Quick intake path", async () => {
+  await checkAsync("D1b: explicit Full custody stamps the Full package on the SAME canonical path and listing table", async () => {
+    __reset();
+    signInAsSalesStaff();
+    seedBusiness();
+    const res = await custody.POST(makeRequest({ category: "servicios", businessId: BIZ, plan: "full" }));
+    const json = (await res.json()) as { ok?: boolean; intakePath?: string; packageKey?: string; plan?: string };
+    assert.equal(res.status, 200, JSON.stringify(json));
+    assert.equal(json.plan, "full");
+    assert.equal(json.packageKey, "servicios_base_monthly");
+    assert.equal(json.intakePath, "/publicar/servicios");
+    const nav = resolveStaffNavigationFromCustodyPost(json);
+    assert.equal(nav.allowed, true);
+    if (nav.allowed) assert.equal(nav.href, "/publicar/servicios");
+    const ctx = verifyAssistedPublishingTokenWithSecret(cookieFrom(res, "leonix_assisted_publish")!, ASSISTED_SECRET);
+    assert.equal(ctx?.packageKey, "servicios_base_monthly");
+    assert.equal(ctx?.category, "servicios");
+    assert.equal(ctx?.listingId, undefined, "first mint has no listing id — the same row is bound on save");
+  });
+
+  await checkAsync("D2: GET custody after mint reports the same canonical intake path", async () => {
     __reset();
     signInAsSalesStaff();
     seedBusiness();
@@ -289,11 +351,12 @@ async function main() {
     const token = cookieFrom(minted, "leonix_assisted_publish");
     assert.ok(token, "minted cookie");
     const got = await custody.GET(makeRequest({}, { leonix_assisted_publish: token! }));
-    const json = (await got.json()) as { ok?: boolean; context?: { intakePath?: string; category?: string } | null };
+    const json = (await got.json()) as { ok?: boolean; context?: { intakePath?: string; category?: string; packageKey?: string } | null };
     assert.equal(got.status, 200);
     assert.ok(json.context, "server-confirmed custody exists before any staff navigation");
     assert.equal(json.context!.category, "servicios");
-    assert.equal(json.context!.intakePath, "/publicar/negocio-rapido/servicios");
+    assert.equal(json.context!.intakePath, "/publicar/servicios?plan=quick");
+    assert.equal(json.context!.packageKey, "servicios_quick_monthly");
   });
 
   await checkAsync("D3: unrelated customer session conflict still fails closed on Servicios save", async () => {
@@ -323,7 +386,65 @@ async function main() {
     assert.equal(resolveAssistedSessionConflict({ assistedActive: true, customerUserId: null }), null);
   });
 
-  console.log(`\n${passed.length}/${checks} checks passed`);
+  // ===========================================================================
+  // E — QUICK vs FULL IS ENTITLEMENT, NOT A SECOND FORM OR PRICE FOR EXCLUDED CATS
+  // ===========================================================================
+  check("E1: Servicios Quick is $249 Simple and Full is $399 Full from the existing matrix pair", () => {
+    const quick = staffBusinessOffer("servicios", "quick")!;
+    const full = staffBusinessOffer("servicios", "full")!;
+    assert.equal(quick.packageKey, BUSINESS_CATEGORY_PACKAGE_PAIR.servicios.simple);
+    assert.equal(full.packageKey, BUSINESS_CATEGORY_PACKAGE_PAIR.servicios.full);
+    assert.equal(quick.access, "simple");
+    assert.equal(full.access, "full");
+    assert.equal(quick.priceCents, 24900);
+    assert.equal(full.priceCents, 39900);
+    assert.deepEqual(Object.keys(BUSINESS_CATEGORY_PACKAGE_PAIR).sort(), [...STAFF_BUSINESS_PAIR_CATEGORIES].sort());
+  });
+  check("E2: Rentas, Empleos, Autos privados, and Comida Local are excluded from the $249/$399 pair", () => {
+    assert.deepEqual([...STAFF_BUSINESS_PAIR_EXCLUDED_CATEGORIES], ["rentas", "empleos", "autos-privado", "comida-local"]);
+    for (const cat of STAFF_BUSINESS_PAIR_EXCLUDED_CATEGORIES) {
+      assert.equal(staffBusinessOffer(cat, "quick"), null, `${cat} must not sell $249 Quick`);
+      assert.equal(staffBusinessOffer(cat, "full"), null, `${cat} must not sell $399 Full`);
+      assert.equal(cat in BUSINESS_CATEGORY_PACKAGE_PAIR, false, `${cat} is not in the business pair map`);
+    }
+  });
+  check("E3: an assisted Full package key proves Full and skips the Quick contract; Quick enforces", () => {
+    const full = resolveQuickBusinessProduct({
+      category: "servicios",
+      assistedPackageKey: "servicios_base_monthly",
+    });
+    assert.deepEqual([full.product, full.source, full.packageKey], ["full", "assisted_context", "servicios_base_monthly"]);
+    const quick = resolveQuickBusinessProduct({
+      category: "servicios",
+      assistedPackageKey: "servicios_quick_monthly",
+    });
+    assert.deepEqual([quick.product, quick.source], ["quick", "assisted_context"]);
+  });
+  check("E4: reminting to bind a listing id preserves a live Full package (same row, same entitlement)", () => {
+    const bound = resolveStaffBusinessPackage({
+      category: "servicios",
+      livePackageKey: "servicios_base_monthly",
+    });
+    assert.equal(bound.ok, true);
+    if (bound.ok) {
+      assert.equal(bound.plan, "full");
+      assert.equal(bound.packageKey, "servicios_base_monthly");
+    }
+  });
+  check("E5: a forged Full package key that is not the category pair is refused", () => {
+    const forged = resolveStaffBusinessPackage({
+      category: "servicios",
+      requestedPackageKey: "comida_local_base_monthly",
+    });
+    assert.equal(forged.ok, false);
+  });
+  check("E6: canonical application mounts the existing assisted save bar (no second form)", () => {
+    const app = read("app/(site)/clasificados/publicar/servicios/components/ClasificadosServiciosApplication.tsx");
+    assert.ok(app.includes("AssistedSaveForClientBar"));
+    assert.ok(app.includes('category="servicios"'));
+  });
+
+  console.log(`\n${passed.length}/${checks} passed`);
   for (const p of passed) console.log(`  OK   ${p}`);
   if (failures.length) {
     console.error(`\n${failures.length} FAILED`);

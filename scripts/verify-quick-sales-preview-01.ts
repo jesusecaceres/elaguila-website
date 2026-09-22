@@ -266,7 +266,7 @@ check("B7: every category maps to exactly one canonical table and one EXISTING i
     assert.equal(d.category, key);
     assert.ok(d.saveEndpoint.startsWith("/api/"), "the save endpoint must be a real API route");
     if (key === "servicios") {
-      assert.equal(d.intakePath, "/publicar/negocio-rapido/servicios", "Servicios staff doorway is the existing Quick application, not the checkpoint redirect");
+      assert.equal(d.intakePath, "/publicar/servicios", "Servicios staff doorway is the canonical application, not the checkpoint or Quick adapter");
     } else {
       assert.ok(d.intakePath.startsWith("/clasificados/"), "the intake must be the category's existing one");
     }

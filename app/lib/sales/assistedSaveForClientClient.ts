@@ -130,6 +130,8 @@ export type AssistedCustodyContext = {
   paymentState: string;
   publishReady: boolean;
   expiresAtMs: number;
+  packageKey?: string | null;
+  plan?: "quick" | "full" | null;
 };
 
 /** What the SERVER believes about this staff session right now. Never a client-side guess. */

@@ -18,7 +18,11 @@ export const dynamic = "force-dynamic";
  * EXACT existing /api/admin/revenue-os/manual-payments contract — no new payment system, no new
  * Stripe object, no invented payment method or package.
  */
-export default async function AdminManualPaymentPage() {
+export default async function AdminManualPaymentPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ listingId?: string; packageKey?: string; category?: string }>;
+}) {
   const cookieStore = await cookies();
   if (!requireAdminCookie(cookieStore)) redirect("/admin/login");
   const access = await getCurrentAdminAccessContext();
@@ -33,6 +37,11 @@ export default async function AdminManualPaymentPage() {
     label: p.label,
     priceCents: p.priceCents,
   }));
+  const sp = (await searchParams) ?? {};
+  const initialListingId = typeof sp.listingId === "string" ? sp.listingId.trim() : "";
+  const initialPackageKey = typeof sp.packageKey === "string" ? sp.packageKey.trim() : "";
+  const initialCategory = typeof sp.category === "string" ? sp.category.trim() : "";
+  const initialPackage = packageOptions.find((p) => p.packageKey === initialPackageKey) ?? null;
 
   return (
     <div>
@@ -50,7 +59,14 @@ export default async function AdminManualPaymentPage() {
           <p className="text-sm text-amber-900">{pendingSnapshot.note ?? "Payment records unavailable."}</p>
         </div>
       ) : null}
-      <ManualPaymentClient packageOptions={packageOptions} pendingManual={pendingManual} />
+      <ManualPaymentClient
+        packageOptions={packageOptions}
+        pendingManual={pendingManual}
+        initialListingId={initialListingId || undefined}
+        initialPackageKey={initialPackage?.packageKey}
+        initialCategory={initialPackage?.category || initialCategory || undefined}
+        initialAmountDollars={initialPackage ? (initialPackage.priceCents / 100).toFixed(2) : undefined}
+      />
     </div>
   );
 }
