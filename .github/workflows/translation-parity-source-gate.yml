@@ -92,6 +92,13 @@ jobs:
           "scripts/verify-translation-parity-all-classifieds-01.ts"
           --max-warnings 0
 
+      - name: Restore tracked LFS image assets
+        run: |
+          git lfs install --local
+          git lfs pull
+          test "$(stat -c%s public/logo.png)" -gt 100000
+          test "$(stat -c%s public/branding/leonix-media-wordmark-slogan.png)" -gt 100000
+
       - name: Full typecheck
         env:
           NODE_OPTIONS: --max-old-space-size=8192
