@@ -93,7 +93,11 @@ jobs:
           --max-warnings 0
 
       - name: Full typecheck
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
         run: npm run typecheck
 
       - name: Full build
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
         run: npm run build
