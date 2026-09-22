@@ -350,8 +350,9 @@ function main() {
 
   check("application[rentas privado]: video action labels honor lang", () => {
     const src = read("app/(site)/clasificados/publicar/rentas/privado/application/RentasPrivadoForm.tsx");
-    assert.ok(src.includes('addLabel={lang === "en" ? "+ Add video" : "+ Agregar video"}'));
-    assert.ok(src.includes('removeLabel={lang === "en" ? "Remove" : "Quitar"}'));
+    assert.ok(src.includes("addLabel={RENTAS_PRIVADO_UI[lang].addVideo}"));
+    assert.ok(src.includes("removeLabel={RENTAS_PRIVADO_UI[lang].removeVideo}"));
+    assert.ok(src.includes("const RENTAS_PRIVADO_UI: Record<OfficialLocale"));
   });
 
   check("results: loading fallbacks do not expose the wrong application language", () => {
