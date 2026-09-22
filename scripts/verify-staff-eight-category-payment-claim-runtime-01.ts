@@ -498,8 +498,9 @@ async function main() {
       assert.equal(transfer.recorded, false);
       assert.equal(transfer.error, "partial_transfer");
     }
-    assert.equal((__rows(SRC).find((r) => r.id === "svc-ok") as { owner_user_id: string }).owner_user_id, "claimer-1");
-    assert.equal((__rows(SRC).find((r) => r.id === "svc-empty") as { owner_user_id: string }).owner_user_id, "");
+    const rows = __rows(SRC) as Array<{ id: string; owner_user_id: string | null }>;
+    assert.equal(rows.find((r) => r.id === "svc-ok")?.owner_user_id, "claimer-1");
+    assert.equal(rows.find((r) => r.id === "svc-empty")?.owner_user_id, "");
   });
 
   await checkAsync("C10: HTTP accept returns 409 when transfer is not recorded", async () => {
