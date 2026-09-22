@@ -4,7 +4,7 @@
 **Origin:** `jesusecaceres/elaguila-website`  
 **Branch:** `repair/quick-sales-eight-category-staff-gateway-2026-09-22`  
 **Starting SHA:** `3171ae7d88aaedbb88f34b7c7deaf4d73e61456d`  
-**Live SHA:** `729788492d822cd6934dc36aa96749b919c6d742` (Gates 5–8 checkpoint; Gate 9 in this descendant)  
+**Live SHA:** `553ebedb4825e984674d5de54c78be40eb35bba1` (Gate 10 typecheck checkpoint; closeout SHA follows this file)  
 **Deployment:** none  
 **External mutation:** none  
 
@@ -28,7 +28,7 @@ Final PASS requires zero FALSE / UNKNOWN / PARTIAL.
 | 7 | Rewards bridge | TRUE — PROVEN | Gate 10 |
 | 8 | Security / failure matrix | TRUE — PROVEN | Gate 10 |
 | 9 | Local UX 390/768/1440 ES/EN | TRUE — PROVEN | Gate 10 |
-| 10 | Regression + full tsc + next build | UNKNOWN | once only at end |
+| 10 | Regression + full tsc + next build | TRUE — PROVEN | PASS |
 
 ---
 
@@ -295,6 +295,71 @@ DEFERRED_BY_OWNER: staff-authenticated cockpit Quick/Full click-through (would r
 
 ---
 
+### Gate 10 — regression + full tsc + next build (closeout)
+
+No heavyweight tsc/build was running before this gate.
+
+Changed-file ESLint: zero warnings / zero errors on the branch-changed `.ts/.tsx/.js/.mjs/.cjs` set.
+
+Focused verifiers (exact counts):
+
+| Harness | Result |
+| --- | --- |
+| `verify-listing-package-payment-authority-01.ts` | PASS (22) |
+| `verify-staff-eight-category-gateway-01.ts` | PASS (19/19) |
+| `verify-staff-eight-category-content-01.ts` | PASS (14/14) |
+| `verify-staff-eight-category-translation-01.ts` | PASS (17/17) |
+| `verify-staff-eight-category-media-preview-trust-01.ts` | PASS (11/11) |
+| `verify-staff-eight-category-custody-release-01.ts` | PASS (9/9) |
+| `verify-staff-eight-category-rewards-office-01.ts` | PASS (9/9) |
+| `verify-staff-eight-category-security-failure-01.ts` | PASS (14/14) |
+| `verify-staff-eight-category-local-ux-01.ts` | PASS (7/7) |
+| `verify-servicios-staff-gateway-01.ts` | PASS (31/31) |
+| `verify-quick-sales-preview-01.ts` | PASS (138) |
+| `verify-quick-sales-entry-consolidation-01.ts` | PASS (19/19) |
+| `verify-quick-sales-canonical-publish-readiness-01.ts` | PASS (35/35) |
+| `verify-quick-assisted-operations-01.ts` | PASS (24) |
+| `verify-quick-product-boundary-01.ts` | PASS (52) |
+| `verify-p0-assisted-servicios-navigation-01.ts` | PASS (7 contracts) |
+| `verify-p0-final-assisted-publishing-bridge-01.ts` | PASS (8 contracts) |
+
+Full TypeScript:
+
+- command: `NODE_OPTIONS=--max-old-space-size=8192 npm run typecheck` (`tsc --noEmit --incremental false`)
+- result: exit 0, 0 errors
+- log: `/opt/cursor/artifacts/gate10_typecheck.log`
+
+One `next build`:
+
+- command: `NODE_OPTIONS=--max-old-space-size=12288 npm run build` (`scripts/next-build.js`)
+- compile-only public placeholders (not runtime proof): `NEXT_PUBLIC_SUPABASE_URL=https://example.supabase.co`, dummy `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL=http://127.0.0.1:3000`
+- result: exit 0; `✓ Compiled successfully in 88s`; `✓ Generating static pages (391/391)`
+- cockpit route present: `/admin/workspace/quick-sales`
+- prospect preview route present: `/vista-previa/[category]`
+- log: `/opt/cursor/artifacts/gate10_next_build.log`
+- no Vercel mutation; no deploy
+
+DEFERRED_BY_OWNER (not tested, not falsely marked tested): Vercel Preview, Production, Supabase migration apply, Stripe live/test charges, staff-authenticated cockpit click-through, live listing payload preview.
+
+---
+
 ## Remaining next gate
 
-**Gate 10** — one full `tsc --noEmit --incremental false` and one `next build`. No deploy.
+None. Source gates 0–10 are `TRUE — PROVEN` or legitimate `PROVEN_NA` / `DEFERRED_BY_OWNER`. `READY_FOR_PRODUCTION: false`. `READY_FOR_SINGLE_PREVIEW_QA: true` (source/local only).
+
+---
+
+## Final repaired eight-family matrix (live source)
+
+| Family | Staff key | Canonical application | Listing table | Owner-null | Payment | Trust | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Rentas | `rentas` | `/clasificados/publicar/rentas/privado` | `listings` | yes | `rentas_30d` $24.99 | PROVEN_NA | TRUE — PROVEN |
+| Empleos | `empleos` | `/publicar/empleos/quick` | `empleos_public_listings` | yes | `empleos_job_post_paid` $24.99 | PROVEN_NA | TRUE — PROVEN |
+| Autos privados | `autos-privado` | `/publicar/autos/privado` | `autos_classifieds_listings` | yes (additive SQL unapplied) | `autos_privado_30d` $24.99 | PROVEN_NA | TRUE — PROVEN |
+| Servicios | `servicios` | `/publicar/servicios` | `servicios_public_listings` | yes | pair $249/$399 | TRUE — PROVEN | TRUE — PROVEN |
+| Restaurantes | `restaurantes` | `/publicar/restaurantes` | `restaurantes_public_listings` | yes | pair $249/$399 | TRUE — PROVEN | TRUE — PROVEN |
+| Comida Local | `comida-local` | `/publicar/comida-local` | `comida_local_public_listings` | yes | `comida_local_base_monthly` $129 | TRUE — PROVEN | TRUE — PROVEN |
+| Autos Dealer | `autos` | `/publicar/autos/negocios` | `autos_classifieds_listings` | yes | pair $249/$399 | PROVEN_NA | TRUE — PROVEN |
+| Bienes Negocio | `bienes-raices` | `/clasificados/publicar/bienes-raices/negocio` | `listings` | yes | pair $249/$399 | TRUE — PROVEN | TRUE — PROVEN |
+
+Viajes / Iglesias / Recursos: excluded from the staff doorway. PROVEN_NA.
