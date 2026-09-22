@@ -88,8 +88,8 @@ for (const rel of WIRED_FILES) {
   const src = readSource("app/(site)/clasificados/publicar/servicios/preview/ClasificadosServiciosPreviewClient.tsx");
   assert.ok(src.includes("listingBoundPreview = previewModeIsListingBound(sharedPreviewMode)"));
   assert.ok(
-    /showFinalCheckout =\s*\n?\s*!listingBoundPreview/.test(src),
-    "showFinalCheckout must still exclude listing-bound preview",
+    /showFinalCheckout =[\s\S]{0,180}\(!listingBoundPreview \|\| listingBoundAwaitsBasePurchase\)/.test(src),
+    "showFinalCheckout must suppress paid listing-bound previews except the server-verified base-purchase-resume case",
   );
 }
 

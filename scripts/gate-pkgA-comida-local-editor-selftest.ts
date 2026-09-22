@@ -92,13 +92,14 @@ const read = (p: string) => readFileSync(path.join(REPO_ROOT, p), "utf8");
   assert.ok(app.includes('"Guardar cambios"') && app.includes('"Save changes"'), "edit mode must use truthful ES/EN save labels");
   assert.ok(app.includes("Editando anuncio publicado") && app.includes("Editing published listing"), "edit mode must show the ES/EN edit banner");
   assert.ok(app.includes("clearComidaLocalEditContext"), "publish success / discard must clear the edit context");
-  assert.ok(!app.toLowerCase().includes("stripe"), "no payment behavior may enter this free lane's editor");
+  assert.ok(!app.toLowerCase().includes("stripe"), "the edit form itself must not start payment; checkout stays in new-publish preview");
 
   const preview = read("app/(site)/clasificados/comida-local/preview/ComidaLocalPreviewClient.tsx");
   assert.ok(preview.includes("resolvePreviewMode"), "the preview must resolve the shared preview-mode contract");
   assert.ok(preview.includes("comidaLocalEditWorkspaceStorageKey"), "the edit-draft preview must read the per-listing edit workspace, never the new-ad draft");
   assert.ok(preview.includes("Volver a editar"), "the edit-draft preview must offer return-to-edit");
-  assert.ok(!preview.includes("PublishCheckoutCheckpoint"), "the preview must stay checkout-free");
+  assert.ok(preview.includes("PublishCheckoutCheckpoint"), "new-publish preview must retain the real Comida Local checkout");
+  assert.ok(preview.includes('previewMode === "new-publish"'), "edit-draft preview must suppress checkout and save the existing listing directly");
 }
 
 console.log("gate-pkgA-comida-local-editor-selftest: all assertions passed.");
