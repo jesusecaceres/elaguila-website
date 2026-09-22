@@ -101,6 +101,7 @@ export function createEmptyRestauranteDraft(): RestauranteListingDraft {
     temporaryHoursNote: undefined,
     websiteUrl: undefined,
     phoneNumber: undefined,
+    smsNumber: undefined,
     email: undefined,
     whatsAppNumber: undefined,
     instagramUrl: undefined,

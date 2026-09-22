@@ -1647,6 +1647,16 @@ export default function RestauranteApplicationClient() {
                   />
                 </div>
                 <div>
+                  <FieldLabel optional lang={lang}>{fc.sectionD.smsLabel}</FieldLabel>
+                  <HelperText>{fc.sectionD.smsHelper}</HelperText>
+                  <PhoneInput
+                    className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                    placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.smsNumber ?? "(408) 555-0188"}
+                    value={draft.smsNumber ?? ""}
+                    onChange={(next) => setDraftPatch({ smsNumber: next || undefined })}
+                  />
+                </div>
+                <div>
                   <FieldLabel optional lang={lang}>{fc.sectionD.whatsAppLabel}</FieldLabel>
                   <HelperText>{fc.sectionD.whatsAppHelper}</HelperText>
                   <input

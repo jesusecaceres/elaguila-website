@@ -184,9 +184,10 @@ export function buildRestaurantContactHub(d: RestauranteListingDraft, lang: "es"
       action: "call",
       fullWidth: true,
     });
-    // Prefer explicit smsNumber (Quick intake sets this; never fabricate SMS from phone when
-    // the customer provided a distinct SMS number). Fall back to phone for legacy listings.
-    const sms = smsHref(nonEmpty(d.smsNumber) ? d.smsNumber!.trim() : phone);
+  }
+  // SMS is a separate opt-in. Never fabricate it from the office phone.
+  if (nonEmpty(d.smsNumber)) {
+    const sms = smsHref(d.smsNumber!.trim());
     if (sms) {
       pushUniqueButton(contactUs, {
         id: "sms",

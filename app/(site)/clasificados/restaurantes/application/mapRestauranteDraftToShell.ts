@@ -331,10 +331,10 @@ function buildPrimaryCtas(d: RestauranteListingDraft, lang: "es" | "en"): ShellP
     ctas.push({ key: "menu", label: en ? "View menu" : "Ver menú", href: d.menuFile! });
   }
 
-  // Message CTAs (not in hero order)
-  if (nonEmpty(d.phoneNumber)) {
-    const digits = d.phoneNumber!.replace(/\D/g, "");
-    const sms = digits.length >= 10 ? `sms:+1${digits.slice(-10)}` : `sms:${d.phoneNumber}`;
+  // Message CTAs (not in hero order). SMS is a separate opt-in — never fabricate from office phone.
+  if (nonEmpty(d.smsNumber)) {
+    const digits = d.smsNumber!.replace(/\D/g, "");
+    const sms = digits.length >= 10 ? `sms:+1${digits.slice(-10)}` : `sms:${d.smsNumber}`;
     ctas.push({ key: "message", label: en ? "Message" : "Mensaje", href: sms });
   } else if (nonEmpty(d.email)) {
     ctas.push({ key: "message", label: en ? "Email" : "Correo", href: `mailto:${encodeURIComponent(d.email!.trim())}` });

@@ -349,8 +349,8 @@ await check("R7: REPLAY on Restaurante is refused 409 already_published", async 
 function seedAutos(opts: { child?: Record<string, unknown> | null; pay?: boolean; mainStatus?: string }) {
   __reset(); signInAsSalesStaff();
   __seed("business_listing_links", [link(SRC.autos.listingSource, "a1")]);
-  const main = { id: "a1", status: opts.mainStatus ?? "draft", inventory_role: "main", owner_user_id: CLIENT, listing_payload: { businessName: "Dealer Uno" }, published_at: null, created_at: "2026-09-01T00:00:00Z" };
-  const child = opts.child === null ? [] : [{ id: "a1-v", status: "draft", inventory_role: "inventory_vehicle", dealer_inventory_parent_listing_id: "a1", owner_user_id: CLIENT, created_at: "2026-09-01T00:00:01Z", listing_payload: opts.child ?? { images: [{ url: "https://cdn.example.test/car.jpg", role: "vehicle" }] } }];
+  const main = { id: "a1", status: opts.mainStatus ?? "draft", inventory_role: "main", owner_user_id: CLIENT, listing_payload: { dealerName: "Dealer Uno", businessName: "Dealer Uno", dealerPhoneOffice: "4085550100" }, published_at: null, created_at: "2026-09-01T00:00:00Z" };
+  const child = opts.child === null ? [] : [{ id: "a1-v", status: "draft", inventory_role: "inventory_vehicle", dealer_inventory_parent_listing_id: "a1", owner_user_id: CLIENT, created_at: "2026-09-01T00:00:01Z", listing_payload: opts.child ?? { images: [{ url: "https://cdn.example.test/car.jpg", role: "vehicle" }], year: 2019, make: "Toyota", model: "Camry", price: 14500, city: "San Jose", zip: "95112", dealerPhoneOffice: "4085550100" } }];
   __seed("autos_classifieds_listings", [main, ...child]);
   if (opts.pay !== false) __seed("leonix_payment_records", [paid(SRC.autos.listingSource, "a1")]);
 }

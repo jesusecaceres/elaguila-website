@@ -4,7 +4,7 @@
 **Origin:** `jesusecaceres/elaguila-website`  
 **Branch:** `repair/quick-sales-eight-category-staff-gateway-2026-09-22`  
 **Starting SHA:** `3171ae7d88aaedbb88f34b7c7deaf4d73e61456d`  
-**Live SHA:** `ead5d18905ee095221cfbebc049a47d082d15675` (Gate 1; Gate 2 checkpoint is this commit)  
+**Live SHA:** `f3963b786a2de7d7e813107e78e8443c7f7dfdd9` (Gate 2 checkpoint; Gate 3 in this descendant)  
 **Deployment:** none  
 **External mutation:** none  
 
@@ -21,7 +21,7 @@ Final PASS requires zero FALSE / UNKNOWN / PARTIAL.
 | 0 | Forensic matrices from current source | TRUE — PROVEN (ledger) | Gate 1 |
 | 1 | Package/payment authority | TRUE — PROVEN | Gate 2 |
 | 2 | Exact eight-category doorway | TRUE — PROVEN | Gate 3 |
-| 3 | Application content / save-reopen | UNKNOWN | inspect after doorway |
+| 3 | Application content / save-reopen | TRUE — PROVEN | Gate 4 |
 | 4 | Translation | UNKNOWN | reuse TranslateAdControl only |
 | 5 | Media / preview / address / Trust | UNKNOWN | |
 | 6 | Custody / preview / lifecycle / release | FALSE | owner-null + release incomplete |
@@ -143,7 +143,7 @@ Owner-null:
 - Bienes assisted save without `clientUserId` omits `owner_id`.
 - Supplied non-member `clientUserId` still 403 `client_not_authorized_for_business`.
 
-Publish-readiness `assessStoredRowExists` is a temporary exist-check so new families do not 422 at the doorway; Gate 3 must map real category contracts.
+Publish-readiness now imports each family's real gate (Gate 3). `assessStoredRowExists` is gone.
 
 ---
 
@@ -175,6 +175,33 @@ Publish-readiness `assessStoredRowExists` is a temporary exist-check so new fami
 
 ---
 
+### Gate 3 — application content / save-reopen (checkpoint)
+
+Canonical hydrators/gates are mapped. Staff save uses each family's existing publisher via `resolveStaffAssistedCategorySave`. No generic form.
+
+| Family | Hydrator / gate | Staff first-save | Repeat save | Status |
+| --- | --- | --- | --- | --- |
+| Rentas | `mapOwnedRentasListingToPrivadoFormState` + `gateRentasPrivadoPreview` | `POST /api/clasificados/rentas/listing-edit` owner-null insert | same `listingId` update | TRUE — PROVEN |
+| Empleos | `hydrateQuickDraftFromEnvelope` + `gateEmpleosQuickPreview` | assisted draft upsert, owner-null | envelope listingId + snapshot stamped | TRUE — PROVEN |
+| Autos privados | `getAutosPreviewCompletenessIssues("privado")` | `POST /api/clasificados/autos/listings` lane privado | same table id | TRUE — PROVEN |
+| Servicios | `serviciosPublishedToApplicationDraft` / `selectedQuickFactIds` | existing assisted publish save | existing | TRUE — PROVEN |
+| Restaurantes | `mergeRestauranteDraft` + explicit `smsNumber` | existing | SMS is a separate opt-in, never fabricated from office phone | TRUE — PROVEN |
+| Comida Local | `mergeComidaLocalDraftFromStorage` + `validateComidaLocalDraftForFuturePublish` | pending_payment owner-null insert | lookup by draft id then table id | TRUE — PROVEN |
+| Autos Dealer | semantic media then dealer completeness | existing assisted-publish | existing | TRUE — PROVEN |
+| Bienes Negocio | semantic media then `gateBienesRaicesNegocioPreview` | existing | existing | TRUE — PROVEN |
+
+Proofs: accents/`ñ`/apostrophes round-trip; cleared Rentas description stays cleared; incomplete paid Rentas 422 `not_ready`; cockpit no longer uses exist-only `assessStoredRowExists`; spacebar not swallowed on text controls.
+
+---
+
+### Gate 3 commands / counts
+
+- `npx tsx --tsconfig scripts/lib/tsconfig.harness.json scripts/verify-staff-eight-category-content-01.ts` — PASS (14)
+- `verify-quick-sales-canonical-publish-readiness-01.ts` — PASS (35)
+- `verify-staff-eight-category-gateway-01.ts` — PASS (19)
+
+---
+
 ## Remaining next gate
 
-**Gate 3** — per-family application content and save-reopen parity from each canonical application. No generic form. Map Quick/staff control → persisted field → public renderer → edit rehydration. Prove first save creates one row, repeated save updates that row, reopen hydrates, cleared fields stay cleared.
+**Gate 4** — translation matrix. Reuse only `TranslateAdControl`, `requestAdTranslation`, `/api/translate-ad`. Public detail + private preview must show Traducir anuncio / Translate Ad. No second provider.

@@ -47,7 +47,6 @@
  * Every reading primitive used here is one the live public Rentas page already relies on, so the
  * edit view and the public view interpret the same row the same way.
  */
-import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { parseRentasDetailMachineRead } from "@/app/clasificados/rentas/lib/rentasDetailPairRead";
 import {
   parseLeonixListingContract,
@@ -382,6 +381,7 @@ function basePartialFromRow(row: Record<string, unknown>): Partial<RentasPrivado
     },
     seller: {
       ...empty.seller,
+      nombre: pv(detailPairs, "Vendedor"),
       telefono: trim(row.contact_phone),
       correo: trim(row.contact_email),
       whatsapp: rx.contactWhatsappDigits ?? "",
@@ -465,6 +465,7 @@ export async function hydrateRentasDashboardEditDraft(input: {
 > {
   const listingId = input.listingId.trim();
   if (!listingId) return { ok: false, message: "Missing listing id." };
+  const { createSupabaseBrowserClient } = await import("@/app/lib/supabase/browser");
   const sb = createSupabaseBrowserClient();
   const { data: auth } = await sb.auth.getUser();
   const ownerId = auth.user?.id;

@@ -162,6 +162,12 @@ export function buildLeonixMachineFacetPairsFromRentasPrivadoFormState(
     ubicacionLinea:
       state.mostrarDireccionExacta === true ? buildRentasStreetLine(state) : state.direccionCruceCercano.trim(),
     mostrarDireccionExacta: state.mostrarDireccionExacta !== false,
+    gate12d: {
+      calleNumero: buildRentasStreetLine(state),
+      colonia: state.zonaVecindario ?? "",
+      estado: state.direccionEstado ?? "",
+      codigoPostal: state.direccionCodigoPostal ?? "",
+    },
     enlaceMapa: "",
     descripcion: state.descripcion,
     estadoAnuncio: ((): BrPrivadoListingStatus | undefined => {

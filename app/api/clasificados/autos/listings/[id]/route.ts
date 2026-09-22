@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { getAutosPublishUserIdFromRequest } from "@/app/lib/clasificados/autos/autosListingBearerAuth";
 import {
@@ -15,6 +15,7 @@ import {
   detectAutosHeavyTransport,
   detectAutosLocalVideoTransport,
 } from "@/app/lib/clasificados/autos/autosPublishApiContract";
+import { resolveStaffAssistedCategorySave } from "@/app/lib/sales/staffAssistedCategorySave";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,7 +24,7 @@ type Props = { params: Promise<{ id: string }> };
 
 type PatchBody = { listing?: AutoDealerListing; lang?: AutosClassifiedsLang };
 
-export async function PATCH(request: Request, { params }: Props) {
+export async function PATCH(request: NextRequest, { params }: Props) {
   const contentLength = request.headers.get("content-length");
   if (contentLength && Number.parseInt(contentLength, 10) > AUTOS_LISTING_API_MAX_BODY_BYTES) {
     return NextResponse.json(
@@ -47,16 +48,6 @@ export async function PATCH(request: Request, { params }: Props) {
     );
   }
   const userId = await getAutosPublishUserIdFromRequest(request);
-  if (!userId) {
-    return NextResponse.json(
-      buildAutosListingApiErrorPayload({
-        errorCode: "AUTH_REQUIRED",
-        message: "Sign in required.",
-        legacyError: "unauthorized",
-      }),
-      { status: 401 },
-    );
-  }
   const { id } = await params;
   let rawBody: unknown;
   try {
@@ -70,6 +61,30 @@ export async function PATCH(request: Request, { params }: Props) {
       }),
       { status: 400 },
     );
+  }
+  const assistedProbe = rawBody && typeof rawBody === "object" ? (rawBody as Record<string, unknown>) : {};
+  const assisted = await resolveStaffAssistedCategorySave({
+    request,
+    expectedCategory: "autos-privado",
+    assistedActionRaw: typeof assistedProbe.assistedAction === "string" ? assistedProbe.assistedAction : "",
+    bodyListingId: id,
+    bodyClientUserId: typeof assistedProbe.clientUserId === "string" ? assistedProbe.clientUserId : null,
+  });
+  if ("ok" in assisted && assisted.ok === false) {
+    return NextResponse.json({ ok: false, error: assisted.error }, { status: assisted.status });
+  }
+  if (!userId && !assisted.assisted) {
+    return NextResponse.json(
+      buildAutosListingApiErrorPayload({
+        errorCode: "AUTH_REQUIRED",
+        message: "Sign in required.",
+        legacyError: "unauthorized",
+      }),
+      { status: 401 },
+    );
+  }
+  if (assisted.assisted && assisted.listingId && assisted.listingId !== id) {
+    return NextResponse.json({ ok: false, error: "assisted_listing_mismatch" }, { status: 409 });
   }
 
   const localVideo = detectAutosLocalVideoTransport(rawBody);
@@ -110,7 +125,7 @@ export async function PATCH(request: Request, { params }: Props) {
     );
   }
   const lang: AutosClassifiedsLang | undefined = body.lang === "en" || body.lang === "es" ? body.lang : undefined;
-  const result = await updateAutosClassifiedsListingDraft(id, userId, { listing: body.listing, lang });
+  const result = await updateAutosClassifiedsListingDraft(id, assisted.assisted ? assisted.clientUserId : userId, { listing: body.listing, lang });
   if (!result.row) {
     if (result.errorCode === "AUTOS_LISTING_NOT_FOUND_OR_FORBIDDEN") {
       return NextResponse.json(

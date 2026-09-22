@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { getAutosPublishUserIdFromRequest } from "@/app/lib/clasificados/autos/autosListingBearerAuth";
 import {
@@ -13,6 +13,10 @@ import { AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY, AUTOS_DEALER_TOTAL_WITH_INVENT
 import { isListingPackageEntitlementRowActive } from "@/app/lib/listingPlans/listingPackageEntitlementPlacement";
 import { assertCommercialCapacityForWrite } from "@/app/lib/listingPlans/commercialWriteGuard";
 import { linkSelfServiceListingToBusiness } from "@/app/lib/business/canonicalListingLink";
+import { linkAssistedListingToBusiness } from "@/app/lib/business/assistedListingCustody";
+import { applyAssistedPublishingCookie } from "@/app/lib/auth/assistedPublishingSession";
+import { resolveStaffAssistedCategorySave } from "@/app/lib/sales/staffAssistedCategorySave";
+import { recordSalesWorkspaceAudit } from "@/app/lib/sales/salesWorkspaceAudit";
 import { enforceQuickBusinessPublishMedia } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
 import { resolveQuickBusinessPublishIdentity } from "@/app/lib/listingPlans/quickBusinessProductIdentityServer";
 import type { AutosClassifiedsLane, AutosClassifiedsLang } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
@@ -121,7 +125,7 @@ export async function GET(request: Request) {
   });
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const contentLength = request.headers.get("content-length");
   if (contentLength && Number.parseInt(contentLength, 10) > AUTOS_LISTING_API_MAX_BODY_BYTES) {
     return NextResponse.json(
@@ -139,17 +143,6 @@ export async function POST(request: Request) {
     return dbNotConfigured("es");
   }
   const userId = await getAutosPublishUserIdFromRequest(request);
-  if (!userId) {
-    return NextResponse.json(
-      buildAutosListingApiErrorPayload({
-        errorCode: "AUTH_REQUIRED",
-        message: "Sign in required.",
-        legacyError: "unauthorized",
-      }),
-      { status: 401 },
-    );
-  }
-
   let rawBody: unknown;
   try {
     rawBody = await request.json();
@@ -162,6 +155,30 @@ export async function POST(request: Request) {
       }),
       { status: 400 },
     );
+  }
+  const assistedProbe = rawBody && typeof rawBody === "object" ? (rawBody as Record<string, unknown>) : {};
+  const assisted = await resolveStaffAssistedCategorySave({
+    request,
+    expectedCategory: "autos-privado",
+    assistedActionRaw: typeof assistedProbe.assistedAction === "string" ? assistedProbe.assistedAction : "",
+    bodyListingId: typeof assistedProbe.listingId === "string" ? assistedProbe.listingId : null,
+    bodyClientUserId: typeof assistedProbe.clientUserId === "string" ? assistedProbe.clientUserId : null,
+  });
+  if ("ok" in assisted && assisted.ok === false) {
+    return NextResponse.json({ ok: false, error: assisted.error }, { status: assisted.status });
+  }
+  if (!userId && !assisted.assisted) {
+    return NextResponse.json(
+      buildAutosListingApiErrorPayload({
+        errorCode: "AUTH_REQUIRED",
+        message: "Sign in required.",
+        legacyError: "unauthorized",
+      }),
+      { status: 401 },
+    );
+  }
+  if (assisted.assisted && assisted.isPublish) {
+    return NextResponse.json({ ok: false, error: "publish_via_cockpit_only" }, { status: 403 });
   }
 
   const bodySize = new Blob([JSON.stringify(rawBody)]).size;
@@ -216,13 +233,17 @@ export async function POST(request: Request) {
 
   const lang: AutosClassifiedsLang = body.lang === "en" ? "en" : "es";
   const parentListingId = body.parentListingId?.trim();
+  if (assisted.assisted && body.lane !== "privado") {
+    return NextResponse.json({ ok: false, error: "staff_autos_privado_only" }, { status: 422 });
+  }
+  const resolvedOwnerUserId = assisted.assisted ? assisted.clientUserId : userId;
 
   // Package C Build 1 (decision 11) — server-side commercial write guard for dealer child
   // creation. Verifies the client-supplied parent is REAL, OWNED by the caller, and the dealer
   // main (closing the trusted-parent-id gap), and enforces capacity (10 base / 20 with boost)
   // + grace/suspension state: no new inventory during an unresolved payment issue. Existing
   // children stay editable through the PATCH route (delta-0 semantics).
-  if (body.lane === "negocios" && parentListingId) {
+  if (body.lane === "negocios" && parentListingId && userId) {
     const guard = await assertCommercialCapacityForWrite({
       category: "autos",
       parentListingId,
@@ -262,7 +283,7 @@ export async function POST(request: Request) {
   // Counts are NOT imposed here — the Autos lane is uncapped by design — only the semantic
   // requirement: at least one image DECLARED to depict the vehicle. An unroled Quick dealer
   // gallery is answered with `role_declaration_required`, a correction, not a bare rejection.
-  if (body.lane === "negocios") {
+  if (body.lane === "negocios" && userId) {
     const identity = await resolveQuickBusinessPublishIdentity({
       category: "autos",
       ownerUserId: userId,
@@ -300,7 +321,7 @@ export async function POST(request: Request) {
   }
 
   const createInput = {
-    ownerUserId: userId,
+    ownerUserId: resolvedOwnerUserId,
     lane: body.lane,
     lang,
     listing: body.listing,
@@ -332,12 +353,50 @@ export async function POST(request: Request) {
   // identity row the customer created themselves, matching what the staff-assisted route writes.
   // Only the dealer MAIN row is linked: an inventory vehicle is a child of that identity, not a
   // second business listing. Idempotent, ownership re-proven server-side, never fails the create.
-  if (result.row.lane === "negocios" && !parentListingId) {
+  if (result.row.lane === "negocios" && !parentListingId && createInput.ownerUserId) {
     await linkSelfServiceListingToBusiness({
       userId: createInput.ownerUserId,
       listingSource: "autos_classifieds_listings",
       listingId: result.row.id,
     }).catch(() => undefined);
+  }
+
+  if (assisted.assisted) {
+    await linkAssistedListingToBusiness({
+      businessId: assisted.ctx.businessId,
+      listingSource: "autos_classifieds_listings",
+      listingId: result.row.id,
+      linkedByAuthUserId: assisted.ctx.authUserId,
+    });
+    await recordSalesWorkspaceAudit({
+      action: "quick_sales_save_for_client",
+      actorRosterId: assisted.ctx.rosterId,
+      businessId: assisted.ctx.businessId,
+      category: "autos-privado",
+      listingSource: "autos_classifieds_listings",
+      listingId: result.row.id,
+      outcome: "ok",
+    });
+    const created = NextResponse.json(
+      buildAutosListingApiSuccessPayload({
+        id: result.row.id,
+        leonixAdId: result.row.leonix_ad_id ?? null,
+        lane: result.row.lane,
+        status: result.row.status,
+        persistWarnings: result.persistWarnings,
+      }),
+    );
+    applyAssistedPublishingCookie(created, {
+      businessId: assisted.ctx.businessId,
+      category: "autos-privado",
+      rosterId: assisted.ctx.rosterId,
+      authUserId: assisted.ctx.authUserId,
+      listingId: result.row.id,
+      clientUserId: assisted.clientUserId,
+      assistedAction: "save_for_client",
+      packageKey: assisted.ctx.packageKey ?? null,
+    });
+    return created;
   }
 
   return NextResponse.json(

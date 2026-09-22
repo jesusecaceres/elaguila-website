@@ -9,7 +9,11 @@ import {
   COMIDA_LOCAL_PUBLISH_CATEGORY,
   COMIDA_LOCAL_PAYMENT_STATUS_L5B,
 } from "@/app/lib/clasificados/comida-local/comidaLocalPublishTypes";
-import { parseComidaLocalPublishRequest } from "@/app/lib/clasificados/comida-local/comidaLocalPublishValidation";
+import { parseComidaLocalPublishRequest, normalizeComidaLocalDraftForPublish, normalizeComidaLocalPackageTier } from "@/app/lib/clasificados/comida-local/comidaLocalPublishValidation";
+import { applyAssistedPublishingCookie } from "@/app/lib/auth/assistedPublishingSession";
+import { linkAssistedListingToBusiness } from "@/app/lib/business/assistedListingCustody";
+import { recordSalesWorkspaceAudit } from "@/app/lib/sales/salesWorkspaceAudit";
+import { resolveStaffAssistedCategorySave } from "@/app/lib/sales/staffAssistedCategorySave";
 import { buildComidaLocalSlugBase } from "@/app/lib/clasificados/comida-local/comidaLocalSlug";
 import {
   COMIDA_LOCAL_STATUS_TRANSITION_NOT_ALLOWED_ERROR,
@@ -104,8 +108,24 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const parsed = parseComidaLocalPublishRequest(body as Record<string, unknown>);
-  if (!parsed.ok) {
+  const b = body as Record<string, unknown>;
+  const assisted = await resolveStaffAssistedCategorySave({
+    request: req,
+    expectedCategory: "comida-local",
+    assistedActionRaw: typeof b.assistedAction === "string" ? b.assistedAction : "",
+    bodyListingId: typeof b.draftListingId === "string" ? b.draftListingId : null,
+    bodyClientUserId: typeof b.clientUserId === "string" ? b.clientUserId : null,
+  });
+  if ("ok" in assisted && assisted.ok === false) {
+    return NextResponse.json({ ok: false, error: assisted.error }, { status: assisted.status });
+  }
+  if (assisted.assisted && assisted.isPublish) {
+    return NextResponse.json({ ok: false, error: "publish_via_cockpit_only" }, { status: 403 });
+  }
+
+  const parsed = parseComidaLocalPublishRequest(b);
+  let parsedValue = parsed.ok ? parsed.value : null;
+  if (!parsed.ok && !(assisted.assisted && parsed.error === "not_ready")) {
     return NextResponse.json(
       {
         ok: false,
@@ -115,6 +135,24 @@ export async function POST(req: NextRequest) {
       },
       { status: 422 }
     );
+  }
+  if (!parsedValue && assisted.assisted) {
+    const packageTier = normalizeComidaLocalPackageTier(b.packageTier);
+    const draft = normalizeComidaLocalDraftForPublish(b.draft ?? b, packageTier);
+    parsedValue = {
+      draft,
+      draftListingId:
+        typeof b.draftListingId === "string" && b.draftListingId.trim()
+          ? b.draftListingId.trim().slice(0, 64)
+          : randomUUID(),
+      packageTier,
+      lang: b.lang === "en" ? "en" : "es",
+      activationMode: "pending_payment",
+      droppedUnpersistableMedia: [],
+    };
+  }
+  if (!parsedValue) {
+    return NextResponse.json({ ok: false, error: "not_ready" }, { status: 422 });
   }
 
   if (!isSupabaseAdminConfigured()) {
@@ -128,12 +166,13 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const ownerUserId = await comidaLocalOwnerIdFromBearer(req);
-  const { draft, draftListingId, packageTier, lang, activationMode, droppedUnpersistableMedia } =
-    parsed.value;
+  const bearerOwner = await comidaLocalOwnerIdFromBearer(req);
+  const ownerUserId = assisted.assisted ? assisted.clientUserId : bearerOwner;
+  const { draft, draftListingId, packageTier, lang, droppedUnpersistableMedia } = parsedValue;
+  const activationMode = assisted.assisted ? "pending_payment" : parsedValue.activationMode;
 
   const isPendingPayment = activationMode === "pending_payment";
-  if (isPendingPayment && !ownerUserId) {
+  if (isPendingPayment && !ownerUserId && !assisted.assisted) {
     return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
   }
   const supabase = getAdminSupabase();
@@ -142,14 +181,26 @@ export async function POST(req: NextRequest) {
   // `listing_json` is selected because it holds the STORED temporary-location payload and its
   // stamp — the only trustworthy "previous" state for the Find Me Today freshness decision
   // below. The request body is never used for that comparison.
-  const { data: existing, error: exErr } = await supabase
+  const { data: existingByDraft, error: exErr } = await supabase
     .from("comida_local_public_listings")
-    .select("id, slug, leonix_ad_id, status, package_tier, payment_status, owner_user_id, listing_json")
+    .select("id, slug, leonix_ad_id, status, package_tier, payment_status, owner_user_id, listing_json, draft_listing_id")
     .eq("draft_listing_id", draftListingId)
     .maybeSingle();
 
   if (exErr) {
     return NextResponse.json({ ok: false, error: "db_read_failed", detail: exErr.message }, { status: 500 });
+  }
+  let existing = existingByDraft;
+  if (!existing && assisted.assisted && assisted.listingId) {
+    const { data: existingById, error: byIdErr } = await supabase
+      .from("comida_local_public_listings")
+      .select("id, slug, leonix_ad_id, status, package_tier, payment_status, owner_user_id, listing_json, draft_listing_id")
+      .eq("id", assisted.listingId)
+      .maybeSingle();
+    if (byIdErr) {
+      return NextResponse.json({ ok: false, error: "db_read_failed", detail: byIdErr.message }, { status: 500 });
+    }
+    existing = existingById;
   }
 
   const slugBase = buildComidaLocalSlugBase({
@@ -241,10 +292,15 @@ export async function POST(req: NextRequest) {
       // (staff moderation, the Revenue OS webhook landing mid-edit, the pause/resume route)
       // changed the status between the read above and this write, the update matches zero rows
       // instead of silently overwriting what that process just set.
+      const persistedDraftListingId =
+        typeof (existing as { draft_listing_id?: unknown }).draft_listing_id === "string" &&
+        String((existing as { draft_listing_id: string }).draft_listing_id).trim()
+          ? String((existing as { draft_listing_id: string }).draft_listing_id).trim()
+          : draftListingId;
       const { data: updatedRows, error: updErr } = await supabase
         .from("comida_local_public_listings")
-        .update(updatePayload)
-        .eq("draft_listing_id", draftListingId)
+        .update({ ...updatePayload, draft_listing_id: persistedDraftListingId })
+        .eq("id", existing.id)
         .eq("status", targetStatus)
         .select("id");
 
@@ -285,7 +341,8 @@ export async function POST(req: NextRequest) {
     // Gate D19 — a brand-new listing (no existing draft_listing_id row) must always go through
     // Revenue OS checkout; direct-publish-for-free is not a valid path once Comida Local is a
     // paid product. Editing an already-published listing goes through the `existing?.slug`
-    // branch above instead, which never requires this flag.
+    // branch above instead, which never requires this flag. Staff assisted save is the pending
+    // draft path: the cockpit publishes later after payment.
     if (!isPendingPayment) {
       return NextResponse.json({ ok: false, error: "payment_required" }, { status: 402 });
     }
@@ -360,11 +417,30 @@ export async function POST(req: NextRequest) {
 
     const publicPath = `/clasificados/comida-local/${encodeURIComponent(slugOut)}`;
 
-    return NextResponse.json({
+    if (assisted.assisted) {
+      await linkAssistedListingToBusiness({
+        businessId: assisted.ctx.businessId,
+        listingSource: "comida_local_public_listings",
+        listingId: insertedId,
+        linkedByAuthUserId: assisted.ctx.authUserId,
+      });
+      await recordSalesWorkspaceAudit({
+        action: "quick_sales_save_for_client",
+        actorRosterId: assisted.ctx.rosterId,
+        businessId: assisted.ctx.businessId,
+        category: "comida-local",
+        listingSource: "comida_local_public_listings",
+        listingId: insertedId,
+        outcome: "ok",
+      });
+    }
+
+    const created = NextResponse.json({
       ok: true,
       persisted: true,
       pendingPayment: isPendingPayment,
       id: insertedId,
+      listingId: insertedId,
       slug: slugOut,
       leonix_ad_id: leonixOut,
       status: insertRow.status,
@@ -377,6 +453,19 @@ export async function POST(req: NextRequest) {
       lang,
       ...(droppedUnpersistableMedia.length ? { droppedUnpersistableMedia } : {}),
     });
+    if (assisted.assisted) {
+      applyAssistedPublishingCookie(created, {
+        businessId: assisted.ctx.businessId,
+        category: "comida-local",
+        rosterId: assisted.ctx.rosterId,
+        authUserId: assisted.ctx.authUserId,
+        listingId: insertedId,
+        clientUserId: assisted.clientUserId,
+        assistedAction: "save_for_client",
+        packageKey: assisted.ctx.packageKey ?? null,
+      });
+    }
+    return created;
   } catch (e) {
     return NextResponse.json(
       { ok: false, error: "publish_exception", detail: e instanceof Error ? e.message : "unknown" },

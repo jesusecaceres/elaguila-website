@@ -331,9 +331,10 @@ export function buildRentasPrivadoListingParams(
   state: RentasPrivadoFormState,
   lang: "es" | "en",
   mux?: RentasListingPublishMuxFields | null,
+  opts?: { allowEmptyGallery?: boolean },
 ): LeonixBrDraftPublishBuildResult {
   const orderedGallery = orderedRentasGallerySourcesForPublish(state.media.photoDataUrls, state.media.primaryImageIndex);
-  if (!orderedGallery.length) {
+  if (!orderedGallery.length && !opts?.allowEmptyGallery) {
     return {
       ok: false,
       error:
