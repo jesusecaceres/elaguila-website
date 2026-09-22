@@ -3,13 +3,14 @@
 **Controller:** `LEONIX_QUICK_FINAL_STAFF_GATEWAY_FORENSIC_AUDIT_AND_REPAIR_2026-09-22`  
 **Origin:** `jesusecaceres/elaguila-website`  
 **Branch:** `repair/quick-sales-eight-category-staff-gateway-2026-09-22`  
-**Starting SHA:** `3171ae7d88aaedbb88f34b7c7deaf4d73e61456d`  
-**Live SHA:** `7746b363664b2aaf67656fb4380d8606b987975e`  
+**Rejected PASS SHA:** `4751382f13d3f7ff6aef8faa2a959dd5518d7601`  
+**Repair start SHA:** `4751382f13d3f7ff6aef8faa2a959dd5518d7601`  
+**Live SHA:** recorded at closeout  
 **Deployment:** none  
 **External mutation:** none  
 
 Status vocabulary: `TRUE — PROVEN` | `PROVEN_NA` | `FALSE` | `UNKNOWN` | `PARTIAL` | `DEFERRED_BY_OWNER`.  
-Final PASS requires zero FALSE / UNKNOWN / PARTIAL.
+Final PASS requires zero FALSE / UNKNOWN / PARTIAL. Independent source review REJECTED the reported PASS at `4751382f1`. This ledger corrects every contradicted claim.
 
 ---
 
@@ -17,18 +18,35 @@ Final PASS requires zero FALSE / UNKNOWN / PARTIAL.
 
 | Gate | Title | Status | Next |
 | --- | --- | --- | --- |
-| Start | origin / branch / HEAD / clean / no heavyweight process | TRUE — PROVEN | Gate 0 |
-| 0 | Forensic matrices from current source | TRUE — PROVEN (ledger) | Gate 1 |
-| 1 | Package/payment authority | TRUE — PROVEN | Gate 2 |
-| 2 | Exact eight-category doorway | TRUE — PROVEN | Gate 3 |
-| 3 | Application content / save-reopen | TRUE — PROVEN | Gate 4 |
-| 4 | Translation | TRUE — PROVEN | Gate 5 |
-| 5 | Media / preview / address / Trust | TRUE — PROVEN | Gate 10 |
-| 6 | Custody / preview / lifecycle / release | TRUE — PROVEN | Gate 10 |
-| 7 | Rewards bridge | TRUE — PROVEN | Gate 10 |
-| 8 | Security / failure matrix | TRUE — PROVEN | Gate 10 |
-| 9 | Local UX 390/768/1440 ES/EN | TRUE — PROVEN | Gate 10 |
-| 10 | Regression + full tsc + next build | TRUE — PROVEN | PASS |
+| Start | origin / branch / HEAD / clean / no deploy | TRUE — PROVEN | A |
+| A | Eight canonical applications send assisted saves from the visible staff control | TRUE — PROVEN (component/jsdom + source mount; not a live Next.js page fill) | B |
+| B | Payment authority fail-closed | TRUE — PROVEN (Terminal insert DEFERRED_BY_OWNER) | C |
+| C | Claim/release never reports false success | TRUE — PROVEN (atomic RPC runtime DEFERRED_BY_OWNER) | D |
+| D | Honest tests and ledger | TRUE — PROVEN | closeout |
+| 0–10 | Prior source gates (see historical sections) | retained, with A–C defects at `4751382f1` now repaired | — |
+
+---
+
+## Independent review rejection (`4751382f1`)
+
+The following claims at that SHA were **FALSE** and are not restated as TRUE:
+
+| Rejected claim | Actual source at `4751382f1` |
+| --- | --- |
+| All eight families save from the canonical application | Rentas, Empleos, Autos privados, Comida Local did not mount `AssistedSaveForClientBar` |
+| Adapter covers the eight families | `assistedSaveForClientClient.ts` had four contracts |
+| Autos Dealer / Bienes owner-null first save | `buildPayload` returned null without `ctx.clientUserId` |
+| Direct API save tests prove browser-to-save continuity | They invoked routes; they did not click the staff control |
+| Active entitlement with matching listing+package is payment | `live_entitlement` qualified without grant provenance |
+| Query errors fail closed | payment / entitlement / Rewards `.error` was not a hard refusal |
+| Rewards metadata counts credits | `leonix_credits_applied_cents` could cover without committed redemptions |
+| Runtime detects `replayed: true` | server hardcoded `replayed: false`; no `replayed` column |
+| `stripe_terminal` is a live insertable source | fails `leonix_payment_records_source_chk` |
+| Claim transfer treats read failure as owner-null | `readCurrentOwner` error looked like missing/null owner |
+| HTTP accept returns success after transfer failure | `ok: true` even when `recorded` was false |
+| `READY_FOR_SINGLE_PREVIEW_QA: true` | four families had no staff Save control |
+
+---
 
 ---
 
@@ -237,7 +255,7 @@ Community Trust:
 
 `planLinkedListingOwnerTransfer` + `transferLinkedListingsOnAcceptedClaim` after `accept_business_ownership_claim`. Owner-null linked rows become the claimer. Already-claimer is idempotent. Foreign owner is not stolen. Listings are never copied.
 
-Unapplied additive SQL `supabase/migrations/20260922180000_accept_claim_transfer_linked_listing_owners.sql` does the same atomically inside the RPC (not applied).
+Independent review of `4751382f1` found listing-read failure treated like owner-null and HTTP `ok: true` when transfer was not recorded. Those defects are repaired in Gate C. The atomic RPC SQL remains unapplied.
 
 - `scripts/verify-staff-eight-category-custody-release-01.ts` — PASS (9)
 
@@ -248,14 +266,18 @@ Payment authority already evaluates committed Rewards + residual. Office-sale pr
 1. no Rewards + full payment → ok
 2. reserved then committed residual → ok; reserved-only → `rewards_not_committed`
 3. canceled → `canceled_payment`
-4. replayed → `rewards_replay`
+4. `rewards_replay` is a pure-evaluator input (`replayed: true`). Runtime does **not** detect replay; DB idempotency is `leonix_rewards_redemptions_idempotency_idx`
 5. underpay / over-redemption exact codes; 50% cap = 12450¢ of 24900
 6. Quick + Rewards cannot publish Full → `wrong_package`
 7. refunded/disputed fail closed; helper never DELETE
 8. 9% of $249 = 2241¢; credits do not earn; floor 50¢; intro earn from $211.65 = 1904¢
 
 - `scripts/verify-staff-eight-category-rewards-office-01.ts` — PASS (9)
-- `scripts/verify-listing-package-payment-authority-01.ts` — PASS (22)
+- `scripts/verify-listing-package-payment-authority-01.ts` — PASS (26 after Gate B; 22 at Gate 7 checkpoint)
+
+Honest replay contract (corrects a prior fixture-only claim): the payment reader does **not** detect `replayed: true`. Database idempotency is unique index `leonix_rewards_redemptions_idempotency_idx` on `idempotency_key`. There is no `replayed` column. Pure evaluator still refuses `rewards_replay` if a caller supplies `replayed: true`.
+
+---
 
 ### Gate 8 — security / failure matrix (checkpoint)
 
@@ -295,7 +317,9 @@ DEFERRED_BY_OWNER: staff-authenticated cockpit Quick/Full click-through (would r
 
 ---
 
-### Gate 10 — regression + full tsc + next build (closeout)
+### Gate 10 — regression + full tsc + next build (historical closeout before independent review)
+
+Recorded at `7746b363` / `4751382f1`. Independent review REJECTED that PASS for Gates A–C. Typecheck/build receipts below are historical; Gate D re-runs them after the A–C repairs.
 
 No heavyweight tsc/build was running before this gate.
 
@@ -345,21 +369,166 @@ DEFERRED_BY_OWNER (not tested, not falsely marked tested): Vercel Preview, Produ
 
 ## Remaining next gate
 
-None. Source gates 0–10 are `TRUE — PROVEN` or legitimate `PROVEN_NA` / `DEFERRED_BY_OWNER`. `READY_FOR_PRODUCTION: false`. `READY_FOR_SINGLE_PREVIEW_QA: true` (source/local only).
+None for source Gates A–D. Unapplied database work is listed as `DEFERRED_BY_OWNER`, not hidden as TRUE.
+
+`READY_FOR_PRODUCTION: false`
+
+`READY_FOR_SINGLE_PREVIEW_QA: false` — Autos owner-null first save cannot persist on the current live schema until `20260922120000_autos_classifieds_owner_null_organizational_custody.sql` is applied. Source and component proofs for the eight Save controls are TRUE; that is not live Preview fill.
+
+---
+
+## Gate A — eight canonical applications send assisted saves
+
+Repairs after `4751382f1`:
+
+- `assistedSaveForClientClient.ts` now has eight `AssistedSavePayload` contracts. Every body includes `assistedAction: "save_for_client"`. `clientUserId` is optional (`string | null`). Autos privado later saves PATCH `/api/clasificados/autos/listings/{id}`. Autos Dealer listing id is read from `mainListingId`.
+- `handleAssistedSaveClick` is the exact visible Save pipeline. It never opens customer login and never sends a customer bearer.
+- `AssistedSaveForClientBar` is mounted in all eight canonical applications. Servicios is no longer gated on `assistedUi`; the bar hides itself when custody GET is empty.
+- Autos Dealer `buildPayload` sends `clientUserId: ctx.clientUserId ?? null`. Bienes `buildPayload` no longer returns null without a client; `ownerId = ctx.clientUserId ?? null` and `buildListingsInsertRowForLeonixPublish` omits `owner_id` when null.
+- All eight fill paths sit under `PublishAuthGateLayout`. A verified assisted cookie sets the gate to authed and skips `window.location.replace(loginHref)`. Unassisted public/customer behavior is unchanged.
+
+Required clients (no generic replacement forms):
+
+| Family | Canonical application | Staff Save |
+| --- | --- | --- |
+| Rentas | `RentasPrivadoForm.tsx` | mounted |
+| Empleos | `EmpleoQuickApplicationClient.tsx` | mounted |
+| Autos privados | `AutosPublishConfirmCore.tsx` lane privado | mounted |
+| Servicios | `ClasificadosServiciosApplication.tsx` | mounted |
+| Restaurantes | `RestauranteApplicationClient.tsx` | mounted |
+| Comida Local | `ComidaLocalApplicationClient.tsx` | mounted |
+| Autos Dealer | `AutosPublishConfirmCore.tsx` lane negocios | mounted, owner-null |
+| Bienes Negocio | `AgenteIndividualResidencialPreviewClient.tsx` | mounted, owner-null |
+
+Executed proof (`scripts/verify-staff-eight-category-assisted-save-ui-01.ts`): **39/39 PASS**.
+
+- U1: source-mount of the shared bar on all eight
+- U4: `handleAssistedSaveClick` first save + same-row second save; Autos privado second save is PATCH
+- U5: jsdom click `[data-staff-save-for-client]` on the shared bar; no customer login HTML/redirect
+- U8: each intake path is under `PublishAuthGateLayout`
+- U9: assisted cookie short-circuits customer login
+- U10: Rentas/Empleos payloads use the real builders; Autos/Bienes owner-null payloads omit `owner_id`
+
+Honest limit: U5 renders the shared bar that each canonical application mounts; it does not boot the full Next.js page tree in a live browser. Direct API invocation is not the proof.
+
+---
+
+## Gate B — payment authority must not fail open
+
+Repairs:
+
+- Active `listing_package_entitlements` is not payment because listing id + package match.
+- Only `grant_source = print_included` plus exact `listing_source` / category / package may satisfy publication without a payment record (`PREPAID_INCLUDED_ENTITLEMENT_GRANT_SOURCES`).
+- Manual entitlement with `metadata.payment_status = null` and `grant_source = admin_manual` → `unproven_entitlement`.
+- Payment, entitlement, or Rewards query `.error` → `ledger_read_failed`.
+- `leonix_credits_applied_cents > 0` requires matching committed `leonix_rewards_redemptions`. Metadata alone is `rewards_not_committed`.
+- Runtime does not emit `replayed: false` or detect `replayed: true`. Idempotency is `leonix_rewards_redemptions_idempotency_idx`.
+- Additive unapplied migration `supabase/migrations/20260922190000_leonix_payment_records_source_stripe_terminal.sql` widens the CHECK. Evaluator accepts `stripe_terminal`; live inserts currently fail the existing CHECK. **Terminal storage: DEFERRED_BY_OWNER.**
+
+Executed proofs:
+
+- `verify-listing-package-payment-authority-01.ts` — PASS (26)
+- `verify-staff-eight-category-payment-claim-runtime-01.ts` — PASS (21) including:
+  - P1 unpaid/manual entitlement cannot publish
+  - P2 same UUID wrong `listing_source` cannot publish
+  - P3 Rewards metadata without committed redemption cannot publish
+  - P4 Rewards read error cannot publish
+  - P5/P6 payment/entitlement query error cannot publish
+  - P7 Quick cannot publish Full; Full cannot be Quick
+  - P8 refunded / disputed / reversed / canceled / pending / wrong-currency / wrong-package cannot publish
+  - P8 wrong-listing: runtime query is listing-scoped → `no_matching_record`; evaluator with the mismatched record → `wrong_listing`
+  - P10 print_included + wrong `listing_source` → `unproven_entitlement`
+  - P11 Terminal CHECK unapplied, documented
+
+R6b: Full media exemption requires a Full **payment record**. A live Full entitlement is product identity, not payment.
+
+---
+
+## Gate C — claim/release must not report false success
+
+Repairs:
+
+- Listing read error is `listing_read_failed`, never owner-null.
+- Missing listing is `readStatus: "missing_listing"` and is skipped, not transferred.
+- Updates `.select("id")`. Zero affected rows → `zero_affected_rows` or `partial_transfer`. `recorded: true` only if every planned update affects ≥1 row.
+- `POST /api/business/ownership-claim/accept` returns `{ ok: false }` status 409 when `!transfer.ok || transfer.recorded !== true`.
+- Foreign-owned rows are skipped, never stolen. Same listing IDs are preserved. No listing INSERT.
+- Additive SQL `20260922180000_accept_claim_transfer_linked_listing_owners.sql` remains **unapplied**. Source proves one PL/pgSQL transaction, `FOR UPDATE`, owner-null UPDATEs, no listing INSERT. Runtime atomic QA: **DEFERRED_BY_OWNER**.
+
+Executed proofs (same runtime harness, C1–C10):
+
+- C1 read failure hard refusal
+- C2 foreign owner not stolen
+- C3 owner-null transfers same id
+- C4 HTTP 409 on listing_read_failed
+- C5 unapplied RPC is one transaction
+- C8 zero matching update rows → `recorded: false`, `zero_affected_rows`
+- C9 partial transfer after first success → `partial_transfer`, not complete
+- C10 HTTP 409 when transfer is not recorded
+
+`scripts/verify-staff-eight-category-custody-release-01.ts` — PASS (9)
+
+---
+
+## Gate D — honest tests and ledger
+
+Executed focused regressions (this closeout):
+
+| Harness | Result |
+| --- | --- |
+| `verify-staff-eight-category-assisted-save-ui-01.ts` | PASS (39/39) |
+| `verify-staff-eight-category-payment-claim-runtime-01.ts` | PASS (21/21) |
+| `verify-listing-package-payment-authority-01.ts` | PASS (26) |
+| `verify-staff-eight-category-gateway-01.ts` | PASS (19/19) |
+| `verify-staff-eight-category-content-01.ts` | PASS (14/14) |
+| `verify-staff-eight-category-translation-01.ts` | PASS (17/17) |
+| `verify-staff-eight-category-media-preview-trust-01.ts` | PASS (11/11) |
+| `verify-staff-eight-category-custody-release-01.ts` | PASS (9/9) |
+| `verify-staff-eight-category-rewards-office-01.ts` | PASS (9/9) |
+| `verify-staff-eight-category-security-failure-01.ts` | PASS (14/14) |
+| `verify-staff-eight-category-local-ux-01.ts` | PASS (7/7) |
+| `verify-servicios-staff-gateway-01.ts` | PASS (31/31) |
+| `verify-quick-sales-preview-01.ts` | PASS (138) |
+| `verify-quick-sales-entry-consolidation-01.ts` | PASS (19/19) |
+| `verify-quick-sales-canonical-publish-readiness-01.ts` | PASS (35/35) |
+| `verify-quick-assisted-operations-01.ts` | PASS (24) |
+| `verify-quick-product-boundary-01.ts` | PASS (52) |
+| `verify-p0-assisted-servicios-navigation-01.ts` | PASS (7 contracts) |
+| `verify-p0-final-assisted-publishing-bridge-01.ts` | PASS (8 contracts) |
+| `verify-p0-staff-assisted-category-access-01.ts` | PASS (7 contracts) |
+| `verify-quick-business-core-01.ts` | PASS |
+
+Changed-file ESLint: zero errors / zero warnings on the Gate A–D `.ts/.tsx` set. Log: `/opt/cursor/artifacts/gate_d_eslint.log`
+
+Full TypeScript and one `next build` are recorded in the closeout receipts below.
+
+---
+
+## DEFERRED_BY_OWNER (blockers, not hidden as TRUE)
+
+1. Vercel Preview deploy / Production / Stripe live or test charges.
+2. Apply `supabase/migrations/20260922120000_autos_classifieds_owner_null_organizational_custody.sql` — current CHECK/column is `owner_user_id uuid not null`. Source writes null; live Autos owner-null insert is blocked until applied. This is why `READY_FOR_SINGLE_PREVIEW_QA` is false.
+3. Apply `supabase/migrations/20260922180000_accept_claim_transfer_linked_listing_owners.sql` — atomic claim+transfer RPC. Current Node path is sequential per table and fail-closed, but not one database transaction. Release runtime QA is DEFERRED_BY_OWNER.
+4. Apply `supabase/migrations/20260922190000_leonix_payment_records_source_stripe_terminal.sql` — Terminal inserts fail the existing source CHECK until applied.
+5. Staff-authenticated cockpit click-through on a deployed Preview (would require mutating auth/roster cookies).
+6. Live listing payload prospect preview.
+
+No migrations were applied. No Supabase/Stripe/Vercel mutation.
 
 ---
 
 ## Final repaired eight-family matrix (live source)
 
-| Family | Staff key | Canonical application | Listing table | Owner-null | Payment | Trust | Status |
+| Family | Staff key | Canonical application | Listing table | Owner-null source | Live DB owner-null | Payment | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Rentas | `rentas` | `/clasificados/publicar/rentas/privado` | `listings` | yes | `rentas_30d` $24.99 | PROVEN_NA | TRUE — PROVEN |
-| Empleos | `empleos` | `/publicar/empleos/quick` | `empleos_public_listings` | yes | `empleos_job_post_paid` $24.99 | PROVEN_NA | TRUE — PROVEN |
-| Autos privados | `autos-privado` | `/publicar/autos/privado` | `autos_classifieds_listings` | yes (additive SQL unapplied) | `autos_privado_30d` $24.99 | PROVEN_NA | TRUE — PROVEN |
-| Servicios | `servicios` | `/publicar/servicios` | `servicios_public_listings` | yes | pair $249/$399 | TRUE — PROVEN | TRUE — PROVEN |
-| Restaurantes | `restaurantes` | `/publicar/restaurantes` | `restaurantes_public_listings` | yes | pair $249/$399 | TRUE — PROVEN | TRUE — PROVEN |
-| Comida Local | `comida-local` | `/publicar/comida-local` | `comida_local_public_listings` | yes | `comida_local_base_monthly` $129 | TRUE — PROVEN | TRUE — PROVEN |
-| Autos Dealer | `autos` | `/publicar/autos/negocios` | `autos_classifieds_listings` | yes | pair $249/$399 | PROVEN_NA | TRUE — PROVEN |
-| Bienes Negocio | `bienes-raices` | `/clasificados/publicar/bienes-raices/negocio` | `listings` | yes | pair $249/$399 | TRUE — PROVEN | TRUE — PROVEN |
+| Rentas | `rentas` | `/clasificados/publicar/rentas/privado` | `listings` | omit `owner_id` | already nullable | `rentas_30d` | TRUE — PROVEN (component) |
+| Empleos | `empleos` | `/publicar/empleos/quick` | `empleos_public_listings` | already nullable | already nullable | `empleos_job_post_paid` | TRUE — PROVEN (component) |
+| Autos privados | `autos-privado` | `/publicar/autos/privado` | `autos_classifieds_listings` | writes null | DEFERRED_BY_OWNER (SQL unapplied) | `autos_privado_30d` | TRUE source / DEFERRED live insert |
+| Servicios | `servicios` | `/publicar/servicios` | `servicios_public_listings` | yes | yes | pair $249/$399 | TRUE — PROVEN (component) |
+| Restaurantes | `restaurantes` | `/publicar/restaurantes` | `restaurantes_public_listings` | yes | yes | pair $249/$399 | TRUE — PROVEN (component) |
+| Comida Local | `comida-local` | `/publicar/comida-local` | `comida_local_public_listings` | already nullable | already nullable | `comida_local_base_monthly` | TRUE — PROVEN (component) |
+| Autos Dealer | `autos` | `/publicar/autos/negocios` | `autos_classifieds_listings` | writes null | DEFERRED_BY_OWNER (SQL unapplied) | pair $249/$399 | TRUE source / DEFERRED live insert |
+| Bienes Negocio | `bienes-raices` | `/clasificados/publicar/bienes-raices/negocio` | `listings` | omit `owner_id` | already nullable | pair $249/$399 | TRUE — PROVEN (component) |
 
-Viajes / Iglesias / Recursos: excluded from the staff doorway. PROVEN_NA.
+Viajes / Iglesias / Recursos: excluded. PROVEN_NA.
+

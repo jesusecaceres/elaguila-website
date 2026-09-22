@@ -3,8 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import type { Lang } from "@/app/clasificados/config/clasificadosHub";
-import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { resolveClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";

@@ -10,7 +10,6 @@ import type { AutosClassifiedsLane } from "@/app/lib/clasificados/autos/autosCla
 import type { AutosPublishConfirmMode, AutosPublishFlowLang } from "@/app/clasificados/autos/lib/autosPublishFlowCopy";
 import { getAutosPublishFlowCopy } from "@/app/clasificados/autos/lib/autosPublishFlowCopy";
 import {
-  omitAutosInlineVideoForApiPayload,
   prepareAutosListingForApiTransport,
   prepareAutosListingOptionalMuxUpload,
 } from "@/app/(site)/publicar/autos/shared/lib/autosMuxPublishPrepare";
