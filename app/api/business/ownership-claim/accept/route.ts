@@ -37,11 +37,22 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     businessId: result.businessId,
     claimerUserId: userId,
   });
-  const listingIds = transfer.ok ? transfer.listingIds : [];
+  if (!transfer.ok || transfer.recorded !== true) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: transfer.error,
+        businessId: result.businessId,
+        listingIds: transfer.listingIds,
+        listingTransfers: 0,
+      },
+      { status: 409 },
+    );
+  }
   return NextResponse.json({
     ok: true,
     businessId: result.businessId,
-    listingIds,
-    listingTransfers: transfer.ok ? transfer.updates.length : 0,
+    listingIds: transfer.listingIds,
+    listingTransfers: transfer.updates.length,
   });
 }

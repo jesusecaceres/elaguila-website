@@ -21,6 +21,8 @@ export type LinkedListingOwnerSnapshot = {
   listingSource: AssistedListingSource;
   listingId: string;
   currentOwner: string | null;
+  /** Read failure never becomes owner-null. Missing rows are skipped, not transferred. */
+  readStatus?: "ok" | "missing_listing";
 };
 
 export type PlannedListingOwnerUpdate = {
@@ -64,6 +66,10 @@ export function planLinkedListingOwnerTransfer(input: {
     const listingId = row.listingId.trim();
     if (!listingId || !isAssistedListingSource(row.listingSource)) continue;
     listingIds.push(listingId);
+    if (row.readStatus === "missing_listing") {
+      skipped.push({ listingSource: row.listingSource, listingId, reason: "missing_listing" });
+      continue;
+    }
     const current = (row.currentOwner ?? "").trim() || null;
     if (!current) {
       updates.push({
