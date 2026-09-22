@@ -4,6 +4,20 @@
  * Replaces listing-only `hasClearedManualPaymentForListing`. Publication must call this before
  * any listing status write. Nothing here writes. Nothing here trusts a request body, query
  * string, or a generic mutable verified-state column.
+ *
+ * Honest runtime contracts:
+ * - Query errors from payment, entitlement, or Rewards reads fail closed (`ledger_read_failed`).
+ * - An active entitlement is not payment. Only the documented prepaid/included grant
+ *   (`grant_source = print_included`) plus exact listing_source/category/package may satisfy
+ *   publication without a matching payment record.
+ * - `leonix_credits_applied_cents` in payment metadata never counts unless matching committed
+ *   `leonix_rewards_redemptions` rows exist.
+ * - This reader does not detect `replayed: true`. Database idempotency for Rewards is the unique
+ *   index `leonix_rewards_redemptions_idempotency_idx` on `idempotency_key`. There is no
+ *   `replayed` column on `leonix_rewards_redemptions`.
+ * - `stripe_terminal` is an evaluator-recognized source. Inserts currently fail
+ *   `leonix_payment_records_source_chk` until the additive unapplied migration
+ *   `20260922190000_leonix_payment_records_source_stripe_terminal.sql` is applied.
  */
 import "server-only";
 
@@ -20,7 +34,8 @@ import {
 const PAYMENT_SELECT =
   "id, listing_source, listing_id, category, package_key, currency, source, payment_status, manual_state, amount_cents, amount_total_cents, amount_paid_cents, refunded_at, canceled_at, verified_intro_discount_redemption_id, metadata";
 
-const ENTITLEMENT_SELECT = "id, listing_id, package_key, status, revoked_at, starts_at, ends_at";
+const ENTITLEMENT_SELECT =
+  "id, listing_id, listing_source, category, package_key, status, revoked_at, starts_at, ends_at, grant_source, payment_record_id, metadata";
 
 export type AuthoritativePaymentQuery = {
   listingSource: string;
@@ -57,11 +72,16 @@ function asEntitlement(row: unknown): LiveEntitlementFacts {
   const r = (row ?? {}) as Record<string, unknown>;
   return {
     listing_id: r.listing_id == null ? null : String(r.listing_id),
+    listing_source: r.listing_source == null ? null : String(r.listing_source),
+    category: r.category == null ? null : String(r.category),
     package_key: r.package_key == null ? null : String(r.package_key),
     status: r.status == null ? null : String(r.status),
     revoked_at: r.revoked_at == null ? null : String(r.revoked_at),
     starts_at: r.starts_at == null ? null : String(r.starts_at),
     ends_at: r.ends_at == null ? null : String(r.ends_at),
+    grant_source: r.grant_source == null ? null : String(r.grant_source),
+    payment_record_id: r.payment_record_id == null ? null : String(r.payment_record_id),
+    metadata: r.metadata && typeof r.metadata === "object" ? (r.metadata as Record<string, unknown>) : null,
   };
 }
 
@@ -73,7 +93,7 @@ export async function readListingPackagePaymentAuthority(
   const listingSource = String(input.listingSource ?? "").trim();
   if (!listingId) return { ok: false, error: "missing_listing" };
   if (!packageKey) return { ok: false, error: "missing_package_key" };
-  if (!isSupabaseAdminConfigured()) return { ok: false, error: "no_matching_record" };
+  if (!isSupabaseAdminConfigured()) return { ok: false, error: "ledger_read_failed" };
 
   const supabase = getAdminSupabase();
   const [payments, entitlements] = await Promise.all([
@@ -86,6 +106,9 @@ export async function readListingPackagePaymentAuthority(
       .limit(25),
   ]);
 
+  if (payments.error) return { ok: false, error: "ledger_read_failed" };
+  if (entitlements.error) return { ok: false, error: "ledger_read_failed" };
+
   const records = ((payments.data ?? []) as unknown[]).map(asRecord);
   const paymentIds = records.map((r) => r.id).filter((id): id is string => Boolean(id));
   let rewards: RewardsCommitFacts[] = [];
@@ -95,6 +118,7 @@ export async function readListingPackagePaymentAuthority(
       .select("id, payment_record_id, status, amount_cents")
       .in("payment_record_id", paymentIds)
       .limit(25);
+    if (redemption.error) return { ok: false, error: "ledger_read_failed" };
     rewards = ((redemption.data ?? []) as Record<string, unknown>[]).map((row) => {
       const payment = records.find((r) => r.id === String(row.payment_record_id ?? ""));
       return {
@@ -102,7 +126,6 @@ export async function readListingPackagePaymentAuthority(
         package_key: payment?.package_key ?? packageKey,
         status: row.status == null ? null : String(row.status),
         credits_applied_cents: row.amount_cents == null ? null : Number(row.amount_cents),
-        replayed: false,
       };
     });
   }

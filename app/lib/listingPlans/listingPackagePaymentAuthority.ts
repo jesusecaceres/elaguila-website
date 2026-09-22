@@ -64,7 +64,9 @@ export type ListingPackagePaymentAuthorityError =
   | "rewards_not_committed"
   | "rewards_over_redemption"
   | "rewards_replay"
-  | "owner_override_not_payment";
+  | "owner_override_not_payment"
+  | "ledger_read_failed"
+  | "unproven_entitlement";
 
 export type PaymentAuthorityRecordFacts = {
   id?: string | null;
@@ -87,11 +89,16 @@ export type PaymentAuthorityRecordFacts = {
 
 export type LiveEntitlementFacts = {
   listing_id?: string | null;
+  listing_source?: string | null;
+  category?: string | null;
   package_key?: string | null;
   status?: string | null;
   revoked_at?: string | null;
   starts_at?: string | null;
   ends_at?: string | null;
+  grant_source?: string | null;
+  payment_record_id?: string | null;
+  metadata?: Record<string, unknown> | null;
 };
 
 export type RewardsCommitFacts = {
@@ -198,14 +205,59 @@ function railPaidCents(record: PaymentAuthorityRecordFacts): number {
   return asCents(record.amount_cents);
 }
 
-function coveredCents(record: PaymentAuthorityRecordFacts, extraCommittedCredits: number): number {
+function coveredCents(record: PaymentAuthorityRecordFacts, committedCredits: number): number {
   const rail = railPaidCents(record);
   const meta = creditsAppliedFromMetadata(record.metadata);
-  const credits = Math.max(meta.creditsCents, Math.max(0, extraCommittedCredits));
+  const credits = Math.max(0, committedCredits);
   if (meta.amountIsNetOfCredits || (credits > 0 && rail < credits + DEFAULT_RAIL_MINIMUM_CHARGE_CENTS)) {
     return rail + credits;
   }
   return Math.max(rail, credits);
+}
+
+/**
+ * Documented prepaid/included publication authority. Print-included grants are the existing
+ * contract that digital access is prepaid with a qualifying print bundle
+ * (`categoryCommercialPlanPolicy.ts`). An active entitlement is NEVER payment merely because
+ * listing_id + package_key match. Comp/partner/admin_manual/null provenance, and any row whose
+ * metadata.payment_status is null outside print_included, cannot publish.
+ */
+export const PREPAID_INCLUDED_ENTITLEMENT_GRANT_SOURCES = ["print_included"] as const;
+
+function entitlementIsPrepaidIncluded(
+  row: LiveEntitlementFacts,
+  listingSource: string,
+  listingId: string,
+  packageKey: string,
+  category: string,
+  now: Date | string | number | null | undefined,
+): boolean {
+  if (lower(row.listing_id) !== lower(listingId)) return false;
+  if (lower(row.package_key) !== packageKey) return false;
+  const src = lower(row.listing_source);
+  if (!src || src !== lower(listingSource)) return false;
+  const recCat = lower(row.category);
+  if (recCat && recCat !== lower(category) && recCat !== lower(listingSource)) return false;
+  const grant = lower(row.grant_source);
+  if (!(PREPAID_INCLUDED_ENTITLEMENT_GRANT_SOURCES as readonly string[]).includes(grant)) return false;
+  const metaStatus = lower(row.metadata && typeof row.metadata === "object" ? row.metadata.payment_status : null);
+  if (metaStatus && metaStatus !== "paid" && metaStatus !== "succeeded" && metaStatus !== "included" && metaStatus !== "prepaid") {
+    return false;
+  }
+  const dated = isListingPackageEntitlementRowActive({
+    status: row.status,
+    revoked_at: row.revoked_at,
+    starts_at: row.starts_at,
+    ends_at: row.ends_at,
+    now: now ?? null,
+  });
+  const undatedLive =
+    !dated &&
+    lower(row.status) === "active" &&
+    !row.revoked_at &&
+    !row.starts_at &&
+    !row.ends_at;
+  return dated || undatedLive;
 }
 
 function recordMatchesListing(
@@ -280,9 +332,11 @@ function firstClosedError(errors: ListingPackagePaymentAuthorityError[]): Listin
     "rewards_replay",
     "rewards_not_committed",
     "rewards_over_redemption",
+    "unproven_entitlement",
     "underpaid",
     "pending_payment",
     "no_matching_record",
+    "ledger_read_failed",
   ];
   for (const code of rank) {
     if (errors.includes(code)) return code;
@@ -310,32 +364,23 @@ export function evaluateListingPackagePaymentAuthority(
   if (!expected.ok) return { ok: false, error: "unknown_package" };
 
   const entitlements = input.entitlements ?? [];
+  let sawUnprovenEntitlement = false;
   for (const row of entitlements) {
     if (lower(row.listing_id) !== lower(listingId)) continue;
     if (lower(row.package_key) !== packageKey) continue;
-    const dated = isListingPackageEntitlementRowActive({
-      status: row.status,
-      revoked_at: row.revoked_at,
-      starts_at: row.starts_at,
-      ends_at: row.ends_at,
-      now: input.now ?? null,
-    });
-    const undatedLive =
-      !dated &&
-      lower(row.status) === "active" &&
-      !row.revoked_at &&
-      !row.starts_at &&
-      !row.ends_at;
-    if (dated || undatedLive) {
+    if (
+      entitlementIsPrepaidIncluded(row, listingSource, listingId, packageKey, category, input.now)
+    ) {
       return {
         ok: true,
         reason: "live_entitlement",
-        paymentRecordId: null,
+        paymentRecordId: trimmed(row.payment_record_id) || null,
         source: "listing_package_entitlements",
         coveredCents: expected.expectedCents,
         expectedCents: expected.expectedCents,
       };
     }
+    sawUnprovenEntitlement = true;
   }
 
   const rewards = input.rewards ?? [];
@@ -387,16 +432,25 @@ export function evaluateListingPackagePaymentAuthority(
       continue;
     }
 
-    const extraCredits = reservedUncommitted ? 0 : committedCredits;
+    const metaCredits = creditsAppliedFromMetadata(record.metadata).creditsCents;
+    if (metaCredits > 0 && committedCredits < metaCredits) {
+      closed.push("rewards_not_committed");
+      continue;
+    }
+    if (reservedUncommitted) {
+      closed.push("rewards_not_committed");
+      continue;
+    }
+
+    const extraCredits = committedCredits;
     if (extraCredits > maxRedeemableForPurchaseCents(expectedForRecord.expectedCents)) {
       closed.push("rewards_over_redemption");
       continue;
     }
 
-    const recordForCover = reservedUncommitted ? { ...record, metadata: null } : record;
-    const covered = coveredCents(recordForCover, extraCredits);
+    const covered = coveredCents(record, extraCredits);
     if (covered < expectedForRecord.expectedCents) {
-      closed.push(reservedUncommitted ? "rewards_not_committed" : "underpaid");
+      closed.push("underpaid");
       continue;
     }
 
@@ -412,6 +466,7 @@ export function evaluateListingPackagePaymentAuthority(
 
   if (pendingSeen) return { ok: false, error: "pending_payment" };
   if (!records.length && !entitlements.length) return { ok: false, error: "no_matching_record" };
+  if (sawUnprovenEntitlement && !records.length) return { ok: false, error: "unproven_entitlement" };
   return { ok: false, error: firstClosedError(closed) };
 }
 
@@ -437,7 +492,9 @@ export function paymentAuthorityHttpError(decision: ListingPackagePaymentAuthori
     decision.error === "missing_package_key" ||
     decision.error === "unknown_package" ||
     decision.error === "no_matching_record" ||
-    decision.error === "pending_payment"
+    decision.error === "pending_payment" ||
+    decision.error === "ledger_read_failed" ||
+    decision.error === "unproven_entitlement"
   ) {
     return { status: 402, error: "manual_payment_not_cleared", paymentState: decision.error };
   }
