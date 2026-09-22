@@ -14,12 +14,13 @@ import {
 } from "@/app/lib/supabase/browser";
 import { ConciergeReturnBanner } from "@/app/components/business/ConciergeReturnBanner";
 import { AssistedPublishingUiProvider } from "@/app/components/auth/AssistedPublishingUiContext";
+import { LeonixManagedModeBanner } from "@/app/components/auth/LeonixManagedModeBanner";
 
 type GateStatus = "checking" | "authed" | "redirecting";
 
 /** Server-verified result of app/lib/auth/assistedPublishingSession.ts, passed down from the
  * Server Component wrapper (PublishAuthGateLayout) — never computed or trusted client-side. */
-type AssistedProp = { businessId: string; category: string } | null;
+type AssistedProp = { businessId: string; category: string; listingId?: string | null } | null;
 
 export function PublishAuthGate({
   children,
@@ -91,6 +92,10 @@ export function PublishAuthGate({
     // defense in depth, not the only thing preventing it from ever showing to a customer).
     return (
       <AssistedPublishingUiProvider value={assisted}>
+        {/* QUICK SALES ENTRY CONSOLIDATION — persistent, unconditional under a verified assisted
+            context. ConciergeReturnBanner below still self-guards on its sessionStorage context
+            and stays for the Create-for-Client handoff's "back to business" affordance. */}
+        {assisted ? <LeonixManagedModeBanner businessId={assisted.businessId} category={assisted.category} listingId={assisted.listingId ?? null} /> : null}
         {assisted ? <ConciergeReturnBanner /> : null}
         {children}
       </AssistedPublishingUiProvider>

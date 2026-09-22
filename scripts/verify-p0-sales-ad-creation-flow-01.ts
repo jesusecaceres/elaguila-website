@@ -22,7 +22,7 @@
  *  6. Custody note preserved untouched (Gate 8) — this build does not touch or delay it.
  */
 import assert from "node:assert/strict";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { execSync } from "node:child_process";
 
@@ -114,11 +114,18 @@ assert.ok(!serviciosPreviewPage.includes("<ConciergeReturnBanner"), "Servicios p
 const restaurantesPreviewPage = read("app/(site)/clasificados/restaurantes/preview/page.tsx");
 assert.ok(!restaurantesPreviewPage.includes("<ConciergeReturnBanner"), "Restaurantes preview no longer duplicates the banner mount (now universal via PublishAuthGate)");
 
-// 6. Custody note preserved, untouched (Gate 8) --------------------------------------------------
+// 6. Custody note (Gate 8, superseded by QUICK SALES ENTRY CONSOLIDATION) ---------------------
+// The "owner decision" caveat this gate once pinned verbatim has been DECIDED for the four paid
+// categories: they are created only through the Quick Sales cockpit, under server-issued custody
+// attributed to the staff actor. The SITE-account caveat must survive ONLY for the remaining
+// lanes that still open a public application from this page — it must not be dropped, and it
+// must not be stated as if it still applied to the four Quick Sales lanes.
 assert.ok(
-  createForClientSrc.includes("custody account Leonix uses for managed listings is an owner decision") &&
-    /cuenta del SITIO Leonix conectada en este dispositivo/.test(createForClientSrc),
-  "the existing custody note (SITE-account custody, owner decision) is preserved verbatim, not redesigned this build",
+  /Servicios, Restaurantes, Autos Dealer (y|and) Bienes Negocio/.test(createForClientSrc) &&
+    /Venta asistida Quick|Quick assisted sale/.test(createForClientSrc) &&
+    /cuenta del SITIO conectada en este dispositivo/.test(createForClientSrc) &&
+    !createForClientSrc.includes("custody account Leonix uses for managed listings is an owner decision"),
+  "the custody note names the four Quick Sales lanes as server-custody and keeps the SITE-account caveat scoped to the remaining lanes",
 );
 assert.ok(!/owner_user_id/.test(createForClientSrc) && !allTouched.some((f) => f.includes("ownership") && !f.includes("OwnershipClaimPanel")), "no custody/ownership architecture was touched this build (separate P0, per Gate 8)");
 

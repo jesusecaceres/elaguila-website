@@ -2,6 +2,10 @@
  * Public / publish URLs and source table labels for Clasificados admin queue headers.
  * Keep aligned with `classifiedsOpsContract` and live routes under `/clasificados` and `/publicar`.
  */
+// QUICK SALES ENTRY CONSOLIDATION — for the four paid categories the staff "publish" link is the
+// Quick Sales cockpit (server-issued custody), never the public application on the staff browser.
+import { buildQuickSalesHref } from "@/app/lib/sales/quickSalesRoutes";
+
 export type ClasificadosQueueSurfaceLinks = {
   sourceTable: string;
   publicHref: string;
@@ -15,13 +19,13 @@ export function clasificadosQueueSurfaceForSlug(slug: string): ClasificadosQueue
       return {
         sourceTable: "public.restaurantes_public_listings",
         publicHref: "/clasificados/restaurantes",
-        publishHref: "/clasificados/publicar/restaurantes",
+        publishHref: buildQuickSalesHref({ category: "restaurantes" }),
       };
     case "servicios":
       return {
         sourceTable: "public.servicios_public_listings",
         publicHref: "/clasificados/servicios",
-        publishHref: "/clasificados/publicar/servicios",
+        publishHref: buildQuickSalesHref({ category: "servicios" }),
       };
     case "comida-local":
       return {
@@ -45,7 +49,7 @@ export function clasificadosQueueSurfaceForSlug(slug: string): ClasificadosQueue
       return {
         sourceTable: "public.autos_classifieds_listings",
         publicHref: "/clasificados/autos",
-        publishHref: "/publicar/autos",
+        publishHref: buildQuickSalesHref({ category: "autos" }),
       };
     case "travel":
     case "viajes":
@@ -64,7 +68,12 @@ export function clasificadosQueueSurfaceForSlug(slug: string): ClasificadosQueue
       return {
         sourceTable: "public.listings",
         publicHref: `/clasificados/${encodeURIComponent(s)}`,
-        publishHref: s === "busco" ? "/publicar/busco/quick" : `/clasificados/publicar/${encodeURIComponent(s)}`,
+        publishHref:
+          s === "busco"
+            ? "/publicar/busco/quick"
+            : s === "bienes-raices"
+              ? buildQuickSalesHref({ category: "bienes-raices" })
+              : `/clasificados/publicar/${encodeURIComponent(s)}`,
       };
     default:
       return {

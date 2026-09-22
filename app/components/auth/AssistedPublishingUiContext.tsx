@@ -13,7 +13,7 @@ import { createContext, useContext } from "react";
  * round) simply never calls the hook — `null` outside the gate, or when a normal customer session
  * is authenticated, is the correct default and requires no per-category opt-out.
  */
-export type AssistedPublishingUi = { businessId: string; category: string } | null;
+export type AssistedPublishingUi = { businessId: string; category: string; listingId?: string | null } | null;
 
 const AssistedPublishingUiContext = createContext<AssistedPublishingUi>(null);
 

@@ -6,6 +6,7 @@ import { actorHasCapability, requireSalesWorkspaceAccess, type SalesWorkspaceDen
 import { ADMIN_DASHBOARD_ROUTES } from "../../../_lib/adminDashboardRoutes";
 import { listLeonixManagedRows, managedRowMatchesFilter, normalizeManagedFilter, MANAGED_FILTERS, type ManagedFilter } from "../../../_lib/leonixManagedInventory";
 import { BROAD_BUSINESS_TYPES } from "@/app/lib/business/constants";
+import { buildQuickSalesHref } from "@/app/lib/sales/quickSalesRoutes";
 
 export const dynamic = "force-dynamic";
 
@@ -98,7 +99,7 @@ export default async function LeonixManagedPage({ searchParams }: { searchParams
                   {r.profileStatus !== "none" ? (
                     <Link href={`/admin/businesses/${r.businessId}/profile/preview`} target="_blank" rel="noreferrer" className={`${adminBtnSecondary} min-h-[36px] text-xs`}>Vista previa / Preview</Link>
                   ) : null}
-                  <Link href={`/admin/businesses/create-for-client?businessId=${r.businessId}`} className={`${adminBtnSecondary} min-h-[36px] text-xs`}>Crear anuncio / Create ad</Link>
+                  <Link href={buildQuickSalesHref({ businessId: r.businessId })} data-quick-sales-entry="managed" className={`${adminBtnSecondary} min-h-[36px] text-xs`}>⚡ Crear anuncio gestionado / Create managed ad</Link>
                   <Link href={`${ADMIN_DASHBOARD_ROUTES.paymentTracker}/manual-payment`} className={`${adminBtnSecondary} min-h-[36px] text-xs`}>Registrar pago / Record payment</Link>
                   <Link href={ADMIN_DASHBOARD_ROUTES.promoCodes} className={`${adminBtnSecondary} min-h-[36px] text-xs`}>Promo</Link>
                   {r.profileStatus !== "none" && r.ownership === "not_released" ? (

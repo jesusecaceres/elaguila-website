@@ -1,4 +1,4 @@
-import { resolveAssistedRowBinding } from "@/app/lib/sales/assistedSameRowBinding";
+import { resolveAssistedRowBinding, resolveAssistedSessionConflict } from "@/app/lib/sales/assistedSameRowBinding";
 import { recordSalesWorkspaceAudit } from "@/app/lib/sales/salesWorkspaceAudit";
 import { NextResponse, type NextRequest } from "next/server";
 import { randomUUID } from "node:crypto";
@@ -302,6 +302,26 @@ export async function POST(req: NextRequest) {
       outcome: assistedBinding.error,
     });
     return NextResponse.json({ ok: false, error: assistedBinding.error }, { status: assistedBinding.status });
+  }
+  // QUICK SALES ENTRY CONSOLIDATION — an assisted request that ALSO carries an unrelated site
+  // session is refused, never resolved to one of the two identities. The bearer above resolved
+  // whatever customer session this tab holds; in assisted mode that may only be absent or the
+  // exact client the custody names.
+  const sessionConflict = resolveAssistedSessionConflict({
+    assistedActive: isAssistedRequest,
+    contextClientUserId: assistedContext?.clientUserId ?? null,
+    customerUserId: ownerUserId,
+  });
+  if (sessionConflict) {
+    await recordSalesWorkspaceAudit({
+      action: "quick_sales_save_for_client",
+      actorRosterId: assistedContext!.rosterId,
+      businessId: assistedContext!.businessId,
+      category: "servicios",
+      listingSource: "servicios_public_listings",
+      outcome: sessionConflict.error,
+    });
+    return NextResponse.json({ ok: false, error: sessionConflict.error }, { status: sessionConflict.status });
   }
   const assistedBoundListingId = assistedBinding?.ok ? assistedBinding.listingId : "";
   if (isAssistedPublishForClient && !assistedBoundListingId) {

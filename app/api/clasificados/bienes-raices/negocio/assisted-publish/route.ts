@@ -29,9 +29,11 @@ import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/
 import {
   assertAssistedIdentity,
   resolveAssistedRowBinding,
+  resolveAssistedSessionConflict,
 } from "@/app/lib/sales/assistedSameRowBinding";
 import { isClientAuthorizedForBusiness } from "@/app/lib/sales/assistedClientAuthorization";
 import { recordSalesWorkspaceAudit } from "@/app/lib/sales/salesWorkspaceAudit";
+import { customerUserIdFromBearer } from "@/app/lib/auth/customerBearerUserId";
 import {
   enforceQuickBusinessPublishMedia,
   extractSemanticMediaItems,
@@ -79,6 +81,25 @@ export async function POST(request: NextRequest) {
   });
   if (identityRefusal) {
     return NextResponse.json({ ok: false, error: identityRefusal.error }, { status: identityRefusal.status });
+  }
+
+  // QUICK SALES ENTRY CONSOLIDATION — see the Autos route: an assisted request may carry NO site
+  // session, or exactly the client this custody names. Two disagreeing identities are refused.
+  const sessionConflict = resolveAssistedSessionConflict({
+    assistedActive: true,
+    contextClientUserId: assistedContext.clientUserId ?? null,
+    customerUserId: await customerUserIdFromBearer(request),
+  });
+  if (sessionConflict) {
+    await recordSalesWorkspaceAudit({
+      action: "quick_sales_save_for_client",
+      actorRosterId: assistedContext.rosterId,
+      businessId: assistedContext.businessId,
+      category: "bienes-raices",
+      listingSource: "listings",
+      outcome: sessionConflict.error,
+    });
+    return NextResponse.json({ ok: false, error: sessionConflict.error }, { status: sessionConflict.status });
   }
 
   if (!isSupabaseAdminConfigured()) {

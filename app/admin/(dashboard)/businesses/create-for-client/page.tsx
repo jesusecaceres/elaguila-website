@@ -7,6 +7,7 @@ import { buildConciergeInventoryHref } from "../../../_lib/conciergeIntent";
 import { ADMIN_DASHBOARD_ROUTES } from "../../../_lib/adminDashboardRoutes";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { getBusinessByIdForCurrentUser } from "@/app/lib/business/repositories/businessesRepo";
+import { buildQuickSalesHref, isQuickSalesGatewayKey } from "@/app/lib/sales/quickSalesRoutes";
 import {
   PUBLICAR_GATEWAY_CATEGORY_KEYS,
   publicarGatewayCardCopy,
@@ -39,15 +40,28 @@ const PREFILL_SUPPORTED: ReadonlySet<PublicarGatewayCategoryKey> = new Set(["ser
  * HandoffClient already no-ops prefill for any non-Servicios category ("storage_unavailable") —
  * this only changes which tab it happens in, never what data is seeded.
  */
-function categoryHref(key: PublicarGatewayCategoryKey, businessId: string | null, lang: "es" | "en"): { href: string; sameTab: boolean; prefill: boolean } {
+function categoryHref(
+  key: PublicarGatewayCategoryKey,
+  businessId: string | null,
+  lang: "es" | "en",
+): { href: string; sameTab: boolean; prefill: boolean; quickSales: boolean } {
+  // QUICK SALES ENTRY CONSOLIDATION — the four paid categories (Servicios, Restaurantes, Autos
+  // Dealer, Bienes Negocio) no longer open the public application from here, with or without a
+  // business selected. They land on the Quick Sales cockpit, which establishes SERVER-ISSUED
+  // custody first and only then hands the staff member to the same category intake. This is what
+  // retires the "saves under the SITE account signed in on this device" caveat for these lanes.
+  if (isQuickSalesGatewayKey(key)) {
+    return { href: buildQuickSalesHref({ category: key, businessId, lang }), sameTab: true, prefill: false, quickSales: true };
+  }
   if (businessId) {
     return {
       href: `/admin/businesses/create-for-client/handoff?businessId=${encodeURIComponent(businessId)}&category=${encodeURIComponent(key)}&lang=${lang}`,
       sameTab: true,
       prefill: PREFILL_SUPPORTED.has(key),
+      quickSales: false,
     };
   }
-  return { href: resolvePublicarGatewayDestination(key, lang), sameTab: false, prefill: false };
+  return { href: resolvePublicarGatewayDestination(key, lang), sameTab: false, prefill: false, quickSales: false };
 }
 
 export default async function CreateForClientPage({ searchParams }: { searchParams?: Promise<{ businessId?: string; lang?: string }> }) {
@@ -144,9 +158,18 @@ export default async function CreateForClientPage({ searchParams }: { searchPara
             const visual = publicarGatewayVisual(key);
             const target = categoryHref(key, business?.id ?? null, lang);
             return (
-              <Link key={key} href={target.href} target={target.sameTab ? undefined : "_blank"} rel={target.sameTab ? undefined : "noreferrer"} className={`rounded-xl border ${visual.border} bg-gradient-to-br ${visual.tint} p-3 text-left hover:opacity-90`}>
+              <Link
+                key={key}
+                href={target.href}
+                target={target.sameTab ? undefined : "_blank"}
+                rel={target.sameTab ? undefined : "noreferrer"}
+                data-quick-sales-lane={target.quickSales ? key : undefined}
+                className={`rounded-xl border ${target.quickSales ? "border-[#7A1E2C]/60" : visual.border} bg-gradient-to-br ${visual.tint} p-3 text-left hover:opacity-90`}
+              >
                 <span className="block text-sm font-semibold text-[#1E1810]">{visual.emoji} {copy.label}</span>
-                <span className="mt-0.5 block text-[11px] text-[#7A7164]">{target.prefill ? "Prefill ✓ · " : ""}{copy.description}</span>
+                <span className="mt-0.5 block text-[11px] text-[#7A7164]">
+                  {target.quickSales ? "⚡ Venta asistida Quick · custodia Leonix / Quick assisted sale · Leonix custody" : `${target.prefill ? "Prefill ✓ · " : ""}${copy.description}`}
+                </span>
               </Link>
             );
           })}
@@ -168,7 +191,7 @@ export default async function CreateForClientPage({ searchParams }: { searchPara
         </div>
 
         <p className="mt-4 rounded-xl border border-dashed border-[#D6C7AD] bg-[#FAF7F2]/70 p-3 text-[11px] text-[#7A7164]">
-          Importante: las aplicaciones de categoría guardan y publican con la cuenta del SITIO Leonix conectada en este dispositivo (no con tu sesión de Admin), y esa cuenta queda como dueña técnica del anuncio. Qué cuenta de custodia usa Leonix para anuncios gestionados es una decisión del dueño — no publiques para un cliente desde una cuenta personal. El Perfil de Negocio no tiene esta limitación: se guarda con tu sesión de staff. / Important: category applications save and publish under the Leonix SITE account signed in on this device (not your Admin session), and that account becomes the listing&apos;s technical owner. Which custody account Leonix uses for managed listings is an owner decision — do not publish for a client from a personal account. Business Profile has no such limitation: it saves under your staff session.
+          Servicios, Restaurantes, Autos Dealer y Bienes Negocio se crean SOLO desde Venta asistida Quick: la custodia la emite el servidor a tu nombre de staff y el anuncio nunca queda en una cuenta personal. El Perfil de Negocio se guarda con tu sesión de staff. Las demás categorías de abajo siguen abriendo la aplicación pública: esas guardan con la cuenta del SITIO conectada en este dispositivo — no publiques para un cliente desde una cuenta personal. / Servicios, Restaurantes, Autos Dealer and Bienes Negocio are created ONLY through Quick assisted sale: custody is issued by the server under your staff identity and the ad never lands in a personal account. Business Profile saves under your staff session. The remaining categories below still open the public application: those save under the SITE account signed in on this device — do not publish for a client from a personal account.
         </p>
       </section>
 

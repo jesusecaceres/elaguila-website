@@ -1,4 +1,4 @@
-import { resolveAssistedRowBinding } from "@/app/lib/sales/assistedSameRowBinding";
+import { resolveAssistedRowBinding, resolveAssistedSessionConflict } from "@/app/lib/sales/assistedSameRowBinding";
 import { recordSalesWorkspaceAudit } from "@/app/lib/sales/salesWorkspaceAudit";
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
@@ -280,6 +280,24 @@ export async function POST(req: NextRequest) {
       outcome: assistedBinding.error,
     });
     return NextResponse.json({ ok: false, error: assistedBinding.error }, { status: assistedBinding.status });
+  }
+  // QUICK SALES ENTRY CONSOLIDATION — an assisted request that ALSO carries an unrelated site
+  // session is refused, never resolved to one of the two identities (see the Servicios route).
+  const sessionConflict = resolveAssistedSessionConflict({
+    assistedActive: isAssistedRequest,
+    contextClientUserId: assistedContext?.clientUserId ?? null,
+    customerUserId: verifiedOwnerId,
+  });
+  if (sessionConflict) {
+    await recordSalesWorkspaceAudit({
+      action: "quick_sales_save_for_client",
+      actorRosterId: assistedContext!.rosterId,
+      businessId: assistedContext!.businessId,
+      category: "restaurantes",
+      listingSource: "restaurantes_public_listings",
+      outcome: sessionConflict.error,
+    });
+    return NextResponse.json({ ok: false, error: sessionConflict.error }, { status: sessionConflict.status });
   }
   const assistedBoundListingId = assistedBinding?.ok ? assistedBinding.listingId : "";
 

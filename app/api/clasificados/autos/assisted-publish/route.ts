@@ -31,9 +31,11 @@ import {
 import {
   assertAssistedIdentity,
   resolveAssistedRowBinding,
+  resolveAssistedSessionConflict,
 } from "@/app/lib/sales/assistedSameRowBinding";
 import { isClientAuthorizedForBusiness } from "@/app/lib/sales/assistedClientAuthorization";
 import { recordSalesWorkspaceAudit } from "@/app/lib/sales/salesWorkspaceAudit";
+import { customerUserIdFromBearer } from "@/app/lib/auth/customerBearerUserId";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import {
   enforceQuickBusinessPublishMedia,
@@ -58,6 +60,27 @@ export async function POST(request: NextRequest) {
   });
   if (identityRefusal) {
     return NextResponse.json({ ok: false, error: identityRefusal.error }, { status: identityRefusal.status });
+  }
+
+  // QUICK SALES ENTRY CONSOLIDATION — this route never read a bearer, so a staff tab that also
+  // held a customer/site session was invisible to it. An assisted request may carry NO site
+  // session, or exactly the client this custody was established for; anything else is two
+  // identities disagreeing about whose ad this is, and is refused rather than resolved.
+  const sessionConflict = resolveAssistedSessionConflict({
+    assistedActive: true,
+    contextClientUserId: assistedContext.clientUserId ?? null,
+    customerUserId: await customerUserIdFromBearer(request),
+  });
+  if (sessionConflict) {
+    await recordSalesWorkspaceAudit({
+      action: "quick_sales_save_for_client",
+      actorRosterId: assistedContext.rosterId,
+      businessId: assistedContext.businessId,
+      category: "autos",
+      listingSource: "autos_classifieds_listings",
+      outcome: sessionConflict.error,
+    });
+    return NextResponse.json({ ok: false, error: sessionConflict.error }, { status: sessionConflict.status });
   }
 
   if (!isAutosClassifiedsDbConfigured()) {

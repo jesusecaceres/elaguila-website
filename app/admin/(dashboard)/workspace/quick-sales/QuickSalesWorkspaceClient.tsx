@@ -42,13 +42,29 @@ async function postJson(url: string, body: unknown): Promise<{ status: number; j
   return { status: res.status, json };
 }
 
-export function QuickSalesWorkspaceClient({ actorEmail }: { actorEmail: string }) {
-  const [category, setCategory] = useState<QuickSalesCategory>("servicios");
+/**
+ * QUICK SALES ENTRY CONSOLIDATION — preselection arrives from the server page, which resolved it
+ * with the admin client. It only seeds the operator's form: category, the named business, and
+ * (when reopening) the draft id. It grants nothing — custody is still established by the server
+ * route, which re-proves the business, the client and the row exactly as before.
+ */
+export function QuickSalesWorkspaceClient({
+  actorEmail,
+  initialCategory = null,
+  initialBusiness = null,
+  initialListingId = null,
+}: {
+  actorEmail: string;
+  initialCategory?: QuickSalesCategory | null;
+  initialBusiness?: BusinessRow | null;
+  initialListingId?: string | null;
+}) {
+  const [category, setCategory] = useState<QuickSalesCategory>(initialCategory ?? "servicios");
   const [query, setQuery] = useState("");
-  const [businesses, setBusinesses] = useState<BusinessRow[]>([]);
-  const [businessId, setBusinessId] = useState("");
+  const [businesses, setBusinesses] = useState<BusinessRow[]>(initialBusiness ? [initialBusiness] : []);
+  const [businessId, setBusinessId] = useState(initialBusiness?.id ?? "");
   const [clientUserId, setClientUserId] = useState("");
-  const [reopenListingId, setReopenListingId] = useState("");
+  const [reopenListingId, setReopenListingId] = useState(initialListingId ?? "");
   const [status, setStatus] = useState<CustodyStatus>(null);
   const [previewLink, setPreviewLink] = useState<string | null>(null);
   const [previewExpiresAt, setPreviewExpiresAt] = useState<number | null>(null);
@@ -141,6 +157,14 @@ export function QuickSalesWorkspaceClient({ actorEmail }: { actorEmail: string }
   return (
     <div className="space-y-5 text-sm text-[#2F2A1F]">
       <p className="text-xs text-[#5D4A25]">Operador / Operator: {actorEmail}</p>
+      {initialBusiness || initialCategory || initialListingId ? (
+        <p className="rounded-lg border border-[#C9A84A]/60 bg-[#FFFDF7] p-3 text-xs text-[#5D4A25]" data-quick-sales-preselected>
+          Preseleccionado desde el panel — confirma y establece la custodia abajo. / Preselected from the
+          admin panel — confirm and establish custody below.
+          {initialBusiness ? <span className="block font-semibold text-[#2F2A1F]">{initialBusiness.name}</span> : null}
+          {initialListingId ? <span className="block">Reabrir borrador / Reopen draft: <span className="font-mono">{initialListingId}</span></span> : null}
+        </p>
+      ) : null}
 
       <section className="rounded-xl border border-[#E6DCC6] bg-white p-4">
         <h2 className="mb-2 font-bold">1. Categoría / Category</h2>

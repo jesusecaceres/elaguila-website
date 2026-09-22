@@ -98,6 +98,7 @@ import { computeSpecializedBlueprintInputFingerprint, evaluateProjectBlueprintRe
 import { computeBlockingDependencies, suggestSystemDependencies } from "@/app/lib/business/projectDiscovery/projectDependencyEngine";
 import { listIntentDependenciesForDiscovery } from "@/app/lib/business/projectDiscovery/projectDependencyRepository";
 import { buildClientReviewData } from "@/app/lib/business/projectDiscovery/clientReviewDataAssembler";
+import { buildQuickSalesHref } from "@/app/lib/sales/quickSalesRoutes";
 
 export const dynamic = "force-dynamic";
 
@@ -716,10 +717,17 @@ export default async function AdminBusinessDetailPage({
               </a>
             ) : null}
             <Link
-              href={resolveConciergeActionDestination("create_listing", business.id)}
+              href={buildQuickSalesHref({ businessId: business.id })}
+              data-quick-sales-entry="business"
               className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2 text-xs font-bold text-white shadow-[0_6px_16px_-6px_rgba(122,30,44,0.5)]"
             >
-              🏷️ Crear anuncio / Create Ad
+              ⚡ Venta asistida Quick / Quick assisted sale
+            </Link>
+            <Link
+              href={resolveConciergeActionDestination("create_listing", business.id)}
+              className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#7A1E2C] bg-white px-4 py-2 text-xs font-bold text-[#7A1E2C]"
+            >
+              🏷️ Crear anuncio (otras categorías) / Create Ad (other categories)
             </Link>
             <a href="#prepared-ads" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#7A1E2C] bg-white px-4 py-2 text-xs font-bold text-[#7A1E2C]">
               📋 Anuncios preparados / Prepared Ads

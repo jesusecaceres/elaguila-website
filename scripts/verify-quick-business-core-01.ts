@@ -615,6 +615,42 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
     "app/admin/_lib/adminAccessControl.ts", // the same two hrefs in the nav allowlist
     "app/admin/_lib/adminStrings.ts", // their labels, both languages
     "app/lib/listingPlans/refundDisputeFoundations.ts", // a won dispute stops withholding
+    // -----------------------------------------------------------------------
+    // QUICK SALES ENTRY CONSOLIDATION (2026-09-22) — `/admin/workspace/quick-sales` becomes the
+    // SOLE staff entry for creating a Leonix-managed client ad in the four paid categories. No
+    // migration, no payment/rewards schema, no Autos/Bienes ownership change, no new custody
+    // table. Every existing category intake, custody route, preview token, payment gate and
+    // audit path is preserved; what changes is WHERE staff are routed and what a mixed request
+    // is allowed to do:
+    //
+    //   create-for-client / managed / [businessId] / AdminCommandCenterDashboard /
+    //   staffOperatingSystem / clasificadosQueueSurfaceMeta — every admin launcher for
+    //     Servicios, Restaurantes, Autos Dealer and Bienes Negocio deep-links the cockpit
+    //     (`buildQuickSalesHref`) instead of opening the category's PUBLIC application on the
+    //     staff browser. Other lanes keep their existing launcher.
+    //   application-context — never re-mints the assisted cookie over a BOUND context for the
+    //     same business + category (would have silently dropped same-row binding).
+    //   PublishAuthGate / PublishAuthGateLayout / AssistedPublishingUiContext /
+    //   LeonixManagedModeBanner — a persistent bilingual "Modo Leonix / Leonix Managed" banner
+    //     whenever the server verified an assisted context; only business/category/row cross to
+    //     the client, never roster or auth ids.
+    //   customerBearerUserId — the one generic bearer→user resolution, so Autos/Bienes (which
+    //     never read a bearer) can refuse an assisted request that also carries an unrelated
+    //     customer/site session (409 assisted_session_conflict, audited).
+    // Executed proof: scripts/verify-quick-sales-entry-consolidation-01.ts (harness).
+    // -----------------------------------------------------------------------
+    "app/admin/(dashboard)/businesses/[businessId]/page.tsx", // Quick Sales button beside Create Ad
+    "app/admin/(dashboard)/businesses/create-for-client/page.tsx", // four paid cards → cockpit
+    "app/admin/(dashboard)/businesses/managed/page.tsx", // Create ad → cockpit with business preselected
+    "app/admin/(dashboard)/workspace/clasificados/_lib/clasificadosQueueSurfaceMeta.ts", // paid publish links → cockpit
+    "app/admin/_components/AdminCommandCenterDashboard.tsx", // Concierge card secondary verb → cockpit
+    "app/admin/_lib/staffOperatingSystem.ts", // Quick Sales leads CLIENT WORK under its own capability
+    "app/api/admin/businesses/[businessId]/application-context/route.ts", // never clobbers a bound cookie
+    "app/components/auth/AssistedPublishingUiContext.tsx", // optional listingId on the UI context
+    "app/components/auth/PublishAuthGate.tsx", // mounts the persistent banner
+    "app/components/auth/PublishAuthGateLayout.tsx", // passes only business/category/row to the client
+    "app/components/auth/LeonixManagedModeBanner.tsx", // new: the banner
+    "app/lib/auth/customerBearerUserId.ts", // new: generic bearer → customer user id (read-only)
   ]);
   // A touched entry from `git status --short` may be a directory (`app/api/new-dir/`) for newly
   // added dirs not yet staged; check if it is authorized directly or all contained authorized files.
@@ -724,8 +760,15 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
   assert.ok(lp.includes("Negocios Rápidos / Quick Business"), "launchpad has the Quick Business section");
   assert.ok(lp.includes("listQuickBusinessDefinitions()"), "launchpad lists the registry's four business priorities in order");
   assert.ok(lp.includes("Enviar enlace de negocio / Send business link") && lp.includes("Administrar negocio / Manage business"), "launchpad exposes send-link + manage for business");
-  assert.ok(lp.includes("Crear negocio rápido con el cliente / Create quick business with customer") && lp.includes("Abrir aplicación completa / Open full application"), "launchpad verbs are honest per category status");
-  assert.ok(lp.includes("Aplicación completa / Full application") && lp.includes("href={withLang(def.standardApplicationPath, linkLang)}"), "launchpad keeps the EXISTING full application one tap away on every Quick business card");
+  // QUICK SALES ENTRY CONSOLIDATION (2026-09-22) — the launchpad is customer self-service link
+  // sharing ONLY. The one staff create verb per business card goes to the Quick Sales cockpit
+  // (server-issued custody); no card renders a link that opens a customer application on the
+  // staff browser — that was the path that ended at a customer login prompt, or saved the ad
+  // under whatever site account the browser held. Executed proof of the rendered output:
+  // scripts/verify-quick-sales-entry-consolidation-01.ts (A8).
+  assert.ok(lp.includes("Crear gestionado (Venta asistida) / Create managed (Quick Sales)") && lp.includes("buildQuickSalesHref({ category: salesCategory"), "launchpad's only create verb per business card is the Quick Sales cockpit");
+  assert.ok(!lp.includes("Abrir con el cliente / Open with customer") && !lp.includes("Crear negocio rápido con el cliente") && !lp.includes("Abrir aplicación completa / Open full application"), "launchpad no longer opens any customer application on the staff browser");
+  assert.ok(lp.includes("🔗 Copiar / Copy") && lp.includes("📤 Compartir / Share") && lp.includes("businessCustomerUrl(def, linkLang)"), "the customer's own link (Quick form, or the EXISTING full application for a direct category) stays copy/share-able on every Quick business card");
   assert.ok(lp.includes('if (def.status === "direct") return withLang(def.standardApplicationPath, lang);') && lp.includes('return quickBusinessCategoryPath(def.key, lang, "staff");'), "launchpad: Create Quick Business + Send Quick Link resolve to the Quick form for live categories");
   assert.ok(lp.includes("Aplicaciones Rápidas / Quick Applications") && lp.includes("{tier1.map((def) => renderCard(def, \"large\"))}") && lp.includes("{community.map((def) => renderCard(def, \"compact\"))}"), "Quick Classifieds section preserved (Tier-1 + community)");
   assert.ok(lp.includes('if (isCommunity || def.status === "blocked") return withLang(def.standardApplicationPath, lang);'), "community direct links intact");

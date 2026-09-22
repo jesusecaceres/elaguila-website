@@ -12,29 +12,30 @@ import {
   QUICK_COMMUNITY_KEYS,
   QUICK_TIER1_KEYS,
 } from "@/app/lib/quickClassifieds/quickClassifiedRegistry";
-import {
-  quickClassifiedCategoryPath,
-  quickClassifiedMyAdPath,
-  quickClassifiedShareUrl,
-  quickClassifiedsChooserPath,
-} from "@/app/lib/quickClassifieds/quickClassifiedRoutes";
+import { quickClassifiedCategoryPath, quickClassifiedShareUrl } from "@/app/lib/quickClassifieds/quickClassifiedRoutes";
 import type { QuickClassifiedCategoryKey, QuickClassifiedDefinition } from "@/app/lib/quickClassifieds/quickClassifiedTypes";
 import { listQuickBusinessDefinitions } from "@/app/lib/quickBusiness/quickBusinessRegistry";
-import { quickBusinessCategoryPath, quickBusinessChooserPath, quickBusinessShareUrl } from "@/app/lib/quickBusiness/quickBusinessRoutes";
+import { quickBusinessCategoryPath, quickBusinessShareUrl } from "@/app/lib/quickBusiness/quickBusinessRoutes";
 import type { QuickBusinessDefinition } from "@/app/lib/quickBusiness/quickBusinessTypes";
 import { listQuickRemainingDefinitions } from "@/app/lib/quickRemaining/quickRemainingRegistry";
 import type { QuickRemainingDefinition } from "@/app/lib/quickRemaining/quickRemainingRegistry";
+import { buildQuickSalesHref, quickSalesCategoryForQuickBusinessKey } from "@/app/lib/sales/quickSalesRoutes";
 
 /**
- * APLICACIONES RÁPIDAS / QUICK APPLICATIONS — the staff launchpad inside the ONE Business Concierge PWA.
+ * ENLACES PARA EL CLIENTE / CUSTOMER SELF-SERVICE LINKS — the launchpad inside the Business Concierge PWA.
  *
- * Additive only: sits directly under the Command Center header so a receptionist sees, within seconds, how to
- * CREATE a quick ad, SEND a quick link, MANAGE an ad, or open the FULL business profile / full Concierge.
- * Tier-1 lanes (En Venta, Rentas, Empleos, Autos — PM Control Master §22) come first and large; the community
- * family (already short canonical forms) shares its DIRECT canonical application link instead of a wrapper.
- * Every action is a link or a share of an EXISTING route. Staff never publish under their own identity here:
- * the customer signs in with their own account on the existing publish gate, so the ad stays in the customer's
- * name. Customers with a Business record keep using the existing Create-for-Client handoff (linked, unchanged).
+ * QUICK SALES ENTRY CONSOLIDATION — this component is now ONLY about links the CUSTOMER opens on
+ * the customer's own device: copy or share a category's self-service application, where the customer
+ * signs in with their own email and the ad stays in their name. It no longer renders any "open with
+ * the customer" / "create with the customer" button, because every one of those opened a PUBLIC
+ * application on the STAFF member's browser — the exact path that ended at a customer login prompt,
+ * or worse, saved the ad under whatever site account that browser happened to hold.
+ *
+ * Creating a Leonix-MANAGED ad (staff builds it, Leonix holds custody, customer never logs in) has
+ * exactly one entry: the Quick Sales cockpit (`/admin/workspace/quick-sales`). The four paid
+ * business cards link there with the category preselected; the top verb links there directly.
+ *
+ * Every URL below is an EXISTING public route; nothing is wrapped or duplicated.
  */
 
 type LinkLang = "es" | "en";
@@ -73,7 +74,7 @@ function businessPriceBadge(def: QuickBusinessDefinition): string {
   return priceCents == null ? "" : `${formatRevenuePriceLabel(priceCents)}/mes · /month`;
 }
 
-/** Live business categories → Quick Business intake; a "direct" one (none since the Dealer + Bienes closeout) → the EXISTING application. */
+/** Live business categories → Quick Business intake; a "direct" one → the EXISTING application. */
 function businessCustomerPath(def: QuickBusinessDefinition, lang: LinkLang): string {
   if (def.status === "direct") return withLang(def.standardApplicationPath, lang);
   return quickBusinessCategoryPath(def.key, lang, "staff");
@@ -84,9 +85,7 @@ function businessCustomerUrl(def: QuickBusinessDefinition | null, lang: LinkLang
   return `${origin().replace(/\/+$/, "")}${businessCustomerPath(def, lang)}`;
 }
 
-/** Lower-priority remaining families (Phase 3): `def.href` is already the technically correct
- * destination per family (a new Quick form, the existing application, or a pure content directory)
- * — never a wrapper. */
+/** Lower-priority remaining families (Phase 3): `def.href` is the correct customer destination per family. */
 function remainingCustomerUrl(def: QuickRemainingDefinition, lang: LinkLang): string {
   return `${origin().replace(/\/+$/, "")}${withLang(def.href, lang)}`;
 }
@@ -95,13 +94,6 @@ function remainingPriceBadge(def: QuickRemainingDefinition): string {
   if (!def.pricing) return "";
   const { priceCents } = getRevenuePackagePriceCents({ category: def.pricing.category, packageKey: def.pricing.packageKey });
   return priceCents == null ? "" : `${formatRevenuePriceLabel(priceCents)}/mes · /month`;
-}
-
-/** Truthful verb per action kind — never "Crear" when nothing is created. */
-function remainingCtaLabel(def: QuickRemainingDefinition): string {
-  if (def.action === "quick_form") return "Crear con el cliente / Create with customer";
-  if (def.action === "direct_link") return "Abrir formulario / Open application";
-  return "Abrir directorio / Open directory";
 }
 
 export function QuickApplicationsLaunchpad() {
@@ -113,70 +105,49 @@ export function QuickApplicationsLaunchpad() {
     window.setTimeout(() => setToast(null), 2200);
   }, []);
 
-  const copyLink = useCallback(
-    async (def: QuickClassifiedDefinition | null) => {
-      const ok = await copyToClipboard(customerUrl(def, linkLang));
+  const copyUrl = useCallback(
+    async (url: string) => {
+      const ok = await copyToClipboard(url);
       flash(ok ? "Enlace copiado / Link copied" : "No se pudo copiar / Could not copy");
     },
-    [flash, linkLang],
+    [flash],
+  );
+
+  const shareUrl = useCallback(
+    async (url: string, label: string, text: string) => {
+      const outcome = await tryWebShare({ title: label, text, url });
+      if (outcome === "unsupported") {
+        const ok = await copyToClipboard(url);
+        flash(ok ? "Enlace copiado / Link copied" : "No se pudo compartir / Could not share");
+      }
+    },
+    [flash],
   );
 
   const shareLink = useCallback(
-    async (def: QuickClassifiedDefinition | null) => {
-      const url = customerUrl(def, linkLang);
+    (def: QuickClassifiedDefinition | null) => {
       const label = def ? (linkLang === "en" ? def.label.en : def.label.es) : linkLang === "en" ? "Leonix quick publish" : "Publicación rápida Leonix";
       const text = linkLang === "en" ? `Publish your ad on Leonix in minutes: ${label}` : `Publica tu anuncio en Leonix en minutos: ${label}`;
-      const outcome = await tryWebShare({ title: label, text, url });
-      if (outcome === "unsupported") {
-        const ok = await copyToClipboard(url);
-        flash(ok ? "Enlace copiado / Link copied" : "No se pudo compartir / Could not share");
-      }
+      return shareUrl(customerUrl(def, linkLang), label, text);
     },
-    [flash, linkLang],
-  );
-
-  const copyBusinessLink = useCallback(
-    async (def: QuickBusinessDefinition | null) => {
-      const ok = await copyToClipboard(businessCustomerUrl(def, linkLang));
-      flash(ok ? "Enlace copiado / Link copied" : "No se pudo copiar / Could not copy");
-    },
-    [flash, linkLang],
+    [linkLang, shareUrl],
   );
 
   const shareBusinessLink = useCallback(
-    async (def: QuickBusinessDefinition | null) => {
-      const url = businessCustomerUrl(def, linkLang);
+    (def: QuickBusinessDefinition | null) => {
       const label = def ? (linkLang === "en" ? def.label.en : def.label.es) : linkLang === "en" ? "Leonix quick business" : "Negocio rápido Leonix";
       const text = linkLang === "en" ? `Publish your business on Leonix in minutes: ${label}` : `Publica tu negocio en Leonix en minutos: ${label}`;
-      const outcome = await tryWebShare({ title: label, text, url });
-      if (outcome === "unsupported") {
-        const ok = await copyToClipboard(url);
-        flash(ok ? "Enlace copiado / Link copied" : "No se pudo compartir / Could not share");
-      }
+      return shareUrl(businessCustomerUrl(def, linkLang), label, text);
     },
-    [flash, linkLang],
-  );
-
-  const copyRemainingLink = useCallback(
-    async (def: QuickRemainingDefinition) => {
-      const ok = await copyToClipboard(remainingCustomerUrl(def, linkLang));
-      flash(ok ? "Enlace copiado / Link copied" : "No se pudo copiar / Could not copy");
-    },
-    [flash, linkLang],
+    [linkLang, shareUrl],
   );
 
   const shareRemainingLink = useCallback(
-    async (def: QuickRemainingDefinition) => {
-      const url = remainingCustomerUrl(def, linkLang);
+    (def: QuickRemainingDefinition) => {
       const label = linkLang === "en" ? def.label.en : def.label.es;
-      const text = linkLang === "en" ? `Leonix: ${label}` : `Leonix: ${label}`;
-      const outcome = await tryWebShare({ title: label, text, url });
-      if (outcome === "unsupported") {
-        const ok = await copyToClipboard(url);
-        flash(ok ? "Enlace copiado / Link copied" : "No se pudo compartir / Could not share");
-      }
+      return shareUrl(remainingCustomerUrl(def, linkLang), label, `Leonix: ${label}`);
     },
-    [flash, linkLang],
+    [linkLang, shareUrl],
   );
 
   const business = listQuickBusinessDefinitions();
@@ -186,13 +157,24 @@ export function QuickApplicationsLaunchpad() {
   const fsbo = QUICK_CLASSIFIED_DEFINITIONS[FSBO];
   const community = QUICK_COMMUNITY_KEYS.map((k) => QUICK_CLASSIFIED_DEFINITIONS[k]);
 
+  /** Copy + Share only. Never a link that opens the customer's application on THIS browser. */
+  const copyShare = (url: string, onShare: () => Promise<void>) => (
+    <div className="grid grid-cols-2 gap-2">
+      <button type="button" onClick={() => void copyUrl(url)} className={`${adminBtnSecondary} min-h-[44px] text-xs`}>
+        🔗 Copiar / Copy
+      </button>
+      <button type="button" onClick={() => void onShare()} className={`${adminBtnSecondary} min-h-[44px] text-xs`}>
+        📤 Compartir / Share
+      </button>
+    </div>
+  );
+
   const renderCard = (def: QuickClassifiedDefinition, size: "large" | "compact") => {
     const blocked = def.status === "blocked";
     const badge = priceBadge(def);
-    const openHref = customerPath(def, linkLang);
     const isCommunity = (QUICK_COMMUNITY_KEYS as readonly string[]).includes(def.key);
     return (
-      <li key={def.key} className={`flex flex-col rounded-2xl border bg-white ${size === "large" ? "border-[#C9A84A]/80 p-4" : "border-[#D6C7AD] p-3"}`}>
+      <li key={def.key} data-customer-link-card={def.key} className={`flex flex-col rounded-2xl border bg-white ${size === "large" ? "border-[#C9A84A]/80 p-4" : "border-[#D6C7AD] p-3"}`}>
         <div className="flex items-start gap-2">
           <span className={size === "large" ? "text-3xl leading-none" : "text-2xl leading-none"} aria-hidden="true">{def.emoji}</span>
           <div className="min-w-0 flex-1">
@@ -205,24 +187,7 @@ export function QuickApplicationsLaunchpad() {
             {blocked && def.blocker ? <p className="mt-1 text-[11px] text-[#7A1E2C]">{def.blocker.reason.es} / {def.blocker.reason.en}</p> : null}
           </div>
         </div>
-        <div className="mt-3 grid grid-cols-1 gap-2">
-          <Link
-            href={openHref}
-            target="_blank"
-            rel="noreferrer"
-            className={`inline-flex min-h-[44px] items-center justify-center rounded-xl px-3 text-xs font-bold ${size === "large" ? "bg-[#7A1E2C] text-white" : "border border-[#7A1E2C]/40 bg-[#7A1E2C]/5 text-[#7A1E2C]"}`}
-          >
-            {blocked ? "Abrir aplicación estándar / Open standard application" : "Abrir con el cliente / Open with customer"}
-          </Link>
-          <div className="grid grid-cols-2 gap-2">
-            <button type="button" onClick={() => void copyLink(def)} className={`${adminBtnSecondary} min-h-[44px] text-xs`}>
-              🔗 Copiar / Copy
-            </button>
-            <button type="button" onClick={() => void shareLink(def)} className={`${adminBtnSecondary} min-h-[44px] text-xs`}>
-              📤 Compartir / Share
-            </button>
-          </div>
-        </div>
+        <div className="mt-3">{copyShare(customerUrl(def, linkLang), () => shareLink(def))}</div>
       </li>
     );
   };
@@ -235,12 +200,12 @@ export function QuickApplicationsLaunchpad() {
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Publicar con el cliente / Publish with the customer</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Aplicaciones Rápidas / Quick Applications · Enlaces de autoservicio / Customer self-service links</p>
           <h2 id="quick-applications-title" className="mt-1 font-serif text-2xl font-bold leading-tight text-[#1E1810] sm:text-3xl">
-            ⚡ Aplicaciones Rápidas / Quick Applications
+            🔗 Enlaces para el cliente / Customer links
           </h2>
           <p className="mt-1 text-xs text-[#5C5346]">
-            El cliente inicia sesión con su correo y el anuncio queda a su nombre. / The customer signs in with their email and the ad stays in their name.
+            El cliente abre el enlace en SU teléfono, inicia sesión con su correo y el anuncio queda a su nombre. Para un anuncio gestionado por Leonix usa Venta asistida. / The customer opens the link on THEIR phone, signs in with their email and the ad stays in their name. For a Leonix-managed ad use Quick Sales.
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1 rounded-xl border border-[#E8DFD0] bg-white p-1" role="group" aria-label="Idioma del enlace / Link language">
@@ -258,12 +223,12 @@ export function QuickApplicationsLaunchpad() {
         </div>
       </div>
 
-      {/* The four verbs a receptionist needs — nothing else to understand first. */}
+      {/* The four verbs a receptionist needs. The ONLY create verb goes to the Quick Sales cockpit. */}
       <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        <a href="#quick-tier1" className={`${adminBtnPrimary} min-h-[56px] flex-col gap-0.5 py-2`}>
-          <span>➕ Crear anuncio rápido / Create quick ad</span>
-          <span className="text-[10px] font-normal text-white/80">Elige la categoría abajo. / Pick the category below.</span>
-        </a>
+        <Link href={buildQuickSalesHref({ lang: linkLang })} data-quick-sales-entry="launchpad" className={`${adminBtnPrimary} min-h-[56px] flex-col gap-0.5 py-2`}>
+          <span>⚡ Crear anuncio gestionado / Create managed ad</span>
+          <span className="text-[10px] font-normal text-white/80">Venta asistida Quick — custodia Leonix. / Quick Sales — Leonix custody.</span>
+        </Link>
         <button type="button" onClick={() => void shareLink(null)} className={`${adminBtnSecondary} min-h-[56px] flex-col gap-0.5 border-[#C9A84A]/70 py-2`}>
           <span>📤 Enviar enlace rápido / Send quick link</span>
           <span className="text-[10px] font-normal text-[#7A7164]">Compartir o copiar el selector. / Share or copy the chooser.</span>
@@ -291,13 +256,13 @@ export function QuickApplicationsLaunchpad() {
         {community.map((def) => renderCard(def, "compact"))}
       </ul>
 
-      {/* Quick Business Core (Phase 2): clearly separated business section — same PWA, same launchpad, existing products. */}
+      {/* Quick Business: the customer self-service link per category, plus the ONE staff path — Quick Sales. */}
       <div id="quick-business" className="mt-6 scroll-mt-4 rounded-2xl border border-[#7A1E2C]/25 bg-white/70 p-3 sm:p-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <h3 className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Negocios Rápidos / Quick Business</h3>
             <p className="mt-1 text-xs text-[#5C5346]">
-              Perfil de negocio en minutos con el paquete mensual existente. / Business profile in minutes on the existing monthly package.
+              Enlace de autoservicio por categoría; el anuncio gestionado por Leonix se crea en Venta asistida. / Self-service link per category; the Leonix-managed ad is created in Quick Sales.
             </p>
           </div>
           <div className="grid shrink-0 grid-cols-2 gap-2">
@@ -312,9 +277,9 @@ export function QuickApplicationsLaunchpad() {
         <ul className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {business.map((def) => {
             const direct = def.status === "direct";
-            const openHref = businessCustomerPath(def, linkLang);
+            const salesCategory = quickSalesCategoryForQuickBusinessKey(def.key);
             return (
-              <li key={def.key} className="flex flex-col rounded-2xl border border-[#D6C7AD] bg-white p-3">
+              <li key={def.key} data-customer-link-card={def.key} className="flex flex-col rounded-2xl border border-[#D6C7AD] bg-white p-3">
                 <div className="flex items-start gap-2">
                   <span className="text-2xl leading-none" aria-hidden="true">{def.emoji}</span>
                   <div className="min-w-0 flex-1">
@@ -333,61 +298,34 @@ export function QuickApplicationsLaunchpad() {
                   </div>
                 </div>
                 <div className="mt-3 grid grid-cols-1 gap-2">
-                  <Link
-                    href={openHref}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[#7A1E2C]/40 bg-[#7A1E2C]/5 px-3 text-xs font-bold text-[#7A1E2C]"
-                  >
-                    {direct ? "Abrir aplicación completa / Open full application" : "Crear negocio rápido con el cliente / Create quick business with customer"}
-                  </Link>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button type="button" onClick={() => void copyBusinessLink(def)} className={`${adminBtnSecondary} min-h-[44px] text-xs`}>
-                      🔗 Copiar / Copy
-                    </button>
-                    <button type="button" onClick={() => void shareBusinessLink(def)} className={`${adminBtnSecondary} min-h-[44px] text-xs`}>
-                      📤 Compartir / Share
-                    </button>
-                  </div>
-                  {!direct ? (
-                    // The EXISTING full application stays one tap away (dealer inventory drawer, agent second-agent / broker blocks, etc.).
+                  {salesCategory ? (
                     <Link
-                      href={withLang(def.standardApplicationPath, linkLang)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-center text-[11px] font-semibold text-[#7A1E2C] underline"
+                      href={buildQuickSalesHref({ category: salesCategory, lang: linkLang })}
+                      data-quick-sales-entry={salesCategory}
+                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#7A1E2C] px-3 text-xs font-bold text-white"
                     >
-                      Aplicación completa / Full application
+                      ⚡ Crear gestionado (Venta asistida) / Create managed (Quick Sales)
                     </Link>
                   ) : null}
+                  {copyShare(businessCustomerUrl(def, linkLang), () => shareBusinessLink(def))}
                 </div>
               </li>
             );
           })}
         </ul>
-        <p className="mt-3 text-[11px] text-[#7A7164]">
-          Perfil de Negocio completo: usa el botón de arriba. / Full Business Profile: use the button above.{" "}
-          <Link href={quickBusinessChooserPath(linkLang, "staff")} target="_blank" rel="noreferrer" className="font-semibold text-[#7A1E2C] underline">
-            Selector de negocio rápido / Quick business chooser
-          </Link>
-        </p>
       </div>
 
-      {/* Más Opciones (Phase 3, lower priority): Comida Local, Ofertas Locales, Negocios Locales, Viajes,
-          Iglesias, Recursos. Each card performs the correct canonical action for its REAL current product —
-          a new Quick form only for Comida Local; the existing application for Ofertas/Viajes/Iglesias; a
-          directory open+share for Negocios Locales/Recursos. Never "Crear" wording where nothing is created. */}
+      {/* Más Opciones (lower priority): customer link per family. A pure content directory may still be opened. */}
       <div id="quick-more-options" className="mt-6 scroll-mt-4 rounded-2xl border border-[#D6C7AD] bg-white/70 p-3 sm:p-4">
         <h3 className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Más Opciones / More Options</h3>
         <p className="mt-1 text-xs text-[#5C5346]">
-          Categorías de menor prioridad — cada una usa su destino existente correcto. / Lower-priority categories — each one uses its correct existing destination.
+          Categorías de menor prioridad — copia o comparte el enlace del cliente. / Lower-priority categories — copy or share the customer link.
         </p>
         <ul className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {remaining.map((def) => {
             const badge = remainingPriceBadge(def);
-            const openHref = withLang(def.href, linkLang);
             return (
-              <li key={def.key} className="flex flex-col rounded-2xl border border-[#D6C7AD] bg-white p-3">
+              <li key={def.key} data-customer-link-card={def.key} className="flex flex-col rounded-2xl border border-[#D6C7AD] bg-white p-3">
                 <div className="flex items-start gap-2">
                   <span className="text-2xl leading-none" aria-hidden="true">{def.emoji}</span>
                   <div className="min-w-0 flex-1">
@@ -405,27 +343,12 @@ export function QuickApplicationsLaunchpad() {
                   </div>
                 </div>
                 <div className="mt-3 grid grid-cols-1 gap-2">
-                  <Link
-                    href={openHref}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[#7A1E2C]/40 bg-[#7A1E2C]/5 px-3 text-xs font-bold text-[#7A1E2C]"
-                  >
-                    {remainingCtaLabel(def)}
-                  </Link>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button type="button" onClick={() => void copyRemainingLink(def)} className={`${adminBtnSecondary} min-h-[44px] text-xs`}>
-                      🔗 Copiar / Copy
-                    </button>
-                    <button type="button" onClick={() => void shareRemainingLink(def)} className={`${adminBtnSecondary} min-h-[44px] text-xs`}>
-                      📤 Compartir / Share
-                    </button>
-                  </div>
-                  {def.manageHref ? (
-                    <Link href={withLang(def.manageHref, linkLang)} target="_blank" rel="noreferrer" className="text-center text-[11px] font-semibold text-[#7A1E2C] underline">
-                      Administrar / Manage
+                  {def.action === "content_link" ? (
+                    <Link href={withLang(def.href, linkLang)} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[#7A1E2C]/40 bg-[#7A1E2C]/5 px-3 text-xs font-bold text-[#7A1E2C]">
+                      Abrir directorio / Open directory
                     </Link>
                   ) : null}
+                  {copyShare(remainingCustomerUrl(def, linkLang), () => shareRemainingLink(def))}
                 </div>
               </li>
             );
@@ -435,18 +358,12 @@ export function QuickApplicationsLaunchpad() {
 
       <div className="mt-4 flex flex-col gap-2 text-[11px] text-[#7A7164] sm:flex-row sm:items-center sm:justify-between">
         <p>
-          ¿El cliente tiene un negocio registrado? Usa el flujo existente. / Does the customer have a Business record? Use the existing flow.{" "}
+          ¿Anuncio gestionado por Leonix para un negocio existente? / Leonix-managed ad for an existing business?{" "}
           <Link href="/admin/businesses/create-for-client" className="font-semibold text-[#7A1E2C] underline">
             Crear para el cliente / Create for Client
           </Link>
         </p>
         <span className="flex flex-wrap gap-3">
-          <Link href={quickClassifiedMyAdPath(linkLang)} target="_blank" rel="noreferrer" className="font-semibold text-[#7A1E2C] underline">
-            Mi anuncio (cliente) / Customer My-Ad page
-          </Link>
-          <Link href={quickClassifiedsChooserPath(linkLang, "staff")} target="_blank" rel="noreferrer" className="font-semibold text-[#7A1E2C] underline">
-            Selector rápido / Quick chooser
-          </Link>
           <a href="#businesses-inventory" className="font-semibold text-[#7A1E2C] underline">
             Concierge completo / Full Concierge
           </a>

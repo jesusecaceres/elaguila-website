@@ -26,7 +26,12 @@
 export type AssistedBindingRefusal = {
   ok: false;
   /** Stable machine code, safe to return to the caller. Never carries a secret or a raw token. */
-  error: "assisted_action_not_authorized" | "assisted_listing_mismatch" | "assisted_business_mismatch" | "assisted_category_mismatch";
+  error:
+    | "assisted_action_not_authorized"
+    | "assisted_listing_mismatch"
+    | "assisted_business_mismatch"
+    | "assisted_category_mismatch"
+    | "assisted_session_conflict";
   status: number;
 };
 
@@ -65,6 +70,37 @@ export function assertAssistedIdentity(input: {
     return { ok: false, error: "assisted_business_mismatch", status: 409 };
   }
   return null;
+}
+
+/**
+ * QUICK SALES ENTRY CONSOLIDATION — two identities on one request is a refusal, not a choice.
+ *
+ * THE DEFECT THIS EXISTS FOR: the category intakes run in a browser tab, and a staff member's
+ * browser can hold a customer/site Supabase session (their own, a demo account, the last customer
+ * they helped on this device) at the same time as the server-issued assisted cookie. Create for
+ * Client used to warn about exactly this in its UI — "saves under the SITE account signed in on
+ * this device" — and left it to the operator to notice. An assisted request that also carries a
+ * bearer for a user who is NOT the customer this custody was established for is a request whose
+ * two halves disagree about who the ad is for, and writing under either identity is a guess.
+ *
+ * The rule: an assisted request may carry NO site session, or exactly the session of the client
+ * the custody names. Anything else fails closed with a stable code the workspace can explain.
+ * A non-assisted request is never touched — the normal customer path stays exactly as it was.
+ */
+export function resolveAssistedSessionConflict(input: {
+  /** True only when the request is being served under a verified assisted context. */
+  assistedActive: boolean;
+  /** The customer the custody was established for, when the category attributes to one. */
+  contextClientUserId?: string | null;
+  /** The site/customer user the request's bearer resolved to, if any. */
+  customerUserId?: string | null;
+}): AssistedBindingRefusal | null {
+  if (!input.assistedActive) return null;
+  const customer = trimmed(input.customerUserId);
+  if (!customer) return null;
+  const bound = trimmed(input.contextClientUserId);
+  if (bound && bound === customer) return null;
+  return { ok: false, error: "assisted_session_conflict", status: 409 };
 }
 
 /**
