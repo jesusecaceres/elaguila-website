@@ -5,7 +5,7 @@
 **Branch:** `repair/quick-sales-eight-category-staff-gateway-2026-09-22`  
 **Rejected PASS SHA:** `4751382f13d3f7ff6aef8faa2a959dd5518d7601`  
 **Repair start SHA:** `4751382f13d3f7ff6aef8faa2a959dd5518d7601`  
-**Live SHA:** `d8e3ef6f0` (pre-closeout stamp; exact SHA in closeout receipts)  
+**Live SHA:** `16669c57d8eea14a38c587111d2a70fc278670d2`  
 **Deployment:** none  
 **External mutation:** none  
 
