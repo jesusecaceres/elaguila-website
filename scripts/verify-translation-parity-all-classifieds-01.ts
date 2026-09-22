@@ -89,13 +89,13 @@ const APPLICATION_PROOFS: Record<string, string> = {
 
 const RESULT_SURFACES: Record<string, string> = {
   restaurantes: "app/(site)/clasificados/restaurantes/resultados/RestaurantesResultsShell.tsx",
-  servicios: "app/(site)/clasificados/servicios/resultados/ServiciosResultsClient.tsx",
+  servicios: "app/(site)/clasificados/servicios/resultados/page.tsx",
   bienes_raices: "app/(site)/clasificados/bienes-raices/resultados/BienesRaicesResultsClient.tsx",
   autos: "app/(site)/clasificados/autos/components/public/AutosPublicResultsShell.tsx",
-  rentas: "app/(site)/clasificados/rentas/components/RentasResultsClient.tsx",
+  rentas: "app/(site)/clasificados/rentas/results/RentasResultsClient.tsx",
   empleos: "app/(site)/clasificados/empleos/components/EmpleosResultsView.tsx",
   en_venta: "app/(site)/clasificados/en-venta/results/EnVentaResultsClient.tsx",
-  ofertas_locales: "app/(site)/clasificados/ofertas-locales/results/OfertasLocalesResultsClient.tsx",
+  ofertas_locales: "app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicSearchClient.tsx",
   busco: "app/(site)/clasificados/busco/BuscoResultsClient.tsx",
   clases_comunidad: "app/(site)/clasificados/community/CommunityListingsResultsClient.tsx",
   mascotas_y_perdidos: "app/(site)/clasificados/mascotas-y-perdidos/MascotasPerdidosResultsClient.tsx",
