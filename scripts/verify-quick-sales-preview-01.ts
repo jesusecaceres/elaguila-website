@@ -507,7 +507,10 @@ async function run() {
       const jar = { leonix_assisted_publish: assistedCookie({ category, listingId: "row-1" }) };
       const res = await workspacePublish.POST(makeRequest({}, jar));
       const json = (await res.json()) as { ok?: boolean; listingId?: string; error?: string; issues?: string[] };
-      if (category === "bienes-raices") {
+      // Computed ONCE before the fail-closed branch: the early `return` below narrows `category`,
+      // which made the later literal comparison a TS2367 even though the assertion is intended.
+      const isBienes = category === "bienes-raices";
+      if (isBienes) {
         // Bienes media ROLES are never persisted (only `listings.images` URLs are), so the canonical
         // declared-attribution contract fails CLOSED from stored truth — a known technical blocker,
         // asserted exactly rather than hidden. See verify-quick-sales-canonical-publish-readiness-01 B1.
@@ -528,7 +531,7 @@ async function run() {
       if (category === "servicios") assert.equal(row.listing_status, "published");
       else if (category === "restaurantes") assert.equal(row.status, "published");
       else assert.equal(row.status, "active");
-      if (category === "bienes-raices") assert.equal(row.is_published, true);
+      if (isBienes) assert.equal(row.is_published, true);
 
       const audit = __rows("admin_audit_log") as Record<string, unknown>[];
       const completed = audit.find((a) => a.action === "quick_sales_publish_completed");
