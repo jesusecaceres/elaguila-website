@@ -325,6 +325,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: sessionConflict.error }, { status: sessionConflict.status });
   }
   const assistedBoundListingId = assistedBinding?.ok ? assistedBinding.listingId : "";
+  const assistedOwnerUserId =
+    isAssistedRequest && typeof assistedContext?.clientUserId === "string" && assistedContext.clientUserId.trim()
+      ? assistedContext.clientUserId.trim()
+      : null;
   if (isAssistedPublishForClient && !assistedBoundListingId) {
     return NextResponse.json({ ok: false, error: "existing_listing_required" }, { status: 400 });
   }
@@ -498,9 +502,11 @@ export async function POST(req: NextRequest) {
     // LEONIX P0 FINAL ASSISTED PUBLISHING BRIDGE — the ONE alternate authorization: an assisted
     // request may reopen/update this SAME row only when it still has NO customer owner AND it is
     // already verified-linked to the exact business the staff actor's cookie was minted for.
+    const assistedOwnerMatches =
+      row.owner_user_id == null || (assistedOwnerUserId != null && row.owner_user_id === assistedOwnerUserId);
     const assistedAuthorizedForRow =
       isAssistedRequest &&
-      row.owner_user_id == null &&
+      assistedOwnerMatches &&
       (await isListingLinkedToBusiness({
         businessId: assistedContext!.businessId,
         listingSource: "servicios_public_listings",
@@ -719,7 +725,10 @@ export async function POST(req: NextRequest) {
         // owner). This branch is the ONLY place an unowned row may legitimately be written.
         if (existing) {
           const existingId = canonicalListingId ?? (typeof existing.id === "string" ? existing.id : "");
-          if (existing.owner_user_id != null || !existingId) {
+          const assistedExistingOwnerOk =
+            existing.owner_user_id == null ||
+            (assistedOwnerUserId != null && existing.owner_user_id === assistedOwnerUserId);
+          if (!assistedExistingOwnerOk || !existingId) {
             await insertServiciosAnalyticsEvent({
               listingSlug: slug,
               eventType: "publish_failure",
@@ -771,11 +780,10 @@ export async function POST(req: NextRequest) {
             nextStatus = SERVICIOS_LISTING_STATUS_PUBLISHED;
           }
           actualListingStatus = nextStatus;
-          // owner_user_id is deliberately never written here — it stays unclaimed/null (Gate 5 #6)
-          // whether this is a hidden draft or a published-for-client row.
           const updateQuery = supabase
             .from("servicios_public_listings")
             .update({
+              ...(assistedOwnerUserId ? { owner_user_id: assistedOwnerUserId } : {}),
               business_name: businessName,
               city,
               profile_json: publicWireForPersistence,
@@ -817,9 +825,11 @@ export async function POST(req: NextRequest) {
           });
           return NextResponse.json({ ok: false, error: "listing_not_found" }, { status: 404 });
         } else {
-          // First-ever Save for Client: INSERT, owner_user_id intentionally omitted (unclaimed).
+          // First-ever Save for Client: attach the customer account when this assisted sale
+          // already provisioned one; legacy Leonix-managed drafts may still remain owner-null.
           actualListingStatus = listingStatus;
           const insertRow: Record<string, unknown> = {
+            ...(assistedOwnerUserId ? { owner_user_id: assistedOwnerUserId } : {}),
             slug,
             business_name: businessName,
             city,
