@@ -283,8 +283,10 @@ export async function provisionStaffAuthUser(input: {
 export async function provisionCustomerAuthUser(input: {
   email: string;
   displayName?: string | null;
+  phone?: string | null;
   accountType: string;
   sendInvite: boolean;
+  reuseExisting?: boolean;
 }): Promise<ProvisionAuthUserResult> {
   if (!isSupabaseAdminConfigured()) {
     return { ok: false, code: "config", message: "Supabase service role is not configured." };
@@ -300,31 +302,36 @@ export async function provisionCustomerAuthUser(input: {
   }
 
   const admin = getAdminSupabase();
+  let userId = input.reuseExisting ? await findAuthUserIdByEmail(admin, email) : null;
 
-  const { data: created, error: createErr } = await admin.auth.admin.createUser({
-    email,
-    email_confirm: true,
-    user_metadata: {
-      display_name: input.displayName?.trim() || null,
-      account_type: accountType,
-    },
-  });
+  if (!userId) {
+    const { data: created, error: createErr } = await admin.auth.admin.createUser({
+      email,
+      email_confirm: true,
+      user_metadata: {
+        display_name: input.displayName?.trim() || null,
+        account_type: accountType,
+      },
+    });
 
-  if (createErr || !created.user?.id) {
-    const msg = createErr?.message ?? "Could not create auth user.";
-    if (/already|registered|exists|duplicate/i.test(msg)) {
-      return { ok: false, code: "duplicate", message: "A Supabase Auth user with this email already exists." };
+    if (createErr || !created.user?.id) {
+      const msg = createErr?.message ?? "Could not create auth user.";
+      if (/already|registered|exists|duplicate/i.test(msg)) {
+        return { ok: false, code: "duplicate", message: "A Supabase Auth user with this email already exists." };
+      }
+      return { ok: false, code: "auth_error", message: msg };
     }
-    return { ok: false, code: "auth_error", message: msg };
+    userId = created.user.id;
+  } else if (!input.reuseExisting) {
+    return { ok: false, code: "duplicate", message: "A Supabase Auth user with this email already exists." };
   }
-
-  const userId = created.user.id;
 
   const { error: profileErr } = await admin.from("profiles").upsert(
     {
       id: userId,
       email,
       display_name: input.displayName?.trim() || null,
+      phone: input.phone?.trim() || null,
       account_type: accountType,
       membership_tier: accountType === "business" ? "business_starter" : "personal_free",
     },
