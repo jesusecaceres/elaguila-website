@@ -25,8 +25,8 @@ const audit = exists(auditPath) ? read(auditPath) : "";
 add("Audit has TRUE/FALSE section", audit.includes("TRUE/FALSE"), auditPath);
 
 const labels = read("app/(site)/clasificados/en-venta/shared/constants/enVentaPublicLabels.ts");
-add("Varios in labels", labels.includes('"Varios"'), "enVentaPublicLabels.ts");
-add("For Sale in labels", labels.includes('"For Sale"'), "enVentaPublicLabels.ts");
+add("En Venta / Varios in labels", labels.includes('"En Venta / Varios"'), "enVentaPublicLabels.ts");
+add("For Sale / Miscellaneous in labels", labels.includes('"For Sale / Miscellaneous"'), "enVentaPublicLabels.ts");
 add('No "Varrios" typo', !labels.includes("Varrios"), "enVentaPublicLabels.ts");
 
 const detailPage = read("app/(site)/clasificados/anuncio/[id]/page.tsx");
