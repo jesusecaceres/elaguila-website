@@ -11,8 +11,10 @@ import {
 } from "@/app/lib/auth/assistedPublishingSession";
 import { createMinimalAssistedBusiness } from "@/app/lib/sales/createMinimalAssistedBusiness";
 import {
+  isStaffBusinessPairCategory,
   parseStaffBusinessPlan,
   resolveStaffBusinessPackage,
+  staffBusinessCheckpointHref,
   staffIntakePathForCategory,
   type StaffBusinessPlan,
 } from "@/app/lib/sales/staffBusinessProduct";
@@ -80,13 +82,18 @@ export async function POST(request: NextRequest) {
     const plan = resolved.plan;
     const packageKey = resolved.packageKey;
     const intakePath = staffIntakePathForCategory(category, plan, product?.staffHref || descriptor.intakePath);
+    const checkpointHref =
+      plan && isStaffBusinessPairCategory(category)
+        ? staffBusinessCheckpointHref(category, plan)
+        : null;
     const res = NextResponse.json({
       ok: true,
       launcherId: item.id,
       category,
       businessId,
       intakePath,
-      href: intakePath,
+      href: checkpointHref ?? intakePath,
+      entryKind: checkpointHref ? "checkpoint" : "application",
       packageKey,
       plan,
       sameTab: true,
