@@ -36,6 +36,11 @@ import {
 import { BR_INVENTORY_PACK_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import type { AddonLifecycleStatus } from "@/app/lib/listingPlans/addonLifecycle";
 import { resolveCommercialStateBadges, commercialStateBadgesToLifecycleNote } from "@/app/lib/listingPlans/commercialStateBadges";
+import {
+  openDashboardBillingPortal,
+  dashboardBillingPortalLabel,
+  dashboardBillingPortalBusyLabel,
+} from "@/app/(site)/dashboard/lib/dashboardBillingPortal";
 
 type Lang = "es" | "en";
 
@@ -104,6 +109,8 @@ export function BrPropertyInventoryDashboardSection({ lang, rows }: Props) {
   /** Package E Build E2, Gate 1/3 — read-only parent subscription state, taken from the SAME
    * batched response as the entitlement fetch below (no second network call). */
   const [subscriptionStates, setSubscriptionStates] = useState<Record<string, DashboardSubscriptionStateEntry>>({});
+  const [billingBusyId, setBillingBusyId] = useState<string | null>(null);
+  const [billingErr, setBillingErr] = useState<{ listingId: string; message: string } | null>(null);
   const parentIdsKey = useMemo(
     () =>
       [...new Set(groups.map((g) => g.mainId ?? g.rows[0]?.id).filter((id): id is string => Boolean(id)))].join(","),
@@ -148,6 +155,21 @@ export function BrPropertyInventoryDashboardSection({ lang, rows }: Props) {
     };
   }, [parentIdsKey]);
 
+  async function openBusinessBilling(listingId: string) {
+    setBillingBusyId(listingId);
+    setBillingErr(null);
+    const result = await openDashboardBillingPortal({
+      category: "bienes-negocio",
+      listingId,
+      returnPath: `/dashboard/mis-anuncios?lang=${lang}&cat=bienes-raices`,
+      lang,
+    });
+    if (!result.ok) {
+      setBillingErr({ listingId, message: result.message });
+      setBillingBusyId(null);
+    }
+  }
+
   if (!negocioRows.length) return null;
 
   const t =
@@ -181,6 +203,7 @@ export function BrPropertyInventoryDashboardSection({ lang, rows }: Props) {
         // shared lifecycle-backed dashboard entitlement API; fails closed to inactive when the
         // parent has no resolved status (not yet fetched, no purchase, or a fetch failure).
         const upgradeActive = mainId ? entitlementStatusByParentId.get(mainId) === "active" : false;
+        const subscriptionState = mainId ? dashboardSubscriptionStateForKey(subscriptionStates, [mainId]) : null;
         // Gate F.2.3 — count only this group's own already-correctly-scoped rows directly,
         // rather than re-deriving membership via the shared (owner-wide-fallback) grouping key;
         // this keeps the displayed count consistent with the visual grouping above.
@@ -214,15 +237,14 @@ export function BrPropertyInventoryDashboardSection({ lang, rows }: Props) {
               ) : null}
             </p>
             {(() => {
-              const subState = mainId ? dashboardSubscriptionStateForKey(subscriptionStates, [mainId]) : null;
-              if (!subState) return null;
+              if (!subscriptionState) return null;
               const note = commercialStateBadgesToLifecycleNote(
                 resolveCommercialStateBadges({
-                  subscriptionStatus: subState.status,
-                  cancelAtPeriodEnd: subState.cancelAtPeriodEnd,
-                  graceEndsAt: subState.graceEndsAt,
-                  suspensionReason: subState.suspensionReason,
-                  recoveredAt: subState.recoveredAt,
+                  subscriptionStatus: subscriptionState.status,
+                  cancelAtPeriodEnd: subscriptionState.cancelAtPeriodEnd,
+                  graceEndsAt: subscriptionState.graceEndsAt,
+                  suspensionReason: subscriptionState.suspensionReason,
+                  recoveredAt: subscriptionState.recoveredAt,
                 }),
                 lang,
               );
@@ -242,6 +264,18 @@ export function BrPropertyInventoryDashboardSection({ lang, rows }: Props) {
                   className="flex-1 sm:flex-none"
                 />
               ) : null}
+              {mainId && subscriptionState ? (
+                <button
+                  type="button"
+                  onClick={() => void openBusinessBilling(mainId)}
+                  disabled={billingBusyId === mainId}
+                  className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-[#E8DFD0] bg-white px-4 text-sm font-semibold text-[#1E1810] disabled:opacity-60 sm:flex-none"
+                >
+                  {billingBusyId === mainId
+                    ? dashboardBillingPortalBusyLabel(lang)
+                    : dashboardBillingPortalLabel(lang)}
+                </button>
+              ) : null}
               {mainId ? (
                 <Link
                   href={`${leonixLiveAnuncioPath(mainId)}?lang=${lang}`}
@@ -252,6 +286,9 @@ export function BrPropertyInventoryDashboardSection({ lang, rows }: Props) {
                 </Link>
               ) : null}
             </div>
+            {mainId && billingErr?.listingId === mainId ? (
+              <p className="mt-3 text-xs font-semibold text-amber-800">{billingErr.message}</p>
+            ) : null}
             {!upgradeActive ? (
               <div className="mt-4 rounded-xl border border-[#E8DFD0] bg-white p-4">
                 <p className="text-sm text-[#2C2416]">{brPropertyInventoryUpgradePitch(lang)}</p>
