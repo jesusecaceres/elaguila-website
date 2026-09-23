@@ -38,6 +38,16 @@ export function normalizeServiciosServiceChipId(raw: string | undefined): string
   return t.startsWith("svc_") ? t.slice(4) : t;
 }
 
+/**
+ * Preset chips are stored as `{businessTypeId}::{localChipId}` (see `namespaceChips`).
+ * Visual rules key off the local id (`mud_residencial`), not the namespaced form.
+ */
+function localServiciosPresetChipId(raw: string): string {
+  const marker = "::";
+  const idx = raw.lastIndexOf(marker);
+  return idx >= 0 ? raw.slice(idx + marker.length) : raw;
+}
+
 function defaultEmojiForInternalGroup(g: ServiciosInternalGroup): string {
   switch (g) {
     case "automotive":
@@ -68,7 +78,7 @@ export function emojiVisualGroupForPresetChip(
   chip: ChipDef,
 ): ServiciosServiceVisualResolved {
   const vg = preset.internalGroup;
-  const { id } = chip;
+  const id = localServiciosPresetChipId(chip.id);
   const hay = normalizeHay(`${chip.es} ${chip.en}`);
 
   const pair = (emoji: string): ServiciosServiceVisualResolved => ({ emoji, visualGroup: vg });
@@ -235,6 +245,15 @@ function matchKeywordEmoji(labelHay: string): ServiciosServiceVisualResolved | n
   return null;
 }
 
+/** Preset maps that only resolved the generic wrench defer to the label keyword catalog. */
+function upgradeGenericServiceVisual(
+  resolved: ServiciosServiceVisualResolved,
+  labelHay: string,
+): ServiciosServiceVisualResolved {
+  if (resolved.emoji !== SERVICIOS_SERVICE_VISUAL_DEFAULT_EMOJI) return resolved;
+  return matchKeywordEmoji(labelHay) ?? resolved;
+}
+
 function presetsWithChipId(chipId: string): BusinessTypePreset[] {
   return BUSINESS_TYPE_PRESETS.filter((p) => p.suggestedServices.some((c) => c.id === chipId));
 }
@@ -273,7 +292,7 @@ export function resolveServiciosServiceVisual(input: ResolveServiciosServiceVisu
   if (input.businessTypeId && normId) {
     const preset = getBusinessTypePreset(input.businessTypeId);
     const chip = preset?.suggestedServices.find((c) => c.id === normId);
-    if (preset && chip) return emojiVisualGroupForPresetChip(preset, chip);
+    if (preset && chip) return upgradeGenericServiceVisual(emojiVisualGroupForPresetChip(preset, chip), labelHay);
   }
 
   if (normId && normId !== "custom_service" && !normId.startsWith("custom_")) {
@@ -281,7 +300,7 @@ export function resolveServiciosServiceVisual(input: ResolveServiciosServiceVisu
     if (candidates.length >= 1) {
       const preset = disambiguateDuplicateChipId(normId, labelHay, candidates);
       const chip = preset.suggestedServices.find((c) => c.id === normId);
-      if (chip) return emojiVisualGroupForPresetChip(preset, chip);
+      if (chip) return upgradeGenericServiceVisual(emojiVisualGroupForPresetChip(preset, chip), labelHay);
     }
   }
 

@@ -398,7 +398,10 @@ function main(): void {
       const en = new Set<string>();
       for (const c of arr) {
         if (!c.id?.trim() || !c.es?.trim() || !c.en?.trim()) chipsIdEsEn = false;
-        if (!/^[a-z][a-z0-9_]*$/i.test(c.id)) stableChipIds = false;
+        // Namespaced preset chips are `{businessTypeId}::{localChipId}` (businessTypePresets.ts).
+        // CTA ids stay a single ASCII token. The preset segment may include the canonical
+        // accented business-type id (`estética_belleza`); the local segment stays ASCII.
+        if (!/^(?:[a-z][a-z0-9_]*|\p{L}[\p{L}0-9_]*::[a-z][a-z0-9_]*)$/iu.test(c.id)) stableChipIds = false;
         const esK = normalizeHay(c.es);
         const enK = normalizeHay(c.en);
         if (ids.has(c.id)) noDupChipIdsInPreset = false;
