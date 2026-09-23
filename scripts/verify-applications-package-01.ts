@@ -73,6 +73,16 @@ const gates: Gate[] = [
     args: ["node_modules/tsx/dist/cli.mjs", "scripts/verify-bienes-negocio-gate2-discovery.ts"],
   },
   {
+    name: "Rentas Privado and Negocio paid publish lockdown",
+    command: "node",
+    args: ["scripts/verify-revenue-os-rentas-paid-publish-lockdown-01.mjs"],
+  },
+  {
+    name: "Rentas Negocio populated round-trip stabilization",
+    command: "node",
+    args: ["node_modules/tsx/dist/cli.mjs", "scripts/verify-rentas-negocio-gate1-stabilization.ts"],
+  },
+  {
     name: "Rentas launch application self-test",
     command: "node",
     args: ["node_modules/tsx/dist/cli.mjs", "scripts/rentas-launch-selftest.ts"],
@@ -81,6 +91,11 @@ const gates: Gate[] = [
     name: "Rentas field contract",
     command: "node",
     args: ["node_modules/tsx/dist/cli.mjs", "scripts/rentas-field-contract-selftest.ts"],
+  },
+  {
+    name: "Empleos paid Quick/Premium versus free Feria publish contract",
+    command: "node",
+    args: ["scripts/verify-revenue-os-empleos-paid-publish-checkpoint-01.mjs"],
   },
   {
     name: "Empleos final application QA readiness",
@@ -116,6 +131,11 @@ const gates: Gate[] = [
     name: "Viajes Negocio and Privado application/preview source gate",
     command: "node",
     args: ["node_modules/tsx/dist/cli.mjs", "scripts/verify-viajes-application-source-01.ts"],
+  },
+  {
+    name: "Mascotas y Perdidos five-branch application proof",
+    command: "node",
+    args: ["node_modules/tsx/dist/cli.mjs", "scripts/verify-mascotas-application-branches-01.ts"],
   },
   {
     name: "Ofertas Locales two-lane application/preview gate",
