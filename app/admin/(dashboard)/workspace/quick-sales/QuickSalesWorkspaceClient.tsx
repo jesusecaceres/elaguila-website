@@ -143,6 +143,15 @@ export function QuickSalesWorkspaceClient({
     }
     if (typeof json.businessId === "string") setBusinessId(json.businessId);
     const href = typeof json.href === "string" ? json.href : typeof json.intakePath === "string" ? json.intakePath : "";
+    if (
+      item.mode === "assisted" &&
+      item.hasQuickFull &&
+      json.entryKind === "checkpoint" &&
+      href.startsWith("/clasificados/publicar/")
+    ) {
+      window.location.assign(href);
+      return;
+    }
     if (item.mode === "assisted" && isQuickSalesCategory(item.assistedCategory)) {
       const nav = resolveStaffNavigationFromCustodyPost({
         ok: true,
