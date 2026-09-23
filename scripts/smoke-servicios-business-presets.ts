@@ -280,6 +280,7 @@ function main(): void {
       customPaymentMethods: [],
       amenityOptionIds: [],
       customAmenityOptions: [],
+      selectedBusinessHighlightIds: ["bh_free_quote"],
       certifications: ["ISO ready"],
       hasLicense: true,
       licenseType: "State",
@@ -308,7 +309,12 @@ function main(): void {
     } else {
       assert(draftEn.hero.categoryLine === preset.labelEn.trim(), `${g}: category line EN`);
     }
-    assert((draftEs.promotions ?? []).length >= 1, `${g}: promotions map`);
+    // GATE-03: free promotion rows stay off the draft; simple offers publish as highlight chips.
+    assert((draftEs.promotions ?? []).length === 0, `${g}: retired free promotions stay off the draft`);
+    assert(
+      (draftEs.highlights ?? []).some((h) => h.label === "Cotización gratis"),
+      `${g}: simple offer highlight maps`,
+    );
   }
 
   const otroState = normalizeClasificadosServiciosApplicationState({
@@ -479,7 +485,9 @@ function main(): void {
   const regressionOpcionesOk =
     (dReg.amenityOptionIds ?? []).length >= 1 && (dReg.customAmenityOptions ?? []).length >= 1;
   const regressionCredencialesOk = Boolean(dReg.credentials?.certifications?.includes("EPA lead-safe"));
-  const regressionPromosOk = (dReg.promotions ?? []).length >= 1;
+  const regressionPromosOk =
+    (dReg.promotions ?? []).length === 0 &&
+    (dReg.highlights ?? []).some((h) => h.label === "Atención el mismo día");
   const noOtherVerticalEdits = true;
 
   const checklist: boolean[] = [
