@@ -440,8 +440,14 @@ export async function POST(req: NextRequest) {
   }
 
   // Owner identity is server-verified only — the client-supplied owner_user_id is never trusted.
-  // Assisted requests intentionally leave owner_user_id null so the client claims the listing later.
-  const ownerUserId = isAssistedRequest ? null : verifiedOwnerId;
+  // Assisted sales use the customer id already signed into the server-issued custody token; legacy
+  // Leonix-managed drafts may still have no customer id.
+  const ownerUserId =
+    isAssistedRequest && typeof assistedContext?.clientUserId === "string" && assistedContext.clientUserId.trim()
+      ? assistedContext.clientUserId.trim()
+      : isAssistedRequest
+        ? null
+        : verifiedOwnerId;
   const pendingPayment =
     b.activation_mode === "pending_payment" || b.activationMode === "pending_payment";
   const requestedLane = normalizePublicPublishPackageTier(
@@ -483,6 +489,11 @@ export async function POST(req: NextRequest) {
   // on behalf of a client requires the same custody proof the other categories demand: this
   // business must already hold this listing.
   if (isAssistedRequest && existingByDraft?.id) {
+    const assistedExistingOwnerOk =
+      existingOwnerUserId == null || (ownerUserId != null && existingOwnerUserId === ownerUserId);
+    if (!assistedExistingOwnerOk) {
+      return NextResponse.json({ ok: false, error: "ownership_mismatch" }, { status: 403 });
+    }
     const linked = await isListingLinkedToBusiness({
       businessId: assistedContext!.businessId,
       listingSource: "restaurantes_public_listings",
