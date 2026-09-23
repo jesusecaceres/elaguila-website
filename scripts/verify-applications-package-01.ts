@@ -23,6 +23,11 @@ const gates: Gate[] = [
     args: ["node_modules/tsx/dist/cli.mjs", "scripts/verify-servicios-owner-qa-delta.ts"],
   },
   {
+    name: "Servicios business-type preset integrity",
+    command: "node",
+    args: ["node_modules/tsx/dist/cli.mjs", "scripts/smoke-servicios-business-presets.ts"],
+  },
+  {
     name: "Restaurantes preview readiness",
     command: "node",
     args: ["node_modules/tsx/dist/cli.mjs", "scripts/restaurante-preview-readiness-smoke.ts"],
@@ -31,6 +36,11 @@ const gates: Gate[] = [
     name: "Comida Local final customer flow lock",
     command: "node",
     args: ["node_modules/tsx/dist/cli.mjs", "scripts/comida-local-food-p2-final-customer-flow-lock-audit.ts"],
+  },
+  {
+    name: "Quick staff assisted-sales application doorway proof",
+    command: "node",
+    args: ["node_modules/tsx/dist/cli.mjs", "scripts/verify-quick-sales-preview-01.ts"],
   },
   {
     name: "Autos final application acceptance",
@@ -43,6 +53,11 @@ const gates: Gate[] = [
     args: ["scripts/verify-autos-dealer-inventory-addon-live-parity-02.mjs"],
   },
   {
+    name: "Autos Dealer exact 10 base plus 10 add-on capacity",
+    command: "node",
+    args: ["scripts/verify-revenue-os-autos-dealer-inventory-entitlement-parity-01.mjs"],
+  },
+  {
     name: "Bienes final launch golden stack",
     command: "node",
     args: ["scripts/verify-bienes-final-launch-golden-stack-01.mjs"],
@@ -51,6 +66,11 @@ const gates: Gate[] = [
     name: "Bienes inventory golden-stack parity",
     command: "node",
     args: ["scripts/verify-bienes-inventory-golden-stack-parity-01.mjs"],
+  },
+  {
+    name: "Bienes property-kind discovery (casa / terreno / comercial)",
+    command: "node",
+    args: ["node_modules/tsx/dist/cli.mjs", "scripts/verify-bienes-negocio-gate2-discovery.ts"],
   },
   {
     name: "Rentas launch application self-test",
