@@ -40,32 +40,25 @@ check("Quick Sales no longer links to Field Canvassing create_listing", () => {
   assert.equal(BEGIN_CLIENT_DRAFT_HREF, "/admin/businesses/canvass?intent=create_listing");
 });
 
-check("Quick Sales has an inline minimal create form, not a second identity system", () => {
+check("Quick Sales drafts a canonical business behind the scenes, not a second identity system", () => {
   assert.ok(clientSrc.includes("data-quick-sales-create-business"));
-  assert.ok(clientSrc.includes("data-quick-sales-minimal-create"));
-  assert.ok(clientSrc.includes("/api/admin/sales-preview/minimal-business"));
+  assert.ok(clientSrc.includes("/api/admin/sales-preview/open-application"));
+  assert.equal(clientSrc.includes("data-quick-sales-minimal-create"), false);
   assert.ok(helperSrc.includes("createCanvassedBusiness"));
   assert.ok(helperSrc.includes("upsertContactValueAsStaff"));
   assert.ok(routeSrc.includes("createMinimalAssistedBusiness"));
   assert.equal(helperSrc.includes("from(\"businesses\")"), true);
 });
 
-check("minimal create does not force canvassing discovery fields", () => {
-  const formStart = clientSrc.indexOf("data-quick-sales-minimal-create");
-  assert.ok(formStart > -1);
-  const formChunk = clientSrc.slice(formStart, formStart + 2200);
-  assert.equal(formChunk.includes("googleBusiness"), false);
-  assert.equal(formChunk.includes("Facebook"), false);
-  assert.equal(formChunk.includes("Instagram"), false);
-  assert.equal(formChunk.includes("TikTok"), false);
-  assert.equal(formChunk.includes("immediateConcern"), false);
-  assert.equal(formChunk.includes("nextFollowUpDate"), false);
-  assert.equal(formChunk.includes("consentSourceResearch"), false);
-  assert.ok(formChunk.includes("Nombre del negocio"));
-  assert.ok(formChunk.includes("Nombre público"));
-  assert.ok(formChunk.includes("Nombre de contacto"));
-  assert.ok(formChunk.includes("Teléfono"));
-  assert.ok(formChunk.includes("Correo"));
+check("new-client path does not force canvassing discovery fields", () => {
+  assert.equal(clientSrc.includes("googleBusiness"), false);
+  assert.equal(clientSrc.includes("Facebook"), false);
+  assert.equal(clientSrc.includes("Instagram"), false);
+  assert.equal(clientSrc.includes("TikTok"), false);
+  assert.equal(clientSrc.includes("immediateConcern"), false);
+  assert.equal(clientSrc.includes("nextFollowUpDate"), false);
+  assert.equal(clientSrc.includes("consentSourceResearch"), false);
+  assert.ok(clientSrc.includes("Cliente nuevo / New client"));
 });
 
 check("minimal-business API does not start Field Canvassing side effects", () => {
@@ -92,20 +85,21 @@ check("package picker is a selector, not a navigation CTA", () => {
   assert.ok(clientSrc.includes("data-staff-selected-package"));
   const planClick = clientSrc.indexOf("data-staff-plan={offer.plan}");
   const planChunk = clientSrc.slice(planClick, planClick + 500);
-  assert.ok(planChunk.includes("onClick={() => setPlan(offer.plan)}"));
+  assert.ok(planChunk.includes("onClick={() => setProductId(offer.id)}"));
   assert.equal(planChunk.includes("location.assign"), false);
   assert.equal(planChunk.includes("href="), false);
 });
 
-check("initial Servicios render has inline create and no canvassing href", () => {
+check("initial Servicios render has create action and no canvassing href", () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { QuickSalesWorkspaceClient } = require("../app/admin/(dashboard)/workspace/quick-sales/QuickSalesWorkspaceClient") as {
     QuickSalesWorkspaceClient: (p: Record<string, unknown>) => ReactElement;
   };
-  const html = renderToStaticMarkup(createElement(QuickSalesWorkspaceClient, { actorEmail: "sales@leonix.test" }));
+  const html = renderToStaticMarkup(
+    createElement(QuickSalesWorkspaceClient, { actorEmail: "sales@leonix.test", initialCategory: "servicios" }),
+  );
   assert.ok(html.includes("data-quick-sales-create-business"));
   assert.ok(html.includes("Elige paquete / Choose package"));
-  assert.ok(html.includes("Quick Business — $249/mes — Simple"));
   assert.ok(html.includes("data-staff-plan=\"quick\""));
   assert.ok(html.includes("data-staff-plan=\"full\""));
   assert.equal(html.includes('href="/admin/businesses/canvass'), false);
@@ -169,9 +163,9 @@ check("Servicios seeder still carries business name / phone / email from canonic
   assert.equal(seed.email, "taller@example.com");
 });
 
-check("after create, Continue uses the same openIntakeWithCustody doorway", () => {
-  assert.ok(clientSrc.includes("Continuar a ${descriptor.labelEs}"));
-  assert.ok(clientSrc.includes("openIntakeWithCustody"));
+check("create ad uses the same custody navigation doorway", () => {
+  assert.ok(clientSrc.includes("Crear ${item.labelEs}"));
+  assert.ok(clientSrc.includes("createAd"));
   assert.ok(clientSrc.includes("resolveStaffNavigationFromCustodyPost"));
 });
 

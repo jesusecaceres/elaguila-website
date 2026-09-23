@@ -35,6 +35,7 @@ import {
   resolveStaffBusinessPackage,
   staffIntakePathForCategory,
 } from "@/app/lib/sales/staffBusinessProduct";
+import { createMinimalAssistedBusiness } from "@/app/lib/sales/createMinimalAssistedBusiness";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -121,7 +122,17 @@ export async function POST(request: NextRequest) {
   }
   const descriptor = QUICK_SALES_CATEGORY_MAP[category];
 
-  const businessId = typeof body.businessId === "string" ? body.businessId.trim() : "";
+  let businessId = typeof body.businessId === "string" ? body.businessId.trim() : "";
+  if (!businessId && body.createDraft === true) {
+    const drafted = await createMinimalAssistedBusiness(
+      { businessName: `Borrador · ${descriptor.labelEs}`, confirmCreateDespiteDuplicates: true },
+      access.actor,
+    );
+    if (!drafted.ok) {
+      return NextResponse.json({ ok: false, error: drafted.error }, { status: drafted.error === "invalid_input" ? 400 : 500 });
+    }
+    businessId = drafted.businessId;
+  }
   if (!businessId) {
     return NextResponse.json({ ok: false, error: "business_id_required" }, { status: 400 });
   }

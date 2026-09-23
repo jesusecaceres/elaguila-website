@@ -43,6 +43,7 @@ import {
 } from "@/app/lib/business/assistedListingCustody";
 import { refuseUnlessAuthoritativePayment } from "@/app/lib/listingPlans/listingPackagePaymentAuthorityServer";
 import { linkSelfServiceListingToBusiness } from "@/app/lib/business/canonicalListingLink";
+import { syncCanonicalBusinessFromApplication } from "@/app/lib/sales/extractBusinessProfileFromApplication";
 import { resolveServiciosReactivationAuthority } from "@/app/clasificados/servicios/lib/serviciosReactivationAuthorityServer";
 import { resolveBusinessToolsAccess } from "@/app/lib/listingPlans/categoryCommercialPlan";
 import {
@@ -864,6 +865,14 @@ export async function POST(req: NextRequest) {
             listingSource: "servicios_public_listings",
             listingId: persistedListingId,
             linkedByAuthUserId: assistedContext!.authUserId,
+          });
+          await syncCanonicalBusinessFromApplication(assistedContext!.businessId, {
+            businessName,
+            publicName: businessName,
+            phone: state.phone,
+            email: state.email,
+            website: state.website,
+            whatsapp: state.whatsapp,
           });
           // REQUIRED REPAIR 6 — the staff actor, the row, and the lifecycle state this write
           // actually left behind. `listingStatus` is the server's own decision, not the caller's.

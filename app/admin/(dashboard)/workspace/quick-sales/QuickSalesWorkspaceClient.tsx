@@ -1,29 +1,24 @@
 "use client";
 
 /**
- * The staff-facing half of the Quick assisted sale. Every button here calls a real, authenticated
- * server route; nothing on this screen decides anything by itself.
- *
- * In particular: this component never holds the authority for the row it is working on. It shows
- * whatever the server's custody status reports, and when it sends a listing id it is sending an
- * agreement, not an instruction — the server refuses a disagreement rather than following it.
- *
- * SERVICIOS doorway: staff picks Quick ($249 Simple) or Full ($399 Full), POSTs custody, then
- * same-tab navigates into the canonical fillable application for the selected family. There is no
- * fail-open intake fallback. No active custody ⇒ no public application. Quick vs Full is
- * entitlement only, and only on the four business pair categories.
+ * Staff sales tool: category → product → existing or new → existing canonical application.
+ * Leonix custody, draft business, and package stamps stay behind the scenes.
  */
-import { useCallback, useEffect, useState } from "react";
-import { QUICK_SALES_CATEGORIES, QUICK_SALES_CATEGORY_MAP, type QuickSalesCategory } from "@/app/lib/sales/quickSalesCategories";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { isQuickSalesCategory, type QuickSalesCategory } from "@/app/lib/sales/quickSalesCategories";
 import {
   resolveStaffNavigationFromCustodyPost,
   resolveStaffOpenIntakeNavigation,
 } from "@/app/lib/sales/staffServiciosGateway";
+import { staffManualPaymentHref, type StaffBusinessPlan } from "@/app/lib/sales/staffBusinessProduct";
 import {
-  staffBusinessOffers,
-  staffManualPaymentHref,
-  type StaffBusinessPlan,
-} from "@/app/lib/sales/staffBusinessProduct";
+  STAFF_LAUNCHER_GROUPS,
+  STAFF_LAUNCHER_GROUP_LABEL,
+  STAFF_MASTER_LAUNCHER_ITEMS,
+  staffLauncherItem,
+  staffLauncherProductPriceLabel,
+  type StaffLauncherItem,
+} from "@/app/lib/sales/staffMasterLauncher";
 
 type BusinessRow = { id: string; name: string; city?: string | null };
 
@@ -58,12 +53,6 @@ async function postJson(url: string, body: unknown): Promise<{ status: number; j
   return { status: res.status, json };
 }
 
-/**
- * QUICK SALES ENTRY CONSOLIDATION — preselection arrives from the server page, which resolved it
- * with the admin client. It only seeds the operator's form: category, the named business, and
- * (when reopening) the draft id. It grants nothing — custody is still established by the server
- * route, which re-proves the business, the client and the row exactly as before.
- */
 export function QuickSalesWorkspaceClient({
   actorEmail,
   initialCategory = null,
@@ -75,29 +64,37 @@ export function QuickSalesWorkspaceClient({
   initialBusiness?: BusinessRow | null;
   initialListingId?: string | null;
 }) {
-  const [category, setCategory] = useState<QuickSalesCategory>(initialCategory ?? "servicios");
+  const [launcherId, setLauncherId] = useState(initialCategory ?? "");
+  const [productId, setProductId] = useState("");
   const [query, setQuery] = useState("");
   const [businesses, setBusinesses] = useState<BusinessRow[]>(initialBusiness ? [initialBusiness] : []);
   const [businessId, setBusinessId] = useState(initialBusiness?.id ?? "");
-  const [clientUserId, setClientUserId] = useState("");
+  const [clientMode, setClientMode] = useState<"new" | "existing">(initialBusiness ? "existing" : "new");
   const [reopenListingId, setReopenListingId] = useState(initialListingId ?? "");
-  const [plan, setPlan] = useState<StaffBusinessPlan>("quick");
   const [status, setStatus] = useState<CustodyStatus>(null);
   const [previewLink, setPreviewLink] = useState<string | null>(null);
   const [previewExpiresAt, setPreviewExpiresAt] = useState<number | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [createOpen, setCreateOpen] = useState(false);
-  const [newBusinessName, setNewBusinessName] = useState("");
-  const [newPublicName, setNewPublicName] = useState("");
-  const [newContactName, setNewContactName] = useState("");
-  const [newPhone, setNewPhone] = useState("");
-  const [newEmail, setNewEmail] = useState("");
-  const [createdBusinessId, setCreatedBusinessId] = useState<string | null>(null);
-  const [duplicateConfirm, setDuplicateConfirm] = useState(false);
 
-  const descriptor = QUICK_SALES_CATEGORY_MAP[category];
-  const pairOffers = staffBusinessOffers(category);
+  const item = staffLauncherItem(launcherId);
+  const selectedProduct = useMemo(() => {
+    if (!item) return null;
+    return item.products.find((p) => p.id === productId) ?? item.products[0] ?? null;
+  }, [item, productId]);
+
+  useEffect(() => {
+    if (!item) {
+      setProductId("");
+      return;
+    }
+    if (!item.products.some((p) => p.id === productId)) {
+      setProductId(item.products[0]?.id ?? "");
+    }
+  }, [item, productId]);
+
+  const plan: StaffBusinessPlan | null =
+    selectedProduct?.plan === "quick" || selectedProduct?.plan === "full" ? selectedProduct.plan : null;
 
   const refreshStatus = useCallback(async () => {
     const res = await fetch("/api/admin/sales-preview/custody", { cache: "no-store" });
@@ -118,92 +115,56 @@ export function QuickSalesWorkspaceClient({
       return;
     }
     const json = (await res.json()) as { items?: Record<string, unknown>[] };
-    const rows = (json.items ?? []).map((item) => ({
-      id: String(item.id ?? ""),
-      name: String(item.business_name ?? item.name ?? item.legal_name ?? "(sin nombre)"),
-      city: (item.city as string | null) ?? null,
+    const rows = (json.items ?? []).map((row) => ({
+      id: String(row.id ?? ""),
+      name: String(row.business_name ?? row.name ?? row.legal_name ?? "(sin nombre)"),
+      city: (row.city as string | null) ?? null,
     }));
     setBusinesses(rows.filter((r) => r.id));
   }, [query]);
 
-  const establishCustody = useCallback(
-    async (listingId?: string) => {
-      setBusy(true);
-      setMessage(null);
-      setPreviewLink(null);
-      const { status: code, json } = await postJson("/api/admin/sales-preview/custody", {
-        category,
-        businessId,
-        clientUserId: clientUserId || undefined,
-        listingId: listingId || undefined,
-        plan: pairOffers.length ? plan : undefined,
-      });
+  const createAd = useCallback(async () => {
+    if (!item) return;
+    setBusy(true);
+    setMessage(null);
+    const { status: code, json } = await postJson("/api/admin/sales-preview/open-application", {
+      launcherId: item.id,
+      productId: selectedProduct?.id,
+      plan,
+      businessId: clientMode === "existing" ? businessId || undefined : undefined,
+      newClient: clientMode === "new",
+      listingId: reopenListingId.trim() || undefined,
+    });
+    if (code !== 200 || json.ok !== true) {
       setBusy(false);
-      if (code !== 200 || json.ok !== true) {
-        setMessage(`Rechazado / Refused (${code}): ${String(json.error ?? "unknown")}`);
-        await refreshStatus();
-        return;
-      }
-      setMessage("Custodia establecida / Custody established");
+      setMessage(`No se pudo abrir / Could not open (${code}): ${String(json.error ?? "unknown")}`);
       await refreshStatus();
-    },
-    [category, businessId, clientUserId, plan, pairOffers.length, refreshStatus],
-  );
-
-  const createMinimalBusiness = useCallback(
-    async (confirmDuplicates = false) => {
-      if (!newBusinessName.trim()) {
-        setMessage("El nombre del negocio es obligatorio. / Business name is required.");
-        return;
-      }
-      setBusy(true);
-      setMessage(null);
-      const { status: code, json } = await postJson("/api/admin/sales-preview/minimal-business", {
-        businessName: newBusinessName.trim(),
-        publicName: newPublicName.trim() || undefined,
-        contactName: newContactName.trim() || undefined,
-        phone: newPhone.trim() || undefined,
-        email: newEmail.trim() || undefined,
-        confirmCreateDespiteDuplicates: confirmDuplicates,
+      return;
+    }
+    if (typeof json.businessId === "string") setBusinessId(json.businessId);
+    const href = typeof json.href === "string" ? json.href : typeof json.intakePath === "string" ? json.intakePath : "";
+    if (item.mode === "assisted" && isQuickSalesCategory(item.assistedCategory)) {
+      const nav = resolveStaffNavigationFromCustodyPost({
+        ok: true,
+        category: item.assistedCategory,
+        intakePath: href,
       });
-      if (code === 200 && json.ok === true && typeof json.businessId === "string") {
-        const createdId = json.businessId;
-        const createdName = String(json.publicName || json.displayName || newBusinessName.trim());
-        setBusinessId(createdId);
-        setCreatedBusinessId(createdId);
-        setBusinesses((prev) => [{ id: createdId, name: createdName }, ...prev.filter((row) => row.id !== createdId)]);
-        setCreateOpen(false);
-        setDuplicateConfirm(false);
-        setNewBusinessName("");
-        setNewPublicName("");
-        setNewContactName("");
-        setNewPhone("");
-        setNewEmail("");
-        const custody = await postJson("/api/admin/sales-preview/custody", {
-          category,
-          businessId: createdId,
-          clientUserId: clientUserId || undefined,
-          plan: pairOffers.length ? plan : undefined,
-        });
+      if (!nav.allowed) {
         setBusy(false);
-        if (custody.status === 200 && custody.json.ok === true) {
-          setMessage("Negocio creado y custodia establecida / Business created and custody established");
-        } else {
-          setMessage("Negocio creado — establece la custodia abajo. / Business created — establish custody below.");
-        }
+        setMessage("No se pudo abrir la aplicación. / Could not open the application.");
         await refreshStatus();
         return;
       }
+      window.location.assign(nav.href);
+      return;
+    }
+    if (!href) {
       setBusy(false);
-      if (json.error === "duplicate_business_warning") {
-        setDuplicateConfirm(true);
-        setMessage("Ya existe un negocio parecido. Confirma para crear de todos modos. / A similar business already exists. Confirm to create anyway.");
-        return;
-      }
-      setMessage(`No se pudo crear / Create failed (${code}): ${String(json.error ?? "unknown")}`);
-    },
-    [newBusinessName, newPublicName, newContactName, newPhone, newEmail, category, clientUserId, plan, pairOffers.length, refreshStatus],
-  );
+      setMessage("Sin destino. / No destination.");
+      return;
+    }
+    window.location.assign(href);
+  }, [item, selectedProduct, plan, clientMode, businessId, reopenListingId, refreshStatus]);
 
   const issuePreview = useCallback(async () => {
     setBusy(true);
@@ -232,41 +193,8 @@ export function QuickSalesWorkspaceClient({
     await refreshStatus();
   }, [refreshStatus]);
 
-  /**
-   * Primary action for every family: mint server-issued Leonix custody with the chosen package,
-   * then SAME-TAB navigate into the canonical application. Never uses a client-side intake
-   * fallback; never opens a new tab; never navigates if the POST did not confirm custody.
-   */
-  const openIntakeWithCustody = useCallback(async () => {
-    if (!businessId) return;
-    setBusy(true);
-    setMessage(null);
-    const { status: code, json } = await postJson("/api/admin/sales-preview/custody", {
-      category,
-      businessId,
-      clientUserId: clientUserId || undefined,
-      listingId: reopenListingId.trim() || undefined,
-      plan: pairOffers.length ? plan : undefined,
-    });
-    if (code !== 200 || json.ok !== true) {
-      setBusy(false);
-      setMessage(`Rechazado / Refused (${code}): ${String(json.error ?? "unknown")}`);
-      await refreshStatus();
-      return;
-    }
-    const nav = resolveStaffNavigationFromCustodyPost(json);
-    if (!nav.allowed) {
-      setBusy(false);
-      setMessage("Sin custodia confirmada — no se abre la aplicación. / No confirmed custody — application stays closed.");
-      await refreshStatus();
-      return;
-    }
-    setMessage("Custodia establecida / Custody established");
-    window.location.assign(nav.href);
-  }, [category, businessId, clientUserId, reopenListingId, plan, pairOffers.length, refreshStatus]);
-
   const openIntakeNav = resolveStaffOpenIntakeNavigation({
-    selectedCategory: category,
+    selectedCategory: item?.assistedCategory && isQuickSalesCategory(item.assistedCategory) ? item.assistedCategory : "servicios",
     liveCustody: status ? { category: status.category, intakePath: status.intakePath } : null,
   });
 
@@ -274,294 +202,216 @@ export function QuickSalesWorkspaceClient({
     ? `${typeof window !== "undefined" ? window.location.origin : ""}${previewLink}`
     : null;
 
+  const canCreate = Boolean(item && selectedProduct && (clientMode === "new" || businessId));
+
   return (
-    <div className="space-y-5 overflow-x-hidden text-sm text-[#2F2A1F]">
+    <div className="space-y-5 overflow-x-hidden text-sm text-[#2F2A1F]" data-staff-master-launcher>
       <p className="text-xs text-[#5D4A25]">Operador / Operator: {actorEmail}</p>
-      {initialBusiness || initialCategory || initialListingId ? (
-        <p className="rounded-lg border border-[#C9A84A]/60 bg-[#FFFDF7] p-3 text-xs text-[#5D4A25]" data-quick-sales-preselected>
-          Preseleccionado desde el panel — confirma y establece la custodia abajo. / Preselected from the
-          admin panel — confirm and establish custody below.
-          {initialBusiness ? <span className="block font-semibold text-[#2F2A1F]">{initialBusiness.name}</span> : null}
-          {initialListingId ? <span className="block">Reabrir borrador / Reopen draft: <span className="font-mono">{initialListingId}</span></span> : null}
-        </p>
-      ) : null}
 
       <section className="rounded-xl border border-[#E6DCC6] bg-white p-4">
-        <h2 className="mb-2 font-bold">1. Categoría / Category</h2>
-        <div className="flex flex-wrap gap-2">
-          {QUICK_SALES_CATEGORIES.map((key) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setCategory(key)}
-              aria-pressed={category === key}
-              aria-label={`${QUICK_SALES_CATEGORY_MAP[key].labelEs} / ${QUICK_SALES_CATEGORY_MAP[key].labelEn}`}
-              className={`min-h-[44px] rounded-lg border px-3 py-2 text-xs font-semibold ${
-                category === key ? "border-[#B8860B] bg-[#FFF6E7]" : "border-[#E6DCC6] bg-white"
-              }`}
-            >
-              {QUICK_SALES_CATEGORY_MAP[key].labelEs} / {QUICK_SALES_CATEGORY_MAP[key].labelEn}
-            </button>
-          ))}
-        </div>
-        {pairOffers.length ? (
-          <div className="mt-3" data-staff-business-plan>
-            <h3 className="mb-1 text-xs font-bold text-[#2F2A1F]">Elige paquete / Choose package</h3>
-            <p className="mb-2 text-xs text-[#5D4A25]">
-              Quick y Full usan la misma aplicación y el mismo anuncio. Solo cambia el acceso. Elegir
-              no navega. · Quick and Full use the same application and the same listing. Only access
-              changes. Choosing a package does not navigate.
-            </p>
-            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Elige paquete / Choose package">
-              {pairOffers.map((offer) => (
+        <h2 className="mb-1 font-bold">1. ¿Qué quieres crear? / What are you creating?</h2>
+        <p className="mb-3 text-xs text-[#5D4A25]">Elige una categoría. / Choose a category.</p>
+        {STAFF_LAUNCHER_GROUPS.map((group) => (
+          <div key={group} className="mb-3" data-staff-launcher-group={group}>
+            <h3 className="mb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#8A6B1F]">
+              {STAFF_LAUNCHER_GROUP_LABEL[group].es} / {STAFF_LAUNCHER_GROUP_LABEL[group].en}
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {STAFF_MASTER_LAUNCHER_ITEMS.filter((row) => row.group === group).map((row) => (
                 <button
-                  key={offer.plan}
+                  key={row.id}
                   type="button"
-                  role="radio"
-                  data-staff-plan={offer.plan}
-                  onClick={() => setPlan(offer.plan)}
+                  data-staff-launcher-item={row.id}
+                  onClick={() => setLauncherId(row.id)}
+                  aria-pressed={launcherId === row.id}
                   className={`min-h-[44px] rounded-lg border px-3 py-2 text-xs font-semibold ${
-                    plan === offer.plan ? "border-[#B8860B] bg-[#FFF6E7]" : "border-[#E6DCC6] bg-white"
+                    launcherId === row.id ? "border-[#B8860B] bg-[#FFF6E7]" : "border-[#E6DCC6] bg-white"
                   }`}
-                  aria-checked={plan === offer.plan}
-                  aria-pressed={plan === offer.plan}
-                  aria-label={`${offer.plan === "quick" ? "Quick Business" : "Full Business"} $${(offer.priceCents / 100).toFixed(0)}`}
                 >
-                  {plan === offer.plan ? "✓ " : "○ "}
-                  {offer.plan === "quick" ? "Quick Business" : "Full Business"} — $
-                  {(offer.priceCents / 100).toFixed(0)}/mes — {offer.access === "simple" ? "Simple" : "Full"}
+                  {row.labelEs} / {row.labelEn}
                 </button>
               ))}
             </div>
-            <p className="mt-2 text-xs font-semibold text-[#2F2A1F]" data-staff-selected-package>
-              Paquete seleccionado / Selected package:{" "}
-              {plan === "quick" ? "Quick Business — $249/mes — Simple" : "Full Business — $399/mes — Full"}
-            </p>
           </div>
-        ) : null}
-        <p className="mt-2 text-xs text-[#5D4A25]">
-          El anuncio pertenece a Leonix, no a la cuenta personal del empleado. El usuario del cliente
-          es opcional hasta una cesión. · The ad belongs to Leonix, not the employee&apos;s personal
-          account. The customer user is optional until a later claim.
-        </p>
+        ))}
       </section>
 
-      <section className="rounded-xl border border-[#E6DCC6] bg-white p-4">
-        <h2 className="mb-2 font-bold">2. Negocio del cliente / Customer business</h2>
-        <p className="mb-2 text-xs text-[#5D4A25]">
-          Elige un negocio existente, o crea un registro canónico mínimo aquí. No uses Field
-          Canvassing para un anuncio gestionado. · Pick an existing business, or create a minimal
-          canonical record here. Do not use Field Canvassing for a managed ad.
-        </p>
-        <button
-          type="button"
-          onClick={() => setCreateOpen((open) => !open)}
-          className="mb-3 inline-flex min-h-[44px] items-center rounded-lg border border-[#E6DCC6] px-3 py-2 text-xs font-semibold"
-          data-quick-sales-create-business
-          aria-expanded={createOpen}
-        >
-          Crear negocio nuevo / Create new business
-        </button>
-        {createOpen ? (
-          <div className="mb-3 space-y-2 rounded-lg border border-[#E6DCC6] bg-[#FFFDF7] p-3" data-quick-sales-minimal-create>
-            <label className="block text-xs font-semibold">
-              Nombre del negocio / Business name
-              <input
-                value={newBusinessName}
-                onChange={(e) => setNewBusinessName(e.target.value)}
-                className="mt-1 min-h-[44px] w-full rounded-lg border border-[#E6DCC6] bg-white px-3 py-2 font-normal"
-                aria-label="Nombre del negocio / Business name"
-              />
-            </label>
-            <label className="block text-xs font-semibold">
-              Nombre público (opcional) / Public-facing name (optional)
-              <input
-                value={newPublicName}
-                onChange={(e) => setNewPublicName(e.target.value)}
-                placeholder="Igual que el nombre / Same as business name"
-                className="mt-1 min-h-[44px] w-full rounded-lg border border-[#E6DCC6] bg-white px-3 py-2 font-normal"
-                aria-label="Nombre público / Public-facing name"
-              />
-            </label>
-            <label className="block text-xs font-semibold">
-              Nombre de contacto (opcional) / Contact name (optional)
-              <input
-                value={newContactName}
-                onChange={(e) => setNewContactName(e.target.value)}
-                className="mt-1 min-h-[44px] w-full rounded-lg border border-[#E6DCC6] bg-white px-3 py-2 font-normal"
-                aria-label="Nombre de contacto / Contact name"
-              />
-            </label>
-            <label className="block text-xs font-semibold">
-              Teléfono (opcional) / Phone (optional)
-              <input
-                value={newPhone}
-                onChange={(e) => setNewPhone(e.target.value)}
-                className="mt-1 min-h-[44px] w-full rounded-lg border border-[#E6DCC6] bg-white px-3 py-2 font-normal"
-                aria-label="Teléfono / Phone"
-              />
-            </label>
-            <label className="block text-xs font-semibold">
-              Correo (opcional) / Email (optional)
-              <input
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                className="mt-1 min-h-[44px] w-full rounded-lg border border-[#E6DCC6] bg-white px-3 py-2 font-normal"
-                aria-label="Correo / Email"
-              />
-            </label>
-            <button
-              type="button"
-              disabled={busy || !newBusinessName.trim()}
-              onClick={() => void createMinimalBusiness(duplicateConfirm)}
-              className="min-h-[44px] rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold disabled:opacity-40"
-              data-quick-sales-save-business
-            >
-              {duplicateConfirm ? "Confirmar y crear / Confirm and create" : "Guardar negocio / Save business"}
-            </button>
-          </div>
-        ) : null}
-        {createdBusinessId ? (
-          <p className="mb-3 rounded-lg bg-[#FFF6E7] p-2 text-xs font-semibold" data-quick-sales-created-business>
-            Negocio creado y seleccionado / Business created and selected
-          </p>
-        ) : null}
-        <div className="flex gap-2">
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar negocio / Search business"
-            className="min-h-[44px] flex-1 rounded-lg border border-[#E6DCC6] px-3 py-2"
-            aria-label="Buscar negocio / Search business"
-          />
-          <button type="button" onClick={() => void searchBusinesses()} className="min-h-[44px] rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold">
-            Buscar / Search
-          </button>
-        </div>
-        {businesses.length ? (
-          <ul className="mt-3 max-h-56 space-y-1 overflow-auto">
-            {businesses.map((b) => (
-              <li key={b.id}>
+      {item ? (
+        <section className="rounded-xl border border-[#E6DCC6] bg-white p-4" data-staff-product-step>
+          <h2 className="mb-1 font-bold">2. ¿Qué producto? / Which product?</h2>
+          {item.hasQuickFull ? (
+            <div className="mt-2" data-staff-business-plan>
+              <h3 className="mb-1 text-xs font-bold">Elige paquete / Choose package</h3>
+              <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Elige paquete / Choose package">
+                {item.products.map((offer) => {
+                  const selected = selectedProduct?.id === offer.id;
+                  const price = staffLauncherProductPriceLabel(offer.packageKey);
+                  return (
+                    <button
+                      key={offer.id}
+                      type="button"
+                      role="radio"
+                      data-staff-plan={offer.plan}
+                      onClick={() => setProductId(offer.id)}
+                      aria-checked={selected}
+                      className={`min-h-[44px] rounded-lg border px-3 py-2 text-xs font-semibold ${
+                        selected ? "border-[#B8860B] bg-[#FFF6E7]" : "border-[#E6DCC6] bg-white"
+                      }`}
+                    >
+                      {selected ? "✓ " : "○ "}
+                      {offer.labelEs} — {price}
+                      {offer.plan === "quick" ? "/mes — Simple" : offer.plan === "full" ? "/mes — Full" : ""}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-2 text-xs font-semibold" data-staff-selected-package>
+                Paquete seleccionado / Selected package: {selectedProduct?.labelEs}{" "}
+                {staffLauncherProductPriceLabel(selectedProduct?.packageKey)}
+              </p>
+            </div>
+          ) : item.products.length > 1 ? (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {item.products.map((offer) => (
                 <button
+                  key={offer.id}
                   type="button"
-                  onClick={() => setBusinessId(b.id)}
-                  className={`min-h-[44px] w-full rounded-lg border px-3 py-2 text-left text-xs ${
-                    businessId === b.id ? "border-[#B8860B] bg-[#FFF6E7]" : "border-[#E6DCC6]"
+                  onClick={() => setProductId(offer.id)}
+                  aria-pressed={selectedProduct?.id === offer.id}
+                  className={`min-h-[44px] rounded-lg border px-3 py-2 text-xs font-semibold ${
+                    selectedProduct?.id === offer.id ? "border-[#B8860B] bg-[#FFF6E7]" : "border-[#E6DCC6]"
                   }`}
                 >
-                  <span className="font-semibold">{b.name}</span>
-                  {b.city ? <span className="text-[#5D4A25]"> · {b.city}</span> : null}
-                  <span className="block font-mono text-[10px] text-[#8B7355]">{b.id}</span>
+                  {offer.labelEs} / {offer.labelEn}
+                  {offer.packageKey ? ` — ${staffLauncherProductPriceLabel(offer.packageKey)}` : ""}
                 </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-        <input
-          value={clientUserId}
-          onChange={(e) => setClientUserId(e.target.value)}
-          placeholder="Usuario del cliente (opcional) / Customer user id (optional)"
-          className="mt-3 min-h-[44px] w-full rounded-lg border border-[#E6DCC6] px-3 py-2 font-mono text-xs"
-          aria-label="Usuario del cliente (opcional) / Customer user id (optional)"
-        />
-      </section>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-[#5D4A25]" data-staff-single-product>
+              {selectedProduct?.labelEs} / {selectedProduct?.labelEn}
+              {selectedProduct?.packageKey ? ` — ${staffLauncherProductPriceLabel(selectedProduct.packageKey)}` : ""}
+            </p>
+          )}
+        </section>
+      ) : null}
 
-      <section className="rounded-xl border border-[#E6DCC6] bg-white p-4">
-        <h2 className="mb-2 font-bold">3. Custodia asistida / Assisted custody</h2>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            disabled={busy || !businessId}
-            onClick={() => void establishCustody()}
-            className="min-h-[44px] rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold disabled:opacity-40"
-          >
-            Empezar anuncio nuevo / Start a new ad
-          </button>
-          <input
-            value={reopenListingId}
-            onChange={(e) => setReopenListingId(e.target.value)}
-            placeholder="ID del borrador / Draft id"
-            className="min-h-[44px] rounded-lg border border-[#E6DCC6] px-3 py-2 font-mono text-xs"
-            aria-label="ID del borrador / Draft id"
-          />
-          <button
-            type="button"
-            disabled={busy || !businessId || !reopenListingId.trim()}
-            onClick={() => void establishCustody(reopenListingId.trim())}
-            className="min-h-[44px] rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold disabled:opacity-40"
-          >
-            Reabrir el mismo borrador / Reopen the same draft
-          </button>
-        </div>
-        {status ? (
-          <div className="mt-3 rounded-lg bg-[#FFF6E7] p-3 text-xs">
-            <p>
-              Categoría / Category: <strong>{status.category}</strong>
-            </p>
-            <p>
-              Negocio / Business: <span className="font-mono">{status.businessId}</span>
-            </p>
-            <p>
-              Anuncio canónico / Canonical listing:{" "}
-              <span className="font-mono">{status.listingId ?? "— (aún no guardado / not saved yet)"}</span>
-            </p>
-            <p>
-              Producto / Product:{" "}
-              <strong>
-                {status.plan === "full" ? "Full" : status.plan === "quick" ? "Quick" : "—"}{" "}
-                {status.packageKey ? <span className="font-mono">({status.packageKey})</span> : null}
-              </strong>
-            </p>
-            <p>
-              Pago / Payment: <strong>{status.paymentState}</strong>
-            </p>
+      {item ? (
+        <section className="rounded-xl border border-[#E6DCC6] bg-white p-4">
+          <h2 className="mb-2 font-bold">3. ¿Cliente nuevo o existente? / New or existing client?</h2>
+          <div className="mb-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setClientMode("new")}
+              aria-pressed={clientMode === "new"}
+              data-staff-client-mode="new"
+              className={`min-h-[44px] rounded-lg border px-3 py-2 text-xs font-semibold ${
+                clientMode === "new" ? "border-[#B8860B] bg-[#FFF6E7]" : "border-[#E6DCC6]"
+              }`}
+            >
+              Cliente nuevo / New client
+            </button>
+            <button
+              type="button"
+              onClick={() => setClientMode("existing")}
+              aria-pressed={clientMode === "existing"}
+              data-staff-client-mode="existing"
+              className={`min-h-[44px] rounded-lg border px-3 py-2 text-xs font-semibold ${
+                clientMode === "existing" ? "border-[#B8860B] bg-[#FFF6E7]" : "border-[#E6DCC6]"
+              }`}
+            >
+              Negocio existente / Existing business
+            </button>
           </div>
-        ) : (
-          <p className="mt-3 text-xs text-[#5D4A25]">Sin custodia activa / No active custody</p>
-        )}
-      </section>
+          {clientMode === "new" ? (
+            <p className="text-xs text-[#5D4A25]" data-staff-new-client>
+              No hace falta un formulario de perfil. Los datos del anuncio crean el negocio. / No
+              profile form is required. The application creates the business.
+            </p>
+          ) : (
+            <>
+              <div className="flex gap-2">
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Buscar negocio / Search business"
+                  className="min-h-[44px] flex-1 rounded-lg border border-[#E6DCC6] px-3 py-2"
+                  aria-label="Buscar negocio / Search business"
+                />
+                <button type="button" onClick={() => void searchBusinesses()} className="min-h-[44px] rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold">
+                  Buscar / Search
+                </button>
+              </div>
+              {businesses.length ? (
+                <ul className="mt-3 max-h-56 space-y-1 overflow-auto">
+                  {businesses.map((b) => (
+                    <li key={b.id}>
+                      <button
+                        type="button"
+                        onClick={() => setBusinessId(b.id)}
+                        className={`min-h-[44px] w-full rounded-lg border px-3 py-2 text-left text-xs ${
+                          businessId === b.id ? "border-[#B8860B] bg-[#FFF6E7]" : "border-[#E6DCC6]"
+                        }`}
+                      >
+                        <span className="font-semibold">{b.name}</span>
+                        {b.city ? <span className="text-[#5D4A25]"> · {b.city}</span> : null}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </>
+          )}
+        </section>
+      ) : null}
 
       <section className="rounded-xl border border-[#E6DCC6] bg-white p-4">
-        <h2 className="mb-2 font-bold">4. Armar el anuncio / Build the ad</h2>
-        <p className="text-xs text-[#5D4A25]">
-          Se usa la herramienta de la categoría — no hay un formulario aparte aquí. · The category&apos;s
-          own tool is used — there is no separate form here.
-        </p>
+        <h2 className="mb-2 font-bold">4. Crear anuncio / Create ad</h2>
         <button
           type="button"
-          disabled={busy || !businessId}
-          onClick={() => void openIntakeWithCustody()}
-          data-servicios-staff-primary={category === "servicios" ? "true" : undefined}
-          data-staff-open-intake={category}
-          data-staff-open-requires-custody="true"
-          data-staff-plan={pairOffers.length ? plan : undefined}
-          className="mt-2 min-h-[44px] rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold disabled:opacity-40"
+          disabled={busy || !canCreate}
+          onClick={() => void createAd()}
+          data-servicios-staff-primary={item?.id === "servicios" ? "true" : undefined}
+          data-staff-open-intake={item?.assistedCategory ?? item?.id}
+          data-staff-open-requires-custody={item?.mode === "assisted" ? "true" : "false"}
+          data-staff-plan={plan ?? undefined}
+          data-quick-sales-create-business="inline-draft"
+          className="min-h-[44px] rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold disabled:opacity-40"
         >
-          {createdBusinessId
-            ? `Continuar a ${descriptor.labelEs} / Continue to ${descriptor.labelEn}`
-            : `Llenar ${descriptor.labelEs} / Fill ${descriptor.labelEn}`}
+          {item ? `Crear ${item.labelEs} / Create ${item.labelEn}` : "Elige una categoría / Choose a category"}
         </button>
-        {!businessId ? (
+        {!item ? (
+          <p className="mt-2 text-xs text-[#8B4513]">Elige una categoría primero. / Choose a category first.</p>
+        ) : clientMode === "existing" && !businessId ? (
           <p className="mt-2 text-xs text-[#8B4513]" data-staff-open-blocked="no_business">
-            Elige un negocio del cliente primero. / Select the client&apos;s business first.
-          </p>
-        ) : !openIntakeNav.allowed ? (
-          <p className="mt-2 text-xs text-[#8B4513]" data-staff-open-blocked={openIntakeNav.reason}>
-            Sin custodia activa — no se abre la aplicación pública. / No active custody — the public
-            application stays closed.
+            Busca y elige el negocio. / Search and select the business.
           </p>
         ) : null}
       </section>
 
       <section className="rounded-xl border border-[#E6DCC6] bg-white p-4">
-        <h2 className="mb-2 font-bold">5. Vista previa privada / Private preview</h2>
+        <h2 className="mb-2 font-bold">Después de armar el anuncio / After the ad is built</h2>
+        <div className="grid gap-2 sm:grid-cols-3">
+          <p className="rounded-lg bg-[#FFFDF7] p-3 text-xs">
+            <strong>Guardar para después / Save for later</strong>
+            <span className="mt-1 block text-[#5D4A25]">El anuncio queda en borrador. / The ad stays a draft.</span>
+          </p>
+          <p className="rounded-lg bg-[#FFFDF7] p-3 text-xs">
+            <strong>El cliente paga en línea / Client pays online</strong>
+            <span className="mt-1 block text-[#5D4A25]">Comparte la vista previa y el pago. / Share preview and payment.</span>
+          </p>
+          <p className="rounded-lg bg-[#FFFDF7] p-3 text-xs">
+            <strong>Pagó en oficina / Paid in office</strong>
+            <span className="mt-1 block text-[#5D4A25]">Registra el pago y publica. / Record payment and publish.</span>
+          </p>
+        </div>
         <button
           type="button"
           disabled={busy || !status?.listingId}
           onClick={() => void issuePreview()}
-          className="min-h-[44px] rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold disabled:opacity-40"
+          className="mt-3 min-h-[44px] rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold disabled:opacity-40"
         >
-          Generar enlace / Generate link
+          Vista previa privada / Private preview
         </button>
         {absolutePreview ? (
           <div className="mt-3 space-y-2">
@@ -574,22 +424,10 @@ export function QuickSalesWorkspaceClient({
               Copiar / Copy
             </button>
             {previewExpiresAt ? (
-              <p className="text-xs text-[#5D4A25]">
-                Expira / Expires: {new Date(previewExpiresAt).toLocaleString()}
-              </p>
+              <p className="text-xs text-[#5D4A25]">Expira / Expires: {new Date(previewExpiresAt).toLocaleString()}</p>
             ) : null}
           </div>
         ) : null}
-      </section>
-
-      <section className="rounded-xl border border-[#E6DCC6] bg-white p-4">
-        <h2 className="mb-2 font-bold">6. Publicar / Publish</h2>
-        <p className="text-xs text-[#5D4A25]">
-          Solo después de un pago confirmado por el servidor. Se publica el MISMO anuncio que el
-          cliente revisó, con el acceso Quick o Full verificado. · Only after a payment the server
-          itself confirmed. It publishes the SAME listing the customer reviewed, with the verified
-          Quick or Full entitlement.
-        </p>
         {status?.listingId ? (
           <a
             href={staffManualPaymentHref({
@@ -600,7 +438,7 @@ export function QuickSalesWorkspaceClient({
             data-staff-record-payment
             className="mt-2 inline-flex min-h-[44px] items-center rounded-lg border border-[#E6DCC6] px-3 py-2 text-xs font-semibold"
           >
-            Registrar o verificar pago / Record or verify payment
+            Registrar pago en oficina / Record office payment
           </a>
         ) : null}
         <button
@@ -613,13 +451,39 @@ export function QuickSalesWorkspaceClient({
         </button>
         {status && status.listingId && !status.publishReady ? (
           <p className="mt-2 text-xs text-[#8B4513]">
-            El pago aún no está confirmado; publicar será rechazado. · Payment is not confirmed yet;
-            publishing will be refused.
+            El pago aún no está confirmado. / Payment is not confirmed yet.
           </p>
         ) : null}
       </section>
 
+      <details className="rounded-lg border border-[#E6DCC6] bg-[#FFFDF7] p-3 text-xs text-[#5D4A25]">
+        <summary className="cursor-pointer font-semibold">Estado técnico / Staff status</summary>
+        {status ? (
+          <div className="mt-2 space-y-1">
+            <p>Categoría: {status.category}</p>
+            <p>Negocio: {status.businessId}</p>
+            <p>Anuncio: {status.listingId ?? "—"}</p>
+            <p>Producto: {status.plan ?? "—"} {status.packageKey ? `(${status.packageKey})` : ""}</p>
+            <p>Pago: {status.paymentState}</p>
+            {!openIntakeNav.allowed ? <p data-staff-open-blocked={openIntakeNav.reason}>Sin aplicación abierta.</p> : null}
+          </div>
+        ) : (
+          <p className="mt-2">Sin custodia activa / No active custody</p>
+        )}
+        <input
+          value={reopenListingId}
+          onChange={(e) => setReopenListingId(e.target.value)}
+          placeholder="Reabrir borrador / Reopen draft id"
+          className="mt-2 min-h-[44px] w-full rounded-lg border border-[#E6DCC6] bg-white px-3 py-2 font-mono"
+          aria-label="Reabrir borrador / Reopen draft id"
+        />
+      </details>
+
       {message ? <p className="rounded-lg bg-[#FFF6E7] p-3 text-xs">{message}</p> : null}
     </div>
   );
+}
+
+export function launcherLabel(item: StaffLauncherItem): string {
+  return `${item.labelEs} / ${item.labelEn}`;
 }

@@ -48,6 +48,11 @@ const gates: Gate[] = [
     args: ["node_modules/tsx/dist/cli.mjs", "--tsconfig", "scripts/lib/tsconfig.harness.json", "scripts/verify-quick-sales-minimal-business-01.ts"],
   },
   {
+    name: "Staff master launcher and customer application routing",
+    command: "node",
+    args: ["node_modules/tsx/dist/cli.mjs", "--tsconfig", "scripts/lib/tsconfig.harness.json", "scripts/verify-sales-master-launcher-01.ts"],
+  },
+  {
     name: "Autos final application acceptance",
     command: "node",
     args: ["node_modules/tsx/dist/cli.mjs", "scripts/autos-a5-final-acceptance-live-completion-audit.ts"],

@@ -52,13 +52,11 @@ export default async function QuickSalesWorkspacePage({ searchParams }: { search
   return (
     <main className="mx-auto w-full max-w-4xl px-4 py-6">
       <header className="mb-5">
-        <h1 className="text-2xl font-extrabold text-[#2F2A1F]">Quick — Venta asistida / Assisted sale</h1>
+        <h1 className="text-2xl font-extrabold text-[#2F2A1F]">Crear anuncio / Create an ad</h1>
         <p className="mt-1 text-sm text-[#5D4A25]">
-          Elige la categoría y el negocio del cliente, arma el anuncio en la herramienta de esa
-          categoría, y comparte una vista previa privada antes de cobrar.
-          {" "}
-          Pick the category and the customer&apos;s business, build the ad in that category&apos;s own tool,
-          and share a private preview before taking payment.
+          Elige la categoría, elige el producto, y abre la aplicación. El cliente nuevo no necesita
+          un perfil primero. · Choose the category, choose the product, and open the application. A
+          new client does not need a profile first.
         </p>
         <p className="mt-2 rounded-lg bg-[#FFF6E7] p-3 text-xs text-[#5D4A25]">
           Guardar para el cliente nunca publica. Publicar requiere un pago confirmado por el

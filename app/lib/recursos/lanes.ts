@@ -34,10 +34,10 @@ export const LANE_EXPLORE_PATH: Record<ResourceLaneKey, string> = {
 export const LANE_PUBLISH_PATH: Record<ResourceLaneKey, string> = {
   comunidad: "/publicar/comunidad/quick",
   clases: "/publicar/clases/quick",
-  iglesias: "/publicar",
+  iglesias: "/iglesias/registrar",
   busco: "/publicar/busco/quick",
   "mascotas-y-perdidos": "/publicar/mascotas-y-perdidos/quick",
-  "ayuda-comunitaria": "/publicar",
+  "ayuda-comunitaria": "/recursos-comunitarios/sugerir",
 };
 
 export type LaneCopy = {
@@ -95,7 +95,7 @@ export const LANE_COPY: Record<ResourceLaneKey, LaneCopy> = {
     labelEn: "Community Help",
     descEs: "Recursos gratuitos, apoyo local e información útil para familias y vecinos.",
     descEn: "Free resources, local support, and useful information for families and neighbors.",
-    publishEs: "Publicar recurso",
-    publishEn: "Post resource",
+    publishEs: "Sugerir recurso",
+    publishEn: "Suggest a resource",
   },
 };

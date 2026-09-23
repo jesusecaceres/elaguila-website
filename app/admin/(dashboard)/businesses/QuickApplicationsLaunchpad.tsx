@@ -6,20 +6,12 @@ import { adminBtnPrimary, adminBtnSecondary } from "../../_components/adminTheme
 import { ADMIN_DASHBOARD_ROUTES } from "../../_lib/adminDashboardRoutes";
 import { buildConciergeInventoryHref } from "../../_lib/conciergeIntent";
 import { copyToClipboard, tryWebShare } from "@/app/components/cta/ctaLaunchers";
-import { formatRevenuePriceLabel, getRevenuePackagePriceCents } from "@/app/lib/listingPlans/revenuePricingMatrix";
+import { quickClassifiedShareUrl } from "@/app/lib/quickClassifieds/quickClassifiedRoutes";
+import { buildQuickSalesHref } from "@/app/lib/sales/quickSalesRoutes";
 import {
-  QUICK_CLASSIFIED_DEFINITIONS,
-  QUICK_COMMUNITY_KEYS,
-  QUICK_TIER1_KEYS,
-} from "@/app/lib/quickClassifieds/quickClassifiedRegistry";
-import { quickClassifiedCategoryPath, quickClassifiedShareUrl } from "@/app/lib/quickClassifieds/quickClassifiedRoutes";
-import type { QuickClassifiedCategoryKey, QuickClassifiedDefinition } from "@/app/lib/quickClassifieds/quickClassifiedTypes";
-import { listQuickBusinessDefinitions } from "@/app/lib/quickBusiness/quickBusinessRegistry";
-import { quickBusinessCategoryPath, quickBusinessShareUrl } from "@/app/lib/quickBusiness/quickBusinessRoutes";
-import type { QuickBusinessDefinition } from "@/app/lib/quickBusiness/quickBusinessTypes";
-import { listQuickRemainingDefinitions } from "@/app/lib/quickRemaining/quickRemainingRegistry";
-import type { QuickRemainingDefinition } from "@/app/lib/quickRemaining/quickRemainingRegistry";
-import { buildQuickSalesHref, quickSalesCategoryForClassifiedKey, quickSalesCategoryForQuickBusinessKey, quickSalesCategoryForRemainingKey } from "@/app/lib/sales/quickSalesRoutes";
+  STAFF_MASTER_LAUNCHER_ITEMS,
+  staffCustomerQuickLinkItems,
+} from "@/app/lib/sales/staffMasterLauncher";
 
 /**
  * ENLACES PARA EL CLIENTE / CUSTOMER SELF-SERVICE LINKS — the launchpad inside the Business Concierge PWA.
@@ -40,60 +32,12 @@ import { buildQuickSalesHref, quickSalesCategoryForClassifiedKey, quickSalesCate
 
 type LinkLang = "es" | "en";
 
-function priceBadge(def: QuickClassifiedDefinition): string {
-  if (def.pricing.kind === "free") return "Gratis / Free";
-  const { priceCents } = getRevenuePackagePriceCents({ category: def.pricing.category, packageKey: def.pricing.packageKey });
-  return priceCents == null ? "" : formatRevenuePriceLabel(priceCents);
-}
-
 function origin(): string {
   return typeof window === "undefined" ? "" : window.location.origin;
 }
 
 function withLang(path: string, lang: LinkLang): string {
   return path.includes("?") ? `${path}&lang=${lang}` : `${path}?lang=${lang}`;
-}
-
-/** Tier-1 → Quick intake route; community family → its existing short canonical application (direct link). */
-function customerPath(def: QuickClassifiedDefinition, lang: LinkLang): string {
-  const isCommunity = (QUICK_COMMUNITY_KEYS as readonly string[]).includes(def.key);
-  if (isCommunity || def.status === "blocked") return withLang(def.standardApplicationPath, lang);
-  return quickClassifiedCategoryPath(def.key, lang, "staff");
-}
-
-function customerUrl(def: QuickClassifiedDefinition | null, lang: LinkLang): string {
-  if (!def) return quickClassifiedShareUrl(origin(), null, lang);
-  return `${origin().replace(/\/+$/, "")}${customerPath(def, lang)}`;
-}
-
-const FSBO: QuickClassifiedCategoryKey = "bienes-raices";
-
-/** Quick Business (Phase 2 core): monthly price badge from the server pricing authority. */
-function businessPriceBadge(def: QuickBusinessDefinition): string {
-  const { priceCents } = getRevenuePackagePriceCents({ category: def.pricing.category, packageKey: def.pricing.packageKey });
-  return priceCents == null ? "" : `${formatRevenuePriceLabel(priceCents)}/mes · /month`;
-}
-
-/** Live business categories → Quick Business intake; a "direct" one → the EXISTING application. */
-function businessCustomerPath(def: QuickBusinessDefinition, lang: LinkLang): string {
-  if (def.status === "direct") return withLang(def.standardApplicationPath, lang);
-  return quickBusinessCategoryPath(def.key, lang, "staff");
-}
-
-function businessCustomerUrl(def: QuickBusinessDefinition | null, lang: LinkLang): string {
-  if (!def) return quickBusinessShareUrl(origin(), null, lang);
-  return `${origin().replace(/\/+$/, "")}${businessCustomerPath(def, lang)}`;
-}
-
-/** Lower-priority remaining families (Phase 3): `def.href` is the correct customer destination per family. */
-function remainingCustomerUrl(def: QuickRemainingDefinition, lang: LinkLang): string {
-  return `${origin().replace(/\/+$/, "")}${withLang(def.href, lang)}`;
-}
-
-function remainingPriceBadge(def: QuickRemainingDefinition): string {
-  if (!def.pricing) return "";
-  const { priceCents } = getRevenuePackagePriceCents({ category: def.pricing.category, packageKey: def.pricing.packageKey });
-  return priceCents == null ? "" : `${formatRevenuePriceLabel(priceCents)}/mes · /month`;
 }
 
 export function QuickApplicationsLaunchpad() {
@@ -124,40 +68,12 @@ export function QuickApplicationsLaunchpad() {
     [flash],
   );
 
-  const shareLink = useCallback(
-    (def: QuickClassifiedDefinition | null) => {
-      const label = def ? (linkLang === "en" ? def.label.en : def.label.es) : linkLang === "en" ? "Leonix quick publish" : "Publicación rápida Leonix";
-      const text = linkLang === "en" ? `Publish your ad on Leonix in minutes: ${label}` : `Publica tu anuncio en Leonix en minutos: ${label}`;
-      return shareUrl(customerUrl(def, linkLang), label, text);
-    },
-    [linkLang, shareUrl],
-  );
+  const shareChooser = useCallback(() => {
+    const label = linkLang === "en" ? "Leonix application" : "Solicitud Leonix";
+    const url = quickClassifiedShareUrl(origin(), null, linkLang);
+    return shareUrl(url, label, label);
+  }, [linkLang, shareUrl]);
 
-  const shareBusinessLink = useCallback(
-    (def: QuickBusinessDefinition | null) => {
-      const label = def ? (linkLang === "en" ? def.label.en : def.label.es) : linkLang === "en" ? "Leonix quick business" : "Negocio rápido Leonix";
-      const text = linkLang === "en" ? `Publish your business on Leonix in minutes: ${label}` : `Publica tu negocio en Leonix en minutos: ${label}`;
-      return shareUrl(businessCustomerUrl(def, linkLang), label, text);
-    },
-    [linkLang, shareUrl],
-  );
-
-  const shareRemainingLink = useCallback(
-    (def: QuickRemainingDefinition) => {
-      const label = linkLang === "en" ? def.label.en : def.label.es;
-      return shareUrl(remainingCustomerUrl(def, linkLang), label, `Leonix: ${label}`);
-    },
-    [linkLang, shareUrl],
-  );
-
-  const business = listQuickBusinessDefinitions();
-  const remaining = listQuickRemainingDefinitions();
-
-  const tier1 = QUICK_TIER1_KEYS.map((k) => QUICK_CLASSIFIED_DEFINITIONS[k]);
-  const fsbo = QUICK_CLASSIFIED_DEFINITIONS[FSBO];
-  const community = QUICK_COMMUNITY_KEYS.map((k) => QUICK_CLASSIFIED_DEFINITIONS[k]);
-
-  /** Copy + Share only. Never a link that opens the customer's application on THIS browser. */
   const copyShare = (url: string, onShare: () => Promise<void>) => (
     <div className="grid grid-cols-2 gap-2">
       <button type="button" onClick={() => void copyUrl(url)} className={`${adminBtnSecondary} min-h-[44px] text-xs`}>
@@ -169,41 +85,6 @@ export function QuickApplicationsLaunchpad() {
     </div>
   );
 
-  const renderCard = (def: QuickClassifiedDefinition, size: "large" | "compact") => {
-    const blocked = def.status === "blocked";
-    const badge = priceBadge(def);
-    const isCommunity = (QUICK_COMMUNITY_KEYS as readonly string[]).includes(def.key);
-    return (
-      <li key={def.key} data-customer-link-card={def.key} className={`flex flex-col rounded-2xl border bg-white ${size === "large" ? "border-[#C9A84A]/80 p-4" : "border-[#D6C7AD] p-3"}`}>
-        <div className="flex items-start gap-2">
-          <span className={size === "large" ? "text-3xl leading-none" : "text-2xl leading-none"} aria-hidden="true">{def.emoji}</span>
-          <div className="min-w-0 flex-1">
-            <p className={`${size === "large" ? "text-base" : "text-sm"} font-bold text-[#1E1810]`}>
-              {def.label.es} / {def.label.en}
-            </p>
-            <p className="mt-0.5 text-[11px] text-[#7A7164]">
-              {blocked ? "Aplicación estándar / Standard application" : isCommunity ? "Formulario corto existente / Existing short form" : `${badge}${def.essentialQuestionCount ? ` · ≈ ${def.essentialQuestionCount} preguntas / questions` : ""}`}
-            </p>
-            {blocked && def.blocker ? <p className="mt-1 text-[11px] text-[#7A1E2C]">{def.blocker.reason.es} / {def.blocker.reason.en}</p> : null}
-          </div>
-        </div>
-        <div className="mt-3">{copyShare(customerUrl(def, linkLang), () => shareLink(def))}</div>
-        {(() => {
-          const salesCategory = quickSalesCategoryForClassifiedKey(def.key);
-          return salesCategory ? (
-            <Link
-              href={buildQuickSalesHref({ category: salesCategory, lang: linkLang })}
-              data-quick-sales-entry={salesCategory}
-              className="mt-2 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#7A1E2C] px-3 text-xs font-bold text-white"
-            >
-              ⚡ Crear gestionado (Venta asistida) / Create managed (Quick Sales)
-            </Link>
-          ) : null;
-        })()}
-      </li>
-    );
-  };
-
   return (
     <section
       id="quick-applications"
@@ -212,12 +93,12 @@ export function QuickApplicationsLaunchpad() {
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Aplicaciones Rápidas / Quick Applications · Enlaces de autoservicio / Customer self-service links</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Enlaces de solicitud del cliente / Customer application links</p>
           <h2 id="quick-applications-title" className="mt-1 font-serif text-2xl font-bold leading-tight text-[#1E1810] sm:text-3xl">
-            🔗 Enlaces para el cliente / Customer links
+            Enviar solicitud al cliente / Send customer application
           </h2>
           <p className="mt-1 text-xs text-[#5C5346]">
-            El cliente abre el enlace en SU teléfono, inicia sesión con su correo y el anuncio queda a su nombre. Para un anuncio gestionado por Leonix usa Venta asistida. / The customer opens the link on THEIR phone, signs in with their email and the ad stays in their name. For a Leonix-managed ad use Quick Sales.
+            El cliente abre el enlace en SU teléfono. No es un enlace de admin. / The customer opens the link on THEIR phone. This is not an admin link.
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1 rounded-xl border border-[#E8DFD0] bg-white p-1" role="group" aria-label="Idioma del enlace / Link language">
@@ -238,12 +119,12 @@ export function QuickApplicationsLaunchpad() {
       {/* The four verbs a receptionist needs. The ONLY create verb goes to the Quick Sales cockpit. */}
       <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
         <Link href={buildQuickSalesHref({ lang: linkLang })} data-quick-sales-entry="launchpad" className={`${adminBtnPrimary} min-h-[56px] flex-col gap-0.5 py-2`}>
-          <span>⚡ Crear anuncio gestionado / Create managed ad</span>
-          <span className="text-[10px] font-normal text-white/80">Venta asistida Quick — custodia Leonix. / Quick Sales — Leonix custody.</span>
+          <span>Crear anuncio gestionado / Create managed ad</span>
+          <span className="text-[10px] font-normal text-white/80">Todas las categorías. / Every category.</span>
         </Link>
-        <button type="button" onClick={() => void shareLink(null)} className={`${adminBtnSecondary} min-h-[56px] flex-col gap-0.5 border-[#C9A84A]/70 py-2`}>
-          <span>📤 Enviar enlace rápido / Send quick link</span>
-          <span className="text-[10px] font-normal text-[#7A7164]">Compartir o copiar el selector. / Share or copy the chooser.</span>
+        <button type="button" onClick={() => void shareChooser()} className={`${adminBtnSecondary} min-h-[56px] flex-col gap-0.5 border-[#C9A84A]/70 py-2`}>
+          <span>Enviar solicitud al cliente / Send customer application</span>
+          <span className="text-[10px] font-normal text-[#7A7164]">Copia o comparte el enlace. / Copy or share the link.</span>
         </button>
         <Link href={ADMIN_DASHBOARD_ROUTES.classifiedsQueue} className={`${adminBtnSecondary} min-h-[56px] flex-col gap-0.5 border-[#C9A84A]/70 py-2`}>
           <span>🗂️ Administrar anuncio / Manage ad</span>
@@ -256,129 +137,39 @@ export function QuickApplicationsLaunchpad() {
       </div>
 
       <h3 id="quick-tier1" className="mt-5 scroll-mt-4 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">
-        Prioridad / Priority
+        Ocho solicitudes Quick / Eight Quick applications
       </h3>
-      <ul className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">{tier1.map((def) => renderCard(def, "large"))}</ul>
-
-      <h3 className="mt-5 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">
-        Más categorías / More categories
-      </h3>
-      <ul className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        {renderCard(fsbo, "compact")}
-        {community.map((def) => renderCard(def, "compact"))}
+      <ul className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {staffCustomerQuickLinkItems().map((row) => {
+          const href = row.customerCheckpointHref || row.customerHref;
+          if (!href) return null;
+          const url = `${origin().replace(/\/+$/, "")}${withLang(href, linkLang)}`;
+          return (
+            <li key={row.id} data-customer-quick-link={row.id} className="flex flex-col rounded-2xl border border-[#C9A84A]/80 bg-white p-4">
+              <p className="text-sm font-bold text-[#1E1810]">{row.labelEs} / {row.labelEn}</p>
+              <p className="mt-1 text-[11px] text-[#7A7164]">{href}</p>
+              <div className="mt-3">{copyShare(url, () => shareUrl(url, row.labelEs, row.labelEn))}</div>
+            </li>
+          );
+        })}
       </ul>
 
-      {/* Quick Business: the customer self-service link per category, plus the ONE staff path — Quick Sales. */}
-      <div id="quick-business" className="mt-6 scroll-mt-4 rounded-2xl border border-[#7A1E2C]/25 bg-white/70 p-3 sm:p-4">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <h3 className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Negocios Rápidos / Quick Business</h3>
-            <p className="mt-1 text-xs text-[#5C5346]">
-              Enlace de autoservicio por categoría; el anuncio gestionado por Leonix se crea en Venta asistida. / Self-service link per category; the Leonix-managed ad is created in Quick Sales.
-            </p>
-          </div>
-          <div className="grid shrink-0 grid-cols-2 gap-2">
-            <button type="button" onClick={() => void shareBusinessLink(null)} className={`${adminBtnSecondary} min-h-[44px] text-xs`}>
-              📤 Enviar enlace de negocio / Send business link
-            </button>
-            <Link href={ADMIN_DASHBOARD_ROUTES.classifiedsQueue} className={`${adminBtnSecondary} min-h-[44px] text-xs`}>
-              🗂️ Administrar negocio / Manage business
-            </Link>
-          </div>
-        </div>
-        <ul className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {business.map((def) => {
-            const direct = def.status === "direct";
-            const salesCategory = quickSalesCategoryForQuickBusinessKey(def.key);
-            return (
-              <li key={def.key} data-customer-link-card={def.key} className="flex flex-col rounded-2xl border border-[#D6C7AD] bg-white p-3">
-                <div className="flex items-start gap-2">
-                  <span className="text-2xl leading-none" aria-hidden="true">{def.emoji}</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-[#1E1810]">
-                      {def.label.es} / {def.label.en}
-                    </p>
-                    <p className="mt-0.5 text-[11px] text-[#7A7164]">
-                      {direct ? "Aplicación completa / Full application" : `${businessPriceBadge(def)} · ≈ ${def.essentialQuestionCount} preguntas / questions`}
-                    </p>
-                    {direct && def.directReason ? <p className="mt-1 text-[11px] text-[#7A1E2C]">{def.directReason.reason.es} / {def.directReason.reason.en}</p> : null}
-                    {def.staff.publishForClientSupported ? (
-                      <p className="mt-1 text-[11px] text-[#2F6B3A]">{def.staff.note.es} / {def.staff.note.en}</p>
-                    ) : (
-                      <p className="mt-1 text-[11px] text-[#7A5C1E]">{def.staff.note.es} / {def.staff.note.en}</p>
-                    )}
-                  </div>
-                </div>
-                <div className="mt-3 grid grid-cols-1 gap-2">
-                  {salesCategory ? (
-                    <Link
-                      href={buildQuickSalesHref({ category: salesCategory, lang: linkLang })}
-                      data-quick-sales-entry={salesCategory}
-                      className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#7A1E2C] px-3 text-xs font-bold text-white"
-                    >
-                      ⚡ Crear gestionado (Venta asistida) / Create managed (Quick Sales)
-                    </Link>
-                  ) : null}
-                  {copyShare(businessCustomerUrl(def, linkLang), () => shareBusinessLink(def))}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-
-      {/* Más Opciones (lower priority): customer link per family. A pure content directory may still be opened. */}
-      <div id="quick-more-options" className="mt-6 scroll-mt-4 rounded-2xl border border-[#D6C7AD] bg-white/70 p-3 sm:p-4">
-        <h3 className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Más Opciones / More Options</h3>
-        <p className="mt-1 text-xs text-[#5C5346]">
-          Categorías de menor prioridad — copia o comparte el enlace del cliente. / Lower-priority categories — copy or share the customer link.
-        </p>
-        <ul className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {remaining.map((def) => {
-            const badge = remainingPriceBadge(def);
-            return (
-              <li key={def.key} data-customer-link-card={def.key} className="flex flex-col rounded-2xl border border-[#D6C7AD] bg-white p-3">
-                <div className="flex items-start gap-2">
-                  <span className="text-2xl leading-none" aria-hidden="true">{def.emoji}</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-[#1E1810]">
-                      {def.label.es} / {def.label.en}
-                    </p>
-                    <p className="mt-0.5 text-[11px] text-[#7A7164]">
-                      {def.action === "quick_form"
-                        ? `${badge} · ≈ ${def.essentialQuestionCount ?? ""} preguntas / questions`
-                        : def.action === "direct_link"
-                          ? "Aplicación existente / Existing application"
-                          : "Directorio / Directory"}
-                    </p>
-                    <p className="mt-1 text-[11px] text-[#7A7164]">{def.note.es} / {def.note.en}</p>
-                  </div>
-                </div>
-                <div className="mt-3 grid grid-cols-1 gap-2">
-                  {(() => {
-                    const salesCategory = quickSalesCategoryForRemainingKey(def.key);
-                    return salesCategory ? (
-                      <Link
-                        href={buildQuickSalesHref({ category: salesCategory, lang: linkLang })}
-                        data-quick-sales-entry={salesCategory}
-                        className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#7A1E2C] px-3 text-xs font-bold text-white"
-                      >
-                        ⚡ Crear gestionado (Venta asistida) / Create managed (Quick Sales)
-                      </Link>
-                    ) : null;
-                  })()}
-                  {def.action === "content_link" ? (
-                    <Link href={withLang(def.href, linkLang)} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[#7A1E2C]/40 bg-[#7A1E2C]/5 px-3 text-xs font-bold text-[#7A1E2C]">
-                      Abrir directorio / Open directory
-                    </Link>
-                  ) : null}
-                  {copyShare(remainingCustomerUrl(def, linkLang), () => shareRemainingLink(def))}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
+      <h3 className="mt-5 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">
+        Otras solicitudes del cliente / Other customer applications
+      </h3>
+      <ul className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {STAFF_MASTER_LAUNCHER_ITEMS.filter((row) => !row.customerQuickLink && row.customerHref).map((row) => {
+          const href = row.customerCheckpointHref || row.customerHref;
+          if (!href) return null;
+          const url = `${origin().replace(/\/+$/, "")}${withLang(href, linkLang)}`;
+          return (
+            <li key={row.id} data-customer-other-link={row.id} className="flex flex-col rounded-2xl border border-[#D6C7AD] bg-white p-3">
+              <p className="text-sm font-bold text-[#1E1810]">{row.labelEs} / {row.labelEn}</p>
+              <div className="mt-3">{copyShare(url, () => shareUrl(url, row.labelEs, row.labelEn))}</div>
+            </li>
+          );
+        })}
+      </ul>
 
       <div className="mt-4 flex flex-col gap-2 text-[11px] text-[#7A7164] sm:flex-row sm:items-center sm:justify-between">
         <p>

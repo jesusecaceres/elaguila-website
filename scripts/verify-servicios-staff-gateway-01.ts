@@ -205,7 +205,7 @@ async function main() {
     assert.equal(quickSalesSrc.includes("BEGIN_CLIENT_DRAFT_HREF"), false);
     assert.equal(quickSalesSrc.includes("/admin/businesses/canvass?intent=create_listing"), false);
     assert.ok(quickSalesSrc.includes("data-quick-sales-create-business"));
-    assert.ok(quickSalesSrc.includes("/api/admin/sales-preview/minimal-business"));
+    assert.ok(quickSalesSrc.includes("/api/admin/sales-preview/open-application"));
   });
 
   // ===========================================================================
@@ -221,8 +221,8 @@ async function main() {
     assert.equal(/data-staff-open-intake[\s\S]{0,400}target="_blank"/.test(clientSrc), false);
     assert.ok(clientSrc.includes("window.location.assign(nav.href)"), "Servicios primary action navigates same-tab after custody");
   });
-  check("B3: primary action posts custody then navigates only if the helper allows it", () => {
-    assert.ok(clientSrc.includes("openIntakeWithCustody"));
+  check("B3: primary action posts open-application then navigates only if the helper allows it", () => {
+    assert.ok(clientSrc.includes("createAd"));
     assert.ok(clientSrc.includes("resolveStaffNavigationFromCustodyPost"));
     assert.ok(clientSrc.includes('if (!nav.allowed)'));
     assert.ok(clientSrc.includes("window.location.assign(nav.href)"));
@@ -235,7 +235,7 @@ async function main() {
     const { QuickSalesWorkspaceClient } = require("../app/admin/(dashboard)/workspace/quick-sales/QuickSalesWorkspaceClient") as {
       QuickSalesWorkspaceClient: (p: Record<string, unknown>) => ReactElement;
     };
-    const html = renderToStaticMarkup(createElement(QuickSalesWorkspaceClient, { actorEmail: STAFF_EMAIL }));
+    const html = renderToStaticMarkup(createElement(QuickSalesWorkspaceClient, { actorEmail: STAFF_EMAIL, initialCategory: "servicios" }));
     assert.ok(html.includes("Sin custodia activa / No active custody"));
     assert.equal(html.includes('href="/clasificados/publicar/servicios"'), false, "checkpoint path must not be a live href");
     assert.equal(html.includes('href="/publicar/negocio-rapido/servicios"'), false, "Quick adapter must not be a live href");

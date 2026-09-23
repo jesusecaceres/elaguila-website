@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import type { SupportedLang } from "@/app/lib/language";
 import { withClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
-import { getServiciosCheckpointCard } from "@/app/clasificados/publicar/_lib/categoryPublishCheckpoints";
+import { getServiciosCheckpointCards } from "@/app/clasificados/publicar/_lib/categoryPublishCheckpoints";
 import {
   PaidPublishCheckpointCard,
   PaidPublishCheckpointModal,
@@ -31,12 +31,13 @@ export function ServiciosCheckpointClient({
   routeLang: SupportedLang;
 }) {
   const t = COPY[lang];
-  const [modalOpen, setModalOpen] = useState(false);
   const applicationHref = withClasificadosPublishLang("/publicar/servicios", routeLang, {
     product: "servicios_profesionales",
   });
   const clasificadosHref = withClasificadosPublishLang("/clasificados", routeLang);
-  const card = useMemo(() => getServiciosCheckpointCard(lang, applicationHref), [lang, applicationHref]);
+  const cards = useMemo(() => getServiciosCheckpointCards(lang, applicationHref), [lang, applicationHref]);
+  const [modalId, setModalId] = useState<string | null>(null);
+  const modalCard = cards.find((card) => card.id === modalId) ?? cards[0];
 
   return (
     <PublishEntryCheckpointLayout
@@ -47,11 +48,13 @@ export function ServiciosCheckpointClient({
       backLabel={t.backToClasificados}
       checkpointCategory="servicios"
     >
-      <PaidPublishCheckpointCard card={card} lang={lang} onMoreClick={() => setModalOpen(true)} />
+      {cards.map((card) => (
+        <PaidPublishCheckpointCard key={card.id} card={card} lang={lang} onMoreClick={() => setModalId(card.id)} />
+      ))}
       <PaidPublishCheckpointModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        card={card}
+        open={Boolean(modalId)}
+        onClose={() => setModalId(null)}
+        card={modalCard}
         lang={lang}
       />
     </PublishEntryCheckpointLayout>
