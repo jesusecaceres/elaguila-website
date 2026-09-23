@@ -82,16 +82,12 @@ async function sendInviteOrRecovery(
     return { inviteSent: true, inviteNote: "Supabase invite email sent (requires project SMTP)." };
   }
 
-  const { error: recoveryErr } = await admin.auth.admin.generateLink({
-    type: "recovery",
-    email,
-    options: { redirectTo },
-  });
+  const { error: recoveryErr } = await admin.auth.resetPasswordForEmail(email, { redirectTo });
 
   if (!recoveryErr) {
     return {
       inviteSent: true,
-      inviteNote: "Recovery link generated — email delivery depends on Supabase SMTP.",
+      inviteNote: "Password setup/recovery email sent through Supabase Auth.",
     };
   }
 
