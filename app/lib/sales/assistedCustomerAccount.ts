@@ -144,3 +144,21 @@ export async function provisionAssistedCustomerAccount(input: {
     membershipId,
   };
 }
+
+
+export async function resolvePrimaryCustomerUserIdForBusiness(businessId: string): Promise<string | null> {
+  if (!isSupabaseAdminConfigured()) return null;
+  const id = businessId.trim();
+  if (!id) return null;
+  const admin = getAdminSupabase();
+  const { data, error } = await admin
+    .from("business_memberships")
+    .select("user_id")
+    .eq("business_id", id)
+    .eq("membership_status", "active")
+    .eq("is_primary_owner", true)
+    .limit(1)
+    .maybeSingle();
+  if (error || !data?.user_id) return null;
+  return String(data.user_id);
+}
