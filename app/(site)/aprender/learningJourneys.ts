@@ -118,8 +118,8 @@ export const LEARNING_JOURNEY_LESSONS: Record<LearningJourneyKey, readonly Journ
       depth: "light",
       urgency: "soon",
       framing: {
-        es: "Un vistazo para saber si tu idea podría tener sentido con números reales.",
-        en: "A first look at whether your idea could make sense with real numbers.",
+        es: "Un vistazo para saber si tu idea puede sostenerse con números reales.",
+        en: "A first look at whether your idea can sustain itself with real numbers.",
       },
       action: {
         es: "Haz una lista de lo que costaría entregar tu producto o servicio una sola vez.",
@@ -185,8 +185,8 @@ export const LEARNING_JOURNEY_LESSONS: Record<LearningJourneyKey, readonly Journ
       depth: "light",
       urgency: "soon",
       framing: {
-        es: "Antes de fijar precios, mira qué otras opciones tiene tu cliente cerca.",
-        en: "Before you set prices, look at what other options your customer has nearby.",
+        es: "Antes de fijar precios, mira qué otras opciones tiene tu cliente y qué puedes servir mejor.",
+        en: "Before you set prices, look at your customer's other options and what you can serve better.",
       },
       action: {
         es: "Visita una alternativa como cliente y anota, con fecha, lo que cualquiera puede ver.",
@@ -198,8 +198,8 @@ export const LEARNING_JOURNEY_LESSONS: Record<LearningJourneyKey, readonly Journ
       depth: "core",
       urgency: "now",
       framing: {
-        es: "Desde el primer mes, separa lo que entra de lo que realmente te queda.",
-        en: "From month one, separate what comes in from what you actually keep.",
+        es: "Desde el primer mes, separa lo que entra de lo que queda para sostener el negocio.",
+        en: "From month one, separate what comes in from what remains to sustain the business.",
       },
       action: {
         es: "Empieza hoy a anotar ingresos y costos en un solo lugar.",
@@ -276,8 +276,8 @@ export const LEARNING_JOURNEY_LESSONS: Record<LearningJourneyKey, readonly Journ
       depth: "core",
       urgency: "later",
       framing: {
-        es: "Antes de pagar tu primer anuncio, entiende qué quieres que logre.",
-        en: "Before paying for your first ad, understand what you want it to achieve.",
+        es: "Antes de pagar tu primer anuncio, define qué dirás con verdad y qué debe lograr.",
+        en: "Before paying for your first ad, define what you will say truthfully and what it should achieve.",
       },
       action: {
         es: "Define un solo objetivo para tu primer anuncio.",
@@ -317,8 +317,8 @@ export const LEARNING_JOURNEY_LESSONS: Record<LearningJourneyKey, readonly Journ
       depth: "deep",
       urgency: "soon",
       framing: {
-        es: "Averigua a quién más le compran tus clientes y por qué a veces cambian.",
-        en: "Find out who else your customers buy from and why they sometimes switch.",
+        es: "Averigua qué otras opciones usan tus clientes y qué puedes servirles mejor.",
+        en: "Find out what other options your customers use and where you can serve them better.",
       },
       action: {
         es: "Pregunta a 3 clientes qué otra opción usan cuando no te compran a ti.",
@@ -330,12 +330,12 @@ export const LEARNING_JOURNEY_LESSONS: Record<LearningJourneyKey, readonly Journ
       depth: "core",
       urgency: "now",
       framing: {
-        es: "Vender más no siempre es ganar más: revisa qué te deja ganancia de verdad.",
-        en: "Selling more is not always earning more: check what truly leaves you a profit.",
+        es: "Vender más no siempre deja un negocio más sano: mira qué queda para pagar, reinvertir y servir.",
+        en: "Selling more does not always leave a healthier business: see what remains to pay, reinvest, and serve.",
       },
       action: {
-        es: "Calcula la ganancia real del mes pasado, no solo las ventas.",
-        en: "Calculate last month's real profit, not just sales.",
+        es: "Calcula la ganancia real del mes pasado y para qué la necesita el negocio.",
+        en: "Calculate last month's real profit and what the business needs it for.",
       },
     },
     {
@@ -382,8 +382,8 @@ export const LEARNING_JOURNEY_LESSONS: Record<LearningJourneyKey, readonly Journ
       depth: "core",
       urgency: "soon",
       framing: {
-        es: "Ordena tu atención por mensajes para no perder clientes por respuestas tardías.",
-        en: "Organize your messaging so you don't lose customers to late replies.",
+        es: "Ordena tus mensajes para responder con claridad y no dejar a nadie esperando.",
+        en: "Organize your messages so you can answer clearly and not leave anyone waiting.",
       },
       action: {
         es: "Define tu tiempo máximo de respuesta y prepara respuestas rápidas.",
@@ -408,8 +408,8 @@ export const LEARNING_JOURNEY_LESSONS: Record<LearningJourneyKey, readonly Journ
       depth: "core",
       urgency: "soon",
       framing: {
-        es: "Revisa si tus anuncios tienen un objetivo claro y un resultado que puedas medir.",
-        en: "Check whether your ads have a clear goal and a result you can measure.",
+        es: "Revisa si tus anuncios son veraces, tienen un objetivo claro y un resultado medible.",
+        en: "Check whether your ads are truthful, have a clear goal, and a result you can measure.",
       },
       action: {
         es: "Antes de repetir un anuncio, revisa qué resultado medible tuvo.",

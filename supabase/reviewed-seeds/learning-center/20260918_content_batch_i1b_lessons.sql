@@ -36,7 +36,7 @@ INSERT INTO public.business_learning_lessons
 SELECT c.id, 'what_problem_do_you_solve',
   'Qué problema resuelves', 'What problem do you solve?',
   'Antes del producto, el problema: cómo decir en una frase qué le resuelves a quién.', 'Before the product, the problem: how to say in one sentence what you solve, and for whom.',
-  'Nadie se despierta queriendo tu producto. La gente se despierta con un problema. Si tu negocio se lo quita de encima, te paga. Si no, solo le pareces “interesante”.
+  'Nadie se despierta queriendo tu producto. La gente se despierta con un problema. Si tu negocio se lo resuelve con cuidado y con un intercambio justo, les sirves de verdad. Si no, solo les pareces “interesante”.
 
 Al terminar podrás:
 - Decir el problema con las palabras de tu cliente, no con las tuyas.
@@ -52,7 +52,7 @@ Un problema de verdad se nota
 Tiene tres señales. Le pasa a alguien en concreto, no a “la gente”. Pasa seguido, no una vez en la vida. Y esa persona ya hace algo para resolverlo, aunque sea a medias: improvisa, paga de más, pierde tiempo o se aguanta. Si nadie hace nada al respecto, quizá no sea un problema tan grande.
 
 Lo que hacen hoy es tu mejor pista
-Lo que la persona hace hoy te dice cuánto le importa el problema y con qué vas a competir. Si le cuesta dinero, tiempo o preocupación, hay algo que tu negocio puede mejorar. Y sus palabras para describirlo son las mismas que después usarás para que te entienda.
+Lo que la persona hace hoy te dice cuánto le importa el problema y qué alternativa ya usa. Si le cuesta dinero, tiempo o preocupación, hay algo que tu negocio puede servir mejor. Y sus palabras para describirlo son las mismas que después usarás para que te entienda.
 
 Enamórate del problema de tu cliente, no de tu producto.
 
@@ -102,10 +102,10 @@ Un problema no existe porque tú lo creas, ni porque una IA te diga que suena bi
 La IA ayuda. Tú verificas.
 
 En resumen:
-- Nadie se despierta queriendo tu producto: la gente paga por quitarse un problema de encima.
+- Nadie se despierta queriendo tu producto: la gente busca que alguien resuelva un problema real, con utilidad y honestidad.
 - Un problema de verdad le pasa a alguien concreto, pasa seguido y esa persona ya hace algo al respecto.
 - Tu frase del problema es una hipótesis. Se comprueba escuchando a personas reales, no a una IA.',
-  'Nobody wakes up wanting your product. People wake up with a problem. If your business takes it off their hands, they pay you. If not, you are just “interesting” to them.
+  'Nobody wakes up wanting your product. People wake up with a problem. If your business solves it with care and a fair exchange, you truly serve them. If not, you are just “interesting” to them.
 
 By the end you will be able to:
 - State the problem in your customer''s words, not your own.
@@ -121,7 +121,7 @@ A real problem shows
 It has three signs. It happens to someone specific, not to “people.” It happens often, not once in a lifetime. And that person already does something about it, even halfway: they improvise, overpay, lose time, or put up with it. If nobody does anything about it, it may not be that big a problem.
 
 What they do today is your best clue
-What the person does today tells you how much the problem matters to them and what you will be competing with. If it costs them money, time, or worry, there is something your business can improve. And the words they use to describe it are the same words you will later use so they understand you.
+What the person does today tells you how much the problem matters to them and which alternative they already use. If it costs them money, time, or worry, there is something your business can serve better. And the words they use to describe it are the same words you will later use so they understand you.
 
 Fall in love with your customer''s problem, not with your product.
 
@@ -171,7 +171,7 @@ A problem does not exist because you believe it, or because an AI says it sounds
 AI helps. You verify.
 
 In short:
-- Nobody wakes up wanting your product: people pay to get a problem off their hands.
+- Nobody wakes up wanting your product: people look for someone to solve a real problem, usefully and honestly.
 - A real problem happens to someone specific, happens often, and that person already does something about it.
 - Your problem sentence is a hypothesis. It is checked by listening to real people, not to an AI.',
   'foundation', 10, 'what_problem_do_you_solve', ARRAY['customer_clarity', 'offer_and_value'], 'published', now(), 3
@@ -350,7 +350,7 @@ Al terminar podrás:
 Competencia es todo lo que tu cliente usa hoy
 
 “No tengo competencia” casi nunca es verdad
-Si nadie más vende lo tuyo, tu cliente igual resuelve el problema de alguna forma: lo hace él mismo, se lo pide a un familiar, usa algo parecido o se aguanta. Esa costumbre es tu competencia, y a veces es la más difícil de vencer, porque es gratis y ya la conoce.
+Si nadie más vende lo tuyo, tu cliente igual resuelve el problema de alguna forma: lo hace él mismo, se lo pide a un familiar, usa algo parecido o se aguanta. Esa costumbre es la alternativa que ya tiene, y a veces es la más difícil de servir mejor, porque es gratis y ya la conoce.
 
 Compara en lo que al cliente le importa
 Es fácil comparar en lo que tú haces bien. Lo útil es comparar en lo que tu cliente valora al elegir: precio, comodidad, confianza, rapidez, cercanía. Si no sabes qué le importa más, todavía no toca investigar a la competencia: toca hablar con clientes.
@@ -361,11 +361,11 @@ Usa solo lo que cualquier persona puede ver: visita, observa, lee sus precios y 
 Busca tu espacio, no una pelea
 No necesitas ser mejor en todo. Necesitas ser claramente mejor en algo que a tu cliente le importa y que las alternativas no le dan. Tu comparación es una foto de hoy, no un veredicto: revísala cada cierto tiempo.
 
-Tu competidor más fuerte suele ser la costumbre de tu cliente.
+La alternativa más fuerte suele ser la costumbre de tu cliente.
 
 Ejemplo ilustrativo — Lavandería móvil de Marco:
 Marco pensaba que no tenía competencia: “nadie más recoge la ropa a domicilio en mi zona”. Entonces hizo una lista de lo que sus clientas, enfermeras con turnos largos, hacen hoy: ir a la lavandería de monedas en su día libre, lavar en casa de un familiar, o usar la lavadora del edificio a medianoche. Visitó la lavandería un domingo: barata, pero llena y con dos horas de espera. Su espacio no era el precio. Era devolverles el día libre.
-Marco no encontró un enemigo. Encontró lo que sus clientas ya soportan, y ahí estaba su oportunidad.
+Marco no encontró un enemigo. Encontró lo que sus clientas ya soportan, y ahí vio cómo podía servirlas mejor.
 
 De “no tengo competencia” a tu espacio:
 1. Enumera: Todo lo que tu cliente usa hoy, incluidas “no hacer nada” y “hacerlo uno mismo”.
@@ -424,7 +424,7 @@ By the end you will be able to:
 Competition is everything your customer uses today
 
 “I have no competition” is almost never true
-If nobody else sells what you sell, your customer still solves the problem somehow: they do it themselves, ask a relative, use something similar, or put up with it. That habit is your competition, and sometimes it is the hardest to beat, because it is free and already familiar.
+If nobody else sells what you sell, your customer still solves the problem somehow: they do it themselves, ask a relative, use something similar, or put up with it. That habit is the alternative they already have, and sometimes it is the hardest to serve better than, because it is free and already familiar.
 
 Compare on what the customer cares about
 It is easy to compare on what you do well. What is useful is comparing on what your customer values when choosing: price, convenience, trust, speed, closeness. If you do not know what matters most to them, it is not yet time to research the competition: it is time to talk to customers.
@@ -435,11 +435,11 @@ Use only what anyone can see: visit, observe, read their public prices and hours
 Look for your space, not a fight
 You do not need to be better at everything. You need to be clearly better at something your customer cares about and the alternatives do not give them. Your comparison is a snapshot of today, not a verdict: revisit it from time to time.
 
-Your strongest competitor is often your customer''s habit.
+The strongest alternative is often your customer''s habit.
 
 Illustrative example — Marco''s Mobile Laundry:
 Marco thought he had no competition: “nobody else picks up laundry at home in my area.” Then he listed what his customers, nurses on long shifts, do today: go to the coin laundromat on their day off, do laundry at a relative''s house, or use the building''s washer at midnight. He visited the laundromat on a Sunday: cheap, but crowded, with a two-hour wait. His space was not price. It was giving them their day off back.
-Marco did not find an enemy. He found what his customers already put up with, and that was his opportunity.
+Marco did not find an enemy. He found what his customers already put up with, and there he saw how he could serve them better.
 
 From “I have no competition” to your space:
 1. List: Everything your customer uses today, including “do nothing” and “do it yourself.”
@@ -513,9 +513,9 @@ BEGIN
   SELECT count(*) INTO n FROM public.business_learning_lessons WHERE lesson_key NOT IN ('what_problem_do_you_solve', 'customer_conversations', 'know_your_competition') AND status = 'published';
   IF n <> 8 THEN RAISE EXCEPTION 'I-1B: the 8 previously published lessons changed (found %)', n; END IF;
   SELECT count(*) INTO n FROM (VALUES
-      ('what_problem_do_you_solve', 'clientes_y_demanda', 3, 'what_problem_do_you_solve', 10, '04fd05c2dc9be0ba2a141005f0b81098'),
+      ('what_problem_do_you_solve', 'clientes_y_demanda', 3, 'what_problem_do_you_solve', 10, 'd61130c9e28c44f8137396e6d59cbe68'),
       ('customer_conversations', 'clientes_y_demanda', 4, 'customer_conversations', 11, 'bbb0cfa70998d0342395b09b17fa52aa'),
-      ('know_your_competition', 'clientes_y_demanda', 5, 'know_your_competition', 11, 'baa5f650e095da9b73537142b3ba8dc9')
+      ('know_your_competition', 'clientes_y_demanda', 5, 'know_your_competition', 11, '600c479b932d8dbb1518a572ba0b4a3d')
     ) AS g(k, cat, sort, cap, mins, h)
     JOIN public.business_learning_lessons l ON l.lesson_key = g.k
     JOIN public.business_learning_categories c ON c.id = l.category_id AND c.category_key = g.cat
