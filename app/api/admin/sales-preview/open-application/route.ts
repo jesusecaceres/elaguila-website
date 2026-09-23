@@ -11,6 +11,10 @@ import {
 } from "@/app/lib/auth/assistedPublishingSession";
 import { createMinimalAssistedBusiness } from "@/app/lib/sales/createMinimalAssistedBusiness";
 import {
+  provisionAssistedCustomerAccount,
+  resolvePrimaryCustomerUserIdForBusiness,
+} from "@/app/lib/sales/assistedCustomerAccount";
+import {
   isStaffBusinessPairCategory,
   parseStaffBusinessPlan,
   resolveStaffBusinessPackage,
@@ -61,13 +65,51 @@ export async function POST(request: NextRequest) {
   }
 
   let businessId = existingBusinessId;
+  let clientUserId: string | null = null;
+  let accountInviteSent = false;
+  let accountInviteNote: string | null = null;
+
   if (newClient || !businessId) {
+    const businessName = typeof body.newBusinessName === "string" ? body.newBusinessName.trim() : "";
+    const clientName = typeof body.newClientName === "string" ? body.newClientName.trim() : "";
+    const clientEmail = typeof body.newClientEmail === "string" ? body.newClientEmail.trim() : "";
+    const clientPhone = typeof body.newClientPhone === "string" ? body.newClientPhone.trim() : "";
+    if (!businessName) return fail(400, "business_name_required");
+    if (!clientEmail || !clientEmail.includes("@")) return fail(400, "client_email_required");
+
     const drafted = await createMinimalAssistedBusiness(
-      { businessName: `Borrador · ${item.labelEs}`, confirmCreateDespiteDuplicates: true },
+      {
+        businessName,
+        publicName: businessName,
+        contactName: clientName || null,
+        phone: clientPhone || null,
+        email: clientEmail,
+        confirmCreateDespiteDuplicates: true,
+      },
       access.actor,
     );
     if (!drafted.ok) return fail(drafted.error === "invalid_input" ? 400 : 500, drafted.error);
     businessId = drafted.businessId;
+
+    const account = await provisionAssistedCustomerAccount({
+      businessId,
+      email: clientEmail,
+      displayName: clientName || businessName,
+      phone: clientPhone || null,
+      invitedByAuthUserId: access.actor.authUserId,
+    });
+    if (!account.ok) {
+      return fail(
+        account.error === "business_already_owned" ? 409 : account.error === "invalid_email" ? 400 : 500,
+        account.error,
+        account.detail ? { detail: account.detail } : {},
+      );
+    }
+    clientUserId = account.userId;
+    accountInviteSent = account.inviteSent;
+    accountInviteNote = account.inviteNote;
+  } else {
+    clientUserId = await resolvePrimaryCustomerUserIdForBusiness(businessId);
   }
 
   if (item.mode === "assisted" && item.assistedCategory && isQuickSalesCategory(item.assistedCategory)) {
@@ -96,6 +138,9 @@ export async function POST(request: NextRequest) {
       entryKind: checkpointHref ? "checkpoint" : "application",
       packageKey,
       plan,
+      clientUserId,
+      accountInviteSent,
+      accountInviteNote,
       sameTab: true,
       expiresInSec: ASSISTED_PUBLISH_MAX_AGE_SEC,
     });
@@ -105,7 +150,7 @@ export async function POST(request: NextRequest) {
       rosterId: access.actor.rosterId,
       authUserId: access.actor.authUserId,
       listingId: listingId || null,
-      clientUserId: null,
+      clientUserId,
       assistedAction: "save_for_client",
       packageKey,
     });
@@ -123,6 +168,9 @@ export async function POST(request: NextRequest) {
     href,
     intakePath: href,
     plan,
+    clientUserId,
+    accountInviteSent,
+    accountInviteNote,
     sameTab: true,
     expiresInSec: ASSISTED_PUBLISH_MAX_AGE_SEC,
   });
@@ -132,7 +180,7 @@ export async function POST(request: NextRequest) {
     rosterId: access.actor.rosterId,
     authUserId: access.actor.authUserId,
     listingId: null,
-    clientUserId: null,
+    clientUserId,
     assistedAction: "save_for_client",
     packageKey: product?.packageKey ?? null,
   });
