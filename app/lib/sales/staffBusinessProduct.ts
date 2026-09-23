@@ -34,6 +34,13 @@ export const SERVICIOS_CHECKPOINT_PATH = "/clasificados/publicar/servicios";
  */
 export const STAFF_BUSINESS_PAIR_CATEGORIES = ["servicios", "restaurantes", "autos", "bienes-raices"] as const;
 
+export const STAFF_BUSINESS_PAIR_CHECKPOINT_PATHS: Record<(typeof STAFF_BUSINESS_PAIR_CATEGORIES)[number], string> = {
+  servicios: "/clasificados/publicar/servicios/checkpoint",
+  restaurantes: "/clasificados/publicar/restaurantes",
+  autos: "/clasificados/publicar/autos",
+  "bienes-raices": "/clasificados/publicar/bienes-raices",
+};
+
 /**
  * Do not apply $249/$399 here. These keep their existing category-specific products and prices.
  */
@@ -182,6 +189,15 @@ export function staffBusinessOffers(category: string): StaffBusinessOffer[] {
   const quick = staffBusinessOffer(category, "quick");
   const full = staffBusinessOffer(category, "full");
   return [quick, full].filter((o): o is StaffBusinessOffer => Boolean(o));
+}
+
+export function staffBusinessCheckpointHref(category: string, plan: StaffBusinessPlan): string | null {
+  const key = trimmed(category).toLowerCase() as (typeof STAFF_BUSINESS_PAIR_CATEGORIES)[number];
+  const base = STAFF_BUSINESS_PAIR_CHECKPOINT_PATHS[key];
+  if (!base) return null;
+  const params = new URLSearchParams();
+  params.set("plan", plan);
+  return `${base}?${params.toString()}`;
 }
 
 /** The EXISTING canonical Servicios application, with the Quick marker only when selling Simple. */
