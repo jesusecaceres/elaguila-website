@@ -101,12 +101,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "invalid_assisted_action" }, { status: 400 });
   }
 
-  // Organizational custody: owner-null until a later claim. A supplied clientUserId is still
-  // proven against business membership; it is never invented and never taken from an unsigned body
-  // as the only authority. Absence of a client id is the intended Leonix-managed path.
-  const clientUserId = typeof body.clientUserId === "string" ? body.clientUserId.trim() : "";
+  // The server-issued assisted context is the primary customer-identity authority. A body id may
+  // only agree with it; callers are not required to repeat an id that is already signed into the
+  // custody token. Legacy Leonix-managed drafts may still have no client id.
+  const bodyClientUserId = typeof body.clientUserId === "string" ? body.clientUserId.trim() : "";
+  const contextClientUserId =
+    typeof assistedContext.clientUserId === "string" ? assistedContext.clientUserId.trim() : "";
+  const clientUserId = bodyClientUserId || contextClientUserId;
   if (clientUserId) {
-    if (typeof assistedContext.clientUserId === "string" && assistedContext.clientUserId !== clientUserId) {
+    if (bodyClientUserId && contextClientUserId && contextClientUserId !== bodyClientUserId) {
       await recordSalesWorkspaceAudit({
         action: "quick_sales_save_for_client",
         actorRosterId: assistedContext.rosterId,
@@ -134,8 +137,6 @@ export async function POST(request: NextRequest) {
       });
       return NextResponse.json({ ok: false, error: "client_not_authorized_for_business" }, { status: 403 });
     }
-  } else if (typeof assistedContext.clientUserId === "string" && assistedContext.clientUserId) {
-    return NextResponse.json({ ok: false, error: "assisted_client_mismatch" }, { status: 409 });
   }
   const resolvedOwnerUserId = clientUserId || null;
 
