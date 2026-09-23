@@ -40,7 +40,7 @@ const gates: Gate[] = [
   {
     name: "Quick staff assisted-sales application doorway proof",
     command: "node",
-    args: ["node_modules/tsx/dist/cli.mjs", "scripts/verify-quick-sales-preview-01.ts"],
+    args: ["node_modules/tsx/dist/cli.mjs", "--tsconfig", "scripts/lib/tsconfig.harness.json", "scripts/verify-quick-sales-preview-01.ts"],
   },
   {
     name: "Autos final application acceptance",
@@ -111,6 +111,11 @@ const gates: Gate[] = [
     name: "Comunidad preview/publish identity",
     command: "node",
     args: ["node_modules/tsx/dist/cli.mjs", "scripts/comunidad-preview-publish-id-gate-audit.ts"],
+  },
+  {
+    name: "Viajes Negocio and Privado application/preview source gate",
+    command: "node",
+    args: ["node_modules/tsx/dist/cli.mjs", "scripts/verify-viajes-application-source-01.ts"],
   },
   {
     name: "Ofertas Locales two-lane application/preview gate",
