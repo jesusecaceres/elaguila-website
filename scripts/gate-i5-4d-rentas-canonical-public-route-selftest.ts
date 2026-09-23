@@ -101,6 +101,18 @@ const GLOBALIZATION_P2_STRUCTURAL_FIX_EXCEPTIONS = new Set<string>([
   "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewClient.tsx",
 ]);
 
+/**
+ * Phase 4 CTA contract: WhatsApp must never be inferred from a phone number, and the
+ * remaining shared-anuncio Rentas shell must redirect to the canonical listing route.
+ * Isolation check only — product truth is proven by the dedicated CTA/source repairs.
+ */
+const PHASE4_CTA_CONTRACT_EXCEPTIONS = new Set<string>([
+  SHARED_ANUNCIO_FILE,
+  RENTAS_LIVE_MAPPER_FILE,
+  "app/(site)/clasificados/bienes-raices/listing/mapBrListingRowToPrivadoPreviewVm.ts",
+  "app/(site)/clasificados/publicar/bienes-raices/privado/application/mapping/mapBienesRaicesPrivadoStateToPreviewVm.ts",
+]);
+
 async function main() {
   /* ---------------------------------------------------------------------------------------- *
    * 1/2 — the registry resolves both Rentas lanes to the canonical route, and they agree.
@@ -184,8 +196,10 @@ async function main() {
     const { excludeCurrentPackageFiles: excludePkgFiles } = await import("./globalizationCurrentPackageDiff");
     const changed = excludePkgFiles(changedFiles.split("\n").map((l) => l.trim()).filter(Boolean));
     assert.ok(
-      !changed.includes(SHARED_ANUNCIO_FILE) || I10A_ANALYTICS_WIRING_EXCEPTIONS.has(SHARED_ANUNCIO_FILE),
-      "the shared multi-category /clasificados/anuncio/[id] route must not be modified outside the approved I.10A analytics exception",
+      !changed.includes(SHARED_ANUNCIO_FILE) ||
+        I10A_ANALYTICS_WIRING_EXCEPTIONS.has(SHARED_ANUNCIO_FILE) ||
+        PHASE4_CTA_CONTRACT_EXCEPTIONS.has(SHARED_ANUNCIO_FILE),
+      "the shared multi-category /clasificados/anuncio/[id] route must not be modified outside the approved I.10A analytics / Phase 4 CTA exceptions",
     );
     const enVenta = getCategoryRouteAdapter("en_venta");
     assert.equal(enVenta.applicationRoute, "/clasificados/publicar/en-venta/pro", "En Venta's registry entry must be untouched");
@@ -197,7 +211,8 @@ async function main() {
           !f.includes("Rentas") &&
           !I10A_ANALYTICS_WIRING_EXCEPTIONS.has(f) &&
           !GLOBALIZATION_P1_STRUCTURAL_SUSPENSE_FIX_EXCEPTIONS.has(f) &&
-          !GLOBALIZATION_P2_STRUCTURAL_FIX_EXCEPTIONS.has(f),
+          !GLOBALIZATION_P2_STRUCTURAL_FIX_EXCEPTIONS.has(f) &&
+          !PHASE4_CTA_CONTRACT_EXCEPTIONS.has(f),
       ),
       "no Bienes Raíces file should be part of this gate's changes outside the approved I.10A analytics / Globalization P1 Suspense-fix / Globalization P2 exceptions",
     );
@@ -222,7 +237,10 @@ async function main() {
       !changed.includes(VISUAL_MATCH_RENDERER_FILE) || I10A_ANALYTICS_WIRING_EXCEPTIONS.has(VISUAL_MATCH_RENDERER_FILE),
       "RentasVisualMatchPreviewView must not be modified outside the approved I.10A analytics exception",
     );
-    assert.ok(!changed.includes(RENTAS_LIVE_MAPPER_FILE), "mapRentasListingLiveToPreviewVm must not be modified");
+    assert.ok(
+      !changed.includes(RENTAS_LIVE_MAPPER_FILE) || PHASE4_CTA_CONTRACT_EXCEPTIONS.has(RENTAS_LIVE_MAPPER_FILE),
+      "mapRentasListingLiveToPreviewVm must not be modified outside the Phase 4 CTA contract exception",
+    );
     assert.ok(!changed.includes(RENTAS_ROUTES_FILE), "rentasPublishRoutes.ts (the canonical builder itself) must not need any change");
   }
 

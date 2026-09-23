@@ -382,7 +382,7 @@ export function mapBienesRaicesPrivadoStateToPreviewVm(
 
   const mailto = buildMailto(s.seller.correo, "Pregunta sobre tu propiedad (Leonix — particular)");
   const telHref = buildTelHref(s.seller.telefono);
-  const waRaw = trim(s.seller.whatsapp) || trim(s.seller.telefono);
+  const waRaw = trim(s.seller.whatsapp);
   const waHref = previewWhatsappClickHref(waRaw);
   const smsHref = buildSmsHref(s.seller.mensajesTexto);
 

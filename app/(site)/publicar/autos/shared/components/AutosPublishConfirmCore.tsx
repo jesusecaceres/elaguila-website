@@ -568,8 +568,9 @@ export function AutosPublishConfirmCore({
         /* optional metadata */
       }
 
-      // Best-effort newsletter capture from the opt-in checkbox. Never blocks checkout.
-      void captureCheckoutNewsletterSubscriber({
+      // Best-effort newsletter capture from the opt-in checkbox. Awaited so FAILED can surface,
+      // but never blocks checkout.
+      const captureResult = await captureCheckoutNewsletterSubscriber({
         email: sessionData.session?.user?.email ?? null,
         lang,
         preferredLanguage: lang,
@@ -577,6 +578,15 @@ export function AutosPublishConfirmCore({
         interests: ["package:autos_privado", "launch_25"],
         checked: newsletterOptIn,
       });
+      if (captureResult.status === "FAILED") {
+        console.warn("[autos/confirm-privado] newsletter checkout capture failed", captureResult.reason);
+        setPersistWarnings((prev) => [
+          ...prev,
+          lang === "es"
+            ? "No pudimos guardar tu suscripción al boletín. Tu pago no se vio afectado."
+            : "We couldn't save your newsletter subscription. Your payment was not affected.",
+        ]);
+      }
 
       const revenueCheckout = await startRevenueCategoryCheckout({
         ...AUTOS_PRIVADO_CHECKOUT,
@@ -644,7 +654,7 @@ export function AutosPublishConfirmCore({
         setPhase("error");
         return;
       }
-      void captureCheckoutNewsletterSubscriber({
+      const captureResult = await captureCheckoutNewsletterSubscriber({
         email: sessionData.session?.user?.email ?? null,
         lang,
         preferredLanguage: lang,
@@ -655,6 +665,15 @@ export function AutosPublishConfirmCore({
         interests: [lane === "negocios" ? "package:autos_dealer" : "package:autos_privado", "launch_25"],
         checked: newsletterOptIn,
       });
+      if (captureResult.status === "FAILED") {
+        console.warn("[autos/confirm] newsletter checkout capture failed", captureResult.reason);
+        setPersistWarnings((prev) => [
+          ...prev,
+          lang === "es"
+            ? "No pudimos guardar tu suscripción al boletín. Tu pago no se vio afectado."
+            : "We couldn't save your newsletter subscription. Your payment was not affected.",
+        ]);
+      }
       const canonicalCheckout = await startRevenueCategoryCheckout(
         lane === "negocios"
           ? {

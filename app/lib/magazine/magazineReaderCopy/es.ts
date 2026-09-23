@@ -57,8 +57,8 @@ export const MAGAZINE_READER_ES: MagazineReaderLangBundle = {
     },
     {
       id: "about-magazine",
-      title: "Sobre El Águila y la revista",
-      body: "Leonix Media es la revista premium del ecosistema El Águila: comunidad, cultura y negocios en una edición digital e impresa. La edición de junio 2026 reúne historias locales, anuncios de negocios, inspiración comunitaria y puentes hacia el marketplace de clasificados.",
+      title: "Sobre Leonix y la revista",
+      body: "Leonix Media es la revista premium del ecosistema Leonix: comunidad, cultura y negocios en una edición digital e impresa. La edición de junio 2026 reúne historias locales, anuncios de negocios, inspiración comunitaria y puentes hacia el marketplace de clasificados.",
       bullets: [
         "Revista impresa premium diseñada para la comunidad latina local.",
         "Edición digital con flipbook y PDF en español (original visual).",

@@ -99,7 +99,7 @@ const COMPANION_ES: June2026CompanionCopy = {
       id: "community-resources",
       title: "Comunidad y recursos",
       summary:
-        "Leonix conecta lectores con clasificados, oportunidades locales y herramientas comunitarias del ecosistema El Águila.",
+        "Leonix conecta lectores con clasificados, oportunidades locales y herramientas comunitarias del ecosistema Leonix.",
       bullets: [
         "Rentas, empleos, autos y artículos en venta.",
         "Eventos, mascotas, busco y apoyo local.",
@@ -193,7 +193,7 @@ const COMPANION_EN: June2026CompanionCopy = {
       id: "community-resources",
       title: "Community & resources",
       summary:
-        "Leonix connects readers with classifieds, local opportunities, and community tools in the El Águila ecosystem.",
+        "Leonix connects readers with classifieds, local opportunities, and community tools in the Leonix ecosystem.",
       bullets: [
         "Rentals, jobs, autos, and items for sale.",
         "Events, pets, wanted posts, and local support.",
@@ -328,7 +328,7 @@ export function getJune2026CompanionLinks(lang: SupportedLang): June2026Companio
   };
 }
 
-export function getJune2026CompanionIssueMeta(lang: SupportedLang): {
+export function getJune2026CompanionIssueMeta(_lang: SupportedLang): {
   year: string;
   monthKey: string;
   flipbookUrl: string;

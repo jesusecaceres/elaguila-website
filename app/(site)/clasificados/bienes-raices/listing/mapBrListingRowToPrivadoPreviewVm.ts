@@ -142,6 +142,11 @@ export function mapBrListingRowToPrivadoPreviewVm(listing: BienesLiveListingLike
 
   const phone = trim(listing.contact_phone);
   const email = trim(listing.contact_email);
+  const whatsappRaw = trim(
+    readLeonixDetailPairValue(detailPairs, "Leonix:whatsappDigits") ??
+      readLeonixDetailPairValue(detailPairs, "WhatsApp") ??
+      "",
+  );
 
   const statusRaw = readLeonixDetailPairValue(detailPairs, LEONIX_DP_BR_LISTING_STATUS) ?? "disponible";
   const statusLabel = (ESTADO_LABEL[statusRaw] ?? ESTADO_LABEL.disponible)[lang];
@@ -235,7 +240,7 @@ export function mapBrListingRowToPrivadoPreviewVm(listing: BienesLiveListingLike
       byOwnerLabel: sellerName ? (lang === "es" ? "Propietario" : "Owner") : "",
       phoneDisplay: phone ? formatUsPhoneDisplay(digitsOnly(phone)) : "",
       emailDisplay: email,
-      whatsappDisplay: phone ? formatUsPhoneDisplay(digitsOnly(phone)) : "",
+      whatsappDisplay: whatsappRaw ? formatUsPhoneDisplay(digitsOnly(whatsappRaw)) : "",
       smsDisplay: phone ? formatUsPhoneDisplay(digitsOnly(phone)) : "",
       noteLine: "",
     },
@@ -276,11 +281,11 @@ export function mapBrListingRowToPrivadoPreviewVm(listing: BienesLiveListingLike
     contact: {
       showSolicitarInfo: Boolean(mailtoHref(email, lang === "es" ? "Pregunta sobre tu propiedad (Leonix)" : "Question about your property (Leonix)")),
       showLlamar: Boolean(telHref(phone)),
-      showWhatsapp: Boolean(waHref(phone)),
+      showWhatsapp: Boolean(waHref(whatsappRaw)),
       showSms: Boolean(smsHref(phone)),
       solicitarInfoHref: mailtoHref(email, lang === "es" ? "Pregunta sobre tu propiedad (Leonix)" : "Question about your property (Leonix)"),
       llamarHref: telHref(phone),
-      whatsappHref: waHref(phone),
+      whatsappHref: waHref(whatsappRaw),
       smsHref: smsHref(phone),
       instructionsLine: "",
       websiteHref: null,

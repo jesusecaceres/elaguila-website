@@ -4,7 +4,7 @@ import { LEONIX_GLOBAL_LLC, LEONIX_MEDIA_DESCRIPTOR_EN, LEONIX_MEDIA_SITE_NAME, 
  * Sitewide Organization + WebSite JSON-LD (public index signals).
  */
 export function LeonixRootJsonLd() {
-  const logoUrl = `${LEONIX_SITE_ORIGIN}/logo.png`;
+  const logoUrl = `${LEONIX_SITE_ORIGIN}/logo-clean.png`;
   const graph = [
     {
       "@context": "https://schema.org",

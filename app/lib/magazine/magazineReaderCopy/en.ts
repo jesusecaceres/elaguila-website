@@ -57,8 +57,8 @@ export const MAGAZINE_READER_EN: MagazineReaderLangBundle = {
     },
     {
       id: "about-magazine",
-      title: "About El Águila & the magazine",
-      body: "Leonix Media is the premium magazine within the El Águila ecosystem: community, culture, and business in a digital and print edition. The June 2026 issue brings local stories, business ads, community inspiration, and bridges to the classifieds marketplace.",
+      title: "About Leonix & the magazine",
+      body: "Leonix Media is the premium magazine within the Leonix ecosystem: community, culture, and business in a digital and print edition. The June 2026 issue brings local stories, business ads, community inspiration, and bridges to the classifieds marketplace.",
       bullets: [
         "Premium print magazine designed for the local Latino community.",
         "Digital edition with flipbook and PDF in Spanish (original visual).",

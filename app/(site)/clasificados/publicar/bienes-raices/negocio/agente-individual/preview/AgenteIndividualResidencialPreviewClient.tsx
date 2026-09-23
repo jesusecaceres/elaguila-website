@@ -471,17 +471,31 @@ export default function AgenteIndividualResidencialPreviewClient() {
           }
         }
 
-        if (ctx?.newsletterOptIn && auth.user?.email) {
-          void captureCheckoutNewsletterSubscriber({
-            email: auth.user.email,
-            lang,
-            preferredLanguage: lang,
-            source: CHECKOUT_NEWSLETTER_SOURCES.bienesFsbo,
-            interests: bundleCreatedCount > 0
-              ? ["package:br_agent_monthly", "package:br_inventory_pack_monthly"]
-              : ["package:br_agent_monthly"],
-            checked: true,
-          });
+        const capturePromise = captureCheckoutNewsletterSubscriber({
+          email: auth.user?.email ?? null,
+          lang,
+          preferredLanguage: lang,
+          source: CHECKOUT_NEWSLETTER_SOURCES.bienesFsbo,
+          interests: bundleCreatedCount > 0
+            ? ["package:br_agent_monthly", "package:br_inventory_pack_monthly"]
+            : ["package:br_agent_monthly"],
+          checked: Boolean(ctx?.newsletterOptIn),
+        });
+        const captureResult = await capturePromise;
+        if (captureResult.status === "FAILED") {
+          console.warn("[bienes-raices/agente] newsletter checkout capture failed", captureResult.reason);
+          const note =
+            lang === "es"
+              ? "No pudimos guardar tu suscripción al boletín. Tu anuncio y tu pago no se vieron afectados."
+              : "We couldn't save your newsletter subscription. Your listing and payment were not affected.";
+          try {
+            const existing = sessionStorage.getItem("lx_br_publish_warnings");
+            const parsed = existing ? (JSON.parse(existing) as unknown) : [];
+            const prior = Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === "string") : [];
+            sessionStorage.setItem("lx_br_publish_warnings", JSON.stringify([...prior, note]));
+          } catch {
+            /* ignore */
+          }
         }
 
         const checkout = await startRevenueCategoryCheckout({

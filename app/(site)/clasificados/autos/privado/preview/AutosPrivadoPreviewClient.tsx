@@ -134,6 +134,7 @@ function AutosPrivadoPreviewInner({
   const editBackHref = withAutosEditorResumeFromPreview(editBaseHref, lang);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [checkoutErr, setCheckoutErr] = useState<string | null>(null);
+  const [newsletterCaptureNote, setNewsletterCaptureNote] = useState<string | null>(null);
 
   const showSellerCheckout = mode === "draft";
   const publishReadinessOk = useMemo(
@@ -177,7 +178,7 @@ function AutosPrivadoPreviewInner({
         return;
       }
 
-      void captureCheckoutNewsletterSubscriber({
+      const capturePromise = captureCheckoutNewsletterSubscriber({
         email: customerEmail,
         lang: cardLang,
         preferredLanguage: cardLang,
@@ -185,6 +186,15 @@ function AutosPrivadoPreviewInner({
         interests: AUTOS_PRIVADO_NEWSLETTER_INTERESTS,
         checked: ctx.newsletterOptIn,
       });
+      const captureResult = await capturePromise;
+      if (captureResult.status === "FAILED") {
+        console.warn("[autos/privado] newsletter checkout capture failed", captureResult.reason);
+        setNewsletterCaptureNote(
+          cardLang === "es"
+            ? "No pudimos guardar tu suscripción al boletín. Tu pago no se vio afectado."
+            : "We couldn't save your newsletter subscription. Your payment was not affected.",
+        );
+      }
 
       const pending = await saveAutosPrivadoPendingBeforeCheckout({
         listing,
@@ -271,6 +281,7 @@ function AutosPrivadoPreviewInner({
             }
             onPromoApply={handlePromoApply}
             onCheckout={(ctx) => void onCheckout(ctx)}
+            newsletterCaptureNote={newsletterCaptureNote}
             editHref={editBackHref}
             rulesModal={AUTOS_PRIVADO_PREVIEW_RULES_MODAL}
           />

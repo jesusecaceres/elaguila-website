@@ -58,7 +58,7 @@ export function DigitalContactQuickActions({
   }, []);
 
   const formattedPhone = getFormattedPhone(profile.phoneDisplay || profile.phoneDigits);
-  const whatsappDigits = profile.whatsappDigits || profile.phoneDigits;
+  const whatsappDigits = profile.whatsappDigits;
 
   const contactActions: ActionDef[] = omitContactLaunchers
     ? []
@@ -81,15 +81,19 @@ export function DigitalContactQuickActions({
             openSms(profile.phoneDigits, "");
           },
         },
-        {
-          id: "whatsapp",
-          label: copy.actionWhatsapp,
-          icon: <ActionIcon path={ICON_PATHS.whatsapp} />,
-          onPress: () => {
-            trackDigitalContactEvent(profile.slug, "cta_whatsapp");
-            openWhatsApp(whatsappDigits, "");
-          },
-        },
+        ...(whatsappDigits
+          ? [
+              {
+                id: "whatsapp" as const,
+                label: copy.actionWhatsapp,
+                icon: <ActionIcon path={ICON_PATHS.whatsapp} />,
+                onPress: () => {
+                  trackDigitalContactEvent(profile.slug, "cta_whatsapp");
+                  openWhatsApp(whatsappDigits, "");
+                },
+              },
+            ]
+          : []),
         {
           id: "email",
           label: copy.actionEmail,

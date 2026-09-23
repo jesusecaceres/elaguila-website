@@ -61,8 +61,8 @@ export const COMMUNITY_READER_COPY: Record<
       },
       {
         id: "about-magazine",
-        title: "Sobre El Águila e a revista",
-        body: "A Leonix Media é a revista premium do ecossistema El Águila: comunidade, cultura e negócios numa edição digital e impressa. A edição de junho de 2026 reúne histórias locais, anúncios de negócios, inspiração comunitária e pontes para o marketplace de classificados.",
+        title: "Sobre Leonix e a revista",
+        body: "A Leonix Media é a revista premium do ecossistema Leonix: comunidade, cultura e negócios numa edição digital e impressa. A edição de junho de 2026 reúne histórias locais, anúncios de negócios, inspiração comunitária e pontes para o marketplace de classificados.",
         bullets: [
           "Revista impressa premium pensada para a comunidade latina local.",
           "Edição digital com flipbook e PDF em espanhol (visual original).",
@@ -201,8 +201,8 @@ export const COMMUNITY_READER_COPY: Record<
       },
       {
         id: "about-magazine",
-        title: "Tungkol sa El Águila at ang magasin",
-        body: "Ang Leonix Media ay ang premium magazine sa loob ng El Águila ecosystem: komunidad, kultura, at negosyo sa digital at print edition. Ang Hunyo 2026 issue ay nagdadala ng local stories, business ads, community inspiration, at tulay patungo sa classifieds marketplace.",
+        title: "Tungkol sa Leonix at ang magasin",
+        body: "Ang Leonix Media ay ang premium magazine sa loob ng Leonix ecosystem: komunidad, kultura, at negosyo sa digital at print edition. Ang Hunyo 2026 issue ay nagdadala ng local stories, business ads, community inspiration, at tulay patungo sa classifieds marketplace.",
         bullets: [
           "Premium print magazine na dinisenyo para sa local Latino community.",
           "Digital edition na may flipbook at PDF sa Espanyol (orihinal na visual).",
@@ -343,8 +343,8 @@ export const COMMUNITY_READER_COPY: Record<
       },
       {
         id: "about-magazine",
-        title: "អំពី El Águila និងទស្សនាវដ្តី",
-        body: "Leonix Media ជាទស្សនាវដ្តីគុណភាពខ្ពស់ក្នុងប្រព័ន្ធអេកូ El Águila៖ សហគមន៍ វប្បធម៌ និងអាជីវកម្ម ក្នុងកំណែឌីជីថល និងបោះពុម្ព។ ចេញផ្សាយខែមិថុនា 2026 នាំមកនូវរឿងរ៉ាវមូលដ្ឋាន ការផ្សាយពាណិជ្ជកម្មអាជីវកម្ម ការលើកទឹកចិត្តសហគមន៍ និងស្ពានទៅកាន់ទីផ្សារ classifieds។",
+        title: "អំពី Leonix និងទស្សនាវដ្តី",
+        body: "Leonix Media ជាទស្សនាវដ្តីគុណភាពខ្ពស់ក្នុងប្រព័ន្ធអេកូ Leonix៖ សហគមន៍ វប្បធម៌ និងអាជីវកម្ម ក្នុងកំណែឌីជីថល និងបោះពុម្ព។ ចេញផ្សាយខែមិថុនា 2026 នាំមកនូវរឿងរ៉ាវមូលដ្ឋាន ការផ្សាយពាណិជ្ជកម្មអាជីវកម្ម ការលើកទឹកចិត្តសហគមន៍ និងស្ពានទៅកាន់ទីផ្សារ classifieds។",
         bullets: [
           "ទស្សនាវដ្តីបោះពុម្ពគុណភាពខ្ពស់ សម្រាប់សហគមន៍ Latino មូលដ្ឋាន។",
           "កំណែឌីជីថលមាន flipbook និង PDF ជាភាសាអេស្ប៉ាញ (រូបភាពដើម)។",
@@ -483,8 +483,8 @@ export const COMMUNITY_READER_COPY: Record<
       },
       {
         id: "about-magazine",
-        title: "关于 El Águila 与本杂志",
-        body: "Leonix Media 是 El Águila 生态中的高端杂志：在数字与印刷版本中呈现社区、文化与商业。2026年6月刊带来本地故事、商家广告、社区灵感，以及通往 classifieds 市场的桥梁。",
+        title: "关于 Leonix 与本杂志",
+        body: "Leonix Media 是 Leonix 生态中的高端杂志：在数字与印刷版本中呈现社区、文化与商业。2026年6月刊带来本地故事、商家广告、社区灵感，以及通往 classifieds 市场的桥梁。",
         bullets: [
           "为本地 Latino 社区打造的高品质印刷杂志。",
           "西班牙语数字版，包含 flipbook 与 PDF（原始视觉版）。",
@@ -625,8 +625,8 @@ export const COMMUNITY_READER_COPY: Record<
       },
       {
         id: "about-magazine",
-        title: "El Águila とマガジンについて",
-        body: "Leonix Media は El Águila エコシステム内のプレミアムマガジンです。コミュニティ、文化、ビジネスをデジタル版と印刷版で届けます。2026年6月号には地域の物語、ビジネス広告、コミュニティのインスピレーション、そして classifieds マーケットへの導線が含まれます。",
+        title: "Leonix とマガジンについて",
+        body: "Leonix Media は Leonix エコシステム内のプレミアムマガジンです。コミュニティ、文化、ビジネスをデジタル版と印刷版で届けます。2026年6月号には地域の物語、ビジネス広告、コミュニティのインスピレーション、そして classifieds マーケットへの導線が含まれます。",
         bullets: [
           "地域の Latino コミュニティ向けに設計されたプレミアム印刷マガジン。",
           "スペイン語のデジタル版（flipbook と PDF、オリジナルビジュアル）。",
@@ -765,8 +765,8 @@ export const COMMUNITY_READER_COPY: Record<
       },
       {
         id: "about-magazine",
-        title: "El Águila와 매거진 소개",
-        body: "Leonix Media는 El Águila 생태계의 프리미엄 매거진입니다: 디지털/인쇄 에디션으로 커뮤니티, 문화, 비즈니스를 연결합니다. 2026년 6월호는 지역 이야기, 비즈니스 광고, 커뮤니티 영감, 그리고 classifieds 마켓플레이스로 가는 다리를 제공합니다.",
+        title: "Leonix와 매거진 소개",
+        body: "Leonix Media는 Leonix 생태계의 프리미엄 매거진입니다: 디지털/인쇄 에디션으로 커뮤니티, 문화, 비즈니스를 연결합니다. 2026년 6월호는 지역 이야기, 비즈니스 광고, 커뮤니티 영감, 그리고 classifieds 마켓플레이스로 가는 다리를 제공합니다.",
         bullets: [
           "지역 Latino 커뮤니티를 위해 설계된 프리미엄 인쇄 매거진.",
           "스페인어 디지털 에디션: flipbook 및 PDF(원본 비주얼).",
@@ -907,8 +907,8 @@ export const COMMUNITY_READER_COPY: Record<
       },
       {
         id: "about-magazine",
-        title: "El Águila और पत्रिका के बारे में",
-        body: "Leonix Media, El Águila इकोसिस्टम की प्रीमियम पत्रिका है: डिजिटल और प्रिंट संस्करण में समुदाय, संस्कृति और व्यवसाय को जोड़ती है। जून 2026 अंक में स्थानीय कहानियाँ, व्यवसायिक विज्ञापन, सामुदायिक प्रेरणा और classifieds मार्केटप्लेस से जुड़ाव शामिल है।",
+        title: "Leonix और पत्रिका के बारे में",
+        body: "Leonix Media, Leonix इकोसिस्टम की प्रीमियम पत्रिका है: डिजिटल और प्रिंट संस्करण में समुदाय, संस्कृति और व्यवसाय को जोड़ती है। जून 2026 अंक में स्थानीय कहानियाँ, व्यवसायिक विज्ञापन, सामुदायिक प्रेरणा और classifieds मार्केटप्लेस से जुड़ाव शामिल है।",
         bullets: [
           "स्थानीय Latino समुदाय के लिए डिज़ाइन की गई प्रीमियम प्रिंट पत्रिका।",
           "स्पेनिश में डिजिटल संस्करण: flipbook और PDF (मूल विजुअल)।",
@@ -1049,8 +1049,8 @@ export const COMMUNITY_READER_COPY: Record<
       },
       {
         id: "about-magazine",
-        title: "El Águila-ի և ամսագրի մասին",
-        body: "Leonix Media-ն El Águila էկոհամակարգի premium ամսագիրն է՝ համայնք, մշակույթ և բիզնես՝ թվային ու տպագիր տարբերակներով։ 2026-ի հունիսյան համարը ներկայացնում է տեղական պատմություններ, բիզնես գովազդներ, համայնքային ներշնչում և կամուրջներ դեպի classifieds շուկա։",
+        title: "Leonix-ի և ամսագրի մասին",
+        body: "Leonix Media-ն Leonix էկոհամակարգի premium ամսագիրն է՝ համայնք, մշակույթ և բիզնես՝ թվային ու տպագիր տարբերակներով։ 2026-ի հունիսյան համարը ներկայացնում է տեղական պատմություններ, բիզնես գովազդներ, համայնքային ներշնչում և կամուրջներ դեպի classifieds շուկա։",
         bullets: [
           "Premium տպագիր ամսագիր՝ ստեղծված տեղական Latino համայնքի համար։",
           "Թվային տարբերակ flipbook-ով և PDF-ով իսպաներեն (բնօրինակ տեսողական)։",
@@ -1191,8 +1191,8 @@ export const COMMUNITY_READER_COPY: Record<
       },
       {
         id: "about-magazine",
-        title: "О El Águila и журнале",
-        body: "Leonix Media — премиальный журнал в экосистеме El Águila: сообщество, культура и бизнес в цифровом и печатном формате. Выпуск за июнь 2026 включает местные истории, рекламные блоки бизнеса, вдохновение для сообщества и мост к marketplace classifieds.",
+        title: "О Leonix и журнале",
+        body: "Leonix Media — премиальный журнал в экосистеме Leonix: сообщество, культура и бизнес в цифровом и печатном формате. Выпуск за июнь 2026 включает местные истории, рекламные блоки бизнеса, вдохновение для сообщества и мост к marketplace classifieds.",
         bullets: [
           "Премиальный печатный журнал для местного Latino-сообщества.",
           "Цифровой выпуск с flipbook и PDF на испанском (оригинальная визуальная версия).",
@@ -1333,8 +1333,8 @@ export const COMMUNITY_READER_COPY: Record<
       },
       {
         id: "about-magazine",
-        title: "El Águila ਅਤੇ ਮੈਗਜ਼ੀਨ ਬਾਰੇ",
-        body: "Leonix Media, El Águila ਇਕੋਸਿਸਟਮ ਦਾ premium ਮੈਗਜ਼ੀਨ ਹੈ: ਡਿਜ਼ਿਟਲ ਅਤੇ ਪ੍ਰਿੰਟ ਸੰਸਕਰਣ ਵਿੱਚ ਕਮਿਊਨਿਟੀ, ਸਭਿਆਚਾਰ ਅਤੇ ਕਾਰੋਬਾਰ। ਜੂਨ 2026 ਅੰਕ ਵਿੱਚ ਸਥਾਨਕ ਕਹਾਣੀਆਂ, ਬਿਜ਼ਨਸ ਇਸ਼ਤਿਹਾਰ, ਕਮਿਊਨਿਟੀ ਪ੍ਰੇਰਣਾ ਅਤੇ classifieds ਮਾਰਕੀਟਪਲੇਸ ਤੱਕ ਪੁਲ ਸ਼ਾਮਲ ਹਨ।",
+        title: "Leonix ਅਤੇ ਮੈਗਜ਼ੀਨ ਬਾਰੇ",
+        body: "Leonix Media, Leonix ਇਕੋਸਿਸਟਮ ਦਾ premium ਮੈਗਜ਼ੀਨ ਹੈ: ਡਿਜ਼ਿਟਲ ਅਤੇ ਪ੍ਰਿੰਟ ਸੰਸਕਰਣ ਵਿੱਚ ਕਮਿਊਨਿਟੀ, ਸਭਿਆਚਾਰ ਅਤੇ ਕਾਰੋਬਾਰ। ਜੂਨ 2026 ਅੰਕ ਵਿੱਚ ਸਥਾਨਕ ਕਹਾਣੀਆਂ, ਬਿਜ਼ਨਸ ਇਸ਼ਤਿਹਾਰ, ਕਮਿਊਨਿਟੀ ਪ੍ਰੇਰਣਾ ਅਤੇ classifieds ਮਾਰਕੀਟਪਲੇਸ ਤੱਕ ਪੁਲ ਸ਼ਾਮਲ ਹਨ।",
         bullets: [
           "ਸਥਾਨਕ Latino ਕਮਿਊਨਿਟੀ ਲਈ ਡਿਜ਼ਾਈਨ ਕੀਤਾ premium ਪ੍ਰਿੰਟ ਮੈਗਜ਼ੀਨ।",
           "ਸਪੇਨੀ ਡਿਜ਼ਿਟਲ ਸੰਸਕਰਣ flipbook ਅਤੇ PDF ਨਾਲ (ਅਸਲ ਵਿਜ਼ੂਅਲ)।",

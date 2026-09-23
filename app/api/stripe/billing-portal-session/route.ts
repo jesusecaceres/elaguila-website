@@ -13,6 +13,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import Stripe from "stripe";
 import { getBearerUserId } from "@/app/api/clasificados/_lib/bearerUser";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { LEONIX_SITE_ORIGIN } from "@/app/lib/leonixBrand";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,7 +41,7 @@ function getStripeClient(): Stripe | null {
 function getBaseUrl(): string {
   const vercelUrl = process.env.VERCEL_URL;
   if (vercelUrl) return `https://${vercelUrl}`;
-  return process.env.NEXT_PUBLIC_SITE_URL ?? "https://elaguila.net";
+  return process.env.NEXT_PUBLIC_SITE_URL ?? LEONIX_SITE_ORIGIN;
 }
 
 async function resolveStripeCustomerIdForUser(

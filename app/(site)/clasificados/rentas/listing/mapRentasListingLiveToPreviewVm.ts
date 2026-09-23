@@ -471,7 +471,7 @@ export function mapRentasListingToPrivadoPreviewVm(
   const phoneRaw = trim(extra.contactPhone);
   const smsDigits = trim(extra.contactSmsDigits ?? listing.contactSmsDigits ?? "");
   const waDigits = trim(extra.contactWhatsappDigits ?? listing.contactWhatsappDigits ?? "");
-  const waSource = waDigits || digitsOnly(phoneRaw);
+  const waSource = waDigits;
   const telHref = phoneRaw ? telHrefFromDigits(phoneRaw) : null;
   const smsHref = smsDigits ? smsHrefFromDigits(smsDigits, lang) : smsHrefFromDigits(phoneRaw, lang);
   const waHref = waSource ? waHrefFromDigits(waSource, lang) : null;
@@ -602,7 +602,7 @@ export function mapRentasListingToNegocioPreviewVm(
   const phoneRaw = trim(extra.contactPhone);
   const smsDigits = trim(extra.contactSmsDigits ?? listing.contactSmsDigits ?? "");
   const waDigits = trim(extra.contactWhatsappDigits ?? listing.contactWhatsappDigits ?? "");
-  const waSource = waDigits || digitsOnly(phoneRaw);
+  const waSource = waDigits;
   const email = trim(extra.contactEmail ?? listing.contactEmail ?? "");
   const telHref = phoneRaw ? telHrefFromDigits(phoneRaw) : null;
   const smsHref = smsDigits ? smsHrefFromDigits(smsDigits, lang) : smsHrefFromDigits(phoneRaw, lang);

@@ -39,8 +39,8 @@ function buscoDrawerChips(lang: Lang, drawer: Record<string, string>, allParams:
     const contactLabel =
       drawer.contact === "phone"
         ? L
-          ? "Teléfono / WhatsApp"
-          : "Phone / WhatsApp"
+          ? "Teléfono"
+          : "Phone"
         : drawer.contact === "email"
           ? L
             ? "Correo"

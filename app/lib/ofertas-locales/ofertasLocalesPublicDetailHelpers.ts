@@ -112,7 +112,7 @@ export function mapOfertaLocalPublicDetailRowToDetail(
     description: sanitizeText(row.description, 8000),
     couponText: sanitizeText(row.coupon_text, 2000),
     flyerTitle: sanitizeText(row.flyer_title, 160),
-    whatsappHref: buildOfertaLocalWhatsAppHref(whatsapp || phone, businessName) || null,
+    whatsappHref: buildOfertaLocalWhatsAppHref(whatsapp, businessName) || null,
     flyerAssets: mapAssetList(row.flyer_assets, "flyer"),
     couponAssets: mapAssetList(row.coupon_assets, "coupon"),
     membershipUrl: getSafeOfertaLocalSourceAssetHref(row.membership_url),

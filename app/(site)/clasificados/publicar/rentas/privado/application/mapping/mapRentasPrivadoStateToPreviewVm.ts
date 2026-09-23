@@ -25,7 +25,7 @@ import {
 } from "@/app/clasificados/rentas/shared/rentasRentalTypeApply";
 import { formatRentasTipoDeRentaDisplay } from "@/app/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
 import type { RentasPrivadoFormState } from "../../schema/rentasPrivadoFormState";
-import { rentasLeadSmsBody, RENTAS_LEAD_MESSAGE_ES } from "@/app/clasificados/rentas/shared/rentasLeadContactCopy";
+import { rentasLeadSmsBody } from "@/app/clasificados/rentas/shared/rentasLeadContactCopy";
 import {
   buildLeonixContactChannelsV1PayloadFromFormSlice,
   formatLeonixPreferredContactLine,
@@ -275,7 +275,7 @@ export function mapRentasPrivadoStateToPreviewVm(
 
   const telHref = telHrefFromPhoneDisplay(s.seller.telefono);
   const smsHref = smsHrefFromPhoneDisplay(s.seller.mensajesTexto, lang);
-  const waDigitsPrimary = trim(s.seller.whatsapp) ? trim(s.seller.whatsapp) : trim(s.seller.telefono);
+  const waDigitsPrimary = trim(s.seller.whatsapp);
   const waHref = waHrefFromPhoneDisplay(waDigitsPrimary, lang);
 
   const mailto =

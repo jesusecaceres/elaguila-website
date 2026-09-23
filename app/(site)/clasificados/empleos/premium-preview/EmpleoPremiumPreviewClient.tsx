@@ -61,6 +61,7 @@ export function EmpleoPremiumPreviewClient() {
   const [ready, setReady] = useState(false);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [checkoutErr, setCheckoutErr] = useState<string | null>(null);
+  const [newsletterCaptureNote, setNewsletterCaptureNote] = useState<string | null>(null);
 
   useLayoutEffect(() => {
     clearLeonixPreviewNavSessionFlag();
@@ -135,7 +136,7 @@ export function EmpleoPremiumPreviewClient() {
         return;
       }
 
-      void captureCheckoutNewsletterSubscriber({
+      const capturePromise = captureCheckoutNewsletterSubscriber({
         email: data.session.user?.email ?? null,
         lang,
         preferredLanguage: lang,
@@ -143,6 +144,15 @@ export function EmpleoPremiumPreviewClient() {
         interests: EMPLEOS_NEWSLETTER_INTERESTS.premium,
         checked: ctx.newsletterOptIn,
       });
+      const captureResult = await capturePromise;
+      if (captureResult.status === "FAILED") {
+        console.warn("[empleos/premium] newsletter checkout capture failed", captureResult.reason);
+        setNewsletterCaptureNote(
+          lang === "es"
+            ? "No pudimos guardar tu suscripción al boletín. Tu pago no se vio afectado."
+            : "We couldn't save your newsletter subscription. Your payment was not affected.",
+        );
+      }
 
       const envelope = buildEmpleosPublishEnvelopeFromPremium(current, lang);
       const paid = await saveEmpleosDraftAndStartPaidJobCheckout({
@@ -218,6 +228,7 @@ export function EmpleoPremiumPreviewClient() {
             }
             onPromoApply={handlePromoApply}
             onCheckout={(ctx) => void onCheckout(ctx)}
+            newsletterCaptureNote={newsletterCaptureNote}
             editHref={editHref}
             rulesModal={EMPLEOS_PREVIEW_RULES_MODAL}
           />
