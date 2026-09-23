@@ -36,6 +36,14 @@ const GOVERNANCE_BY_ACTION: Record<LeoExecutiveActionType, LeoGovernanceLevel> =
   PREPARE_FOLLOWUP: "YELLOW",
   CREATE_COMMITMENT: "YELLOW",
   REMIND_LATER: "YELLOW",
+  // LEO FINAL-02 connected actions.
+  RESOLVE_CONTACT: "GREEN",
+  CHECK_AVAILABILITY: "GREEN",
+  CREATE_EMAIL_DRAFT: "YELLOW",
+  SEND_EMAIL: "YELLOW",
+  REPLY_EMAIL: "YELLOW",
+  CREATE_CALENDAR_EVENT: "YELLOW",
+  UPDATE_CALENDAR_EVENT: "YELLOW",
 };
 
 const EXECUTION_BY_ACTION: Record<LeoExecutiveActionType, LeoExecutionType> = {
@@ -60,6 +68,14 @@ const EXECUTION_BY_ACTION: Record<LeoExecutiveActionType, LeoExecutionType> = {
   PREPARE_DRAFT: "PREPARE",
   PREPARE_FOLLOWUP: "PREPARE",
   CREATE_COMMITMENT: "PERSIST_INTERNAL",
+  // LEO FINAL-02 connected actions.
+  RESOLVE_CONTACT: "PREPARE",
+  CHECK_AVAILABILITY: "PREPARE",
+  CREATE_EMAIL_DRAFT: "EXECUTE_EXTERNAL",
+  SEND_EMAIL: "EXECUTE_EXTERNAL",
+  REPLY_EMAIL: "EXECUTE_EXTERNAL",
+  CREATE_CALENDAR_EVENT: "EXECUTE_EXTERNAL",
+  UPDATE_CALENDAR_EVENT: "EXECUTE_EXTERNAL",
 };
 
 const RECEIPT_BY_ACTION: Record<LeoExecutiveActionType, LeoActionReceiptBehavior> = {
@@ -84,6 +100,14 @@ const RECEIPT_BY_ACTION: Record<LeoExecutiveActionType, LeoActionReceiptBehavior
   PREPARE_DRAFT: "CREATE",
   PREPARE_FOLLOWUP: "CREATE",
   CREATE_COMMITMENT: "CREATE",
+  // LEO FINAL-02 connected actions.
+  RESOLVE_CONTACT: "NONE",
+  CHECK_AVAILABILITY: "NONE",
+  CREATE_EMAIL_DRAFT: "CREATE",
+  SEND_EMAIL: "CREATE",
+  REPLY_EMAIL: "CREATE",
+  CREATE_CALENDAR_EVENT: "CREATE",
+  UPDATE_CALENDAR_EVENT: "UPDATE",
 };
 
 const ICON_BY_ACTION: Record<LeoExecutiveActionType, string> = {
@@ -108,6 +132,13 @@ const ICON_BY_ACTION: Record<LeoExecutiveActionType, string> = {
   OPEN_CALENDAR: "calendar",
   OPEN_GITHUB: "github",
   OPEN_VERCEL: "vercel",
+  RESOLVE_CONTACT: "user",
+  CHECK_AVAILABILITY: "calendar",
+  CREATE_EMAIL_DRAFT: "pen",
+  SEND_EMAIL: "send",
+  REPLY_EMAIL: "reply",
+  CREATE_CALENDAR_EVENT: "calendar-plus",
+  UPDATE_CALENDAR_EVENT: "calendar-edit",
 };
 
 const DEFAULT_LABEL: Record<LeoExecutiveActionType, string> = {
@@ -132,7 +163,32 @@ const DEFAULT_LABEL: Record<LeoExecutiveActionType, string> = {
   OPEN_CALENDAR: "Open Calendar",
   OPEN_GITHUB: "Open GitHub",
   OPEN_VERCEL: "Open Vercel",
+  RESOLVE_CONTACT: "Resolve contact",
+  CHECK_AVAILABILITY: "Check availability",
+  CREATE_EMAIL_DRAFT: "Create draft",
+  SEND_EMAIL: "Send email",
+  REPLY_EMAIL: "Reply",
+  CREATE_CALENDAR_EVENT: "Schedule event",
+  UPDATE_CALENDAR_EVENT: "Update event",
 };
+
+/**
+ * LEO FINAL-02: the ONLY executive action types ever allowed to reach an
+ * enabled EXECUTE_EXTERNAL execution type. Being allowlisted here only means
+ * the type-level hard block is lifted — the caller (leoConversationService.ts /
+ * the preparation flow) still supplies `forceDisabledReason` truthfully based
+ * on real Google capability state, and the actual execute endpoint separately
+ * re-checks owner_admin, confirmation, and idempotent claim before any
+ * provider call happens. This factory never performs I/O and never grants
+ * capability by itself.
+ */
+const EXECUTE_EXTERNAL_ALLOWLIST = new Set<LeoExecutiveActionType>([
+  "CREATE_EMAIL_DRAFT",
+  "SEND_EMAIL",
+  "REPLY_EMAIL",
+  "CREATE_CALENDAR_EVENT",
+  "UPDATE_CALENDAR_EVENT",
+]);
 
 export function leoGovernanceForExecutiveAction(
   type: LeoExecutiveActionType,
@@ -221,9 +277,14 @@ export function createLeoExecutiveAction(
   else if (missingUrl) disabledReason = "Trusted navigation URL unavailable.";
   else if (input.forceDisabledReason) disabledReason = input.forceDisabledReason;
 
-  // Hard rule: this gate never enables EXECUTE_EXTERNAL.
-  if (executionType === "EXECUTE_EXTERNAL") {
-    disabledReason = "External execution is not available in LEO-14.2.";
+  // Hard rule: EXECUTE_EXTERNAL is blocked unless the action type is in the
+  // explicit FINAL-02 allowlist. Allowlisted types are NOT auto-enabled —
+  // they still fall through to whatever disabledReason the caller already
+  // supplied above (missingTarget/missingUrl/forceDisabledReason), which the
+  // caller must set truthfully from real capability state (see
+  // leoGoogleWorkspaceConfig.ts:getLeoGoogleCapabilityDiagnostic).
+  if (executionType === "EXECUTE_EXTERNAL" && !EXECUTE_EXTERNAL_ALLOWLIST.has(type)) {
+    disabledReason = "External execution is not available for this action.";
   }
 
   const suffix = input.actionIdSuffix?.trim() || id || "unknown";
@@ -522,5 +583,86 @@ export function createInspectAction(opts: {
     type: "INSPECT",
     targetRef: target(opts.system, opts.entityType, opts.id),
     actionIdSuffix: opts.id,
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* LEO FINAL-02 connected action factories                                    */
+/* -------------------------------------------------------------------------- */
+
+export function createResolveContactAction(opts: { query: string }): LeoExecutiveAction {
+  return createLeoExecutiveAction({
+    type: "RESOLVE_CONTACT",
+    targetRef: target("GOOGLE_GMAIL", "contact_query", opts.query),
+    toolId: "leo.contacts.resolve",
+    actionIdSuffix: opts.query,
+  });
+}
+
+export function createCheckAvailabilityAction(opts: {
+  startIso: string;
+  endIso: string;
+}): LeoExecutiveAction {
+  return createLeoExecutiveAction({
+    type: "CHECK_AVAILABILITY",
+    targetRef: target(
+      "GOOGLE_CALENDAR",
+      "availability_window",
+      `${opts.startIso}_${opts.endIso}`,
+    ),
+    toolId: "leo.calendar.availability",
+    actionIdSuffix: opts.startIso,
+  });
+}
+
+/**
+ * Gmail connected-action button (CREATE_EMAIL_DRAFT / SEND_EMAIL / REPLY_EMAIL).
+ * `proposalId` + `fingerprint` reference a server-persisted LeoActionProposalRecord
+ * — the client never carries the executable recipient/subject/body, only this
+ * reference, so the execute endpoint always re-fetches canonical content by ID.
+ * `capabilityDisabledReason` must be supplied truthfully by the caller from
+ * real Google capability state — null only when actually WRITE_READY.
+ */
+export function createEmailConnectedAction(opts: {
+  kind: "CREATE_EMAIL_DRAFT" | "SEND_EMAIL" | "REPLY_EMAIL";
+  proposalId: string;
+  fingerprint: string;
+  recipientEmail: string;
+  toolId: LeoToolId;
+  capabilityDisabledReason: string | null;
+}): LeoExecutiveAction {
+  return createLeoExecutiveAction({
+    type: opts.kind,
+    targetRef: target("GOOGLE_GMAIL", "action_proposal", opts.proposalId, null, {
+      fingerprint: opts.fingerprint,
+      recipient: opts.recipientEmail,
+    }),
+    toolId: opts.toolId,
+    forceDisabledReason: opts.capabilityDisabledReason,
+    actionIdSuffix: opts.proposalId,
+  });
+}
+
+/**
+ * Calendar connected-action button (CREATE_CALENDAR_EVENT / UPDATE_CALENDAR_EVENT).
+ * Same proposal-reference pattern as createEmailConnectedAction — see there.
+ */
+export function createCalendarConnectedAction(opts: {
+  kind: "CREATE_CALENDAR_EVENT" | "UPDATE_CALENDAR_EVENT";
+  proposalId: string;
+  fingerprint: string;
+  title: string;
+  toolId: LeoToolId;
+  capabilityDisabledReason: string | null;
+}): LeoExecutiveAction {
+  return createLeoExecutiveAction({
+    type: opts.kind,
+    targetRef: target("GOOGLE_CALENDAR", "action_proposal", opts.proposalId, null, {
+      fingerprint: opts.fingerprint,
+      title: opts.title,
+    }),
+    toolId: opts.toolId,
+    forceDisabledReason: opts.capabilityDisabledReason,
+    actionIdSuffix: opts.proposalId,
   });
 }
