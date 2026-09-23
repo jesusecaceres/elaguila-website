@@ -606,6 +606,7 @@ function MyListingsPageContent() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [renewalCheckoutBusyId, setRenewalCheckoutBusyId] = useState<string | null>(null);
   const [couponEditBusyId, setCouponEditBusyId] = useState<string | null>(null);
+  const [restaurantesLifecycleBusyId, setRestaurantesLifecycleBusyId] = useState<string | null>(null);
   const [serviciosManageBusySlug, setServiciosManageBusySlug] = useState<string | null>(null);
   const [empleosLifecycleBusyId, setEmpleosLifecycleBusyId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("all");
@@ -1016,6 +1017,35 @@ function MyListingsPageContent() {
         lang === "es" ? "No se pudo abrir la edición de cupones." : "Could not open coupon editing.",
       );
       setCouponEditBusyId(null);
+    }
+  }
+
+  async function manageRestauranteListing(listingId: string, action: "pause" | "resume") {
+    if (!accessToken) return;
+    setRestaurantesLifecycleBusyId(listingId);
+    setError(null);
+    try {
+      const res = await fetch("/api/clasificados/restaurantes/lifecycle", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ listingId, action }),
+      });
+      const json = (await res.json().catch(() => ({}))) as { ok?: boolean; status?: string };
+      if (!res.ok || json.ok !== true || typeof json.status !== "string") {
+        setError(dashboardSafeMutationErrorCopy(lang));
+        return;
+      }
+      const updatedAt = new Date().toISOString();
+      setRestaurantRawRows((prev) =>
+        prev.map((row) => (row.id === listingId ? { ...row, status: json.status!, updated_at: updatedAt } : row)),
+      );
+    } catch {
+      setError(dashboardSafeMutationErrorCopy(lang));
+    } finally {
+      setRestaurantesLifecycleBusyId(null);
     }
   }
 
@@ -1950,6 +1980,8 @@ function MyListingsPageContent() {
                       onCouponEdit: () => void openRestauranteCouponEdit(item),
                       couponEditBusy: couponEditBusyId === item.id,
                       ownerUserId: userId,
+                      onRestaurantesManage: (action) => void manageRestauranteListing(item.id, action),
+                      restaurantesManageBusy: restaurantesLifecycleBusyId === item.id,
                     })}
                   />
                 ))
