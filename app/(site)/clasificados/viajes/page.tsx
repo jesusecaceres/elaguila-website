@@ -7,6 +7,10 @@ import { buildPublicPillarMetadata } from "@/app/lib/leonix/publicPillarSeo";
 import type { ViajesBusinessResult } from "./data/viajesResultsSampleData";
 import { ViajesLandingPage } from "./components/ViajesLandingPage";
 import { fetchViajesPublicBrowseRowsMerged } from "./lib/viajesPublicBrowseRowsServer";
+import { isViajesProductionCommercialRow } from "./lib/viajesPublicInventory";
+import { viajesLandingMetadata } from "./lib/viajesLocalSeo";
+
+export const metadata = viajesLandingMetadata("es");
 
 export async function generateMetadata(props: {
   searchParams?: Promise<{ lang?: string }>;
@@ -21,7 +25,9 @@ export default async function ClasificadosViajesPage(props: {
   const sp = (await props.searchParams) ?? {};
   const lang = normalizeLang(sp.lang);
   const { rows } = await fetchViajesPublicBrowseRowsMerged();
-  const initialBusinessRows = rows.filter((r): r is ViajesBusinessResult => r.kind === "business");
+  const initialBusinessRows = rows.filter(
+    (r): r is ViajesBusinessResult => r.kind === "business" && isViajesProductionCommercialRow(r)
+  );
 
   return (
     <>

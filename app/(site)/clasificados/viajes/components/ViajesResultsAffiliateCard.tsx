@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
@@ -8,6 +7,11 @@ import type { ViajesUi } from "../data/viajesUiCopy";
 import type { ViajesAffiliateResult } from "../data/viajesResultsSampleData";
 import { VIAJES_LANDING_CTA_ORANGE } from "../lib/viajesLandingVisual";
 import { withViajesOfferBackParam } from "../lib/viajesOfferLink";
+<<<<<<< HEAD
+=======
+import { normalizeViajesSanJoseCaliforniaLabel } from "../lib/viajesPublicLocation";
+import { ViajesSafeImage } from "./ViajesSafeImage";
+>>>>>>> 9f92bb50 (preservation: capture final local Viajes launch work)
 
 export function ViajesResultsAffiliateCard({ row, ui }: { row: ViajesAffiliateResult; ui: ViajesUi }) {
   const sp = useSearchParams();
@@ -17,7 +21,13 @@ export function ViajesResultsAffiliateCard({ row, ui }: { row: ViajesAffiliateRe
   return (
     <article className="flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-amber-200/80 bg-[color:var(--lx-card)] shadow-[0_10px_30px_-18px_rgba(42,36,22,0.18)]">
       <div className="relative h-32 w-full min-w-0 overflow-hidden sm:h-36">
-        <Image src={row.imageSrc} alt={row.imageAlt} fill className="object-cover object-center" sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 33vw" />
+        <ViajesSafeImage
+          src={row.imageSrc}
+          alt={row.imageAlt}
+          className="absolute inset-0 h-full w-full object-cover object-center"
+          sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 33vw"
+          mode="inventory"
+        />
         <div className="absolute left-0 right-0 top-0 flex flex-wrap items-start justify-between gap-2 p-3">
           <span className="rounded-full bg-[#D97706] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
             {row.inventoryLabel}

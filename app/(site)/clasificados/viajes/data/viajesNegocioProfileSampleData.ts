@@ -42,7 +42,7 @@ export const VIAJES_NEGOCIO_PROFILES: Record<string, ViajesNegocioProfileModel> 
     phone: "+1 (555) 010-2030",
     email: "hola@viajesdelvalle.example",
     website: "https://example.com/viajes-del-valle",
-    verifiedPlaceholder: true,
+    verifiedPlaceholder: false,
     featuredOffers: [
       {
         title: "Roma + Venecia express",

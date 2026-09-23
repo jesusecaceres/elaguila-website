@@ -27,6 +27,7 @@ export function ViajesOfferHeroBackdrop({
   heroUseNativeImg,
   visualKind,
   lane,
+  inventory = false,
   children,
 }: {
   heroImageSrc: string;
@@ -34,9 +35,13 @@ export function ViajesOfferHeroBackdrop({
   heroUseNativeImg?: boolean;
   visualKind: ViajesHeroVisualKind;
   lane: ViajesOpenCardLane;
+  inventory?: boolean;
   children: React.ReactNode;
 }) {
-  const chain = useMemo(() => buildHeroFallbackChain(heroImageSrc, visualKind), [heroImageSrc, visualKind]);
+  const chain = useMemo(
+    () => buildHeroFallbackChain(heroImageSrc, visualKind, { inventory }),
+    [heroImageSrc, visualKind, inventory]
+  );
   const [index, setIndex] = useState(0);
 
   useEffect(() => {

@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 
 import type { ViajesUi } from "../data/viajesUiCopy";
@@ -6,6 +5,7 @@ import { VIAJES_DESTINATION_COLLECTIONS } from "../data/viajesLandingSampleData"
 import { viajesResultsBrowseUrl } from "../lib/viajesBrowseContract";
 import { VIAJES_LANDING_CTA_ORANGE } from "../lib/viajesLandingVisual";
 import { ViajesLandingBrowseMore } from "./ViajesLandingBrowseMore";
+import { ViajesSafeImage } from "./ViajesSafeImage";
 import { ViajesSectionHeader } from "./ViajesSectionHeader";
 
 type ViajesDestinationsProps = {
@@ -28,6 +28,7 @@ export function ViajesDestinations({ ui, browseAllHref }: ViajesDestinationsProp
         {VIAJES_DESTINATION_COLLECTIONS.map((d) => {
           const line = ui.destinations.byId[d.id]?.supportingLine ?? d.supportingLine;
           return (
+<<<<<<< HEAD
             <article
               key={d.id}
               className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[color:var(--lx-gold-border)] bg-[#fffefb] shadow-[0_12px_40px_-20px_rgba(30,50,70,0.14)] transition hover:-translate-y-[2px] hover:shadow-[0_20px_50px_-22px_rgba(30,50,80,0.16)]"
@@ -53,6 +54,23 @@ export function ViajesDestinations({ ui, browseAllHref }: ViajesDestinationsProp
                 </Link>
               </div>
             </article>
+=======
+            <li key={d.id} className="w-[112px] shrink-0 sm:w-[128px]">
+              <Link href={viajesResultsBrowseUrl(ui.lang, d.browse)} className="group flex flex-col items-center text-center">
+                <span className="relative h-[112px] w-[112px] overflow-hidden rounded-full border-2 border-[color:var(--lx-gold-border)] shadow-md sm:h-[128px] sm:w-[128px]">
+                  <ViajesSafeImage
+                    src={d.imageSrc}
+                    alt={d.imageAlt}
+                    className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.05]"
+                    sizes="128px"
+                    mode="editorial"
+                  />
+                </span>
+                <span className="mt-2 line-clamp-2 text-sm font-bold text-[color:var(--lx-text)]">{d.name}</span>
+                <span className="mt-0.5 line-clamp-2 text-[11px] text-[color:var(--lx-muted)]">{line}</span>
+              </Link>
+            </li>
+>>>>>>> 9f92bb50 (preservation: capture final local Viajes launch work)
           );
         })}
       </div>

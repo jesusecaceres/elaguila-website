@@ -1,13 +1,17 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
 import type { ViajesUi } from "../data/viajesUiCopy";
 import type { ViajesBusinessResult } from "../data/viajesResultsSampleData";
 import { withViajesOfferBackParam } from "../lib/viajesOfferLink";
+<<<<<<< HEAD
 import { ViajesSheetCtaLink } from "./ViajesSheetCtaLink";
+=======
+import { normalizeViajesSanJoseCaliforniaLabel } from "../lib/viajesPublicLocation";
+import { ViajesSafeImage } from "./ViajesSafeImage";
+>>>>>>> 9f92bb50 (preservation: capture final local Viajes launch work)
 
 export function ViajesResultsBusinessCard({ row, ui }: { row: ViajesBusinessResult; ui: ViajesUi }) {
   const sp = useSearchParams();
@@ -17,6 +21,7 @@ export function ViajesResultsBusinessCard({ row, ui }: { row: ViajesBusinessResu
   const whatsappHref = whatsappDigits.length >= 10 ? `https://wa.me/${whatsappDigits}` : "";
 
   return (
+<<<<<<< HEAD
     <article className="flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-card)] shadow-[0_10px_30px_-18px_rgba(42,36,22,0.2)]">
       <div className="relative h-32 w-full min-w-0 overflow-hidden sm:h-36">
         <Image src={row.imageSrc} alt={row.imageAlt} fill className="object-cover object-center" sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 33vw" />
@@ -29,6 +34,19 @@ export function ViajesResultsBusinessCard({ row, ui }: { row: ViajesBusinessResu
           <span className="rounded-full bg-[color:var(--lx-cta-dark)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#FFFCF7]">
             {ui.cards.businessListing}
           </span>
+=======
+    <article className="flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-sm">
+      <div className="relative aspect-[4/3] w-full min-w-0 overflow-hidden">
+        <ViajesSafeImage
+          src={row.imageSrc}
+          alt={row.imageAlt}
+          className="absolute inset-0 h-full w-full object-cover object-center"
+          sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 33vw"
+          mode="inventory"
+        />
+        <span className="absolute left-3 top-3 rounded-full bg-[color:var(--lx-cta-dark)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#FFFCF7]">
+          {sourceLabel}
+>>>>>>> 9f92bb50 (preservation: capture final local Viajes launch work)
         </span>
       </div>
       <div className="flex flex-1 flex-col p-3">

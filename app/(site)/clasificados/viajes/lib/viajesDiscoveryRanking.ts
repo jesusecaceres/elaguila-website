@@ -53,7 +53,13 @@ export function scoreViajesFeatured(row: ViajesResultRow, seed: string): number 
   const base = row.discovery?.featuredBase ?? (row.kind === "affiliate" ? 50 : row.kind === "business" ? 48 : 25);
   const trust = row.discovery?.sourceTrust ?? 1;
   const complete = row.discovery?.completeness ?? 0.7;
-  const recencyScore = Math.min(18, publishedMs(row) / (86400000 * 120)); // up to ~18 pts over ~4mo
+  const recencyScore = (() => {
+    const published = publishedMs(row);
+    if (!published) return 0;
+    const ageDays = Math.max(0, (Date.now() - published) / 86400000);
+    // Freshest listings get up to 18 pts; score decays ~1pt per week.
+    return Math.max(0, Math.min(18, 18 - ageDays / 7));
+  })();
   const rot = (hashString(`${seed}:${row.id}`) % 1000) / 1000;
   return base * trust * (0.85 + complete * 0.15) + recencyScore + rot * 2;
 }
