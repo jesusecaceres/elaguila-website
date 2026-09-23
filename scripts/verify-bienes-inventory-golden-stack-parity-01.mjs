@@ -111,7 +111,12 @@ if (!checkpoint.includes("REVENUE_OS_BR_INVENTORY_PACK_SUPPORTED = true")) {
 }
 if (!helper.includes("fetchBienesInventoryPackEntitlementActive")) fail("helper must fetch real entitlement");
 if (!helper.includes("startBienesDashboardInventoryPackCheckout")) fail("helper must export pack checkout");
-if (!invActions.includes("fetchBienesInventoryPackEntitlementActive")) {
+const readsRealInventoryEntitlement =
+  invActions.includes("fetchBienesInventoryPackEntitlementActive") ||
+  (invActions.includes("fetchDashboardListingPackageEntitlementBadges") &&
+    invActions.includes("BR_INVENTORY_PACK_PACKAGE_KEY") &&
+    invActions.includes("dashboardAddonStatusForKey"));
+if (!readsRealInventoryEntitlement) {
   fail("inventory actions must read real entitlement");
 }
 if (!invActions.includes("redirectBienesDashboardInventoryPackCheckout")) {
@@ -120,7 +125,15 @@ if (!invActions.includes("redirectBienesDashboardInventoryPackCheckout")) {
 if (!helper.includes("REVENUE_OS_BR_INVENTORY_PACK_SUPPORTED")) fail("helper must respect checkout support flag");
 ok("Payment honesty: package defined, fulfillment enabled with entitlement read");
 
-if (!checkpoint.includes("BR_INVENTORY_PACK_MAX_CHILDREN = 4")) fail("max 4 rule required");
+if (!checkpoint.includes("BR_INVENTORY_PACK_MAX_CHILDREN = 3")) {
+  fail("inventory pack must add 3 properties");
+}
+if (!checkpoint.includes("BR_BASE_INCLUDED_PROPERTIES = 1")) {
+  fail("base plan must include 1 active property");
+}
+if (!checkpoint.includes("BR_TOTAL_ACTIVE_PROPERTY_LIMIT = BR_BASE_INCLUDED_PROPERTIES + BR_INVENTORY_PACK_MAX_CHILDREN")) {
+  fail("max 4 rule required");
+}
 if (!relatedFetch.includes("fetchBrRelatedInventoryListingsForDetail")) fail("public child render path required");
 ok("Max 4 + public render path");
 

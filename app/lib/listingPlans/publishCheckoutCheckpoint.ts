@@ -56,7 +56,7 @@ export const AUTOS_PRIVADO_30D_PACKAGE_KEY = "autos_privado_30d";
 /** Canonical Revenue OS package key for Autos dealer base plan ($399/mo). */
 export const AUTOS_DEALER_MONTHLY_PACKAGE_KEY = "autos_dealer_monthly";
 
-/** Canonical Revenue OS package key for Bienes Raíces property inventory pack (+4 properties). */
+/** Canonical Revenue OS package key for Bienes Raíces property inventory pack (+3 properties; 4 total with the included property). */
 export const BR_INVENTORY_PACK_PACKAGE_KEY = "br_inventory_pack_monthly";
 
 export const BR_INVENTORY_PACK_PRICE_CENTS = 9900;
