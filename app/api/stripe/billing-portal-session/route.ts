@@ -105,13 +105,20 @@ export async function POST(request: NextRequest) {
     "autos-dealer": "autos",
     "bienes-negocio": "bienes-raices",
   };
-  const paymentCategory = categoryMap[category] ?? category;
+  const paymentCategory = categoryMap[category];
+  if (!paymentCategory) {
+    return NextResponse.json({ ok: false, error: "unsupported_category" }, { status: 400 });
+  }
+
   const listingId = typeof body.listingId === "string" ? body.listingId.trim() : "";
+  if (!listingId) {
+    return NextResponse.json({ ok: false, error: "listing_id_required" }, { status: 400 });
+  }
 
   const stripeCustomerId = await resolveStripeCustomerIdForUser(
     ownerUserId,
     paymentCategory,
-    listingId || null,
+    listingId,
   );
   if (!stripeCustomerId) {
     return NextResponse.json({ ok: false, error: "no_subscription_found" }, { status: 404 });
