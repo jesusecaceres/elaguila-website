@@ -394,6 +394,10 @@ export function buildInventoryListingActions(
     /** Owner-safe Restaurantes lifecycle: published <-> paused only. */
     onRestaurantesManage?: (action: "pause" | "resume") => void;
     restaurantesManageBusy?: boolean;
+    /** Exact-listing recurring billing — only supplied when server subscription state exists. */
+    onManageBilling?: () => void;
+    manageBillingBusy?: boolean;
+    hasSubscription?: boolean;
     /** Package E Build E2, Gate 4 — real pause/resume via /api/clasificados/servicios/manage. */
     onServiciosManage?: (action: "pause" | "resume") => void;
     serviciosManageBusy?: boolean;
@@ -505,6 +509,21 @@ export function buildInventoryListingActions(
       onClick: opts.onCouponEdit,
       disabled: opts.couponEditBusy,
       tone: "premium",
+    });
+  }
+
+  if (
+    (category === "restaurantes" || category === "servicios") &&
+    opts?.hasSubscription &&
+    opts?.onManageBilling
+  ) {
+    actions.push({
+      label: opts.manageBillingBusy
+        ? lang === "es" ? "Abriendo facturación…" : "Opening billing…"
+        : lang === "es" ? "Administrar facturación" : "Manage billing",
+      onClick: opts.onManageBilling,
+      disabled: opts.manageBillingBusy,
+      tone: "secondary",
     });
   }
 
