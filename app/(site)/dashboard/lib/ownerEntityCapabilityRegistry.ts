@@ -160,7 +160,7 @@ export const OWNER_ENTITY_CAPABILITIES: Record<OwnerEntityCategoryKey, OwnerEnti
     contactHub: "supported",
     translateAd: "supported",
     relatedListings: "unsupported",
-    lifecycle: { pause: "unsupported", reactivate: "unsupported", archive: "unsupported", markSold: "unsupported", republish: "unsupported", renew: "unsupported", close: "unsupported" },
+    lifecycle: { pause: "supported", reactivate: "supported", archive: "unsupported", markSold: "unsupported", republish: "unsupported", renew: "unsupported", close: "unsupported" },
     specialized: { inventory: "unsupported", applications: "unsupported", leads: "unsupported", requests: "unsupported", offers: "unsupported", coupons: "specialized", campaign: "unsupported", aiScan: "unsupported", businessTools: "specialized", businessConcierge: "unsupported", activity: "unsupported" },
     commercial: { plan: "supported", entitlement: "supported", placement: "supported", verification: "supported" },
   }),
