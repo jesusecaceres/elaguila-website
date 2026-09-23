@@ -86,26 +86,14 @@ export function ViajesLandingPage({ initialBusinessRows }: ViajesLandingPageProp
         eyebrow={lang === "es" ? "VIAJES · LEONIX" : "TRAVEL · LEONIX"}
       />
 
-<<<<<<< HEAD
       <main className="mx-auto max-w-[1280px] space-y-6 overflow-x-hidden px-3.5 pb-14 sm:px-4 sm:space-y-8 lg:px-5">
         <ViajesTopOffers homeBackHref={homeBackHref} browseAllHref={browseAllHref} ui={ui} initialBusinessRows={initialBusinessRows} />
-=======
-      <main className="mx-auto max-w-[1280px] space-y-2 overflow-x-hidden px-3.5 pb-14 sm:px-4 lg:px-5">
-        <div className="mt-2 flex justify-end">
-          <Link href={browseAllHref} className="text-sm font-semibold text-[color:var(--lx-burgundy)] underline-offset-2 hover:underline">
-            {ui.landing.browseAllTrips}
-          </Link>
-        </div>
-
-        <ViajesTopOffers browseAllHref={browseAllHref} ui={ui} initialBusinessRows={initialBusinessRows} />
->>>>>>> 9f92bb50 (preservation: capture final local Viajes launch work)
         <ViajesLocalDepartures ui={ui} browseAllHref={browseAllHref} />
 
         <ViajesLandingTierBreak label={ui.landing.tier2Eyebrow} />
 
         <ViajesDestinations ui={ui} browseAllHref={browseAllHref} />
         <ViajesAudienceBuckets ui={ui} browseAllHref={browseAllHref} />
-<<<<<<< HEAD
 
         <ViajesLowerSections homeBackHref={homeBackHref} ui={ui} />
 
@@ -113,10 +101,6 @@ export function ViajesLandingPage({ initialBusinessRows }: ViajesLandingPageProp
 
         <ViajesTrustStrip ui={ui} className="mt-0" />
 
-=======
-        <ViajesLowerSections homeBackHref={homeBackHref} ui={ui} initialBusinessRows={initialBusinessRows} />
-        <ViajesTrustStrip ui={ui} className="mt-8" />
->>>>>>> 9f92bb50 (preservation: capture final local Viajes launch work)
         <ViajesPublishCtaBand ui={ui} href={publicarHref} />
       </main>
 

@@ -70,7 +70,7 @@ test.describe("Viajes runtime QA", () => {
     if (bErr && !String(bErr.message).toLowerCase().includes("already")) throw bErr;
   });
 
-  test("NEGOCIO: submit → dashboard → admin approve → landing/results/detail → owner unpublish → no stale", async ({ page, context, request }) => {
+  test("NEGOCIO: submit → dashboard → admin approve → landing/results/detail → owner unpublish → no stale", async ({ page, context, request, browser }) => {
     test.skip(!url || !anon || !service, "Missing Supabase env vars (url/anon/service)");
 
     const sess = await seedSupabaseSession({
@@ -90,7 +90,7 @@ test.describe("Viajes runtime QA", () => {
       offerType: "tour",
       titulo: `${uniq} Tour de prueba`,
       destino: "Cancún, México",
-      ciudadSalida: "San José, California (SJC)",
+      ciudadSalida: "San Jose (SJO)",
       precio: "USD 123",
       duracion: "3 días · 2 noches",
       fechas: "Mayo 2026",
@@ -182,10 +182,7 @@ test.describe("Viajes runtime QA", () => {
     await page.goto(`/clasificados/viajes/oferta/${encodeURIComponent(slug)}?lang=es`);
     await expect(page.locator("h1", { hasText: uniq })).toBeVisible({ timeout: 60_000 });
     await expect(page.getByText(/Negocio en Leonix|Operador o agencia/i).first()).toBeVisible();
-    await expect(page.getByTestId("viajes-inquiry-message")).toHaveCount(0);
-    await expect(page.getByText(/Consulta por este anuncio/i)).toHaveCount(0);
 
-<<<<<<< HEAD
     // Tracked inquiry CTA (buyer session, separate context so seller session is not overwritten)
     const buyerContext = await browser.newContext();
     const buyerPage = await buyerContext.newPage();
@@ -218,33 +215,10 @@ test.describe("Viajes runtime QA", () => {
     // Results: find by q (title haystack)
     await page.goto(`/clasificados/viajes/resultados?lang=es&q=${encodeURIComponent(uniq)}`);
     await expect(page.locator(`a[href*="/clasificados/viajes/oferta/${slug}"]`).first()).toBeVisible({ timeout: 60_000 });
-=======
-    // Results: find by q (title haystack) + newest sort so pagination leftovers cannot hide the card.
-    const resultsUrl = `/clasificados/viajes/resultados?lang=es&sort=newest&q=${encodeURIComponent(uniq)}`;
-    const offerLink = page.locator(`a[href*="/clasificados/viajes/oferta/${slug}"]`).first();
-    let foundInResults = false;
-    for (let attempt = 0; attempt < 20; attempt++) {
-      await page.goto(resultsUrl, { waitUntil: "networkidle" });
-      expect(page.url()).toContain(`q=${encodeURIComponent(uniq)}`);
-      if (await offerLink.isVisible().catch(() => false)) {
-        foundInResults = true;
-        break;
-      }
-      // Fallback: title text may render before the card link hydrates.
-      if (await page.getByText(uniq, { exact: false }).first().isVisible().catch(() => false)) {
-        foundInResults = true;
-        break;
-      }
-      await page.waitForTimeout(2000);
-    }
-    expect(foundInResults, `offer ${slug} not in results after approve`).toBeTruthy();
-    await expect(offerLink).toBeVisible({ timeout: 15_000 });
->>>>>>> 9f92bb50 (preservation: capture final local Viajes launch work)
 
     // Filter by svcLang and budget and duration and season derived keys
     await page.goto(
-      `/clasificados/viajes/resultados?lang=es&sort=newest&q=${encodeURIComponent(uniq)}&svcLang=bilingual&budget=economico&duration=short&season=holidays`,
-      { waitUntil: "networkidle" },
+      `/clasificados/viajes/resultados?lang=es&q=${encodeURIComponent(uniq)}&svcLang=bilingual&budget=economico&duration=short&season=holidays`,
     );
     await expect(page.locator(`a[href*="/clasificados/viajes/oferta/${slug}"]`).first()).toBeVisible({ timeout: 60_000 });
 
@@ -363,13 +337,10 @@ test.describe("Viajes runtime QA", () => {
     await page.goto(`/clasificados/viajes/oferta/${encodeURIComponent(slug)}?lang=es`);
     await expect(page.locator("h1", { hasText: uniq })).toBeVisible({ timeout: 60_000 });
     await expect(page.getByText(/Particular/i).first()).toBeVisible();
-    await expect(page.getByTestId("viajes-inquiry-message")).toHaveCount(0);
-    await expect(page.getByText(/Consulta por este anuncio/i)).toHaveCount(0);
   });
 
-  test("AFFILIATE/PARTNER lane: either visible+labelled or omitted when no real partner inventory", async ({ page }) => {
+  test("AFFILIATE/PARTNER lane: either visible+labelled or explicitly suppressed", async ({ page }) => {
     await page.goto("/clasificados/viajes?lang=es");
-    await expect(page.locator("h1").first()).toBeVisible({ timeout: 60_000 });
     const label = page.getByText(/Inventario de socio|Socio comercial|Socio de viaje/i).first();
     const labelVisible = await label.isVisible().catch(() => false);
 
@@ -377,8 +348,8 @@ test.describe("Viajes runtime QA", () => {
     const label2 = page.getByText(/Inventario de socio|Socio comercial|Socio de viaje/i).first();
     const label2Visible = await label2.isVisible().catch(() => false);
 
-    // Real partner listings may label themselves; curated sample partners are not required.
-    expect(labelVisible || label2Visible || true).toBeTruthy();
+    // Either the curated partner seed is visible (dev default), or it's intentionally suppressed via env.
+    expect(labelVisible || label2Visible).toBeTruthy();
   });
 });
 

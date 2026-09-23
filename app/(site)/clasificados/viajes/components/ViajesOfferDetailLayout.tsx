@@ -14,13 +14,9 @@ import { inferViajesHeroVisualKind } from "../lib/viajesOfferHeroFallbacks";
 import { ViajesContactChannelsRow } from "./ViajesContactChannelsRow";
 import { ViajesOfferHeroBackdrop } from "./ViajesOfferHeroBackdrop";
 import { ViajesPartnerLogo } from "./ViajesPartnerLogo";
-<<<<<<< HEAD
 import { ViajesPublicInquiryForm } from "./ViajesPublicInquiryForm";
 import { ViajesSheetCtaLink } from "./ViajesSheetCtaLink";
 import { isViajesContactHref } from "../lib/viajesCtaSheet";
-=======
-import { isViajesDurableHttpsUrl } from "../lib/v2/viajesMediaDurableGuards";
->>>>>>> 9f92bb50 (preservation: capture final local Viajes launch work)
 
 const ACCENT = "#D97706";
 
@@ -340,12 +336,7 @@ function ViajesOfferDetailLayoutBody({
         heroImageAlt={offer.heroImageAlt}
         heroUseNativeImg={offer.heroUseNativeImg}
         visualKind={visualKind}
-<<<<<<< HEAD
         lane={lane}
-=======
-        lane={lane === "editorial" ? "business" : lane}
-        inventory={lane === "business" || lane === "private"}
->>>>>>> 9f92bb50 (preservation: capture final local Viajes launch work)
       >
         {heroInner}
       </ViajesOfferHeroBackdrop>
@@ -500,7 +491,6 @@ function ViajesOfferDetailLayoutBody({
           </div>
         </section>
 
-<<<<<<< HEAD
         {!preview && stagedListingId && lane !== "affiliate" ? (
           <section className="overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_32px_-18px_rgba(0,0,0,0.08)] sm:p-8">
             <ViajesPublicInquiryForm stagedListingId={stagedListingId} copy={od.inquiry} />
@@ -518,16 +508,6 @@ function ViajesOfferDetailLayoutBody({
             <div>
               <h2 className="text-xl font-bold text-[color:var(--lx-text)]">{od.trustIntegratedTitle}</h2>
             </div>
-=======
-        {lane === "business" || lane === "affiliate" ? (
-          <ViajesOfferMoreFromProvider rows={moreFromProvider} lang={ui.lang} />
-        ) : null}
-        <ViajesOfferSimilarGetaways rows={similarGetaways} lang={ui.lang} />
-
-        {offer.trustNote ? (
-          <div className="rounded-xl border border-dashed border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)]/90 p-4 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
-            {offer.trustNote}
->>>>>>> 9f92bb50 (preservation: capture final local Viajes launch work)
           </div>
           {(!sparseSections || offer.description.trim().length > 0) && (
             <p className="whitespace-pre-line text-sm leading-relaxed text-[color:var(--lx-text-2)] sm:text-[15px]">{offer.description}</p>

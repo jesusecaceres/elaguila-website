@@ -1,17 +1,8 @@
-<<<<<<< HEAD
 import Image from "next/image";
-=======
-import Link from "next/link";
->>>>>>> 9f92bb50 (preservation: capture final local Viajes launch work)
 import type { ReactNode } from "react";
 
 import { VIAJES_HERO_IMAGE } from "../data/viajesLandingSampleData";
 import type { ViajesUi } from "../data/viajesUiCopy";
-<<<<<<< HEAD
-=======
-import { VIAJES_LANDING_CTA_ORANGE } from "../lib/viajesLandingVisual";
-import { ViajesSafeImage } from "./ViajesSafeImage";
->>>>>>> 9f92bb50 (preservation: capture final local Viajes launch work)
 
 type ViajesHeroProps = {
   searchBar: ReactNode;
@@ -25,7 +16,6 @@ type ViajesHeroProps = {
  */
 export function ViajesHero({ searchBar, tripPills, ui }: ViajesHeroProps) {
   return (
-<<<<<<< HEAD
     <section className="relative z-[1] w-full min-w-0 overflow-x-hidden px-3 pt-2 sm:px-4 md:px-5 lg:px-6">
       <div className="mx-auto max-w-7xl overflow-hidden rounded-2xl border border-[color:var(--lx-gold-border)]/45 shadow-[0_28px_80px_-36px_rgba(15,50,70,0.42)] sm:rounded-3xl">
         <div className="relative w-full overflow-hidden">
@@ -46,21 +36,6 @@ export function ViajesHero({ searchBar, tripPills, ui }: ViajesHeroProps) {
               className="absolute inset-0 bg-[radial-gradient(ellipse_90%_70%_at_50%_0%,rgba(255,252,247,0.22),transparent_58%)]"
               aria-hidden
             />
-=======
-    <section className="relative z-[1] w-full min-w-0 overflow-x-hidden">
-      <div className="relative w-full overflow-hidden">
-        <div className="relative aspect-[16/10] w-full max-h-[min(52svh,22rem)] sm:max-h-[min(48svh,24rem)] md:aspect-[2.4/1] md:max-h-[min(42svh,26rem)] lg:max-h-[min(38svh,28rem)]">
-          <ViajesSafeImage
-            src={VIAJES_HERO_IMAGE.src}
-            alt={VIAJES_HERO_IMAGE.alt}
-            className="absolute inset-0 h-full w-full object-cover object-[center_32%]"
-            sizes="100vw"
-            mode="editorial"
-            priority
-          />
-          <div className="absolute inset-0 bg-gradient-to-br from-[#0c2a38]/70 via-[#1a4a5c]/30 to-transparent" aria-hidden />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/25" aria-hidden />
->>>>>>> 9f92bb50 (preservation: capture final local Viajes launch work)
 
             <div className="absolute inset-0 flex flex-col justify-end pb-4 pt-10 sm:pb-6 sm:pt-16 md:pb-7 md:pt-20">
               <div className="mx-auto w-full min-w-0 max-w-7xl px-3 sm:px-5 lg:px-6">

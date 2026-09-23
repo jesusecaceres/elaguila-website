@@ -122,20 +122,8 @@ export function ViajesResultsShell({
   browseRef.current = browse;
 
   const [destInput, setDestInput] = useState(() => browse.q || browse.dest);
-<<<<<<< HEAD
-=======
-  const [viewMode, setViewMode] = useState<ViajesResultsViewMode>("grid");
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  /** True after the user edits destination in the filter rail (not URL→state sync). */
-  const destInputDirtyRef = useRef(false);
-  const destHydratedRef = useRef(false);
-
->>>>>>> 9f92bb50 (preservation: capture final local Viajes launch work)
   useEffect(() => {
-    if (!destInputDirtyRef.current) {
-      setDestInput(browse.q || browse.dest);
-    }
-    destHydratedRef.current = true;
+    setDestInput(browse.q || browse.dest);
   }, [browse.q, browse.dest]);
 
   useEffect(() => {
@@ -143,9 +131,7 @@ export function ViajesResultsShell({
   }, []);
 
   useEffect(() => {
-    if (!destHydratedRef.current) return;
     const id = window.setTimeout(() => {
-      if (!destInputDirtyRef.current) return;
       const b = browseRef.current;
       const v = destInput.trim();
       if (v === (b.q || b.dest)) return;
@@ -160,7 +146,6 @@ export function ViajesResultsShell({
           pathname
         )
       );
-      destInputDirtyRef.current = false;
     }, 450);
     return () => window.clearTimeout(id);
   }, [destInput, pathname, router]);
@@ -204,7 +189,6 @@ export function ViajesResultsShell({
 
   const onRailChange = (patch: Partial<ViajesResultsFiltersState>) => {
     if (patch.destination !== undefined) {
-      destInputDirtyRef.current = true;
       setDestInput(patch.destination);
       return;
     }
@@ -212,7 +196,6 @@ export function ViajesResultsShell({
   };
 
   const onRailReset = () => {
-    destInputDirtyRef.current = false;
     setDestInput("");
     replaceBrowse(defaultViajesBrowseState(lang));
   };
