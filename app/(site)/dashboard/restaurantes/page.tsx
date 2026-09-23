@@ -45,6 +45,8 @@ import {
   publicResultsListingLabel,
   publicResultsLabel,
   analyticsLabel,
+  pauseListingLabel,
+  resumeListingLabel,
 } from "../lib/dashboardMisAnunciosCategoryTools";
 import type { ActionItem } from "../components/DashboardListingActionBar";
 import { getOwnerEntityCapabilities } from "../lib/ownerEntityCapabilityRegistry";
@@ -164,6 +166,8 @@ function DashboardRestaurantesPageContent() {
   const [couponErr, setCouponErr] = useState<string | null>(null);
   const [upgradeBusyId, setUpgradeBusyId] = useState<string | null>(null);
   const [upgradeErr, setUpgradeErr] = useState<string | null>(null);
+  const [lifecycleBusyId, setLifecycleBusyId] = useState<string | null>(null);
+  const [lifecycleErr, setLifecycleErr] = useState<string | null>(null);
   const [entitlementBadges, setEntitlementBadges] = useState<
     Record<string, DashboardEntitlementBadgePayload>
   >({});
@@ -392,9 +396,57 @@ function DashboardRestaurantesPageContent() {
     [email, lang],
   );
 
+  const manageLifecycle = useCallback(
+    async (row: DashboardRestaurantRow, action: "pause" | "resume") => {
+      setLifecycleBusyId(row.id);
+      setLifecycleErr(null);
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token ?? null;
+        if (!token) {
+          setLifecycleErr(lang === "es" ? "Tu sesión expiró. Inicia sesión de nuevo." : "Your session expired. Sign in again.");
+          setLifecycleBusyId(null);
+          return;
+        }
+        const res = await fetch("/api/clasificados/restaurantes/lifecycle", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ listingId: row.id, action }),
+        });
+        const json = (await res.json().catch(() => ({}))) as { ok?: boolean; status?: string; error?: string };
+        if (!res.ok || json.ok !== true || typeof json.status !== "string") {
+          setLifecycleErr(
+            lang === "es"
+              ? "No se pudo cambiar el estado del anuncio. Actualiza la página e inténtalo de nuevo."
+              : "Could not change the listing status. Refresh the page and try again.",
+          );
+          setLifecycleBusyId(null);
+          return;
+        }
+        const updatedAt = new Date().toISOString();
+        setRows((prev) =>
+          prev.map((item) => (item.id === row.id ? { ...item, status: json.status!, updated_at: updatedAt } : item)),
+        );
+      } catch {
+        setLifecycleErr(
+          lang === "es"
+            ? "No se pudo cambiar el estado del anuncio."
+            : "Could not change the listing status.",
+        );
+      } finally {
+        setLifecycleBusyId(null);
+      }
+    },
+    [lang],
+  );
+
   const publishHref = appendLangToPath("/publicar/restaurantes", lang);
   const categoryResultsHref = `/clasificados/restaurantes/resultados?${q}`;
-  const frameError = fetchErr || hydrateErr || couponErr || upgradeErr || null;
+  const frameError = fetchErr || hydrateErr || couponErr || upgradeErr || lifecycleErr || null;
 
   return (
     <LeonixDashboardShell
@@ -511,6 +563,25 @@ function DashboardRestaurantesPageContent() {
                   { href: resultsHref, label: publicResultsListingLabel(lang), tone: "subtle" },
                   { href: `/dashboard/analytics?${q}`, label: analyticsLabel(lang), tone: "subtle" },
                 ];
+                if (r.status === "published" && capabilities.lifecycle.pause === "supported") {
+                  quickActions.push({
+                    label: lifecycleBusyId === r.id
+                      ? lang === "es" ? "Pausando…" : "Pausing…"
+                      : pauseListingLabel(lang),
+                    onClick: () => void manageLifecycle(r, "pause"),
+                    disabled: lifecycleBusyId === r.id,
+                    tone: "warning",
+                  });
+                } else if (r.status === "paused" && capabilities.lifecycle.reactivate === "supported") {
+                  quickActions.push({
+                    label: lifecycleBusyId === r.id
+                      ? lang === "es" ? "Reactivando…" : "Reactivating…"
+                      : resumeListingLabel(lang),
+                    onClick: () => void manageLifecycle(r, "resume"),
+                    disabled: lifecycleBusyId === r.id,
+                    tone: "positive",
+                  });
+                }
                 // SIMPLE -> FULL, from the package key the SERVER resolved for this row. Absent
                 // for a Full listing and for a listing with no base package, so the offer can
                 // never be shown to someone it does not apply to.
