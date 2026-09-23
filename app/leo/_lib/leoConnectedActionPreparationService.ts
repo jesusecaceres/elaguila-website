@@ -7,7 +7,7 @@
 import "server-only";
 
 import { requireLeoOwnerAccess } from "@/app/leo/_lib/leoAccess";
-import { createLeoActionProposal } from "@/app/leo/_lib/leoActionProposalRepository";
+import { createLeoConnectedActionProposal } from "@/app/leo/_lib/leoActionProposalRepository";
 import { checkLeoCalendarAvailability } from "@/app/leo/_lib/leoCalendarWriteAdapter";
 import {
   createCalendarConnectedAction,
@@ -117,7 +117,7 @@ export async function prepareLeoEmailAction(input: {
   };
 
   const toolId = toolForEmailKind(input.kind);
-  const persisted = await createLeoActionProposal({ actorAuthUserId: actor, toolId, proposal: { toolId, email: proposal } });
+  const persisted = await createLeoConnectedActionProposal({ actorAuthUserId: actor, toolId, proposal: { toolId, email: proposal } });
   if (!persisted.ok) {
     return { ok: false, error: "ERROR", message: "Could not prepare this action right now." };
   }
@@ -201,7 +201,7 @@ export async function prepareLeoCalendarAction(input: {
   };
 
   const toolId: LeoToolId = input.kind === "CREATE_CALENDAR_EVENT" ? "leo.calendar.create" : "leo.calendar.update";
-  const persisted = await createLeoActionProposal({ actorAuthUserId: actor, toolId, proposal: { toolId, calendar: proposal } });
+  const persisted = await createLeoConnectedActionProposal({ actorAuthUserId: actor, toolId, proposal: { toolId, calendar: proposal } });
   if (!persisted.ok) {
     return { ok: false, error: "ERROR", message: "Could not prepare this action right now." };
   }

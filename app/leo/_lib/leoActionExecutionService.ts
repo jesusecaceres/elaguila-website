@@ -24,6 +24,7 @@ import {
   leoMarkReceiptExecuted,
   leoMarkReceiptFailed,
   leoMarkReceiptVerified,
+  leoGetToolReceiptByCorrelation,
 } from "@/app/leo/_lib/leoToolReceiptService";
 import type {
   LeoActionExecutionResult,
@@ -219,6 +220,9 @@ export async function executeLeoConnectedAction(input: {
   const correlationId = `leo-action:${toolId}:${proposalRecord.id}`;
   const actionType = actionTypeForTool(toolId);
 
+  const existingReceipt = await leoGetToolReceiptByCorrelation(correlationId);
+  if (existingReceipt) return terminalResultFromReceipt(existingReceipt);
+
   const created = await leoCreateToolReceiptRequest({
     correlationId,
     toolId,
@@ -230,10 +234,6 @@ export async function executeLeoConnectedAction(input: {
   });
   if (!created.ok) {
     return { state: "FAILED", receiptId: null, errorCode: created.error, message: "Could not create an execution receipt.", evidence: null };
-  }
-
-  if (created.idempotentReplay && RECEIPT_TERMINAL_STATES.has(created.receipt.lifecycleState)) {
-    return terminalResultFromReceipt(created.receipt);
   }
 
   const authorized = await leoMarkReceiptAuthorized(created.receipt.id);

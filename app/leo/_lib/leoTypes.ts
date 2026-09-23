@@ -1007,7 +1007,14 @@ export type LeoToolId =
   | "leo.email.thread.read"
   | "leo.calendar.events.read"
   | "leo.communication.snapshot.read"
-  | "leo.meeting.prepare";
+  | "leo.meeting.prepare"
+  | "leo.contacts.resolve"
+  | "leo.calendar.availability"
+  | "leo.calendar.create"
+  | "leo.calendar.update"
+  | "leo.gmail.draft.create"
+  | "leo.gmail.send"
+  | "leo.gmail.reply";
 
 export type LeoToolCategory =
   | "EXECUTIVE_INTELLIGENCE"
@@ -1985,7 +1992,14 @@ export type LeoExecutiveActionType =
   | "OPEN_GMAIL"
   | "OPEN_CALENDAR"
   | "OPEN_GITHUB"
-  | "OPEN_VERCEL";
+  | "OPEN_VERCEL"
+  | "RESOLVE_CONTACT"
+  | "CHECK_AVAILABILITY"
+  | "CREATE_EMAIL_DRAFT"
+  | "SEND_EMAIL"
+  | "REPLY_EMAIL"
+  | "CREATE_CALENDAR_EVENT"
+  | "UPDATE_CALENDAR_EVENT";
 
 export type LeoExecutionType =
   | "NAVIGATE"
@@ -2273,4 +2287,96 @@ export type LeoWatchCronRunSummary = {
   notificationsFailed: number;
   notificationsSuppressed: number;
   errors: string[];
+};
+
+export type LeoContactResolutionState =
+  | "RESOLVED"
+  | "AMBIGUOUS"
+  | "NOT_FOUND"
+  | "UNAVAILABLE"
+  | "ERROR";
+
+export type LeoResolvedContact = { email: string; displayName: string | null };
+
+export type LeoContactResolutionResult = {
+  state: LeoContactResolutionState;
+  resolved: LeoResolvedContact | null;
+  candidates: LeoResolvedContact[];
+  errorCode: string | null;
+  limitations: string[];
+};
+
+export type LeoGoogleReadCapabilityState = "CONFIG_MISSING" | "TOKEN_UNAVAILABLE" | "READ_READY";
+export type LeoGoogleWriteCapabilityState =
+  | "CONFIG_MISSING"
+  | "TOKEN_UNAVAILABLE"
+  | "SCOPE_MISSING"
+  | "WRITE_DISABLED"
+  | "WRITE_READY";
+export type LeoGoogleCapabilityDiagnostic = {
+  read: LeoGoogleReadCapabilityState;
+  write: LeoGoogleWriteCapabilityState;
+  writeEnabledFlag: boolean;
+};
+
+export type LeoEmailActionProposalKind = "CREATE_EMAIL_DRAFT" | "SEND_EMAIL" | "REPLY_EMAIL";
+export type LeoEmailActionProposal = {
+  kind: LeoEmailActionProposalKind;
+  recipientEmail: string;
+  recipientDisplayName: string | null;
+  subject: string;
+  bodyText: string;
+  replyToMessageId: string | null;
+  replyToThreadId: string | null;
+};
+
+export type LeoCalendarActionProposalKind = "CREATE_CALENDAR_EVENT" | "UPDATE_CALENDAR_EVENT";
+export type LeoCalendarConflictState = "AVAILABLE" | "CONFLICT" | "UNKNOWN" | "UNAVAILABLE";
+export type LeoCalendarAttendeeProposal = { email: string; displayName: string | null };
+export type LeoCalendarActionProposal = {
+  kind: LeoCalendarActionProposalKind;
+  existingEventId: string | null;
+  title: string;
+  startIso: string;
+  endIso: string;
+  timezone: string;
+  attendees: LeoCalendarAttendeeProposal[];
+  location: string | null;
+  description: string | null;
+  conflictState: LeoCalendarConflictState;
+};
+
+export type LeoConnectedActionProposal =
+  | { toolId: LeoToolId; email: LeoEmailActionProposal; calendar?: undefined }
+  | { toolId: LeoToolId; calendar: LeoCalendarActionProposal; email?: undefined };
+export type LeoActionProposalRecord = {
+  id: string;
+  actorAuthUserId: string;
+  toolId: LeoToolId;
+  proposal: LeoConnectedActionProposal;
+  fingerprint: string;
+  createdAt: string;
+  expiresAt: string;
+};
+export type LeoActionExecutionRequest = {
+  proposalId: string;
+  fingerprint: string;
+  toolId: LeoToolId;
+  confirm: true;
+};
+export type LeoActionExecutionState = "SUCCEEDED" | "FAILED" | "DUPLICATE_REPLAY" | "AMBIGUOUS" | "UNAVAILABLE" | "DENIED";
+export type LeoActionExecutionProviderEvidence = {
+  provider: "GMAIL" | "CALENDAR";
+  messageId?: string;
+  threadId?: string;
+  eventId?: string;
+  htmlLink?: string | null;
+  providerUpdatedAt?: string | null;
+};
+export type LeoActionExecutionResult = {
+  state: LeoActionExecutionState;
+  receiptId: string | null;
+  errorCode: string | null;
+  message: string;
+  evidence: LeoActionExecutionProviderEvidence | null;
 };

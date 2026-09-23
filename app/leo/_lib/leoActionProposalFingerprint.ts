@@ -6,6 +6,7 @@ import type {
   LeoActionProposalReferentSnapshot,
   LeoActionProposalStructuredPayload,
 } from "@/app/leo/_lib/leoActionProposalTypes";
+import type { LeoConnectedActionProposal } from "@/app/leo/_lib/leoTypes";
 
 function stableStringify(value: unknown): string {
   if (value === null || value === undefined) return String(value);
@@ -47,8 +48,14 @@ export type LeoActionProposalFingerprintInput = {
  * Contract: exclude timestamps, random values, UI state, transient request ids.
  */
 export function computeLeoActionProposalFingerprint(
-  input: LeoActionProposalFingerprintInput,
+  input: LeoActionProposalFingerprintInput | LeoConnectedActionProposal,
 ): string {
+  if (!("ownerActorId" in input)) {
+    return createHash("sha256")
+      .update(stableStringify(input))
+      .digest("hex")
+      .slice(0, 64);
+  }
   const raw = stableStringify({
     ownerActorId: input.ownerActorId,
     actionFamily: input.actionFamily,

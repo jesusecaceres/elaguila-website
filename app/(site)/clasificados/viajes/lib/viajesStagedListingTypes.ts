@@ -10,7 +10,7 @@ export type ViajesStagedLifecycleStatus =
   | "expired"
   | "unpublished";
 
-export type ViajesStagedLane = "business" | "private";
+export type ViajesStagedLane = "business" | "private" | "affiliate";
 
 export type ViajesStagedListingJsonV1 = {
   version: 1;
