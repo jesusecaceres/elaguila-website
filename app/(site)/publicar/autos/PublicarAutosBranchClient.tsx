@@ -26,6 +26,8 @@ export function PublicarAutosBranchClient() {
     () => getAutosCheckpointCards(copyLang, privadoHref, negociosHref),
     [copyLang, privadoHref, negociosHref],
   );
+  const selectedPlan = searchParams?.get("plan") === "full" ? "full" : searchParams?.get("plan") === "quick" ? "quick" : null;
+  const assistedCategory = searchParams?.get("staff") === "1" ? "autos" : undefined;
 
   return (
     <PublishEntryCheckpointLayout
@@ -35,9 +37,10 @@ export function PublicarAutosBranchClient() {
       backHref={publicarHref}
       backLabel={c.backToPublicar}
       checkpointCategory="autos"
+      selectedPlan={selectedPlan}
       launchBannerCards={cards}
     >
-      <PublishEntryCheckpointStack cards={cards} lang={copyLang} />
+      <PublishEntryCheckpointStack cards={cards} lang={copyLang} assistedCategory={assistedCategory} />
     </PublishEntryCheckpointLayout>
   );
 }
