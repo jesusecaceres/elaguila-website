@@ -70,6 +70,10 @@ export function QuickSalesWorkspaceClient({
   const [businesses, setBusinesses] = useState<BusinessRow[]>(initialBusiness ? [initialBusiness] : []);
   const [businessId, setBusinessId] = useState(initialBusiness?.id ?? "");
   const [clientMode, setClientMode] = useState<"new" | "existing">(initialBusiness ? "existing" : "new");
+  const [newBusinessName, setNewBusinessName] = useState("");
+  const [newClientName, setNewClientName] = useState("");
+  const [newClientEmail, setNewClientEmail] = useState("");
+  const [newClientPhone, setNewClientPhone] = useState("");
   const [reopenListingId, setReopenListingId] = useState(initialListingId ?? "");
   const [status, setStatus] = useState<CustodyStatus>(null);
   const [previewLink, setPreviewLink] = useState<string | null>(null);
@@ -133,6 +137,10 @@ export function QuickSalesWorkspaceClient({
       plan,
       businessId: clientMode === "existing" ? businessId || undefined : undefined,
       newClient: clientMode === "new",
+      newBusinessName: clientMode === "new" ? newBusinessName.trim() : undefined,
+      newClientName: clientMode === "new" ? newClientName.trim() : undefined,
+      newClientEmail: clientMode === "new" ? newClientEmail.trim() : undefined,
+      newClientPhone: clientMode === "new" ? newClientPhone.trim() : undefined,
       listingId: reopenListingId.trim() || undefined,
     });
     if (code !== 200 || json.ok !== true) {
@@ -173,7 +181,19 @@ export function QuickSalesWorkspaceClient({
       return;
     }
     window.location.assign(href);
-  }, [item, selectedProduct, plan, clientMode, businessId, reopenListingId, refreshStatus]);
+  }, [
+    item,
+    selectedProduct,
+    plan,
+    clientMode,
+    businessId,
+    newBusinessName,
+    newClientName,
+    newClientEmail,
+    newClientPhone,
+    reopenListingId,
+    refreshStatus,
+  ]);
 
   const issuePreview = useCallback(async () => {
     setBusy(true);
@@ -211,7 +231,15 @@ export function QuickSalesWorkspaceClient({
     ? `${typeof window !== "undefined" ? window.location.origin : ""}${previewLink}`
     : null;
 
-  const canCreate = Boolean(item && selectedProduct && (clientMode === "new" || businessId));
+  const newClientReady =
+    newBusinessName.trim().length > 1 &&
+    newClientEmail.trim().includes("@") &&
+    newClientEmail.trim().includes(".");
+  const canCreate = Boolean(
+    item &&
+      selectedProduct &&
+      (clientMode === "new" ? newClientReady : businessId),
+  );
 
   return (
     <div className="space-y-5 overflow-x-hidden text-sm text-[#2F2A1F]" data-staff-master-launcher>
@@ -333,10 +361,61 @@ export function QuickSalesWorkspaceClient({
             </button>
           </div>
           {clientMode === "new" ? (
-            <p className="text-xs text-[#5D4A25]" data-staff-new-client>
-              No hace falta un formulario de perfil. Los datos del anuncio crean el negocio. / No
-              profile form is required. The application creates the business.
-            </p>
+            <div className="space-y-3" data-staff-new-client>
+              <p className="text-xs text-[#5D4A25]">
+                Solo necesitamos lo básico. Leonix crea la cuenta del cliente y le envía un enlace seguro para establecer su contraseña. /
+                We only need the basics. Leonix creates the client account and sends a secure link to set their password.
+              </p>
+              <label className="block text-xs font-semibold">
+                Nombre del negocio / Business name *
+                <input
+                  value={newBusinessName}
+                  onChange={(e) => setNewBusinessName(e.target.value)}
+                  placeholder="Ej. Taquería La Familia"
+                  className="mt-1 min-h-[44px] w-full rounded-lg border border-[#E6DCC6] px-3 py-2 font-normal"
+                  autoComplete="organization"
+                />
+              </label>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block text-xs font-semibold">
+                  Nombre del cliente / Client name
+                  <input
+                    value={newClientName}
+                    onChange={(e) => setNewClientName(e.target.value)}
+                    placeholder="Nombre y apellido / Full name"
+                    className="mt-1 min-h-[44px] w-full rounded-lg border border-[#E6DCC6] px-3 py-2 font-normal"
+                    autoComplete="name"
+                  />
+                </label>
+                <label className="block text-xs font-semibold">
+                  Correo / Email *
+                  <input
+                    type="email"
+                    value={newClientEmail}
+                    onChange={(e) => setNewClientEmail(e.target.value)}
+                    placeholder="cliente@correo.com"
+                    className="mt-1 min-h-[44px] w-full rounded-lg border border-[#E6DCC6] px-3 py-2 font-normal"
+                    autoComplete="email"
+                  />
+                </label>
+              </div>
+              <label className="block text-xs font-semibold">
+                Teléfono / Phone
+                <input
+                  type="tel"
+                  value={newClientPhone}
+                  onChange={(e) => setNewClientPhone(e.target.value)}
+                  placeholder="(408) 555-0123"
+                  className="mt-1 min-h-[44px] w-full rounded-lg border border-[#E6DCC6] px-3 py-2 font-normal"
+                  autoComplete="tel"
+                />
+              </label>
+              {!newClientReady ? (
+                <p className="text-xs text-[#8B4513]">
+                  Completa nombre del negocio y correo válido. / Enter the business name and a valid email.
+                </p>
+              ) : null}
+            </div>
           ) : (
             <>
               <div className="flex gap-2">
@@ -391,6 +470,10 @@ export function QuickSalesWorkspaceClient({
         </button>
         {!item ? (
           <p className="mt-2 text-xs text-[#8B4513]">Elige una categoría primero. / Choose a category first.</p>
+        ) : clientMode === "new" && !newClientReady ? (
+          <p className="mt-2 text-xs text-[#8B4513]" data-staff-open-blocked="new_client_details">
+            Completa el nombre del negocio y correo del cliente. / Complete the business name and client email.
+          </p>
         ) : clientMode === "existing" && !businessId ? (
           <p className="mt-2 text-xs text-[#8B4513]" data-staff-open-blocked="no_business">
             Busca y elige el negocio. / Search and select the business.
