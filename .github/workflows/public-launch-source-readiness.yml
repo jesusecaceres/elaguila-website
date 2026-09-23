@@ -68,4 +68,7 @@ jobs:
       - name: Production-equivalent Next build gate
         env:
           NODE_OPTIONS: --max-old-space-size=8192
+          # Public browser credentials only. Canonical Leonix Media project; never Staging/Certification.
+          NEXT_PUBLIC_SUPABASE_URL: https://xuieateniufcrsfdomwl.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_OEQNE3deSzcHCcXrPXpocA_OCPYk3md
         run: npm run build
