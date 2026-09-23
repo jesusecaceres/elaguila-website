@@ -67,6 +67,11 @@ check("contact methods remain separate and Preview-gated", () => {
   assert.match(gate, /isProbablySafeEmail\(d\.email\)/);
 });
 
+check("WhatsApp reuses the golden international-safe formatter", () => {
+  assert.match(form, /formatWhatsAppInputDisplay\(e\.target\.value\)/);
+  assert.match(gate, /isValidWhatsAppNumber\(d\.whatsapp\)/);
+});
+
 check("Preview uses the same public result-card component", () => {
   assert.match(preview, /MascotasPerdidosNoticeCard/);
   assert.match(preview, /buildMascotasPerdidosNoticeCardModelFromDraft/);
