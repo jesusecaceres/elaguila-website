@@ -121,8 +121,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "invalid_category" }, { status: 400 });
   }
   const descriptor = QUICK_SALES_CATEGORY_MAP[category];
+  const live = await readActiveAssistedPublishingContext(request.cookies);
+  const liveMatchesCategory = Boolean(live) && live!.category === category;
 
   let businessId = typeof body.businessId === "string" ? body.businessId.trim() : "";
+  if (!businessId && liveMatchesCategory) businessId = live!.businessId;
   if (!businessId && body.createDraft === true) {
     const drafted = await createMinimalAssistedBusiness(
       { businessName: `Borrador · ${descriptor.labelEs}`, confirmCreateDespiteDuplicates: true },
@@ -137,7 +140,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "business_id_required" }, { status: 400 });
   }
 
-  const clientUserId = typeof body.clientUserId === "string" ? body.clientUserId.trim() : "";
+  const clientUserId =
+    (typeof body.clientUserId === "string" ? body.clientUserId.trim() : "") ||
+    (liveMatchesCategory && typeof live!.clientUserId === "string" ? live!.clientUserId.trim() : "");
   if (descriptor.requiresClientUserId && !clientUserId) {
     return NextResponse.json({ ok: false, error: "client_user_id_required" }, { status: 400 });
   }
@@ -160,8 +165,9 @@ export async function POST(request: NextRequest) {
   // Reopening an existing draft: the custody ledger, not the browser, decides whether this
   // business holds this row. A bound id that failed this check would be a signed pointer at
   // someone else's listing.
-  const listingId = typeof body.listingId === "string" ? body.listingId.trim() : "";
-  const live = await readActiveAssistedPublishingContext(request.cookies);
+  const listingId =
+    (typeof body.listingId === "string" ? body.listingId.trim() : "") ||
+    (liveMatchesCategory && typeof live!.listingId === "string" ? live!.listingId.trim() : "");
   const liveSameScope =
     Boolean(live) && live!.businessId === businessId && live!.category === category;
   const resolvedPackage = resolveStaffBusinessPackage({
