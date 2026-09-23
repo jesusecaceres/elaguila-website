@@ -109,6 +109,8 @@ export function emojiVisualGroupForPresetChip(
       return pair("💆");
     case "grua_remolque":
       return pair("🚚");
+    case "mensajeria_delivery":
+      return pair("🛵");
     case "almacenamiento":
       return pair("📦");
     case "traduccion_documentos":
