@@ -44,6 +44,8 @@ export function BienesRaicesPublicarHubClient({ lang }: Props) {
       ),
     [lang, routeLang],
   );
+  const selectedPlan = searchParams?.get("plan") === "full" ? "full" : searchParams?.get("plan") === "quick" ? "quick" : null;
+  const assistedCategory = searchParams?.get("staff") === "1" ? "bienes-raices" : undefined;
 
   return (
     <PublishEntryCheckpointLayout
@@ -51,9 +53,10 @@ export function BienesRaicesPublicarHubClient({ lang }: Props) {
       title={hub.title}
       body={hub.body}
       checkpointCategory="bienes-raices"
+      selectedPlan={selectedPlan}
       launchBannerCards={cards}
     >
-      <PublishEntryCheckpointStack cards={cards} lang={lang} />
+      <PublishEntryCheckpointStack cards={cards} lang={lang} assistedCategory={assistedCategory} />
     </PublishEntryCheckpointLayout>
   );
 }
