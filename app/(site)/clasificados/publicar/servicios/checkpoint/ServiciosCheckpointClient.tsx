@@ -36,8 +36,10 @@ export function ServiciosCheckpointClient({
   });
   const clasificadosHref = withClasificadosPublishLang("/clasificados", routeLang);
   const cards = useMemo(() => getServiciosCheckpointCards(lang, applicationHref), [lang, applicationHref]);
-  const [modalId, setModalId] = useState<string | null>(null);
-  const modalCard = cards.find((card) => card.id === modalId) ?? cards[0];
+  const quickCard = cards[0];
+  const fullCard = cards[1] ?? cards[0];
+  const [quickMoreOpen, setQuickMoreOpen] = useState(false);
+  const [fullMoreOpen, setFullMoreOpen] = useState(false);
 
   return (
     <PublishEntryCheckpointLayout
@@ -48,15 +50,38 @@ export function ServiciosCheckpointClient({
       backLabel={t.backToClasificados}
       checkpointCategory="servicios"
     >
-      {cards.map((card) => (
-        <PaidPublishCheckpointCard key={card.id} card={card} lang={lang} onMoreClick={() => setModalId(card.id)} />
-      ))}
-      <PaidPublishCheckpointModal
-        open={Boolean(modalId)}
-        onClose={() => setModalId(null)}
-        card={modalCard}
-        lang={lang}
-      />
+      {quickCard ? (
+        <PaidPublishCheckpointCard
+          key={quickCard.id}
+          card={quickCard}
+          lang={lang}
+          onMoreClick={() => setQuickMoreOpen(true)}
+        />
+      ) : null}
+      {fullCard && fullCard.id !== quickCard?.id ? (
+        <PaidPublishCheckpointCard
+          key={fullCard.id}
+          card={fullCard}
+          lang={lang}
+          onMoreClick={() => setFullMoreOpen(true)}
+        />
+      ) : null}
+      {quickCard ? (
+        <PaidPublishCheckpointModal
+          open={quickMoreOpen}
+          onClose={() => setQuickMoreOpen(false)}
+          card={quickCard}
+          lang={lang}
+        />
+      ) : null}
+      {fullCard && fullCard.id !== quickCard?.id ? (
+        <PaidPublishCheckpointModal
+          open={fullMoreOpen}
+          onClose={() => setFullMoreOpen(false)}
+          card={fullCard}
+          lang={lang}
+        />
+      ) : null}
     </PublishEntryCheckpointLayout>
   );
 }
