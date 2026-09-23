@@ -113,6 +113,11 @@ const gates: Gate[] = [
     args: ["node_modules/tsx/dist/cli.mjs", "scripts/en-venta-gate-2r-final-preview-persistence-audit.ts"],
   },
   {
+    name: "Clases deep application branches and Preview continuity",
+    command: "node",
+    args: ["node_modules/tsx/dist/cli.mjs", "scripts/gate-2d-community-owner-qa-debt-selftest.ts"],
+  },
+  {
     name: "Community family owner/application repairs (Clases / Comunidad / Busco / Mascotas)",
     command: "node",
     args: ["node_modules/tsx/dist/cli.mjs", "scripts/community-owner-qa-final-repair-audit.ts"],
