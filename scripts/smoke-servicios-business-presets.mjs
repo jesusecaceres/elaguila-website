@@ -1,13 +1,13 @@
 /**
  * Launcher for Phase 8B preset smoke (TypeScript implementation).
- * Usage: node scripts/smoke-servicios-business-presets.mjs
+ * Usage: node scripts/smoke-servicios-business-presets.mjs [--skip-build]
  */
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const r = spawnSync("npx", ["tsx", join(root, "scripts", "smoke-servicios-business-presets.ts")], {
+const r = spawnSync("npx", ["tsx", join(root, "scripts", "smoke-servicios-business-presets.ts"), ...process.argv.slice(2)], {
   cwd: root,
   stdio: "inherit",
   shell: true,

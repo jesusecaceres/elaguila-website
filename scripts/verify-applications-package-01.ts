@@ -25,7 +25,7 @@ const gates: Gate[] = [
   {
     name: "Servicios business-type preset integrity",
     command: "node",
-    args: ["node_modules/tsx/dist/cli.mjs", "scripts/smoke-servicios-business-presets.ts"],
+    args: ["node_modules/tsx/dist/cli.mjs", "scripts/smoke-servicios-business-presets.ts", "--skip-build"],
   },
   {
     name: "Restaurantes preview readiness",

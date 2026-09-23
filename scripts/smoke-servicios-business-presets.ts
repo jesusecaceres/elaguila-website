@@ -1,6 +1,7 @@
 /**
  * Phase 8B — Servicios business-type preset integrity + merge/mapping smoke (no network, no AI).
  * Run: npx tsx scripts/smoke-servicios-business-presets.ts
+ * Aggregate gate: add --skip-build so Acceptance #41 is deferred to the workflow build.
  * Or: node scripts/smoke-servicios-business-presets.mjs
  */
 import { spawnSync } from "node:child_process";
@@ -545,12 +546,17 @@ function main(): void {
     console.log(`${i + 1}. TRUE`);
   }
 
-  console.log("\n41. npm run build …");
-  const br = spawnSync("npm", ["run", "build"], { cwd: REPO_ROOT, stdio: "inherit", shell: true });
-  const buildOk = br.status === 0;
-  if (!buildOk) fail("Acceptance check 41 (npm run build) is FALSE");
-  console.log("41. TRUE");
-  console.log("--- End acceptance ---\n");
+  if (process.argv.includes("--skip-build")) {
+    console.log("\n41. DEFERRED — aggregate workflow owns the production-equivalent build gate");
+    console.log("--- End acceptance ---\n");
+  } else {
+    console.log("\n41. npm run build …");
+    const br = spawnSync("npm", ["run", "build"], { cwd: REPO_ROOT, stdio: "inherit", shell: true });
+    const buildOk = br.status === 0;
+    if (!buildOk) fail("Acceptance check 41 (npm run build) is FALSE");
+    console.log("41. TRUE");
+    console.log("--- End acceptance ---\n");
+  }
 
   console.log(`PASS — audited ${BUSINESS_TYPE_PRESETS.length} presets.`);
   if (issues.length) console.log(`Summary notes (${issues.length}):`, issues.join(" | "));
