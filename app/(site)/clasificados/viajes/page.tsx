@@ -8,10 +8,6 @@ import type { ViajesBusinessResult } from "./data/viajesResultsSampleData";
 import { ViajesLandingPage } from "./components/ViajesLandingPage";
 import { fetchViajesPublicBrowseRowsMerged } from "./lib/viajesPublicBrowseRowsServer";
 import { isViajesProductionCommercialRow } from "./lib/viajesPublicInventory";
-import { viajesLandingMetadata } from "./lib/viajesLocalSeo";
-
-export const metadata = viajesLandingMetadata("es");
-
 export async function generateMetadata(props: {
   searchParams?: Promise<{ lang?: string }>;
 }): Promise<Metadata> {
