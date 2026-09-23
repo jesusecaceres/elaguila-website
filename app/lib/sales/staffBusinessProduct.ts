@@ -197,6 +197,7 @@ export function staffBusinessCheckpointHref(category: string, plan: StaffBusines
   if (!base) return null;
   const params = new URLSearchParams();
   params.set("plan", plan);
+  params.set("staff", "1");
   return `${base}?${params.toString()}`;
 }
 
