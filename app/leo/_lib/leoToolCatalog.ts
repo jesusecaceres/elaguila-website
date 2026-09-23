@@ -4,7 +4,10 @@
  */
 import "server-only";
 
-import { isLeoGoogleWorkspaceConfigured } from "@/app/leo/_lib/leoGoogleWorkspaceConfig";
+import {
+  isLeoGoogleWorkspaceConfigured,
+  isLeoGoogleWriteEnabled,
+} from "@/app/leo/_lib/leoGoogleWorkspaceConfig";
 import { isLeoGithubConfigured, isLeoVercelConfigured } from "@/app/leo/_lib/leoProjectConfig";
 import { listLeoToolDefinitions } from "@/app/leo/_lib/leoToolRegistry";
 import type {
@@ -31,13 +34,21 @@ function googleToolsRuntimeAvailability(): {
   calendar: LeoToolAvailability;
   communication: LeoToolAvailability;
   meeting: LeoToolAvailability;
+  contacts: LeoToolAvailability;
+  calendarAvailability: LeoToolAvailability;
+  /** WRITE tools: AVAILABLE only when config + LEO_GOOGLE_WRITE_ENABLED are both true. */
+  googleWrite: LeoToolAvailability;
 } {
-  if (!isLeoGoogleWorkspaceConfigured()) {
+  const configured = isLeoGoogleWorkspaceConfigured();
+  if (!configured) {
     return {
       gmail: "NOT_CONFIGURED",
       calendar: "NOT_CONFIGURED",
       communication: "NOT_CONFIGURED",
       meeting: "NOT_CONFIGURED",
+      contacts: "NOT_CONFIGURED",
+      calendarAvailability: "NOT_CONFIGURED",
+      googleWrite: "NOT_CONFIGURED",
     };
   }
   // Credentials present — adapters may still degrade to UNAVAILABLE at invoke time.
@@ -46,6 +57,12 @@ function googleToolsRuntimeAvailability(): {
     calendar: "AVAILABLE",
     communication: "AVAILABLE",
     meeting: "AVAILABLE",
+    contacts: "AVAILABLE",
+    calendarAvailability: "AVAILABLE",
+    // Config alone is never enough for a WRITE tool — the rollout gate must
+    // also be explicitly enabled. Scope possession itself can only be proven
+    // by a real provider call, never claimed here.
+    googleWrite: isLeoGoogleWriteEnabled() ? "AVAILABLE" : "DISABLED",
   };
 }
 
@@ -62,6 +79,17 @@ function refineAvailability(
   if (toolId === "leo.calendar.events.read") return google.calendar;
   if (toolId === "leo.communication.snapshot.read") return google.communication;
   if (toolId === "leo.meeting.prepare") return google.meeting;
+  if (toolId === "leo.contacts.resolve") return google.contacts;
+  if (toolId === "leo.calendar.availability") return google.calendarAvailability;
+  if (
+    toolId === "leo.calendar.create" ||
+    toolId === "leo.calendar.update" ||
+    toolId === "leo.gmail.draft.create" ||
+    toolId === "leo.gmail.send" ||
+    toolId === "leo.gmail.reply"
+  ) {
+    return google.googleWrite;
+  }
   return declared;
 }
 
@@ -152,6 +180,32 @@ export function getLeoToolCatalog(nowMs?: number): LeoToolCatalog {
       label: "Meeting preparation",
       toolIds: ["leo.meeting.prepare"],
       status: google.meeting === "AVAILABLE" ? "available" : "not_configured",
+    },
+    {
+      label: "Contacts resolution",
+      toolIds: ["leo.contacts.resolve"],
+      status: google.contacts === "AVAILABLE" ? "available" : "not_configured",
+    },
+    {
+      label: "Calendar availability",
+      toolIds: ["leo.calendar.availability"],
+      status: google.calendarAvailability === "AVAILABLE" ? "available" : "not_configured",
+    },
+    {
+      label: "Connected actions (Gmail send/draft/reply, Calendar create/update)",
+      toolIds: [
+        "leo.gmail.draft.create",
+        "leo.gmail.send",
+        "leo.gmail.reply",
+        "leo.calendar.create",
+        "leo.calendar.update",
+      ],
+      status:
+        google.googleWrite === "AVAILABLE"
+          ? "available"
+          : google.googleWrite === "DISABLED"
+            ? "unavailable"
+            : "not_configured",
     },
   ];
 
