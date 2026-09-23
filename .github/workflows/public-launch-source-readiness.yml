@@ -51,6 +51,9 @@ jobs:
       - name: Launch truth
         run: npm run verify:launch-truth
 
+      - name: Applications package source gate
+        run: npm run verify:applications-package
+
       - name: Final launch-truth burndown
         run: npm run verify:launch-truth-final-burndown
 
