@@ -8,6 +8,7 @@ import { fetchApprovedViajesStagedRows } from "./viajesStagedListingsDbServer";
 import { normalizeViajesOfferToV2 } from "./v2/normalizeViajesOfferToV2";
 import { isViajesDurableHttpsUrl } from "./v2/viajesMediaDurableGuards";
 import { viajesPublicAddressLabel } from "./viajesPublicLocation";
+import { isViajesInternalQaInventoryIdentity, resolveViajesPublicOfferTitle } from "./viajesPublicOfferTitle";
 
 function slugify(value: string): string {
   return value
@@ -65,25 +66,29 @@ async function resolveViajesProviderProfileUncached(slug: string, lang: "es" | "
   const name = provider.name.trim() || primary.submitter_name?.trim() || key;
   const office = viajesPublicAddressLabel(primaryOffer.locations.providerOffice);
 
-  const featuredOffers: ViajesNegocioFeaturedOffer[] = matches.slice(0, 8).map((row) => {
-    const offer = normalizeViajesOfferToV2(row.listing_json, {
-      locale: lang,
-      laneHint: row.lane === "affiliate" ? "affiliate" : "business",
-    });
-    const title = offer.basics.title.trim() || row.title;
-    const image =
-      row.hero_image_url?.trim() ||
-      offer.media.images.find((i) => isViajesDurableHttpsUrl(i.url))?.url ||
-      "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=900&q=80";
-    return {
-      title,
-      destination: offer.basics.destinationLabel || offer.locations.destination.city || "—",
-      priceHint: offer.pricing.priceFrom.trim() || "—",
-      href: `/clasificados/viajes/oferta/${row.slug}`,
-      imageSrc: image,
-      imageAlt: title,
-    };
-  });
+  const featuredOffers: ViajesNegocioFeaturedOffer[] = matches
+    .map((row) => {
+      const offer = normalizeViajesOfferToV2(row.listing_json, {
+        locale: lang,
+        laneHint: row.lane === "affiliate" ? "affiliate" : "business",
+      });
+      const title = resolveViajesPublicOfferTitle(offer.basics.title, row.title);
+      if (!title || isViajesInternalQaInventoryIdentity(title, row.slug, row.id)) return null;
+      const image =
+        row.hero_image_url?.trim() ||
+        offer.media.images.find((i) => isViajesDurableHttpsUrl(i.url))?.url ||
+        "";
+      return {
+        title,
+        destination: offer.basics.destinationLabel || offer.locations.destination.city || "—",
+        priceHint: offer.pricing.priceFrom.trim() || "—",
+        href: `/clasificados/viajes/oferta/${row.slug}`,
+        imageSrc: image,
+        imageAlt: title,
+      };
+    })
+    .filter((x): x is ViajesNegocioFeaturedOffer => x != null)
+    .slice(0, 8);
 
   return {
     slug: key,

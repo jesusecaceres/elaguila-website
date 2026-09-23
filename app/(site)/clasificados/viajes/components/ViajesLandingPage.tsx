@@ -59,14 +59,14 @@ export function ViajesLandingPage({ initialBusinessRows }: ViajesLandingPageProp
           </Link>
         </div>
 
-        <ViajesTopOffers homeBackHref={homeBackHref} browseAllHref={browseAllHref} ui={ui} initialBusinessRows={initialBusinessRows} />
+        <ViajesTopOffers browseAllHref={browseAllHref} ui={ui} initialBusinessRows={initialBusinessRows} />
         <ViajesLocalDepartures ui={ui} browseAllHref={browseAllHref} />
         <ViajesNearbyEscapes ui={ui} />
         <ViajesStaySection ui={ui} />
         <ViajesMobilitySection ui={ui} />
         <ViajesDestinations ui={ui} browseAllHref={browseAllHref} />
         <ViajesAudienceBuckets ui={ui} browseAllHref={browseAllHref} />
-        <ViajesLowerSections homeBackHref={homeBackHref} ui={ui} />
+        <ViajesLowerSections homeBackHref={homeBackHref} ui={ui} initialBusinessRows={initialBusinessRows} />
         <ViajesTrustStrip ui={ui} className="mt-8" />
         <ViajesPublishCtaBand ui={ui} href={publicarHref} />
       </main>

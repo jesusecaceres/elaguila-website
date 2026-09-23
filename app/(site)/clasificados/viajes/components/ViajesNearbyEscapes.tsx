@@ -1,8 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
 
 import type { ViajesUi } from "../data/viajesUiCopy";
 import { viajesResultsBrowseUrl } from "../lib/viajesBrowseContract";
+import { ViajesSafeImage } from "./ViajesSafeImage";
 
 /** Asymmetric 5-tile bento matching approved landing target. */
 const TILES = [
@@ -58,12 +58,12 @@ export function ViajesNearbyEscapes({ ui }: { ui: ViajesUi }) {
               href={viajesResultsBrowseUrl(ui.lang, tile.browse)}
               className={`group relative overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)] ${tile.className}`}
             >
-              <Image
+              <ViajesSafeImage
                 src={tile.image}
                 alt={label}
-                fill
-                className="object-cover transition duration-500 group-hover:scale-[1.03]"
+                className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
                 sizes="(max-width:1024px) 50vw, 25vw"
+                mode="editorial"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
               <div className="absolute bottom-3 left-3 right-3">

@@ -1,5 +1,6 @@
 import type { ViajesResultRow } from "../data/viajesResultsSampleData";
 import type { ViajesOfferModelV2 } from "./v2/viajesOfferModelV2";
+import { isViajesProductionCommercialRow } from "./viajesPublicInventory";
 
 function slugify(value: string): string {
   return value
@@ -75,11 +76,12 @@ export function filterViajesMoreFromProvider(
   const keys = viajesProviderIdentityKeys(offer);
   if (!keys.length) return [];
   const limit = opts?.limit ?? 6;
-  return rows
-    .filter((row) =>
+  return dedupeViajesRelatedRows(
+    rows.filter((row) =>
+      isViajesProductionCommercialRow(row) &&
       viajesResultMatchesProvider(row, keys, { excludeSlug: opts?.excludeSlug || offer.lifecycle.slug })
     )
-    .slice(0, limit);
+  ).slice(0, limit);
 }
 
 export function filterViajesSimilarGetaways(
@@ -94,14 +96,29 @@ export function filterViajesSimilarGetaways(
     .map((t) => t.trim().toLowerCase())
     .filter((t) => t.length >= 3);
   const limit = opts?.limit ?? 6;
-  return rows
-    .filter((row) => {
+  return dedupeViajesRelatedRows(
+    rows.filter((row) => {
+      if (!isViajesProductionCommercialRow(row)) return false;
       if (exclude && rowSlug(row).toLowerCase() === exclude) return false;
+      if (row.id === offer.lifecycle.slug) return false;
       if (!destTokens.length) return false;
       const hay = `${rowDestination(row)} ${rowTitle(row)}`.toLowerCase();
       return destTokens.some((t) => hay.includes(t));
     })
-    .slice(0, limit);
+  ).slice(0, limit);
+}
+
+function dedupeViajesRelatedRows(rows: ViajesResultRow[]): ViajesResultRow[] {
+  const seen = new Set<string>();
+  const out: ViajesResultRow[] = [];
+  for (const row of rows) {
+    const key = `${rowSlug(row)}|${row.id}`.toLowerCase();
+    if (seen.has(key) || seen.has(rowSlug(row).toLowerCase())) continue;
+    seen.add(key);
+    seen.add(rowSlug(row).toLowerCase());
+    out.push(row);
+  }
+  return out;
 }
 
 export function viajesResultCardTitle(row: ViajesResultRow): string {

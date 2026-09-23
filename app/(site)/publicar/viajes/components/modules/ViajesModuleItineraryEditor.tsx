@@ -3,10 +3,12 @@
 import type { ViajesItineraryItem } from "@/app/(site)/clasificados/viajes/lib/v2/viajesOfferModelV2";
 import { createEmptyViajesItineraryItem } from "./viajesModuleFactories";
 import { ViajesModuleTextField, viajesModuleFieldClass } from "./viajesModuleFieldUi";
+import { viajesModL } from "./viajesModuleEditorCopy";
 
 type Props = {
   value: ViajesItineraryItem[];
   onChange: (value: ViajesItineraryItem[]) => void;
+  lang?: "es" | "en";
 };
 
 const BTN =
@@ -24,18 +26,23 @@ function moveItem(items: ViajesItineraryItem[], index: number, dir: -1 | 1): Via
   return next;
 }
 
-export function ViajesModuleItineraryEditor({ value, onChange }: Props) {
+export function ViajesModuleItineraryEditor({ value, onChange, lang = "es" }: Props) {
   const { CARD } = viajesModuleFieldClass;
+  const L = (es: string, en: string) => viajesModL(lang, es, en);
 
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-bold text-[color:var(--lx-text)]">Itinerario</h3>
+        <h3 className="text-sm font-bold text-[color:var(--lx-text)]">{L("Itinerario", "Itinerary")}</h3>
         <button type="button" className={BTN_PRIMARY} onClick={() => onChange([...value, createEmptyViajesItineraryItem()])}>
-          Agregar día
+          {L("Agregar día", "Add day")}
         </button>
       </div>
-      {!value.length ? <p className="text-xs text-[color:var(--lx-muted)]">Agrega días o segmentos del itinerario.</p> : null}
+      {!value.length ? (
+        <p className="text-xs text-[color:var(--lx-muted)]">
+          {L("Agrega días o segmentos del itinerario.", "Add days or itinerary segments.")}
+        </p>
+      ) : null}
       <ul className="space-y-3">
         {value.map((item, index) => {
           const patch = (partial: Partial<ViajesItineraryItem>) => {
@@ -60,40 +67,40 @@ export function ViajesModuleItineraryEditor({ value, onChange }: Props) {
                   className={`${BTN} border-red-300/70 text-red-800`}
                   onClick={() => onChange(value.filter((x) => x.id !== item.id))}
                 >
-                  Quitar
+                  {L("Quitar", "Remove")}
                 </button>
               </div>
               <div className="space-y-3">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <ViajesModuleTextField
                     id={`itin-${item.id}-day`}
-                    label="Día / etiqueta"
+                    label={L("Día / etiqueta", "Day / label")}
                     value={item.dayLabel}
                     onChange={(v) => patch({ dayLabel: v })}
-                    placeholder={`Día ${index + 1}`}
+                    placeholder={L(`Día ${index + 1}`, `Day ${index + 1}`)}
                   />
                   <ViajesModuleTextField
                     id={`itin-${item.id}-title`}
-                    label="Título"
+                    label={L("Título", "Title")}
                     value={item.title}
                     onChange={(v) => patch({ title: v })}
                   />
                   <ViajesModuleTextField
                     id={`itin-${item.id}-loc`}
-                    label="Ubicación"
+                    label={L("Ubicación", "Location")}
                     value={item.locationLabel}
                     onChange={(v) => patch({ locationLabel: v })}
                   />
                   <ViajesModuleTextField
                     id={`itin-${item.id}-image`}
-                    label="ID de imagen (opcional)"
+                    label={L("ID de imagen (opcional)", "Image ID (optional)")}
                     value={item.imageId ?? ""}
                     onChange={(v) => patch({ imageId: v || null })}
                   />
                 </div>
                 <ViajesModuleTextField
                   id={`itin-${item.id}-desc`}
-                  label="Descripción"
+                  label={L("Descripción", "Description")}
                   value={item.description}
                   onChange={(v) => patch({ description: v })}
                   multiline

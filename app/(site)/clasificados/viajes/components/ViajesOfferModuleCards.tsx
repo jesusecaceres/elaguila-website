@@ -54,33 +54,47 @@ function kindLabel(kind: ViajesTravelModule["kind"], lang: "es" | "en"): string 
   return lang === "en" ? en[kind] : es[kind];
 }
 
-function moduleTitle(m: ViajesTravelModule): string {
+function moduleTitle(m: ViajesTravelModule, lang: "es" | "en"): string {
+  const localizedKind = kindLabel(m.kind, lang);
+  let raw = "";
   switch (m.kind) {
     case "accommodation":
-      return m.propertyType || m.kind;
+      raw = m.propertyType;
+      break;
     case "transportation":
-      return m.mode || m.provider || m.kind;
+      raw = m.mode || m.provider;
+      break;
     case "food":
-      return m.mealPlanOrName || m.kind;
+      raw = m.mealPlanOrName;
+      break;
     case "activity":
-      return m.activityName || m.kind;
+      raw = m.activityName;
+      break;
     case "cruise":
-      return m.ship || m.kind;
+      raw = m.ship;
+      break;
     case "flight":
-      return m.airline || m.kind;
+      raw = m.airline;
+      break;
     case "vacation_rental":
-      return m.propertyType || m.kind;
+      raw = m.propertyType;
+      break;
     case "car_rental":
-      return m.vehicleClass || m.provider || m.kind;
+      raw = m.vehicleClass || m.provider;
+      break;
     case "addon":
-      return m.name || m.kind;
+      raw = m.name;
+      break;
   }
+  const t = raw.trim();
+  if (!t || t === m.kind) return localizedKind;
+  return t;
 }
 
-function moduleLines(m: ViajesTravelModule): string[] {
+function moduleLines(m: ViajesTravelModule, lang: "es" | "en"): string[] {
   switch (m.kind) {
     case "accommodation":
-      return [m.roomOrOccupancy, m.nights ? `${m.nights} noches` : ""].filter(Boolean);
+      return [m.roomOrOccupancy, m.nights ? (lang === "en" ? `${m.nights} nights` : `${m.nights} noches`) : ""].filter(Boolean);
     case "transportation":
       return [m.provider, [m.origin, m.destination].filter(Boolean).join(" → ")].filter(Boolean);
     case "food":
@@ -126,9 +140,9 @@ export function ViajesOfferModuleCards({
           <ModuleShell
             key={m.id}
             kindLabel={kindLabel(m.kind, lang)}
-            title={moduleTitle(m)}
+            title={moduleTitle(m, lang)}
             description={m.description}
-            lines={moduleLines(m)}
+            lines={moduleLines(m, lang)}
           />
         ))}
       </ul>

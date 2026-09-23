@@ -394,7 +394,7 @@ export const VIAJES_DESTINATION_COLLECTIONS: ViajesDestinationCollection[] = [
   },
   {
     id: "yosemite",
-    imageSrc: "https://images.unsplash.com/photo-1562310503-efb2d7a6c5a3?auto=format&fit=crop&w=1200&q=80",
+    imageSrc: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=1200&q=80",
     imageAlt: "Yosemite al amanecer",
     name: "Yosemite",
     supportingLine: "Naturaleza icónica con estancias y tours guiados.",
@@ -421,7 +421,7 @@ export const VIAJES_AUDIENCE_BUCKETS: ViajesAudienceCard[] = [
   },
   {
     id: "couples",
-    imageSrc: "https://images.unsplash.com/photo-1522673607200-1645061cd190?auto=format&fit=crop&w=1000&q=80",
+    imageSrc: "https://images.unsplash.com/photo-1552074284-5e88f742d1f5?auto=format&fit=crop&w=1000&q=80",
     imageAlt: "Pareja en la playa al atardecer",
     label: "Para parejas",
     subline: "Boutique, cenas y experiencias íntimas frente al mar.",

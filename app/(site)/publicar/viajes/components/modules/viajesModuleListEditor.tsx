@@ -31,10 +31,10 @@ function moveItem<T>(items: T[], index: number, dir: -1 | 1): T[] {
   return next;
 }
 
-function renderEditor(mod: ViajesTravelModule, onChange: (next: ViajesTravelModule) => void) {
+function renderEditor(mod: ViajesTravelModule, onChange: (next: ViajesTravelModule) => void, lang: "es" | "en") {
   switch (mod.kind) {
     case "accommodation":
-      return <ViajesModuleAccommodationEditor value={mod} onChange={onChange} />;
+      return <ViajesModuleAccommodationEditor value={mod} onChange={onChange} lang={lang} />;
     case "transportation":
       return <ViajesModuleTransportationEditor value={mod} onChange={onChange} />;
     case "food":
@@ -134,7 +134,7 @@ export function ViajesModuleListEditor({
                 </button>
               </div>
             </div>
-            {renderEditor(mod, (next) => updateAt(index, next))}
+            {renderEditor(mod, (next) => updateAt(index, next), lang)}
           </li>
         ))}
       </ul>

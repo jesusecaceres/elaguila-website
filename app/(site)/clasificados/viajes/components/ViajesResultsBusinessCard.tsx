@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
@@ -8,6 +7,7 @@ import type { ViajesUi } from "../data/viajesUiCopy";
 import type { ViajesBusinessResult } from "../data/viajesResultsSampleData";
 import { withViajesOfferBackParam } from "../lib/viajesOfferLink";
 import { normalizeViajesSanJoseCaliforniaLabel } from "../lib/viajesPublicLocation";
+import { ViajesSafeImage } from "./ViajesSafeImage";
 
 export function ViajesResultsBusinessCard({ row, ui }: { row: ViajesBusinessResult; ui: ViajesUi }) {
   const sp = useSearchParams();
@@ -30,7 +30,13 @@ export function ViajesResultsBusinessCard({ row, ui }: { row: ViajesBusinessResu
   return (
     <article className="flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-sm">
       <div className="relative aspect-[4/3] w-full min-w-0 overflow-hidden">
-        <Image src={row.imageSrc} alt={row.imageAlt} fill className="object-cover object-center" sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 33vw" />
+        <ViajesSafeImage
+          src={row.imageSrc}
+          alt={row.imageAlt}
+          className="absolute inset-0 h-full w-full object-cover object-center"
+          sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 33vw"
+          mode="inventory"
+        />
         <span className="absolute left-3 top-3 rounded-full bg-[color:var(--lx-cta-dark)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#FFFCF7]">
           {sourceLabel}
         </span>

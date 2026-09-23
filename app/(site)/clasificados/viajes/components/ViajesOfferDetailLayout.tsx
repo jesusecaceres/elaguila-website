@@ -23,7 +23,6 @@ import { ViajesOfferMoreFromProvider, ViajesOfferSimilarGetaways } from "./Viaje
 import { ViajesOfferPillSection } from "./ViajesOfferPillSection";
 import { ViajesContactChannelsRow } from "./ViajesContactChannelsRow";
 import { ViajesPartnerLogo } from "./ViajesPartnerLogo";
-import { ViajesPublicInquiryForm } from "./ViajesPublicInquiryForm";
 import { isViajesDurableHttpsUrl } from "../lib/v2/viajesMediaDurableGuards";
 
 const ACCENT = "#D97706";
@@ -350,6 +349,7 @@ function ViajesOfferDetailLayoutBody({
         heroUseNativeImg={offer.heroUseNativeImg}
         visualKind={visualKind}
         lane={lane === "editorial" ? "business" : lane}
+        inventory={lane === "business" || lane === "private"}
       >
         {heroInner}
       </ViajesOfferHeroBackdrop>
@@ -518,12 +518,6 @@ function ViajesOfferDetailLayoutBody({
             ) : null}
           </section>
         )}
-
-        {lane === "business" && !preview && stagedListingId ? (
-          <section className="overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-sm sm:p-8">
-            <ViajesPublicInquiryForm stagedListingId={stagedListingId} copy={od.inquiry} />
-          </section>
-        ) : null}
 
         {lane === "business" || lane === "affiliate" ? (
           <ViajesOfferMoreFromProvider rows={moreFromProvider} lang={ui.lang} />
