@@ -1,5 +1,4 @@
 {
-  "ignoreCommand": "exit 1",
   "crons": [
     {
       "path": "/api/revenue-os/admin/subscription-sweep",
