@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
   // proven against business membership. Absence of a client id is the intended Leonix-managed path.
   const clientUserId = typeof body.clientUserId === "string" ? body.clientUserId.trim() : "";
   if (clientUserId) {
-    if (typeof assistedContext.clientUserId === "string" && assistedContext.clientUserId !== clientUserId) {
+    if (bodyClientUserId && contextClientUserId && contextClientUserId !== bodyClientUserId) {
       await recordSalesWorkspaceAudit({
         action: "quick_sales_save_for_client",
         actorRosterId: assistedContext.rosterId,
@@ -152,8 +152,6 @@ export async function POST(request: NextRequest) {
       });
       return NextResponse.json({ ok: false, error: "client_not_authorized_for_business" }, { status: 403 });
     }
-  } else if (typeof assistedContext.clientUserId === "string" && assistedContext.clientUserId) {
-    return NextResponse.json({ ok: false, error: "assisted_client_mismatch" }, { status: 409 });
   }
 
   const listingRowRaw = body.listingRow as Record<string, unknown> | null | undefined;
