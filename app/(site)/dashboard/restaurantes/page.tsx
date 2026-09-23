@@ -558,6 +558,7 @@ function DashboardRestaurantesPageContent() {
                 // cluster entirely. CREATE/PUBLISH is workspace-level: the page-level
                 // "Publicar un restaurante" button above already covers this job once, not once
                 // per listing.
+                const capabilities = getOwnerEntityCapabilities("restaurantes");
                 const quickActions: ActionItem[] = [
                   { href: publicHref, label: publicViewLabel(lang), tone: "secondary" },
                   { href: resultsHref, label: publicResultsListingLabel(lang), tone: "subtle" },
@@ -622,7 +623,6 @@ function DashboardRestaurantesPageContent() {
                     ? restauranteCouponEditFooterHint(lang)
                     : null;
                 const cardFooterHint = [listingPlanFootnote(lang), couponFooterHint].filter(Boolean).join(" · ");
-                const capabilities = getOwnerEntityCapabilities("restaurantes");
                 const trustSummary = communityTrustById[r.id];
                 const trustEntries: OwnerCommunityTrustEntry[] | null =
                   capabilities.communityTrust === "supported" && trustSummary
