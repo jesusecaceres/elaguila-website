@@ -94,6 +94,14 @@ function isPromoEligible(packageKey: string): boolean {
   return def?.promoEligible === true;
 }
 
+function withBusinessPlanParam(href: string, plan: "quick" | "full"): string {
+  const [path, rawQuery = ""] = href.split("?");
+  const params = new URLSearchParams(rawQuery);
+  params.set("plan", plan);
+  const qs = params.toString();
+  return qs ? `${path}?${qs}` : path;
+}
+
 export function getRestaurantesCheckpointCards(
   lang: PublishCheckpointLang,
   withLang: (path: string, extra?: Record<string, string>) => string,
@@ -147,7 +155,7 @@ export function getRestaurantesCheckpointCards(
         ? "Para restaurantes, cafés, panaderías, food trucks establecidos y negocios con perfil completo. Incluye ficha premium con galería, horarios, ubicación, contacto, redes, platillos destacados y presencia en Leonix."
         : "For restaurants, cafés, bakeries, established food trucks, and businesses with complete profile. Includes premium profile with gallery, hours, location, contact, social media, featured dishes and presence on Leonix.",
       ctaLabel: es ? "Publicar restaurante" : "Publish restaurant",
-      ctaHref: withLang("/publicar/restaurantes", { product: "established_restaurant" }),
+      ctaHref: withLang("/publicar/restaurantes", { product: "established_restaurant", plan: "full" }),
       moreLabel: es ? "Ver más" : "See more",
       modalTitle: es
         ? `Qué incluye Restaurante establecido — ${establishedPrice}`
@@ -312,6 +320,7 @@ export function getServiciosCheckpointCards(
       eyebrow: es ? "Elige paquete" : "Choose your plan",
       title: es ? "Full Business" : "Full Business",
       ctaLabel: es ? "Continuar con Full" : "Continue with Full",
+      ctaHref: withBusinessPlanParam(full.ctaHref, "full"),
     },
   ];
 }
@@ -393,7 +402,7 @@ export function getAutosCheckpointCards(
         ? "Para agencias y negocios de autos que necesitan presencia profesional e inventario de vehículos."
         : "For dealerships and auto businesses that need a professional presence and vehicle inventory.",
       ctaLabel: es ? "Empezar como dealer" : "Start as dealer",
-      ctaHref: negociosHref,
+      ctaHref: withBusinessPlanParam(negociosHref, "full"),
       moreLabel: es ? "Ver más" : "See more",
       modalTitle: es ? `Qué incluye Dealer — ${dealerPrice}` : `What's included with Dealer — ${dealerPrice}`,
       modalIntro: es
@@ -575,7 +584,7 @@ export function getBienesRaicesCheckpointCards(
         ? "Para agentes, equipos, oficinas y desarrolladores. Incluye vitrina de agente con 1 propiedad principal destacada."
         : "For agents, teams, offices, and developers. Includes agent showcase with 1 featured primary property.",
       ctaLabel: es ? "Publicar como agente" : "Publish as agent",
-      ctaHref: negocioHref,
+      ctaHref: withBusinessPlanParam(negocioHref, "full"),
       moreLabel: es ? "Ver más" : "See more",
       modalTitle: es ? `Qué incluye Vitrina de agente — ${agentPrice}` : `What's included with Agent showcase — ${agentPrice}`,
       modalIntro: es
