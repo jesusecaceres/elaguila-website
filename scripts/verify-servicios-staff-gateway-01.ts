@@ -199,8 +199,13 @@ async function main() {
     assert.deepEqual([...STAFF_GATEWAY_EXCLUDED], ["viajes", "iglesias", "recursos"]);
     assert.equal(STAFF_GATEWAY_FAMILIES.includes("servicios"), true);
   });
-  check("A9: begin-client-draft reuses the proven canvass new-business path", () => {
+  check("A9: Field Canvassing remains the Create-for-Client path; Quick Sales no longer uses it", () => {
+    const quickSalesSrc = read("app/admin/(dashboard)/workspace/quick-sales/QuickSalesWorkspaceClient.tsx");
     assert.equal(BEGIN_CLIENT_DRAFT_HREF, "/admin/businesses/canvass?intent=create_listing");
+    assert.equal(quickSalesSrc.includes("BEGIN_CLIENT_DRAFT_HREF"), false);
+    assert.equal(quickSalesSrc.includes("/admin/businesses/canvass?intent=create_listing"), false);
+    assert.ok(quickSalesSrc.includes("data-quick-sales-create-business"));
+    assert.ok(quickSalesSrc.includes("/api/admin/sales-preview/minimal-business"));
   });
 
   // ===========================================================================
@@ -240,8 +245,11 @@ async function main() {
     assert.ok(html.includes("data-staff-business-plan"));
     assert.ok(html.includes("data-staff-plan=\"quick\""));
     assert.ok(html.includes("data-staff-plan=\"full\""));
-    assert.ok(html.includes("data-begin-client-draft"));
-    assert.ok(html.includes(`href="${BEGIN_CLIENT_DRAFT_HREF}"`));
+    assert.ok(html.includes("data-quick-sales-create-business"));
+    assert.ok(html.includes("Elige paquete / Choose package"));
+    assert.equal(html.includes("data-begin-client-draft"), false);
+    assert.equal(html.includes(`href="${BEGIN_CLIENT_DRAFT_HREF}"`), false);
+    assert.equal(html.includes('href="/admin/businesses/canvass'), false);
   });
 
   // ===========================================================================

@@ -24,7 +24,10 @@ import {
   SERVICIOS_QUICK_ADAPTER_PATH,
 } from "./staffBusinessProduct";
 
-/** Existing proven new-business record (staff_assisted) — Create-for-Client's "Negocio nuevo". */
+/**
+ * Field Canvassing / Create-for-Client new-business path. Quick Sales does not use this href;
+ * managed-ad creation uses the minimal canonical POST on the Quick Sales workspace instead.
+ */
 export const BEGIN_CLIENT_DRAFT_HREF = "/admin/businesses/canvass?intent=create_listing";
 
 /** The existing canonical Servicios application. Consumes the assisted cookie via `/publicar/layout.tsx`. */

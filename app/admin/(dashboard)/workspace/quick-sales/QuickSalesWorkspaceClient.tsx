@@ -16,7 +16,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { QUICK_SALES_CATEGORIES, QUICK_SALES_CATEGORY_MAP, type QuickSalesCategory } from "@/app/lib/sales/quickSalesCategories";
 import {
-  BEGIN_CLIENT_DRAFT_HREF,
   resolveStaffNavigationFromCustodyPost,
   resolveStaffOpenIntakeNavigation,
 } from "@/app/lib/sales/staffServiciosGateway";
@@ -88,6 +87,14 @@ export function QuickSalesWorkspaceClient({
   const [previewExpiresAt, setPreviewExpiresAt] = useState<number | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newBusinessName, setNewBusinessName] = useState("");
+  const [newPublicName, setNewPublicName] = useState("");
+  const [newContactName, setNewContactName] = useState("");
+  const [newPhone, setNewPhone] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [createdBusinessId, setCreatedBusinessId] = useState<string | null>(null);
+  const [duplicateConfirm, setDuplicateConfirm] = useState(false);
 
   const descriptor = QUICK_SALES_CATEGORY_MAP[category];
   const pairOffers = staffBusinessOffers(category);
@@ -141,6 +148,61 @@ export function QuickSalesWorkspaceClient({
       await refreshStatus();
     },
     [category, businessId, clientUserId, plan, pairOffers.length, refreshStatus],
+  );
+
+  const createMinimalBusiness = useCallback(
+    async (confirmDuplicates = false) => {
+      if (!newBusinessName.trim()) {
+        setMessage("El nombre del negocio es obligatorio. / Business name is required.");
+        return;
+      }
+      setBusy(true);
+      setMessage(null);
+      const { status: code, json } = await postJson("/api/admin/sales-preview/minimal-business", {
+        businessName: newBusinessName.trim(),
+        publicName: newPublicName.trim() || undefined,
+        contactName: newContactName.trim() || undefined,
+        phone: newPhone.trim() || undefined,
+        email: newEmail.trim() || undefined,
+        confirmCreateDespiteDuplicates: confirmDuplicates,
+      });
+      if (code === 200 && json.ok === true && typeof json.businessId === "string") {
+        const createdId = json.businessId;
+        const createdName = String(json.publicName || json.displayName || newBusinessName.trim());
+        setBusinessId(createdId);
+        setCreatedBusinessId(createdId);
+        setBusinesses((prev) => [{ id: createdId, name: createdName }, ...prev.filter((row) => row.id !== createdId)]);
+        setCreateOpen(false);
+        setDuplicateConfirm(false);
+        setNewBusinessName("");
+        setNewPublicName("");
+        setNewContactName("");
+        setNewPhone("");
+        setNewEmail("");
+        const custody = await postJson("/api/admin/sales-preview/custody", {
+          category,
+          businessId: createdId,
+          clientUserId: clientUserId || undefined,
+          plan: pairOffers.length ? plan : undefined,
+        });
+        setBusy(false);
+        if (custody.status === 200 && custody.json.ok === true) {
+          setMessage("Negocio creado y custodia establecida / Business created and custody established");
+        } else {
+          setMessage("Negocio creado — establece la custodia abajo. / Business created — establish custody below.");
+        }
+        await refreshStatus();
+        return;
+      }
+      setBusy(false);
+      if (json.error === "duplicate_business_warning") {
+        setDuplicateConfirm(true);
+        setMessage("Ya existe un negocio parecido. Confirma para crear de todos modos. / A similar business already exists. Confirm to create anyway.");
+        return;
+      }
+      setMessage(`No se pudo crear / Create failed (${code}): ${String(json.error ?? "unknown")}`);
+    },
+    [newBusinessName, newPublicName, newContactName, newPhone, newEmail, category, clientUserId, plan, pairOffers.length, refreshStatus],
   );
 
   const issuePreview = useCallback(async () => {
@@ -244,28 +306,37 @@ export function QuickSalesWorkspaceClient({
         </div>
         {pairOffers.length ? (
           <div className="mt-3" data-staff-business-plan>
+            <h3 className="mb-1 text-xs font-bold text-[#2F2A1F]">Elige paquete / Choose package</h3>
             <p className="mb-2 text-xs text-[#5D4A25]">
-              Quick y Full usan la misma aplicación y el mismo anuncio. Solo cambia el acceso. · Quick
-              and Full use the same application and the same listing. Only access changes.
+              Quick y Full usan la misma aplicación y el mismo anuncio. Solo cambia el acceso. Elegir
+              no navega. · Quick and Full use the same application and the same listing. Only access
+              changes. Choosing a package does not navigate.
             </p>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Elige paquete / Choose package">
               {pairOffers.map((offer) => (
                 <button
                   key={offer.plan}
                   type="button"
+                  role="radio"
                   data-staff-plan={offer.plan}
                   onClick={() => setPlan(offer.plan)}
                   className={`min-h-[44px] rounded-lg border px-3 py-2 text-xs font-semibold ${
                     plan === offer.plan ? "border-[#B8860B] bg-[#FFF6E7]" : "border-[#E6DCC6] bg-white"
                   }`}
+                  aria-checked={plan === offer.plan}
                   aria-pressed={plan === offer.plan}
                   aria-label={`${offer.plan === "quick" ? "Quick Business" : "Full Business"} $${(offer.priceCents / 100).toFixed(0)}`}
                 >
-                  {offer.plan === "quick" ? "Quick Business" : "Full Business"} · $
-                  {(offer.priceCents / 100).toFixed(0)}/mes · {offer.access === "simple" ? "Simple" : "Full"}
+                  {plan === offer.plan ? "✓ " : "○ "}
+                  {offer.plan === "quick" ? "Quick Business" : "Full Business"} — $
+                  {(offer.priceCents / 100).toFixed(0)}/mes — {offer.access === "simple" ? "Simple" : "Full"}
                 </button>
               ))}
             </div>
+            <p className="mt-2 text-xs font-semibold text-[#2F2A1F]" data-staff-selected-package>
+              Paquete seleccionado / Selected package:{" "}
+              {plan === "quick" ? "Quick Business — $249/mes — Simple" : "Full Business — $399/mes — Full"}
+            </p>
           </div>
         ) : null}
         <p className="mt-2 text-xs text-[#5D4A25]">
@@ -278,16 +349,83 @@ export function QuickSalesWorkspaceClient({
       <section className="rounded-xl border border-[#E6DCC6] bg-white p-4">
         <h2 className="mb-2 font-bold">2. Negocio del cliente / Customer business</h2>
         <p className="mb-2 text-xs text-[#5D4A25]">
-          Elige un negocio existente, o crea el registro canónico primero. · Pick an existing
-          business, or create the canonical record first.
+          Elige un negocio existente, o crea un registro canónico mínimo aquí. No uses Field
+          Canvassing para un anuncio gestionado. · Pick an existing business, or create a minimal
+          canonical record here. Do not use Field Canvassing for a managed ad.
         </p>
-        <a
-          href={BEGIN_CLIENT_DRAFT_HREF}
+        <button
+          type="button"
+          onClick={() => setCreateOpen((open) => !open)}
           className="mb-3 inline-flex min-h-[44px] items-center rounded-lg border border-[#E6DCC6] px-3 py-2 text-xs font-semibold"
-          data-begin-client-draft
+          data-quick-sales-create-business
+          aria-expanded={createOpen}
         >
-          Negocio nuevo (registro canónico) / New business (canonical record)
-        </a>
+          Crear negocio nuevo / Create new business
+        </button>
+        {createOpen ? (
+          <div className="mb-3 space-y-2 rounded-lg border border-[#E6DCC6] bg-[#FFFDF7] p-3" data-quick-sales-minimal-create>
+            <label className="block text-xs font-semibold">
+              Nombre del negocio / Business name
+              <input
+                value={newBusinessName}
+                onChange={(e) => setNewBusinessName(e.target.value)}
+                className="mt-1 min-h-[44px] w-full rounded-lg border border-[#E6DCC6] bg-white px-3 py-2 font-normal"
+                aria-label="Nombre del negocio / Business name"
+              />
+            </label>
+            <label className="block text-xs font-semibold">
+              Nombre público (opcional) / Public-facing name (optional)
+              <input
+                value={newPublicName}
+                onChange={(e) => setNewPublicName(e.target.value)}
+                placeholder="Igual que el nombre / Same as business name"
+                className="mt-1 min-h-[44px] w-full rounded-lg border border-[#E6DCC6] bg-white px-3 py-2 font-normal"
+                aria-label="Nombre público / Public-facing name"
+              />
+            </label>
+            <label className="block text-xs font-semibold">
+              Nombre de contacto (opcional) / Contact name (optional)
+              <input
+                value={newContactName}
+                onChange={(e) => setNewContactName(e.target.value)}
+                className="mt-1 min-h-[44px] w-full rounded-lg border border-[#E6DCC6] bg-white px-3 py-2 font-normal"
+                aria-label="Nombre de contacto / Contact name"
+              />
+            </label>
+            <label className="block text-xs font-semibold">
+              Teléfono (opcional) / Phone (optional)
+              <input
+                value={newPhone}
+                onChange={(e) => setNewPhone(e.target.value)}
+                className="mt-1 min-h-[44px] w-full rounded-lg border border-[#E6DCC6] bg-white px-3 py-2 font-normal"
+                aria-label="Teléfono / Phone"
+              />
+            </label>
+            <label className="block text-xs font-semibold">
+              Correo (opcional) / Email (optional)
+              <input
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                className="mt-1 min-h-[44px] w-full rounded-lg border border-[#E6DCC6] bg-white px-3 py-2 font-normal"
+                aria-label="Correo / Email"
+              />
+            </label>
+            <button
+              type="button"
+              disabled={busy || !newBusinessName.trim()}
+              onClick={() => void createMinimalBusiness(duplicateConfirm)}
+              className="min-h-[44px] rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold disabled:opacity-40"
+              data-quick-sales-save-business
+            >
+              {duplicateConfirm ? "Confirmar y crear / Confirm and create" : "Guardar negocio / Save business"}
+            </button>
+          </div>
+        ) : null}
+        {createdBusinessId ? (
+          <p className="mb-3 rounded-lg bg-[#FFF6E7] p-2 text-xs font-semibold" data-quick-sales-created-business>
+            Negocio creado y seleccionado / Business created and selected
+          </p>
+        ) : null}
         <div className="flex gap-2">
           <input
             value={query}
@@ -399,7 +537,9 @@ export function QuickSalesWorkspaceClient({
           data-staff-plan={pairOffers.length ? plan : undefined}
           className="mt-2 min-h-[44px] rounded-lg border border-[#B8860B] px-3 py-2 text-xs font-semibold disabled:opacity-40"
         >
-          Llenar {descriptor.labelEs} / Fill {descriptor.labelEn}
+          {createdBusinessId
+            ? `Continuar a ${descriptor.labelEs} / Continue to ${descriptor.labelEn}`
+            : `Llenar ${descriptor.labelEs} / Fill ${descriptor.labelEn}`}
         </button>
         {!businessId ? (
           <p className="mt-2 text-xs text-[#8B4513]" data-staff-open-blocked="no_business">

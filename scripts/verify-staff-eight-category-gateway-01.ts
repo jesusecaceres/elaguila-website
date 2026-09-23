@@ -212,7 +212,10 @@ async function main() {
     }
     assert.equal(html.includes('href="/login'), false);
     assert.ok(html.includes("data-staff-business-plan"));
-    assert.ok(html.includes(`href="${BEGIN_CLIENT_DRAFT_HREF}"`));
+    assert.ok(html.includes("data-quick-sales-create-business"));
+    assert.ok(html.includes("Elige paquete / Choose package"));
+    assert.equal(html.includes(`href="${BEGIN_CLIENT_DRAFT_HREF}"`), false);
+    assert.equal(html.includes('href="/admin/businesses/canvass'), false);
     assert.equal(html.includes("$249") || html.includes("$249/mes") || html.includes("249"), true);
   });
 

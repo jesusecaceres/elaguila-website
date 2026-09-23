@@ -43,6 +43,11 @@ const gates: Gate[] = [
     args: ["node_modules/tsx/dist/cli.mjs", "--tsconfig", "scripts/lib/tsconfig.harness.json", "scripts/verify-quick-sales-preview-01.ts"],
   },
   {
+    name: "Quick Sales minimal canonical-business create (no Field Canvassing)",
+    command: "node",
+    args: ["node_modules/tsx/dist/cli.mjs", "--tsconfig", "scripts/lib/tsconfig.harness.json", "scripts/verify-quick-sales-minimal-business-01.ts"],
+  },
+  {
     name: "Autos final application acceptance",
     command: "node",
     args: ["node_modules/tsx/dist/cli.mjs", "scripts/autos-a5-final-acceptance-live-completion-audit.ts"],
