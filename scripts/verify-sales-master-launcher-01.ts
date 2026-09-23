@@ -80,6 +80,8 @@ check("eight customer Quick links are exact and public, not admin", () => {
     assert.ok(href.startsWith("/publicar") || href.startsWith("/clasificados/publicar"));
     assert.equal(href.includes("/admin"), false);
   }
+  assert.equal(staffLauncherItem("servicios")?.customerCheckpointHref, "/clasificados/publicar/servicios/checkpoint");
+  assert.equal(staffLauncherItem("restaurantes")?.customerCheckpointHref, "/clasificados/publicar/restaurantes");
 });
 
 check("Quick/Full only on the four business pair families", () => {
