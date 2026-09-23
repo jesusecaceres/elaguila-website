@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import type { SupportedLang } from "@/app/lib/language";
 import { withClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import { getServiciosCheckpointCards } from "@/app/clasificados/publicar/_lib/categoryPublishCheckpoints";
@@ -31,6 +32,9 @@ export function ServiciosCheckpointClient({
   routeLang: SupportedLang;
 }) {
   const t = COPY[lang];
+  const searchParams = useSearchParams();
+  const selectedPlan = searchParams?.get("plan") === "full" ? "full" : searchParams?.get("plan") === "quick" ? "quick" : null;
+  const assistedCategory = searchParams?.get("staff") === "1" ? "servicios" : undefined;
   const applicationHref = withClasificadosPublishLang("/publicar/servicios", routeLang, {
     product: "servicios_profesionales",
   });
@@ -49,6 +53,7 @@ export function ServiciosCheckpointClient({
       backHref={clasificadosHref}
       backLabel={t.backToClasificados}
       checkpointCategory="servicios"
+      selectedPlan={selectedPlan}
     >
       {quickCard ? (
         <PaidPublishCheckpointCard
@@ -56,6 +61,7 @@ export function ServiciosCheckpointClient({
           card={quickCard}
           lang={lang}
           onMoreClick={() => setQuickMoreOpen(true)}
+          assistedCategory={assistedCategory}
         />
       ) : null}
       {fullCard && fullCard.id !== quickCard?.id ? (
@@ -64,6 +70,7 @@ export function ServiciosCheckpointClient({
           card={fullCard}
           lang={lang}
           onMoreClick={() => setFullMoreOpen(true)}
+          assistedCategory={assistedCategory}
         />
       ) : null}
       {quickCard ? (
