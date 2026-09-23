@@ -93,6 +93,8 @@ export const CATEGORY_LISTING_TOOL_TRUTH: Record<
     analytics: "unproven",
     couponUpgrade: "ready",
     couponEdit: "ready",
+    pause: "ready",
+    reactivate: "ready",
   },
   servicios: {
     publicView: "ready",
@@ -389,6 +391,9 @@ export function buildInventoryListingActions(
     offersEditLabelOverride?: string;
     /** Gate D.1 — page-level authenticated owner id; required to source resolver hrefs. */
     ownerUserId?: string | null;
+    /** Owner-safe Restaurantes lifecycle: published <-> paused only. */
+    onRestaurantesManage?: (action: "pause" | "resume") => void;
+    restaurantesManageBusy?: boolean;
     /** Package E Build E2, Gate 4 — real pause/resume via /api/clasificados/servicios/manage. */
     onServiciosManage?: (action: "pause" | "resume") => void;
     serviciosManageBusy?: boolean;
@@ -500,6 +505,38 @@ export function buildInventoryListingActions(
       onClick: opts.onCouponEdit,
       disabled: opts.couponEditBusy,
       tone: "premium",
+    });
+  }
+
+  if (
+    category === "restaurantes" &&
+    item.status === "published" &&
+    listingToolIsReady(category, "pause") &&
+    opts?.onRestaurantesManage
+  ) {
+    actions.push({
+      label: opts.restaurantesManageBusy
+        ? lang === "es" ? "Pausando…" : "Pausing…"
+        : pauseListingLabel(lang),
+      onClick: () => opts.onRestaurantesManage!("pause"),
+      disabled: opts.restaurantesManageBusy,
+      tone: "warning",
+    });
+  }
+
+  if (
+    category === "restaurantes" &&
+    item.status === "paused" &&
+    listingToolIsReady(category, "reactivate") &&
+    opts?.onRestaurantesManage
+  ) {
+    actions.push({
+      label: opts.restaurantesManageBusy
+        ? lang === "es" ? "Reactivando…" : "Reactivating…"
+        : resumeListingLabel(lang),
+      onClick: () => opts.onRestaurantesManage!("resume"),
+      disabled: opts.restaurantesManageBusy,
+      tone: "positive",
     });
   }
 
