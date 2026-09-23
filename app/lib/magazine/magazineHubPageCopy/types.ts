@@ -1,26 +1,22 @@
+/**
+ * Compact Revista hub copy. The hub is three things — the current magazine, its sponsors, previous
+ * editions — so the copy is a handful of short labels, not marketing paragraphs.
+ */
 export type MagazineHubPageCopy = {
-  heroEyebrow: string;
-  heroTitle: string;
-  heroSubtitle: string;
-  heroDescription: string;
+  eyebrow: string;
+  title: string;
+  subtitle: string;
   currentEyebrow: string;
-  currentTitle: string;
-  currentBody: string;
   readMagazine: string;
+  viewFlipbook: string;
   downloadPdf: string;
-  archiveEyebrow: string;
+  translateHelp: string;
+  sponsorsTitle: string;
+  sponsorsEmpty: string;
+  sponsorsCta: string;
   archiveTitle: string;
-  archiveIntro: string;
-  newsletterTitle: string;
-  newsletterBody: string;
-  newsletterPlaceholder: string;
-  newsletterButton: string;
-  newsletterMicro: string;
-  newsletterAria: string;
-  emailLabel: string;
-  advertiseTitle: string;
-  advertiseBody: string;
-  advertiseCta: string;
+  archiveRead: string;
+  archivePdf: string;
   flipModalTitle: string;
-  loading: string;
+  closeFlipbook: string;
 };
