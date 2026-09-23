@@ -83,8 +83,9 @@ if (!helper.includes("isAutosDealerInventoryPackEntitlementActiveFromProof")) {
 }
 ok("entitlement package_key checked from paid proof");
 
-// Success return / manage inventory wording
-if (!revenueResult.includes("resolveAutosDealerInventoryPackSuccessPrimaryCta")) {
+// Success return uses the monetization-03 presentation (draft vs dashboard).
+// The older dashboard-only resolver must not be called directly from this view.
+if (!revenueResult.includes("resolveAutosDealerInventoryPackPaymentSuccessPresentation")) {
   fail("success view must handle autos inventory pack CTA");
 }
 if (!helper.includes("autosDealerInventoryEditHref")) fail("success CTA must return to inventory editor");
