@@ -124,6 +124,7 @@ export function buildRestaurantePublishPayload(
     zipCode: blockHeavyMedia(draft.zipCode, "zipCode"),
     neighborhood: blockHeavyMedia(draft.neighborhood, "neighborhood"),
     phoneNumber: blockHeavyMedia(draft.phoneNumber, "phoneNumber"),
+    smsNumber: blockHeavyMedia(draft.smsNumber, "smsNumber"),
     email: blockHeavyMedia(draft.email, "email"),
     websiteUrl: blockHeavyMedia(draft.websiteUrl, "websiteUrl"),
     instagramUrl: blockHeavyMedia(draft.instagramUrl, "instagramUrl"),

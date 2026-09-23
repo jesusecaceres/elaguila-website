@@ -85,7 +85,6 @@ import {
   RESTAURANTE_FORM_BUSINESS_TYPES,
   RESTAURANTE_FORM_SERVICE_OPTIONS,
   RESTAURANTE_MAX_CUSTOM_LANGUAGES,
-  RESTAURANTE_US_STATE_OPTIONS,
   resolveRestauranteCustomLanguages,
 } from "@/app/lib/clasificados/restaurantes/restauranteFormCleanupConfig";
 
@@ -101,10 +100,6 @@ const stepPanel = CARD;
 /** Stacks I / J / K — visually dominant vs. canonical service modes + channel rows below */
 const PRIMARY_OP_CARD =
   "flex h-full flex-col rounded-2xl border-2 border-[color:var(--lx-gold-border)]/70 bg-gradient-to-b from-[color:var(--lx-section)] to-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.18)] ring-2 ring-[color:var(--lx-gold-border)]/25";
-
-/** Secondary fulfillment toggles — lighter visual weight */
-const SECONDARY_CHANNEL_CLUSTER =
-  "rounded-2xl border border-dashed border-[color:var(--lx-nav-border)]/90 bg-[color:var(--lx-section)]/40 p-4";
 
 const OTHER_INPUT =
   "mt-1.5 w-full max-w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm text-[color:var(--lx-text)]";
@@ -264,9 +259,9 @@ export default function RestauranteApplicationClient() {
   const [confirmCommunityRules, setConfirmCommunityRules] = useState(false);
   const [confirmCouponTerms, setConfirmCouponTerms] = useState(false);
   /** Coupon image upload state */
-  const [couponImageUploading, setCouponImageUploading] = useState<Record<number, boolean>>({});
+  const [_couponImageUploading, setCouponImageUploading] = useState<Record<number, boolean>>({});
   /** Flyer image upload state */
-  const [flyerImageUploading, setFlyerImageUploading] = useState(false);
+  const [_flyerImageUploading, setFlyerImageUploading] = useState(false);
   const [dashboardAddonCheckoutBusy, setDashboardAddonCheckoutBusy] = useState(false);
   const [dashboardSaveBusy, setDashboardSaveBusy] = useState(false);
   const [dashboardContextErr, setDashboardContextErr] = useState<string | null>(null);
@@ -453,7 +448,7 @@ export default function RestauranteApplicationClient() {
   /** Can continue to preview */
   const canContinueToPreview = minPreviewOk && finalPreviewConfirmationsOk;
 
-  const serviceOk = useMemo(() => satisfiesRestauranteServiceModes(draft.serviceModes), [draft.serviceModes]);
+  const _serviceOk = useMemo(() => satisfiesRestauranteServiceModes(draft.serviceModes), [draft.serviceModes]);
   const deliveryRelevant = useMemo(
     () =>
       Boolean(draft.delivery) ||
@@ -1644,6 +1639,16 @@ export default function RestauranteApplicationClient() {
                     placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.phoneNumber}
                     value={draft.phoneNumber ?? ""}
                     onChange={(next) => setDraftPatch({ phoneNumber: next || undefined })}
+                  />
+                </div>
+                <div>
+                  <FieldLabel optional lang={lang}>{fc.sectionD.smsLabel}</FieldLabel>
+                  <HelperText>{fc.sectionD.smsHelper}</HelperText>
+                  <PhoneInput
+                    className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                    placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.smsNumber ?? "(408) 555-0188"}
+                    value={draft.smsNumber ?? ""}
+                    onChange={(next) => setDraftPatch({ smsNumber: next || undefined })}
                   />
                 </div>
                 <div>

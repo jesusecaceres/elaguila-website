@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useMemo } from "react";
 import { trackRestaurantesResultCardClick } from "../lib/restaurantesCtaTracking";
+import { LeonixCommunityTrustCardStrip } from "@/app/components/leonixCommunityTrust/LeonixCommunityTrustCardStrip";
 import { FiGlobe, FiMapPin, FiPhone } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
 import type { RestaurantDetailShellData } from "./restaurantDetailShellTypes";
@@ -86,6 +87,7 @@ interface RestaurantePreviewCardProps {
   presentation?: "preview" | "public_discovery";
   /** Net public likes (from `listing_analytics`); shown only when `presentation="public_discovery"` and value &gt; 0. */
   likesCount?: number;
+  publicEndorsementCount?: number;
   /** Results grid: primary navigation to public detail. */
   publicDetailHref?: string;
   publicDetailLabel?: string;
@@ -109,6 +111,7 @@ export function RestaurantePreviewCard({
   lang = "es",
   presentation = "preview",
   likesCount,
+  publicEndorsementCount,
   publicDetailHref,
   publicDetailLabel,
   discoveryRefineHref,
@@ -443,6 +446,12 @@ export function RestaurantePreviewCard({
                   </div>
                 );
               })}
+            </div>
+          ) : null}
+
+          {presentation === "public_discovery" ? (
+            <div className="pt-1" data-servicios-card-trust-strip="1">
+              <LeonixCommunityTrustCardStrip lang={lang === "en" ? "en" : "es"} count={publicEndorsementCount ?? 0} />
             </div>
           ) : null}
 

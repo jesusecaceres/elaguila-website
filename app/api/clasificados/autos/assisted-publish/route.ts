@@ -18,10 +18,10 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { readActiveAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
 import {
-  hasClearedManualPaymentForListing,
   isListingLinkedToBusiness,
   linkAssistedListingToBusiness,
 } from "@/app/lib/business/assistedListingCustody";
+import { refuseUnlessAuthoritativePayment } from "@/app/lib/listingPlans/listingPackagePaymentAuthorityServer";
 import {
   createAutosClassifiedsListing,
   createAutosClassifiedsListingWithInventoryParent,
@@ -101,46 +101,43 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "invalid_assisted_action" }, { status: 400 });
   }
 
-  // REQUIRED REPAIR 5 — clientUserId is NOT trusted for having arrived alongside a valid staff
-  // cookie. Authenticating the staff actor proves who is asking; it says nothing about whether
-  // this user id belongs to the business the assisted context is bound to. It is written into
-  // `owner_user_id`, which every later authorization check reads, so it is proven server-side
-  // against the canonical membership table before a single column is written.
+  // Organizational custody: owner-null until a later claim. A supplied clientUserId is still
+  // proven against business membership; it is never invented and never taken from an unsigned body
+  // as the only authority. Absence of a client id is the intended Leonix-managed path.
   const clientUserId = typeof body.clientUserId === "string" ? body.clientUserId.trim() : "";
-  if (!clientUserId) {
-    return NextResponse.json({ ok: false, error: "client_user_id_required" }, { status: 400 });
-  }
-  // When custody was established for a specific customer, the body may only agree with it. This
-  // is the stronger half of repair 5: membership proves the id COULD own a listing here; the bound
-  // id proves it is the customer this staff session was actually authorized for.
-  if (typeof assistedContext.clientUserId === "string" && assistedContext.clientUserId !== clientUserId) {
-    await recordSalesWorkspaceAudit({
-      action: "quick_sales_save_for_client",
-      actorRosterId: assistedContext.rosterId,
+  if (clientUserId) {
+    if (typeof assistedContext.clientUserId === "string" && assistedContext.clientUserId !== clientUserId) {
+      await recordSalesWorkspaceAudit({
+        action: "quick_sales_save_for_client",
+        actorRosterId: assistedContext.rosterId,
+        businessId: assistedContext.businessId,
+        clientUserId,
+        category: "autos",
+        listingSource: "autos_classifieds_listings",
+        outcome: "assisted_client_mismatch",
+      });
+      return NextResponse.json({ ok: false, error: "assisted_client_mismatch" }, { status: 409 });
+    }
+    const clientAuthorized = await isClientAuthorizedForBusiness({
       businessId: assistedContext.businessId,
       clientUserId,
-      category: "autos",
-      listingSource: "autos_classifieds_listings",
-      outcome: "assisted_client_mismatch",
     });
+    if (!clientAuthorized) {
+      await recordSalesWorkspaceAudit({
+        action: "quick_sales_save_for_client",
+        actorRosterId: assistedContext.rosterId,
+        businessId: assistedContext.businessId,
+        clientUserId,
+        category: "autos",
+        listingSource: "autos_classifieds_listings",
+        outcome: "client_not_authorized_for_business",
+      });
+      return NextResponse.json({ ok: false, error: "client_not_authorized_for_business" }, { status: 403 });
+    }
+  } else if (typeof assistedContext.clientUserId === "string" && assistedContext.clientUserId) {
     return NextResponse.json({ ok: false, error: "assisted_client_mismatch" }, { status: 409 });
   }
-  const clientAuthorized = await isClientAuthorizedForBusiness({
-    businessId: assistedContext.businessId,
-    clientUserId,
-  });
-  if (!clientAuthorized) {
-    await recordSalesWorkspaceAudit({
-      action: "quick_sales_save_for_client",
-      actorRosterId: assistedContext.rosterId,
-      businessId: assistedContext.businessId,
-      clientUserId,
-      category: "autos",
-      listingSource: "autos_classifieds_listings",
-      outcome: "client_not_authorized_for_business",
-    });
-    return NextResponse.json({ ok: false, error: "client_not_authorized_for_business" }, { status: 403 });
-  }
+  const resolvedOwnerUserId = clientUserId || null;
 
   const dealerListing = body.dealerListing as AutoDealerListing | null | undefined;
   if (!dealerListing || typeof dealerListing !== "object") {
@@ -211,7 +208,7 @@ export async function POST(request: NextRequest) {
   // number, saw success, reopened the draft and found the old number.
   let mainListingId = existingMainListingId;
   if (mainListingId) {
-    const updated = await updateAutosClassifiedsListingDraft(mainListingId, clientUserId, {
+    const updated = await updateAutosClassifiedsListingDraft(mainListingId, resolvedOwnerUserId, {
       listing: dealerListing,
       lang,
     });
@@ -234,7 +231,7 @@ export async function POST(request: NextRequest) {
   }
   if (!mainListingId) {
     const mainResult = await createAutosClassifiedsListing({
-      ownerUserId: clientUserId,
+      ownerUserId: resolvedOwnerUserId,
       lane: "negocios",
       lang,
       listing: dealerListing,
@@ -267,7 +264,7 @@ export async function POST(request: NextRequest) {
     // with no child yet inserts one.
     const existingChildId = await findExistingAssistedVehicleChildId(mainListingId);
     if (existingChildId) {
-      const updatedChild = await updateAutosClassifiedsListingDraft(existingChildId, clientUserId, {
+      const updatedChild = await updateAutosClassifiedsListingDraft(existingChildId, resolvedOwnerUserId, {
         listing: vehicleListing,
         lang,
       });
@@ -280,7 +277,7 @@ export async function POST(request: NextRequest) {
       vehicleListingId = existingChildId;
     } else {
       const vehicleResult = await createAutosClassifiedsListingWithInventoryParent({
-        ownerUserId: clientUserId,
+        ownerUserId: resolvedOwnerUserId,
         lane: "negocios",
         lang,
         listing: vehicleListing,
@@ -303,11 +300,13 @@ export async function POST(request: NextRequest) {
 
   // publish_for_client: verify cleared manual payment before activating
   if (isAssistedPublish) {
-    const cleared = await hasClearedManualPaymentForListing({
+    const paid = await refuseUnlessAuthoritativePayment({
       listingSource: "autos_classifieds_listings",
       listingId: mainListingId,
+      packageKey: assistedContext.packageKey ?? "",
+      category: "autos",
     });
-    if (!cleared) {
+    if (!paid.ok) {
       await recordSalesWorkspaceAudit({
         action: "quick_sales_publish_attempted",
         actorRosterId: assistedContext.rosterId,
@@ -316,11 +315,11 @@ export async function POST(request: NextRequest) {
         category: "autos",
         listingSource: "autos_classifieds_listings",
         listingId: mainListingId,
-        paymentState: "manual_payment_not_cleared",
-        outcome: "manual_payment_not_cleared",
+        paymentState: paid.paymentState,
+        outcome: paid.error,
       });
       return NextResponse.json(
-        { ok: false, error: "manual_payment_not_cleared", message: "Record and clear the manual payment in the Payment Tracker first." },
+        { ok: false, error: paid.error, message: "Record and clear the payment in the Payment Tracker first." },
         { status: 402 },
       );
     }

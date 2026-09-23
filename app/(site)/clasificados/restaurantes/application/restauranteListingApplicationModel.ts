@@ -494,6 +494,7 @@ type ContactChannel = keyof Pick<
   RestauranteContactCta,
   | "websiteUrl"
   | "phoneNumber"
+  | "smsNumber"
   | "email"
   | "whatsAppNumber"
   | "instagramUrl"
@@ -517,6 +518,7 @@ export function hasPrimaryContactPath(cta: RestauranteContactCta): boolean {
   const keys: ContactChannel[] = [
     "websiteUrl",
     "phoneNumber",
+    "smsNumber",
     "email",
     "whatsAppNumber",
     "instagramUrl",

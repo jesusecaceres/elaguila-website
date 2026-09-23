@@ -54,6 +54,17 @@ import { resolveQuickBusinessPublishIdentity } from "@/app/lib/listingPlans/quic
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { RESTAURANTE_STATUS_TRANSITION_NOT_ALLOWED_ERROR, resolveRestauranteOwnerEditTargetStatus } from "@/app/lib/clasificados/restaurantes/restauranteOwnerEditStatusAuthority";
 import type { QuickSalesCategory } from "./quickSalesCategories";
+import { mapOwnedRentasListingToPrivadoFormState } from "@/app/clasificados/publicar/rentas/shared/rentasDashboardEditHydration";
+import { gateBienesRaicesNegocioPreview, gateRentasPrivadoPreview } from "@/app/clasificados/lib/publish/leonixRequiredForPreviewGates";
+import { getAutosPreviewCompletenessIssues } from "@/app/clasificados/autos/shared/lib/autosPreviewCompleteness";
+import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
+import { hydrateQuickDraftFromEnvelope } from "@/app/publicar/empleos/shared/lib/empleosDraftFromEnvelope";
+import { gateEmpleosQuickPreview } from "@/app/publicar/empleos/shared/required/empleosRequiredForPreview";
+import type { EmpleosPublishEnvelope } from "@/app/publicar/empleos/shared/publish/empleosPublishSnapshots";
+import { mergeComidaLocalDraftFromStorage } from "@/app/lib/clasificados/comida-local/comidaLocalDraftPersistence";
+import { validateComidaLocalDraftForFuturePublish } from "@/app/lib/clasificados/comida-local/comidaLocalValidation";
+import { parseBienesAgenteResidencialPublishedState } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/utils/parseBienesAgenteResidencialPublishedState";
+import { mapAgenteResidencialFormStateToNegocioForPublish } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/mapAgenteResidencialFormStateToNegocioForPublish";
 
 /**
  * QUICK IS ADDITIVE. The four normal category routes are NOT modified for this adapter (they are
@@ -127,7 +138,11 @@ export function serviciosQuickMediaFacts(state: ClasificadosServiciosApplication
   return { items, externalVideoCount };
 }
 
-async function assessServicios(listingId: string, lang: "es" | "en"): Promise<CanonicalPublishAssessment> {
+async function assessServicios(
+  listingId: string,
+  lang: "es" | "en",
+  assistedPackageKey?: string | null,
+): Promise<CanonicalPublishAssessment> {
   const row = await getServiciosPublicListingByIdFromDb(listingId, { visibility: "all" });
   if (!row?.id) return refuse(404, "listing_not_found");
   const status = String(row.listing_status ?? "").trim().toLowerCase();
@@ -165,17 +180,16 @@ async function assessServicios(listingId: string, lang: "es" | "en"): Promise<Ca
   });
   if (!mediaValidation.ok) return refuse(422, "media_invalid", { issues: mediaValidation.issues });
 
-  // PRODUCT IDENTITY comes only from server truth: the row's own stored owner (never a body
-  // field) scopes the resolver's entitlement/ledger reads, and `serverCustodyQuick` says what this
-  // seam IS — the Quick-only assisted publish operation reached through server-issued custody. A
-  // LIVE Full entitlement the resolver can prove for the stored owner is consulted first and
-  // exempts the Quick contract; an owner-null custody row has nothing to scope by, resolves Quick,
-  // and is held to the contract.
+  // PRODUCT IDENTITY comes from server truth: a staff assisted package key (Quick vs Full
+  // entitlement on this custody), then the row's stored owner for entitlement/ledger reads.
+  // `serverCustodyQuick` is the fail-safe fallback when the cookie names no package — it never
+  // overrides a stamped Full key. An owner-null Full custody row is therefore Full, not Quick.
   const product = await resolveQuickBusinessPublishIdentity({
     category: "servicios",
     ownerUserId: row.owner_user_id ?? "",
     listingId: row.id,
-    serverCustodyQuick: true,
+    assistedPackageKey: assistedPackageKey ?? null,
+    serverCustodyQuick: !assistedPackageKey,
   });
   if (product.enforceQuickContract) {
     const facts = serviciosQuickMediaFacts(state);
@@ -202,7 +216,10 @@ export function restauranteQuickMediaFacts(draft: RestauranteListingDraft): {
   return { heroUrl, galleryUrls, externalVideoUrls: collectRestauranteExternalVideoUrls(draft) };
 }
 
-async function assessRestaurantes(listingId: string): Promise<CanonicalPublishAssessment> {
+async function assessRestaurantes(
+  listingId: string,
+  assistedPackageKey?: string | null,
+): Promise<CanonicalPublishAssessment> {
   const db = getAdminSupabase();
   const { data, error } = await db
     .from("restaurantes_public_listings")
@@ -248,7 +265,8 @@ async function assessRestaurantes(listingId: string): Promise<CanonicalPublishAs
     category: "restaurantes",
     ownerUserId: row.owner_user_id ?? "",
     listingId: row.id,
-    serverCustodyQuick: true,
+    assistedPackageKey: assistedPackageKey ?? null,
+    serverCustodyQuick: !assistedPackageKey,
   });
   if (product.enforceQuickContract) {
     const semantic = enforceQuickBusinessPublishMedia({
@@ -356,6 +374,16 @@ async function assessAutos(listingId: string): Promise<CanonicalPublishAssessmen
   // VEHICLE photo, read from the vehicle child because the vehicle is what the listing is about.
   const semantic = enforceQuickBusinessPublishMedia({ category: "autos-dealer", items: extractSemanticMediaItems(payload) });
   if (semantic && !semantic.ok) return { ok: false, status: semantic.status, error: semantic.body.error, body: semantic.body };
+  const parentPayload = (data as { listing_payload?: unknown }).listing_payload as AutoDealerListing | null;
+  const childListing = payload as AutoDealerListing | null;
+  if (parentPayload) {
+    const parentIssues = getAutosPreviewCompletenessIssues("negocios", parentPayload).filter((k) => k === "dealerIdentity");
+    if (parentIssues.length) return refuse(422, "not_ready", { missing: parentIssues });
+  }
+  if (childListing) {
+    const vehicleIssues = getAutosPreviewCompletenessIssues("privado", childListing).filter((k) => k !== "media");
+    if (vehicleIssues.length) return refuse(422, "not_ready", { missing: vehicleIssues });
+  }
   return { ok: true, category: "autos", listingId: row.id, childListingId: childId };
 }
 
@@ -367,41 +395,73 @@ async function assessBienes(listingId: string): Promise<CanonicalPublishAssessme
   const db = getAdminSupabase();
   const { data, error } = await db
     .from("listings")
-    .select("id, status, is_published, images")
+    .select("id, status, is_published, images, title, price, city, description, zip, business_name, business_meta, contact_phone, contact_email, owner_id, leonix_ad_id, detail_pairs, listing_json, contact_json, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role")
     .eq("id", listingId)
     .maybeSingle();
   if (error || !data) return refuse(404, "listing_not_found");
-  const row = data as unknown as { id: string; status: string | null; is_published: boolean | null; images: unknown };
+  const row = data as unknown as Record<string, unknown> & { id: string; status: string | null; is_published: boolean | null; images: unknown };
   const status = String(row.status ?? "").trim().toLowerCase();
   if (status === "active" && row.is_published === true) return refuse(409, "already_published", { listingId });
 
   // SOURCE-PROVEN PERSISTED LOCATION: `listings.images` (jsonb array of URL strings).
-  //   write:  app/lib/clasificados/bienes-raices/quickBienesPublishContract.ts buildQuickBienesListingRow
-  //           → `images: [...input.mediaUrls]`; app/(site)/clasificados/lib/leonixPublishRealEstateListingCore.ts
-  //           "New publishes persist gallery only in `listings.images`"
-  //   read:   app/(site)/clasificados/anuncio/[id]/page.tsx imageUrlsFromJsonb(row.images) (public renderer)
-  //           app/(site)/clasificados/lib/mapDbRowToHubListing.ts imageUrlsFromJsonbHub(images)
-  // Media ROLES are validated at request time (quickBienesPublishOperation / the assisted route)
-  // and are NOT persisted anywhere, and the assisted route drops `images` (not an allowed column).
-  // The stored truth is therefore bare URLs, and for the DECLARED-attribution Bienes family the
-  // canonical contract answers `role_declaration_required` for them and `too_few_subject_images`
-  // for none — the cockpit fails closed on the contract's own codes rather than inferring a role
-  // from any other field. No listing_json / profile_json fallback.
   const images = Array.isArray(row.images) ? (row.images as unknown[]) : [];
   const items: SemanticMediaItem[] = [];
+  const photos: string[] = [];
   for (const entry of images) {
-    // Same URL shapes the public renderer accepts (imageUrlsFromJsonb): a string, or {url|src|path}.
     if (typeof entry === "string") {
-      if (entry.trim()) items.push({ role: null, mime: null });
+      if (entry.trim()) {
+        items.push({ role: null, mime: null });
+        if (/^https?:\/\//i.test(entry.trim())) photos.push(entry.trim());
+      }
       continue;
     }
     if (!entry || typeof entry !== "object") continue;
     const o = entry as Record<string, unknown>;
     const url = typeof o.url === "string" ? o.url : typeof o.src === "string" ? o.src : typeof o.path === "string" ? o.path : "";
-    if (url.trim()) items.push({ role: typeof o.role === "string" ? o.role : null, mime: null });
+    if (url.trim()) {
+      items.push({ role: typeof o.role === "string" ? o.role : null, mime: null });
+      if (/^https?:\/\//i.test(url.trim())) photos.push(url.trim());
+    }
   }
   const semantic = enforceQuickBusinessPublishMedia({ category: "bienes-negocio", items });
   if (semantic && !semantic.ok) return { ok: false, status: semantic.status, error: semantic.body.error, body: semantic.body };
+
+  const priceNum = Number(row.price);
+  const agente = parseBienesAgenteResidencialPublishedState({
+    listing: {
+      id: String(row.id),
+      title: { es: String(row.title ?? ""), en: String(row.title ?? "") },
+      priceLabel: {
+        es: Number.isFinite(priceNum) && priceNum > 0 ? String(Math.round(priceNum)) : "",
+        en: Number.isFinite(priceNum) && priceNum > 0 ? String(Math.round(priceNum)) : "",
+      },
+      city: String(row.city ?? ""),
+      blurb: { es: String(row.description ?? ""), en: String(row.description ?? "") },
+      images: photos,
+      business_name: typeof row.business_name === "string" ? row.business_name : null,
+      business_meta: (row.business_meta as string | null) ?? null,
+      contact_phone: typeof row.contact_phone === "string" ? row.contact_phone : null,
+      contact_email: typeof row.contact_email === "string" ? row.contact_email : null,
+      detailPairs: row.detail_pairs,
+      owner_id: typeof row.owner_id === "string" ? row.owner_id : null,
+      leonix_ad_id: typeof row.leonix_ad_id === "string" ? row.leonix_ad_id : null,
+      br_inventory_group_id: typeof row.br_inventory_group_id === "string" ? row.br_inventory_group_id : null,
+      br_inventory_parent_listing_id: typeof row.br_inventory_parent_listing_id === "string" ? row.br_inventory_parent_listing_id : null,
+      inventory_role: typeof row.inventory_role === "string" ? row.inventory_role : null,
+      zip: typeof row.zip === "string" ? row.zip : null,
+    },
+    parentIdentity: {
+      id: String(row.id),
+      business_name: typeof row.business_name === "string" ? row.business_name : null,
+      business_meta: (row.business_meta as string | null) ?? null,
+      contact_phone: typeof row.contact_phone === "string" ? row.contact_phone : null,
+      contact_email: typeof row.contact_email === "string" ? row.contact_email : null,
+    },
+    lang: "es",
+  });
+  const negocio = mapAgenteResidencialFormStateToNegocioForPublish(agente);
+  const gate = gateBienesRaicesNegocioPreview(negocio);
+  if (!gate.ok) return refuse(422, "not_ready", { detail: gate.message });
   return { ok: true, category: "bienes-raices", listingId: row.id, childListingId: null };
 }
 
@@ -415,18 +475,101 @@ export async function assessCanonicalPublishReadiness(input: {
   category: QuickSalesCategory;
   listingId: string;
   lang?: "es" | "en";
+  assistedPackageKey?: string | null;
 }): Promise<CanonicalPublishAssessment> {
   if (!isSupabaseAdminConfigured()) return refuse(503, "db_not_configured");
   const listingId = (input.listingId ?? "").trim();
   if (!listingId) return refuse(409, "no_bound_listing");
   switch (input.category) {
     case "servicios":
-      return assessServicios(listingId, input.lang ?? "es");
+      return assessServicios(listingId, input.lang ?? "es", input.assistedPackageKey ?? null);
     case "restaurantes":
-      return assessRestaurantes(listingId);
+      return assessRestaurantes(listingId, input.assistedPackageKey ?? null);
     case "autos":
       return assessAutos(listingId);
     case "bienes-raices":
       return assessBienes(listingId);
+    case "rentas":
+      return assessRentas(listingId);
+    case "empleos":
+      return assessEmpleos(listingId);
+    case "autos-privado":
+      return assessAutosPrivado(listingId);
+    case "comida-local":
+      return assessComidaLocal(listingId);
   }
+}
+
+async function assessRentas(listingId: string): Promise<CanonicalPublishAssessment> {
+  const db = getAdminSupabase();
+  const { data, error } = await db
+    .from("listings")
+    .select("id, status, is_published, title, description, city, state, zip, category, price, images, detail_pairs, listing_json, contact_json, contact_phone, contact_email, seller_type, business_name, business_meta")
+    .eq("id", listingId)
+    .eq("category", "rentas")
+    .maybeSingle();
+  if (error || !data) return refuse(404, "listing_not_found");
+  const row = data as unknown as Record<string, unknown> & { id: string; status: string | null; is_published: boolean | null };
+  const status = String(row.status ?? "").trim().toLowerCase();
+  if (status === "active" && row.is_published === true) return refuse(409, "already_published", { listingId });
+  const state = mapOwnedRentasListingToPrivadoFormState(row);
+  const gate = gateRentasPrivadoPreview(state);
+  if (!gate.ok) return refuse(422, "not_ready", { detail: gate.message });
+  return { ok: true, category: "rentas", listingId: row.id, childListingId: null };
+}
+
+async function assessEmpleos(listingId: string): Promise<CanonicalPublishAssessment> {
+  const db = getAdminSupabase();
+  const { data, error } = await db
+    .from("empleos_public_listings")
+    .select("id, lifecycle_status, listing_snapshot, lane")
+    .eq("id", listingId)
+    .maybeSingle();
+  if (error || !data) return refuse(404, "listing_not_found");
+  const row = data as { id: string; lifecycle_status: string | null; listing_snapshot: { envelope?: EmpleosPublishEnvelope } | null; lane: string | null };
+  const status = String(row.lifecycle_status ?? "").trim().toLowerCase();
+  if (status === "published") return refuse(409, "already_published", { listingId });
+  const envelope = row.listing_snapshot?.envelope;
+  if (!envelope) return refuse(422, "not_ready", { detail: "listing_snapshot.envelope missing" });
+  const draft = hydrateQuickDraftFromEnvelope(envelope);
+  if (!draft) return refuse(422, "not_ready", { detail: "empleos lane is not quick" });
+  const gate = gateEmpleosQuickPreview(draft, "es");
+  if (!gate.ok) return refuse(422, "not_ready", { missing: gate.issues });
+  return { ok: true, category: "empleos", listingId: row.id, childListingId: null };
+}
+
+async function assessAutosPrivado(listingId: string): Promise<CanonicalPublishAssessment> {
+  const db = getAdminSupabase();
+  const { data, error } = await db
+    .from("autos_classifieds_listings")
+    .select("id, status, lane, listing_payload")
+    .eq("id", listingId)
+    .maybeSingle();
+  if (error || !data) return refuse(404, "listing_not_found");
+  const row = data as { id: string; status: string | null; lane: string | null; listing_payload: AutoDealerListing | null };
+  const status = String(row.status ?? "").trim().toLowerCase();
+  if (status === "active") return refuse(409, "already_published", { listingId });
+  if (String(row.lane ?? "") !== "privado") return refuse(409, "lane_mismatch");
+  const listing = row.listing_payload;
+  if (!listing) return refuse(422, "not_ready", { missing: ["listing_payload"] });
+  const missing = getAutosPreviewCompletenessIssues("privado", listing);
+  if (missing.length) return refuse(422, "not_ready", { missing });
+  return { ok: true, category: "autos-privado", listingId: row.id, childListingId: null };
+}
+
+async function assessComidaLocal(listingId: string): Promise<CanonicalPublishAssessment> {
+  const db = getAdminSupabase();
+  const { data, error } = await db
+    .from("comida_local_public_listings")
+    .select("id, status, listing_json")
+    .eq("id", listingId)
+    .maybeSingle();
+  if (error || !data) return refuse(404, "listing_not_found");
+  const row = data as { id: string; status: string | null; listing_json: unknown };
+  const status = String(row.status ?? "").trim().toLowerCase();
+  if (status === "published") return refuse(409, "already_published", { listingId });
+  const draft = mergeComidaLocalDraftFromStorage(row.listing_json);
+  const issues = validateComidaLocalDraftForFuturePublish(draft, true).filter((i) => i.severity === "error");
+  if (issues.length) return refuse(422, "not_ready", { missing: issues.map((i) => i.field), detail: issues.map((i) => i.message) });
+  return { ok: true, category: "comida-local", listingId: row.id, childListingId: null };
 }

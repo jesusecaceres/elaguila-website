@@ -43,8 +43,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ busi
   // same business + category is therefore left exactly as it is; only a context for a DIFFERENT
   // business or category (staff switching clients) is replaced.
   const live = readAssistedPublishingContext(req.cookies);
-  const keepsBoundContext =
-    Boolean(live) && live!.businessId === businessId && live!.category === category && Boolean(live!.listingId);
+  const sameScope = Boolean(live) && live!.businessId === businessId && live!.category === category;
+  const keepsBoundContext = sameScope && Boolean(live!.listingId);
   if (
     category &&
     !keepsBoundContext &&
@@ -57,6 +57,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ busi
       category,
       rosterId: access.actor.rosterId,
       authUserId: access.actor.authUserId,
+      listingId: sameScope ? live!.listingId ?? null : null,
+      clientUserId: sameScope ? live!.clientUserId ?? null : null,
+      assistedAction: sameScope ? live!.assistedAction ?? null : null,
+      packageKey: sameScope ? live!.packageKey ?? null : null,
     });
   }
 

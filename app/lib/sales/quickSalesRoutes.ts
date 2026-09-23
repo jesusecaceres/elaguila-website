@@ -54,6 +54,21 @@ export function quickSalesCategoryForQuickBusinessKey(key: string): QuickSalesCa
   return QUICK_BUSINESS_KEY_TO_SALES_CATEGORY[(key ?? "").trim()] ?? null;
 }
 
+/**
+ * Quick Classifieds / remaining-family keys → the staff sales family. Classified `autos` is the
+ * private-seller product, never the dealer doorway.
+ */
+export function quickSalesCategoryForClassifiedKey(key: string): QuickSalesCategory | null {
+  const k = (key ?? "").trim();
+  if (k === "rentas" || k === "empleos" || k === "comida-local") return k;
+  if (k === "autos") return "autos-privado";
+  return null;
+}
+
+export function quickSalesCategoryForRemainingKey(key: string): QuickSalesCategory | null {
+  return (key ?? "").trim() === "comida-local" ? "comida-local" : null;
+}
+
 /** The public-gateway keys Quick Sales owns; every other gateway key keeps its existing launcher. */
 export function isQuickSalesGatewayKey(key: string): key is QuickSalesCategory {
   return (QUICK_SALES_CATEGORIES as readonly string[]).includes(key);

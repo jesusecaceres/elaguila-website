@@ -21,10 +21,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { readActiveAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
 import {
-  hasClearedManualPaymentForListing,
   isListingLinkedToBusiness,
   linkAssistedListingToBusiness,
 } from "@/app/lib/business/assistedListingCustody";
+import { refuseUnlessAuthoritativePayment } from "@/app/lib/listingPlans/listingPackagePaymentAuthorityServer";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import {
   assertAssistedIdentity,
@@ -120,44 +120,40 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "invalid_assisted_action" }, { status: 400 });
   }
 
-  // REQUIRED REPAIR 5 — see the Autos route for the full argument. `clientUserId` is written into
-  // `listings.owner_id`, so it is proven against the canonical membership table for the business
-  // this assisted context is bound to before anything is written. A staff cookie authenticates the
-  // staff member; it does not vouch for a customer id typed next to it.
+  // Organizational custody: owner-null until a later claim. A supplied clientUserId is still
+  // proven against business membership. Absence of a client id is the intended Leonix-managed path.
   const clientUserId = typeof body.clientUserId === "string" ? body.clientUserId.trim() : "";
-  if (!clientUserId) {
-    return NextResponse.json({ ok: false, error: "client_user_id_required" }, { status: 400 });
-  }
-  // When custody was established for a specific customer, the body may only agree with it. This
-  // is the stronger half of repair 5: membership proves the id COULD own a listing here; the bound
-  // id proves it is the customer this staff session was actually authorized for.
-  if (typeof assistedContext.clientUserId === "string" && assistedContext.clientUserId !== clientUserId) {
-    await recordSalesWorkspaceAudit({
-      action: "quick_sales_save_for_client",
-      actorRosterId: assistedContext.rosterId,
+  if (clientUserId) {
+    if (typeof assistedContext.clientUserId === "string" && assistedContext.clientUserId !== clientUserId) {
+      await recordSalesWorkspaceAudit({
+        action: "quick_sales_save_for_client",
+        actorRosterId: assistedContext.rosterId,
+        businessId: assistedContext.businessId,
+        clientUserId,
+        category: "bienes-raices",
+        listingSource: "listings",
+        outcome: "assisted_client_mismatch",
+      });
+      return NextResponse.json({ ok: false, error: "assisted_client_mismatch" }, { status: 409 });
+    }
+    const clientAuthorized = await isClientAuthorizedForBusiness({
       businessId: assistedContext.businessId,
       clientUserId,
-      category: "bienes-raices",
-      listingSource: "listings",
-      outcome: "assisted_client_mismatch",
     });
+    if (!clientAuthorized) {
+      await recordSalesWorkspaceAudit({
+        action: "quick_sales_save_for_client",
+        actorRosterId: assistedContext.rosterId,
+        businessId: assistedContext.businessId,
+        clientUserId,
+        category: "bienes-raices",
+        listingSource: "listings",
+        outcome: "client_not_authorized_for_business",
+      });
+      return NextResponse.json({ ok: false, error: "client_not_authorized_for_business" }, { status: 403 });
+    }
+  } else if (typeof assistedContext.clientUserId === "string" && assistedContext.clientUserId) {
     return NextResponse.json({ ok: false, error: "assisted_client_mismatch" }, { status: 409 });
-  }
-  const clientAuthorized = await isClientAuthorizedForBusiness({
-    businessId: assistedContext.businessId,
-    clientUserId,
-  });
-  if (!clientAuthorized) {
-    await recordSalesWorkspaceAudit({
-      action: "quick_sales_save_for_client",
-      actorRosterId: assistedContext.rosterId,
-      businessId: assistedContext.businessId,
-      clientUserId,
-      category: "bienes-raices",
-      listingSource: "listings",
-      outcome: "client_not_authorized_for_business",
-    });
-    return NextResponse.json({ ok: false, error: "client_not_authorized_for_business" }, { status: 403 });
   }
 
   const listingRowRaw = body.listingRow as Record<string, unknown> | null | undefined;
@@ -233,15 +229,14 @@ export async function POST(request: NextRequest) {
   // the unpaid listing was live to the world.
   //
   // Every write below lands as PENDING. Activation is a separate step that happens only after
-  // `hasClearedManualPaymentForListing` says the money is in, which is the same order the Autos
-  // assisted route already used.
+  // `refuseUnlessAuthoritativePayment` says this listing has matching package payment.
   const insertRow: Record<string, unknown> = {
     ...filteredRow,
-    owner_id: clientUserId,
     status: "pending",
     is_published: false,
     updated_at: nowIso,
   };
+  if (clientUserId) insertRow.owner_id = clientUserId;
   // Ensure category is bienes-raices for this route
   if (!insertRow.category) {
     insertRow.category = "bienes-raices";
@@ -266,10 +261,10 @@ export async function POST(request: NextRequest) {
     //
     // Forcing `pending` / `is_published: false` onto every write is right for an INSERT — an
     // unpaid listing must not be born live — but on an UPDATE it took a listing that was ALREADY
-    // live DARK. `hasClearedManualPaymentForListing` is true only for a cleared MANUAL payment,
-    // so a Stripe-paid listing fails it: staff opening the assisted tool to fix a typo on a live,
-    // fully-paid listing unpublished it and got a 402 with no rollback. That hit Full agents as
-    // well as Quick.
+    // live DARK. Listing-only manual clearance used to fail Stripe-paid live rows. The canonical
+    // helper now accepts webhook-backed paid/succeeded truth for the SAME package, so a Full
+    // Stripe payment cannot be unpublished by a later staff typo-fix — and a Quick payment still
+    // cannot activate Full.
     //
     // Lifecycle is not this route's to change on an existing row. A pending row stays pending, a
     // live row stays live, and the ONLY transition to live remains the post-payment activation
@@ -283,11 +278,10 @@ export async function POST(request: NextRequest) {
     // when it matches NOTHING, so a `clientUserId` that does not match the stored owner produced
     // `{ ok: true, listingId }` having written not one column. Staff were told the client's ad had
     // been saved; nothing had been. The row count is now the answer.
-    const { data: updatedRow, error: updateError } = await db
-      .from("listings")
-      .update(patch)
-      .eq("id", listingId)
-      .eq("owner_id", clientUserId)
+    const updateQuery = clientUserId
+      ? db.from("listings").update(patch).eq("id", listingId).eq("owner_id", clientUserId)
+      : db.from("listings").update(patch).eq("id", listingId);
+    const { data: updatedRow, error: updateError } = await updateQuery
       .select("id")
       .maybeSingle();
     if (updateError) {
@@ -327,11 +321,13 @@ export async function POST(request: NextRequest) {
 
   // publish_for_client: verify cleared manual payment, and ONLY THEN activate.
   if (isAssistedPublish) {
-    const cleared = await hasClearedManualPaymentForListing({
+    const paid = await refuseUnlessAuthoritativePayment({
       listingSource: "listings",
       listingId,
+      packageKey: assistedContext.packageKey ?? "",
+      category: "bienes-raices",
     });
-    if (!cleared) {
+    if (!paid.ok) {
       await recordSalesWorkspaceAudit({
         action: "quick_sales_publish_attempted",
         actorRosterId: assistedContext.rosterId,
@@ -340,16 +336,14 @@ export async function POST(request: NextRequest) {
         category: "bienes-raices",
         listingSource: "listings",
         listingId,
-        paymentState: "manual_payment_not_cleared",
-        outcome: "manual_payment_not_cleared",
+        paymentState: paid.paymentState,
+        outcome: paid.error,
       });
-      // The row exists but is PENDING and unpublished, so nothing is public. Staff can clear the
-      // payment and re-run this action, which will find the same row and activate it.
       return NextResponse.json(
         {
           ok: false,
-          error: "manual_payment_not_cleared",
-          message: "Record and clear the manual payment in the Payment Tracker first.",
+          error: paid.error,
+          message: "Record and clear the payment in the Payment Tracker first.",
           listingId,
         },
         { status: 402 },
@@ -359,11 +353,17 @@ export async function POST(request: NextRequest) {
     const activatedAt = new Date().toISOString();
     // Same rule on the one write that makes a listing PUBLIC: a zero-row activation reported as
     // success is a listing staff believe is live and a customer cannot find.
-    const { data: activatedRow, error: activateError } = await db
-      .from("listings")
-      .update({ status: "active", is_published: true, published_at: activatedAt, updated_at: activatedAt })
-      .eq("id", listingId)
-      .eq("owner_id", clientUserId)
+    const activateQuery = clientUserId
+      ? db
+          .from("listings")
+          .update({ status: "active", is_published: true, published_at: activatedAt, updated_at: activatedAt })
+          .eq("id", listingId)
+          .eq("owner_id", clientUserId)
+      : db
+          .from("listings")
+          .update({ status: "active", is_published: true, published_at: activatedAt, updated_at: activatedAt })
+          .eq("id", listingId);
+    const { data: activatedRow, error: activateError } = await activateQuery
       .select("id")
       .maybeSingle();
     if (activateError) {

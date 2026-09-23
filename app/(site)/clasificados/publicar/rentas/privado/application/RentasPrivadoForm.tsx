@@ -86,6 +86,7 @@ import {
   saveRentasListingEditWorkspace,
 } from "../../shared/rentasListingEditWorkspace";
 import { resolveDraftPrecedence } from "@/app/lib/listingDrafts/draftWorkspaceContract";
+import { AssistedSaveForClientBar } from "@/app/clasificados/components/AssistedSaveForClientBar";
 
 const MAX_PHOTOS = 8;
 const MAX_VIDEO_URLS = 4;
@@ -553,6 +554,16 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
           </h1>
           <p className={aiSubClass}>{editContext ? rm.page.introEdit : rm.page.introNew}</p>
         </header>
+        <AssistedSaveForClientBar
+          category="rentas"
+          lang={routeLang === "en" ? "en" : "es"}
+          buildPayload={() => ({
+            category: "rentas",
+            draft: stateRef.current as unknown as Record<string, unknown>,
+            lane: "privado",
+            lang: routeLang === "en" ? "en" : "es",
+          })}
+        />
 
         {editContext ? (
           <section className="rounded-2xl border border-[#C9B46A]/45 bg-[#FFF8E8] p-4 text-sm text-[#3D3428]">

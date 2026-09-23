@@ -9,6 +9,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { extractBearerToken, getServerSupabaseForBearerToken, resolveAuthenticatedUserId } from "@/app/lib/business/supabaseUserClient";
 import { acceptOwnershipClaim } from "@/app/lib/business/ownership/repository";
 import { isOwnershipClaimEnabled } from "@/app/lib/business/ownership/featureFlag";
+import { transferLinkedListingsOnAcceptedClaim } from "@/app/lib/business/ownership/linkedListingOwnerTransferServer";
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const token = extractBearerToken(req.headers.get("authorization"));
@@ -32,5 +33,26 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const status = result.error === "not_authenticated" ? 401 : result.error === "claim_not_found" ? 404 : 409;
     return NextResponse.json({ ok: false, error: result.error }, { status });
   }
-  return NextResponse.json({ ok: true, businessId: result.businessId });
+  const transfer = await transferLinkedListingsOnAcceptedClaim({
+    businessId: result.businessId,
+    claimerUserId: userId,
+  });
+  if (!transfer.ok || transfer.recorded !== true) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: transfer.error,
+        businessId: result.businessId,
+        listingIds: transfer.listingIds,
+        listingTransfers: 0,
+      },
+      { status: 409 },
+    );
+  }
+  return NextResponse.json({
+    ok: true,
+    businessId: result.businessId,
+    listingIds: transfer.listingIds,
+    listingTransfers: transfer.updates.length,
+  });
 }

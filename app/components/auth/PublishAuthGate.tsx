@@ -20,7 +20,7 @@ type GateStatus = "checking" | "authed" | "redirecting";
 
 /** Server-verified result of app/lib/auth/assistedPublishingSession.ts, passed down from the
  * Server Component wrapper (PublishAuthGateLayout) — never computed or trusted client-side. */
-type AssistedProp = { businessId: string; category: string; listingId?: string | null } | null;
+type AssistedProp = { businessId: string; category: string; listingId?: string | null; packageKey?: string | null } | null;
 
 export function PublishAuthGate({
   children,

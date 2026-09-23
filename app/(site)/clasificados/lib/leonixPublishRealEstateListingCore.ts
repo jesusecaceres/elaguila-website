@@ -150,7 +150,7 @@ async function persistSellerPhotoIfNeeded(args: {
 
 /** Same row shape as browser publish insert (Node scripts / QA seeds may call with authenticated `ownerId`). */
 export function buildListingsInsertRowForLeonixPublish(
-  ownerId: string,
+  ownerId: string | null,
   params: PublishLeonixRealEstateListingCoreParams,
   opts?: { listingDescriptionForDb?: string | null },
 ): Record<string, unknown> {
@@ -183,7 +183,7 @@ export function buildListingsInsertRowForLeonixPublish(
         : opts.listingDescriptionForDb
       : toLeonixListingsDescriptionForDb(description);
   const insertPayload: Record<string, unknown> = {
-    owner_id: ownerId,
+    ...(ownerId ? { owner_id: ownerId } : {}),
     title: toLeonixListingsTitleForDb(title),
     description: descriptionCol,
     city: city.trim(),

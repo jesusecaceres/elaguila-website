@@ -29,10 +29,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireStaffWorkspaceWriteAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { readActiveAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
-import {
-  hasClearedManualPaymentForListing,
-  isListingLinkedToBusiness,
-} from "@/app/lib/business/assistedListingCustody";
+import { isListingLinkedToBusiness } from "@/app/lib/business/assistedListingCustody";
+import { refuseUnlessAuthoritativePayment } from "@/app/lib/listingPlans/listingPackagePaymentAuthorityServer";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { recordSalesWorkspaceAudit } from "@/app/lib/sales/salesWorkspaceAudit";
 import { activateAutosDealerListing, assessCanonicalPublishReadiness } from "@/app/lib/sales/canonicalPublishReadiness";
@@ -65,10 +63,30 @@ const ACTIVATION: Record<
     patch: (nowIso) => ({ status: "active", published_at: nowIso, updated_at: nowIso }),
     fromStates: ["draft", "pending_payment", "payment_failed"],
   },
+  "autos-privado": {
+    table: "autos_classifieds_listings",
+    patch: (nowIso) => ({ status: "active", published_at: nowIso, updated_at: nowIso }),
+    fromStates: ["draft", "pending_payment", "payment_failed"],
+  },
   "bienes-raices": {
     table: "listings",
     patch: (nowIso) => ({ status: "active", is_published: true, published_at: nowIso, updated_at: nowIso }),
     fromStates: ["pending", "draft", "payment_failed"],
+  },
+  rentas: {
+    table: "listings",
+    patch: (nowIso) => ({ status: "active", is_published: true, published_at: nowIso, updated_at: nowIso }),
+    fromStates: ["pending", "draft", "payment_failed"],
+  },
+  empleos: {
+    table: "empleos_public_listings",
+    patch: (nowIso) => ({ lifecycle_status: "published", published_at: nowIso, updated_at: nowIso }),
+    fromStates: ["draft", "pending_review", "paused"],
+  },
+  "comida-local": {
+    table: "comida_local_public_listings",
+    patch: (nowIso) => ({ status: "published", published_at: nowIso, updated_at: nowIso }),
+    fromStates: ["draft", "pending_payment", "paused"],
   },
 };
 
@@ -76,7 +94,11 @@ const STATUS_COLUMN: Record<QuickSalesCategory, string> = {
   servicios: "listing_status",
   restaurantes: "status",
   autos: "status",
+  "autos-privado": "status",
   "bienes-raices": "status",
+  rentas: "status",
+  empleos: "lifecycle_status",
+  "comida-local": "status",
 };
 
 export async function POST(request: NextRequest) {
@@ -107,11 +129,15 @@ export async function POST(request: NextRequest) {
   }
 
   // PAYMENT FIRST, AND NOTHING IS WRITTEN BEFORE IT ANSWERS.
-  const cleared = await hasClearedManualPaymentForListing({
+  // Exact listing + exact signed package. A Quick payment cannot publish Full.
+  const packageKey = typeof ctx.packageKey === "string" ? ctx.packageKey.trim() : "";
+  const paid = await refuseUnlessAuthoritativePayment({
     listingSource: descriptor.listingSource,
     listingId,
+    packageKey: packageKey,
+    category,
   });
-  if (!cleared) {
+  if (!paid.ok) {
     await recordSalesWorkspaceAudit({
       action: "quick_sales_publish_attempted",
       actorRosterId: ctx.rosterId,
@@ -119,13 +145,13 @@ export async function POST(request: NextRequest) {
       category,
       listingSource: descriptor.listingSource,
       listingId,
-      paymentState: "manual_payment_not_cleared",
-      outcome: "manual_payment_not_cleared",
+      paymentState: paid.paymentState,
+      outcome: paid.error,
     });
     return NextResponse.json(
       {
         ok: false,
-        error: "manual_payment_not_cleared",
+        error: paid.error,
         message: "Record and clear the payment first. The draft stays private until it clears.",
         listingId,
       },
@@ -140,7 +166,11 @@ export async function POST(request: NextRequest) {
   // THE CATEGORY'S OWN CONTRACT, AGAINST THE STORED ROW, AFTER THE MONEY AND BEFORE ANY WRITE.
   // Nothing from the request body is read: listing, owner, product and readiness are all server
   // truth bound to the signed context.
-  const readiness = await assessCanonicalPublishReadiness({ category, listingId });
+  const readiness = await assessCanonicalPublishReadiness({
+    category,
+    listingId,
+    assistedPackageKey: ctx.packageKey ?? null,
+  });
   if (!readiness.ok) {
     await recordSalesWorkspaceAudit({
       action: "quick_sales_publish_attempted",

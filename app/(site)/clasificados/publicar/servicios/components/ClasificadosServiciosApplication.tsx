@@ -8,7 +8,7 @@ import {
   withClasificadosPublishLang,
 } from "@/app/lib/clasificados/clasificadosPublishLang";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { FiCheck, FiImage, FiPlus, FiUpload, FiX } from "react-icons/fi";
+import { FiCheck, FiUpload, FiX } from "react-icons/fi";
 import { readFileAsDataUrl } from "@/app/publicar/autos/negocios/lib/readFileAsDataUrl";
 import {
   clearLeonixReturningToEditSessionFlag,
@@ -42,7 +42,6 @@ import type {
   ClasificadosServiciosCouponRow,
   DayKey,
   GalleryItem,
-  ServiciosLang,
   ServiciosSpecialHoursEntry,
 } from "../lib/clasificadosServiciosApplicationTypes";
 import {
@@ -84,6 +83,7 @@ import {
 import { useAssistedPublishingUi } from "@/app/components/auth/AssistedPublishingUiContext";
 import { readConciergeReturnContext } from "@/app/lib/business/applicationContext/conciergeReturnContext";
 import { AssistedServiciosStepHeader } from "./AssistedServiciosStepHeader";
+import { AssistedSaveForClientBar } from "@/app/clasificados/components/AssistedSaveForClientBar";
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
 import type { PublishReadinessMissingItem } from "../lib/serviciosPublishReadiness";
 import { evaluateServiciosPreviewReadiness } from "../lib/serviciosPreviewReadiness";
@@ -93,7 +93,6 @@ import {
   resolveServiciosApplicationTemplate,
 } from "../lib/serviciosApplicationTemplateCopy";
 import {
-  clasificadosServiciosApplicationHasProgress,
   createDefaultClasificadosServiciosState,
   WEEK_DAY_LABELS,
 } from "../lib/defaultClasificadosServiciosState";
@@ -116,7 +115,7 @@ import {
   MAX_BUSINESS_HIGHLIGHT_PRESET_SELECTION,
   MAX_CUSTOM_BUSINESS_HIGHLIGHTS,
 } from "../lib/serviciosHighlightCaps";
-import { digitsOnly, formatPhoneInputDisplay, formatWhatsAppInputDisplay } from "../lib/serviciosPhoneUi";
+import { formatPhoneInputDisplay, formatWhatsAppInputDisplay } from "../lib/serviciosPhoneUi";
 import { formatServiciosWhatsAppDisplay } from "@/app/(site)/servicios/lib/serviciosWhatsAppHref";
 import { resolveServiciosBusinessHighlightVisual } from "@/app/(site)/clasificados/servicios/lib/serviciosBusinessHighlightVisual";
 import { resolveServiciosServiceVisual } from "@/app/(site)/clasificados/servicios/lib/serviciosServiceVisualCatalog";
@@ -174,8 +173,6 @@ const GALLERY_MAX = 24;
 
 const inputClass =
   "mt-1 w-full min-w-0 rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-base leading-snug text-neutral-900 shadow-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD] sm:text-sm";
-const textareaClass =
-  "mt-1 w-full min-w-0 rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-base leading-relaxed text-neutral-900 shadow-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD] sm:text-sm";
 const inputWarn = "border-amber-400 bg-amber-50/50";
 const sectionCard =
   "rounded-2xl border border-neutral-200/90 bg-white p-5 shadow-sm sm:p-6";
@@ -295,7 +292,6 @@ export function ClasificadosServiciosApplication() {
     routeLang,
   );
   const copy = getClasificadosServiciosCopy(lang);
-  const labels = copy.labels as any;
 
   const [hydrated, setHydrated] = useState(false);
   const [previewGateMissing, setPreviewGateMissing] = useState<PublishReadinessMissingItem[] | null>(null);
@@ -553,7 +549,6 @@ export function ClasificadosServiciosApplication() {
 
   const logoInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
-  const couponImageInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
 
   const createEmptyCouponRow = useCallback((): ClasificadosServiciosCouponRow => {
     return {
@@ -678,7 +673,7 @@ export function ClasificadosServiciosApplication() {
     setNewFieldsMissing([]);
     setEditHydration({ status: "idle" });
     // Always try to restore from storage first to survive hard refresh
-    setState((prev) => {
+    setState(() => {
       const sync = bootstrapServiciosApplicationStateSync();
       return {
         ...sync,
@@ -1360,6 +1355,15 @@ export function ClasificadosServiciosApplication() {
           lang={lang}
         />
       ) : null}
+      <AssistedSaveForClientBar
+        category="servicios"
+        lang={lang}
+        buildPayload={() => ({
+          category: "servicios",
+          state: stateRef.current as unknown as Record<string, unknown>,
+          lang,
+        })}
+      />
       {isExistingDashboardListingMode && editHydration.status === "error" ? (
         <main className="mx-auto max-w-lg px-4 pb-16 pt-24 sm:pt-28">
           <h1 className="text-xl font-bold text-[#3D2C12]">

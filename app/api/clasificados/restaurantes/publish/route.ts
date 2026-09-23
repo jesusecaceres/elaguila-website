@@ -38,10 +38,10 @@ import {
 } from "@/app/lib/media/listingMediaContract";
 import { readActiveAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
 import {
-  hasClearedManualPaymentForListing,
   isListingLinkedToBusiness,
   linkAssistedListingToBusiness,
 } from "@/app/lib/business/assistedListingCustody";
+import { refuseUnlessAuthoritativePayment } from "@/app/lib/listingPlans/listingPackagePaymentAuthorityServer";
 import { linkSelfServiceListingToBusiness } from "@/app/lib/business/canonicalListingLink";
 import { enforceQuickBusinessPublishMedia } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
 import { resolveQuickBusinessPublishIdentity } from "@/app/lib/listingPlans/quickBusinessProductIdentityServer";
@@ -406,6 +406,7 @@ export async function POST(req: NextRequest) {
     category: "restaurantes",
     ownerUserId: verifiedOwnerId ?? "",
     listingId: restauranteProductListingId,
+    assistedPackageKey: assistedContext?.packageKey ?? null,
     declaredPackageKey: restauranteDeclaredPackageKey,
   });
   // Same external-video blind spot as Servicios: the links are collected separately and never
@@ -530,11 +531,13 @@ export async function POST(req: NextRequest) {
     if (!existingByDraft?.id) {
       return NextResponse.json({ ok: false, error: "existing_listing_required" }, { status: 400 });
     }
-    const cleared = await hasClearedManualPaymentForListing({
+    const paid = await refuseUnlessAuthoritativePayment({
       listingSource: "restaurantes_public_listings",
       listingId: String((existingByDraft as { id: string }).id),
+      packageKey: assistedContext?.packageKey ?? "",
+      category: "restaurantes",
     });
-    if (!cleared) {
+    if (!paid.ok) {
       await recordSalesWorkspaceAudit({
         action: "quick_sales_publish_attempted",
         actorRosterId: assistedContext!.rosterId,
@@ -542,10 +545,10 @@ export async function POST(req: NextRequest) {
         category: "restaurantes",
         listingSource: "restaurantes_public_listings",
         listingId: String((existingByDraft as { id: string }).id),
-        paymentState: "manual_payment_not_cleared",
-        outcome: "manual_payment_not_cleared",
+        paymentState: paid.paymentState,
+        outcome: paid.error,
       });
-      return NextResponse.json({ ok: false, error: "manual_payment_not_cleared" }, { status: 402 });
+      return NextResponse.json({ ok: false, error: paid.error }, { status: 402 });
     }
   }
 

@@ -674,13 +674,14 @@ export default function AgenteIndividualResidencialPreviewClient() {
           category="bienes-raices"
           lang={lang === "en" ? "en" : "es"}
           buildPayload={(ctx) => {
-            if (!ctx.clientUserId) return null;
             const built = buildPublishParamsFromAgenteResidencialDraft(data, lang === "en" ? "en" : "es");
             if (!("params" in built) || !built.ok) return null;
+            const ownerId = ctx.clientUserId ?? null;
+            const listingRow = buildListingsInsertRowForLeonixPublish(ownerId, built.params);
             return {
               category: "bienes-raices",
-              clientUserId: ctx.clientUserId,
-              listingRow: buildListingsInsertRowForLeonixPublish(ctx.clientUserId, built.params),
+              clientUserId: ownerId,
+              listingRow,
               lang: lang === "en" ? "en" : "es",
             };
           }}

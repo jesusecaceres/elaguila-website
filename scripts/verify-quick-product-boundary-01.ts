@@ -316,7 +316,7 @@ async function sectionB() {
     assert.equal(r.enforced, false);
     // And the route reaches the contract only on the dealer lane at all.
     const route = read("app/api/clasificados/autos/listings/route.ts");
-    const guardIdx = route.indexOf('if (body.lane === "negocios") {\n    const identity = await resolveQuickBusinessPublishIdentity(');
+    const guardIdx = route.indexOf('if (body.lane === "negocios" && userId) {\n    const identity = await resolveQuickBusinessPublishIdentity(');
     assert.ok(guardIdx > -1, "the media branch is entered only for the dealer lane");
     assert.ok(
       !/lane === "privado"[\s\S]{0,400}enforceQuickBusinessPublishMedia/.test(route),
@@ -1006,7 +1006,7 @@ async function sectionD() {
     // predicate, so staff saw "clear the payment first" while the unpaid listing was live.
     const src = read("app/api/clasificados/bienes-raices/negocio/assisted-publish/route.ts");
     const writeAt = src.indexOf('status: "pending"');
-    const checkAt = src.indexOf("hasClearedManualPaymentForListing(");
+    const checkAt = src.indexOf("refuseUnlessAuthoritativePayment(");
     const activateAt = src.indexOf('status: "active", is_published: true');
     assert.ok(writeAt > 0, "the row is written PENDING");
     assert.ok(checkAt > writeAt, "the payment is checked after the row exists");
@@ -1151,7 +1151,7 @@ async function sectionE() {
     assert.ok(insertRowBlock.includes("is_published: false"), "and unpublished");
 
     // Activation is still the only way to live, and still after the payment check.
-    const checkAt = src.indexOf("hasClearedManualPaymentForListing({");
+    const checkAt = src.indexOf("refuseUnlessAuthoritativePayment({");
     const activateAt = src.indexOf('.update({ status: "active", is_published: true');
     assert.ok(checkAt > 0 && activateAt > checkAt, "activation happens only AFTER the payment check");
     assert.ok(activateAt > updateAt, "and after the row write");

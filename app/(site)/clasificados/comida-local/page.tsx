@@ -23,6 +23,7 @@ import {
 } from "./components/comidaLocalCustomerStyles";
 import { ComidaLocalListingCard } from "./components/ComidaLocalListingCard";
 import { ComidaLocalResultsFilters } from "./components/ComidaLocalResultsFilters";
+import { fetchLeonixEndorsementCountsByTargets } from "@/app/lib/leonixCommunityTrust/leonixEndorsementCountBatchServer";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +46,14 @@ export default async function ComidaLocalResultsPage(props: PageProps) {
     getComidaLocalFilterOptions(),
   ]);
 
-  const cards = inventory.rows.map((row) => mapComidaLocalRowToCardVm(row));
+  const endorsementMap = await fetchLeonixEndorsementCountsByTargets({
+    targetType: "comida_local_listing",
+    ids: inventory.rows.map((row) => row.id),
+  });
+  const cards = inventory.rows.map((row) => ({
+    ...mapComidaLocalRowToCardVm(row),
+    publicEndorsementCount: endorsementMap.get(row.id.trim()) ?? 0,
+  }));
   const count = cards.length;
   const hasActiveFilters = !!(
     filters.q ||

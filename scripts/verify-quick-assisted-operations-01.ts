@@ -165,6 +165,22 @@ check("A12: the constant-time comparator is correct on equal and unequal input",
   assert.notEqual(sig, signAssistedPayload("payload", OTHER_SECRET), "the secret genuinely affects the signature");
 });
 
+check("A12b: a stamped packageKey survives verify and a tampered packageKey does not", () => {
+  const now = 1_700_000_000_000;
+  const token = createAssistedPublishingTokenWithSecret(
+    { ...MINT, packageKey: "servicios_base_monthly" },
+    SECRET,
+    now,
+  )!;
+  const ctx = verifyAssistedPublishingTokenWithSecret(token, SECRET, now + 1000);
+  assert.equal(ctx?.packageKey, "servicios_base_monthly");
+  const [payload, signature] = token.split(".");
+  const parsed = JSON.parse(Buffer.from(payload!, "base64url").toString("utf8")) as Record<string, unknown>;
+  parsed.packageKey = "servicios_quick_monthly";
+  const tampered = `${Buffer.from(JSON.stringify(parsed), "utf8").toString("base64url")}.${signature}`;
+  assert.equal(verifyAssistedPublishingTokenWithSecret(tampered, SECRET, now + 1000), null, "rewriting packageKey must invalidate the signature");
+});
+
 check("A13: the server-only wrapper still owns the secret and cookie hardening", () => {
   const src = readFileSync("app/lib/auth/assistedPublishingSession.ts", "utf8");
   assert.ok(src.includes('import "server-only";'), "wrapper stays server-only");
@@ -221,16 +237,16 @@ check("B3 WIRING: the two dedicated assisted routes bind to their own category",
   }
 });
 
-check("B4 WIRING: publish_for_client is gated on a REAL cleared manual payment", () => {
+check("B4 WIRING: publish_for_client is gated on authoritative listing+package payment", () => {
   for (const r of ASSISTED_ROUTES.filter((x) => x.category)) {
     const code = readCode(r.path);
-    assert.ok(code.includes("hasClearedManualPaymentForListing("), `${r.family} must check the payment ledger`);
-    assert.ok(code.includes("manual_payment_not_cleared"), `${r.family} must refuse with an explicit code`);
+    assert.ok(code.includes("refuseUnlessAuthoritativePayment("), `${r.family} must check the payment ledger`);
+    assert.ok(code.includes("packageKey:"), `${r.family} must bind the signed package`);
     assert.ok(code.includes("402"), `${r.family} must return 402 when unpaid`);
   }
-  // The gate reads the real ledger state, not a client-declared flag.
-  const custody = readCode("app/lib/business/assistedListingCustody.ts");
-  assert.ok(custody.includes('.eq("manual_state", "cleared")'), "the payment gate reads leonix_payment_records.manual_state");
+  const server = readCode("app/lib/listingPlans/listingPackagePaymentAuthorityServer.ts");
+  assert.ok(server.includes("leonix_payment_records"), "the payment gate reads leonix_payment_records");
+  assert.ok(server.includes("package_key"), "the payment gate is package-bound");
 });
 
 check("B5 WIRING: all four write the canonical business_listing_links relationship", () => {
@@ -248,9 +264,6 @@ check("B5 WIRING: all four write the canonical business_listing_links relationsh
 check("B6 WIRING: ownership is never taken from the client body", () => {
   for (const r of ASSISTED_ROUTES.filter((x) => x.category)) {
     const code = readCode(r.path);
-    // clientUserId is accepted, but only because the staff actor authenticated via the cookie.
-    assert.ok(code.includes("client_user_id_required"), `${r.family} requires an explicit client user id`);
-    // The business is ALWAYS taken from the signed cookie, never from the body.
     assert.ok(
       code.includes("assistedContext.businessId"),
       `${r.family} must take businessId from the signed context`,
@@ -259,13 +272,15 @@ check("B6 WIRING: ownership is never taken from the client body", () => {
       !/businessId:\s*body\./.test(code),
       `${r.family} must NEVER read businessId from the request body`,
     );
+    assert.equal(code.includes("client_user_id_required"), false, `${r.family} no longer requires a fake customer owner`);
+    assert.ok(code.includes("resolvedOwnerUserId") || code.includes("if (clientUserId)"), `${r.family} still proves a supplied client id`);
   }
 });
 
 check("B7 WIRING: the Bienes route allowlists the columns it will write", () => {
   const code = readCode("app/api/clasificados/bienes-raices/negocio/assisted-publish/route.ts");
   assert.ok(code.includes("ALLOWED_LISTING_COLUMNS"), "a server-side field allowlist must exist");
-  assert.ok(code.includes("owner_id: clientUserId"), "ownership is set server-side from the resolved client id");
+  assert.ok(code.includes("if (clientUserId) insertRow.owner_id = clientUserId"), "ownership is set server-side only when a proven client id exists");
   assert.ok(
     code.includes("delete patch.owner_id"),
     "an update must never overwrite ownership — that would let a re-save steal a row",

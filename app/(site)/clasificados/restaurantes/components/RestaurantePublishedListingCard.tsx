@@ -109,6 +109,7 @@ export function RestaurantePublishedListingCard({
         lang={lang}
         presentation="public_discovery"
         likesCount={row.likesCount}
+        publicEndorsementCount={row.publicEndorsementCount}
         publicDetailHref={primaryHref || undefined}
         publicDetailLabel={cta}
         discoveryRefineHref={slug ? narrowHref : undefined}

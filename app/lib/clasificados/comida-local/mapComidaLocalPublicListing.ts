@@ -5,7 +5,6 @@ import {
   COMIDA_LOCAL_SERVICE_OPTIONS,
 } from "./comidaLocalConstants";
 import {
-  buildComidaLocalSmsHref,
   buildComidaLocalTelHref,
   buildComidaLocalWhatsAppHref,
 } from "./comidaLocalFormatting";
@@ -228,6 +227,7 @@ export function mapComidaLocalRowToCardVm(row: ComidaLocalPublicListingRow): Com
     detailHref: `/clasificados/comida-local/${encodeURIComponent(slug)}`,
     telHref: buildComidaLocalTelHref(row.phone ?? ""),
     whatsappHref: buildComidaLocalWhatsAppHref(row.whatsapp ?? "", businessName),
+    publicEndorsementCount: 0,
   };
 }
 
