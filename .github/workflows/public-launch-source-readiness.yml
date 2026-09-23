@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - release/public-launch-readiness-2026-09-22
+      - integration/leonix-canonical-launch-consolidation-2026-09-22
 
 permissions:
   contents: read
@@ -63,3 +64,8 @@ jobs:
         env:
           NODE_OPTIONS: --max-old-space-size=8192
         run: npm run typecheck
+
+      - name: Production-equivalent Next build gate
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
+        run: npm run build
