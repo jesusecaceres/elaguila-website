@@ -137,8 +137,8 @@ export function getRestaurantesCheckpointCards(
       moreLabel: es ? "Ver más" : "See more",
       modalTitle: es ? `Qué incluye Quick Business — ${restaurantesQuickPrice}` : `What's included with Quick Business — ${restaurantesQuickPrice}`,
       modalIntro: es
-        ? "Quick y Full usan la misma ficha de restaurante."
-        : "Quick and Full use the same restaurant application.",
+        ? "Quick y PRO usan la misma ficha de restaurante."
+        : "Quick and PRO use the same restaurant application.",
       includedBullets: es
         ? ["Misma aplicación de Restaurantes", "Hasta 3 fotos", "Sin video", `Precio: ${restaurantesQuickPrice}`]
         : ["Same Restaurants application", "Up to 3 photos", "No video", `Price: ${restaurantesQuickPrice}`],
@@ -149,7 +149,7 @@ export function getRestaurantesCheckpointCards(
       id: "restaurante_establecido",
       variant: "paid",
       eyebrow: es ? "Establecimiento" : "Establishment",
-      title: es ? "Full Business — Restaurante establecido" : "Full Business — Established restaurant",
+      title: es ? "PRO — Restaurante establecido" : "Full Business — Established restaurant",
       priceLabel: establishedPrice,
       shortDescription: es
         ? "Para restaurantes, cafés, panaderías, food trucks establecidos y negocios con perfil completo. Incluye ficha premium con galería, horarios, ubicación, contacto, redes, platillos destacados y presencia en Leonix."
@@ -283,7 +283,7 @@ export function getServiciosCheckpointCard(
   };
 }
 
-/** Public Servicios checkpoint: Quick $249 and Full $399 enter the same canonical application. */
+/** Public Servicios checkpoint: Quick $249 and PRO $399 enter the same canonical application. */
 export function getServiciosCheckpointCards(
   lang: PublishCheckpointLang,
   applicationHref: string,
@@ -305,8 +305,8 @@ export function getServiciosCheckpointCards(
     moreLabel: es ? "Ver más" : "See more",
     modalTitle: es ? `Qué incluye Quick Business — ${quickPrice}` : `What's included with Quick Business — ${quickPrice}`,
     modalIntro: es
-      ? "Quick y Full usan la misma ficha. Quick limita fotos y video."
-      : "Quick and Full use the same profile. Quick limits photos and video.",
+      ? "Quick y PRO usan la misma ficha. Quick limita fotos y video."
+      : "Quick and PRO use the same profile. Quick limits photos and video.",
     includedBullets: es
       ? ["Misma aplicación de Servicios", "Hasta 3 fotos", "Sin video", `Precio: ${quickPrice}`]
       : ["Same Services application", "Up to 3 photos", "No video", `Price: ${quickPrice}`],
@@ -318,8 +318,8 @@ export function getServiciosCheckpointCards(
     {
       ...full,
       eyebrow: es ? "Elige paquete" : "Choose your plan",
-      title: es ? "Full Business" : "Full Business",
-      ctaLabel: es ? "Continuar con Full" : "Continue with Full",
+      title: es ? "PRO" : "PRO",
+      ctaLabel: es ? "Continuar con PRO" : "Continue with PRO",
       ctaHref: withBusinessPlanParam(full.ctaHref, "full"),
     },
   ];
@@ -383,8 +383,8 @@ export function getAutosCheckpointCards(
       moreLabel: es ? "Ver más" : "See more",
       modalTitle: es ? `Qué incluye Quick Business — ${dealerQuickPrice}` : `What's included with Quick Business — ${dealerQuickPrice}`,
       modalIntro: es
-        ? "Quick y Full usan la misma aplicación de dealer."
-        : "Quick and Full use the same dealer application.",
+        ? "Quick y PRO usan la misma aplicación de dealer."
+        : "Quick and PRO use the same dealer application.",
       includedBullets: es
         ? ["Misma aplicación de dealer", "Hasta 3 fotos", "Sin video", `Precio: ${dealerQuickPrice}`]
         : ["Same dealer application", "Up to 3 photos", "No video", `Price: ${dealerQuickPrice}`],
@@ -395,7 +395,7 @@ export function getAutosCheckpointCards(
       id: "autos_dealer",
       variant: "dealer",
       eyebrow: es ? "Dealer / negocio" : "Dealer / business",
-      title: es ? "Full Business — Dealers de Autos" : "Full Business — Auto Dealers",
+      title: es ? "PRO — Dealers de Autos" : "PRO — Auto Dealers",
       priceLabel: dealerPrice,
       billingLabel: es ? "10 vehículos incluidos" : "10 vehicles included",
       shortDescription: es
@@ -566,8 +566,8 @@ export function getBienesRaicesCheckpointCards(
       moreLabel: es ? "Ver más" : "See more",
       modalTitle: es ? `Qué incluye Quick Business — ${agentQuickPrice}` : `What's included with Quick Business — ${agentQuickPrice}`,
       modalIntro: es
-        ? "Quick y Full usan la misma aplicación de Bienes Negocio."
-        : "Quick and Full use the same Real Estate Business application.",
+        ? "Quick y PRO usan la misma aplicación de Bienes Negocio."
+        : "Quick and PRO use the same Real Estate Business application.",
       includedBullets: es
         ? ["Misma aplicación de negocio", "Hasta 3 fotos", "Sin video", `Precio: ${agentQuickPrice}`]
         : ["Same business application", "Up to 3 photos", "No video", `Price: ${agentQuickPrice}`],
@@ -578,7 +578,7 @@ export function getBienesRaicesCheckpointCards(
       id: "br_negocio",
       variant: "dealer",
       eyebrow: es ? "Profesional" : "Professional",
-      title: es ? "Full Business — Negocio / agente" : "Full Business — Business / agent",
+      title: es ? "PRO — Negocio / agente" : "PRO — Business / agent",
       priceLabel: agentPrice,
       shortDescription: es
         ? "Para agentes, equipos, oficinas y desarrolladores. Incluye vitrina de agente con 1 propiedad principal destacada."
