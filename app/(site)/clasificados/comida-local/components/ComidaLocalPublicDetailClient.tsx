@@ -10,6 +10,8 @@ import { ComidaLocalDetailShell } from "./ComidaLocalDetailShell";
 import { useComidaLocalPublicTranslation } from "../lib/useComidaLocalPublicTranslation";
 import type { Locale } from "@/app/lib/translation/types";
 import { LeonixCommunityTrust } from "@/app/components/leonixCommunityTrust/LeonixCommunityTrust";
+import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import { LEONIX_SITE_ORIGIN } from "@/app/lib/leonixBrand";
 
 type Props = {
   vm: ComidaLocalPublicListingDetailVm;
@@ -30,9 +32,21 @@ export function ComidaLocalPublicDetailClient({ vm, lang = "es" }: Props) {
   const listingKey = vm.leonixAdId ?? vm.slug ?? vm.id;
   const { displayVm, translateControl } = useComidaLocalPublicTranslation(vm, lang, listingKey);
 
+  const publicUrl = `${LEONIX_SITE_ORIGIN}/clasificados/comida-local/${encodeURIComponent(vm.slug)}`;
+
   return (
     <>
-      {translateControl ? <div className="mb-3">{translateControl}</div> : null}
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        {translateControl}
+        <LeonixShareButton
+          listingId={vm.id}
+          listingUrl={publicUrl}
+          listingTitle={vm.businessName}
+          shareText={vm.queVendes || null}
+          lang={lang === "en" ? "en" : "es"}
+          category="comida-local"
+        />
+      </div>
       <ComidaLocalDetailShell
         vm={displayVm}
         leonixAdId={displayVm.leonixAdId}
