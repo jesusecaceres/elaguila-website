@@ -35,17 +35,16 @@ export function BienesRaicesPublicarHubClient({ lang }: Props) {
   const hub = HUB_COPY[lang];
   const withLang = (path: string) => withClasificadosPublishLang(path, routeLang);
 
-  const cards = useMemo(
-    () =>
-      getBienesRaicesCheckpointCards(
-        lang,
-        withLang("/clasificados/publicar/bienes-raices/privado"),
-        withLang(BR_PUBLICAR_NEGOCIO_SELECTOR),
-      ),
-    [lang, routeLang],
-  );
   const selectedPlan = searchParams?.get("plan") === "full" ? "full" : searchParams?.get("plan") === "quick" ? "quick" : null;
   const assistedCategory = searchParams?.get("staff") === "1" ? "bienes-raices" : undefined;
+  const cards = useMemo(() => {
+    const all = getBienesRaicesCheckpointCards(
+      lang,
+      withLang("/clasificados/publicar/bienes-raices/privado"),
+      withLang(BR_PUBLICAR_NEGOCIO_SELECTOR),
+    );
+    return assistedCategory ? all.filter((card) => card.id !== "br_privado") : all;
+  }, [lang, routeLang, assistedCategory]);
 
   return (
     <PublishEntryCheckpointLayout

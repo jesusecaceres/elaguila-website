@@ -3662,8 +3662,8 @@ export function ClasificadosServiciosApplication() {
                 </p>
                 <p className="mt-1 text-sm text-[#5D4A25]">
                   {lang === "en"
-                    ? "Quick $249 keeps your professional listing and core contact tools without the Full offers module."
-                    : "Quick $249 mantiene tu anuncio profesional y herramientas principales de contacto sin el módulo de ofertas Full."}
+                    ? "The $249 plan keeps your professional listing and core contact tools without the PRO offers module."
+                    : "El plan de $249 mantiene tu anuncio profesional y herramientas principales de contacto sin el módulo de ofertas PRO."}
                 </p>
                 <Link
                   href={withClasificadosPublishLang("/clasificados/publicar/servicios/checkpoint", routeLang)}
