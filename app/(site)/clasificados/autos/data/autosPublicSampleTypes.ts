@@ -13,6 +13,8 @@ export type AutosPublicCondition = "new" | "used" | "certified";
  */
 export type AutosPublicListing = {
   id: string;
+  /** Authored listing language from the persisted row; used only by optional card translation UX. */
+  sourceLang?: "es" | "en";
   /** Stable Leonix code from paid row when mapped from DB. */
   leonixAdId?: string | null;
   /** Owner auth user id when mapped from DB. */
