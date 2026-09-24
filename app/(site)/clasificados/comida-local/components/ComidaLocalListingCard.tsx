@@ -113,7 +113,7 @@ export function ComidaLocalListingCard({ card, lang = "es" }: Props) {
             onClick={() => trackCardEvent("result_card_click")}
             className={`${CL_BTN_PRIMARY} min-h-[40px] flex-1 sm:flex-none`}
           >
-            Ver ficha
+            {lang === "en" ? "View listing" : "Ver ficha"}
           </Link>
           {card.telHref ? (
             <a
@@ -121,7 +121,7 @@ export function ComidaLocalListingCard({ card, lang = "es" }: Props) {
               onClick={() => trackCardEvent("call_click")}
               className={`${CL_BTN_SECONDARY} min-h-[40px]`}
             >
-              Llamar
+              {lang === "en" ? "Call" : "Llamar"}
             </a>
           ) : null}
           {card.whatsappHref ? (
