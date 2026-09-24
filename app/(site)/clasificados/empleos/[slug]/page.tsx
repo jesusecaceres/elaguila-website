@@ -42,6 +42,13 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
         title: `${job.title} — ${job.company}`,
         description: job.summary,
         type: "website",
+        images: job.imageSrc ? [{ url: job.imageSrc, alt: job.imageAlt || job.title }] : undefined,
+      },
+      twitter: {
+        card: job.imageSrc ? "summary_large_image" : "summary",
+        title: `${job.title} — ${job.company}`,
+        description: job.summary,
+        images: job.imageSrc ? [job.imageSrc] : undefined,
       },
     };
   }
