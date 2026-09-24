@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
-import { fetchPublicOfertaLocalDetailById, fetchPublicOfertaLocalItemsForOfferId } from "@/app/lib/ofertas-locales/ofertasLocalesPublicDetailHelpers";
+import { fetchPublicOfertaLocalDetailById, fetchPublicOfertaLocalItemsForOfferId, ofertaLocalPublicDetailPath } from "@/app/lib/ofertas-locales/ofertasLocalesPublicDetailHelpers";
+import { LEONIX_SITE_ORIGIN } from "@/app/lib/leonixBrand";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
 import {
@@ -30,10 +31,29 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
       robots: { index: false, follow: false },
     };
   }
+  const title = `${offer.title} · ${offer.businessName}`;
+  const description = offer.description || `${offer.businessName} — ${offer.city}`;
+  const canonicalPath = ofertaLocalPublicDetailPath(offer.id, lang);
+  const canonical = `${LEONIX_SITE_ORIGIN}${canonicalPath}`;
+  const heroImage = offer.primaryAssetHref || offer.businessLogoHref || undefined;
   return {
-    title: `${offer.title} · ${offer.businessName}`,
-    description: offer.description || `${offer.businessName} — ${offer.city}`,
+    title,
+    description,
     robots: { index: true, follow: true },
+    alternates: { canonical },
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      url: canonical,
+      images: heroImage ? [{ url: heroImage, alt: offer.title || offer.businessName }] : undefined,
+    },
+    twitter: {
+      card: heroImage ? "summary_large_image" : "summary",
+      title,
+      description,
+      images: heroImage ? [heroImage] : undefined,
+    },
   };
 }
 
