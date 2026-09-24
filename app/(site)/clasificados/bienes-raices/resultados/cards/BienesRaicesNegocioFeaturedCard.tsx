@@ -16,6 +16,7 @@ import {
 import type { BrNegocioListing } from "./listingTypes";
 import { BadgeStack } from "./BadgeStack";
 import { IconBath, IconBed, IconCalendar, IconMapPin, IconRuler } from "./cardIcons";
+import { useBienesRaicesCardTranslation } from "./useBienesRaicesCardTranslation";
 
 function sellerKindUi(listing: BrNegocioListing): "privado" | "negocio" {
   if (listing.sellerKind) return listing.sellerKind;
@@ -51,6 +52,7 @@ export function BienesRaicesNegocioFeaturedCard({
   const lane = sellerKindUi(listing);
   const op = operationKind(listing);
   const detailHref = lang ? appendLangToPath(leonixLiveAnuncioPath(listing.id), lang) : leonixLiveAnuncioPath(listing.id);
+  const cardTranslation = useBienesRaicesCardTranslation({ listingId: listing.id, title: listing.title, lang });
 
   const surface = `group relative overflow-hidden rounded-[24px] border border-[#D4C4A8]/45 ${brLuxuryHeroPanelClass} ${brLuxuryCardHoverClass}`;
   return (
@@ -100,16 +102,21 @@ export function BienesRaicesNegocioFeaturedCard({
         <div className="flex flex-1 flex-col justify-between border-t border-[#E8DFD0]/60 bg-[#FDFBF7]/98 p-4 lg:min-h-[220px] lg:border-l lg:border-t-0 lg:p-5">
           <div>
             <p className={brLuxuryOverlineClass}>{lang === "en" ? "Featured property" : "Propiedad destacada"}</p>
-            {titleAsLink ? (
-              <Link
-                href={detailHref}
-                className={`mt-2 block ${brLuxurySerifHeadingClass} text-xl leading-tight hover:text-[#8A6F3A] sm:text-2xl`}
-              >
-                {listing.title}
-              </Link>
-            ) : (
-              <p className={`mt-2 ${brLuxurySerifHeadingClass} text-xl leading-tight sm:text-2xl`}>{listing.title}</p>
-            )}
+            <div className="mt-2 flex min-w-0 items-start justify-between gap-2">
+              {titleAsLink ? (
+                <Link
+                  href={detailHref}
+                  className={`min-w-0 flex-1 ${brLuxurySerifHeadingClass} text-xl leading-tight hover:text-[#8A6F3A] sm:text-2xl`}
+                >
+                  {cardTranslation.displayTitle}
+                </Link>
+              ) : (
+                <p className={`min-w-0 flex-1 ${brLuxurySerifHeadingClass} text-xl leading-tight sm:text-2xl`}>
+                  {cardTranslation.displayTitle}
+                </p>
+              )}
+              {cardTranslation.translateControl}
+            </div>
             <p className={`mt-2 flex items-start gap-2 ${brLuxuryBodyMutedClass}`}>
               <IconMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#B8954A]" />
               <span>{listing.addressLine}</span>
