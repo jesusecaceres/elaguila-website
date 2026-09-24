@@ -10,10 +10,13 @@
  * end up with a second, drifting copy of their own filter.
  *
  * Behavior is UNCHANGED — the bodies are the ones the live landing/results page has always run:
- * substring `q` and `city`, exact `foodType`, membership `service`, exact `priceLevel`.
+ * bilingual `q` (WAVE 4, see `keywordMatcher`), substring `city`, exact `foodType`, membership `service`,
+ * exact `priceLevel`.
  * `comidaLocalPublicQueries` re-exports both symbols, so every existing import keeps working and
  * `listPublishedComidaLocalListings` still applies this exact function.
  */
+import { catalogKeywordMatcher } from "@/app/lib/clasificados/discovery/catalogDiscovery";
+import { comidaLocalDiscoveryAdapter } from "@/app/lib/clasificados/discovery/adapters/comidaLocalDiscoveryAdapter";
 import type {
   ComidaLocalPublicListingRow,
   ComidaLocalResultsFilters,
@@ -26,21 +29,14 @@ function parseStringArray(raw: unknown): string[] {
   return raw.filter((v): v is string => typeof v === "string").map((s) => s.trim()).filter(Boolean);
 }
 
-function matchesQuery(row: ComidaLocalPublicListingRow, q: string): boolean {
-  const needle = q.trim().toLowerCase();
-  if (!needle) return true;
-  const hay = [
-    row.business_name,
-    row.que_vendes,
-    row.food_type,
-    row.food_type_custom ?? "",
-    row.city_display,
-    row.city_canonical ?? "",
-    row.zone_note ?? "",
-  ]
-    .join(" ")
-    .toLowerCase();
-  return hay.includes(needle);
+/**
+ * WAVE 4 — bilingual keyword: `q` becomes canonical intent over the persisted `food_type` id (ES/EN labels and
+ * aliases: "seafood" <-> "mariscos", "bakery" <-> "postres") matched against the row's language-neutral search
+ * document; the previous literal / owner-text haystack (name, que_vendes, food type + custom, city, zone) stays the
+ * substring fallback. Page / authored language never changes inclusion.
+ */
+function keywordMatcher(q: string): (row: ComidaLocalPublicListingRow) => boolean {
+  return catalogKeywordMatcher(comidaLocalDiscoveryAdapter, q);
 }
 
 /**
@@ -56,8 +52,9 @@ export function filterComidaLocalPublicRows(
   rows: ComidaLocalPublicListingRow[],
   filters: ComidaLocalResultsFilters,
 ): ComidaLocalPublicListingRow[] {
+  const keywordMatches = filters.q ? keywordMatcher(filters.q) : null;
   return rows.filter((row) => {
-    if (filters.q && !matchesQuery(row, filters.q)) return false;
+    if (keywordMatches && !keywordMatches(row)) return false;
 
     if (filters.city) {
       const cityNeedle = filters.city.trim().toLowerCase();

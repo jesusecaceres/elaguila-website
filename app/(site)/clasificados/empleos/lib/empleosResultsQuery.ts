@@ -4,6 +4,7 @@
  */
 
 import type { EmpleosJobRecord } from "../data/empleosJobTypes";
+import { empleosKeywordMatcher } from "@/app/lib/clasificados/discovery/adapters/empleosDiscoveryAdapter";
 import type { EmpleosResultadosParams } from "../shared/utils/empleosListaUrl";
 import { buildEmpleosLocationSearchText } from "@/app/publicar/empleos/shared/lib/empleosGlobalLocation";
 
@@ -101,6 +102,10 @@ export function filterEmpleosJobs(jobs: EmpleosJobRecord[], p: ParsedEmpleosResu
   const laneLower = p.lane.toLowerCase();
   const industryLower = p.industry.toLowerCase();
 
+  // WAVE 4 — bilingual keyword (category / jobType / modality concepts + the previous literal haystack as
+  // fallback), compiled once per call. Category and jobType facets below stay raw-code exact matches.
+  const keywordMatches = qLower ? empleosKeywordMatcher(p.q) : null;
+
   return jobs.filter((j) => {
     if (p.featuredOnly && j.listingTier === "standard") return false;
     if (p.recentOnly && nowMs - new Date(j.publishedAt).getTime() > RECENT_MS) return false;
@@ -136,43 +141,7 @@ export function filterEmpleosJobs(jobs: EmpleosJobRecord[], p: ParsedEmpleosResu
     if (smin != null && j.salaryMax < smin) return false;
     if (smax != null && j.salaryMin > smax) return false;
 
-    if (qLower) {
-      const blob =
-        [
-          j.title,
-          j.company,
-          j.summary,
-          j.description,
-          j.category,
-          j.categoryCustomLabel ?? "",
-          j.jobType,
-          j.modality,
-          j.experience,
-          j.companyType,
-          j.city,
-          j.state,
-          j.stateRegion ?? "",
-          j.postalCode ?? "",
-          j.country ?? "",
-          j.salaryLabel,
-          String(j.salaryMin),
-          String(j.salaryMax),
-          ...(j.requirements ?? []),
-          ...(j.benefits ?? []),
-          ...(j.benefitChips ?? []),
-          j.industryFocus ?? "",
-          j.scheduleLabel ?? "",
-          j.languagesSpoken ?? "",
-          j.feriaDateLine ?? "",
-          j.feriaTimeLine ?? "",
-          j.feriaVenue ?? "",
-          j.employerAddressLine ?? "",
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-      if (!blob.includes(qLower)) return false;
-    }
+    if (keywordMatches && !keywordMatches(j)) return false;
 
     if (cityLower) {
       const loc = buildEmpleosLocationSearchText({

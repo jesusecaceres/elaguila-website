@@ -4,6 +4,7 @@
 
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
 import type { RentasBrowseParamsParsed } from "@/app/clasificados/rentas/shared/rentasBrowseContract";
+import { filterRentasRowsByKeyword } from "@/app/lib/clasificados/discovery/adapters/rentasDiscoveryAdapter";
 import {
   leonixLbStateMatchesFilter,
   leonixPropertyCountryMatchesFilter,
@@ -48,36 +49,13 @@ function precioBandMatches(listing: RentasPublicListing, band: string): boolean 
   return true;
 }
 
-function textMatchesListing(l: RentasPublicListing, q: string): boolean {
-  const s = q.trim().toLowerCase();
-  if (!s) return true;
-  const descEs = l.description?.es ?? "";
-  const descEn = l.description?.en ?? "";
-  const hay = [
-    l.title,
-    l.addressLine,
-    l.city,
-    l.postalCode,
-    l.stateRegion,
-    descEs,
-    descEn,
-    l.requirements,
-    l.servicesIncluded,
-    l.availabilityNote,
-    l.businessDescription,
-    l.businessMarca,
-    l.businessAgentName,
-    l.businessSocial,
-    l.propertySubtype,
-    l.leaseTermCode,
-    (l.highlightSlugs ?? []).join(" "),
-    l.resultsPropertyKind ?? "",
-    l.propertySubtype ?? "",
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-  return hay.includes(s);
+/**
+ * WAVE 4 — bilingual keyword: `q` becomes canonical intent (property type + rent operation, ES/EN labels
+ * and aliases) matched against each row's language-neutral search document; the previous literal /
+ * owner-text substring haystack stays the fallback. Authored / page language never changes inclusion.
+ */
+function filterByKeyword(rows: RentasPublicListing[], q: string): RentasPublicListing[] {
+  return filterRentasRowsByKeyword(rows, q);
 }
 
 function cityMatches(l: RentasPublicListing, city: string): boolean {
@@ -113,7 +91,7 @@ export function filterRentasPublicListings(rows: RentasPublicListing[], p: Renta
 
   if (p.branch !== "all") out = out.filter((l) => l.branch === p.branch);
 
-  if (p.q.trim()) out = out.filter((l) => textMatchesListing(l, p.q));
+  if (p.q.trim()) out = filterByKeyword(out, p.q);
 
   if (p.precio) out = out.filter((l) => precioBandMatches(l, p.precio));
 

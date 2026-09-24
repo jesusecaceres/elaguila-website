@@ -4,6 +4,7 @@ import {
   normalizeDiscoveryLocationText,
   type RestaurantesDiscoveryState,
 } from "@/app/clasificados/restaurantes/lib/restaurantesDiscoveryContract";
+import { restaurantesBlueprintKeywordMatcher } from "@/app/lib/clasificados/discovery/adapters/restaurantesDiscoveryAdapter";
 import {
   isLeonixLbUsCountry,
   leonixLbStateMatchesFilter,
@@ -41,15 +42,17 @@ function intersectsAny(a: string[] | undefined, b: string[]): boolean {
 }
 
 /**
- * Free-text `q` matches (case-insensitive substring) against the same fields we intend to index for publish:
- * business name, cuisine copy line, primary/secondary cuisine keys (taxonomy), city, ZIP, neighborhood,
- * `serviceAreaText`, and `additionalCuisineKeys` from published `listing_json` when present on the row.
+ * WAVE 4 — free-text `q` is bilingual. It becomes canonical intent (cuisine + service-mode concepts with ES/EN
+ * labels and aliases: "seafood" <-> "mariscos", "tacos" -> mexicana, "bakery" <-> "panaderia") matched against
+ * each row's language-neutral search document. The previous literal / owner-text haystack (name, slug, Leonix id,
+ * cuisine line + keys, city, ZIP, neighborhood, service area, description) stays the substring fallback through
+ * the apostrophe-folding literal check (`Chuys` <-> `Chuy's`), kept exactly. Page / authored language never
+ * changes inclusion.
  */
-function rowMatchesQuery(q: string, row: RestaurantesPublicBlueprintRow): boolean {
+function legacyLiteralRowMatchesQuery(q: string, row: RestaurantesPublicBlueprintRow): boolean {
   const needleRaw = q.trim();
   if (!needleRaw) return true;
   const needleFold = foldRestaurantesDiscoverySearchText(needleRaw);
-  const needleLower = needleRaw.toLowerCase();
   const blob = [
     row.name,
     row.slug,
@@ -67,9 +70,7 @@ function rowMatchesQuery(q: string, row: RestaurantesPublicBlueprintRow): boolea
     .join(" ")
     .toLowerCase();
   const blobFold = foldRestaurantesDiscoverySearchText(blob);
-  if (blob.includes(needleLower)) return true;
-  if (needleFold.length > 0 && blobFold.includes(needleFold)) return true;
-  return false;
+  return needleFold.length > 0 && blobFold.includes(needleFold);
 }
 
 /** Matches `cuisine=` to primary/secondary/additional keys on the row. */
@@ -94,8 +95,9 @@ export function filterRestaurantesBlueprintRows(
   s: RestaurantesDiscoveryState,
   opts?: FilterRestaurantesBlueprintOptions,
 ): RestaurantesPublicBlueprintRow[] {
+  const keywordMatches = restaurantesBlueprintKeywordMatcher(s.q);
   return rows.filter((row) => {
-    if (s.q.trim() && !rowMatchesQuery(s.q, row)) return false;
+    if (s.q.trim() && !keywordMatches(row) && !legacyLiteralRowMatchesQuery(s.q, row)) return false;
     if (s.city) {
       const needle = foldRestaurantesDiscoverySearchText(normalizeDiscoveryLocationText(s.city));
       const hay = foldRestaurantesDiscoverySearchText(

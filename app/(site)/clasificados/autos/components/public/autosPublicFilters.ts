@@ -3,6 +3,7 @@ import { parseAutosBrowseUrl } from "../../filters/autosBrowseFilterContract";
 import type { AutosPublicFilterState, AutosPublicSortKey } from "../../filters/autosPublicFilterTypes";
 import { listingMatchesAutosCityFilter, listingMatchesAutosCountryFilter, listingMatchesAutosStateFilter, listingMatchesAutosZipFilter } from "../../filters/autosPublicLocationMatch";
 import { compareNewestAutosPublic } from "@/app/lib/clasificados/autos/autosPublicRanking";
+import { autosKeywordMatcher } from "@/app/lib/clasificados/discovery/adapters/autosDiscoveryAdapter";
 import { compareAutosListingFairTieBreak } from "../../lib/autosPublicListingScore";
 
 export type { AutosPublicFilterState, AutosPublicSortKey } from "../../filters/autosPublicFilterTypes";
@@ -22,39 +23,11 @@ export function applyAutosPublicFilters(
   f: AutosPublicFilterState,
   searchQ = "",
 ): AutosPublicListing[] {
+  // WAVE 4 — bilingual keyword (body style / condition / seller / fuel / transmission concepts + the previous
+  // literal haystack as fallback), compiled once per call. Language-neutral; makes / models stay literal.
+  const keywordMatches = searchQ.trim() ? autosKeywordMatcher(searchQ) : null;
   return listings.filter((row) => {
-    if (searchQ.trim()) {
-      const q = searchQ.toLowerCase();
-      const hay = [
-        row.make,
-        row.model,
-        String(row.year),
-        row.trim ?? "",
-        row.vehicleTitle,
-        String(row.price),
-        String(row.mileage),
-        row.bodyStyle,
-        row.transmission,
-        row.drivetrain,
-        row.fuelType,
-        row.exteriorColor ?? "",
-        row.interiorColor ?? "",
-        row.titleStatus ?? "",
-        row.city,
-        row.state,
-        row.zip ?? "",
-        row.country ?? "",
-        row.dealerName ?? "",
-        row.privateSellerLabel ?? "",
-        row.sellerType,
-        row.sellerType === "dealer" ? "dealer negocio concesionario business" : "private privado particular",
-        row.searchableBlurb ?? "",
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
+    if (keywordMatches && !keywordMatches(row)) return false;
     const cityActive = Boolean(f.city.trim());
     const cityOk = listingMatchesAutosCityFilter(row.city, f.city);
     if (cityActive && !cityOk) return false;

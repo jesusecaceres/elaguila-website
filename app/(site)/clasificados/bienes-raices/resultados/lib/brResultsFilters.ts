@@ -7,6 +7,7 @@ import {
   leonixLbStateMatchesFilter,
   leonixPropertyCountryMatchesFilter,
 } from "@/app/clasificados/shared/constants/leonixPropertyLocationContract";
+import { filterBrRowsByKeyword } from "@/app/lib/clasificados/discovery/adapters/brDiscoveryAdapter";
 import { compareBrSponsoredRank } from "../../lib/brPublicEntitlementOverlay";
 import type { BrNegocioListing } from "../cards/listingTypes";
 import type { BrPrimaryChipId, BrSecondaryChipId } from "../search/filterTypes";
@@ -197,26 +198,9 @@ export function filterBrListings(
     rows = rows.filter((l) => l.terrenoTipoCode === state.terrenoTipo.trim());
   }
 
-  const q = state.q.trim().toLowerCase();
-  if (q) {
-    rows = rows.filter((l) => {
-      const blob = [
-        l.title,
-        l.addressLine,
-        l.beds,
-        l.baths,
-        l.sqft,
-        l.searchBlob ?? "",
-        l.operationLabel ?? "",
-        l.advertiser.name,
-        l.advertiser.subtitle ?? "",
-        ...(l.metaLines ?? []),
-      ]
-        .join(" ")
-        .toLowerCase();
-      return blob.includes(q);
-    });
-  }
+  // WAVE 4 — bilingual keyword through the BR discovery adapter (property type + operation concepts,
+  // ES/EN labels and aliases; the previous literal / owner-text blob stays the substring fallback).
+  if (state.q.trim()) rows = filterBrRowsByKeyword(rows, state.q);
 
   if (state.city.trim()) {
     rows = rows.filter((l) => cityFilterMatchesListingAddress(l.addressLine, state.city));

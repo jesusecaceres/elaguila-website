@@ -23,6 +23,7 @@ import type {
   RestauranteServiceMode,
 } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import Navbar from "@/app/components/Navbar";
+import { filterRestaurantesResultsRowsByKeyword } from "@/app/lib/clasificados/discovery/adapters/restaurantesDiscoveryAdapter";
 import type { RestaurantePublicResultsRow } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingMapper";
 import {
   getFavoriteRestaurantIds,
@@ -35,13 +36,6 @@ type SortId = "newest" | "name-asc";
 
 function favStoreKey(listingId: string) {
   return `rpub:${listingId}`;
-}
-
-function textMatch(q: string, row: RestaurantePublicResultsRow): boolean {
-  const t = q.trim().toLowerCase();
-  if (!t) return true;
-  const blob = `${row.businessName} ${row.summaryShort} ${row.cityCanonical} ${row.neighborhood ?? ""}`.toLowerCase();
-  return blob.includes(t);
 }
 
 /** URL + discovery may send canonical keys or English discovery chips — normalize to taxonomy keys. */
@@ -142,8 +136,9 @@ export function RestauranteResultsClient({ initialListings }: { initialListings:
   );
 
   const filtered = useMemo(() => {
-    let list = initialListings.filter((row) => {
-      if (!textMatch(q, row)) return false;
+    // WAVE 4 — bilingual keyword (cuisine / service concepts + literal fallback), language-neutral.
+    const keywordRows = filterRestaurantesResultsRowsByKeyword(initialListings, q);
+    let list = keywordRows.filter((row) => {
       if (city && !row.cityCanonical.toLowerCase().includes(city.toLowerCase())) return false;
       if (zip && (row.zipCode ?? "").trim() !== zip) return false;
       if (!rowMatchesCuisineFilter(cuisine, row)) return false;
