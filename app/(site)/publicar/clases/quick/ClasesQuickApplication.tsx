@@ -583,8 +583,8 @@ function ClasesQuickApplicationBody({
                 </label>
                 <p className="rounded-lg border border-amber-300/70 bg-amber-50/90 px-3 py-2 text-xs font-medium text-amber-950">
                   {lang === "es"
-                    ? "Las clases con costo se pueden guardar y previsualizar, pero todavía no se pueden publicar desde esta solicitud. Guarda tu borrador para retomarlo cuando esta opción esté disponible."
-                    : "Paid classes can be saved and previewed, but cannot be published from this application yet. Save your draft to return when this option is available."}
+                    ? "La tarifa de anuncio Leonix para clases con costo es de $24.99 por 30 días. Puedes guardar y previsualizar esta clase, pero la activación de pago aún no está disponible aquí. Guarda tu borrador para retomarlo cuando esta opción esté disponible."
+                    : "The Leonix listing fee for paid classes is $24.99 per 30 days. You can save and preview this class, but paid activation is not available here yet. Save your draft to return when this option is available."}
                 </p>
                 <div className="rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-page)] px-3 py-3">
                   <p className="text-xs font-bold text-[color:var(--lx-text)]">{copy.priceSummary.title}</p>
