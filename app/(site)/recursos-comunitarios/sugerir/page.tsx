@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { GlobalContactForm } from "@/app/components/contact/GlobalContactForm";
 import { normalizeLang } from "@/app/lib/language";
 
 export const metadata: Metadata = {
@@ -29,6 +30,17 @@ export default async function RecursosSugerirPage({
           ? "Si conoces una organización de ayuda real, envía los datos a Leonix. Un miembro del equipo lo revisará antes de mostrarlo."
           : "If you know a real help organization, send the details to Leonix. A staff member will review it before it appears."}
       </p>
+      <div id="contact-form" className="mt-8 scroll-mt-28">
+        <GlobalContactForm
+          lang={lang}
+          initialInquiryType="general"
+          initialMessage={es
+            ? "Sugiero un recurso comunitario para revisión de Leonix. Organización: [nombre]. Fuente oficial: [enlace]. Servicios y ubicación: [detalles]."
+            : "I suggest a community resource for Leonix review. Organization: [name]. Official source: [link]. Services and location: [details]."}
+          sourcePage="/recursos-comunitarios/sugerir"
+          sourceCta="community_resource_suggestion"
+        />
+      </div>
       <Link
         href={es ? "/recursos-comunitarios?lang=es" : "/recursos-comunitarios?lang=en"}
         className="mt-8 inline-flex min-h-[44px] items-center rounded-full bg-[#7A1E2C] px-6 text-sm font-bold text-white"
