@@ -57,7 +57,7 @@ export function ComidaLocalRelatedListingsSection({
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {rows.map((row) => (
             <li key={row.id} className="min-w-0">
-              <ComidaLocalListingCard card={mapComidaLocalRowToCardVm(row)} />
+              <ComidaLocalListingCard card={mapComidaLocalRowToCardVm(row)} lang={lang} />
             </li>
           ))}
         </ul>
