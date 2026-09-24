@@ -38,6 +38,7 @@ import {
   enforceQuickBusinessPublishMedia,
   extractSemanticMediaItems,
 } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
+import { resolveQuickBusinessPublishIdentity } from "@/app/lib/listingPlans/quickBusinessProductIdentityServer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -192,10 +193,18 @@ export async function POST(request: NextRequest) {
   if (isAssistedPublish) {
     // Gate QB-MEDIA-03 — the SAME canonical entry point the four self-service seams call, so the
     // assisted and self-service paths cannot drift into two different contracts.
-    const semanticMedia = enforceQuickBusinessPublishMedia({
-      category: "bienes-negocio",
-      items: extractSemanticMediaItems(listingRowRaw),
+    const assistedProduct = await resolveQuickBusinessPublishIdentity({
+      category: "bienes-raices",
+      ownerUserId: clientUserId || "",
+      listingId: existingListingId || null,
+      assistedPackageKey: assistedContext.packageKey ?? null,
     });
+    const semanticMedia = assistedProduct.enforceQuickContract
+      ? enforceQuickBusinessPublishMedia({
+          category: "bienes-negocio",
+          items: extractSemanticMediaItems(listingRowRaw),
+        })
+      : null;
     if (semanticMedia && !semanticMedia.ok) {
       return NextResponse.json(semanticMedia.body, { status: semanticMedia.status });
     }
