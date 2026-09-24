@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { TranslateAdControl } from "@/app/components/translation/TranslateAdControl";
 import { requestAdTranslation } from "@/app/lib/translation/requestAdTranslation";
-import type { AdTranslationResult } from "@/app/lib/translation/types";
+import type { AdTranslationResult, TranslatableAdFields } from "@/app/lib/translation/types";
 import type { AutosPublicListing } from "../../data/autosPublicSampleTypes";
 import type { AutosPublicBlueprintCopy, AutosPublicLang } from "../../lib/autosPublicBlueprintCopy";
 import { AutosPublicStandardCard } from "./AutosPublicStandardCard";
@@ -29,8 +29,8 @@ export function AutosPublicTranslatedCard({
   const [showTranslated, setShowTranslated] = useState(false);
 
   const financeTeaser = listing.monthlyEstimate?.trim() ?? "";
-  const translatableContent = useMemo(
-    () => ({ financeTeaser: financeTeaser || undefined }),
+  const translatableContent = useMemo<TranslatableAdFields>(
+    () => (financeTeaser ? { financeTeaser } : {}),
     [financeTeaser],
   );
 
@@ -48,10 +48,10 @@ export function AutosPublicTranslatedCard({
       ? translation.translated.financeTeaser.trim()
       : listing.monthlyEstimate;
 
-  const displayListing =
-    translatedFinanceTeaser === listing.monthlyEstimate
-      ? listing
-      : { ...listing, monthlyEstimate: translatedFinanceTeaser };
+  const displayListing: AutosPublicListing =
+    translatedFinanceTeaser && translatedFinanceTeaser !== listing.monthlyEstimate
+      ? { ...listing, monthlyEstimate: translatedFinanceTeaser }
+      : listing;
 
   return (
     <div className="min-w-0">
@@ -59,7 +59,7 @@ export function AutosPublicTranslatedCard({
         <div className="mb-2 flex justify-end" data-autos-results-translate-utility="1">
           <TranslateAdControl
             siteLocale={lang}
-            originalLocale={listing.sourceLang ?? "unknown"}
+            originalLocale="unknown"
             category="autos"
             listingKey={listing.id}
             version="autos-results-card-v1"
