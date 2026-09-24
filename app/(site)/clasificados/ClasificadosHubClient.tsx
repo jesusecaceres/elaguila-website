@@ -82,16 +82,14 @@ function ClasificadosPageInner() {
   const params = useSearchParams();
   const routeLang = resolveRouteLang(params?.get("lang"));
   const t = useMemo(() => getClasificadosHubPageCopy(routeLang), [routeLang]);
-  const dealerCopy = useMemo(() => getPublicCategoryCardCopy("dealers-de-autos", routeLang), [routeLang]);
-
   const postEntryHref = buildHubPostEntryHref(routeLang);
   const dealerBrowseHref = appendLangToPath("/clasificados/dealers-de-autos", routeLang);
   const dealerPublishHref = resolvePublicarGatewayDestination("autos", routeLang);
 
-  const sortedCategoryKeys = useMemo(
+  const sortedGridKeys = useMemo(
     () =>
       sortByLocaleLabel(
-        C1_CATEGORY_ORDER,
+        [...C1_CATEGORY_ORDER, "dealers-de-autos"] as const,
         (k) => getPublicCategoryCardCopy(k, routeLang).label,
         routeLang,
       ),
@@ -159,8 +157,27 @@ function ClasificadosPageInner() {
           </h2>
 
           <ul className="mt-8 grid grid-cols-1 items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {sortedCategoryKeys.map((k) => {
+            {sortedGridKeys.map((k) => {
               const copy = getPublicCategoryCardCopy(k, routeLang);
+
+              if (k === "dealers-de-autos") {
+                return (
+                  <li key={k} className="flex h-full">
+                    <ClasificadosHubCategoryCard
+                      lang={routeLang}
+                      browseHref={dealerBrowseHref}
+                      publishHref={dealerPublishHref}
+                      label={copy.label}
+                      description={copy.desc}
+                      publishLabel={copy.post}
+                      icon={<DealerMark />}
+                      accent="default"
+                      imageSrc={CLASIFICADOS_HUB_CARD_IMAGE[k]}
+                    />
+                  </li>
+                );
+              }
+
               const browseHref = buildHubCategoryPageUrl(k, routeLang);
               const publishHref = buildCategoryPublishHref(k, routeLang);
               const priority = PRIORITY_KEYS.has(k);
@@ -181,19 +198,6 @@ function ClasificadosPageInner() {
                 </li>
               );
             })}
-            <li className="flex h-full">
-              <ClasificadosHubCategoryCard
-                lang={routeLang}
-                browseHref={dealerBrowseHref}
-                publishHref={dealerPublishHref}
-                label={dealerCopy.label}
-                description={dealerCopy.desc}
-                publishLabel={dealerCopy.post}
-                icon={<DealerMark />}
-                accent="default"
-                imageSrc={CLASIFICADOS_HUB_CARD_IMAGE["dealers-de-autos"]}
-              />
-            </li>
           </ul>
         </section>
 
