@@ -151,7 +151,7 @@ export function RestauranteDetailShell({
         <RestauranteProfileHeader data={data} lang={lang} listingId={data.id} persistListingEngagement={false} />
         {showCtas ? (
           <div className="mt-4">
-            <RestauranteShellInteractiveCtas listingId={data.id} ctas={data.primaryCtas} layout="wrap" />
+            <RestauranteShellInteractiveCtas listingId={data.id} ctas={data.primaryCtas} layout="wrap" lang={lang} />
           </div>
         ) : null}
         {showHoursDetail ? (
