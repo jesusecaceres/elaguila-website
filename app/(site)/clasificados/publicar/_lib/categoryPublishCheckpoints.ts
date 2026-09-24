@@ -602,8 +602,8 @@ export function getBienesRaicesCheckpointCards(
             `Base price: ${agentPrice}`,
           ],
       optionalUpgradeLine: es
-        ? `Opcional: Paquete de inventario +${packPrice}/mes (hasta 4 propiedades adicionales)`
-        : `Optional: Inventory pack +${packPrice}/mo (up to 4 additional properties)`,
+        ? `Opcional: Paquete de inventario +${packPrice}/mes (hasta 3 propiedades adicionales)`
+        : `Optional: Inventory pack +${packPrice}/mo (up to 3 additional properties)`,
       optionalUpgradeBullets: es
         ? [`Paquete de inventario: +${packPrice}/mes · hasta 4 propiedades adicionales`]
         : [`Inventory pack: +${packPrice}/mo · up to 4 additional properties`],
