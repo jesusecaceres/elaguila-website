@@ -7,17 +7,11 @@ import { useMemo } from "react";
 import { LeonixHeaderLanguageSelector } from "@/app/(site)/magazine/components/LeonixHeaderLanguageSelector";
 import { parseGateLang } from "@/app/(site)/lib/parseGateLang";
 import { replaceLangInHref } from "@/app/lib/language";
-import {
-  getTranslateSitePageCopy,
-  googleTranslateWebsitesPasteHintClass,
-  translateSiteHref,
-} from "@/app/lib/googleTranslateWebsite";
 import { getMediaKitPageCopy } from "@/app/lib/leonix/mediaKitPageCopy";
 import {
   MAGAZINE_KIT_PDF_EN,
   MAGAZINE_KIT_PDF_ES,
   mediaKitAdvertisingContactHref,
-  mediaKitInterestContactHref,
   primaryMediaKitPdfHref,
 } from "@/app/lib/leonix/mediaKitRoutes";
 import { showDualMediaKitPdfButtons } from "@/app/lib/magazine/qrBridge";
@@ -37,24 +31,11 @@ export default function MediaKitPageClient() {
   const pathname = usePathname() ?? "/media-kit";
   const lang = useMemo(() => parseGateLang(searchParams?.get("lang")), [searchParams]);
   const copy = getMediaKitPageCopy(lang);
-  const translateSiteCopy = getTranslateSitePageCopy(lang);
   const dualPdf = showDualMediaKitPdfButtons(lang);
   const primaryPdf = primaryMediaKitPdfHref(lang);
-  const mediaKitReturnTo = replaceLangInHref("/media-kit", lang);
-  const googleHref = translateSiteHref({
-    lang,
-    sourcePage: "media-kit",
-    sourceCta: "media_kit_google_translate",
-    returnTo: mediaKitReturnTo,
-  });
-  const websitesPasteHint = translateSiteCopy.pasteInstruction;
   const adContactHref = mediaKitAdvertisingContactHref(lang, {
     sourcePage: "media-kit",
     sourceCta: "media_kit_ad_info",
-  });
-  const mediaKitContactHref = mediaKitInterestContactHref(lang, {
-    sourcePage: "media-kit",
-    sourceCta: "media_kit_interest",
   });
   const homeHref = replaceLangInHref("/coming-soon-v2", lang);
 
@@ -138,25 +119,11 @@ export default function MediaKitPageClient() {
             <Link href={adContactHref} className={btnPrimary}>
               {copy.contactCta.primaryCta}
             </Link>
-            <Link href={mediaKitContactHref} className={btnSecondary}>
+            <a href={primaryPdf} target="_blank" rel="noopener noreferrer" className={btnSecondary}>
               {copy.contactCta.mediaKitInterestCta}
-            </Link>
+            </a>
           </div>
         </section>
-
-        <aside className="mt-8 rounded-lg border border-[#D6C7AD]/60 bg-[#FFFDF7] px-4 py-3 sm:px-5 sm:py-4">
-          <p className="text-xs font-semibold text-[#2A4536] sm:text-sm">{copy.googleTranslate.question}</p>
-          <p className="mt-1 text-[0.8125rem] leading-snug text-[#3D3428] sm:text-sm">{copy.googleTranslate.body}</p>
-          <Link
-            href={googleHref}
-            className="mt-2 inline-flex min-h-[2.25rem] items-center text-xs font-bold text-[#7A1E2C] underline decoration-[#C9A84A]/60 underline-offset-2 hover:text-[#5e1721] sm:text-sm"
-          >
-            {copy.googleTranslate.cta}
-          </Link>
-          <p className={`mt-1.5 ${googleTranslateWebsitesPasteHintClass} text-[#3D3428]/85`}>
-            {websitesPasteHint}
-          </p>
-        </aside>
 
         <p className="mt-8 text-center">
           <Link href={homeHref} className="text-sm font-semibold text-[#556B3E] underline underline-offset-2 hover:text-[#2A4536]">

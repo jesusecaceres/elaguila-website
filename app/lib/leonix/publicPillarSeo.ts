@@ -35,9 +35,9 @@ export const PUBLIC_PILLAR_PATH: Record<PublicPillarId, string> = {
 
 const PILLAR_SEO_ES: Record<PublicPillarId, PillarSeoCopy> = {
   home: {
-    title: "Noticias, clasificados y comunidad en San José",
+    title: "Desarrollo empresarial y medios bilingües en San José",
     description:
-      "Leonix Media reúne noticias locales, clasificados, negocios, revista bilingüe, recursos comunitarios, viajes, iglesias y productos promocionales para San José y el Área de la Bahía.",
+      "Leonix Media impulsa negocios locales con clasificados, revista bilingüe, radio (La Kaliente 1370), productos promocionales, presencia digital y conexión comunitaria para San José y el Área de la Bahía.",
     schemaName: "Leonix Media",
   },
   noticias: {
@@ -98,9 +98,9 @@ const PILLAR_SEO_ES: Record<PublicPillarId, PillarSeoCopy> = {
 
 const PILLAR_SEO_EN: Record<PublicPillarId, PillarSeoCopy> = {
   home: {
-    title: "News, classifieds, and community in San Jose",
+    title: "Business development and bilingual media in San Jose",
     description:
-      "Leonix Media brings together local news, classifieds, businesses, a bilingual magazine, community resources, travel, churches, and promotional products for San Jose and the Bay Area.",
+      "Leonix Media helps local businesses grow with classifieds, a bilingual magazine, radio (La Kaliente 1370), promotional products, digital presence, and community connection for San Jose and the Bay Area.",
     schemaName: "Leonix Media",
   },
   noticias: {
