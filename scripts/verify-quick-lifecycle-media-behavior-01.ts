@@ -413,13 +413,16 @@ check("B15 WIRING: a QUICK Bienes publish is written by the SERVER, and cannot f
   assert.ok(custodyIdx > -1 && insertIdx > custodyIdx, "the browser insert sits behind the Quick branch, not beside it");
 });
 
-check("B16 WIRING: both staff-assisted routes remain protected, through the same entry point", () => {
+check("B16 WIRING: staff-assisted routes protect Quick without capping proven Full/PRO", () => {
   for (const p of [
     "app/api/clasificados/autos/assisted-publish/route.ts",
     "app/api/clasificados/bienes-raices/negocio/assisted-publish/route.ts",
   ]) {
     const src = read(p);
-    assert.ok(src.includes(CANONICAL_VALIDATOR), `${p} must call the canonical validator`);
+    assert.ok(src.includes("resolveQuickBusinessPublishIdentity("), `${p} must resolve the server-owned package before media enforcement`);
+    assert.ok(src.includes("assistedPackageKey: assistedContext.packageKey"), `${p} must use signed assisted package authority`);
+    assert.ok(src.includes("assistedProduct.enforceQuickContract"), `${p} must gate Quick-only media rules on the resolved product`);
+    assert.ok(src.includes(CANONICAL_VALIDATOR), `${p} must call the canonical validator for Quick`);
     assert.ok(src.includes("extractSemanticMediaItems("), `${p} must extract the media set`);
     assert.ok(src.includes("semanticMedia.body"), `${p} must answer with the canonical refusal body`);
     assert.ok(src.includes("semanticMedia.status"), `${p} must answer with the canonical 422 status`);
