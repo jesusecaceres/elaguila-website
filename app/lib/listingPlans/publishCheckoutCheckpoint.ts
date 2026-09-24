@@ -228,8 +228,8 @@ export function formatPublishCheckpointMoney(
 function brInventoryPackBlockReason(lang: PublishCheckpointLanguage, childCount: number): string | null {
   if (childCount > BR_INVENTORY_PACK_MAX_CHILDREN) {
     return lang === "es"
-      ? "Ya tienes 4 propiedades adicionales en este paquete de inventario. Elimina una propiedad o contacta a Leonix para un plan de oficina más grande."
-      : "You already have 4 additional properties in this inventory pack. Remove one property or contact Leonix for a larger office plan.";
+      ? "Este paquete permite hasta 3 propiedades adicionales. Elimina una propiedad o contacta a Leonix para un plan de oficina más grande."
+      : "This inventory pack allows up to 3 additional properties. Remove one property or contact Leonix for a larger office plan.";
   }
   if (childCount >= 1 && !REVENUE_OS_BR_INVENTORY_PACK_SUPPORTED) {
     return lang === "es"
