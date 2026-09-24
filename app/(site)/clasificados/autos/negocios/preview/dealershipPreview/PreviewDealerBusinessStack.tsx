@@ -672,7 +672,6 @@ export function PreviewDealerBusinessStack({
                   lang={lang}
                   category="autos"
                   persistEngagement
-                  directNativeShare
                   recordShareEvent={autosGlobalShareRecorderFromContext(analyticsCtx, "detail_share")}
                   className={QUICK_ACTION_CLASS}
                 />
@@ -712,7 +711,6 @@ export function PreviewDealerBusinessStack({
                     lang={lang}
                     category="autos"
                     persistEngagement
-                    directNativeShare
                     recordShareEvent={autosGlobalShareRecorderFromContext(analyticsCtx, "detail_share")}
                     className={QUICK_ACTION_CLASS}
                   />
