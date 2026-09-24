@@ -216,7 +216,6 @@ export function RestauranteProfileHeader({
                 variant="small"
                 lang={lang}
                 category="restaurantes"
-                directNativeShare
                 persistEngagement={allowEngagement}
                 recordShareEvent={
                   globalListing ? restaurantesGlobalShareRecorder(globalListing, "detail_share") : undefined
