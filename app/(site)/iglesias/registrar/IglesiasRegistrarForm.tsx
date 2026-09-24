@@ -9,6 +9,8 @@ import { PhoneInput } from "@/app/components/forms/PhoneInput";
 import { normalizePhoneForSubmit } from "@/app/lib/leonix/leadCaptureValidation";
 import { IglesiasPageShell } from "../components/IglesiasPageShell";
 import { IglesiasLogoUploadField } from "./IglesiasLogoUploadField";
+import { BusinessAddressVerifiedInput } from "@/app/components/forms/BusinessAddressVerifiedInput";
+import type { BusinessAddress } from "@/app/lib/businessAddress/businessAddressContract";
 
 const OTHER_LANGUAGE_MAX = 5;
 
@@ -21,6 +23,18 @@ export function IglesiasRegistrarForm({ lang }: { lang: "es" | "en" }) {
   const [status, setStatus] = useState<"idle" | "saving" | "ok" | "error">("idle");
   const [intake, setIntake] = useState<"AUTO_PUBLISH" | "HUMAN_REVIEW" | "BLOCK" | null>(null);
   const [logoUrl, setLogoUrl] = useState("");
+  const [churchAddress, setChurchAddress] = useState<BusinessAddress>({
+    street: "",
+    unit: "",
+    city: "",
+    region: "California",
+    postalCode: "",
+    country: "United States",
+    verificationStatus: "manual",
+    provider: null,
+    providerPlaceId: null,
+    manualEntry: true,
+  });
   const [services, setServices] = useState([{ dayOfWeek: 0, startsAt: "10:00", language: "es", mode: "in_person", label: "" }]);
   const [phone, setPhone] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
@@ -156,26 +170,34 @@ export function IglesiasRegistrarForm({ lang }: { lang: "es" | "en" }) {
 
           <fieldset className="grid gap-3 sm:grid-cols-2">
             <legend className="mb-2 font-serif text-xl font-bold text-[#1F241C]">{lang === "en" ? "Location" : "Ubicación"}</legend>
-            <label className="sm:col-span-2">
+            <div className="sm:col-span-2">
               <span className={label}>{lang === "en" ? "Street address" : "Dirección"}</span>
-              <input name="addressLine1" className={field} />
-            </label>
+              <BusinessAddressVerifiedInput
+                lang={lang}
+                value={churchAddress}
+                locationHint={[churchAddress.city, churchAddress.region, churchAddress.country].filter(Boolean).join(", ")}
+                inputClassName={field}
+                onChange={setChurchAddress}
+              />
+              <input type="hidden" name="addressLine1" value={churchAddress.street} />
+              <input type="hidden" name="city" value={churchAddress.city} />
+              <input type="hidden" name="state" value={churchAddress.region} />
+              <input type="hidden" name="country" value={churchAddress.country} />
+              <input type="hidden" name="zip" value={churchAddress.postalCode} />
+            </div>
             <label>
-              <span className={label}>{lang === "en" ? "City" : "Ciudad"}</span>
-              <input name="city" className={field} />
+              <span className={label}>{lang === "en" ? "Unit / suite" : "Unidad / suite"}</span>
+              <input
+                name="addressLine2"
+                className={field}
+                value={churchAddress.unit ?? ""}
+                onChange={(e) => setChurchAddress((prev) => ({ ...prev, unit: e.target.value }))}
+              />
             </label>
-            <label>
-              <span className={label}>{lang === "en" ? "State / province" : "Estado / provincia"}</span>
-              <input name="state" className={field} defaultValue="California" />
-            </label>
-            <label>
-              <span className={label}>{lang === "en" ? "Country" : "País"}</span>
-              <input name="country" className={field} defaultValue="United States" />
-            </label>
-            <label>
-              <span className={label}>{lang === "en" ? "Postal code" : "Código postal"}</span>
-              <input name="zip" className={field} />
-            </label>
+            <div className="rounded-lg border border-[#D6C7AD]/70 bg-[#FAF6EE] px-3 py-2 text-xs text-[#5C5346]">
+              {[churchAddress.city, churchAddress.region, churchAddress.postalCode, churchAddress.country].filter(Boolean).join(" · ") ||
+                (lang === "en" ? "City, region and postal code will appear here." : "Ciudad, estado y código postal aparecerán aquí.")}
+            </div>
             <label className="sm:col-span-2 flex items-start gap-2 text-sm text-[#3D3428]">
               <input type="checkbox" name="publicLocation" className="mt-1 h-4 w-4" />
               <span>

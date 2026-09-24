@@ -105,7 +105,6 @@ export function AutosNegociosPreviewEngagementStrip({
           lang={lang}
           category="autos"
           persistEngagement={isPublic}
-          directNativeShare
           recordShareEvent={isPublic && analyticsCtx ? autosGlobalShareRecorderFromContext(analyticsCtx, "detail_share") : undefined}
         />
       ) : (

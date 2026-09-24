@@ -201,15 +201,17 @@ function readSource(relPath: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// 6. Native share remains wired on the live published detail page
+// 6. Published detail uses the shared Leonix Share drawer
 // ---------------------------------------------------------------------------
 {
   const detailPageSource = readSource("app/(site)/clasificados/community/CommunityQuickPublishedDetailPage.tsx");
   assert.ok(
-    detailPageSource.includes('typeof navigator !== "undefined"') && detailPageSource.includes(".share === \"function\""),
-    "published detail page must still feature-detect and call the native navigator.share API",
+    detailPageSource.includes("LeonixShareButton") &&
+      detailPageSource.includes("listingUrl={canonicalListingUrl}") &&
+      !detailPageSource.includes("directNativeShare"),
+    "published detail must use the Leonix Share drawer with the canonical URL",
   );
-  console.log("OK: native share still wired on the live published detail page");
+  console.log("OK: published detail uses the Leonix Share drawer with a canonical URL");
 }
 
 // ---------------------------------------------------------------------------

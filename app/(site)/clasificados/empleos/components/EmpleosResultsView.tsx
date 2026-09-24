@@ -55,6 +55,7 @@ import {
   LX_LB_SEARCH_INPUT,
 } from "@/app/(site)/clasificados/shared/components/LeonixLocalBusinessCompactSearchCanvas";
 import { EmpleosJobResultCard } from "./EmpleosJobResultCard";
+import { EmpleosJobTranslationLayer } from "./EmpleosJobTranslationLayer";
 import { EmpleosBrowseDrawerFields, type EmpleosDrawerValues } from "./EmpleosBrowseDrawerFields";
 
 const COPY = {
@@ -740,13 +741,25 @@ export function EmpleosResultsView({ initialJobs = [], omitMarketingSeed = false
                 </div>
                 <div className="flex flex-col gap-5 sm:gap-6">
                   {filtered.map((job) => (
-                    <EmpleosJobResultCard
+                    <EmpleosJobTranslationLayer
                       key={job.id}
                       job={job}
-                      lang={lang}
-                      variant="list"
-                      showRecentRibbon={job.listingTier === "standard" && isRecentPosting(job, clock)}
-                    />
+                      siteLocale={lang}
+                      listingLang={null}
+                      listingKey={job.id}
+                    >
+                      {(displayJob, translateControl) => (
+                        <div className="min-w-0">
+                          {translateControl ? <div className="mb-2 flex justify-end">{translateControl}</div> : null}
+                          <EmpleosJobResultCard
+                            job={displayJob}
+                            lang={lang}
+                            variant="list"
+                            showRecentRibbon={displayJob.listingTier === "standard" && isRecentPosting(displayJob, clock)}
+                          />
+                        </div>
+                      )}
+                    </EmpleosJobTranslationLayer>
                   ))}
                 </div>
               </section>

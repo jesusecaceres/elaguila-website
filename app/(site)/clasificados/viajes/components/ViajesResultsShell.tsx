@@ -31,7 +31,7 @@ import { ViajesLandingAmbience } from "./ViajesLandingAmbience";
 import { ViajesLangSwitch } from "./ViajesLangSwitch";
 import { ViajesTrustStrip } from "./ViajesTrustStrip";
 import { ViajesResultsAffiliateCard } from "./ViajesResultsAffiliateCard";
-import { ViajesResultsBusinessCard } from "./ViajesResultsBusinessCard";
+import { ViajesTranslatedBusinessCard } from "./ViajesTranslatedBusinessCard";
 import { ViajesResultsDiscoveryStrip } from "./ViajesResultsDiscoveryStrip";
 import { ViajesResultsEditorialCard } from "./ViajesResultsEditorialCard";
 import {
@@ -212,7 +212,7 @@ export function ViajesResultsShell({
 
   const renderCard = (row: ViajesResultRow) => {
     if (row.kind === "affiliate") return <ViajesResultsAffiliateCard key={row.id} row={row} ui={ui} />;
-    if (row.kind === "business") return <ViajesResultsBusinessCard key={row.id} row={row} ui={ui} />;
+    if (row.kind === "business") return <ViajesTranslatedBusinessCard key={row.id} row={row} ui={ui} />;
     return <ViajesResultsEditorialCard key={row.id} row={row} ui={ui} />;
   };
 

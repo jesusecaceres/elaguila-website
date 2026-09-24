@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { formatLeonixAdId } from "@/app/(site)/clasificados/community/shared/communityLeonixAdId";
@@ -34,6 +34,7 @@ type Props = {
   listingId?: string;
   isOwner?: boolean;
   onShare?: () => void;
+  shareControl?: ReactNode;
   onCopyLink?: () => void;
   onCopyInfo?: () => void;
 };
@@ -49,6 +50,7 @@ export function CommunityQuickPublicDetailSidebar({
   listingId,
   isOwner = false,
   onShare,
+  shareControl,
   onCopyLink,
   onCopyInfo,
 }: Props) {
@@ -80,11 +82,11 @@ export function CommunityQuickPublicDetailSidebar({
       data-testid="community-quick-sidebar-actions"
     >
       <div className="flex flex-wrap items-center gap-2">
-        {onShare ? (
+        {shareControl ?? (onShare ? (
           <button type="button" onClick={onShare} className={BTN}>
             {t.share}
           </button>
-        ) : null}
+        ) : null)}
         {onCopyLink ? (
           <button type="button" onClick={onCopyLink} className={BTN}>
             {t.copyLink}

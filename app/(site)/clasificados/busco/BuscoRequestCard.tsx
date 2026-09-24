@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 
 import type { BuscoRequestCardModel } from "./shared/buscoCardModel";
+import { TranslateAdControl } from "@/app/components/translation/TranslateAdControl";
+import { requestAdTranslation } from "@/app/lib/translation/requestAdTranslation";
+import type { AdTranslationResult } from "@/app/lib/translation/types";
 
 const LISTING_IMAGE_FALLBACK = "/logo.png";
 
@@ -32,6 +35,23 @@ export function BuscoRequestCard({ model, lang }: Props) {
   const L = lang === "es";
   const cta = CTA[lang];
   const [photoFailed, setPhotoFailed] = useState(false);
+  const [translation, setTranslation] = useState<AdTranslationResult | null>(null);
+  const [showTranslated, setShowTranslated] = useState(false);
+  const translatableContent = useMemo(
+    () => ({
+      title: model.title.trim() || undefined,
+      description: model.excerpt?.trim() || undefined,
+    }),
+    [model.title, model.excerpt],
+  );
+  const displayedTitle =
+    showTranslated && translation?.translated?.title?.trim()
+      ? translation.translated.title.trim()
+      : model.title;
+  const displayedExcerpt =
+    showTranslated && translation?.translated?.description?.trim()
+      ? translation.translated.description.trim()
+      : model.excerpt;
 
   useEffect(() => {
     setPhotoFailed(false);
@@ -49,6 +69,27 @@ export function BuscoRequestCard({ model, lang }: Props) {
         cta={cta}
         photoFailed={photoFailed}
         onPhotoError={() => setPhotoFailed(true)}
+        displayedTitle={displayedTitle}
+        displayedExcerpt={displayedExcerpt}
+        translateControl={
+          translatableContent.title || translatableContent.description ? (
+            <TranslateAdControl
+              siteLocale={lang}
+              originalLocale="unknown"
+              category="busco"
+              listingKey={model.leonixAdId ?? model.id}
+              version="busco-card-v1"
+              translatableContent={translatableContent}
+              requestTranslation={requestAdTranslation}
+              onTranslated={(result) => {
+                setTranslation(result);
+                setShowTranslated(true);
+              }}
+              onShowOriginal={() => setShowTranslated(false)}
+              className="w-fit"
+            />
+          ) : null
+        }
       />
     </article>
   );
@@ -61,6 +102,9 @@ function BuscoCardLayout({
   cta,
   photoFailed,
   onPhotoError,
+  displayedTitle,
+  displayedExcerpt,
+  translateControl,
 }: {
   model: BuscoRequestCardModel;
   lang: Lang;
@@ -68,13 +112,16 @@ function BuscoCardLayout({
   cta: string;
   photoFailed: boolean;
   onPhotoError: () => void;
+  displayedTitle: string;
+  displayedExcerpt: string | null;
+  translateControl: React.ReactNode;
 }) {
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col sm:flex-row">
       <Link
         href={model.detailHref}
         className="relative aspect-[16/10] w-full shrink-0 overflow-hidden bg-[#EDE8DF] sm:aspect-auto sm:h-auto sm:w-[min(44%,220px)] sm:min-h-[180px]"
-        aria-label={`${cta}: ${model.title}`}
+        aria-label={`${cta}: ${displayedTitle}`}
       >
         {model.imageUrl && !photoFailed ? (
           <img
@@ -112,7 +159,7 @@ function BuscoCardLayout({
 
         <Link href={model.detailHref} className="block min-w-0">
           <h3 className="line-clamp-2 text-base font-bold leading-snug text-[#1E1810] transition group-hover:text-[#1E3A5F] sm:text-[1.05rem]">
-            {model.title}
+            {displayedTitle}
           </h3>
         </Link>
 
@@ -126,15 +173,18 @@ function BuscoCardLayout({
           </p>
         ) : null}
 
-        {model.excerpt ? (
-          <p className="line-clamp-3 text-sm leading-relaxed text-[#2a241c]/85">{model.excerpt}</p>
+        {displayedExcerpt ? (
+          <p className="line-clamp-3 text-sm leading-relaxed text-[#2a241c]/85">{displayedExcerpt}</p>
         ) : null}
 
         {model.leonixAdId ? (
           <p className="font-mono text-[10px] text-[#3d5a73]/90">{model.leonixAdId}</p>
         ) : null}
 
-        <BuscoCardCta href={model.detailHref} cta={cta} />
+        <div className="mt-auto flex flex-wrap items-end justify-between gap-2 pt-2">
+          <BuscoCardCta href={model.detailHref} cta={cta} />
+          {translateControl}
+        </div>
       </div>
     </div>
   );
@@ -142,7 +192,7 @@ function BuscoCardLayout({
 
 function BuscoCardCta({ href, cta }: { href: string; cta: string }) {
   return (
-    <div className="mt-auto pt-2">
+    <div>
       <Link
         href={href}
         className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-[#7A1E2C] px-4 py-2.5 text-sm font-semibold text-[#FFFCF7] transition hover:opacity-95 sm:w-auto sm:min-w-[10.5rem]"

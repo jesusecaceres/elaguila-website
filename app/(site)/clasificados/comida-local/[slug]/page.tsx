@@ -61,7 +61,13 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
       title,
       description: description || fallbackDescription,
       url: canonical,
-      images: mainImageSrc ? [{ url: mainImageSrc }] : undefined,
+      images: mainImageSrc ? [{ url: mainImageSrc, alt: row.business_name.trim() }] : undefined,
+    },
+    twitter: {
+      card: mainImageSrc ? "summary_large_image" : "summary",
+      title,
+      description: description || fallbackDescription,
+      images: mainImageSrc ? [mainImageSrc] : undefined,
     },
   };
 }

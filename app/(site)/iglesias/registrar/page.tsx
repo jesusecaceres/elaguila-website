@@ -11,8 +11,8 @@ export async function generateMetadata(props: { searchParams?: Promise<{ lang?: 
   const title = lang === "en" ? "Register a church" : "Registrar una iglesia";
   const description =
     lang === "en"
-      ? "Submit your congregation for review. Leonix publishes churches only after human review."
-      : "Envía tu congregación a revisión. Leonix publica iglesias solo después de una revisión humana.";
+      ? "Submit your congregation. Clear applications may publish automatically; exceptions receive human review."
+      : "Envía tu congregación. Las solicitudes claras pueden publicarse automáticamente; las excepciones reciben revisión humana.";
   return {
     title,
     description,

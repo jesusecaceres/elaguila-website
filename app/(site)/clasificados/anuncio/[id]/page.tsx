@@ -2136,6 +2136,7 @@ function AnuncioDetallePageContent() {
                     isFree={listing.isFree ?? false}
                     priceLabel={listing.priceLabel[lang]}
                     listingId={listing.id}
+                    listingTitle={proseListing!.title[lang]}
                     ownerUserId={(listing as { owner_id?: string | null }).owner_id ?? null}
                     contactEmail={(listing as { contact_email?: string | null }).contact_email ?? null}
                   />

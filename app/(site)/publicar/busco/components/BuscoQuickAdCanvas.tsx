@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { FaFacebook, FaInstagram, FaTiktok, FaWhatsapp, FaYoutube } from "react-icons/fa";
-import { FiExternalLink, FiMail, FiMapPin, FiMessageSquare, FiPhone, FiShare2 } from "react-icons/fi";
+import { FiExternalLink, FiMail, FiMapPin, FiMessageSquare, FiPhone } from "react-icons/fi";
 
 import {
   buildMailtoHref,
@@ -10,8 +9,8 @@ import {
   buildTelHref,
   buildWhatsAppUrl,
 } from "@/app/lib/digitalContact/humanConnection/nativeChannelHrefs";
-import { tryWebShare, copyToClipboard } from "@/app/components/cta/ctaLaunchers";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import { LeonixTrustFooter } from "@/app/(site)/clasificados/components/leonixShell/LeonixTrustFooter";
 import { LEONIX_SHELL } from "@/app/(site)/clasificados/components/leonixShell/leonixShellTheme";
 import {
@@ -124,14 +123,19 @@ export function BuscoQuickAdCanvas({
   lang,
   shell = "standalone",
   contactSectionId,
+  listingId,
+  publicUrl,
 }: {
   vm: BuscoQuickAdViewModel;
   lang: Lang;
   shell?: "standalone" | "embedded";
   contactSectionId?: string;
+  /** Real published row UUID; omitted in Preview. */
+  listingId?: string | null;
+  /** Canonical public URL; omitted in Preview so private preview routes never leak. */
+  publicUrl?: string | null;
 }) {
   const t = COPY[lang];
-  const [shareHint, setShareHint] = useState<string | null>(null);
   const urgencyLabel = vm.urgency !== "normal" ? labelBuscoUrgency(vm.urgency, lang) : null;
   const chips = [vm.typeLabel, vm.locationSummary].filter(Boolean);
 
@@ -181,17 +185,6 @@ export function BuscoQuickAdCanvas({
     ...(isVoluntarios ? [{ key: "volCount", label: t.volunteersCount, value: d.volunteersCount }] : []),
     { key: "when", label: t.whenNeeded, value: d.whenNeeded },
   ];
-
-  const shareTitle = vm.title || t.categoryLabel;
-  const shareUrl = typeof window !== "undefined" ? window.location.href : "";
-  const onShare = async () => {
-    const res = await tryWebShare({ title: shareTitle, url: shareUrl });
-    if (res === "unsupported") {
-      const ok = await copyToClipboard(shareUrl);
-      setShareHint(ok ? t.shareCopied : null);
-      window.setTimeout(() => setShareHint(null), 2500);
-    }
-  };
 
   const articleClass =
     shell === "standalone"
@@ -306,17 +299,17 @@ export function BuscoQuickAdCanvas({
           </CommunityPremiumCanvasCard>
         ) : null}
 
-        {/* Section O — native Share, both preview and published render this same canvas. */}
+        {/* Section O — one global Leonix Share drawer. Preview has no canonical URL/id. */}
         <div>
-          <button
-            type="button"
-            onClick={() => void onShare()}
-            className="inline-flex min-h-[40px] items-center gap-2 rounded-xl border border-[#C9B46A] bg-[#FCF9F2] px-3.5 py-2 text-sm font-bold text-[#2A2826] shadow-sm transition hover:opacity-95"
-          >
-            <FiShare2 className="h-4 w-4 shrink-0" aria-hidden />
-            {t.share}
-          </button>
-          {shareHint ? <span className="ml-2 text-xs font-medium text-[#5C564E]">{shareHint}</span> : null}
+          <LeonixShareButton
+            listingId={listingId ?? null}
+            listingUrl={publicUrl ?? undefined}
+            listingTitle={vm.title || t.categoryLabel}
+            shareText={vm.description?.trim() || null}
+            category="busco"
+            lang={lang}
+            persistEngagement={Boolean(listingId)}
+          />
         </div>
 
         {/* Section I — real Google Maps embed from approximate location, no invented coordinates. */}

@@ -72,6 +72,8 @@ function read(relPath: string): string {
   assert.equal(buildWhatsAppUrl(""), null, "blank WhatsApp number must not produce a wa.me href");
 
   const canvas = read("app/(site)/publicar/community/shared/preview/CommunityContactCanvas.tsx");
+  assert.ok(canvas.includes("const smsHref = buildSmsHref(draft.smsPhone, smsBody);"), "SMS must use only the explicit SMS field, never fall back to the call phone");
+  assert.ok(!canvas.includes("draft.smsPhone.trim() ? draft.smsPhone : draft.phone"), "blank SMS must not silently reuse the call phone");
   assert.ok(canvas.includes("const waDigits = communityWhatsAppDigits(draft.whatsapp);"), "WhatsApp digits must be derived, not passed raw");
   assert.ok(canvas.includes("const waHref = waDigits ? buildWhatsAppUrl(waDigits, smsBody) : null;"), "WhatsApp href must be null (no CTA) when digits are blank/invalid");
   console.log("OK: blank phone/SMS/WhatsApp never produce a renderable CTA");

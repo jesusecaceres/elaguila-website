@@ -12,7 +12,7 @@ import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertas
 import { OfertasLocalesFiltersDrawer } from "./OfertasLocalesFiltersDrawer";
 import { OfertasLocalesPublicItemCard } from "./OfertasLocalesPublicItemCard";
 import { OfertasLocalesPublicItemDetailDrawer } from "./OfertasLocalesPublicItemDetailDrawer";
-import { OfertasLocalesPublicOfferCard } from "./OfertasLocalesPublicOfferCard";
+import { OfertasLocalesTranslatedOfferCard } from "./OfertasLocalesTranslatedOfferCard";
 import { OfertasLocalesPublicOfferDetailDrawer } from "./OfertasLocalesPublicOfferDetailDrawer";
 import { OfertasLocalesShoppingListPanel } from "./OfertasLocalesShoppingListPanel";
 import { ofertasLocalesPublicSearchCopy, ofertasLocalesResultModeCopy, ofertasLocalesCuponesResultsIntroCopy, parseOfertasLocalesResultMode, resolveOfertasLocalesShopperMode, ofertasLocalesShopperModePresentation, filterOfertasLocalesOffersForShopperMode, filterOfertasLocalesItemsForShopperMode } from "./ofertasLocalesPublicSearchCopy";
@@ -529,7 +529,7 @@ export function OfertasLocalesPublicSearchClient({
         <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
           {filteredOffers.map((offer) => (
             <li key={offer.id}>
-              <OfertasLocalesPublicOfferCard
+              <OfertasLocalesTranslatedOfferCard
                 lang={lang}
                 offer={offer}
                 surface={surface}

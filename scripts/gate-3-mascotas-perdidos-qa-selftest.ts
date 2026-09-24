@@ -128,14 +128,14 @@ function row(overrides: Partial<MascotasPerdidosListingBrowseRow>): MascotasPerd
   console.log("OK: 19-21 Facebook + Instagram supported, blank socials hidden");
 }
 
-// 22-23. Native Share wired, no fake Likes
+// 22-23. Shared Leonix Share drawer wired, no fake Likes
 {
   const canvas = read("app/(site)/publicar/mascotas-y-perdidos/components/MascotasPerdidosQuickAdCanvas.tsx");
-  assert.ok(canvas.includes("tryWebShare") && canvas.includes("copyToClipboard"), "expected native share + clipboard fallback");
+  assert.ok(canvas.includes("LeonixShareButton") && !canvas.includes("directNativeShare"), "expected shared Leonix Share drawer");
   assert.ok(!/\blikes?\b/i.test(canvas), "must not add Likes");
   const cardModel = read("app/(site)/clasificados/mascotas-y-perdidos/shared/mascotasPerdidosCardModel.ts");
   assert.ok(!/\blikes?\b|\bsaves?\b|\bviews?\b/i.test(cardModel), "result-card model must not add fake Likes/Saves/Views");
-  console.log("OK: 22-23 native Share wired (navigator.share + clipboard fallback, no custom provider picker); no fake Likes/Saves/Views");
+  console.log("OK: 22-23 shared Leonix Share drawer wired; no fake Likes/Saves/Views");
 }
 
 // 24-27. Confirmations block Preview, second verification, form CTA, preview actions

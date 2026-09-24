@@ -188,8 +188,7 @@ export function CommunityContactCanvas({
   const telHref = buildTelHref(draft.phone);
   const waDigits = communityWhatsAppDigits(draft.whatsapp);
   const waHref = waDigits ? buildWhatsAppUrl(waDigits, smsBody) : null;
-  const smsRaw = draft.smsPhone.trim() ? draft.smsPhone : draft.phone;
-  const smsHref = buildSmsHref(smsRaw, smsBody);
+  const smsHref = buildSmsHref(draft.smsPhone, smsBody);
   const email = draft.email.trim();
   const web = websiteHref(draft.website);
 

@@ -10,7 +10,8 @@ import {
 } from "@/app/(site)/publicar/community/shared/taxonomy/communityTaxonomy";
 import { formatTimeForDisplay, getActiveWeeklyScheduleGridItems } from "@/app/publicar/community/shared/lib/communityWeeklySchedule";
 import { CommunityWeeklyScheduleAligned } from "@/app/publicar/community/shared/preview/CommunityWeeklyScheduleAligned";
-import { trackListingShare } from "@/app/lib/clasificadosAnalytics";
+import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import { LEONIX_SITE_ORIGIN } from "@/app/lib/leonixBrand";
 import { trackCommunityLikeToggle } from "@/app/lib/clasificados/comunidad/comunidadClasesBuscoGlobalAnalytics";
 import { trackListingSaveToggleAuthed } from "@/app/lib/analytics/client/listingEngagementRecorder";
 import {
@@ -56,6 +57,7 @@ type Props = {
   isFree: boolean;
   priceLabel: string;
   listingId?: string;
+  listingTitle?: string;
   ownerUserId?: string | null;
   /** contact_email from DB row (not stored in detail pairs). */
   contactEmail?: string | null;
@@ -78,6 +80,7 @@ export function CommunityQuickAnuncioDetail({
   isFree,
   priceLabel,
   listingId,
+  listingTitle,
   ownerUserId,
   contactEmail,
 }: Props) {
@@ -195,33 +198,9 @@ export function CommunityQuickAnuncioDetail({
     },
   };
 
-  const shareUrl =
-    typeof window !== "undefined" && listingId
-      ? `${window.location.origin}/clasificados/anuncio/${listingId}?lang=${lang}`
-      : "";
-
-  const onShare = async () => {
-    if (!listingId) return;
-    const url = shareUrl || (typeof window !== "undefined" ? window.location.href : "");
-    try {
-      const nav = typeof navigator !== "undefined" ? navigator : null;
-      const shareFn = nav && typeof (nav as { share?: unknown }).share === "function" ? (nav as { share: (o: unknown) => Promise<void> }).share : null;
-      if (shareFn) {
-        await shareFn({ title: document.title, url });
-      } else if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(url);
-        alert(L ? "Enlace copiado" : "Link copied");
-      }
-      void trackListingShare(listingId, {
-        category,
-        ownerUserId: ownerUserId ?? undefined,
-        eventSource: "detail",
-        shareMethod: "community_quick_detail",
-      });
-    } catch {
-      /* ignore */
-    }
-  };
+  const shareUrl = listingId
+    ? `${LEONIX_SITE_ORIGIN}/clasificados/anuncio/${encodeURIComponent(listingId)}?lang=${lang}`
+    : "";
 
   /** Cast to satisfy CommunityContactCanvas Draft union — shape is compatible. */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -252,13 +231,16 @@ export function CommunityQuickAnuncioDetail({
 
       {listingId ? (
         <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            type="button"
-            className="rounded-full border border-[#C9B46A]/60 bg-[#FFFCF7] px-4 py-2 text-sm font-semibold text-[#2A2826] hover:bg-[#F0E6D2]"
-            onClick={() => void onShare()}
-          >
-            {L ? "Compartir" : "Share"}
-          </button>
+          <LeonixShareButton
+            listingId={listingId}
+            listingUrl={shareUrl}
+            listingTitle={listingTitle?.trim() || categoryDetail.sectionTitle}
+            lang={lang}
+            category={category}
+            ownerUserId={ownerUserId ?? undefined}
+            persistEngagement
+            variant="small"
+          />
           <LeonixSaveButton
             listingId={listingId}
             lang={lang}

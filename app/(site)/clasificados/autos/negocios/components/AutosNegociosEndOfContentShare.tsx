@@ -98,7 +98,6 @@ export function AutosNegociosEndOfContentShare({
         category="autos"
         persistEngagement={isPublic}
         recordShareEvent={record}
-        directNativeShare
         className="shrink-0"
       />
     </section>

@@ -288,10 +288,12 @@ function readSrc(relPath: string): string {
   const publishCopy = readSrc("app/(site)/publicar/community/shared/copy/communityPublishCopy.ts");
   assert.ok(!/en preparaci|in preparation/i.test(publishCopy), "paid-class copy must not use vague 'in preparation' wording anymore");
   assert.ok(publishCopy.includes("$24.99"), "paid-class copy must explicitly disclose the $24.99/30-day Leonix fee");
+  assert.ok(publishCopy.includes("Paid activation is not available here yet"), "paid-class copy must disclose unavailable activation");
 
   const formSrc = readSrc("app/(site)/publicar/clases/quick/ClasesQuickApplication.tsx");
   assert.ok(!/en preparaci|in preparation/i.test(formSrc), "form paid notice must not use vague 'in preparation' wording");
   assert.ok(formSrc.includes("$24.99"), "form paid notice must explicitly show $24.99");
+  assert.ok(formSrc.includes("paid activation is not available here yet"), "form paid notice must not promise checkout");
 
   const canvasSrc = readSrc("app/(site)/publicar/clases/components/ClasesQuickAdCanvas.tsx");
   assert.ok(!/en preparaci|in preparation/i.test(canvasSrc), "canvas paid notice must not use vague 'in preparation' wording");

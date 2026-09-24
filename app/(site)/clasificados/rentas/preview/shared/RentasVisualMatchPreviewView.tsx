@@ -11,7 +11,6 @@ import {
   FiMessageCircle,
   FiPhone,
   FiPlayCircle,
-  FiShare2,
 } from "react-icons/fi";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { trackListingLikeToggle } from "@/app/lib/analytics/client/listingEngagementRecorder";
@@ -26,7 +25,9 @@ import { LeonixChipFactsCard } from "@/app/clasificados/lib/LeonixChipFactsCard"
 import { LeonixOpenHouseSlotCards } from "@/app/clasificados/lib/LeonixOpenHouseSlotCards";
 import { useBrContactCtaSheet } from "@/app/clasificados/bienes-raices/shared/brContactCtaSheet";
 import { LeonixPreviewGalleryLightbox } from "@/app/clasificados/lib/LeonixPreviewGalleryLightbox";
-import { tryWebShare, copyToClipboard } from "@/app/components/cta/ctaLaunchers";
+import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import { LEONIX_SITE_ORIGIN } from "@/app/lib/leonixBrand";
+import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { BrRentasCommunityTrustSection } from "@/app/clasificados/lib/BrRentasCommunityTrustSection";
 import {
   trackRentasPhoneClick,
@@ -395,30 +396,9 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls, listingId, i
   const detailGroups = groupDetails(detailRows, lang);
   const featureText = uniqueFeatureText(cleanRows(vm.highlightsRows));
   const locationLine = vm.location.fullAddress || vm.location.cityStateZip;
-  const [shareCopied, setShareCopied] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
   const galleryCount = ph.length;
-
-  const handleNativeShare = useCallback(async () => {
-    const url = typeof window !== "undefined" ? window.location.href : "";
-    if (!url) return;
-
-    const title = vm.heroTitle?.trim() || (lang === "en" ? "Leonix Media" : "Leonix Media");
-
-    try {
-      const result = await tryWebShare({ title, text: title, url });
-      if (result === "shared" || result === "aborted") return;
-
-      const copied = await copyToClipboard(url);
-      if (copied) {
-        setShareCopied(true);
-        window.setTimeout(() => setShareCopied(false), 2000);
-      }
-    } catch {
-      // User cancelled native share or browser blocked it.
-    }
-  }, [vm.heroTitle, lang]);
 
   const handlePhoneClick = useCallback(() => {
     if (listingId) void trackRentasPhoneClick({ listingUuid: listingId });
@@ -797,21 +777,16 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls, listingId, i
                   : undefined
               }
             />
-            <button
-              type="button"
-              onClick={handleNativeShare}
-              className="inline-flex min-h-[40px] flex-1 items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-bold transition hover:bg-[#FBF7EF]"
-              style={{ borderColor: `${GOLD}88`, color: CHARCOAL }}
-            >
-              <FiShare2 className="h-4 w-4" />
-              {shareCopied
-                ? lang === "es"
-                  ? "Enlace copiado"
-                  : "Link copied"
-                : lang === "es"
-                  ? "Compartir"
-                  : "Share"}
-            </button>
+            <LeonixShareButton
+              listingId={listingId ?? null}
+              listingUrl={listingId ? `${LEONIX_SITE_ORIGIN}${rentasListingPublicPath(listingId)}` : ""}
+              listingTitle={vm.heroTitle}
+              variant="small"
+              lang={lang}
+              category="rentas"
+              persistEngagement={Boolean(listingId)}
+              className="min-h-[40px] flex-1 justify-center"
+            />
           </div>
           {c.showSolicitarInfo && brCta.hasEmail ? (
             <ActionSheetButton

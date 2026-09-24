@@ -83,10 +83,9 @@ function buildBuscoDetailPairs(d: BuscoQuickDraft): { label: string; value: stri
     pairs.push({ label: "Leonix:buscoContactPhoneAvailable", value: "1" });
     pairs.push({ label: "Leonix:phoneDigits", value: phoneDig });
   }
-  // WhatsApp: use explicit whatsapp field if filled, else fall back to phone
-  const effectiveWaDig = whatsappDig.length >= 10 ? whatsappDig : phoneDig;
-  if (effectiveWaDig.length >= 10) {
-    pairs.push({ label: "Leonix:whatsappDigits", value: effectiveWaDig });
+  // WhatsApp is an explicit channel. Never infer WhatsApp capability from the call number.
+  if (whatsappDig.length >= 10) {
+    pairs.push({ label: "Leonix:whatsappDigits", value: whatsappDig });
   }
   if (smsDig.length >= 10) {
     pairs.push({ label: "Leonix:smsPhone", value: smsDig });
