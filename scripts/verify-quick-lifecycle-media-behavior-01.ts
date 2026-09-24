@@ -44,7 +44,8 @@ function check(name: string, fn: () => void) {
     failures.push(`${name}: ${e instanceof Error ? e.message : String(e)}`);
   }
 }
-const read = (p: string) => readFileSync(p, "utf8");
+// LF-normalised so multi-line source patterns also hold on a CRLF (Windows autocrlf) checkout.
+const read = (p: string) => readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 
 // =============================================================================
 // SECTION A — LIFECYCLE CAPABILITY TRUTH

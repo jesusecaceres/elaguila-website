@@ -195,7 +195,7 @@ check("dedupe is a real database constraint, not merely an application-side chec
 
 check("publication hook calls only the never-throwing wrapper, not the raw orchestrator", () => {
   const hookCalls = serviceSrc.match(/triggerAutosSavedSearchMatchBestEffort\([^)]*\)/g) ?? [];
-  assert.equal(hookCalls.length, 2, `expected exactly 2 hook call sites (negocios + privado activation branches), found ${hookCalls.length}`);
+  assert.equal(hookCalls.length, 3, `expected exactly 3 hook call sites (negocios + privado activation branches + renewal activation), found ${hookCalls.length}`);
   assert.ok(!serviceSrc.includes("runAutosSavedSearchMatchOrchestration("), "the publish/activation service must never call the raw orchestrator directly — only the best-effort wrapper");
 });
 

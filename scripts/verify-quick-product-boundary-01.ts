@@ -51,7 +51,8 @@ import {
 } from "../app/lib/clasificados/bienes-raices/quickBienesPublishOperation";
 
 const ROOT = path.resolve(__dirname, "..");
-const read = (p: string) => readFileSync(path.join(ROOT, p), "utf8");
+// LF-normalised so multi-line source patterns also hold on a CRLF (Windows autocrlf) checkout.
+const read = (p: string) => readFileSync(path.join(ROOT, p), "utf8").replace(/\r\n/g, "\n");
 
 let checks = 0;
 function check(name: string, fn: () => void | Promise<void>): Promise<void> {
@@ -870,12 +871,13 @@ async function sectionD() {
         src.includes("readActiveAssistedPublishingContext("),
         `${p} still re-checks the live staff roster at redemption`,
       );
-      // The assisted routes are UNCONDITIONAL on purpose: a staff actor publishing on a
-      // customer's behalf is held to the subject-photo rule whatever the package, so this
-      // mission's product boundary cannot be used to weaken staff-assisted publishing.
+      // Superseded by the PRO/Quick lifecycle lock (see verify-quick-lifecycle-media-behavior-01 B16):
+      // a staff actor is held to the subject-photo rule for a proven QUICK product, while a proven
+      // Full/PRO product keeps its richer media. The route therefore resolves the product from
+      // server-owned records and gates only the Quick-specific caps on it; it is never a caller's choice.
       assert.ok(
-        !src.includes("resolveQuickBusinessPublishIdentity("),
-        `${p} must NOT become conditional on a product`,
+        src.includes("resolveQuickBusinessPublishIdentity(") && src.includes("assistedProduct.enforceQuickContract"),
+        `${p} must resolve the product server-side and gate only Quick-specific rules on it`,
       );
     }
   });
