@@ -13,6 +13,7 @@ import {
   saveComidaLocalDraftToStorage,
 } from "@/app/lib/clasificados/comida-local/comidaLocalDraftPersistence";
 import {
+  COMIDA_LOCAL_ASSISTED_REOPEN_UNSAFE_NOTICE,
   clearComidaLocalEditContext,
   comidaLocalDraftFromAssistedBoundRow,
   fetchOwnerComidaLocalListingForEdit,
@@ -450,6 +451,18 @@ export default function ComidaLocalApplicationClient() {
     assistedBound.markHydrated();
   }, [hasLoadedDraft, editListingId, assistedBound.status, assistedBound.shouldHydrate, assistedBound.bound, assistedBound.markHydrated, setDraft]);
 
+  // FAIL VISIBLY: a bound row the mapper cannot reconstruct safely (no usable listing_json AND below the
+  // legacy-column minimum, or no slug/draft_listing_id) must never open as a blank editable form, because
+  // Save-for-Client from it could overwrite the real row. Derived from the bound row on every render (not
+  // from `shouldHydrate`), so it also holds after `markHydrated()` and on a later return to this screen.
+  const assistedRowUnsafe = useMemo(
+    () =>
+      !editListingId &&
+      assistedBound.status === "ready" &&
+      comidaLocalDraftFromAssistedBoundRow(assistedBound.bound.row, assistedBound.bound.listingId) === null,
+    [editListingId, assistedBound.status, assistedBound.bound],
+  );
+
   const previewIssues = useMemo(() => validateComidaLocalDraftForPreview(draft, es), [draft, es]);
   const publishIssues = useMemo(() => validateComidaLocalDraftForFuturePublish(draft, es), [draft, es]);
   const publishReady = publishIssues.every((i) => i.severity !== "error");
@@ -706,6 +719,22 @@ export default function ComidaLocalApplicationClient() {
           >
             {es ? "Volver a Mis anuncios" : "Back to My listings"}
           </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (assistedRowUnsafe) {
+    // No form, no AssistedSaveForClientBar: nothing here can write to the bound row.
+    return (
+      <div className={cx("min-h-screen", PAGE_BG)}>
+        <div className="mx-auto max-w-lg px-4 py-16 text-center" role="alert" data-assisted-reopen-blocked="comida-local">
+          <p className="text-sm font-semibold text-red-900">
+            {es ? COMIDA_LOCAL_ASSISTED_REOPEN_UNSAFE_NOTICE.titleEs : COMIDA_LOCAL_ASSISTED_REOPEN_UNSAFE_NOTICE.titleEn}
+          </p>
+          <p className="mt-2 text-sm text-[#1E1814]/75">
+            {es ? COMIDA_LOCAL_ASSISTED_REOPEN_UNSAFE_NOTICE.bodyEs : COMIDA_LOCAL_ASSISTED_REOPEN_UNSAFE_NOTICE.bodyEn}
+          </p>
         </div>
       </div>
     );

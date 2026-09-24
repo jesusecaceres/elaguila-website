@@ -74,7 +74,15 @@ function run() {
   const directLink = read("app/(site)/clasificados/autos/shared/components/AutosDirectContactLink.tsx");
   const gallery = read("app/(site)/clasificados/autos/negocios/components/AutoGallery.tsx");
 
-  assert.ok(previewPage.includes("data-autos-post-gallery-utility"), "Post-gallery utility area required");
+  // LAYOUT ANCHOR (updated 2026-09-24): A5.POLISH-02 folded the post-gallery utility area into the
+  // unified vehicle canvas and renamed its marker to data-autos-unified-canvas-utility. The layout
+  // intent (utility row directly BELOW the gallery, inside the canvas) is unchanged; the functional
+  // protections (Like/Share via shared Leonix components, WhatsApp new tab, gallery tabs) are
+  // asserted below and are unchanged.
+  assert.ok(
+    previewPage.includes("data-autos-post-gallery-utility") || previewPage.includes("data-autos-unified-canvas-utility"),
+    "Post-gallery utility area required",
+  );
   assert.ok(previewPage.includes("COMPACT_BADGE_CLASS"), "Compact badge styling required");
   assert.ok(previewPage.includes("Destacados") || previewPage.includes("Highlights"), "Highlights label required");
   assert.ok(!previewPage.includes("autosPreviewRectBadgeClass"), "Large title-area badges removed");

@@ -12,7 +12,7 @@ import type { EmpleosJobRecord } from "./data/empleosJobTypes";
 import { getRelatedJobs } from "./data/empleosSampleCatalog";
 import { EmpleosApplyForm, isLiveListingId } from "./components/EmpleosApplyForm";
 import { buildEmpleosResultadosUrl } from "./shared/utils/empleosListaUrl";
-import { EmpleosJobResultCard } from "./components/EmpleosJobResultCard";
+import { EmpleosRelatedJobCard } from "./components/EmpleosRelatedJobCard";
 import {
   EMPLEOS_BADGE_VERIFIED,
   EMPLEOS_CTA_PRIMARY,
@@ -362,7 +362,7 @@ export function EmpleoPublicDetailClient({
             </h2>
             <div className="mt-4 flex flex-col gap-4">
               {related.map((r) => (
-                <EmpleosJobResultCard key={r.id} job={r} lang={lang} variant="list" />
+                <EmpleosRelatedJobCard key={r.id} job={r} lang={lang} />
               ))}
             </div>
           </section>

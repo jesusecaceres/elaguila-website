@@ -91,7 +91,22 @@ function run() {
 
   assert.ok(dealerStack.includes("AutosDirectContactLink"), "DealerBusinessStack uses direct contact");
   assert.ok(!dealerStack.includes("AutosSheetCtaLink"), "DealerBusinessStack must not use sheet CTA");
-  assert.ok(!dealerStack.includes("CtaActionSheet"), "No call/message modal in dealer stack");
+  // Superseded 2026-09-24 (owner decision 61e26a19d, "approved Correo/Email contact sheet"): the
+  // dealer stack now legitimately mounts ONE CtaActionSheet — for the send_email intent only
+  // (Copy email / Copy message / Share; no mailto launcher). The functional contract this line
+  // protects is unchanged: Call / SMS / WhatsApp / Directions / Website never open a modal. So
+  // the invariant is: the only sheet intent built in the stack is send_email.
+  {
+    const intentBuilders = [...dealerStack.matchAll(/\b(build\w*Intent)\s*\(/g)].map((m) => m[1]);
+    assert.ok(
+      intentBuilders.every((n) => n === "buildSendEmailIntent"),
+      `No call/message/directions modal in dealer stack — only the approved email sheet may be built (found: ${[...new Set(intentBuilders)].join(", ") || "none"})`,
+    );
+    assert.ok(
+      !/buildCallIntent|buildSendMessageIntent|buildWhatsAppMessageIntent|buildSmsMessageIntent|buildDirectionsIntent|buildWebsiteIntent/.test(dealerStack),
+      "Call / SMS / WhatsApp / Directions / Website sheet builders are never used in the dealer stack",
+    );
+  }
   assert.ok(dealerStack.includes("c.callTelHref"), "Call tel href path preserved");
   assert.ok(dealerStack.includes("c.smsHref"), "SMS href path preserved");
   assert.ok(dealerStack.includes("c.whatsappHref"), "WhatsApp href path preserved");
@@ -108,16 +123,34 @@ function run() {
   assert.ok(engagement.includes("autosGlobalLikeRecorderFromContext"), "listing_like recorder preserved");
   assert.ok(!engagement.match(/Te gusta|Me gusta/), "No visible Me gusta/Te gusta in engagement row");
 
-  assert.ok(shareBtn.includes("navigator.share"), "Share button supports native share");
-  assert.ok(shareBtn.includes("clipboard.writeText"), "Clipboard fallback required");
+  // Updated 2026-09-24: native share + clipboard fallback moved into the shared CTA launchers
+  // (ctaLaunchers.tryWebShare / copyToClipboard) that LeonixShareButton now delegates to. The
+  // functional contract is unchanged: native share when available, clipboard fallback otherwise.
+  const launchers = read("app/components/cta/ctaLaunchers.ts");
+  assert.ok(shareBtn.includes("tryWebShare(") && launchers.includes("navigator.share"), "Share button supports native share (via shared tryWebShare)");
+  assert.ok(shareBtn.includes("copyToClipboard(") && launchers.includes("clipboard.writeText"), "Clipboard fallback required (via shared copyToClipboard)");
 
   assert.ok(mapsLib.includes("google.com/maps"), "Google Maps directions builder required");
-  assert.ok(previewPage.includes("AutosEngagementRow"), "Public engagement row preserved");
+  // Updated 2026-09-24: the Negocios (Dealer) preview/public page no longer mounts AutosEngagementRow
+  // (A5.POLISH-01/02 moved Like/Share into the compact utility strip below the gallery; that row
+  // remains the Privado engagement component). The functional contract is unchanged and asserted on
+  // the strip: public DB-backed Like + real share recorders when public, truthful preview Like (no
+  // fake analytics) when not, Share via the shared Leonix drawer component.
+  const strip = read("app/(site)/clasificados/autos/negocios/components/AutosNegociosPreviewEngagementStrip.tsx");
+  assert.ok(strip.includes("LeonixLikeButton") && strip.includes("persistEngagement") && strip.includes("autosGlobalLikeRecorderFromContext"), "Public DB-backed Like preserved (in the Negocios engagement strip)");
+  assert.ok(strip.includes("persistEngagement={false}"), "Preview Like does not fake analytics");
+  assert.ok(strip.includes("LeonixShareButton") && strip.includes("autosGlobalShareRecorderFromContext") && !strip.includes("directNativeShare"), "Share uses the shared Leonix drawer + real listing_share recorder (Negocios strip)");
+  assert.ok(previewPage.includes("publicAnalytics={publicPlaybackOnly ? publicAnalytics : undefined}"), "Public analytics identity is passed to the strip only for the real public page");
+  assert.ok(!previewPage.includes("AutosEngagementRow"), "No duplicate Like/Share row on the Negocios page (strip is the only one)");
   assert.ok(previewPage.includes("AutosNegociosPreviewEngagementStrip"), "Preview engagement strip required");
   assert.ok(previewPage.includes("DealerBusinessStack"), "Main listing preview card preserved");
 
-  assert.ok(resultsPreview.includes("aspect-[16/10]"), "Compact result card image ratio");
-  assert.ok(resultsPreview.includes("autosPreviewBurgundyPrimaryBtnClass"), "Burgundy CTA style");
+  // HISTORICAL / LAYOUT-ONLY (reclassified 2026-09-24): the compact results-card image ratio
+  // (16/10) and the burgundy primary-CTA class were purely visual choices later superseded by the
+  // premium results-card refinement (4/3 image, current card styling — see A5.POLISH-32/33/34).
+  // They protect no functional contract, so they no longer gate. What still matters: the card
+  // exists, renders a media area and is the Negocios-local component wired by the preview client.
+  assert.ok(/aspect-\[\d+\/\d+\]/.test(resultsPreview), "Results card still renders a fixed-aspect media area");
   assert.ok(previewClient.includes("AutosNegociosResultsCardPreview"), "Negocios-local results preview import");
   assert.ok(!previewClient.includes("publicar/autos/negocios/components/AutosNegociosResultsCardPreview"), "No locked publicar results preview import");
 

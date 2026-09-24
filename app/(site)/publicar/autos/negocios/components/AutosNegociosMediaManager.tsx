@@ -53,6 +53,7 @@ export function AutosNegociosMediaManager({
   sectionId = "autos-clasificados-app-media",
   lang,
   insideModal = false,
+  applyBusinessPlanLimits = true,
 }: {
   listing: AutoDealerListing;
   setListingPatch: (patch: Partial<AutoDealerListing>) => void;
@@ -61,9 +62,15 @@ export function AutosNegociosMediaManager({
   sectionId?: string;
   lang?: AutosNegociosLang;
   insideModal?: boolean;
+  /**
+   * Autos DEALER only: `?plan=quick` (Quick 3 images / no video) is a dealer-package signal read from
+   * the URL. Autos PRIVADO is a flat-priced product with no Quick/Full split, so its application
+   * passes `false` and this manager never applies the Quick image/video limits to a private seller.
+   */
+  applyBusinessPlanLimits?: boolean;
 }) {
   const searchParams = useSearchParams();
-  const isQuickBusinessPlan = businessPlanFromSearchParams(searchParams) === "quick";
+  const isQuickBusinessPlan = applyBusinessPlanLimits && businessPlanFromSearchParams(searchParams) === "quick";
   const imageLimit = isQuickBusinessPlan ? 3 : null;
   const m = copy.media;
   const images = sortByOrder(listing.mediaImages ?? []);

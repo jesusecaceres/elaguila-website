@@ -643,6 +643,7 @@ export function AutosPrivadoApplication() {
               setListingPatch={setListingPatch}
               copy={t}
               hideDealerLogo
+              applyBusinessPlanLimits={false}
               sectionId="autos-clasificados-app-media"
               lang={lang}
             />

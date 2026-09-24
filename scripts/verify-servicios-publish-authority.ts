@@ -89,13 +89,26 @@ check("B1: the strict payment guard uses the strict rule", () => {
   assert.match(PUBLISH, /isServiciosListingOwner\(existingForGuard\?\.owner_user_id, ownerUserId\)/);
 });
 check("B1: the write itself re-checks ownership and can never re-assign owner_user_id", () => {
-  const start = PUBLISH.indexOf("if (existing) {");
-  const block = PUBLISH.slice(start, PUBLISH.indexOf("} else {", start));
+  // Structure (post staff-assisted bridge): `if (existing) { <assisted branch> } else if (existing) {
+  // <customer/owner branch> } else if (existingListingIdRaw) { <fail closed> } else { <insert> }`.
+  // The CUSTOMER branch is the `else if (existing)` one; the first `if (existing)` is the
+  // assisted-custody branch, whose owner handling is protected by verify-p0-final-assisted-
+  // publishing-bridge-01 (owner may only come from the signed-context client, never the staff actor).
+  const start = PUBLISH.indexOf("} else if (existing) {");
+  assert.ok(start > 0, "customer/owner update branch (`else if (existing)`) must exist");
+  const end = PUBLISH.indexOf("} else if (existingListingIdRaw) {", start);
+  assert.ok(end > start, "customer branch must be followed by the declared-edit fail-closed branch");
+  const block = PUBLISH.slice(start, end);
   assert.match(block, /if \(!isServiciosListingOwner\(existing\.owner_user_id, ownerUserId\)\)/);
   assert.ok(!/owner_user_id:\s*ownerUserId/.test(block), "an update of an existing row must not write owner_user_id");
-  const persist = PUBLISH.slice(start, PUBLISH.indexOf(".insert(insertRow)"));
-  assert.match(persist, /else if \(existingListingIdRaw\)/, "declared edit with a missing row must not reach INSERT");
-  assert.match(persist, /insert_forbidden/, "the persist site must refuse INSERT when existingListingId was supplied");
+  assert.ok(!/owner_user_id\s*:/.test(block), "the owner update must not write owner_user_id at all");
+  const failClosed = PUBLISH.slice(end, PUBLISH.indexOf(".insert(insertRow)", end));
+  assert.match(failClosed, /insert_forbidden/, "the persist site must refuse INSERT when existingListingId was supplied");
+  assert.match(failClosed, /listing_not_found/);
+  // The assisted branch's INSERT is likewise unreachable for a declared existing id.
+  const assistedPersist = PUBLISH.slice(PUBLISH.indexOf("if (existing) {"), PUBLISH.indexOf(".insert(insertRow)"));
+  assert.match(assistedPersist, /else if \(existingListingIdRaw\)/, "declared edit with a missing row must not reach INSERT (assisted)");
+  assert.match(assistedPersist, /insert_forbidden/);
 });
 check("B1: allocateSlug returns an UNUSED slug, so a refused claim can only create its own new row", () => {
   const fn = PUBLISH.slice(PUBLISH.indexOf("async function allocateSlug"), PUBLISH.indexOf("function stripAdvertiserVerificationFlags"));
@@ -273,11 +286,23 @@ check("B3: an unknown status fails CLOSED", () => {
   );
 });
 check("B3: the publish route refuses locked rows on BOTH the guard and the write site", () => {
-  const guard = PUBLISH.slice(PUBLISH.indexOf("if (strict && isSupabaseAdminConfigured() && !pendingPayment)"), PUBLISH.indexOf("const listingStatus = pendingPayment"));
+  // Guard: the strict payment guard (customer requests; assisted requests skip it and are covered
+  // by their own locked-status refusal in the assisted branch below).
+  const gStart = PUBLISH.indexOf("if (strict && isSupabaseAdminConfigured() && !pendingPayment");
+  assert.ok(gStart > 0, "strict payment guard must exist");
+  const guard = PUBLISH.slice(gStart, PUBLISH.indexOf("const allowedOwnerRepublish", gStart));
   assert.match(guard, /SERVICIOS_LEONIX_LOCKED_STATUSES\.has\(/);
   assert.match(guard, /serviciosListingLockedResponse\(slug, lang\)/);
-  const write = PUBLISH.slice(PUBLISH.indexOf("if (existing) {"));
-  assert.match(write, /saveDecision\.reason === "listing_locked_by_leonix"/);
+  // Write site, customer branch: the owner-save decision refuses locked rows.
+  const cStart = PUBLISH.indexOf("} else if (existing) {");
+  const customerWrite = PUBLISH.slice(cStart, PUBLISH.indexOf("} else if (existingListingIdRaw) {", cStart));
+  assert.match(customerWrite, /saveDecision\.reason === "listing_locked_by_leonix"/);
+  assert.match(customerWrite, /serviciosListingLockedResponse\(slug, lang\)/);
+  // Write site, assisted branch: staff custody never bypasses a Leonix lock either.
+  const aStart = PUBLISH.indexOf("if (existing) {");
+  const assistedWrite = PUBLISH.slice(aStart, cStart);
+  assert.match(assistedWrite, /SERVICIOS_LEONIX_LOCKED_STATUSES\.has\(existingStatus\)/);
+  assert.match(assistedWrite, /serviciosListingLockedResponse\(slug, lang\)/);
 });
 check("B3: payment-suspension recovery stays with the Revenue OS lifecycle (webhook still refuses locked rows)", () => {
   assert.match(FULFILL, /status === "suspended" \|\| status === "rejected"/);

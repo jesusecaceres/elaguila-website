@@ -85,7 +85,9 @@ export const LANE_MEDIA_REGISTRY: readonly LaneMediaRecord[] = [
     images: { kind: "counted", min: 1, max: 8 },
     logoSupported: false,
     hero: "hero-first-storage",
-    maxExternalVideos: 1,
+    // RENTAS_MAX_EXTERNAL_VIDEO_URLS = 4 (rentasMachineDetailPairs.ts) — form MAX_VIDEO_URLS = 4,
+    // persisted as Leonix:rent:video_url[_2..4] detail pairs, publish contract aligned (was 1 / 0).
+    maxExternalVideos: 4,
     videoValidator: "regex-only",
     mediaOwner: "self",
     editSurface: "category-editor",
@@ -103,7 +105,8 @@ export const LANE_MEDIA_REGISTRY: readonly LaneMediaRecord[] = [
     images: { kind: "counted", min: 1, max: 8 },
     logoSupported: false,
     hero: "hero-first-storage",
-    maxExternalVideos: 1,
+    // Same shared Rentas video rule as rentas_privado (RENTAS_MAX_EXTERNAL_VIDEO_URLS = 4).
+    maxExternalVideos: 4,
     videoValidator: "regex-only",
     mediaOwner: "self",
     editSurface: "category-editor",
@@ -189,7 +192,11 @@ export const LANE_MEDIA_REGISTRY: readonly LaneMediaRecord[] = [
   {
     pipeline: "autos_privado",
     lane: "privado",
-    // No enforced count cap (AUTOS_FREE/PRO constants are dead code — confirmed unimported).
+    // No enforced count cap (AUTOS_FREE/PRO constants are dead code — confirmed unimported, marked
+    // NON-AUTHORITATIVE in their files). Autos Privado is flat-priced (autos_privado_30d); it does
+    // NOT inherit the Quick 3-image / no-video limits (those are Dealer-only, see
+    // AutosNegociosMediaManager `applyBusinessPlanLimits`). Pinned by
+    // scripts/verify-launch-media-rules-autos-privado-rentas-01.ts.
     images: { kind: "uncapped", min: 0 },
     logoSupported: false,
     hero: "index",

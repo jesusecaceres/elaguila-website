@@ -41,7 +41,12 @@ import {
   type PublishLeonixRealEstateListingCoreParams,
   type PublishLeonixRealEstateListingCoreResult,
 } from "@/app/clasificados/lib/leonixPublishRealEstateListingCore";
-import { mergeRentasNegocioMachinePairs, mergeRentasPrivadoMachinePairs } from "@/app/clasificados/rentas/lib/rentasMachineDetailPairs";
+import {
+  mergeRentasNegocioMachinePairs,
+  mergeRentasPrivadoMachinePairs,
+  RENTAS_MAX_EXTERNAL_VIDEO_URLS,
+  rentasVideoUrls,
+} from "@/app/clasificados/rentas/lib/rentasMachineDetailPairs";
 import { brCanonicalNorCalCity } from "@/app/clasificados/bienes-raices/shared/brNorCalCity";
 import {
   canonicalRentasCityForPublish,
@@ -52,7 +57,20 @@ import {
   buildProposedFinalMediaSet,
   validateProposedFinalMediaSet,
   warnDroppedUnpersistableMedia,
+  isPersistableMediaUrl,
 } from "@/app/lib/media/listingMediaContract";
+
+/**
+ * Rentas external-video entry normaliser (BOTH lanes). Rentas video is a lightweight external LINK
+ * (up to RENTAS_MAX_EXTERNAL_VIDEO_URLS, http(s) only — the exact set `rentasVideoUrls` persists as
+ * Leonix:rent:video_url detail pairs); local video files / blob: / data: never persist. Deliberately
+ * no provider whitelist and no https-only tightening: this aligns the contract to what the form
+ * already accepts and the persist step already stores, it does not add a product restriction.
+ */
+function normalizeRentasExternalVideoUrl(raw: string): string | null {
+  const v = String(raw ?? "").trim();
+  return isPersistableMediaUrl(v) ? v : null;
+}
 
 /**
  * Globalization Package B (Gate B6) — shared media contract, additive gate. Deliberately does
@@ -361,13 +379,17 @@ export function buildRentasPrivadoListingParams(
   // already computed by this engine on every call and then discarded, so a photo that failed to
   // become a durable URL simply vanished from the published listing with nothing recorded.
   // Observability only: the gallery handed downstream is byte-for-byte the same list.
-  const rentasPrivadoProposedMedia = buildProposedFinalMediaSet({ existing: orderedGallery });
+  const rentasPrivadoProposedMedia = buildProposedFinalMediaSet({
+    existing: orderedGallery,
+    externalVideoUrls: rentasVideoUrls(state.media),
+  });
   warnDroppedUnpersistableMedia("rentas privado publish", rentasPrivadoProposedMedia);
   const rentasPrivadoMedia = validateProposedFinalMediaSet(rentasPrivadoProposedMedia, {
     minImages: 0,
     maxImages: 8,
     logoAllowed: false,
-    maxExternalVideos: 0,
+    maxExternalVideos: RENTAS_MAX_EXTERNAL_VIDEO_URLS,
+    normalizeExternalVideoUrl: normalizeRentasExternalVideoUrl,
   });
   if (!rentasPrivadoMedia.ok) {
     return { ok: false, error: leonixRealEstateMediaCountError(orderedGallery.length, 8, lang) };
@@ -621,13 +643,17 @@ export function buildRentasNegocioListingParams(
   }
   // Gate B6 — additive max-count re-certification (mirrors rentas_privado's registry cap).
   // Gate RENTAS-NEGOCIO-1 — same shared media-drop warning as the Privado boundary above.
-  const rentasNegocioProposedMedia = buildProposedFinalMediaSet({ existing: orderedGallery });
+  const rentasNegocioProposedMedia = buildProposedFinalMediaSet({
+    existing: orderedGallery,
+    externalVideoUrls: rentasVideoUrls(state.media),
+  });
   warnDroppedUnpersistableMedia("rentas negocio publish", rentasNegocioProposedMedia);
   const rentasNegocioMedia = validateProposedFinalMediaSet(rentasNegocioProposedMedia, {
     minImages: 0,
     maxImages: 8,
     logoAllowed: false,
-    maxExternalVideos: 0,
+    maxExternalVideos: RENTAS_MAX_EXTERNAL_VIDEO_URLS,
+    normalizeExternalVideoUrl: normalizeRentasExternalVideoUrl,
   });
   if (!rentasNegocioMedia.ok) {
     return { ok: false, error: leonixRealEstateMediaCountError(orderedGallery.length, 8, lang) };

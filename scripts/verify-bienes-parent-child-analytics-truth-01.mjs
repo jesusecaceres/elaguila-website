@@ -42,8 +42,13 @@ const liveMountRel = "app/(site)/clasificados/bienes-raices/listing/BrLiveDetail
 const detailLayoutRel = "app/(site)/clasificados/en-venta/listing/EnVentaAnuncioLayout.tsx";
 const resultsCardRel =
   "app/(site)/clasificados/bienes-raices/resultados/cards/BienesRaicesNegocioCard.tsx";
+// UPDATED 2026-09-24: BienesRaicesNegocioPreviewView.tsx was deleted as confirmed-dead code (commit
+// 9e81e6290, "dead-code cleanup" — the /bienes-raices/preview/negocio route renders
+// AgenteIndividualResidencialPreviewClient/Page, not that view). The live BR Negocio DRAFT preview
+// is the agente-individual preview page below; the contract "a draft preview never records real
+// likes/shares" is now protected against that real surface.
 const previewViewRel =
-  "app/(site)/clasificados/bienes-raices/preview/BienesRaicesNegocioPreviewView.tsx";
+  "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewPage.tsx";
 const ownerQueryRel = "app/(site)/dashboard/lib/ownerListingsQuery.ts";
 const adminTableRel = "app/admin/(dashboard)/workspace/clasificados/AdminListingsTable.tsx";
 const manageCardRel = "app/(site)/dashboard/components/LeonixRealEstateListingManageCard.tsx";
@@ -93,8 +98,14 @@ assert(bundle.includes("inventoryRole: \"inventory_property\""), "Child role is 
 
 // 5 Public links use exact record identity
 assert(resultsCard.includes("leonixLiveAnuncioPath"), "Results card builds path from listing id");
-assert(resultsCard.includes("listingUuid={listing.id}"), "Results engagement uses card listing UUID");
-assert(resultsCard.includes("BrEngagementRow"), "Results card uses BrEngagementRow");
+// UPDATED 2026-09-24: the results grid card was deliberately trimmed to result-card density
+// (commit 9e81e6290): no engagement widget on results — Like/Share live on the detail page (asserted
+// below via EnVentaAnuncioLayout + BrEngagementRow). The identity/analytics truth that remains on the
+// card: its link and its click analytics are bound to THIS card's exact listing record (UUID), and it
+// mounts no engagement row that could show a fake count.
+assert(resultsCard.includes("brAnalyticsContextFromListing(listing)") && resultsCard.includes("trackBrResultCardClickGlobal"), "Results card click analytics are bound to the card's own listing record");
+assert(resultsCard.includes("listingDetailHref(listing.id, lang)"), "Results card link uses the card's exact listing UUID");
+assert(!resultsCard.includes("BrEngagementRow"), "Results card mounts no engagement widget (trimmed result-card density)");
 assert(!resultsCard.includes("LeonixSaveButton"), "Results card must not show fake/unready save");
 
 // 6–9 Like/share + count display
@@ -124,8 +135,17 @@ assert(liveMount.includes("trackBrListingViewGlobal"), "Live mount records listi
 assert(liveMount.includes("trackBrListingOpenGlobal"), "Live mount records listing_open");
 
 // Preview truthful disabled engagement
-assert(previewView.includes("BrEngagementRow"), "Draft preview shows engagement placement");
-assert(previewView.includes('mode="preview"'), "Draft preview engagement is preview mode");
+// The live draft preview mounts no live engagement row and imports no like/share recorders, so it
+// cannot fabricate self-engagement analytics. (Live-vs-preview gating of BrEngagementRow itself is
+// asserted above via `mode === "preview"`.)
+assert(
+  !previewView.includes("trackBrLikeGlobal") && !previewView.includes("trackBrListingShareGlobal"),
+  "Draft preview cannot record real like/share analytics",
+);
+assert(
+  !previewView.includes("BrEngagementRow") || previewView.includes('mode="preview"'),
+  "Draft preview engagement (if mounted) is preview mode",
+);
 
 // CTA helpers present (metadata cta_click for non-allowlist names)
 assert(analytics.includes("google_business"), "Google Business CTA tracker");

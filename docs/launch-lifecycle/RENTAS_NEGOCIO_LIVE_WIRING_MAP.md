@@ -413,7 +413,7 @@ this category).**
 | Requirement | Evidence | Status |
 |---|---|---|
 | durable before checkout | the Negocio preview uploads photos/logo before `publishLeonixListingFromRentasNegocioDraft`, and surfaces a real upload error (naming `BLOB_READ_WRITE_TOKEN`) rather than publishing broken refs | **PROVEN** |
-| shared media contract consumed | `buildProposedFinalMediaSet` + `validateProposedFinalMediaSet` in `buildRentasNegocioListingParams` (max 8, `logoAllowed:false`, `maxExternalVideos:0`) | **PROVEN (LIVE-SHARED)** |
+| shared media contract consumed | `buildProposedFinalMediaSet` + `validateProposedFinalMediaSet` in `buildRentasNegocioListingParams` (max 8, `logoAllowed:false`, `maxExternalVideos:4` = RENTAS_MAX_EXTERNAL_VIDEO_URLS, fed with the persisted `rentasVideoUrls`) | **PROVEN (LIVE-SHARED)** |
 | no `data:`/`blob:` on a published row | `rejectUnsafeMedia` in the edit route | **PROVEN** |
 | edit hydration | gallery restored from `row.images`, http(s)-filtered | **PROVEN** |
 | republish persistence | `nextImages` falls back to `existing.images` | **PROVEN** |

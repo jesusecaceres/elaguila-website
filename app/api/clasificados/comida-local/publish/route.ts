@@ -232,6 +232,12 @@ export async function POST(req: NextRequest) {
     if (!linked) {
       return NextResponse.json({ ok: false, error: "listing_not_linked_to_business" }, { status: 403 });
     }
+    // Overwrite guard: an assisted save is allowed to be "not ready" (a pending draft), but a draft with
+    // NO business name is a blank/never-hydrated form, and applying it to an EXISTING row would write
+    // empty columns and an empty listing_json over the real listing. Refuse instead of blanking it.
+    if (!draft.businessName.trim()) {
+      return NextResponse.json({ ok: false, error: "assisted_draft_blank_for_existing_row" }, { status: 422 });
+    }
   }
 
   const slugBase = buildComidaLocalSlugBase({

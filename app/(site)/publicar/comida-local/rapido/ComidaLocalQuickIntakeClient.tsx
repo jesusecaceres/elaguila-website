@@ -37,7 +37,7 @@ import { resolveClasificadosPublishLang, withClasificadosPublishLang } from "@/a
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
 import type { ComidaLocalDraft, ComidaLocalFoodType } from "@/app/lib/clasificados/comida-local/comidaLocalTypes";
 import { createEmptyComidaLocalDraft } from "@/app/lib/clasificados/comida-local/createEmptyComidaLocalDraft";
-import { COMIDA_LOCAL_FOOD_TYPE_OPTIONS } from "@/app/lib/clasificados/comida-local/comidaLocalConstants";
+import { COMIDA_LOCAL_FOOD_TYPE_OPTIONS, COMIDA_LOCAL_GALLERY_MAX } from "@/app/lib/clasificados/comida-local/comidaLocalConstants";
 import { validateComidaLocalDraftForFuturePublish } from "@/app/lib/clasificados/comida-local/comidaLocalValidation";
 import { ensureComidaLocalDraftListingId } from "@/app/lib/clasificados/comida-local/comidaLocalImageNormalize";
 import { saveComidaLocalDraftToStorage } from "@/app/lib/clasificados/comida-local/comidaLocalDraftPersistence";
@@ -180,7 +180,17 @@ export function ComidaLocalQuickIntakeClient() {
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
-  const mediaContract = { minImages: 1 as const, maxImages: null, videoOptional: true as const, note: COPY.mediaIntro };
+  // NO-VIDEO POLICY: Comida Local does not promise or accept video. `videoOptional: true` is only the
+  // literal the shared Quick Classifieds contract TYPE requires; it renders nothing (QuickMediaStep is
+  // image/* only) and the publish validator forces `maxExternalVideos: 0`. Never add video copy or
+  // capture here. Photos are capped at what the flat base package can actually publish: the main photo
+  // plus COMIDA_LOCAL_GALLERY_MAX gallery photos (the draft merge would otherwise silently drop extras).
+  const mediaContract = {
+    minImages: 1 as const,
+    maxImages: 1 + COMIDA_LOCAL_GALLERY_MAX,
+    videoOptional: true as const,
+    note: COPY.mediaIntro,
+  };
 
   function next() {
     if (stepIndex < mediaIndex) {
@@ -222,7 +232,7 @@ export function ComidaLocalQuickIntakeClient() {
         const mainUploaded = await uploadComidaLocalDraftImage({ file: mainFile, role: "main", draftListingId });
         if (!mainUploaded.ok) throw new Error(mainUploaded.error);
         canonical = { ...canonical, mainPhoto: mainUploaded.image };
-        const rest = draft.media.slice(1, 6);
+        const rest = draft.media.slice(1, 1 + COMIDA_LOCAL_GALLERY_MAX);
         const galleryImages = [];
         for (const item of rest) {
           const galleryFile = await dataUrlToFile(item.dataUrl, item.fileName || "foto.jpg");

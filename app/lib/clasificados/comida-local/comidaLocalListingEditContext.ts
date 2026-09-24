@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { mergeComidaLocalDraftFromStorage } from "./comidaLocalDraftPersistence";
+import { comidaLocalDraftFromLegacyRowColumns } from "./comidaLocalLegacyRowMapper";
 import type { ComidaLocalDraft } from "./comidaLocalTypes";
 
 /**
@@ -76,18 +77,31 @@ export function clearComidaLocalEditContext(): void {
 
 /**
  * Staff assisted reopen: the raw canonical row the signed context is bound to -> the application
- * draft, via the same mapper as the owner edit. Null (never a blank draft) when the row has no stored
- * `listing_json` or is not editable, so a reopen can never replace the form with an empty one.
+ * draft, via the same mapper as the owner edit. A row without a usable `listing_json` is reconstructed
+ * from its normalized columns (comidaLocalLegacyRowMapper.ts); null (never a blank draft) when it is
+ * below that safe minimum or is not editable, so a reopen can never replace the form with an empty one.
  */
 export function comidaLocalDraftFromAssistedBoundRow(
   row: Record<string, unknown>,
   listingId: string,
 ): ComidaLocalDraft | null {
-  const json = row.listing_json;
-  if (!json || typeof json !== "object" || Array.isArray(json)) return null;
   const result = comidaLocalEditHydrationFromRow(row, listingId);
   return result.ok ? result.draft : null;
 }
+
+/**
+ * Bilingual, staff-safe notice shown INSTEAD of the form when a reopened row cannot be reconstructed
+ * safely (`comidaLocalDraftFromAssistedBoundRow` returned null). The intake never opens a blank
+ * editable form over an existing listing.
+ */
+export const COMIDA_LOCAL_ASSISTED_REOPEN_UNSAFE_NOTICE = {
+  titleEs: "No se puede reabrir este anuncio de forma segura",
+  titleEn: "This listing cannot be reopened safely",
+  bodyEs:
+    "Este anuncio guardado no tiene datos suficientes para cargarlo en el formulario (faltan nombre, descripción, ciudad o contacto). Para no sobrescribir el anuncio real con un formulario vacío, no se abrió el formulario ni se puede guardar desde aquí. Contacta a soporte de Leonix.",
+  bodyEn:
+    "This saved listing does not have enough data to load into the form (name, description, city or contact is missing). To avoid overwriting the real listing with an empty form, the form was not opened and saving from here is disabled. Contact Leonix support.",
+} as const;
 
 export type ComidaLocalEditHydrationResult =
   | { ok: true; draft: ComidaLocalDraft; context: ComidaLocalListingEditContext }
@@ -109,7 +123,15 @@ export async function fetchOwnerComidaLocalListingForEdit(
 
   const { data, error } = await sb
     .from("comida_local_public_listings")
-    .select("id, slug, leonix_ad_id, status, draft_listing_id, updated_at, listing_json")
+    // Literal (not built from COMIDA_LOCAL_LEGACY_ROW_COLUMNS) so the postgrest select stays typed;
+    // the trailing columns are the legacy reverse-mapper inputs (a verifier pins the two in sync).
+    .select(
+      "id, slug, leonix_ad_id, status, draft_listing_id, updated_at, listing_json, " +
+        "business_name, food_type, food_type_custom, city_canonical, city_display, zone_note, que_vendes, " +
+        "phone, whatsapp, instagram_url, facebook_url, tiktok_url, location_note, location_url, " +
+        "availability_note, service_options, payment_methods, payment_other_note, price_level, languages, " +
+        "main_photo, logo_image, gallery_images",
+    )
     .eq("id", listingId)
     .eq("owner_user_id", ownerUserId)
     .maybeSingle();
@@ -134,8 +156,24 @@ export function comidaLocalEditHydrationFromRow(
   // The row's stored listing_json IS the application draft (tolerantly re-sanitized). The
   // draftListingId is forced to the ROW's column value — that is what the publish route's
   // same-row update branch matches on.
+  //
+  // A missing / non-object / identity-less listing_json (legacy row) must NEVER yield an empty
+  // draft: merging `undefined` returns a blank draft that a save would write over the real row's
+  // columns. Such a row falls back to the deterministic reverse mapping of its normalized columns
+  // (comidaLocalLegacyRowMapper.ts) and, when even that is below the safe minimum, is refused.
+  const rawJson = row.listing_json;
+  const jsonDraft =
+    rawJson && typeof rawJson === "object" && !Array.isArray(rawJson)
+      ? mergeComidaLocalDraftFromStorage(row.listing_json)
+      : null;
+  let baseDraft: ComidaLocalDraft | null = jsonDraft && jsonDraft.businessName.trim() ? jsonDraft : null;
+  if (!baseDraft) {
+    const legacy = comidaLocalDraftFromLegacyRowColumns(row);
+    if (!legacy.ok) return { ok: false, reason: "not_editable_legacy_row" };
+    baseDraft = legacy.draft;
+  }
   const draft: ComidaLocalDraft = {
-    ...mergeComidaLocalDraftFromStorage(row.listing_json),
+    ...baseDraft,
     draftListingId: rowDraftListingId,
   };
 

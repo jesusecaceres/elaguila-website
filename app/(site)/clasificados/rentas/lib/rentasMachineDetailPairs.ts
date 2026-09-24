@@ -108,14 +108,23 @@ function digitsUsd(raw: string): string {
   return String(raw ?? "").replace(/\D/g, "");
 }
 
-function rentasVideoUrls(media: { videoUrl?: string; videoUrls?: string[] }): string[] {
+/**
+ * Rentas (Privado AND Negocio) supports up to four EXTERNAL video links (https/http URLs stored as
+ * Leonix:rent:video_url[_2..4] detail pairs). Local video files are never persisted. This is the one
+ * cap shared by the forms' MAX_VIDEO_URLS, this persist step, the publish media contract and the
+ * lane registry (listingMediaConfigs.ts).
+ */
+export const RENTAS_MAX_EXTERNAL_VIDEO_URLS = 4;
+
+/** The external video URLs that actually persist for a Rentas draft (deduped, http(s) only, capped). */
+export function rentasVideoUrls(media: { videoUrl?: string; videoUrls?: string[] }): string[] {
   const raw = Array.isArray(media.videoUrls) && media.videoUrls.length ? media.videoUrls : [media.videoUrl ?? ""];
   const out: string[] = [];
   for (const item of raw) {
     const u = String(item ?? "").trim();
     if (!u || out.includes(u) || !/^https?:\/\//i.test(u)) continue;
     out.push(u);
-    if (out.length >= 4) break;
+    if (out.length >= RENTAS_MAX_EXTERNAL_VIDEO_URLS) break;
   }
   return out;
 }

@@ -105,7 +105,31 @@ const assistedBranchEnd = publishSrc.indexOf("} else if (existing) {", assistedB
 assert.ok(assistedBranchStart > -1 && assistedBranchEnd > assistedBranchStart, "found the isolated assisted persistence branch, immediately followed by the ORIGINAL unchanged customer `else if (existing)` branch");
 const assistedBranch = publishSrc.slice(assistedBranchStart, assistedBranchEnd);
 assert.ok(!/decideServiciosOwnerSaveStatus\(/.test(assistedBranch), "the assisted branch never CALLS decideServiciosOwnerSaveStatus (whose transition table assumes a proven customer owner) — a doc comment may still name it for contrast");
-assert.ok(!/owner_user_id\s*:/.test(assistedBranch), "the assisted branch's insert/update objects never set owner_user_id — stays unclaimed/null, Gate 5 #6");
+// OWNER CONTRACT (superseded 2026-09-24: the old "never set owner_user_id / stays unclaimed" rule
+// predates client-provisioning at the sales entry). Current invariant: an assisted write MAY carry
+// the CLIENT's owner_user_id under valid staff custody, but the value can only ever come from the
+// signed assisted context's clientUserId (via assistedOwnerUserId) — the staff actor's
+// authUserId / rosterId must NEVER become the owner. Owner-null custody remains valid (spread is
+// conditional; nothing is written when the context carries no client).
+{
+  const ownerWrites = [...assistedBranch.matchAll(/owner_user_id\s*:\s*([^,}\s)]+)/g)];
+  assert.ok(ownerWrites.length >= 1, "the assisted branch still attaches the provisioned client owner on insert/update (owner-null custody stays supported by the conditional spread)");
+  for (const m of ownerWrites) {
+    assert.equal(m[1], "assistedOwnerUserId", "every owner_user_id written by the assisted branch must be the signed-context client (assistedOwnerUserId), never a staff identity");
+  }
+  assert.ok(
+    !/owner_user_id\s*:\s*(?:assistedContext!?\.)?(?:authUserId|rosterId|actorRosterId|staffUserId)/.test(assistedBranch),
+    "the staff actor's auth/roster id is never written as owner_user_id",
+  );
+  assert.ok(
+    /\.\.\.\(assistedOwnerUserId \? \{ owner_user_id: assistedOwnerUserId \} : \{\}\)/.test(assistedBranch),
+    "owner_user_id is only written conditionally — no client in the signed context means no owner write (owner-null custody preserved)",
+  );
+  const ownerDef = publishSrc.match(/const assistedOwnerUserId =([\s\S]*?);\s*\n/);
+  assert.ok(ownerDef, "assistedOwnerUserId is defined once in the route");
+  assert.ok(/assistedContext\??\.clientUserId/.test(ownerDef![1]), "assistedOwnerUserId is derived from the signed context's clientUserId");
+  assert.ok(!/authUserId|rosterId/.test(ownerDef![1]), "assistedOwnerUserId never derives from the staff actor's authUserId/rosterId");
+}
 assert.ok(assistedBranch.includes("refuseUnlessAuthoritativePayment"), "Publish for Client requires authoritative listing+package payment, checked inside the assisted branch");
 assert.ok(assistedBranch.includes("SERVICIOS_LEONIX_LOCKED_STATUSES.has(existingStatus)"), "a Leonix-locked row (suspended/rejected) still cannot be written through the assisted path either");
 assert.ok(assistedBranch.includes("linkAssistedListingToBusiness"), "a successful assisted persist always (re-)confirms the business_listing_links custody record");
@@ -152,10 +176,18 @@ for (const f of [
     rsrc.includes("save_for_client") && rsrc.includes("publish_for_client"),
     "Gate 9 is genuinely closed — the Restaurantes route has a real assisted branch, not a reported gap",
   );
-  assert.ok(
-    /const ownerUserId = isAssistedRequest \? null : verifiedOwnerId;/.test(rsrc),
-    "the assisted branch never fabricates customer ownership — owner_user_id stays unclaimed",
-  );
+  // Superseded 2026-09-24 (was: `ownerUserId = isAssistedRequest ? null : verifiedOwnerId`): an
+  // assisted request now carries the provisioned CLIENT's id from the signed custody context; it
+  // stays null when the context has no client (legacy owner-null custody), and a non-assisted
+  // request keeps the verified customer id. The staff actor's id can never be the owner.
+  {
+    const ownerDef = rsrc.match(/const ownerUserId =([\s\S]*?);\s*\n/);
+    assert.ok(ownerDef, "ownerUserId is defined once in the Restaurantes route");
+    const body = ownerDef![1];
+    assert.ok(/isAssistedRequest\s*&&[\s\S]*assistedContext\??\.clientUserId/.test(body), "assisted ownerUserId is derived from the signed context's clientUserId only");
+    assert.ok(/isAssistedRequest\s*\n?\s*\?\s*null\s*\n?\s*:\s*verifiedOwnerId/.test(body), "assisted without a client id stays owner-null; non-assisted keeps the verified customer id");
+    assert.ok(!/authUserId|rosterId/.test(body), "the staff actor's authUserId/rosterId never becomes the owner");
+  }
   assert.ok(
     rsrc.includes("linkAssistedListingToBusiness("),
     "assisted custody is recorded through the shared business_listing_links primitive, not a second store",

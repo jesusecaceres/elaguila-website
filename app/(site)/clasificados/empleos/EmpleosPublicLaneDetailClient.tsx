@@ -12,7 +12,7 @@ import { EmpleoJobFairDetailPage } from "./components/jobFair/EmpleoJobFairDetai
 import { EmpleoPremiumDetailPage } from "./components/premiumJob/EmpleoPremiumDetailPage";
 import { EmpleoQuickDetailPage } from "./components/quickJob/EmpleoQuickDetailPage";
 import { EmpleosApplyForm, isLiveListingId } from "./components/EmpleosApplyForm";
-import { EmpleosJobResultCard } from "./components/EmpleosJobResultCard";
+import { EmpleosRelatedJobCard } from "./components/EmpleosRelatedJobCard";
 import { getRelatedJobs } from "./data/empleosSampleCatalog";
 import type { EmpleosJobRecord } from "./data/empleosJobTypes";
 import {
@@ -233,7 +233,7 @@ export function EmpleosPublicLaneDetailClient({
               <h2 className="text-lg font-bold text-[#2A2826]">{lang === "es" ? "Relacionados" : "Related"}</h2>
               <div className="mt-4 flex flex-col gap-4">
                 {related.map((r) => (
-                  <EmpleosJobResultCard key={r.id} job={r} lang={lang} variant="list" />
+                  <EmpleosRelatedJobCard key={r.id} job={r} lang={lang} />
                 ))}
               </div>
             </section>
