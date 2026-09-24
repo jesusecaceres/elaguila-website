@@ -660,11 +660,9 @@ export function PreviewDealerBusinessStack({
                 />
               ) : publicPlaybackOnly || Boolean(publicUrl?.trim()) ? (
                 // Gate H: a canonical-active listing is genuinely already published — publicUrl is
-                // only ever set (by the Preview client) once a real public URL exists — so Share
-                // here uses the real `onShare` handler (navigator.share / clipboard fallback)
-                // against that URL. It intentionally skips the analytics-tracked LeonixShareButton
-                // branch above (no fake self-share event recorded while the owner previews their
-                // own listing) — this is a real, working action, not decorative.
+                // only ever set once a real public URL exists. Owner Preview opens the same Leonix
+                // Share drawer as public playback, with persistence disabled so previewing never
+                // records a fake self-share event.
                 <LeonixShareButton
                   listingId={(data as { id?: string | null }).id ?? null}
                   listingUrl={publicUrl?.trim() || ""}
