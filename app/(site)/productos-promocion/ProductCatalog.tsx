@@ -30,8 +30,8 @@ const OLIVE_HOVER = "#4d5e30";
 const CONTACT = {
   businessName: "Leonix Media",
   email: "info@leonixmedia.com",
-  phoneDisplay: "(408) 360-6500",
-  phoneTel: "tel:+14083606500",
+  phoneDisplay: "(408) 303-6500",
+  phoneTel: "tel:+14083036500",
   address: "871 Coleman Ave, Suite 201, San Jose, CA 95110",
   mapUrl:
     "https://www.google.com/maps/search/?api=1&query=871%20Coleman%20Ave%20Suite%20201%20San%20Jose%20CA%2095110",

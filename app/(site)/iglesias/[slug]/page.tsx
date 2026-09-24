@@ -120,7 +120,11 @@ export default async function IglesiasChurchPage(props: Props) {
             </p>
           ) : null}
           <p className="mt-2 text-sm text-[#5C5346]">
-            {[church.denomination || church.churchType, church.city, church.languages.map((l) => iglesiasLanguageLabel(l, lang)).join(" · ")]
+            {[
+              church.denomination || church.churchType,
+              church.city,
+              [...church.languages.map((l) => iglesiasLanguageLabel(l, lang)), ...church.otherLanguages].join(" · "),
+            ]
               .filter(Boolean)
               .join(" · ")}
           </p>

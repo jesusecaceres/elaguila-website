@@ -61,7 +61,19 @@ export type PrayerUiCopy = {
   targetedHint: string;
   outcomeCrisis: string;
   outcomeCrisisSupport: string;
+  outcomeCrisisResourceCta: string;
   outcomeHold: string;
+  viewWall: string;
+  shareRequestCta: string;
+  filterTopicLabel: string;
+  filterLanguageLabel: string;
+  filterAllTopics: string;
+  filterAllLanguages: string;
+  filterSubmit: string;
+  filterClear: string;
+  wallPageEyebrow: string;
+  wallPageTitle: string;
+  wallPageIntro: string;
   errorBody: string;
   errorGeneric: string;
   errorRate: string;
@@ -141,7 +153,20 @@ const ES: PrayerUiCopy = {
   outcomeCrisis: "Recibimos tu mensaje y lo estamos cuidando con atención.",
   outcomeCrisisSupport:
     "Si tú u otra persona puede estar en peligro inmediato, contacta ahora a los servicios de emergencia locales.",
+  outcomeCrisisResourceCta: "Ver recursos de ayuda ahora",
   outcomeHold: "Tu petición fue recibida y no se publicó. Un moderador la revisará.",
+  viewWall: "Ver el Muro de Oración",
+  shareRequestCta: "Compartir una petición",
+  filterTopicLabel: "Tema",
+  filterLanguageLabel: "Idioma",
+  filterAllTopics: "Todos los temas",
+  filterAllLanguages: "Todos los idiomas",
+  filterSubmit: "Filtrar",
+  filterClear: "Limpiar",
+  wallPageEyebrow: "Muro de oración",
+  wallPageTitle: "Ora con tu comunidad",
+  wallPageIntro:
+    "Estas son peticiones reales de personas que pidieron oración. Puedes leer, orar por alguien y presionar Estoy orando — cada persona cuenta de verdad.",
   errorBody: "Escribe un poco más para que podamos entender tu petición.",
   errorGeneric: "No pudimos enviar la petición. Inténtalo de nuevo.",
   errorRate: "Espera un momento antes de enviar otra petición.",
@@ -162,7 +187,7 @@ const EN: PrayerUiCopy = {
   bodyLabel: "Your request",
   bodyHelp: "Write in your own words. It does not have to sound “correct.”",
   visibilityLegend: "How you want to share it",
-  visNamed: "Public, show my name",
+  visNamed: "Public, with my name",
   visNamedHelp: "Other people will see the name you enter and can pray with you.",
   visAnonymous: "Public, anonymous",
   visAnonymousHelp: "It will appear as Anonymous. We do not show your account or identity.",
@@ -219,7 +244,20 @@ const EN: PrayerUiCopy = {
   targetedHint: "This request will go only to this church’s prayer team, after safety review.",
   outcomeCrisis: "We received your message and are treating it with care.",
   outcomeCrisisSupport: "If you or someone else may be in immediate danger, contact local emergency services now.",
+  outcomeCrisisResourceCta: "View help resources now",
   outcomeHold: "Your request was received and was not published. A moderator will review it.",
+  viewWall: "View the Prayer Wall",
+  shareRequestCta: "Share a request",
+  filterTopicLabel: "Topic",
+  filterLanguageLabel: "Language",
+  filterAllTopics: "All topics",
+  filterAllLanguages: "All languages",
+  filterSubmit: "Filter",
+  filterClear: "Clear",
+  wallPageEyebrow: "Prayer wall",
+  wallPageTitle: "Pray with your community",
+  wallPageIntro:
+    "These are real requests from people who asked for prayer. You can read, pray for someone, and tap I'm praying — every person truly counts.",
   errorBody: "Please write a little more so we can understand your request.",
   errorGeneric: "We could not send the request. Please try again.",
   errorRate: "Please wait a moment before sending another request.",

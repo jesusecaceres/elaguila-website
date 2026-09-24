@@ -146,10 +146,10 @@ const DEVELOP = compose({
       {
         es: `1. Primero pregúntame qué información real de clientes y de ventas tengo disponible.
 2. Ayúdame a buscar patrones usando solo lo que yo te comparta.
-3. Dime qué oportunidades son solo hipótesis y qué debería comprobar con mis ventas reales y hablando con mis clientes.`,
+3. Dime qué posibilidades de servir a alguien más son solo hipótesis y qué debería comprobar con mis ventas reales y hablando con mis clientes.`,
         en: `1. First ask me what real customer and sales information I have available.
 2. Help me look for patterns using only what I share with you.
-3. Tell me which opportunities are only hypotheses and what I should check against my real sales and by talking with my customers.`,
+3. Tell me which possibilities of serving someone else are only hypotheses and what I should check against my real sales and by talking with my customers.`,
       },
       {
         es: "No supongas datos demográficos, de ventas ni de mercado que yo no te haya dado. Si supones algo, márcalo como suposición.",

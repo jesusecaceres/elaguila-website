@@ -49,6 +49,7 @@ export async function submitChurchApplication(
       address_line2: input.addressLine2 || null,
       public_location: input.publicLocation,
       languages: input.languages,
+      other_languages: input.otherLanguages ?? [],
       phone: input.phone || null,
       email: input.email || null,
       website: input.website || null,

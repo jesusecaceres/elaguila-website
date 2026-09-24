@@ -6,7 +6,7 @@ export function isPublicChurchEligible(row: Pick<ChurchRow, "approval_status" | 
 }
 
 export const PUBLIC_CHURCH_COLUMNS =
-  "id, slug, name, short_description, mission, church_type, denomination, approval_status, is_active, city, state, country, zip, address_line1, address_line2, public_location, latitude, longitude, languages, phone, email, website, whatsapp, livestream_url, socials, published_at, created_at, updated_at" as const;
+  "id, slug, name, short_description, mission, church_type, denomination, approval_status, is_active, city, state, country, zip, address_line1, address_line2, public_location, latitude, longitude, languages, other_languages, phone, email, website, whatsapp, livestream_url, socials, published_at, created_at, updated_at" as const;
 
 /** Columns that must never be requested on public church reads. */
 export const PRIVATE_CHURCH_COLUMN_DENYLIST = [

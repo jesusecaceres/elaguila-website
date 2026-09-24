@@ -8,12 +8,14 @@ export function IglesiasHero({
   lang,
   findHref,
   prayerHref,
+  joinPrayerHref,
   churchHref,
 }: {
   copy: IglesiasCopy;
   lang: "es" | "en";
   findHref: string;
   prayerHref: string;
+  joinPrayerHref: string;
   churchHref: string;
 }) {
   return (
@@ -49,6 +51,12 @@ export function IglesiasHero({
             >
               {copy.ctaPrayer}
             </a>
+            <Link
+              href={joinPrayerHref}
+              className="inline-flex min-h-12 items-center justify-center rounded-xl border-2 border-[#C9A84A] bg-[#C9A84A]/12 px-6 text-sm font-semibold text-[#FFFCF7] backdrop-blur-sm hover:bg-[#C9A84A]/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]"
+            >
+              {copy.ctaJoinPrayer}
+            </Link>
             <a
               href={findHref}
               className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/45 bg-white/12 px-6 text-sm font-semibold text-white backdrop-blur-sm hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]"

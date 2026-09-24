@@ -17,8 +17,8 @@ export const KNOW_YOUR_COMPETITION_PACKAGE: LessonPackage = {
   meta: {
     title: { es: "Conoce a tu competencia", en: "Know your competition" },
     outcome: {
-      es: "Al terminar tendrás una comparación honesta de las alternativas que tu cliente ya usa hoy, y una pista de dónde puedes ser claramente mejor.",
-      en: "By the end you will have an honest comparison of the alternatives your customer already uses today, and a clue about where you can be clearly better.",
+      es: "Al terminar tendrás una comparación honesta de las alternativas que tu cliente ya usa hoy, y una pista de dónde puedes servir claramente mejor.",
+      en: "By the end you will have an honest comparison of the alternatives your customer already uses today, and a clue about where you can serve clearly better.",
     },
     readMinutes: 11,
     truthClass: "evergreen",
@@ -44,8 +44,8 @@ export const KNOW_YOUR_COMPETITION_PACKAGE: LessonPackage = {
         youTag: { es: "¿Por qué este camino?", en: "Why this path?" },
       },
       textAlternative: {
-        es: "Diagrama: tu cliente parado frente a cinco caminos. Cuatro ya existen hoy: “Otro negocio”, “Hacerlo uno mismo”, “Un familiar o conocido” y “No hacer nada”. El quinto camino eres “Tú”, resaltado en dorado con la pregunta “¿Por qué este camino?”. Para que te elijan, tu camino tiene que ser claramente mejor que los que el cliente ya conoce.",
-        en: "Diagram: your customer standing in front of five paths. Four already exist today: “Another business”, “Do it yourself”, “A relative or friend”, and “Do nothing”. The fifth path is “You”, highlighted in gold with the question “Why this path?”. To be chosen, your path has to be clearly better than the ones the customer already knows.",
+        es: "Diagrama: tu cliente parado frente a cinco caminos. Cuatro ya existen hoy: “Otro negocio”, “Hacerlo uno mismo”, “Un familiar o conocido” y “No hacer nada”. El quinto camino eres “Tú”, resaltado en dorado con la pregunta “¿Por qué este camino?”. Para que ese camino valga la pena, tiene que servirles mejor en algo que ya les importa.",
+        en: "Diagram: your customer standing in front of five paths. Four already exist today: “Another business”, “Do it yourself”, “A relative or friend”, and “Do nothing”. The fifth path is “You”, highlighted in gold with the question “Why this path?”. For that path to be worth taking, it has to serve them better at something that already matters to them.",
       },
     },
     {
@@ -66,8 +66,8 @@ export const KNOW_YOUR_COMPETITION_PACKAGE: LessonPackage = {
         {
           heading: { es: "“No tengo competencia” casi nunca es verdad", en: "“I have no competition” is almost never true" },
           body: {
-            es: "Si nadie más vende lo tuyo, tu cliente igual resuelve el problema de alguna forma: lo hace él mismo, se lo pide a un familiar, usa algo parecido o se aguanta. Esa costumbre es tu competencia, y a veces es la más difícil de vencer, porque es gratis y ya la conoce.",
-            en: "If nobody else sells what you sell, your customer still solves the problem somehow: they do it themselves, ask a relative, use something similar, or put up with it. That habit is your competition, and sometimes it is the hardest to beat, because it is free and already familiar.",
+            es: "Si nadie más vende lo tuyo, tu cliente igual resuelve el problema de alguna forma: lo hace él mismo, se lo pide a un familiar, usa algo parecido o se aguanta. Esa costumbre es la alternativa que ya tiene, y a veces es la más difícil de servir mejor, porque es gratis y ya la conoce.",
+            en: "If nobody else sells what you sell, your customer still solves the problem somehow: they do it themselves, ask a relative, use something similar, or put up with it. That habit is the alternative they already have, and sometimes it is the hardest to serve better than, because it is free and already familiar.",
           },
         },
         {
@@ -93,8 +93,8 @@ export const KNOW_YOUR_COMPETITION_PACKAGE: LessonPackage = {
         },
       ],
       pullQuote: {
-        es: "Tu competidor más fuerte suele ser la costumbre de tu cliente.",
-        en: "Your strongest competitor is often your customer's habit.",
+        es: "La alternativa más fuerte suele ser la costumbre de tu cliente.",
+        en: "The strongest alternative is often your customer's habit.",
       },
     },
     {
@@ -113,8 +113,8 @@ export const KNOW_YOUR_COMPETITION_PACKAGE: LessonPackage = {
         {
           journey: "empezando",
           story: {
-            es: "Marco está por lanzar y necesita fijar su precio. Visitó las dos lavanderías cercanas a su zona y anotó, con fecha, lo que cualquiera puede ver: precios en la pared, horarios, tiempo de espera. Notó que ninguna recoge ni entrega. No copió sus precios: entendió que competía con “barato pero te cuesta tu domingo”, y armó su mensaje alrededor de eso.",
-            en: "Marco is about to launch and needs to set his price. He visited the two laundromats near his area and wrote down, with the date, what anyone can see: prices on the wall, hours, waiting time. He noticed that neither picks up nor delivers. He did not copy their prices: he understood he was competing with “cheap, but it costs you your Sunday,” and built his message around that.",
+            es: "Marco está por lanzar y necesita fijar su precio. Visitó las dos lavanderías cercanas a su zona y anotó, con fecha, lo que cualquiera puede ver: precios en la pared, horarios, tiempo de espera. Notó que ninguna recoge ni entrega. No copió sus precios: entendió que la alternativa era “barato, pero te cuesta tu domingo”, y armó su mensaje alrededor de eso.",
+            en: "Marco is about to launch and needs to set his price. He visited the two laundromats near his area and wrote down, with the date, what anyone can see: prices on the wall, hours, waiting time. He noticed that neither picks up nor delivers. He did not copy their prices: he understood the alternative was “cheap, but it costs you your Sunday,” and built his message around that.",
           },
         },
         {
@@ -132,8 +132,8 @@ export const KNOW_YOUR_COMPETITION_PACKAGE: LessonPackage = {
         },
       ],
       takeaway: {
-        es: "Marco no encontró un enemigo. Encontró lo que sus clientas ya soportan, y ahí estaba su oportunidad.",
-        en: "Marco did not find an enemy. He found what his customers already put up with, and that was his opportunity.",
+        es: "Marco no encontró un enemigo. Encontró lo que sus clientas ya soportan, y ahí vio cómo podía servirlas mejor.",
+        en: "Marco did not find an enemy. He found what his customers already put up with, and there he saw how he could serve them better.",
       },
     },
     {

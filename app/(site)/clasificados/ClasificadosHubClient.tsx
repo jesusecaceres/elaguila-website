@@ -14,6 +14,7 @@ import {
 } from "@/app/lib/clasificados/publicCategoryCopyGuard";
 import { getClasificadosHubPageCopy } from "@/app/lib/clasificados/clasificadosHubPageCopy";
 import { navCopyLang, type SupportedLang } from "@/app/lib/language";
+import { sortByLocaleLabel } from "@/app/lib/localeAlphabeticalSort";
 import {
   appendLangToPath,
   buildHubCategoryPageUrl,
@@ -22,7 +23,12 @@ import {
 } from "./lib/hubUrl";
 import { CategoryVisibilityCta } from "./components/categoryStandard/CategoryVisibilityCta";
 
-/** Gate C1.1 — hub landing display order (browse routes unchanged). */
+/**
+ * Canonical set of classifieds categories shown on the hub grid (browse routes
+ * unchanged). Visual order on the page is derived from this set alphabetically
+ * by localized label — see `sortedCategoryKeys` below — so this array's literal
+ * order is no longer the display order; it is only the membership list.
+ */
 const C1_CATEGORY_ORDER: readonly HubCategoryKey[] = [
   "en-venta",
   "rentas",
@@ -76,11 +82,19 @@ function ClasificadosPageInner() {
   const params = useSearchParams();
   const routeLang = resolveRouteLang(params?.get("lang"));
   const t = useMemo(() => getClasificadosHubPageCopy(routeLang), [routeLang]);
-  const dealerCopy = useMemo(() => getPublicCategoryCardCopy("dealers-de-autos", routeLang), [routeLang]);
-
   const postEntryHref = buildHubPostEntryHref(routeLang);
   const dealerBrowseHref = appendLangToPath("/clasificados/dealers-de-autos", routeLang);
   const dealerPublishHref = resolvePublicarGatewayDestination("autos", routeLang);
+
+  const sortedGridKeys = useMemo(
+    () =>
+      sortByLocaleLabel(
+        [...C1_CATEGORY_ORDER, "dealers-de-autos"] as const,
+        (k) => getPublicCategoryCardCopy(k, routeLang).label,
+        routeLang,
+      ),
+    [routeLang],
+  );
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#FAF6EE] pb-20 text-[#1F241C]">
@@ -143,8 +157,27 @@ function ClasificadosPageInner() {
           </h2>
 
           <ul className="mt-8 grid grid-cols-1 items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {C1_CATEGORY_ORDER.map((k) => {
+            {sortedGridKeys.map((k) => {
               const copy = getPublicCategoryCardCopy(k, routeLang);
+
+              if (k === "dealers-de-autos") {
+                return (
+                  <li key={k} className="flex h-full">
+                    <ClasificadosHubCategoryCard
+                      lang={routeLang}
+                      browseHref={dealerBrowseHref}
+                      publishHref={dealerPublishHref}
+                      label={copy.label}
+                      description={copy.desc}
+                      publishLabel={copy.post}
+                      icon={<DealerMark />}
+                      accent="default"
+                      imageSrc={CLASIFICADOS_HUB_CARD_IMAGE[k]}
+                    />
+                  </li>
+                );
+              }
+
               const browseHref = buildHubCategoryPageUrl(k, routeLang);
               const publishHref = buildCategoryPublishHref(k, routeLang);
               const priority = PRIORITY_KEYS.has(k);
@@ -165,19 +198,6 @@ function ClasificadosPageInner() {
                 </li>
               );
             })}
-            <li className="flex h-full">
-              <ClasificadosHubCategoryCard
-                lang={routeLang}
-                browseHref={dealerBrowseHref}
-                publishHref={dealerPublishHref}
-                label={dealerCopy.label}
-                description={dealerCopy.desc}
-                publishLabel={dealerCopy.post}
-                icon={<DealerMark />}
-                accent="default"
-                imageSrc={CLASIFICADOS_HUB_CARD_IMAGE["dealers-de-autos"]}
-              />
-            </li>
           </ul>
         </section>
 

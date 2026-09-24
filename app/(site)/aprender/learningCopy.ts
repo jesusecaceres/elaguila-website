@@ -17,7 +17,7 @@ export function learningCopy(lang: Lang) {
         siteEyebrow: "Centro de Aprendizaje Leonix",
         homeTitle: "Centro de Aprendizaje",
         homeSubtitle:
-          "Conocimiento práctico de negocios, en lenguaje claro, para ayudarte a pasar de una idea a un negocio más fuerte.",
+          "Orientación práctica de negocios, en lenguaje claro, para servir a personas reales y sostener un negocio responsable.",
         comingSoonTitle: "Muy pronto",
         comingSoonBody: "El Centro de Aprendizaje todavía no está disponible. Vuelve pronto.",
         searchPlaceholder: "Buscar lecciones...",
@@ -53,7 +53,7 @@ export function learningCopy(lang: Lang) {
         siteEyebrow: "Leonix Learning Center",
         homeTitle: "Learning Center",
         homeSubtitle:
-          "Practical business knowledge in plain language, to help you go from an idea to a stronger business.",
+          "Practical business guidance in plain language, to serve real people and sustain a responsible business.",
         comingSoonTitle: "Coming soon",
         comingSoonBody: "The Learning Center is not available yet. Check back soon.",
         searchPlaceholder: "Search lessons...",
@@ -165,15 +165,15 @@ export type LearningLandingCopy = {
 const LANDING_ES: LearningLandingCopy = {
   hero: {
     eyebrow: "Centro de Aprendizaje Leonix",
-    title: "Aprende. Construye. Haz crecer tu idea.",
+    title: "Aprende. Sirve. Construye para durar.",
     support:
-      "Conocimiento práctico de negocios, en lenguaje claro, para ayudarte a pasar de una idea a un negocio más fuerte.",
+      "Orientación práctica de negocios, en lenguaje claro, para entender a las personas, servirlas con excelencia y sostener un negocio responsable.",
     ctaPrimary: "Encontrar mi punto de partida",
     ctaSecondary: "No sé por dónde empezar",
     trust: ["Bilingüe", "Práctico", "A tu ritmo", "Sin costo"],
     trustLabel: "Cómo es aprender aquí",
-    vignetteLabel: "El camino: de la idea al negocio y al crecimiento",
-    vignetteStages: ["Idea", "Negocio", "Crecimiento"],
+    vignetteLabel: "El camino: de la idea a un negocio que sirve y dura",
+    vignetteStages: ["Idea", "Servicio", "Legado"],
   },
   journeys: {
     eyebrow: "Tu punto de partida",
@@ -196,8 +196,8 @@ const LANDING_ES: LearningLandingCopy = {
       negocio: {
         title: "Ya tengo un negocio",
         empathy: "“Mi negocio ya existe. Quiero hacerlo más fuerte.”",
-        outcome: "Fortalece tus números, reputación, marketing y forma de operar.",
-        cta: "Hacer crecer mi negocio",
+        outcome: "Cuida los números, la reputación, el servicio y la salud del negocio.",
+        cta: "Fortalecer mi negocio",
       },
     },
   },
@@ -234,7 +234,7 @@ const LANDING_ES: LearningLandingCopy = {
     },
     ideaBuilder: {
       title: "Constructor de ideas",
-      body: "Organiza tu idea de negocio paso a paso: qué ofreces, a quién y qué problema resuelves.",
+      body: "Organiza tu idea paso a paso: a quién sirves, qué problema resuelves y si puedes sostenerlo.",
       note: "Inicia sesión para usar el Constructor de ideas y guardar tu progreso.",
       signInShort: "Requiere iniciar sesión",
       cta: "Abrir el Constructor de ideas",
@@ -265,15 +265,15 @@ const LANDING_ES: LearningLandingCopy = {
 const LANDING_EN: LearningLandingCopy = {
   hero: {
     eyebrow: "Leonix Learning Center",
-    title: "Learn. Build. Grow your idea.",
+    title: "Learn. Serve. Build to last.",
     support:
-      "Practical business knowledge in plain language, to help you go from an idea to a stronger business.",
+      "Practical business guidance, in plain language, to understand people, serve them with excellence, and sustain a responsible business.",
     ctaPrimary: "Find where to start",
     ctaSecondary: "I'm not sure where to start",
     trust: ["Bilingual", "Practical", "At your pace", "No cost"],
     trustLabel: "What learning here is like",
-    vignetteLabel: "The path: from idea to business to growth",
-    vignetteStages: ["Idea", "Business", "Growth"],
+    vignetteLabel: "The path: from an idea to a business that serves and lasts",
+    vignetteStages: ["Idea", "Service", "Legacy"],
   },
   journeys: {
     eyebrow: "Your starting point",
@@ -296,8 +296,8 @@ const LANDING_EN: LearningLandingCopy = {
       negocio: {
         title: "I already own a business",
         empathy: "“My business already exists. I want to make it stronger.”",
-        outcome: "Strengthen your numbers, reputation, marketing, and the way you operate.",
-        cta: "Grow my business",
+        outcome: "Care for your numbers, reputation, service, and the health of the business.",
+        cta: "Strengthen my business",
       },
     },
   },
@@ -334,7 +334,7 @@ const LANDING_EN: LearningLandingCopy = {
     },
     ideaBuilder: {
       title: "Idea Builder",
-      body: "Organize your business idea step by step: what you offer, to whom, and the problem you solve.",
+      body: "Organize your idea step by step: who you serve, what problem you solve, and whether you can sustain it.",
       note: "Sign in to use the Idea Builder and save your progress.",
       signInShort: "Sign-in required",
       cta: "Open the Idea Builder",

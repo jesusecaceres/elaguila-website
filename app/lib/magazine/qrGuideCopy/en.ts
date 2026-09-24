@@ -86,8 +86,8 @@ export const QR_GUIDE_EN: QrGuideCopy = {
     "This summary helps, but the original visual magazine remains in Spanish.",
   actionsEyebrow: "Leonix actions",
   actions: {
-    openDigital: "Open original digital magazine",
-    downloadPdf: "Download original PDF",
+    openDigital: "Open digital magazine",
+    downloadPdf: "Download PDF",
     mediaKit: "View Media Kit",
     contact: "Contact Leonix",
   },

@@ -1,0 +1,30 @@
+name: Final Integrated Build Gate
+
+on:
+  push:
+    branches:
+      - integration/final-website-launch-preview-2026-09-23
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
+          NEXT_PUBLIC_SUPABASE_URL: https://xuieateniufcrsfdomwl.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: build-only-placeholder-anon-key
+        run: npm run build

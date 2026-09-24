@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint \"app/(site)/clasificados/autos/**/*.{ts,tsx}\" \"app/(site)/publicar/autos/**/*.{ts,tsx}\" \"app/lib/clasificados/autos/**/*.{ts,tsx}\" \"app/api/clasificados/autos/**/*.{ts,tsx}\" \"app/admin/(dashboard)/workspace/clasificados/autos/**/*.{ts,tsx}\" \"scripts/autos-*.ts\" --max-warnings 0",
     "typecheck": "tsc --noEmit --incremental false",
+    "verify:hub-category-alphabetical-order": "npx tsx scripts/verify-hub-category-alphabetical-order-01.ts",
     "verify:noticias-soccer-query": "npx tsx scripts/verify-noticias-soccer-query.ts",
     "verify:noticias-editorial-model": "npx tsx scripts/verify-noticias-editorial-model.ts",
     "lint:br": "eslint \"app/(site)/clasificados/bienes-raices/**/*.{ts,tsx}\" \"app/(site)/clasificados/lib/leonix*.ts\" \"app/(site)/clasificados/lib/publish/**/*.{ts,tsx}\" \"app/(site)/clasificados/publicar/bienes-raices/**/*.{ts,tsx}\" --max-warnings 0",

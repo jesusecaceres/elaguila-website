@@ -117,12 +117,14 @@ export type TiendaContactFormCopy = {
 };
 
 export type LeadMessagesCopy = {
-  leadSuccess: Record<InquiryType, string>;
+  /** Keys for current InquiryType values; legacy keys (e.g. "launch") tolerated for backwards compat. */
+  leadSuccess: { [key in InquiryType]?: string } & { [key: string]: string | undefined };
   newsletterSuccess: string;
   publicError: string;
 };
 
-export type InquiryLabelsCopy = Record<InquiryType, string>;
+/** Lookup for inquiry type display labels; legacy keys tolerated for backwards compat. */
+export type InquiryLabelsCopy = { [key in InquiryType]?: string } & { [key: string]: string | undefined };
 
 export type EmailBlockCopy = {
   openEmail: string;

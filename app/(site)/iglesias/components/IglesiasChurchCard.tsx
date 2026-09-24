@@ -32,9 +32,9 @@ export function IglesiasChurchCard({
           </Link>
         </h3>
         {typeLine ? <p className="mt-1 text-sm text-[#5C5346]">{typeLine}</p> : null}
-        {church.languages.length ? (
+        {church.languages.length || church.otherLanguages.length ? (
           <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-[#2A4536]">
-            {church.languages.map((l) => iglesiasLanguageLabel(l, lang)).join(" · ")}
+            {[...church.languages.map((l) => iglesiasLanguageLabel(l, lang)), ...church.otherLanguages].join(" · ")}
           </p>
         ) : null}
         {church.nextServiceSummary ? <p className="mt-2 text-sm text-[#3D3428]">{church.nextServiceSummary}</p> : null}

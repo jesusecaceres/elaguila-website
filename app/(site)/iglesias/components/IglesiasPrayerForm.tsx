@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { getPrayerUiCopy, prayerCategoryOptions } from "@/app/lib/iglesias/prayerCopy";
 import type { PrayerSubmitOutcome } from "@/app/lib/iglesias/prayerTypes";
 import type { PrayerVisibility } from "@/app/lib/iglesias/prayerTaxonomy";
@@ -15,6 +17,7 @@ export function IglesiasPrayerForm({
   targetChurchName?: string | null;
 }) {
   const copy = useMemo(() => getPrayerUiCopy(lang), [lang]);
+  const router = useRouter();
   const formId = useId();
   const warnId = `${formId}-warn`;
   const bodyHelpId = `${formId}-body-help`;
@@ -83,6 +86,11 @@ export function IglesiasPrayerForm({
       setDeliveredTeams(typeof json.deliveredTeams === "number" ? json.deliveredTeams : null);
       setRoutingReason(json.routingReason ?? null);
       setBody("");
+      if (json.outcome === "PUBLISHED") {
+        // Gate 10: the wall is server-rendered from fresh data; refresh so the new
+        // prayer appears immediately without a manual browser reload.
+        router.refresh();
+      }
     } catch {
       setError(copy.errorGeneric);
     } finally {
@@ -336,7 +344,27 @@ export function IglesiasPrayerForm({
         >
           <p>{outcomeCopy}</p>
           {outcome === "PRIVATE_RECEIVED" ? <p className="mt-2 text-[#5C5346]">{copy.outcomePrivateSupport}</p> : null}
-          {outcome === "CRISIS" ? <p className="mt-2 text-[#5C5346]">{copy.outcomeCrisisSupport}</p> : null}
+          {outcome === "CRISIS" ? (
+            <>
+              <p className="mt-2 text-[#5C5346]">{copy.outcomeCrisisSupport}</p>
+              <Link
+                href="/recursos-comunitarios"
+                className="mt-3 inline-flex min-h-11 items-center justify-center rounded-xl bg-[#7A1E2C] px-4 text-sm font-semibold text-white hover:bg-[#6B1A26]"
+              >
+                {copy.outcomeCrisisResourceCta}
+              </Link>
+            </>
+          ) : null}
+          {outcome !== "CRISIS" && !targetChurchId ? (
+            <p className="mt-3">
+              <Link
+                href={`/iglesias/oracion?lang=${lang}`}
+                className="text-sm font-semibold text-[#7A1E2C] underline-offset-2 hover:underline"
+              >
+                {copy.viewWall} →
+              </Link>
+            </p>
+          ) : null}
         </div>
       ) : null}
 

@@ -2,10 +2,17 @@
 
 import Link from "next/link";
 import { VisibleEmailWithCopy } from "@/app/components/contact/LeonixEmailContactBlock";
-import { LEONIX_PHONE_TEL } from "@/app/(site)/tienda/data/leonixContact";
+import {
+  LEONIX_PHONE_TEL,
+} from "@/app/(site)/tienda/data/leonixContact";
+import {
+  LEONIX_GLOBAL_PHONE_SMS,
+  LEONIX_GLOBAL_WHATSAPP_URL,
+  LEONIX_VIRTUAL_FRONT_DESK_PATH,
+} from "@/app/data/leonixGlobalContact";
 import type { SupportedLang } from "@/app/lib/language";
 import { replaceLangInHref } from "@/app/lib/language";
-import type { ContactPolishCopy } from "@/app/lib/leonix/contactPagePolishCopy";
+import type { ContactPolishCopy, InquiryTile } from "@/app/lib/leonix/contactPagePolishCopy";
 import type { ContactoResolvedCopy } from "@/app/lib/siteSectionContent/contactoMerge";
 
 type Props = {
@@ -22,6 +29,14 @@ type Props = {
 
 function withLang(path: string, lang: SupportedLang): string {
   return replaceLangInHref(path, lang);
+}
+
+function buildTileHref(tile: InquiryTile, lang: SupportedLang): string {
+  if (tile.kind === "nav") {
+    return withLang(tile.path, lang);
+  }
+  const base = withLang("/contacto", lang);
+  return `${base}&inquiryType=${tile.inquiryKey}#contact-form`;
 }
 
 export function ContactIntakeHero({ lang, copy, highlightInquiryIndex, contact }: Props) {
@@ -64,10 +79,16 @@ export function ContactIntakeHero({ lang, copy, highlightInquiryIndex, contact }
                 {hero.secondaryPromo}
               </Link>
               <Link
-                href={withLang("/publicar", lang)}
+                href={withLang("/clasificados", lang)}
                 className="inline-flex min-h-[3rem] items-center justify-center rounded-full border-2 border-[#C9A84A]/70 bg-[#FAF6EE] px-6 py-3 text-sm font-bold text-[#3D3428] transition hover:border-[#C9A84A] hover:bg-[#FFFDF7]"
               >
                 {hero.secondaryClassified}
+              </Link>
+              <Link
+                href={withLang("/negocios-locales", lang)}
+                className="inline-flex min-h-[3rem] items-center justify-center rounded-full border-2 border-[#C9A84A]/70 bg-[#FAF6EE] px-6 py-3 text-sm font-bold text-[#3D3428] transition hover:border-[#C9A84A] hover:bg-[#FFFDF7]"
+              >
+                {hero.secondaryBusiness}
               </Link>
             </div>
           </div>
@@ -99,12 +120,27 @@ export function ContactIntakeHero({ lang, copy, highlightInquiryIndex, contact }
                   <dt className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-[#C9A84A]/80">
                     {copy.phoneLabel}
                   </dt>
-                  <dd className="mt-1.5">
+                  <dd className="mt-1.5 flex flex-wrap gap-3">
                     <a
                       href={LEONIX_PHONE_TEL}
                       className="inline-flex min-h-[44px] items-center text-base font-bold text-[#FFFDF7] underline decoration-[#C9A84A]/60 underline-offset-4 hover:text-[#FAF6EE]"
                     >
                       {contact.phoneLine}
+                    </a>
+                    <a
+                      href={LEONIX_GLOBAL_PHONE_SMS}
+                      className="inline-flex min-h-[44px] items-center rounded-full border border-[#C9A84A]/40 px-3 py-1 text-xs font-bold text-[#C9A84A] transition hover:border-[#C9A84A]/70 hover:text-[#FAF6EE]"
+                      aria-label={copy.smsLabel}
+                    >
+                      {copy.smsLabel}
+                    </a>
+                    <a
+                      href={LEONIX_GLOBAL_WHATSAPP_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex min-h-[44px] items-center rounded-full border border-[#C9A84A]/40 px-3 py-1 text-xs font-bold text-[#C9A84A] transition hover:border-[#C9A84A]/70 hover:text-[#FAF6EE]"
+                    >
+                      WhatsApp
                     </a>
                   </dd>
                 </div>
@@ -138,6 +174,14 @@ export function ContactIntakeHero({ lang, copy, highlightInquiryIndex, contact }
                 </dt>
                 <dd className="mt-1.5 text-sm leading-relaxed font-medium text-[#FAF6EE]/95">{contact.hours}</dd>
               </div>
+              <div className="pt-1">
+                <a
+                  href={LEONIX_VIRTUAL_FRONT_DESK_PATH}
+                  className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-[#C9A84A]/50 px-4 py-2 text-sm font-bold text-[#C9A84A] transition hover:border-[#C9A84A] hover:text-[#FAF6EE]"
+                >
+                  {lang === "en" ? "Virtual Call" : "Llamada virtual"}
+                </a>
+              </div>
             </dl>
           </aside>
         </div>
@@ -148,19 +192,22 @@ export function ContactIntakeHero({ lang, copy, highlightInquiryIndex, contact }
           {copy.inquiryTitle}
         </h2>
         <ul className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {copy.inquiryTypes.map((item, index) => {
+          {copy.inquiryTypes.map((tile, index) => {
             const highlighted = highlightInquiryIndex === index;
+            const href = buildTileHref(tile, lang);
             return (
-              <li
-                key={item}
-                className={`rounded-xl border px-4 py-3.5 text-sm font-medium transition ${
-                  highlighted
-                    ? "border-[#7A1E2C]/50 bg-[#7A1E2C]/8 text-[#7A1E2C] shadow-[0_4px_16px_-8px_rgba(122,30,44,0.25)] ring-1 ring-[#C9A84A]/40"
-                    : "border-[#C9A84A]/30 bg-[#FFFDF7] text-[#3D3428]"
-                }`}
-                aria-current={highlighted ? "true" : undefined}
-              >
-                {item}
+              <li key={tile.label}>
+                <Link
+                  href={href}
+                  className={`block rounded-xl border px-4 py-3.5 text-sm font-medium transition ${
+                    highlighted
+                      ? "border-[#7A1E2C]/50 bg-[#7A1E2C]/8 text-[#7A1E2C] shadow-[0_4px_16px_-8px_rgba(122,30,44,0.25)] ring-1 ring-[#C9A84A]/40"
+                      : "border-[#C9A84A]/30 bg-[#FFFDF7] text-[#3D3428] hover:border-[#C9A84A]/60 hover:bg-[#FAF6EE]"
+                  }`}
+                  aria-current={highlighted ? "true" : undefined}
+                >
+                  {tile.label}
+                </Link>
               </li>
             );
           })}

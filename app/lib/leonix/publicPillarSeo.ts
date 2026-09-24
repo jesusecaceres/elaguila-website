@@ -35,9 +35,9 @@ export const PUBLIC_PILLAR_PATH: Record<PublicPillarId, string> = {
 
 const PILLAR_SEO_ES: Record<PublicPillarId, PillarSeoCopy> = {
   home: {
-    title: "Noticias, clasificados y comunidad en San José",
+    title: "Desarrollo empresarial y medios bilingües en San José",
     description:
-      "Leonix Media reúne noticias locales, clasificados, negocios, revista bilingüe, recursos comunitarios, viajes, iglesias y productos promocionales para San José y el Área de la Bahía.",
+      "Leonix Media impulsa negocios locales con clasificados, revista bilingüe, radio (La Kaliente 1370), productos promocionales, presencia digital y conexión comunitaria para San José y el Área de la Bahía.",
     schemaName: "Leonix Media",
   },
   noticias: {
@@ -91,16 +91,16 @@ const PILLAR_SEO_ES: Record<PublicPillarId, PillarSeoCopy> = {
   aprender: {
     title: "Centro de Aprendizaje: educación práctica de negocios sin costo",
     description:
-      "Aprende. Construye. Haz crecer tu idea. Lecciones prácticas de negocios en lenguaje claro, bilingües y sin costo: rutas guiadas, glosario, listas y plantillas de Leonix Media.",
+      "Aprende. Sirve. Construye para durar. Lecciones prácticas de negocios en lenguaje claro, bilingües y sin costo: rutas guiadas, glosario, listas y plantillas de Leonix Media.",
     schemaName: "Centro de Aprendizaje Leonix",
   },
 };
 
 const PILLAR_SEO_EN: Record<PublicPillarId, PillarSeoCopy> = {
   home: {
-    title: "News, classifieds, and community in San Jose",
+    title: "Business development and bilingual media in San Jose",
     description:
-      "Leonix Media brings together local news, classifieds, businesses, a bilingual magazine, community resources, travel, churches, and promotional products for San Jose and the Bay Area.",
+      "Leonix Media helps local businesses grow with classifieds, a bilingual magazine, radio (La Kaliente 1370), promotional products, digital presence, and community connection for San Jose and the Bay Area.",
     schemaName: "Leonix Media",
   },
   noticias: {
@@ -154,7 +154,7 @@ const PILLAR_SEO_EN: Record<PublicPillarId, PillarSeoCopy> = {
   aprender: {
     title: "Learning Center: practical, no-cost business education",
     description:
-      "Learn. Build. Grow your idea. Practical business lessons in plain language, bilingual and free of charge: guided paths, a glossary, checklists, and templates from Leonix Media.",
+      "Learn. Serve. Build to last. Practical business lessons in plain language, bilingual and free of charge: guided paths, a glossary, checklists, and templates from Leonix Media.",
     schemaName: "Leonix Learning Center",
   },
 };

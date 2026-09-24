@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { resolveLearningCenterFlagTier } from "@/app/lib/business/learning/featureFlag";
+import { applyLeonixCategoryDoctrine, applyLeonixLessonDoctrine } from "@/app/lib/business/learning/leonixDoctrine";
 import { listActiveCategories, listPublishedLessons } from "@/app/lib/business/learning/repository";
 import { langFromSearchParams, learningCopy } from "../learningCopy";
 
@@ -30,11 +31,11 @@ export default async function LearningCategoryPage({
     );
   }
 
-  const categories = await listActiveCategories();
+  const categories = (await listActiveCategories()).map(applyLeonixCategoryDoctrine);
   const category = categories.find((c) => c.categoryKey === categoryKey);
   if (!category) notFound();
 
-  const allLessons = await listPublishedLessons();
+  const allLessons = (await listPublishedLessons()).map(applyLeonixLessonDoctrine);
   const lessons = allLessons.filter((l) => l.categoryId === category.id).sort((a, b) => a.sortOrder - b.sortOrder);
 
   return (

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { resolveLearningCenterFlagTier } from "@/app/lib/business/learning/featureFlag";
 import { getCodeOwnedLessonPackage, resolveLessonPackage } from "@/app/lib/business/learning/lessonPackage/registry";
+import { applyLeonixLessonDoctrine } from "@/app/lib/business/learning/leonixDoctrine";
 import { getPublishedLessonByKey, listAllPublishedResources, listPublishedLessons } from "@/app/lib/business/learning/repository";
 import { normalizeLang } from "@/app/lib/language";
 import { LEONIX_MEDIA_SITE_NAME, leonixPageTitle } from "@/app/lib/leonixBrand";
@@ -24,7 +25,8 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   const [{ lessonKey }, sp] = await Promise.all([params, searchParams]);
   const tier = await resolveLearningCenterFlagTier(null);
   if (tier !== "global") return {};
-  const lesson = await getPublishedLessonByKey(lessonKey);
+  const stored = await getPublishedLessonByKey(lessonKey);
+  const lesson = stored ? applyLeonixLessonDoctrine(stored) : null;
   if (!lesson) return {};
   const lang = contentLangFromRouteLang(normalizeLang(first(sp.lang)));
   const pkg = resolveLessonPackage(lesson);
@@ -67,10 +69,14 @@ export default async function LearningLessonPage({ params, searchParams }: PageP
     );
   }
 
-  const lesson = await getPublishedLessonByKey(lessonKey);
+  const stored = await getPublishedLessonByKey(lessonKey);
+  const lesson = stored ? applyLeonixLessonDoctrine(stored) : null;
   if (!lesson) notFound();
 
-  const [resources, publishedLessons] = await Promise.all([listAllPublishedResources(), listPublishedLessons()]);
+  const [resources, publishedLessons] = await Promise.all([
+    listAllPublishedResources(),
+    listPublishedLessons().then((rows) => rows.map(applyLeonixLessonDoctrine)),
+  ]);
   const relatedResourceKeys = resources.filter((r) => r.lessonId === lesson.id && r.resourceType !== "glossary_term").map((r) => r.resourceKey);
   const pkg = resolveLessonPackage(lesson, relatedResourceKeys);
 

@@ -30,8 +30,8 @@ export const WHAT_PROBLEM_DO_YOU_SOLVE_PACKAGE: LessonPackage = {
       visualKey: "product_vs_problem",
       headline: { es: "Nadie se despierta queriendo tu producto.", en: "Nobody wakes up wanting your product." },
       support: {
-        es: "La gente se despierta con un problema. Si tu negocio se lo quita de encima, te paga. Si no, solo le pareces “interesante”.",
-        en: "People wake up with a problem. If your business takes it off their hands, they pay you. If not, you are just “interesting” to them.",
+        es: "La gente se despierta con un problema. Si tu negocio se lo resuelve con cuidado y con un intercambio justo, les sirves de verdad. Si no, solo les pareces “interesante”.",
+        en: "People wake up with a problem. If your business solves it with care and a fair exchange, you truly serve them. If not, you are just “interesting” to them.",
       },
       visualLabels: {
         product: { es: "Tu producto", en: "Your product" },
@@ -77,8 +77,8 @@ export const WHAT_PROBLEM_DO_YOU_SOLVE_PACKAGE: LessonPackage = {
         {
           heading: { es: "Lo que hacen hoy es tu mejor pista", en: "What they do today is your best clue" },
           body: {
-            es: "Lo que la persona hace hoy te dice cuánto le importa el problema y con qué vas a competir. Si le cuesta dinero, tiempo o preocupación, hay algo que tu negocio puede mejorar. Y sus palabras para describirlo son las mismas que después usarás para que te entienda.",
-            en: "What the person does today tells you how much the problem matters to them and what you will be competing with. If it costs them money, time, or worry, there is something your business can improve. And the words they use to describe it are the same words you will later use so they understand you.",
+            es: "Lo que la persona hace hoy te dice cuánto le importa el problema y qué alternativa ya usa. Si le cuesta dinero, tiempo o preocupación, hay algo que tu negocio puede servir mejor. Y sus palabras para describirlo son las mismas que después usarás para que te entienda.",
+            en: "What the person does today tells you how much the problem matters to them and which alternative they already use. If it costs them money, time, or worry, there is something your business can serve better. And the words they use to describe it are the same words you will later use so they understand you.",
           },
         },
       ],
@@ -334,7 +334,7 @@ export const WHAT_PROBLEM_DO_YOU_SOLVE_PACKAGE: LessonPackage = {
       id: "recap",
       type: "recap",
       points: [
-        { es: "Nadie se despierta queriendo tu producto: la gente paga por quitarse un problema de encima.", en: "Nobody wakes up wanting your product: people pay to get a problem off their hands." },
+        { es: "Nadie se despierta queriendo tu producto: la gente busca que alguien resuelva un problema real, con utilidad y honestidad.", en: "Nobody wakes up wanting your product: people look for someone to solve a real problem, usefully and honestly." },
         { es: "Un problema de verdad le pasa a alguien concreto, pasa seguido y esa persona ya hace algo al respecto.", en: "A real problem happens to someone specific, happens often, and that person already does something about it." },
         { es: "Tu frase del problema es una hipótesis. Se comprueba escuchando a personas reales, no a una IA.", en: "Your problem sentence is a hypothesis. It is checked by listening to real people, not to an AI." },
       ],
