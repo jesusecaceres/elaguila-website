@@ -1,6 +1,7 @@
 /**
  * Phase 8B — Servicios business-type preset integrity + merge/mapping smoke (no network, no AI).
  * Run: npx tsx scripts/smoke-servicios-business-presets.ts
+ * Aggregate gate: add --skip-build so Acceptance #41 is deferred to the workflow build.
  * Or: node scripts/smoke-servicios-business-presets.mjs
  */
 import { spawnSync } from "node:child_process";
@@ -280,6 +281,7 @@ function main(): void {
       customPaymentMethods: [],
       amenityOptionIds: [],
       customAmenityOptions: [],
+      selectedBusinessHighlightIds: ["bh_free_quote"],
       certifications: ["ISO ready"],
       hasLicense: true,
       licenseType: "State",
@@ -308,7 +310,12 @@ function main(): void {
     } else {
       assert(draftEn.hero.categoryLine === preset.labelEn.trim(), `${g}: category line EN`);
     }
-    assert((draftEs.promotions ?? []).length >= 1, `${g}: promotions map`);
+    // GATE-03: free promotion rows stay off the draft; simple offers publish as highlight chips.
+    assert((draftEs.promotions ?? []).length === 0, `${g}: retired free promotions stay off the draft`);
+    assert(
+      (draftEs.highlights ?? []).some((h) => h.label === "Cotización gratis"),
+      `${g}: simple offer highlight maps`,
+    );
   }
 
   const otroState = normalizeClasificadosServiciosApplicationState({
@@ -398,7 +405,10 @@ function main(): void {
       const en = new Set<string>();
       for (const c of arr) {
         if (!c.id?.trim() || !c.es?.trim() || !c.en?.trim()) chipsIdEsEn = false;
-        if (!/^[a-z][a-z0-9_]*$/i.test(c.id)) stableChipIds = false;
+        // Namespaced preset chips are `{businessTypeId}::{localChipId}` (businessTypePresets.ts).
+        // CTA ids stay a single ASCII token. The preset segment may include the canonical
+        // accented business-type id (`estética_belleza`); the local segment stays ASCII.
+        if (!/^(?:[a-z][a-z0-9_]*|\p{L}[\p{L}0-9_]*::[a-z][a-z0-9_]*)$/iu.test(c.id)) stableChipIds = false;
         const esK = normalizeHay(c.es);
         const enK = normalizeHay(c.en);
         if (ids.has(c.id)) noDupChipIdsInPreset = false;
@@ -476,7 +486,9 @@ function main(): void {
   const regressionOpcionesOk =
     (dReg.amenityOptionIds ?? []).length >= 1 && (dReg.customAmenityOptions ?? []).length >= 1;
   const regressionCredencialesOk = Boolean(dReg.credentials?.certifications?.includes("EPA lead-safe"));
-  const regressionPromosOk = (dReg.promotions ?? []).length >= 1;
+  const regressionPromosOk =
+    (dReg.promotions ?? []).length === 0 &&
+    (dReg.highlights ?? []).some((h) => h.label === "Atención el mismo día");
   const noOtherVerticalEdits = true;
 
   const checklist: boolean[] = [
@@ -534,12 +546,17 @@ function main(): void {
     console.log(`${i + 1}. TRUE`);
   }
 
-  console.log("\n41. npm run build …");
-  const br = spawnSync("npm", ["run", "build"], { cwd: REPO_ROOT, stdio: "inherit", shell: true });
-  const buildOk = br.status === 0;
-  if (!buildOk) fail("Acceptance check 41 (npm run build) is FALSE");
-  console.log("41. TRUE");
-  console.log("--- End acceptance ---\n");
+  if (process.argv.includes("--skip-build")) {
+    console.log("\n41. DEFERRED — aggregate workflow owns the production-equivalent build gate");
+    console.log("--- End acceptance ---\n");
+  } else {
+    console.log("\n41. npm run build …");
+    const br = spawnSync("npm", ["run", "build"], { cwd: REPO_ROOT, stdio: "inherit", shell: true });
+    const buildOk = br.status === 0;
+    if (!buildOk) fail("Acceptance check 41 (npm run build) is FALSE");
+    console.log("41. TRUE");
+    console.log("--- End acceptance ---\n");
+  }
 
   console.log(`PASS — audited ${BUSINESS_TYPE_PRESETS.length} presets.`);
   if (issues.length) console.log(`Summary notes (${issues.length}):`, issues.join(" | "));

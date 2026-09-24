@@ -33,14 +33,19 @@ export function MagazineTranslatedReader({
 
   return (
     <div className="min-w-0 space-y-6">
-      <div className="rounded-xl border border-[#C9A84A]/40 bg-[#FFFDF7] px-4 py-3 sm:px-5">
+      <div className="rounded-xl border border-[#C9A84A]/40 bg-[#FFFDF7] px-4 py-4 sm:px-5 sm:py-5">
         <p className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-[#8A6B1F]">
           {ui.readerPreviewBadge}
         </p>
-        <p className="mt-1.5 text-sm leading-relaxed text-[#3D3428]">{ui.readerPreviewIntro}</p>
-        <p className="mt-2 text-xs leading-relaxed text-[#3D3428]/80 sm:text-sm">
-          {ui.futureFlipbookNote}
-        </p>
+        {ui.readerPreviewTitle ? (
+          <h2 className="mt-1.5 font-serif text-lg font-bold leading-snug text-[#2A4536] sm:text-xl">
+            {ui.readerPreviewTitle}
+          </h2>
+        ) : null}
+        <p className="mt-2 text-sm leading-relaxed text-[#3D3428]">{ui.readerPreviewIntro}</p>
+        {ui.readerPreviewSecondary ? (
+          <p className="mt-2 text-sm leading-relaxed text-[#3D3428]">{ui.readerPreviewSecondary}</p>
+        ) : null}
       </div>
 
       <div className="space-y-5">

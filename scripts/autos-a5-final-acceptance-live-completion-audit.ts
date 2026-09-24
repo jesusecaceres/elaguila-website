@@ -49,7 +49,7 @@ const REQUIRED_COPY = [
   "Agregar vehículo al inventario",
   "Guardar en inventario",
   "Guardar y agregar otro",
-  "Esta información se toma de la solicitud principal del concesionario",
+  "La información del dealer se hereda de la aplicación principal del concesionario",
   "ID Leonix se generará al publicar",
   "Cambios sin guardar",
   "Seguir editando",

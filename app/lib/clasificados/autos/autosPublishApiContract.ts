@@ -22,7 +22,11 @@ export type AutosPublishApiErrorCode =
   | "AUTOS_NEGOCIOS_QA_ALLOWLIST_MISSING"
   // Package C Build 1 (decision 11) — server-side commercial write guard rejection
   // (capacity/grace/suspension/parent-ownership); details ride in message/legacyError.
-  | "COMMERCIAL_WRITE_BLOCKED";
+  | "COMMERCIAL_WRITE_BLOCKED"
+  // Gate QB-MEDIA-03 — the dealer lane's semantic media contract refused the submission: the
+  // declared photo roles cannot satisfy "at least one real photo of the vehicle". A dealership
+  // logo is a legitimate upload and an illegitimate answer to that requirement.
+  | "MEDIA_CONTRACT_VIOLATION";
 
 export type AutosListingApiSuccessListing = {
   id: string;

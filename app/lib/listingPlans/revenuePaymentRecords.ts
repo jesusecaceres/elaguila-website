@@ -48,6 +48,14 @@ export type CreatePendingPaymentRecordInput = {
   /** Package C Build 1 — stable purchase-attempt identity (see computeCheckoutAttemptKey). */
   checkoutAttemptKey?: string | null;
   attemptGeneration?: number | null;
+  /**
+   * LEONIX IX REWARDS — the portion of this purchase funded by Leonix Credits, in cents.
+   *
+   * Recorded so the earn hooks can subtract it before computing 9%: credits spent on a purchase
+   * do not themselves earn credits. It is written to `metadata.leonix_credits_applied_cents`,
+   * which is exactly where `revenueFulfillment` and `manualClearedPayments` already read it.
+   */
+  creditsAppliedCents?: number | null;
 };
 
 export type PendingPaymentRecordResult =
@@ -160,6 +168,19 @@ export async function createPendingPaymentRecord(
         package_label: input.packageDef.label,
         destructive: false,
         subtotal_cents: subtotal,
+        // LEONIX IX REWARDS — the credit-funded portion of this purchase, for audit and for the
+        // customer's own record. Written unconditionally (0 when none) so its absence can never be
+        // mistaken for an unrecorded redemption.
+        leonix_credits_applied_cents: Math.max(0, Math.floor(input.creditsAppliedCents ?? 0)),
+        // AND the flag that stops it being subtracted twice.
+        //
+        // `amount_cents` / `amount_total_cents` above are the amount the rail will actually
+        // CHARGE, which on this path is already net of credits — the checkout route reduced it
+        // before calling here, and the webhook's amount guard compares Stripe's total against it.
+        // The earn hooks compute 9% of real money as `amountPaid - creditsApplied`, so subtracting
+        // the credits again against an already-net total would award nothing at all on a purchase
+        // half-funded by credits. This flag tells them the subtraction has already happened.
+        leonix_amount_is_net_of_credits: true,
         ...(addOns.length
           ? {
               add_ons: addOns.map((a) => ({
@@ -315,13 +336,19 @@ export type LeonixPaymentRecordRow = {
   stripe_payment_intent_id: string | null;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
+  /**
+   * The stable purchase-attempt identity. Surfaced because it is also the reference a Leonix
+   * Credits hold is keyed on, so the webhook can commit or release that hold without inventing a
+   * second identifier for the same attempt.
+   */
+  checkout_attempt_key: string | null;
   paid_at: string | null;
   canceled_at: string | null;
   metadata: Record<string, unknown> | null;
 };
 
 const PAYMENT_RECORD_SELECT =
-  "id, category, package_key, listing_id, owner_user_id, leonix_ad_id, billing_mode, placement_tier, amount_cents, amount_total_cents, amount_subtotal_cents, amount_discount_cents, currency, payment_status, source, promo_code_id, promo_redemption_id, verified_intro_discount_redemption_id, contract_term, package_entitlement_id, placement_entitlement_id, stripe_checkout_session_id, stripe_payment_intent_id, stripe_customer_id, stripe_subscription_id, paid_at, canceled_at, customer_email, business_name, metadata";
+  "id, category, package_key, listing_id, owner_user_id, leonix_ad_id, billing_mode, placement_tier, amount_cents, amount_total_cents, amount_subtotal_cents, amount_discount_cents, currency, payment_status, source, promo_code_id, promo_redemption_id, verified_intro_discount_redemption_id, contract_term, package_entitlement_id, placement_entitlement_id, stripe_checkout_session_id, stripe_payment_intent_id, stripe_customer_id, stripe_subscription_id, checkout_attempt_key, paid_at, canceled_at, customer_email, business_name, metadata";
 
 /** Extended payment row for promo redemption business attribution (Gate REVENUE-OS-PROMO-REDEMPTION-BUSINESS-ATTRIBUTION-01). */
 export type LeonixPaymentRecordAttributionRow = LeonixPaymentRecordRow & {
@@ -388,7 +415,17 @@ export async function markPaymentRecordPaid(input: {
 
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
-  const { error } = await supabase
+  // A Stripe checkout can be authoritatively PAID after Leonix already marked the local
+  // attempt canceled (for example a user returns through the cancel path while the hosted
+  // Checkout Session finishes in another tab, or a completion webhook was temporarily
+  // unreachable). Stripe's verified paid session is the money truth, so "canceled" is recoverable
+  // here. Refunded/disputed/other terminal states are deliberately NOT accepted.
+  //
+  // The old UPDATE also never selected the mutated row: a zero-row CAS miss returned {ok:true}
+  // and fulfillment continued as if the payment had been marked paid. That is fail-open in the
+  // worst possible direction. Require a changed row, then tolerate only a concurrent transition
+  // that a re-read proves is already paid.
+  const { data: updated, error } = await supabase
     .from("leonix_payment_records")
     .update({
       payment_status: "paid",
@@ -407,10 +444,23 @@ export async function markPaymentRecordPaid(input: {
       },
     })
     .eq("id", input.paymentRecordId)
-    .in("payment_status", ["pending", "unpaid", "requires_action"]);
+    .in("payment_status", ["pending", "unpaid", "requires_action", "canceled"])
+    .select("id");
 
   if (error) {
     return { ok: false, code: "payment_record_update_failed", message: error.message };
+  }
+
+  if (!updated?.length) {
+    const current = await loadPaymentRecordById(input.paymentRecordId);
+    if (current?.payment_status === "paid" || current?.payment_status === "succeeded") {
+      return { ok: true, idempotent: true };
+    }
+    return {
+      ok: false,
+      code: "payment_record_state_conflict",
+      message: "Payment record is not in a Stripe-paid recoverable state.",
+    };
   }
 
   return { ok: true };

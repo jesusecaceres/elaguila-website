@@ -5,6 +5,7 @@
 
 import "server-only";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { isBusinessBasePackageKey } from "./businessAccessLevel";
 
 /** Hidden DB status for unpaid listings saved before Revenue OS Stripe checkout. */
 export const RESTAURANTE_PENDING_CHECKOUT_STATUS = "pending_payment" as const;
@@ -47,7 +48,8 @@ export async function activatePaidRestauranteListingFromRevenueOs(input: {
   couponAddonPaid?: boolean;
 }): Promise<RestauranteRevenueActivationResult> {
   const packageKey = String(input.packageKey ?? "").trim().toLowerCase();
-  if (packageKey !== RESTAURANTES_BASE_MONTHLY_PACKAGE_KEY) {
+  // Either base subscription activates the listing — see the note in revenueServiciosFulfillment.
+  if (!isBusinessBasePackageKey("restaurantes", packageKey)) {
     return { ok: true, outcome: "skipped_wrong_package" };
   }
 

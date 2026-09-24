@@ -29,7 +29,17 @@ function PublishAuthGateFallback() {
  */
 export async function PublishAuthGateLayout({ children }: { children: React.ReactNode }) {
   const jar = await cookies();
-  const assisted = readAssistedPublishingContext(jar);
+  const verified = readAssistedPublishingContext(jar);
+  // Only what the banner and the UI context need crosses to the client: the business, the
+  // category and the bound row. Roster and Auth ids stay server-side.
+  const assisted = verified
+    ? {
+        businessId: verified.businessId,
+        category: verified.category,
+        listingId: verified.listingId ?? null,
+        ...(verified.packageKey ? { packageKey: verified.packageKey } : {}),
+      }
+    : null;
 
   return (
     <Suspense fallback={<PublishAuthGateFallback />}>

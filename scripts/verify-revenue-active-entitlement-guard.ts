@@ -297,15 +297,21 @@ async function main(): Promise<void> {
         `${key} must not be treated as a base-package guard target`,
       );
     }
-    // Sanity: the guarded set really is exactly the five base packages this task covers.
+    // Sanity: the guarded set is exactly the five Full/standalone base packages this task covers
+    // plus the four Quick ($99/mo SIMPLE) base packages, which are monthly subscriptions under
+    // the same "never recharge on edit" rule.
     assert.deepEqual(
       [...REVENUE_BASE_ENTITLEMENT_GUARD_PACKAGE_KEYS].sort(),
       [
         "autos_dealer_monthly",
+        "autos_dealer_quick_monthly",
         "br_agent_monthly",
+        "br_agent_quick_monthly",
         "comida_local_base_monthly",
         "restaurantes_base_monthly",
+        "restaurantes_quick_monthly",
         "servicios_base_monthly",
+        "servicios_quick_monthly",
       ].sort(),
     );
   });

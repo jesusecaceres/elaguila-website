@@ -13,6 +13,8 @@ export type ChurchApplicationInput = {
   addressLine2?: string;
   publicLocation: boolean;
   languages: string[];
+  /** Gate 16: free-text additional languages beyond es/en/bilingual (e.g. "Vietnamita"). */
+  otherLanguages: string[];
   phone?: string;
   email?: string;
   website?: string;
@@ -64,6 +66,11 @@ export function parseChurchApplication(body: unknown): { ok: true; data: ChurchA
 
   const languagesRaw = Array.isArray(o.languages) ? o.languages : [];
   const languages = languagesRaw.map((x) => String(x)).filter(isIglesiasServiceLanguage);
+  const otherLanguagesRaw = Array.isArray(o.otherLanguages) ? o.otherLanguages : [];
+  const otherLanguages = otherLanguagesRaw
+    .map((x) => clean(x, 40))
+    .filter((x) => x.length > 0)
+    .slice(0, 8);
   const ministriesRaw = Array.isArray(o.ministries) ? o.ministries : [];
   const ministries = ministriesRaw.map((x) => String(x).toUpperCase()).filter(isIglesiasNeedKey);
 
@@ -107,6 +114,7 @@ export function parseChurchApplication(body: unknown): { ok: true; data: ChurchA
       addressLine2: clean(o.addressLine2, 160) || undefined,
       publicLocation: o.publicLocation === true,
       languages,
+      otherLanguages,
       phone: clean(o.phone, 40) || undefined,
       email: clean(o.email, 200) || undefined,
       website: httpsUrl(clean(o.website, 400)) || undefined,

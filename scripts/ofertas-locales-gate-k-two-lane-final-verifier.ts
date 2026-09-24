@@ -2,7 +2,7 @@
  * FINAL TWO-LANE EXECUTION — Gate K exhaustive verifier (⚠️: Two-Lane Execution).
  *
  * Proves the Volante Interactivo ($399, AI-included, 8 steps) and Cupones y
- * Promociones (FREE, manual-entry, 7 steps, no AI/scan) lanes are both real,
+ * Promociones ($199 / 30 days, manual-entry, 7 steps, no AI/scan) lanes are both real,
  * complete, and correctly isolated from each other — without touching the
  * sealed scanner core, without a new API route, and without a speculative
  * DB migration.
@@ -77,9 +77,9 @@ function run() {
     assert.equal(OFERTAS_LOCALES_COMMERCIAL_PRODUCTS.interactive_flyer.amountCents, 39900);
   });
 
-  check("03", "Coupon = FREE", () => {
-    assert.equal(OFERTAS_LOCALES_PUBLISH_PRODUCT_CATALOG.coupons.displayPriceUsd, 0);
-    assert.equal(OFERTAS_LOCALES_COMMERCIAL_PRODUCTS.coupons.amountCents, 0);
+  check("03", "Coupon = $199 / 30 days (server package ofertas_locales_coupons_30d)", () => {
+    assert.equal(OFERTAS_LOCALES_PUBLISH_PRODUCT_CATALOG.coupons.displayPriceUsd, 199);
+    assert.equal(OFERTAS_LOCALES_COMMERCIAL_PRODUCTS.coupons.amountCents, 19900);
   });
 
   check("04", "Flyer AI entitlement TRUE", () => {
@@ -279,11 +279,13 @@ function run() {
     assert.match(section![0], /couponsMoreOffersUrl\.trim\(\) \? \(/);
   });
 
-  check("44", "Coupon final review shows FREE", () => {
+  check("44", "Final review renders the live package amount (coupon $199, flyer $399)", () => {
     assert.match(commercialSummarySrc, /isFreeProduct \? c\.freeLabel : formatMoney\(baseCents\)/);
+    assert.equal(OFERTAS_LOCALES_COMMERCIAL_PRODUCTS.coupons.amountCents, 19900);
+    assert.equal(OFERTAS_LOCALES_COMMERCIAL_PRODUCTS.interactive_flyer.amountCents, 39900);
   });
 
-  check("45", "Coupon has no payment CTA", () => {
+  check("45", "Application client never starts checkout itself (both lanes pay at the dashboard checkout page)", () => {
     assert.doesNotMatch(clientSrc, /startRevenueCategoryCheckout|redirectToRevenueCategoryCheckout/);
     assert.match(commercialSummarySrc, /isFreeProduct \? null : \(/);
   });

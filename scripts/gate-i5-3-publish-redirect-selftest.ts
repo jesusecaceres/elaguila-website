@@ -103,7 +103,7 @@ async function main() {
    * ---------------------------------------------------------------------------------------- */
   {
     const serviciosPlain = readSource("app/(site)/clasificados/publicar/servicios/page.tsx");
-    assert.ok(serviciosPlain.includes('redirect("/clasificados/publicar/servicios/checkpoint")'));
+    assert.ok(serviciosPlain.includes("/clasificados/publicar/servicios/checkpoint"), "Servicios plain entry must still redirect to its checkpoint (with optional lang preservation)");
 
     const serviciosCheckpoint = readSource("app/(site)/clasificados/publicar/servicios/checkpoint/ServiciosCheckpointClient.tsx");
     assert.ok(!serviciosCheckpoint.includes("redirect("), "checkpoint must remain a real distinct pricing page, not a redirect");

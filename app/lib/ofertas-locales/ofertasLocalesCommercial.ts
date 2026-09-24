@@ -48,7 +48,7 @@ export const OFERTAS_LOCALES_COMMERCIAL_PRODUCTS = {
     amountCents: OFERTAS_LOCALES_COUPONS_PRICE_CENTS,
     currency: OFERTAS_LOCALES_CURRENCY,
     durationDays: OFERTAS_LOCALES_PUBLIC_TERM_DAYS,
-    /** Cupones y promociones is a free, manual-entry product — no AI scan/review. */
+    /** Coupon lane is manual-entry (no AI scan/review). Amount comes from the existing server package. */
     aiIncluded: false,
   },
 } as const satisfies Record<OfertaLocalCommercialLane, OfertaLocalCommercialProduct>;
@@ -127,4 +127,17 @@ export function formatOfertaLocalCommercialAmount(
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   })}`;
+}
+
+/** Checkout consent copy derived from the live commercial package — never a hardcoded flyer price on the coupon lane. */
+export function ofertaLocalChargeConsentCopy(
+  product: Pick<OfertaLocalCommercialProduct, "amountCents" | "durationDays">,
+  lang: "es" | "en",
+): string {
+  const amount = formatOfertaLocalCommercialAmount(product.amountCents);
+  const days = product.durationDays;
+  if (lang === "en") {
+    return `I understand and authorize the ${amount} charge for this ${days}-day publication, and that once payment completes successfully, publication activates according to Leonix commercial rules.`;
+  }
+  return `Entiendo y autorizo el cobro de ${amount} por esta publicación de ${days} días y que, al completarse correctamente el pago, la publicación se activa según las reglas comerciales de Leonix.`;
 }

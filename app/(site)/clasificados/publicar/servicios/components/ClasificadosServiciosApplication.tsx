@@ -8,7 +8,7 @@ import {
   withClasificadosPublishLang,
 } from "@/app/lib/clasificados/clasificadosPublishLang";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { FiCheck, FiImage, FiPlus, FiUpload, FiX } from "react-icons/fi";
+import { FiCheck, FiUpload, FiX } from "react-icons/fi";
 import { readFileAsDataUrl } from "@/app/publicar/autos/negocios/lib/readFileAsDataUrl";
 import {
   clearLeonixReturningToEditSessionFlag,
@@ -42,7 +42,6 @@ import type {
   ClasificadosServiciosCouponRow,
   DayKey,
   GalleryItem,
-  ServiciosLang,
   ServiciosSpecialHoursEntry,
 } from "../lib/clasificadosServiciosApplicationTypes";
 import {
@@ -84,6 +83,7 @@ import {
 import { useAssistedPublishingUi } from "@/app/components/auth/AssistedPublishingUiContext";
 import { readConciergeReturnContext } from "@/app/lib/business/applicationContext/conciergeReturnContext";
 import { AssistedServiciosStepHeader } from "./AssistedServiciosStepHeader";
+import { AssistedSaveForClientBar } from "@/app/clasificados/components/AssistedSaveForClientBar";
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
 import type { PublishReadinessMissingItem } from "../lib/serviciosPublishReadiness";
 import { evaluateServiciosPreviewReadiness } from "../lib/serviciosPreviewReadiness";
@@ -93,7 +93,6 @@ import {
   resolveServiciosApplicationTemplate,
 } from "../lib/serviciosApplicationTemplateCopy";
 import {
-  clasificadosServiciosApplicationHasProgress,
   createDefaultClasificadosServiciosState,
   WEEK_DAY_LABELS,
 } from "../lib/defaultClasificadosServiciosState";
@@ -116,7 +115,7 @@ import {
   MAX_BUSINESS_HIGHLIGHT_PRESET_SELECTION,
   MAX_CUSTOM_BUSINESS_HIGHLIGHTS,
 } from "../lib/serviciosHighlightCaps";
-import { digitsOnly, formatPhoneInputDisplay, formatWhatsAppInputDisplay } from "../lib/serviciosPhoneUi";
+import { formatPhoneInputDisplay, formatWhatsAppInputDisplay } from "../lib/serviciosPhoneUi";
 import { formatServiciosWhatsAppDisplay } from "@/app/(site)/servicios/lib/serviciosWhatsAppHref";
 import { resolveServiciosBusinessHighlightVisual } from "@/app/(site)/clasificados/servicios/lib/serviciosBusinessHighlightVisual";
 import { resolveServiciosServiceVisual } from "@/app/(site)/clasificados/servicios/lib/serviciosServiceVisualCatalog";
@@ -174,8 +173,6 @@ const GALLERY_MAX = 24;
 
 const inputClass =
   "mt-1 w-full min-w-0 rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-base leading-snug text-neutral-900 shadow-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD] sm:text-sm";
-const textareaClass =
-  "mt-1 w-full min-w-0 rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-base leading-relaxed text-neutral-900 shadow-sm outline-none focus:border-[#3B66AD] focus:ring-1 focus:ring-[#3B66AD] sm:text-sm";
 const inputWarn = "border-amber-400 bg-amber-50/50";
 const sectionCard =
   "rounded-2xl border border-neutral-200/90 bg-white p-5 shadow-sm sm:p-6";
@@ -254,6 +251,9 @@ export function ClasificadosServiciosApplication() {
     () => resolveClasificadosPublishLang(searchParams?.get("lang")),
     [searchParams],
   );
+  const businessPlan = searchParams?.get("plan") === "quick" ? "quick" : "full";
+  const isQuickBusinessPlan = businessPlan === "quick";
+  const galleryLimit = isQuickBusinessPlan ? 3 : GALLERY_MAX;
 
   /**
    * LEONIX ASSISTED SERVICIOS NAVIGATION CLEANUP — server-verified via PublishAuthGate/
@@ -295,7 +295,6 @@ export function ClasificadosServiciosApplication() {
     routeLang,
   );
   const copy = getClasificadosServiciosCopy(lang);
-  const labels = copy.labels as any;
 
   const [hydrated, setHydrated] = useState(false);
   const [previewGateMissing, setPreviewGateMissing] = useState<PublishReadinessMissingItem[] | null>(null);
@@ -553,7 +552,6 @@ export function ClasificadosServiciosApplication() {
 
   const logoInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
-  const couponImageInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
 
   const createEmptyCouponRow = useCallback((): ClasificadosServiciosCouponRow => {
     return {
@@ -678,7 +676,7 @@ export function ClasificadosServiciosApplication() {
     setNewFieldsMissing([]);
     setEditHydration({ status: "idle" });
     // Always try to restore from storage first to survive hard refresh
-    setState((prev) => {
+    setState(() => {
       const sync = bootstrapServiciosApplicationStateSync();
       return {
         ...sync,
@@ -697,12 +695,22 @@ export function ClasificadosServiciosApplication() {
         setState((prev) => ({
           ...prev,
           listingProduct: "servicios_profesionales",
-          baseMonthlyPrice: 399,
-          categoryPlan: lang === "en" ? "Professional services — $399/month" : "Servicios profesionales — $399/mes",
+          baseMonthlyPrice: isQuickBusinessPlan ? 249 : 399,
+          categoryPlan: isQuickBusinessPlan
+            ? (lang === "en" ? "Services — $249/month" : "Servicios — $249/mes")
+            : (lang === "en" ? "PRO Services — $399/month" : "Servicios PRO — $399/mes"),
+          ...(isQuickBusinessPlan
+            ? {
+                couponsAddOn: false,
+                couponsMonthlyPrice: 0,
+                coupons: [],
+                videos: [],
+              }
+            : {}),
         }));
       }
     }
-  }, [hydrated, state.listingProduct, searchParams, lang, setState, isExistingDashboardListingMode]);
+  }, [hydrated, state.listingProduct, searchParams, lang, setState, isExistingDashboardListingMode, isQuickBusinessPlan]);
 
   useEffect(() => {
     if (!editRequested) return;
@@ -878,7 +886,7 @@ export function ClasificadosServiciosApplication() {
         mode: isDashboardOffersEditMode ? "offers-edit" : isDashboardOffersAddonMode ? "offers-addon" : "listing-edit",
         focus: focusCoupon ? "coupon-upgrade" : null,
       })
-    : withClasificadosPublishLang("/clasificados/publicar/servicios/preview", routeLang);
+    : withClasificadosPublishLang("/clasificados/publicar/servicios/preview", routeLang, { plan: businessPlan });
   const publicarHref = withClasificadosPublishLang("/clasificados/publicar", routeLang);
 
   const goStrictPreview = useCallback(async () => {
@@ -1124,17 +1132,17 @@ export function ClasificadosServiciosApplication() {
       additions.push({ id: newGalleryId(), url, source: "file" as const });
     }
     setState((prev) => {
-      const room = Math.max(0, GALLERY_MAX - prev.gallery.length);
+      const room = Math.max(0, galleryLimit - prev.gallery.length);
       if (room === 0) {
         queueMicrotask(() =>
-          setMediaFlash(copy.labels.galleryLimitHint.replace("{max}", String(GALLERY_MAX))),
+          setMediaFlash(copy.labels.galleryLimitHint.replace("{max}", String(galleryLimit))),
         );
         return prev;
       }
       const use = additions.slice(0, room);
       if (additions.length > use.length) {
         queueMicrotask(() =>
-          setMediaFlash(copy.labels.galleryPartialAdd.replace("{max}", String(GALLERY_MAX))),
+          setMediaFlash(copy.labels.galleryPartialAdd.replace("{max}", String(galleryLimit))),
         );
       }
       const gallery = [...prev.gallery, ...use];
@@ -1158,9 +1166,9 @@ export function ClasificadosServiciosApplication() {
     const id = newGalleryId();
     let added = false;
     setState((prev) => {
-      if (prev.gallery.length >= GALLERY_MAX) {
+      if (prev.gallery.length >= galleryLimit) {
         queueMicrotask(() =>
-          setMediaFlash(copy.labels.galleryLimitHint.replace("{max}", String(GALLERY_MAX))),
+          setMediaFlash(copy.labels.galleryLimitHint.replace("{max}", String(galleryLimit))),
         );
         return prev;
       }
@@ -1360,6 +1368,15 @@ export function ClasificadosServiciosApplication() {
           lang={lang}
         />
       ) : null}
+      <AssistedSaveForClientBar
+        category="servicios"
+        lang={lang}
+        buildPayload={() => ({
+          category: "servicios",
+          state: stateRef.current as unknown as Record<string, unknown>,
+          lang,
+        })}
+      />
       {isExistingDashboardListingMode && editHydration.status === "error" ? (
         <main className="mx-auto max-w-lg px-4 pb-16 pt-24 sm:pt-28">
           <h1 className="text-xl font-bold text-[#3D2C12]">
@@ -1451,6 +1468,37 @@ export function ClasificadosServiciosApplication() {
           </div>
 
           <div className="mt-4 border-t border-[#D8C79A]/40 pt-4">
+            {!isExistingDashboardListingMode ? (
+              <div
+                className="mb-4 rounded-xl border border-[#C9B46A]/60 bg-[#FFF6E7] px-4 py-3"
+                data-business-plan={businessPlan}
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#8A6B1F]">
+                      {isQuickBusinessPlan
+                        ? (lang === "en" ? "Plan $249" : "Plan $249")
+                        : (lang === "en" ? "PRO — $399" : "PRO — $399")}
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-[#3D2C12]">
+                      {isQuickBusinessPlan
+                        ? (lang === "en"
+                            ? "Professional Leonix listing · up to 3 images · no video · simple management"
+                            : "Anuncio Leonix profesional · hasta 3 imágenes · sin video · administración simple")
+                        : (lang === "en"
+                            ? "Full business experience · advanced media, analytics, leads and business tools"
+                            : "Experiencia completa · medios avanzados, analítica, prospectos y herramientas de negocio")}
+                    </p>
+                  </div>
+                  <Link
+                    href={withClasificadosPublishLang("/clasificados/publicar/servicios/checkpoint", routeLang)}
+                    className="text-xs font-bold text-[#5D4A25] underline underline-offset-2"
+                  >
+                    {lang === "en" ? "Change plan" : "Cambiar plan"}
+                  </Link>
+                </div>
+              </div>
+            ) : null}
             {/* Pricing Summary */}
             {state.categoryPlan && state.baseMonthlyPrice ? (
               <div className="mb-4 rounded-xl border border-[#C9782F]/50 bg-[#FFFDF7]/50 px-4 py-3">
@@ -2284,7 +2332,7 @@ export function ClasificadosServiciosApplication() {
             <p className={labelClass}>{copy.labels.gallery}</p>
             <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.galleryListOrderHint}</p>
             <p className="mt-2 text-xs font-semibold tabular-nums text-[#5D4A25]">
-              {copy.labels.galleryCountLine.replace("{n}", String(state.gallery.length)).replace("{max}", String(GALLERY_MAX))}
+              {copy.labels.galleryCountLine.replace("{n}", String(state.gallery.length)).replace("{max}", String(galleryLimit))}
             </p>
             <input
               ref={galleryInputRef}
@@ -2355,8 +2403,8 @@ export function ClasificadosServiciosApplication() {
                 label={lang === "en" ? "Image accepted" : "Imagen aceptada"}
               />
             </div>
-            {state.gallery.length >= GALLERY_MAX ? (
-              <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.galleryLimitHint.replace("{max}", String(GALLERY_MAX))}</p>
+            {state.gallery.length >= galleryLimit ? (
+              <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.galleryLimitHint.replace("{max}", String(galleryLimit))}</p>
             ) : null}
             {state.gallery.length > 0 ? (
               <p className="mt-3 text-xs font-semibold text-[#5D4A25]">
@@ -2398,6 +2446,18 @@ export function ClasificadosServiciosApplication() {
             )}
           </div>
 
+          {isQuickBusinessPlan ? (
+            <div className="mt-10 rounded-xl border border-[#D8C79A]/70 bg-[#FFF6E7] p-4" data-quick-video-locked="1">
+              <p className="text-sm font-bold text-[#3D2C12]">
+                {lang === "en" ? "Video is available with PRO $399" : "El video está disponible con PRO $399"}
+              </p>
+              <p className="mt-1 text-xs text-[#5D4A25]">
+                {lang === "en"
+                  ? "Your $249 plan keeps the same professional public design and supports up to 3 images."
+                  : "Tu plan de $249 conserva el mismo diseño profesional y admite hasta 3 imágenes."}
+              </p>
+            </div>
+          ) : (
           <div className="mt-10 border-t border-[#D8C79A]/40 pt-8">
             <p className={labelClass}>{copy.labels.videosTitle}</p>
             <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">
@@ -2549,6 +2609,7 @@ export function ClasificadosServiciosApplication() {
               </p>
             )}
           </div>
+          )}
         </section>
           </>
         ) : null}
@@ -3592,6 +3653,27 @@ export function ClasificadosServiciosApplication() {
         ) : null}
 
         {step === 6 ? (
+          isQuickBusinessPlan ? (
+            <section className={sectionCard} data-quick-coupons-locked="1">
+              <SectionTitle>{copy.labels.couponsFeaturedStepTitle}</SectionTitle>
+              <div className="mt-4 rounded-xl border border-[#C9B46A]/60 bg-[#FFF6E7] p-4">
+                <p className="font-bold text-[#3D2C12]">
+                  {lang === "en" ? "Coupons and featured offers are included with PRO $399" : "Cupones y ofertas destacadas están incluidos con PRO $399"}
+                </p>
+                <p className="mt-1 text-sm text-[#5D4A25]">
+                  {lang === "en"
+                    ? "The $249 plan keeps your professional listing and core contact tools without the PRO offers module."
+                    : "El plan de $249 mantiene tu anuncio profesional y herramientas principales de contacto sin el módulo de ofertas PRO."}
+                </p>
+                <Link
+                  href={withClasificadosPublishLang("/clasificados/publicar/servicios/checkpoint", routeLang)}
+                  className="mt-4 inline-flex min-h-[44px] items-center rounded-full border border-[#C9B46A] bg-white px-5 text-sm font-bold text-[#3D2C12]"
+                >
+                  {lang === "en" ? "Compare plans" : "Comparar planes"}
+                </Link>
+              </div>
+            </section>
+          ) : (
           <>
             {/* Coupons section - only shows when add-on is enabled */}
             {state.couponsAddOn ? (
@@ -4071,6 +4153,7 @@ export function ClasificadosServiciosApplication() {
               </>
             )}
           </>
+          )
         ) : null}
 
         {step === 7 ? (

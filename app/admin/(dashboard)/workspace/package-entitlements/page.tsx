@@ -40,6 +40,7 @@ import {
 import { PackageEntitlementSalesPreview } from "./PackageEntitlementSalesPreview";
 import { getPackageEntitlementBenefits } from "@/app/lib/listingPlans/packageEntitlements";
 import { REVENUE_V1_PACKAGE_MATRIX } from "@/app/lib/listingPlans/revenuePricingMatrix";
+import { describeBusinessAccessRow } from "@/app/lib/listingPlans/businessAccessLevel";
 import {
   attachListingToPackageEntitlementAction,
   createPackageEntitlementAction,
@@ -222,8 +223,10 @@ export default async function AdminPackageEntitlementsPage(props: {
       <section className={`${adminCardBase} p-4 sm:p-6`}>
         <h2 className="text-sm font-bold text-[#1E1810]">Search & filter</h2>
         <p className="mt-1 text-xs text-[#7A7164]">
-          Search by code, contract, business, customer, listing ID, sales rep, or Leonix ad ID (metadata). Up to{" "}
-          {PACKAGE_ENTITLEMENT_TRACKER_FETCH_LIMIT} filas recientes.
+          Search by code, contract, business, customer, listing ID, package SKU, sales rep, or Leonix ad ID
+          (metadata). Search the SKU to separate Quick from Full — both carry tier{" "}
+          <span className="font-mono">digital_only</span>. Up to {PACKAGE_ENTITLEMENT_TRACKER_FETCH_LIMIT} filas
+          recientes.
         </p>
         <form method="get" className="mt-4 grid gap-3 sm:grid-cols-2">
           <label className="block text-xs font-semibold text-[#5C5346] sm:col-span-2">
@@ -232,7 +235,7 @@ export default async function AdminPackageEntitlementsPage(props: {
               name="q"
               defaultValue={filterQ}
               className={`${adminInputClass} mt-1`}
-              placeholder="LX-ENT-…, business, customer, sales rep…"
+              placeholder="LX-ENT-…, business, customer, servicios_quick_monthly, sales rep…"
             />
           </label>
           <label className="block text-xs font-semibold text-[#5C5346]">
@@ -581,6 +584,10 @@ export default async function AdminPackageEntitlementsPage(props: {
               const pricingLine = formatEntitlementPricingPromoLine(row.metadata);
               const commissionLine = formatEntitlementCommissionPreviewLine(row.metadata);
               const pricingBadges = entitlementPricingBadges(row.metadata);
+              const businessAccessBadge = describeBusinessAccessRow({
+                packageKey: row.package_key,
+                packageTier: row.package_tier,
+              });
               const canManage = effective !== "revoked";
 
               return (
@@ -594,6 +601,20 @@ export default async function AdminPackageEntitlementsPage(props: {
                       <p className="mt-0.5 font-semibold text-[#1E1810]">{formatEntitlementListingHeadline(row)}</p>
                       <p className="text-xs text-[#7A7164]">
                         {row.package_tier} · {row.category} · {row.listing_source}
+                        {/* Which commercial product this row actually grants. Without it, a Quick
+                            row and a Full row are indistinguishable at a glance, since both read
+                            package_tier "digital_only". */}
+                        {businessAccessBadge ? (
+                          <span
+                            className={`ml-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase ${
+                              businessAccessBadge.level === "full"
+                                ? "bg-emerald-100 text-emerald-950"
+                                : "bg-sky-100 text-sky-950"
+                            }`}
+                          >
+                            {businessAccessBadge.label}
+                          </span>
+                        ) : null}
                         {row.grant_source ? (
                           <span className="ml-1 rounded-full bg-[#E8DFD0]/80 px-1.5 py-0.5 text-[9px] font-bold uppercase text-[#5C5346]">
                             {row.grant_source.replace(/_/g, " ")}
@@ -606,6 +627,14 @@ export default async function AdminPackageEntitlementsPage(props: {
                         ) : null}
                       </p>
                       <p className="mt-1 font-mono text-[10px] text-[#5C5346]">{formatEntitlementListingIdLine(row.listing_id)}</p>
+                      {row.package_key ? (
+                        <p className="mt-0.5 font-mono text-[10px] text-[#5C5346]">SKU: {row.package_key}</p>
+                      ) : null}
+                      {/* The headline shows business_name and only falls back to customer_name, so
+                          a row carrying both hid the person staff actually has to call. */}
+                      {row.customer_name?.trim() && row.customer_name.trim() !== formatEntitlementListingHeadline(row) ? (
+                        <p className="mt-0.5 text-[10px] text-[#5C5346]">Customer: {row.customer_name.trim()}</p>
+                      ) : null}
                       {pricingLine ? <p className="mt-1 text-xs font-medium text-[#3D3428]">{pricingLine}</p> : null}
                       {pricingBadges.length > 0 ? (
                         <div className="mt-1 flex flex-wrap gap-1">

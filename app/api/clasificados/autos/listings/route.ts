@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { getAutosPublishUserIdFromRequest } from "@/app/lib/clasificados/autos/autosListingBearerAuth";
 import {
@@ -7,11 +7,19 @@ import {
   createAutosClassifiedsListingWithInventoryParent,
   isAutosClassifiedsDbConfigured,
   listAutosClassifiedsListingsForOwner,
+  updateAutosClassifiedsListingDraft,
 } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
 import { countActiveDealerVehicles, summarizeDealerInventory, isDealerInventoryMainListing } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
 import { AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY, AUTOS_DEALER_TOTAL_WITH_INVENTORY_PACK_LIMIT } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import { isListingPackageEntitlementRowActive } from "@/app/lib/listingPlans/listingPackageEntitlementPlacement";
 import { assertCommercialCapacityForWrite } from "@/app/lib/listingPlans/commercialWriteGuard";
+import { linkSelfServiceListingToBusiness } from "@/app/lib/business/canonicalListingLink";
+import { linkAssistedListingToBusiness } from "@/app/lib/business/assistedListingCustody";
+import { applyAssistedPublishingCookie } from "@/app/lib/auth/assistedPublishingSession";
+import { resolveStaffAssistedCategorySave, isStaffAssistedSaveRefusal } from "@/app/lib/sales/staffAssistedCategorySave";
+import { recordSalesWorkspaceAudit } from "@/app/lib/sales/salesWorkspaceAudit";
+import { enforceQuickBusinessPublishMedia } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
+import { resolveQuickBusinessPublishIdentity } from "@/app/lib/listingPlans/quickBusinessProductIdentityServer";
 import type { AutosClassifiedsLane, AutosClassifiedsLang } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 import {
   AUTOS_LISTING_API_MAX_BODY_BYTES,
@@ -30,6 +38,14 @@ type Body = {
   lang?: AutosClassifiedsLang;
   parentListingId?: string;
   dealerInventoryGroupId?: string;
+  /**
+   * Gate QB-BOUNDARY-01 — the base package the caller believes it is publishing under. This is
+   * the caller's WORD, not authority: `resolveQuickBusinessPublishIdentity` reads it only when it
+   * names the category's SIMPLE key, and any server-owned record (entitlement row, checkout
+   * ledger, assisted context) overrides it in either direction. Declaring the Full key, or
+   * omitting it, can never lift a Quick customer out of the Quick contract.
+   */
+  basePackageKey?: string;
 };
 
 function dbNotConfigured(lang: AutosClassifiedsLang) {
@@ -110,7 +126,7 @@ export async function GET(request: Request) {
   });
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const contentLength = request.headers.get("content-length");
   if (contentLength && Number.parseInt(contentLength, 10) > AUTOS_LISTING_API_MAX_BODY_BYTES) {
     return NextResponse.json(
@@ -128,17 +144,6 @@ export async function POST(request: Request) {
     return dbNotConfigured("es");
   }
   const userId = await getAutosPublishUserIdFromRequest(request);
-  if (!userId) {
-    return NextResponse.json(
-      buildAutosListingApiErrorPayload({
-        errorCode: "AUTH_REQUIRED",
-        message: "Sign in required.",
-        legacyError: "unauthorized",
-      }),
-      { status: 401 },
-    );
-  }
-
   let rawBody: unknown;
   try {
     rawBody = await request.json();
@@ -151,6 +156,30 @@ export async function POST(request: Request) {
       }),
       { status: 400 },
     );
+  }
+  const assistedProbe = rawBody && typeof rawBody === "object" ? (rawBody as Record<string, unknown>) : {};
+  const assisted = await resolveStaffAssistedCategorySave({
+    request,
+    expectedCategory: "autos-privado",
+    assistedActionRaw: typeof assistedProbe.assistedAction === "string" ? assistedProbe.assistedAction : "",
+    bodyListingId: typeof assistedProbe.listingId === "string" ? assistedProbe.listingId : null,
+    bodyClientUserId: typeof assistedProbe.clientUserId === "string" ? assistedProbe.clientUserId : null,
+  });
+  if (isStaffAssistedSaveRefusal(assisted)) {
+    return NextResponse.json({ ok: false, error: assisted.error }, { status: assisted.status });
+  }
+  if (!userId && !assisted.assisted) {
+    return NextResponse.json(
+      buildAutosListingApiErrorPayload({
+        errorCode: "AUTH_REQUIRED",
+        message: "Sign in required.",
+        legacyError: "unauthorized",
+      }),
+      { status: 401 },
+    );
+  }
+  if (assisted.assisted && assisted.isPublish) {
+    return NextResponse.json({ ok: false, error: "publish_via_cockpit_only" }, { status: 403 });
   }
 
   const bodySize = new Blob([JSON.stringify(rawBody)]).size;
@@ -205,13 +234,56 @@ export async function POST(request: Request) {
 
   const lang: AutosClassifiedsLang = body.lang === "en" ? "en" : "es";
   const parentListingId = body.parentListingId?.trim();
+  if (assisted.assisted && body.lane !== "privado") {
+    return NextResponse.json({ ok: false, error: "staff_autos_privado_only" }, { status: 422 });
+  }
+  const resolvedOwnerUserId = assisted.assisted ? assisted.clientUserId : userId;
+
+  if (assisted.assisted && assisted.listingId) {
+    const updated = await updateAutosClassifiedsListingDraft(assisted.listingId, resolvedOwnerUserId, {
+      listing: body.listing,
+      lang,
+    });
+    if (!updated.row) {
+      return NextResponse.json(
+        buildAutosListingApiErrorPayload({
+          errorCode: updated.errorCode === "AUTOS_LISTING_NOT_FOUND_OR_FORBIDDEN" ? "NOT_FOUND" : "UPDATE_FAILED",
+          message: "Could not update Autos listing draft.",
+          details: updated.errorDetails,
+          legacyError: "update_failed",
+        }),
+        { status: updated.errorCode === "AUTOS_LISTING_NOT_FOUND_OR_FORBIDDEN" ? 404 : 500 },
+      );
+    }
+    await recordSalesWorkspaceAudit({
+      action: "quick_sales_save_for_client",
+      actorRosterId: assisted.ctx.rosterId,
+      businessId: assisted.ctx.businessId,
+      category: "autos-privado",
+      listingSource: "autos_classifieds_listings",
+      listingId: updated.row.id,
+      outcome: "ok",
+    });
+    return NextResponse.json(
+      {
+        ...buildAutosListingApiSuccessPayload({
+          id: updated.row.id,
+          leonixAdId: updated.row.leonix_ad_id ?? null,
+          lane: updated.row.lane,
+          status: updated.row.status,
+          persistWarnings: updated.persistWarnings,
+        }),
+        listingId: updated.row.id,
+      },
+    );
+  }
 
   // Package C Build 1 (decision 11) — server-side commercial write guard for dealer child
   // creation. Verifies the client-supplied parent is REAL, OWNED by the caller, and the dealer
   // main (closing the trusted-parent-id gap), and enforces capacity (10 base / 20 with boost)
   // + grace/suspension state: no new inventory during an unresolved payment issue. Existing
   // children stay editable through the PATCH route (delta-0 semantics).
-  if (body.lane === "negocios" && parentListingId) {
+  if (body.lane === "negocios" && parentListingId && userId) {
     const guard = await assertCommercialCapacityForWrite({
       category: "autos",
       parentListingId,
@@ -231,8 +303,65 @@ export async function POST(request: Request) {
     }
   }
 
+  // Gate QB-BOUNDARY-01 — the Quick Business semantic media contract, run on the SERVER for a
+  // dealer listing the CUSTOMER created for themselves, and ONLY for a VERIFIED QUICK dealer.
+  //
+  // WHAT THIS REPLACES: the previous revision ran the contract for `body.lane === "negocios"`.
+  // That lane is the dealer lane, which BOTH the $99 Quick dealer package and the $399 Full
+  // dealer package publish through — so a FULL dealer was being held to a Quick product's rule,
+  // from a browser-supplied field. `lane` is not a product and never was.
+  //
+  // The product now comes from `resolveQuickBusinessPublishIdentity`: a verified staff assisted
+  // context, a live `listing_package_entitlements` row, the server-minted `leonix_payment_records`
+  // checkout ledger, or — only in the restricting direction, and only when nothing server-owned
+  // contradicts it — a declared SIMPLE package key. A `full` or `unverified` answer leaves the
+  // Full dealer's existing image / video / inventory behavior completely untouched.
+  //
+  // The privado (private-seller) lane is a different product with no Simple/Full split at all, so
+  // it cannot reach this branch and stays deliberately untouched.
+  //
+  // Counts are NOT imposed here — the Autos lane is uncapped by design — only the semantic
+  // requirement: at least one image DECLARED to depict the vehicle. An unroled Quick dealer
+  // gallery is answered with `role_declaration_required`, a correction, not a bare rejection.
+  if (body.lane === "negocios" && userId) {
+    const identity = await resolveQuickBusinessPublishIdentity({
+      category: "autos",
+      ownerUserId: userId,
+      listingId: parentListingId || null,
+      declaredPackageKey: typeof body.basePackageKey === "string" ? body.basePackageKey : null,
+    });
+    // External video links live in `videoUrls`, never in the image gallery, so they carry no
+    // `video/*` MIME and the contract could not see them. "Quick includes no video" was therefore
+    // unenforced on this seam: a Quick dealer could attach four YouTube links.
+    const dealerVideoUrls = (body.listing as { videoUrls?: unknown } | null)?.videoUrls;
+    const dealerExternalVideoCount = Array.isArray(dealerVideoUrls)
+      ? dealerVideoUrls.filter((v) => typeof v === "string" && v.trim().length > 0).length
+      : 0;
+    const semanticMedia = identity.enforceQuickContract
+      ? enforceQuickBusinessPublishMedia({
+          category: "autos-dealer",
+          payload: body.listing as unknown,
+          externalVideoCount: dealerExternalVideoCount,
+        })
+      : null;
+    if (semanticMedia && !semanticMedia.ok) {
+      return NextResponse.json(
+        {
+          ...buildAutosListingApiErrorPayload({
+            errorCode: "MEDIA_CONTRACT_VIOLATION",
+            message: lang === "es" ? semanticMedia.body.messageEs : semanticMedia.body.message,
+            details: semanticMedia.body.issues.join("; "),
+            legacyError: "media_contract_violation",
+          }),
+          ...semanticMedia.body,
+        },
+        { status: semanticMedia.status },
+      );
+    }
+  }
+
   const createInput = {
-    ownerUserId: userId,
+    ownerUserId: resolvedOwnerUserId,
     lane: body.lane,
     lang,
     listing: body.listing,
@@ -258,6 +387,56 @@ export async function POST(request: Request) {
       }),
       { status: errorCode === "AUTOS_SUPABASE_INSERT_FAILED" ? 500 : 500 },
     );
+  }
+
+  // Gate QB-IDENTITY-01 — record the canonical business↔listing relationship for a dealer
+  // identity row the customer created themselves, matching what the staff-assisted route writes.
+  // Only the dealer MAIN row is linked: an inventory vehicle is a child of that identity, not a
+  // second business listing. Idempotent, ownership re-proven server-side, never fails the create.
+  if (result.row.lane === "negocios" && !parentListingId && createInput.ownerUserId) {
+    await linkSelfServiceListingToBusiness({
+      userId: createInput.ownerUserId,
+      listingSource: "autos_classifieds_listings",
+      listingId: result.row.id,
+    }).catch(() => undefined);
+  }
+
+  if (assisted.assisted) {
+    await linkAssistedListingToBusiness({
+      businessId: assisted.ctx.businessId,
+      listingSource: "autos_classifieds_listings",
+      listingId: result.row.id,
+      linkedByAuthUserId: assisted.ctx.authUserId,
+    });
+    await recordSalesWorkspaceAudit({
+      action: "quick_sales_save_for_client",
+      actorRosterId: assisted.ctx.rosterId,
+      businessId: assisted.ctx.businessId,
+      category: "autos-privado",
+      listingSource: "autos_classifieds_listings",
+      listingId: result.row.id,
+      outcome: "ok",
+    });
+    const created = NextResponse.json(
+      buildAutosListingApiSuccessPayload({
+        id: result.row.id,
+        leonixAdId: result.row.leonix_ad_id ?? null,
+        lane: result.row.lane,
+        status: result.row.status,
+        persistWarnings: result.persistWarnings,
+      }),
+    );
+    applyAssistedPublishingCookie(created, {
+      businessId: assisted.ctx.businessId,
+      category: "autos-privado",
+      rosterId: assisted.ctx.rosterId,
+      authUserId: assisted.ctx.authUserId,
+      listingId: result.row.id,
+      clientUserId: assisted.clientUserId,
+      assistedAction: "save_for_client",
+      packageKey: assisted.ctx.packageKey ?? null,
+    });
+    return created;
   }
 
   return NextResponse.json(

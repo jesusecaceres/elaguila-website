@@ -1,3 +1,5 @@
+import { resolveAssistedRowBinding, resolveAssistedSessionConflict } from "@/app/lib/sales/assistedSameRowBinding";
+import { recordSalesWorkspaceAudit } from "@/app/lib/sales/salesWorkspaceAudit";
 import { NextResponse, type NextRequest } from "next/server";
 import { randomUUID } from "node:crypto";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
@@ -34,12 +36,14 @@ import {
   SERVICIOS_LEONIX_LOCKED_STATUSES,
   serviciosSaveAwaitsBasePurchase,
 } from "@/app/clasificados/servicios/lib/serviciosOwnerMutationPolicy";
-import { readAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
+import { readActiveAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
 import {
-  hasClearedManualPaymentForListing,
   isListingLinkedToBusiness,
   linkAssistedListingToBusiness,
 } from "@/app/lib/business/assistedListingCustody";
+import { refuseUnlessAuthoritativePayment } from "@/app/lib/listingPlans/listingPackagePaymentAuthorityServer";
+import { linkSelfServiceListingToBusiness } from "@/app/lib/business/canonicalListingLink";
+import { syncCanonicalBusinessFromApplication } from "@/app/lib/sales/extractBusinessProfileFromApplication";
 import { resolveServiciosReactivationAuthority } from "@/app/clasificados/servicios/lib/serviciosReactivationAuthorityServer";
 import { resolveBusinessToolsAccess } from "@/app/lib/listingPlans/categoryCommercialPlan";
 import {
@@ -57,6 +61,8 @@ import {
   warnDroppedUnpersistableMedia,
 } from "@/app/lib/media/listingMediaContract";
 import { normalizeStrictExternalVideoUrl } from "@/app/lib/media/externalVideoUrlValidation";
+import { enforceQuickBusinessPublishMedia } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
+import { resolveQuickBusinessPublishIdentity } from "@/app/lib/listingPlans/quickBusinessProductIdentityServer";
 import { SERVICIOS_MAX_VIDEO_URLS } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
 
 /** Gallery cap mirrors GALLERY_MAX in ClasificadosServiciosApplication.tsx:141 (local, unexported). */
@@ -261,7 +267,10 @@ export async function POST(req: NextRequest) {
    * two new, explicitly-declared request shapes (`assistedAction`), each handled by its own
    * dedicated, isolated code path below, never interleaved with the customer owner-mutation policy.
    */
-  const assistedContext = readAssistedPublishingContext(req.cookies);
+  // Gate QB-STAFF-03 — the roster is re-checked HERE, at redemption, not only at mint time. A
+  // staff member deactivated or removed after their token was issued can no longer publish on a
+  // customer's behalf with it. Fails closed on an unreachable database.
+  const assistedContext = await readActiveAssistedPublishingContext(req.cookies);
   const assistedActionRaw = typeof b.assistedAction === "string" ? b.assistedAction.trim() : "";
   const isAssistedSaveForClient = assistedActionRaw === "save_for_client";
   const isAssistedPublishForClient = assistedActionRaw === "publish_for_client";
@@ -272,7 +281,55 @@ export async function POST(req: NextRequest) {
   if ((isAssistedSaveForClient || isAssistedPublishForClient) && !isAssistedRequest) {
     return NextResponse.json({ ok: false, error: "assisted_context_required" }, { status: 403 });
   }
-  if (isAssistedPublishForClient && !(typeof b.existingListingId === "string" && b.existingListingId.trim())) {
+  // REQUIRED REPAIR 4 — same-row server authority. Once the draft exists the server-issued
+  // assisted context carries its canonical id, and it — not the tab's memory of it — decides which
+  // row this request writes. A body id is accepted only as agreement; disagreement is refused
+  // rather than resolved, because a mismatch means one of the two parties has the wrong ad.
+  const assistedBinding = isAssistedRequest
+    ? resolveAssistedRowBinding({
+        contextListingId: assistedContext!.listingId,
+        contextAssistedAction: assistedContext!.assistedAction,
+        requestedAction: assistedActionRaw,
+        bodyListingId: typeof b.existingListingId === "string" ? b.existingListingId : null,
+      })
+    : null;
+  if (assistedBinding && !assistedBinding.ok) {
+    await recordSalesWorkspaceAudit({
+      action: "quick_sales_save_for_client",
+      actorRosterId: assistedContext!.rosterId,
+      businessId: assistedContext!.businessId,
+      category: "servicios",
+      listingSource: "servicios_public_listings",
+      outcome: assistedBinding.error,
+    });
+    return NextResponse.json({ ok: false, error: assistedBinding.error }, { status: assistedBinding.status });
+  }
+  // QUICK SALES ENTRY CONSOLIDATION — an assisted request that ALSO carries an unrelated site
+  // session is refused, never resolved to one of the two identities. The bearer above resolved
+  // whatever customer session this tab holds; in assisted mode that may only be absent or the
+  // exact client the custody names.
+  const sessionConflict = resolveAssistedSessionConflict({
+    assistedActive: isAssistedRequest,
+    contextClientUserId: assistedContext?.clientUserId ?? null,
+    customerUserId: ownerUserId,
+  });
+  if (sessionConflict) {
+    await recordSalesWorkspaceAudit({
+      action: "quick_sales_save_for_client",
+      actorRosterId: assistedContext!.rosterId,
+      businessId: assistedContext!.businessId,
+      category: "servicios",
+      listingSource: "servicios_public_listings",
+      outcome: sessionConflict.error,
+    });
+    return NextResponse.json({ ok: false, error: sessionConflict.error }, { status: sessionConflict.status });
+  }
+  const assistedBoundListingId = assistedBinding?.ok ? assistedBinding.listingId : "";
+  const assistedOwnerUserId =
+    isAssistedRequest && typeof assistedContext?.clientUserId === "string" && assistedContext.clientUserId.trim()
+      ? assistedContext.clientUserId.trim()
+      : null;
+  if (isAssistedPublishForClient && !assistedBoundListingId) {
     return NextResponse.json({ ok: false, error: "existing_listing_required" }, { status: 400 });
   }
 
@@ -332,9 +389,74 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Gate QB-MEDIA-03 — the canonical Quick Business semantic media contract, run on the SERVER
+  // for a listing the CUSTOMER published for themselves. Until that gate, only the two
+  // staff-assisted routes enforced it, so every self-service path was protected by browser code
+  // alone. The count/video truths above stay Servicios' own (gallery cap 24, its own video
+  // validator) — this guard adds only the semantic one: at least one image that actually depicts
+  // the business, with a declared logo never able to satisfy it.
+  //
+  // Gate QB-BOUNDARY-03 — IT RUNS FOR QUICK PRODUCTS ONLY.
+  //
+  // Servicios sells BOTH a Quick base package and a Full one, and this seam is shared by both.
+  // Running the contract unconditionally held a FULL customer to a $99 product's rule — the exact
+  // blocker the product-boundary work closed for Autos and Bienes, still open here and in
+  // Restaurantes. The product comes from the same server-owned resolver those two use: a verified
+  // assisted context, a live entitlement, the checkout ledger, and only then a declaration that
+  // can restrict its sender and never relax anything.
+  //
+  // The GALLERY IS NOT THE WHOLE GALLERY. Servicios' own readiness rule accepts a cover image with
+  // an empty gallery, so passing `state.gallery` alone refused a Quick customer who had in fact
+  // uploaded a photo of their business. The cover is included, and declared first, because it is
+  // the image the customer chose to lead with.
+  const serviciosProduct = await resolveQuickBusinessPublishIdentity({
+    category: "servicios",
+    ownerUserId: ownerUserId ?? "",
+    // The listing this publish is amending, when there is one; a first publish has none.
+    // THE CANONICAL ROW UUID, never the public slug. `listing_id` on both
+    // `listing_package_entitlements` and `leonix_payment_records` is the row's id; passing a
+    // name-derived slug matched nothing, so BOTH server legs answered empty on every republish
+    // and the product was permanently `unverified`.
+    listingId: typeof b.existingListingId === "string" ? b.existingListingId.trim() || null : null,
+    assistedPackageKey: assistedContext?.packageKey ?? null,
+    declaredPackageKey: typeof b.basePackageKey === "string" ? b.basePackageKey : null,
+  });
+  const serviciosMediaItems = [
+    // Servicios keeps identity media in its own non-gallery `logoUrl` field (`logoAllowed: false`
+    // on this route), so a cover or gallery item is subject media by construction — which is
+    // exactly what `SUBJECT_ATTRIBUTION.servicios === "structural"` states. There is no per-item
+    // role on this state to read, and inventing one would be a false declaration.
+    ...(state.coverUrl ? [{ role: null, mime: null }] : []),
+    ...state.gallery.map((g) => ({ role: (g as { role?: string }).role ?? null, mime: null })),
+  ];
+  // Servicios keeps external video in its own link list (up to SERVICIOS_MAX_VIDEO_URLS), which
+  // never carries a `video/*` MIME, so the contract could not see it and "Quick includes no
+  // video" went unenforced on this seam.
+  const serviciosExternalVideoCount = Array.isArray(state.videos)
+    ? state.videos.filter((v) => typeof v?.url === "string" && v.url.trim().length > 0).length
+    : 0;
+  const serviciosSemanticMedia = serviciosProduct.enforceQuickContract
+    ? enforceQuickBusinessPublishMedia({
+        category: "servicios",
+        items: serviciosMediaItems,
+        externalVideoCount: serviciosExternalVideoCount,
+      })
+    : null;
+  if (serviciosSemanticMedia && !serviciosSemanticMedia.ok) {
+    await insertServiciosAnalyticsEvent({
+      listingSlug: null,
+      eventType: "publish_validation_failed",
+      meta: { mediaIssues: serviciosSemanticMedia.body.issues },
+    });
+    return NextResponse.json(serviciosSemanticMedia.body, { status: serviciosSemanticMedia.status });
+  }
+
   const baseSlug = slugifyServiciosBusinessName(state.businessName || "borrador");
   const existingSlugRaw = typeof b.existingPublicSlug === "string" ? b.existingPublicSlug.trim() : "";
-  const existingListingIdRaw = typeof b.existingListingId === "string" ? b.existingListingId.trim() : "";
+  // The server-bound id wins outright for an assisted request: reopening a draft recovers the same
+  // canonical row even when the browser has forgotten which one it was.
+  const existingListingIdRaw =
+    assistedBoundListingId || (typeof b.existingListingId === "string" ? b.existingListingId.trim() : "");
 
   /**
    * Gate SERVICIOS-1 / SRV-GOLDEN-01 — CANONICAL REPUBLISH IDENTITY.
@@ -380,9 +502,11 @@ export async function POST(req: NextRequest) {
     // LEONIX P0 FINAL ASSISTED PUBLISHING BRIDGE — the ONE alternate authorization: an assisted
     // request may reopen/update this SAME row only when it still has NO customer owner AND it is
     // already verified-linked to the exact business the staff actor's cookie was minted for.
+    const assistedOwnerMatches =
+      row.owner_user_id == null || (assistedOwnerUserId != null && row.owner_user_id === assistedOwnerUserId);
     const assistedAuthorizedForRow =
       isAssistedRequest &&
-      row.owner_user_id == null &&
+      assistedOwnerMatches &&
       (await isListingLinkedToBusiness({
         businessId: assistedContext!.businessId,
         listingSource: "servicios_public_listings",
@@ -601,7 +725,10 @@ export async function POST(req: NextRequest) {
         // owner). This branch is the ONLY place an unowned row may legitimately be written.
         if (existing) {
           const existingId = canonicalListingId ?? (typeof existing.id === "string" ? existing.id : "");
-          if (existing.owner_user_id != null || !existingId) {
+          const assistedExistingOwnerOk =
+            existing.owner_user_id == null ||
+            (assistedOwnerUserId != null && existing.owner_user_id === assistedOwnerUserId);
+          if (!assistedExistingOwnerOk || !existingId) {
             await insertServiciosAnalyticsEvent({
               listingSlug: slug,
               eventType: "publish_failure",
@@ -628,22 +755,24 @@ export async function POST(req: NextRequest) {
           }
           let nextStatus = "draft";
           if (isAssistedPublishForClient) {
-            const cleared = await hasClearedManualPaymentForListing({
+            const paid = await refuseUnlessAuthoritativePayment({
               listingSource: "servicios_public_listings",
               listingId: existingId,
+              packageKey: assistedContext?.packageKey ?? "",
+              category: "servicios",
             });
-            if (!cleared) {
+            if (!paid.ok) {
               await insertServiciosAnalyticsEvent({
                 listingSlug: slug,
                 eventType: "publish_failure",
-                meta: { reason: "manual_payment_not_cleared", assisted: true },
+                meta: { reason: paid.error, assisted: true },
               });
               return NextResponse.json(
                 {
                   ok: false,
-                  error: "manual_payment_not_cleared",
+                  error: paid.error,
                   message:
-                    "No cleared manual payment found for this listing yet. Record and clear it in the Payment Tracker first.",
+                    "No authoritative payment found for this listing and package yet. Record and clear it in the Payment Tracker first.",
                 },
                 { status: 402 },
               );
@@ -651,11 +780,10 @@ export async function POST(req: NextRequest) {
             nextStatus = SERVICIOS_LISTING_STATUS_PUBLISHED;
           }
           actualListingStatus = nextStatus;
-          // owner_user_id is deliberately never written here — it stays unclaimed/null (Gate 5 #6)
-          // whether this is a hidden draft or a published-for-client row.
           const updateQuery = supabase
             .from("servicios_public_listings")
             .update({
+              ...(assistedOwnerUserId ? { owner_user_id: assistedOwnerUserId } : {}),
               business_name: businessName,
               city,
               profile_json: publicWireForPersistence,
@@ -697,9 +825,11 @@ export async function POST(req: NextRequest) {
           });
           return NextResponse.json({ ok: false, error: "listing_not_found" }, { status: 404 });
         } else {
-          // First-ever Save for Client: INSERT, owner_user_id intentionally omitted (unclaimed).
+          // First-ever Save for Client: attach the customer account when this assisted sale
+          // already provisioned one; legacy Leonix-managed drafts may still remain owner-null.
           actualListingStatus = listingStatus;
           const insertRow: Record<string, unknown> = {
+            ...(assistedOwnerUserId ? { owner_user_id: assistedOwnerUserId } : {}),
             slug,
             business_name: businessName,
             city,
@@ -745,6 +875,27 @@ export async function POST(req: NextRequest) {
             listingSource: "servicios_public_listings",
             listingId: persistedListingId,
             linkedByAuthUserId: assistedContext!.authUserId,
+          });
+          await syncCanonicalBusinessFromApplication(assistedContext!.businessId, {
+            businessName,
+            publicName: businessName,
+            phone: state.phone,
+            email: state.email,
+            website: state.website,
+            whatsapp: state.whatsapp,
+          });
+          // REQUIRED REPAIR 6 — the staff actor, the row, and the lifecycle state this write
+          // actually left behind. `listingStatus` is the server's own decision, not the caller's.
+          await recordSalesWorkspaceAudit({
+            action: isAssistedPublishForClient ? "quick_sales_publish_completed" : "quick_sales_save_for_client",
+            actorRosterId: assistedContext!.rosterId,
+            businessId: assistedContext!.businessId,
+            category: "servicios",
+            listingSource: "servicios_public_listings",
+            listingId: persistedListingId,
+            paymentState: listingStatus === "published" ? "entitled" : "unpaid_draft",
+            outcome: "ok",
+            detail: { listing_status: listingStatus, server_bound_row: assistedBinding?.ok ? assistedBinding.serverBound : false },
           });
         }
       } else if (existing) {
@@ -935,6 +1086,18 @@ export async function POST(req: NextRequest) {
       publishedAt: now,
     });
     persistedToDevWorkspace = upsertServiciosDevPublishRow(row);
+  }
+
+  // Gate QB-IDENTITY-01 — a listing the CUSTOMER published for themselves gets the same durable
+  // business↔listing relationship the staff-assisted branch already writes, so "My Business" can
+  // resolve it canonically instead of scanning owner columns. Additive and idempotent; ownership
+  // is re-proven server-side inside the helper, and a failure here never fails the publish.
+  if (persistedToDatabase && persistedListingId && ownerUserId && !isAssistedRequest) {
+    await linkSelfServiceListingToBusiness({
+      userId: ownerUserId,
+      listingSource: "servicios_public_listings",
+      listingId: persistedListingId,
+    }).catch(() => undefined);
   }
 
   const persistence: ServiciosPublishPersistence = persistedToDatabase

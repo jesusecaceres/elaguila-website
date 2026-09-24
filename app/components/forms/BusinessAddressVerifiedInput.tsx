@@ -15,8 +15,13 @@
  * Category call sites own their own field layout/theming and pass `value`/`onChange` — this
  * component owns only the suggest-and-pick behavior, not a category-specific visual shell.
  */
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import type { BusinessAddress } from "@/app/lib/businessAddress/businessAddressContract";
+import {
+  ADDRESS_LOOKUP_MIN_CHARS,
+  ADDRESS_SUGGEST_PATH,
+  shouldFetchAddressSuggestions,
+} from "@/app/lib/businessAddress/businessAddressLookupPolicy";
 
 const COPY = {
   es: {
@@ -24,12 +29,14 @@ const COPY = {
     manualHint: "Puedes escribir la dirección manualmente — no se requiere verificación.",
     suggestionsLabel: "Sugerencias",
     useThis: "Usar esta dirección",
+    lookup: "Confirmar dirección",
   },
   en: {
     placeholder: "Street address",
     manualHint: "You can type the address manually — verification is never required.",
     suggestionsLabel: "Suggestions",
     useThis: "Use this address",
+    lookup: "Look up address",
   },
 } as const;
 
@@ -86,50 +93,46 @@ export function BusinessAddressVerifiedInput({
   const [suggestions, setSuggestions] = useState<BusinessAddress[]>([]);
   const [open, setOpen] = useState(false);
   const [lookup, setLookup] = useState<LookupState>("idle");
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
+  async function runExplicitLookup() {
     const trimmed = query.trim();
-    if (trimmed.length < 5 || value.verificationStatus === "user_confirmed") {
-      setSuggestions([]);
-      setOpen(false);
-      setLookup("idle");
+    const alreadyConfirmed = value.verificationStatus === "user_confirmed";
+    if (
+      !shouldFetchAddressSuggestions({
+        trigger: "confirm",
+        streetLength: trimmed.length,
+        alreadyConfirmed,
+        streetUnchanged: alreadyConfirmed && trimmed === (value.street || "").trim(),
+      })
+    ) {
       return;
     }
     const hint = (locationHint ?? "").trim();
     const lookupQuery =
       hint && !trimmed.toLowerCase().includes(hint.split(",")[0]!.trim().toLowerCase()) ? `${trimmed}, ${hint}` : trimmed;
-    debounceRef.current = setTimeout(() => {
-      setLookup("searching");
-      void (async () => {
-        try {
-          const res = await fetch("/api/business-address/suggest", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ query: lookupQuery }),
-          });
-          const json = (await res.json()) as { ok: boolean; suggestions?: BusinessAddress[]; reason?: string };
-          if (json.ok && json.suggestions?.length) {
-            setSuggestions(json.suggestions);
-            setOpen(true);
-            setLookup("results");
-          } else {
-            setSuggestions([]);
-            setOpen(false);
-            setLookup(json.ok || json.reason === "provider_status_zero_results" ? "no_results" : "unavailable");
-          }
-        } catch {
-          setSuggestions([]);
-          setOpen(false);
-          setLookup("unavailable");
-        }
-      })();
-    }, 400);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [query, locationHint, value.verificationStatus]);
+    setLookup("searching");
+    try {
+      const res = await fetch(ADDRESS_SUGGEST_PATH, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: lookupQuery }),
+      });
+      const json = (await res.json()) as { ok: boolean; suggestions?: BusinessAddress[]; reason?: string };
+      if (json.ok && json.suggestions?.length) {
+        setSuggestions(json.suggestions);
+        setOpen(true);
+        setLookup("results");
+      } else {
+        setSuggestions([]);
+        setOpen(false);
+        setLookup(json.ok || json.reason === "provider_status_zero_results" ? "no_results" : "unavailable");
+      }
+    } catch {
+      setSuggestions([]);
+      setOpen(false);
+      setLookup("unavailable");
+    }
+  }
 
   function handleManualStreetChange(next: string) {
     setQuery(next);
@@ -179,7 +182,16 @@ export function BusinessAddressVerifiedInput({
         placeholder={copy.placeholder}
         className={inputClassName ?? "w-full rounded-lg border border-black/15 px-3 py-2 text-sm"}
         autoComplete="off"
+        data-business-address-lookup-min={ADDRESS_LOOKUP_MIN_CHARS}
       />
+      <button
+        type="button"
+        onClick={() => void runExplicitLookup()}
+        className="mt-2 inline-flex min-h-[40px] items-center rounded-lg border border-black/15 bg-white px-3 py-2 text-sm font-semibold text-[#1E1814]"
+        data-business-address-lookup-trigger="confirm"
+      >
+        {copy.lookup}
+      </button>
       <p className="mt-1 text-xs text-black/50">{copy.manualHint}</p>
       {statusLine ? (
         <p

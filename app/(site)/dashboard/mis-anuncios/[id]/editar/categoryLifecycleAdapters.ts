@@ -389,9 +389,8 @@ function hydrateMascotas(row: Record<string, unknown>): Record<string, string> {
 }
 
 function serializeMascotas(row: Record<string, unknown>, values: Record<string, string>): Record<string, unknown> {
-  // Real publish pipeline sets phoneDigits/whatsappDigits to the SAME value from one phone input
-  // (publishMascotasPerdidosQuickToListings.ts:34-35) — mirrored here, not two independent fields.
   const phoneDigits = values.phone.replace(/\D/g, "").slice(0, 15);
+  const existingWa = readPair(row, "Leonix:whatsappDigits").replace(/\D/g, "").slice(0, 15);
   return {
     city: values.city.trim() || null,
     contact_phone: values.phone.trim() || null,
@@ -400,7 +399,7 @@ function serializeMascotas(row: Record<string, unknown>, values: Record<string, 
       "Leonix:noticeType": values.noticeType,
       "Leonix:lastSeenLocation": values.lastSeenLocation,
       "Leonix:phoneDigits": phoneDigits || null,
-      "Leonix:whatsappDigits": phoneDigits || null,
+      "Leonix:whatsappDigits": existingWa || null,
       "Leonix:contactEmailAvailable": values.email.trim() ? "1" : null,
     }),
   };

@@ -16,7 +16,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { buildBusinessApplicationContext } from "@/app/lib/business/applicationContext/businessApplicationContext";
-import { applyAssistedPublishingCookie } from "@/app/lib/auth/assistedPublishingSession";
+import { applyAssistedPublishingCookie, readAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
 import { normalizePublicarGatewayDeepLink } from "@/app/(site)/publicar/publicarGatewayResolver";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ businessId: string }> }) {
@@ -36,8 +36,18 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ busi
   });
 
   const category = normalizePublicarGatewayDeepLink(req.nextUrl.searchParams.get("category"));
+  // QUICK SALES ENTRY CONSOLIDATION — never clobber a BOUND context. The Quick Sales custody route
+  // re-mints this same cookie carrying the canonical listing id once the row exists (same-row
+  // server authority). Re-minting here WITHOUT that id, for the same business and category, would
+  // silently drop the binding and let the next save create a second row. A live context for the
+  // same business + category is therefore left exactly as it is; only a context for a DIFFERENT
+  // business or category (staff switching clients) is replaced.
+  const live = readAssistedPublishingContext(req.cookies);
+  const sameScope = Boolean(live) && live!.businessId === businessId && live!.category === category;
+  const keepsBoundContext = sameScope && Boolean(live!.listingId);
   if (
     category &&
+    !keepsBoundContext &&
     access.actor.rosterId &&
     access.actor.authUserId &&
     actorHasCapability(access.actor, "assisted_category_publishing")
@@ -47,6 +57,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ busi
       category,
       rosterId: access.actor.rosterId,
       authUserId: access.actor.authUserId,
+      listingId: sameScope ? live!.listingId ?? null : null,
+      clientUserId: sameScope ? live!.clientUserId ?? null : null,
+      assistedAction: sameScope ? live!.assistedAction ?? null : null,
+      packageKey: sameScope ? live!.packageKey ?? null : null,
     });
   }
 

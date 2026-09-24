@@ -46,7 +46,6 @@ import {
 } from "@/app/clasificados/rentas/lib/rentasPublishStepTrace";
 import type { RentasPrivadoFormState } from "@/app/clasificados/publicar/rentas/privado/schema/rentasPrivadoFormState";
 import { mergePartialRentasPrivadoState } from "@/app/clasificados/publicar/rentas/privado/schema/rentasPrivadoFormState";
-import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import {
   RENTAS_PREVIEW_PRIVADO,
   RENTAS_PUBLICAR_PRIVADO_PUBLIC_ENTRY,
@@ -94,6 +93,7 @@ export default function RentasPrivadoPreviewClient() {
   const [draft, setDraft] = useState<RentasPrivadoFormState | null>(null);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [checkoutErr, setCheckoutErr] = useState<string | null>(null);
+  const [newsletterCaptureNote, setNewsletterCaptureNote] = useState<string | null>(null);
 
   const lang = useMemo(
     () => resolveClasificadosPublishLang(searchParams?.get("lang")).copyLang,
@@ -195,7 +195,7 @@ export default function RentasPrivadoPreviewClient() {
         /* optional metadata */
       }
 
-      void captureCheckoutNewsletterSubscriber({
+      const capturePromise = captureCheckoutNewsletterSubscriber({
         email: customerEmail,
         lang,
         preferredLanguage: lang,
@@ -203,6 +203,15 @@ export default function RentasPrivadoPreviewClient() {
         interests: RENTAS_NEWSLETTER_INTERESTS.privado,
         checked: ctx.newsletterOptIn,
       });
+      const captureResult = await capturePromise;
+      if (captureResult.status === "FAILED") {
+        console.warn("[rentas/privado] newsletter checkout capture failed", captureResult.reason);
+        setNewsletterCaptureNote(
+          lang === "es"
+            ? "No pudimos guardar tu suscripción al boletín. Tu pago no se vio afectado."
+            : "We couldn't save your newsletter subscription. Your payment was not affected.",
+        );
+      }
 
       const checkout = await startRevenueCategoryCheckout({
         ...RENTAS_CATEGORY_CHECKOUT,
@@ -397,6 +406,7 @@ export default function RentasPrivadoPreviewClient() {
           }
           onPromoApply={handlePromoApply}
           onCheckout={(ctx) => void onCheckout(ctx)}
+          newsletterCaptureNote={newsletterCaptureNote}
           editHref={editHref}
           rulesModal={RENTAS_PREVIEW_RULES_MODAL}
         />

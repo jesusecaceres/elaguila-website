@@ -121,6 +121,35 @@ export async function retrieveRevenueCheckoutSessionState(
   }
 }
 
+/**
+ * Revenue-protected reconciliation reader.
+ *
+ * READS an existing Stripe Checkout Session only; never creates, pays, expires, refunds, or
+ * changes a Stripe object. The caller must enforce protected-write authorization before using
+ * the returned session to replay Leonix fulfillment.
+ */
+export async function retrieveRevenueCheckoutSessionForReconciliation(
+  sessionId: string,
+): Promise<
+  | { ok: true; session: Stripe.Checkout.Session }
+  | { ok: false; code: "stripe_not_configured" | "invalid_session_id" | "stripe_session_not_found" }
+> {
+  const stripe = getStripeClient();
+  if (!stripe) return { ok: false, code: "stripe_not_configured" };
+  const id = String(sessionId ?? "").trim();
+  if (!/^cs_(?:test_)?[A-Za-z0-9]+$/.test(id)) {
+    return { ok: false, code: "invalid_session_id" };
+  }
+  try {
+    const session = await stripe.checkout.sessions.retrieve(id, {
+      expand: ["subscription", "customer", "payment_intent", "invoice"],
+    });
+    return { ok: true, session };
+  } catch {
+    return { ok: false, code: "stripe_session_not_found" };
+  }
+}
+
 export async function createRevenueStripeCheckoutSession(
   input: CreateRevenueCheckoutSessionInput,
 ): Promise<CreateRevenueCheckoutSessionResult> {

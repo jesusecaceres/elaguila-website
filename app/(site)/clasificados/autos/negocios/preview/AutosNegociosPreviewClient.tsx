@@ -15,10 +15,7 @@ import { mockAutoDealerListing } from "../mock/mockAutoDealerListing";
 import type { AutoDealerListing } from "../types/autoDealerListing";
 import { AutosNegociosPreviewLocaleProvider, useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
 import { buildAutosNegociosEditorResumeHref } from "@/app/lib/clasificados/autos/autosDealerInventoryAddFlow";
-import {
-  migrateLegacyAutosNegociosDraftJsonToNamespace,
-  storageEventAffectsAutosNegociosDraft,
-} from "../lib/autosNegociosDraftNamespace";
+import { storageEventAffectsAutosNegociosDraft } from "../lib/autosNegociosDraftNamespace";
 import { AutosNegociosPreviewInventorySection } from "../components/AutosNegociosPreviewInventorySection";
 import { AutosNegociosPreviewCaptureBanner } from "../components/AutosNegociosPreviewCaptureBanner";
 import { AutosNegociosResultsCardPreview } from "../components/AutosNegociosResultsCardPreview";
@@ -33,7 +30,12 @@ import {
   redirectToRevenueCategoryCheckout,
   startRevenueCategoryCheckout,
 } from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
-import { AUTOS_DEALER_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
+import { AUTOS_DEALER_CHECKOUT, AUTOS_DEALER_QUICK_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
+import {
+  businessPlanFromSearchParams,
+  selectBusinessBaseCheckout,
+} from "@/app/lib/listingPlans/businessQuickPlanSignal";
+import { useBusinessBasePlanOffer } from "@/app/lib/listingPlans/businessBasePlanOfferClient";
 import {
   CHECKOUT_NEWSLETTER_SOURCES,
   captureCheckoutNewsletterSubscriber,
@@ -451,9 +453,31 @@ function AutosNegociosPreviewInner({
     [listing, additionalInventoryVehicles, lang],
   );
   const totalVehicleCount = countApplicationInventoryVehicles(additionalInventoryVehicles.length);
+  // Quick Business intake hands off here with the Quick plan marker; the standard dealer
+  // application arrives without it and keeps the Full package and its inventory pack unchanged.
+  const urlQuickPlan = businessPlanFromSearchParams(searchParams) === "quick";
+  // The marker is only evidence for a dealer row that does not exist yet. A Quick dealer who
+  // abandoned Stripe returns here from the dashboard through `?listingId=…` with no marker at
+  // all, and offering the Full package there would bill a $99 customer the Full price for the
+  // listing they already started. The server answers from the entitlement table and the payment
+  // ledger, and its answer wins over the URL.
+  const businessBasePlan = useBusinessBasePlanOffer({
+    category: AUTOS_DEALER_CHECKOUT.category,
+    listingId: canonicalListingId,
+    enabled: Boolean(canonicalListingId),
+  });
+  const baseCheckout = selectBusinessBaseCheckout({
+    quick: AUTOS_DEALER_QUICK_CHECKOUT,
+    full: AUTOS_DEALER_CHECKOUT,
+    urlPlan: urlQuickPlan ? "quick" : "full",
+    serverSellPackageKey: businessBasePlan?.sellPackageKey,
+  });
+  // One derived flag drives the allowance, the add-on row and the line-item copy, so the package
+  // actually charged can never disagree with what the checkpoint showed.
+  const quickPlan = baseCheckout.packageKey === AUTOS_DEALER_QUICK_CHECKOUT.packageKey;
   const checkpointConfig = useMemo(
-    () => autosDealerPreviewCheckpointConfig({ lang, totalVehicleCount }),
-    [lang, totalVehicleCount],
+    () => autosDealerPreviewCheckpointConfig({ lang, totalVehicleCount, quickPlan }),
+    [lang, totalVehicleCount, quickPlan],
   );
 
   const ensurePendingDealerListing = useCallback(async (): Promise<
@@ -549,10 +573,25 @@ function AutosNegociosPreviewInner({
       }
     }
 
+    /**
+     * Gate QB-BOUNDARY-01 — say which base package this dealer publish belongs to, so the server
+     * does not have to infer a PRODUCT from the `negocios` LANE (which Quick and Full dealers
+     * share). `baseCheckout.packageKey` is already the server's own answer wherever the server
+     * has one (`selectBusinessBaseCheckout` prefers `serverSellPackageKey` over the URL marker).
+     *
+     * This is a declaration, not authority. The route reads it only when it names the SIMPLE
+     * ($99 Quick) key, and any server-owned record overrides it in either direction — so it can
+     * add the Quick contract to a Quick dealer and can never lift it off one.
+     */
     const res = await fetch("/api/clasificados/autos/listings", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ listing: preparedListing, lane: "negocios", lang }),
+      body: JSON.stringify({
+        listing: preparedListing,
+        lane: "negocios",
+        lang,
+        basePackageKey: baseCheckout.packageKey,
+      }),
     });
     const j = (await res.json().catch(() => ({}))) as {
       id?: string;
@@ -577,7 +616,7 @@ function AutosNegociosPreviewInner({
       leonixAdId: j.leonixAdId?.trim() || j.leonix_ad_id?.trim() || null,
       customerEmail: data.session?.user?.email ?? null,
     };
-  }, [additionalInventoryVehicles, lang, listing, canonicalListingId]);
+  }, [additionalInventoryVehicles, lang, listing, canonicalListingId, baseCheckout.packageKey]);
 
   /**
    * Payment firewall (owner lock, 2026-09-19): a dashboard listing-edit Save only durably
@@ -665,7 +704,7 @@ function AutosNegociosPreviewInner({
       }
 
       const checkout = await startRevenueCategoryCheckout({
-        ...AUTOS_DEALER_CHECKOUT,
+        ...baseCheckout,
         listingId: pending.listingId,
         leonixAdId: pending.leonixAdId,
         locale: lang,
@@ -673,7 +712,7 @@ function AutosNegociosPreviewInner({
         promoCode: ctx.promoCode,
         recurringConsent: ctx.recurringConsent ?? null,
         requestVerifiedIntroDiscount: ctx.requestVerifiedIntroDiscount ?? false,
-        addOns: autosDealerSelectedAddOns(totalVehicleCount),
+        addOns: autosDealerSelectedAddOns(totalVehicleCount, quickPlan),
       });
       setCheckoutBusy(false);
       if (!checkout.ok) {
@@ -682,7 +721,7 @@ function AutosNegociosPreviewInner({
       }
       redirectToRevenueCategoryCheckout(checkout.checkoutUrl);
     },
-    [ensurePendingDealerListing, lang, listing.city, listing.dealerName, listing.zip, totalVehicleCount, newsletterEmail],
+    [ensurePendingDealerListing, lang, listing.city, listing.dealerName, listing.zip, baseCheckout, quickPlan, totalVehicleCount, newsletterEmail],
   );
 
   if (!ready) {
@@ -842,7 +881,7 @@ function AutosNegociosPreviewInner({
                       : `Preparing images… ${mediaReadiness.done} of ${mediaReadiness.total}`
                     : null
                 }
-                onPromoApply={(code) => applyAutosDealerPreviewPromoCode({ code, lang, totalVehicleCount })}
+                onPromoApply={(code) => applyAutosDealerPreviewPromoCode({ code, lang, totalVehicleCount, quickPlan })}
                 onCheckout={(ctx) => void onStartDealerCheckout(ctx)}
                 rulesModal={AUTOS_DEALER_PREVIEW_RULES_MODAL}
                 newsletterEmail={newsletterEmail}

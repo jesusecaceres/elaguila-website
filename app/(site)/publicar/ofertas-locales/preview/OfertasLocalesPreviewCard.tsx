@@ -653,7 +653,7 @@ export function OfertasLocalesPreviewCard({
   const businessInitial = (draft.businessName.trim() || draft.title.trim() || "L").charAt(0).toUpperCase();
   const locationLine = buildOfertaLocalPreviewLocationLine(draft);
   const telHref = buildOfertaLocalTelHref(draft.phone);
-  const waHref = buildOfertaLocalWhatsAppHref(draft.whatsapp || draft.phone, draft.businessName);
+  const waHref = buildOfertaLocalWhatsAppHref(draft.whatsapp, draft.businessName);
   const webHref = resolveOfertaLocalWebsiteHref(draft.websiteUrl);
   const directionsHref = resolveOfertaLocalDirectionsHref(draft);
   const showMembership = shouldShowMembershipBlock(draft);

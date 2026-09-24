@@ -159,7 +159,7 @@ export function LeonixShareButton({
   const labels = LABELS[lang];
 
   const resolvedListingUrl = (listingUrl ?? "").trim();
-  const publicUrl = getSafePublicAdUrl({ publicUrl: resolvedListingUrl }).trim() || resolvedListingUrl;
+  const publicUrl = getSafePublicAdUrl({ publicUrl: resolvedListingUrl }).trim();
 
   const sizeClasses = {
     small: "px-3 py-1.5 text-sm",
@@ -176,9 +176,7 @@ export function LeonixShareButton({
   const triggerNativeShare = useCallback(async () => {
     const safeTitle = (listingTitle ?? "").trim() || (lang === "en" ? "Leonix listing" : "Anuncio Leonix");
     const body = (shareText ?? "").trim();
-    const urlToShare =
-      publicUrl ||
-      (allowTrack && typeof window !== "undefined" ? window.location.href.trim() : "");
+    const urlToShare = publicUrl;
 
     // Servicios Owner QA (SVC-QA-07/08) — a non-persisting surface (Preview) has no public URL, and
     // the current page URL is a private draft/preview route that must never be shared. It used to

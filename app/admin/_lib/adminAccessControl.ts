@@ -34,6 +34,11 @@ import {
 } from "@/app/lib/supabase/adminSession";
 import type { AdminPermissionKey, AdminTeamRole } from "@/app/admin/_lib/teamTypes";
 import { ADMIN_LEADS_PROMO_INBOX_HREF } from "@/app/admin/_lib/adminNavOps";
+import {
+  capabilitiesForRole,
+  hasCapability,
+  isSalesWorkspaceRole,
+} from "@/app/admin/_lib/salesWorkspaceCapabilities";
 
 export type NormalizedAdminRole =
   | "owner_admin"
@@ -147,6 +152,48 @@ export function canManageOwnPackageEntitlements(role: NormalizedAdminRole): bool
 export function hasPaymentTrackerAccess(ctx: AdminAccessContext): boolean {
   if (isOwnerAdminRole(ctx.normalizedRole)) return true;
   return ctx.permissions.includes("can_view_payments");
+}
+
+/**
+ * May this operator reach the two IX REWARDS money screens?
+ *
+ * THE NAVIGATION MUST ASK THE SAME QUESTION THE PAGE ASKS. Both screens call
+ * `requireRevenueProtectedWriteAccess()`, which demands a roster role of exactly `super_admin`.
+ * The shell listed them under `hasPaymentTrackerAccess` — owner_admin OR any roster member with
+ * `can_view_payments` — so a billing-support member saw "IX Rewards" and "Rewards refunds" in the
+ * sidebar and was bounced to `/admin/team?access_denied=1` every time they clicked. Redirecting
+ * to a page that explains itself fixed the destination; it left the dead end in the navigation.
+ *
+ * This is the NECESSARY condition of that gate, evaluated from the context the shell already has.
+ * It is deliberately not the whole gate: the gate re-verifies the cookie identity against live
+ * auth on every request, which a synchronous nav predicate cannot and must not try to do. Showing
+ * strictly fewer links than the gate admits is the safe direction; showing more is the dead end.
+ */
+export function hasRewardsWorkspaceAccess(ctx: AdminAccessContext): boolean {
+  if (!ctx.hasAdminCookie || !ctx.rosterResolved) return false;
+  return String(ctx.rosterRole ?? "").trim().toLowerCase() === "super_admin";
+}
+
+/**
+ * May this operator reach the Quick assisted-sale workspace?
+ *
+ * SAME QUESTION THE PAGE ASKS. `/admin/workspace/quick-sales` and every API behind it require the
+ * `assisted_category_publishing` capability, so the nav predicate is derived from the SAME
+ * canonical capability map rather than from a second hand-maintained role list — a list that
+ * drifts is exactly how a link becomes either a dead end or an advertisement for a screen the
+ * person cannot open.
+ *
+ * It is the NECESSARY condition of that gate, not the whole gate: the real check re-verifies the
+ * cookie identity against live auth and the roster on every request, which a synchronous nav
+ * predicate cannot and must not attempt. Showing strictly fewer links than the gate admits is the
+ * safe direction. And an operator without the capability simply does not see the link — its
+ * absence tells them nothing, and typing the URL still lands on the same server-side refusal.
+ */
+export function hasQuickSalesWorkspaceAccess(ctx: AdminAccessContext): boolean {
+  if (!ctx.hasAdminCookie || !ctx.rosterResolved) return false;
+  const role = String(ctx.rosterRole ?? "").trim().toLowerCase();
+  if (!isSalesWorkspaceRole(role)) return false;
+  return hasCapability(capabilitiesForRole(role), "assisted_category_publishing");
 }
 
 export type RevenueWriteDenialReason =
@@ -518,6 +565,22 @@ export function getAllowedWorkspaceNavHrefs(ctx: AdminAccessContext): string[] {
   // access check (owner_admin, or an active roster member with can_view_payments).
   if (hasPaymentTrackerAccess(ctx)) {
     hrefs.push("/admin/workspace/payment-tracker");
+  }
+  // IX REWARDS. The refund-resolution queue is the whole mechanism that keeps an unattributable
+  // refund from being silently dropped — money went back to a customer and the credits it earned
+  // are still spendable. A backlog with no link in the shell is, operationally, the silent drop it
+  // exists to prevent: staff had to already know the URL.
+  //
+  // These ride `hasRewardsWorkspaceAccess`, NOT the payment tracker's permission, because the
+  // screens themselves demand a roster `super_admin`. See that function for what the mismatch
+  // cost.
+  // QUICK ASSISTED SALE — listed under its own capability, not the rewards or payment gate.
+  if (hasQuickSalesWorkspaceAccess(ctx)) {
+    hrefs.push("/admin/workspace/quick-sales");
+  }
+  if (hasRewardsWorkspaceAccess(ctx)) {
+    hrefs.push("/admin/workspace/rewards");
+    hrefs.push("/admin/workspace/rewards-refunds");
   }
   return hrefs;
 }

@@ -98,9 +98,9 @@ function ProfilePageContent() {
         securityCta: "Ir a Seguridad",
         billingTitle: "Facturación",
         billingBody:
-          "Portal de cliente (Stripe): configura `NEXT_PUBLIC_STRIPE_CUSTOMER_PORTAL_URL` o un endpoint interno que cree la sesión del portal.",
-        billingCta: "Abrir portal de facturación",
-        billingUnavailable: "Portal no configurado — revisa variables de entorno o despliega el endpoint de sesión.",
+          "Administra la facturación desde el anuncio pagado correspondiente. Cada suscripción abre su propio portal seguro de Stripe.",
+        billingCta: "Ver mis anuncios y facturación",
+        billingUnavailable: "",
         planTitle: "Perfil de cuenta",
         savedBanner: "Cambios guardados correctamente.",
         notifShortcut: "Preferencias de notificación",
@@ -139,9 +139,9 @@ function ProfilePageContent() {
         securityCta: "Go to Security",
         billingTitle: "Billing",
         billingBody:
-          "Stripe Customer Portal: set `NEXT_PUBLIC_STRIPE_CUSTOMER_PORTAL_URL` or add an API route that creates a portal session.",
-        billingCta: "Open billing portal",
-        billingUnavailable: "Portal not configured — add env var or deploy the billing session endpoint.",
+          "Manage billing from the corresponding paid listing. Each subscription opens its own secure Stripe portal.",
+        billingCta: "View my listings and billing",
+        billingUnavailable: "",
         planTitle: "Account profile",
         savedBanner: "Your changes were saved.",
         notifShortcut: "Notification preferences",
@@ -592,27 +592,12 @@ function ProfilePageContent() {
               <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FAF7F2]/80 p-6">
                 <h2 className="text-sm font-bold text-[#1E1810]">{L.billingTitle}</h2>
                 <p className="mt-2 text-sm text-[#5C5346]/95">{L.billingBody}</p>
-                {process.env.NEXT_PUBLIC_STRIPE_CUSTOMER_PORTAL_URL ? (
-                  <a
-                    href={process.env.NEXT_PUBLIC_STRIPE_CUSTOMER_PORTAL_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-4 inline-flex rounded-2xl border border-[#C9B46A]/45 bg-[#FFFCF7] px-4 py-2 text-sm font-semibold text-[#1E1810] shadow-sm transition hover:bg-[#FAF7F2]"
-                  >
-                    {L.billingCta}
-                  </a>
-                ) : (
-                  <>
-                    <p className="mt-2 text-xs text-[#7A7164]/95">{L.billingUnavailable}</p>
-                    <button
-                      type="button"
-                      disabled
-                      className="mt-2 inline-flex cursor-not-allowed rounded-2xl border border-dashed border-[#C9B46A]/45 bg-[#FFFCF7] px-4 py-2 text-sm font-semibold text-[#7A7164]"
-                    >
-                      {L.billingCta}
-                    </button>
-                  </>
-                )}
+                <Link
+                  href={`/dashboard/mis-anuncios?lang=${lang}`}
+                  className="mt-4 inline-flex min-h-[44px] items-center rounded-2xl border border-[#C9B46A]/45 bg-[#FFFCF7] px-4 py-2 text-sm font-semibold text-[#1E1810] shadow-sm transition hover:bg-[#FAF7F2]"
+                >
+                  {L.billingCta} →
+                </Link>
               </div>
 
               <div className="rounded-3xl border border-[#C9B46A]/25 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6 lg:col-span-2">

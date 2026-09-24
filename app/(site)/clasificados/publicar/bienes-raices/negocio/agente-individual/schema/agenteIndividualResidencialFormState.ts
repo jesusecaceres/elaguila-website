@@ -173,6 +173,17 @@ export type AgenteIndividualResidencialFormState = {
 
   fotosDataUrls: string[];
   fotoPortadaIndex: number;
+  /**
+   * Gate QB-MEDIA-03 — declared semantic role per photo, keyed by the photo's own source string
+   * (the same value stored in `fotosDataUrls`). Optional and additive: a draft written before
+   * roles existed simply has no entry, every existing reader ignores the field, and nothing in
+   * the Full application is required to populate it.
+   *
+   * It exists because `fotosDataUrls` is a bare string array, so "at least one real photo of the
+   * PROPERTY, not of the agent" cannot otherwise be checked: a headshot and a house are the same
+   * string. The business publish seam re-reads these roles server-side.
+   */
+  fotoMediaRoles?: Record<string, string>;
 
   videoUrl: string;
   /** External video links shown as clean media CTAs; first item mirrors legacy `videoUrl`. */
@@ -243,6 +254,9 @@ export type AgenteIndividualResidencialFormState = {
   agenteTelefonoOficina: string;
   /** WhatsApp del agente principal (solo este número para el CTA WA si no hay override en paso 8). */
   agenteWhatsapp: string;
+  /** SMS del agente — número explícito para CTA de texto (Quick intake: nunca deriva de teléfono).
+   * Optional: no existe en borradores anteriores al Quick Business intake. */
+  agenteSmsPersonal?: string;
   /** Sitio web del agente (CTA «Ver sitio web» tras override del paso 8). */
   agenteSitioWeb: string;
   /** Número que alimenta «Llamar» cuando hay personal y oficina con dígitos válidos. */

@@ -28,12 +28,12 @@ const FRAME: Record<Stage, L> = {
   neutral: { es: "Estas son las alternativas que mi cliente tiene hoy, según lo que yo mismo he visto. Son observaciones mías, no datos comprobados:", en: "These are the alternatives my customer has today, based on what I have seen myself. They are my own observations, not verified data:" },
   idea: { es: "Antes de gastar dinero quiero entender qué usa hoy la gente en lugar de lo que yo ofrecería. Esto es lo que he visto hasta ahora; son observaciones mías:", en: "Before I spend money I want to understand what people use today instead of what I would offer. This is what I have seen so far; these are my own observations:" },
   empezando: { es: "Quiero entender qué otras opciones tiene mi cliente cerca de donde voy a trabajar. Esto es lo que he visto hasta ahora; son observaciones mías:", en: "I want to understand what other options my customer has near where I am going to work. This is what I have seen so far; these are my own observations:" },
-  negocio: { es: "Quiero entender a quién más le compran mis clientes y por qué a veces cambian. Esto es lo que he observado; no son datos comprobados:", en: "I want to understand who else my customers buy from and why they sometimes switch. This is what I have observed; it is not verified data:" },
+  negocio: { es: "Quiero entender qué otras opciones usan mis clientes y qué puedo servirles mejor. Esto es lo que he observado; no son datos comprobados:", en: "I want to understand what other options my customers use and where I can serve them better. This is what I have observed; it is not verified data:" },
 };
 
 const NO_FACTS: L = {
-  es: "Muy importante: tú no conoces los negocios de mi zona. No inventes nombres de negocios, precios, horarios, reseñas ni datos de mercado. Si necesitas un dato, dime dónde y cómo puedo comprobarlo yo: visitando, preguntando a clientes o revisando información pública y actual del propio negocio. No me propongas engañar a nadie, hacerme pasar por cliente para sacar información privada ni copiar a otro negocio.",
-  en: "Very important: you do not know the businesses in my area. Do not invent business names, prices, hours, reviews, or market facts. If you need a fact, tell me where and how I can check it myself: by visiting, by asking customers, or by looking at the business's own public, current information. Do not suggest deceiving anyone, posing as a customer to extract private information, or copying another business.",
+  es: "Muy importante: tú no conoces los negocios de mi zona. No inventes nombres de negocios, precios, horarios, reseñas ni datos de mercado. Si necesitas un dato, dime dónde y cómo puedo comprobarlo yo: visitando, preguntando a clientes o revisando información pública y actual del propio negocio. No me propongas engañar a nadie, hacerme pasar por cliente para sacar información privada ni copiar a otro negocio. No me aconsejes atacar a otros negocios ni obsesionarme con ellos. El objetivo es servir mejor.",
+  en: "Very important: you do not know the businesses in my area. Do not invent business names, prices, hours, reviews, or market facts. If you need a fact, tell me where and how I can check it myself: by visiting, by asking customers, or by looking at the business's own public, current information. Do not suggest deceiving anyone, posing as a customer to extract private information, or copying another business. Do not advise me to attack other businesses or obsess over them. The goal is to serve better.",
 };
 
 /* TEMPLATE A (type D) — PLAN MY RESEARCH */
@@ -65,10 +65,10 @@ const PLAN_TASK: Record<Stage, L> = {
   negocio: {
     es: `1. Primero pregúntame qué me han dicho mis clientes sobre a quién más le compran y por qué.
 2. Arma conmigo preguntas sencillas para mis clientes actuales: qué otra opción usan, cuándo y qué les gusta de ella.
-3. Dime qué debería revisar en mis propias ventas para ver si estoy perdiendo clientes frente a alguna alternativa.`,
+3. Dime qué debería revisar en mis ventas y en mi servicio para ver si alguna alternativa les está sirviendo mejor.`,
     en: `1. First ask me what my customers have told me about who else they buy from and why.
 2. Build simple questions with me for my current customers: what other option they use, when, and what they like about it.
-3. Tell me what I should review in my own sales to see whether I am losing customers to an alternative.`,
+3. Tell me what I should review in my sales and in my service to see whether an alternative is serving them better.`,
   },
 };
 const PLAN = composeStages((s) => both(OPENER_WITH_IDEA[s], FRAME[s], GRID, MENTOR, PLAN_TASK[s], NO_FACTS));

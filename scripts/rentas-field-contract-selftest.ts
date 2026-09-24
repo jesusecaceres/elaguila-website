@@ -83,6 +83,8 @@ function baseRow(overrides: Partial<Record<string, unknown>> = {}): Record<strin
     status: "active",
     is_published: true,
     created_at: "2026-04-01T12:00:00.000Z",
+    published_at: "2026-09-01T12:00:00.000Z",
+    expires_at: "2026-10-23T12:00:00.000Z",
     images: [],
     contact_phone: "+15555550111",
     contact_email: "contract@test.invalid",

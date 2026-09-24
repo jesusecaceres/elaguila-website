@@ -5,7 +5,7 @@ export function ideaBuilderCopy(lang: Lang) {
   return lang === "es"
     ? {
         title: "Constructor de ideas",
-        subtitle: "Organiza tu idea de negocio paso a paso. Esto es educativo -- no valida demanda de mercado ni garantiza que el negocio sera rentable.",
+        subtitle: "Organiza tu idea paso a paso: a quien sirves, que problema resuelves y si puedes sostenerlo. Esto es educativo -- no valida demanda de mercado ni garantiza que el negocio sera rentable.",
         unavailable: "Esta funcion aun no esta disponible.",
         loading: "Cargando...",
         pathQuestion: "Cual describe mejor tu situacion?",
@@ -34,7 +34,7 @@ export function ideaBuilderCopy(lang: Lang) {
       }
     : {
         title: "Idea Builder",
-        subtitle: "Organize your business idea step by step. This is educational -- it does not validate market demand or guarantee the business will be profitable.",
+        subtitle: "Organize your idea step by step: who you serve, what problem you solve, and whether you can sustain it. This is educational -- it does not validate market demand or guarantee the business will be profitable.",
         unavailable: "This feature is not available yet.",
         loading: "Loading...",
         pathQuestion: "Which best describes your situation?",

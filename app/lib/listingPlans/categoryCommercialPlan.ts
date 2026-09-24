@@ -22,8 +22,16 @@ import {
   subscriptionOverrideFromRecordStatus,
   type CategoryListingPlan,
   type BusinessToolsDecision,
+  type EntitlementRowFacts,
   type ListingEntitlementRowFacts,
 } from "./categoryCommercialPlanPolicy";
+import {
+  decideBusinessAccess,
+  decideBusinessAccessCapability,
+  type BusinessAccessCapability,
+  type BusinessAccessCapabilityDecision,
+  type BusinessAccessDecision,
+} from "./businessAccessLevel";
 
 const ENTITLEMENTS_TABLE = "listing_package_entitlements";
 const SUBSCRIPTIONS_TABLE = "leonix_subscription_records";
@@ -185,6 +193,78 @@ export async function resolveBusinessToolsAccess(
 ): Promise<BusinessToolsDecision> {
   const plan = await resolveCategoryListingPlan(input);
   return decideBusinessToolsAccess({ plan, capability: input.capability });
+}
+
+/**
+ * SIMPLE vs FULL business access, resolved from the SAME entitlement rows the plan resolver
+ * already reads — one fetch implementation, so a listing can never be `full` to one surface and
+ * `simple` to another. Returns every live grant, so a customer holding print half-page plus a
+ * Quick digital package resolves to `full` with both grants visible to staff.
+ */
+export async function resolveBusinessAccessForListings(
+  input: ResolveCategoryListingPlansInput,
+): Promise<Map<string, BusinessAccessDecision>> {
+  const category = String(input.category ?? "").trim().toLowerCase();
+  const listingIds = [
+    ...new Set((input.listingIds ?? []).map((id) => String(id ?? "").trim()).filter(Boolean)),
+  ];
+  const empty = (): Map<string, BusinessAccessDecision> =>
+    new Map(listingIds.map((id) => [id, decideBusinessAccess({ rows: [], nowMs: Date.now() })]));
+  if (!category || listingIds.length === 0) return empty();
+
+  const rows = await fetchEntitlementRows({ category, listingIds });
+  const nowMs = Date.now();
+  const overrides = await resolveSubscriptionOverrides(
+    listingIdsNeedingSubscriptionOverride(rows, nowMs),
+  );
+
+  const rowsByListing = new Map<string, EntitlementRowFacts[]>();
+  for (const { listingId, facts } of rows) {
+    const list = rowsByListing.get(listingId) ?? [];
+    list.push(facts);
+    rowsByListing.set(listingId, list);
+  }
+
+  const out = new Map<string, BusinessAccessDecision>();
+  for (const listingId of listingIds) {
+    out.set(
+      listingId,
+      decideBusinessAccess({
+        rows: rowsByListing.get(listingId) ?? [],
+        nowMs,
+        subscriptionOverride: overrides.get(listingId) ?? null,
+      }),
+    );
+  }
+  return out;
+}
+
+export async function resolveBusinessAccess(
+  input: ResolveCategoryListingPlanInput,
+): Promise<BusinessAccessDecision> {
+  const listingId = String(input.listingId ?? "").trim();
+  const none = decideBusinessAccess({ rows: [], nowMs: Date.now() });
+  if (!listingId) return none;
+  const all = await resolveBusinessAccessForListings({
+    category: input.category,
+    listingSource: input.listingSource,
+    listingIds: [listingId],
+  });
+  return all.get(listingId) ?? none;
+}
+
+/**
+ * The one call every Full-only server gate makes. Fails closed: an unresolvable listing is
+ * `none`, never `full`.
+ */
+export async function resolveBusinessAccessCapability(
+  input: ResolveCategoryListingPlanInput & { capability: BusinessAccessCapability },
+): Promise<BusinessAccessCapabilityDecision & { access: BusinessAccessDecision }> {
+  const access = await resolveBusinessAccess(input);
+  return {
+    ...decideBusinessAccessCapability({ level: access.level, capability: input.capability }),
+    access,
+  };
 }
 
 export type ResolveBusinessToolsAccessForListingsInput = ResolveCategoryListingPlansInput & { capability: string };

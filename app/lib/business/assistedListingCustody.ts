@@ -21,7 +21,13 @@ import "server-only";
  */
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
-export type AssistedListingSource = "servicios_public_listings" | "restaurantes_public_listings";
+export type AssistedListingSource =
+  | "servicios_public_listings"
+  | "restaurantes_public_listings"
+  | "autos_classifieds_listings"
+  | "listings"
+  | "empleos_public_listings"
+  | "comida_local_public_listings";
 
 /**
  * True when `listing_id` is already linked (status='verified') to `businessId` under
@@ -77,24 +83,15 @@ export async function linkAssistedListingToBusiness(input: {
 }
 
 /**
- * True when a manual payment for this exact listing has been recorded AND cleared through the
- * existing admin Payment Tracker (`leonix_payment_records.manual_state = 'cleared'`). This is the
- * "Publish for Client" payment gate — a real, staff-verified payment fact, never a fabricated
- * Stripe session.
+ * PAYMENT GATE — listing-only clearance is not sufficient.
+ *
+ * Publication must call `hasAuthoritativePaymentForListingPackage` /
+ * `refuseUnlessAuthoritativePayment` in `listingPackagePaymentAuthorityServer.ts`. That helper
+ * answers: does this exact listing have sufficient authoritative, non-reversed payment or
+ * entitlement for this exact package and amount? A cleared Quick payment can never publish Full.
+ *
+ * `leonix_payment_records.manual_state = 'cleared'` remains the manual-rail settled state; Stripe
+ * webhook `paid`/`succeeded`, Terminal settlement, committed Rewards, and live entitlements are
+ * evaluated with it. This module no longer exposes a listing-only boolean.
  */
-export async function hasClearedManualPaymentForListing(input: {
-  listingSource: AssistedListingSource;
-  listingId: string;
-}): Promise<boolean> {
-  if (!isSupabaseAdminConfigured()) return false;
-  const supabase = getAdminSupabase();
-  const { data } = await supabase
-    .from("leonix_payment_records")
-    .select("id")
-    .eq("listing_source", input.listingSource)
-    .eq("listing_id", input.listingId)
-    .eq("manual_state", "cleared")
-    .limit(1)
-    .maybeSingle();
-  return Boolean(data?.id);
-}
+export { hasAuthoritativePaymentForListingPackage } from "@/app/lib/listingPlans/listingPackagePaymentAuthorityServer";

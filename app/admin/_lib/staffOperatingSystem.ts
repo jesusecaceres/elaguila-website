@@ -22,6 +22,7 @@
  */
 import { ADMIN_DASHBOARD_ROUTES } from "./adminDashboardRoutes";
 import { buildConciergeInventoryHref } from "./conciergeIntent";
+import { QUICK_SALES_WORKSPACE_PATH } from "@/app/lib/sales/quickSalesRoutes";
 import type { SalesWorkspaceActorType } from "./businessWorkspaceAccess";
 import type { SalesWorkspaceCapability, SalesWorkspaceRole } from "./salesWorkspaceCapabilities";
 
@@ -60,6 +61,7 @@ export type StaffOsActorView = {
 export const STAFF_OS_ROUTES = {
   staffHome: "/admin/businesses",
   createForClient: "/admin/businesses/create-for-client",
+  quickSales: QUICK_SALES_WORKSPACE_PATH,
   createBusinessProfile: "/admin/businesses/canvass?intent=business_profile",
   addProspect: "/admin/businesses/canvass",
   fieldAgent: "/admin/field",
@@ -106,15 +108,27 @@ export function composeStaffOperatingSystem(view: StaffOsActorView): StaffOperat
   // conciergeIntent.ts) so tapping a business row lands directly on
   // create-for-client?businessId=X — WHO is already resolved, no second search step inside the
   // launcher itself. Reuses the exact same resolver every other Quick Action already uses.
-  const clientWork: StaffOsLink[] = [
-    {
-      key: "create_for_client",
-      href: buildConciergeInventoryHref("create_listing"),
-      label: "Crear anuncio / Create Ad",
-      hint: "Elige un negocio y abre la aplicación real de la categoría. / Pick a business and open the real category application.",
+  const clientWork: StaffOsLink[] = [];
+  // QUICK SALES ENTRY CONSOLIDATION — the ONE create verb for a Leonix-managed ad in the four
+  // paid categories is the Quick Sales cockpit, listed under the same capability its page and
+  // APIs demand. Create for Client stays as the router for every OTHER lane (personal
+  // classifieds, Ofertas, Comida Local, Viajes, Business Profile).
+  if (has("assisted_category_publishing")) {
+    clientWork.push({
+      key: "quick_sales",
+      href: STAFF_OS_ROUTES.quickSales,
+      label: "Venta asistida Quick / Quick assisted sale",
+      hint: "Anuncio gestionado por Leonix: Servicios, Restaurantes, Autos Dealer, Bienes Negocio. / Leonix-managed ad: Servicios, Restaurantes, Auto Dealer, Real Estate Business.",
       primary: true,
-    },
-  ];
+    });
+  }
+  clientWork.push({
+    key: "create_for_client",
+    href: buildConciergeInventoryHref("create_listing"),
+    label: "Crear anuncio / Create Ad",
+    hint: "Elige un negocio; las cuatro categorías pagadas van a Venta asistida, el resto abre su aplicación real. / Pick a business; the four paid categories go to Quick Sales, the rest open their real application.",
+    primary: !has("assisted_category_publishing"),
+  });
   if (has("manage_business_profile") && has("conduct_canvassing")) {
     clientWork.push({
       key: "create_business_profile",

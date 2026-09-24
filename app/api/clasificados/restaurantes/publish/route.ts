@@ -1,4 +1,6 @@
-import { NextResponse } from "next/server";
+import { resolveAssistedRowBinding, resolveAssistedSessionConflict } from "@/app/lib/sales/assistedSameRowBinding";
+import { recordSalesWorkspaceAudit } from "@/app/lib/sales/salesWorkspaceAudit";
+import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import type { RestauranteListingDraft } from "@/app/clasificados/restaurantes/application/restauranteDraftTypes";
@@ -34,6 +36,15 @@ import {
   validateProposedFinalMediaSet,
   warnDroppedUnpersistableMedia,
 } from "@/app/lib/media/listingMediaContract";
+import { readActiveAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
+import {
+  isListingLinkedToBusiness,
+  linkAssistedListingToBusiness,
+} from "@/app/lib/business/assistedListingCustody";
+import { refuseUnlessAuthoritativePayment } from "@/app/lib/listingPlans/listingPackagePaymentAuthorityServer";
+import { linkSelfServiceListingToBusiness } from "@/app/lib/business/canonicalListingLink";
+import { enforceQuickBusinessPublishMedia } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
+import { resolveQuickBusinessPublishIdentity } from "@/app/lib/listingPlans/quickBusinessProductIdentityServer";
 
 /** Gallery cap mirrors MAX_GALLERY in RestaurantePublishMediaStrip.tsx:29 (local, unexported). */
 const RESTAURANTE_GALLERY_MAX = 24;
@@ -133,7 +144,7 @@ async function allocateSlug(base: string): Promise<string> {
   return `${base}-${Date.now()}`;
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   let body: unknown;
   try {
     body = await req.json();
@@ -231,7 +242,66 @@ export async function POST(req: Request) {
   const strict = isRestaurantesStrictPublishEnvironment();
   const verifiedOwnerId = await restauranteOwnerIdFromBearer(req);
 
-  if (strict && !verifiedOwnerId) {
+  // Staff-assisted publishing (mirrors servicios publish route Gate 5 pattern).
+  // An HMAC-signed cookie from `createAssistedPublishingSession` authorizes a staff actor to
+  // save or publish a draft on behalf of a client. The client's `owner_user_id` is intentionally
+  // null so the client can claim the listing through the normal Leonix-signup flow.
+  // Gate QB-STAFF-03 — the roster is re-checked HERE, at redemption, not only at mint time. A
+  // staff member deactivated or removed after their token was issued can no longer publish on a
+  // customer's behalf with it. Fails closed on an unreachable database.
+  const assistedContext = await readActiveAssistedPublishingContext(req.cookies);
+  const assistedActionRaw = typeof b.assistedAction === "string" ? b.assistedAction.trim() : "";
+  const isAssistedSaveForClient = assistedActionRaw === "save_for_client";
+  const isAssistedPublishForClient = assistedActionRaw === "publish_for_client";
+  const isAssistedRequest =
+    (isAssistedSaveForClient || isAssistedPublishForClient) &&
+    assistedContext !== null &&
+    assistedContext.category === "restaurantes";
+  if ((isAssistedSaveForClient || isAssistedPublishForClient) && !isAssistedRequest) {
+    return NextResponse.json({ ok: false, error: "assisted_context_required" }, { status: 403 });
+  }
+  // REQUIRED REPAIR 4 — the assisted context authorizes ONE action. A context minted to prepare a
+  // draft is not authority for a different assisted operation.
+  const assistedBinding = isAssistedRequest
+    ? resolveAssistedRowBinding({
+        contextListingId: assistedContext!.listingId,
+        contextAssistedAction: assistedContext!.assistedAction,
+        requestedAction: assistedActionRaw,
+        bodyListingId: null,
+      })
+    : null;
+  if (assistedBinding && !assistedBinding.ok) {
+    await recordSalesWorkspaceAudit({
+      action: "quick_sales_save_for_client",
+      actorRosterId: assistedContext!.rosterId,
+      businessId: assistedContext!.businessId,
+      category: "restaurantes",
+      listingSource: "restaurantes_public_listings",
+      outcome: assistedBinding.error,
+    });
+    return NextResponse.json({ ok: false, error: assistedBinding.error }, { status: assistedBinding.status });
+  }
+  // QUICK SALES ENTRY CONSOLIDATION — an assisted request that ALSO carries an unrelated site
+  // session is refused, never resolved to one of the two identities (see the Servicios route).
+  const sessionConflict = resolveAssistedSessionConflict({
+    assistedActive: isAssistedRequest,
+    contextClientUserId: assistedContext?.clientUserId ?? null,
+    customerUserId: verifiedOwnerId,
+  });
+  if (sessionConflict) {
+    await recordSalesWorkspaceAudit({
+      action: "quick_sales_save_for_client",
+      actorRosterId: assistedContext!.rosterId,
+      businessId: assistedContext!.businessId,
+      category: "restaurantes",
+      listingSource: "restaurantes_public_listings",
+      outcome: sessionConflict.error,
+    });
+    return NextResponse.json({ ok: false, error: sessionConflict.error }, { status: sessionConflict.status });
+  }
+  const assistedBoundListingId = assistedBinding?.ok ? assistedBinding.listingId : "";
+
+  if (strict && !verifiedOwnerId && !isAssistedRequest) {
     return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
   }
 
@@ -306,6 +376,58 @@ export async function POST(req: Request) {
     );
   }
 
+  // Gate QB-MEDIA-03 — the canonical Quick Business semantic media contract, run on the SERVER
+  // for a listing the CUSTOMER published for themselves. Restaurantes' own count/video truths
+  // above are untouched; this adds only the semantic one — at least one image that actually
+  // depicts the restaurant, with a declared logo never able to satisfy it.
+  //
+  // Gate QB-BOUNDARY-03 — IT IS SKIPPED ONLY FOR A PROVEN FULL PRODUCT.
+  //
+  // Restaurantes sells BOTH a Quick base package and a Full one through this same seam. Running
+  // the contract unconditionally held a FULL customer to a $99 product's rule, so the product now
+  // comes from the same server-owned resolver Autos and Bienes use.
+  //
+  // It is NOT gated on a positive `quick` answer. No Restaurantes client sends a package
+  // declaration, and a first publish precedes checkout, so a `quick` answer is unobtainable at
+  // exactly the publish this contract exists to govern — gating on it turned the check off for
+  // every real request. `enforceQuickContract` therefore means "not a PROVEN Full", which
+  // restores the pre-gate behaviour for everyone else and keeps the blocker closed for the
+  // customer whose entitlement or settled checkout actually names the Full package.
+  //
+  // `listingId` arrives from the body. It cannot buy an escape: the entitlement read is scoped to
+  // the bearer-verified owner, so naming someone else's Full listing yields no rows, and an
+  // unresolvable id yields `unverified`, which enforces.
+  const restauranteRequestBody = body as Record<string, unknown>;
+  const restauranteProductListingId =
+    typeof restauranteRequestBody.listingId === "string" ? restauranteRequestBody.listingId.trim() || null : null;
+  const restauranteDeclaredPackageKey =
+    typeof restauranteRequestBody.basePackageKey === "string" ? restauranteRequestBody.basePackageKey : null;
+  const restauranteProduct = await resolveQuickBusinessPublishIdentity({
+    category: "restaurantes",
+    ownerUserId: verifiedOwnerId ?? "",
+    listingId: restauranteProductListingId,
+    assistedPackageKey: assistedContext?.packageKey ?? null,
+    declaredPackageKey: restauranteDeclaredPackageKey,
+  });
+  // Same external-video blind spot as Servicios: the links are collected separately and never
+  // carry a `video/*` MIME, so the no-video rule could not reach them.
+  const restauranteExternalVideoCount = collectRestauranteExternalVideoUrls(draft).filter(
+    (u) => typeof u === "string" && u.trim().length > 0,
+  ).length;
+  const restauranteSemanticMedia = restauranteProduct.enforceQuickContract
+    ? enforceQuickBusinessPublishMedia({
+        category: "restaurantes",
+        externalVideoCount: restauranteExternalVideoCount,
+        items: [
+          ...(restauranteHeroUrl ? [{ role: null, mime: null }] : []),
+          ...restauranteGalleryUrls.map(() => ({ role: null, mime: null })),
+        ],
+      })
+    : null;
+  if (restauranteSemanticMedia && !restauranteSemanticMedia.ok) {
+    return NextResponse.json(restauranteSemanticMedia.body, { status: restauranteSemanticMedia.status });
+  }
+
   if (!isSupabaseAdminConfigured()) {
     return NextResponse.json(
       {
@@ -318,7 +440,14 @@ export async function POST(req: Request) {
   }
 
   // Owner identity is server-verified only — the client-supplied owner_user_id is never trusted.
-  const ownerUserId = verifiedOwnerId;
+  // Assisted sales use the customer id already signed into the server-issued custody token; legacy
+  // Leonix-managed drafts may still have no customer id.
+  const ownerUserId =
+    isAssistedRequest && typeof assistedContext?.clientUserId === "string" && assistedContext.clientUserId.trim()
+      ? assistedContext.clientUserId.trim()
+      : isAssistedRequest
+        ? null
+        : verifiedOwnerId;
   const pendingPayment =
     b.activation_mode === "pending_payment" || b.activationMode === "pending_payment";
   const requestedLane = normalizePublicPublishPackageTier(
@@ -349,6 +478,89 @@ export async function POST(req: Request) {
 
   if (existingOwnerUserId && verifiedOwnerId && existingOwnerUserId !== verifiedOwnerId) {
     return NextResponse.json({ ok: false, error: "ownership_mismatch" }, { status: 403 });
+  }
+
+  // CUSTODY, NOT A CLIENT-SUPPLIED ROW ID.
+  //
+  // The guard above only fires when `verifiedOwnerId` is non-null, and on an assisted request it
+  // is null by construction — so the row to write was chosen entirely by the browser's
+  // `draft.draftListingId`. A staff cookie minted for business A could therefore overwrite
+  // business B's restaurant row and then link that foreign row to A. Re-opening an existing row
+  // on behalf of a client requires the same custody proof the other categories demand: this
+  // business must already hold this listing.
+  if (isAssistedRequest && existingByDraft?.id) {
+    const assistedExistingOwnerOk =
+      existingOwnerUserId == null || (ownerUserId != null && existingOwnerUserId === ownerUserId);
+    if (!assistedExistingOwnerOk) {
+      return NextResponse.json({ ok: false, error: "ownership_mismatch" }, { status: 403 });
+    }
+    const linked = await isListingLinkedToBusiness({
+      businessId: assistedContext!.businessId,
+      listingSource: "restaurantes_public_listings",
+      listingId: String((existingByDraft as { id: string }).id),
+    });
+    if (!linked) {
+      return NextResponse.json({ ok: false, error: "listing_not_linked_to_business" }, { status: 403 });
+    }
+  }
+
+  // EVERY REPEATED SAVE MUST UPDATE THE SAME CANONICAL ROW.
+  //
+  // This route resolves its row by `draft.draftListingId` — a key the BROWSER mints. When that key
+  // is absent or changed (a reloaded tab, a re-opened intake, a second staff device) the lookup
+  // finds nothing and the write below INSERTS, so the client ends up with two half-finished
+  // restaurant listings and only one of them is the row custody and payment know about.
+  //
+  // Once the server-issued assisted context carries the canonical id, that id is the authority:
+  // the row the browser's draft key resolved to must BE that row, and resolving to nothing (which
+  // would insert a second one) is refused just as loudly as resolving to a different one.
+  if (isAssistedRequest && assistedBoundListingId) {
+    const resolvedByDraft = (existingByDraft as { id?: string } | null)?.id
+      ? String((existingByDraft as { id: string }).id)
+      : "";
+    if (resolvedByDraft !== assistedBoundListingId) {
+      await recordSalesWorkspaceAudit({
+        action: "quick_sales_save_for_client",
+        actorRosterId: assistedContext!.rosterId,
+        businessId: assistedContext!.businessId,
+        category: "restaurantes",
+        listingSource: "restaurantes_public_listings",
+        listingId: assistedBoundListingId,
+        outcome: "assisted_listing_mismatch",
+      });
+      return NextResponse.json({ ok: false, error: "assisted_listing_mismatch" }, { status: 409 });
+    }
+  }
+
+  // PUBLISHING ON A CLIENT'S BEHALF REQUIRES AUTHORITATIVE PAYMENT.
+  //
+  // Every other assisted category checks this; this one did not check it at all, so
+  // `publish_for_client` made an unpaid listing public on a staff member's say-so. The check is
+  // the same server/payment truth the others use — a cleared manual payment for THIS listing —
+  // and it runs before anything is written.
+  if (isAssistedPublishForClient) {
+    if (!existingByDraft?.id) {
+      return NextResponse.json({ ok: false, error: "existing_listing_required" }, { status: 400 });
+    }
+    const paid = await refuseUnlessAuthoritativePayment({
+      listingSource: "restaurantes_public_listings",
+      listingId: String((existingByDraft as { id: string }).id),
+      packageKey: assistedContext?.packageKey ?? "",
+      category: "restaurantes",
+    });
+    if (!paid.ok) {
+      await recordSalesWorkspaceAudit({
+        action: "quick_sales_publish_attempted",
+        actorRosterId: assistedContext!.rosterId,
+        businessId: assistedContext!.businessId,
+        category: "restaurantes",
+        listingSource: "restaurantes_public_listings",
+        listingId: String((existingByDraft as { id: string }).id),
+        paymentState: paid.paymentState,
+        outcome: paid.error,
+      });
+      return NextResponse.json({ ok: false, error: paid.error }, { status: 402 });
+    }
   }
 
   // Gate E.2.1 — paid coupon entitlement is server/payment truth only (live
@@ -506,7 +718,17 @@ export async function POST(req: Request) {
           packageTier: requestedLane,
           status: "published",
         }),
-        status: pendingPayment ? RESTAURANTE_PENDING_CHECKOUT_STATUS : "published",
+        // A STAFF SAVE IS NEVER A PUBLICATION.
+        //
+        // `save_for_client` with no `activation_mode` used to insert `status: "published"` with a
+        // `published_at` — and "published" is exactly the predicate the public reader uses. Staff
+        // preparing an ad for a prospect therefore put an UNPAID listing live on the site, before
+        // any payment existed and with no way to tell it apart from a paid one. The assisted save
+        // pins the pending status itself rather than inheriting whatever the body asked for.
+        status:
+          isAssistedSaveForClient || pendingPayment
+            ? RESTAURANTE_PENDING_CHECKOUT_STATUS
+            : "published",
       };
       let insertError: { message: string; code?: string } | null = null;
       for (let attempt = 0; attempt < 8; attempt++) {
@@ -522,7 +744,8 @@ export async function POST(req: Request) {
         const { data: inserted, error } = await supabase.from("restaurantes_public_listings").insert({
           ...row,
           leonix_ad_id,
-          published_at: now,
+          // ...and it is not "published at" a time it was never published.
+          published_at: isAssistedSaveForClient ? null : now,
           updated_at: now,
         }).select("id, leonix_ad_id").single();
         if (!error && inserted?.id) {
@@ -546,6 +769,38 @@ export async function POST(req: Request) {
       { ok: false, error: "publish_exception", detail: e instanceof Error ? e.message : "unknown" },
       { status: 500 },
     );
+  }
+
+  // Assisted request: link the saved listing to the business in the custody ledger.
+  if (isAssistedRequest && assistedContext && listingIdOut) {
+    await recordSalesWorkspaceAudit({
+      action: isAssistedPublishForClient ? "quick_sales_publish_completed" : "quick_sales_save_for_client",
+      actorRosterId: assistedContext.rosterId,
+      businessId: assistedContext.businessId,
+      category: "restaurantes",
+      listingSource: "restaurantes_public_listings",
+      listingId: listingIdOut,
+      paymentState: isAssistedPublishForClient ? "manual_payment_cleared" : "unpaid_draft",
+      outcome: "ok",
+      detail: { server_bound_row: !!assistedBoundListingId },
+    });
+    await linkAssistedListingToBusiness({
+      businessId: assistedContext.businessId,
+      listingSource: "restaurantes_public_listings",
+      listingId: listingIdOut,
+      linkedByAuthUserId: assistedContext.authUserId,
+    });
+  }
+
+  // Gate QB-IDENTITY-01 — the self-service counterpart of the write above, so both publishing
+  // modes converge on one canonical business↔listing relationship. Idempotent; ownership is
+  // re-proven server-side; a failure never fails the publish.
+  if (!isAssistedRequest && ownerUserId && listingIdOut) {
+    await linkSelfServiceListingToBusiness({
+      userId: ownerUserId,
+      listingSource: "restaurantes_public_listings",
+      listingId: listingIdOut,
+    }).catch(() => undefined);
   }
 
   const deep = restaurantesDiscoveryParamsForRowDeepLink({

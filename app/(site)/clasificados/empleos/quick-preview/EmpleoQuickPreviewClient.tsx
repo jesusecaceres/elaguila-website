@@ -5,7 +5,6 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "reac
 import { useSearchParams } from "next/navigation";
 
 import { resolveClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
-import { previewBackToEditLabel } from "@/app/lib/clasificados/clasificadosUiChromeCopy";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { LeonixPreviewPageShell } from "@/app/clasificados/lib/preview/LeonixPreviewPageShell";
 import {
@@ -28,6 +27,8 @@ import {
 } from "@/app/publicar/empleos/shared/types/empleosQuickDraft";
 import { buildEmpleosPublishEnvelopeFromQuick } from "@/app/publicar/empleos/shared/publish/buildEmpleosPublishEnvelope";
 import { saveEmpleosDraftAndStartPaidJobCheckout } from "@/app/publicar/empleos/shared/publish/empleosRevenueCheckout";
+import { resolveEmpleosQuickDraftMediaForPublish } from "@/app/publicar/empleos/shared/publish/empleosDraftMediaUpload";
+import { flushEmpleosDraftToSession } from "@/app/publicar/empleos/shared/lib/flushEmpleosDraftToSession";
 import { gateEmpleosQuickPreview } from "@/app/publicar/empleos/shared/required/empleosRequiredForPreview";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import {
@@ -52,6 +53,7 @@ export function EmpleoQuickPreviewClient() {
   const [ready, setReady] = useState(false);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [checkoutErr, setCheckoutErr] = useState<string | null>(null);
+  const [newsletterCaptureNote, setNewsletterCaptureNote] = useState<string | null>(null);
 
   // Globalization Package A Gate 4 — shared preview-mode contract guard. Same P3 defect
   // class as the premium lane: this is a paid, draft-based, new-publish-only preview; a
@@ -88,7 +90,6 @@ export function EmpleoQuickPreviewClient() {
   }, []);
 
   const editHref = appendLangToPath(EMPLEOS_PUBLISH_ROUTES.quick, routeLang);
-  const backLabel = previewBackToEditLabel(lang);
   const prevCopy = EMPLEOS_PUBLISH_SHARED_COPY[lang].previewNoDraft;
 
   const publishReadiness = useMemo(() => {
@@ -140,7 +141,7 @@ export function EmpleoQuickPreviewClient() {
         return;
       }
 
-      void captureCheckoutNewsletterSubscriber({
+      const capturePromise = captureCheckoutNewsletterSubscriber({
         email: data.session.user?.email ?? null,
         lang,
         preferredLanguage: lang,
@@ -148,8 +149,30 @@ export function EmpleoQuickPreviewClient() {
         interests: EMPLEOS_NEWSLETTER_INTERESTS.quick,
         checked: ctx.newsletterOptIn,
       });
+      const captureResult = await capturePromise;
+      if (captureResult.status === "FAILED") {
+        console.warn("[empleos/quick] newsletter checkout capture failed", captureResult.reason);
+        setNewsletterCaptureNote(
+          lang === "es"
+            ? "No pudimos guardar tu suscripción al boletín. Tu pago no se vio afectado."
+            : "We couldn't save your newsletter subscription. Your payment was not affected.",
+        );
+      }
 
-      const envelope = buildEmpleosPublishEnvelopeFromQuick(current, lang);
+      // Quick Tier-1 Gate 5 — media wiring repair: host the customer's local photos in the existing
+      // listing-images bucket BEFORE the envelope mapper runs (it keeps https refs and drops data:/blob:).
+      const resolved = await resolveEmpleosQuickDraftMediaForPublish(current, { userId: data.session.user.id, lang });
+      if (!resolved.ok) {
+        setCheckoutBusy(false);
+        setCheckoutErr(resolved.message);
+        return;
+      }
+      if (resolved.uploaded > 0) {
+        flushEmpleosDraftToSession(EMPLEOS_SESSION_KEYS.quick, resolved.draft);
+        setDraft(resolved.draft);
+      }
+
+      const envelope = buildEmpleosPublishEnvelopeFromQuick(resolved.draft, lang);
       const paid = await saveEmpleosDraftAndStartPaidJobCheckout({
         envelope,
         accessToken: data.session.access_token,
@@ -232,6 +255,7 @@ export function EmpleoQuickPreviewClient() {
             }
             onPromoApply={handlePromoApply}
             onCheckout={(ctx) => void onCheckout(ctx)}
+            newsletterCaptureNote={newsletterCaptureNote}
             editHref={editHref}
             rulesModal={EMPLEOS_PREVIEW_RULES_MODAL}
           />

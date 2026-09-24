@@ -7,6 +7,14 @@ export type PublicMagazineManifestMonth = {
   coverUrl?: string | null;
   pdfUrl?: string | null;
   flipbookUrl?: string | null;
+  /**
+   * Lifecycle status of the issue row (database manifests only). `archived` = a previous edition;
+   * `published` = live (the current edition, or published and waiting to become current).
+   * Absent on the editions.json file fallback.
+   */
+  status?: "published" | "archived";
+  /** Editorial ordering (`magazine_issues.display_order`, higher first). Database manifests only. */
+  displayOrder?: number;
 };
 
 export type PublicMagazineManifest = {

@@ -22,10 +22,12 @@ export function PublicarAutosBranchClient() {
   const negociosHref = withLangParam("/publicar/autos/negocios", routeLang);
   const publicarHref = withLangParam("/clasificados/publicar", routeLang);
 
-  const cards = useMemo(
-    () => getAutosCheckpointCards(copyLang, privadoHref, negociosHref),
-    [copyLang, privadoHref, negociosHref],
-  );
+  const selectedPlan = searchParams?.get("plan") === "full" ? "full" : searchParams?.get("plan") === "quick" ? "quick" : null;
+  const assistedCategory = searchParams?.get("staff") === "1" ? "autos" : undefined;
+  const cards = useMemo(() => {
+    const all = getAutosCheckpointCards(copyLang, privadoHref, negociosHref);
+    return assistedCategory ? all.filter((card) => card.id !== "autos_privado") : all;
+  }, [copyLang, privadoHref, negociosHref, assistedCategory]);
 
   return (
     <PublishEntryCheckpointLayout
@@ -35,9 +37,10 @@ export function PublicarAutosBranchClient() {
       backHref={publicarHref}
       backLabel={c.backToPublicar}
       checkpointCategory="autos"
+      selectedPlan={selectedPlan}
       launchBannerCards={cards}
     >
-      <PublishEntryCheckpointStack cards={cards} lang={copyLang} />
+      <PublishEntryCheckpointStack cards={cards} lang={copyLang} assistedCategory={assistedCategory} />
     </PublishEntryCheckpointLayout>
   );
 }

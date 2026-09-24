@@ -31,7 +31,6 @@ import { adminCardBase, adminBtnSecondary, adminCtaChip, adminCtaChipSecondary }
 import { AdminPagePurposeCard } from "../../../../_components/AdminPagePurposeCard";
 import { ClassifiedAdminRowActions } from "../_components/ClassifiedAdminRowActions";
 import { AdminListingMonetizationSummary } from "../_components/AdminListingMonetizationSummary";
-import type { AdminLang } from "@/app/admin/_lib/adminI18nCookie";
 import {
   ADMIN_AUTOS_LANE_OPTIONS,
   ADMIN_AUTOS_WORKSPACE_PATH,
@@ -352,8 +351,8 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                       {stripeHint}
                     </td>
                     <td className="whitespace-nowrap px-3 py-2 text-[10px] text-[#5C5346]">{updated}</td>
-                    <td className="max-w-[6rem] truncate px-3 py-2 font-mono text-[10px]" title={r.owner_user_id}>
-                      {r.owner_user_id.slice(0, 8)}…
+                    <td className="max-w-[6rem] truncate px-3 py-2 font-mono text-[10px]" title={r.owner_user_id ?? "Leonix"}>
+                      {r.owner_user_id ? `${r.owner_user_id.slice(0, 8)}…` : "Leonix"}
                     </td>
                     <td className="px-3 py-2">{dash.thumbUrl ? m("autosQueue.yes") : m("autosQueue.no")}</td>
                     <td className="px-3 py-2">

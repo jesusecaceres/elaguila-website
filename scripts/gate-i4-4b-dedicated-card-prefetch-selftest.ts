@@ -38,8 +38,8 @@ function countPrefetchFalse(text: string): number {
  * ------------------------------------------------------------------------------------------ */
 
 for (const [name, text, expectedPerListingLinks] of [
-  ["EnVentaListingManageCard.tsx", enVentaSrc, 5],
-  ["LeonixRealEstateListingManageCard.tsx", brCardSrc, 3],
+  ["EnVentaListingManageCard.tsx", enVentaSrc, 6],
+  ["LeonixRealEstateListingManageCard.tsx", brCardSrc, 4],
   // Package E Build E2, Gate 4 — added a real, confirmed-live Autos Privado Edit link
   // (previously unwired), matching the same "add editHref prop, gate on it" pattern every
   // other dedicated card already used. 1 -> 2, prefetch={false} on the new link too.
@@ -55,17 +55,13 @@ for (const [name, text, expectedPerListingLinks] of [
   );
 }
 
-// Comida Local: 3 total <Link> elements, but only the 2 per-listing ones (inside the .map loop)
-// get prefetch={false} — the empty-state "Publish" CTA (rendered once, not per listing) must
-// stay on default prefetch, matching the "Publish/Create CTA" exemption class.
+// Comida Local now delegates listing actions to OwnerEntityWorkspace -> DashboardListingActionBar.
 {
-  assert.equal(countLinks(comidaLocalSrc), 3, "ComidaLocalDashboardListings.tsx must still render exactly 3 <Link> elements");
-  assert.equal(countPrefetchFalse(comidaLocalSrc), 2, "only the 2 per-listing links (inside the .map loop) must have prefetch disabled");
-  assert.match(
-    comidaLocalSrc,
-    /href=\{`\/publicar\/comida-local\?\$\{q\}`\}\s*\n\s*className="mt-4 inline-flex/,
-    "the empty-state 'Publish Comida Local' CTA must remain untouched (not per-listing, not prefetch-disabled)",
-  );
+  assert.equal(countLinks(comidaLocalSrc), 0, "Comida Local must not duplicate direct per-listing <Link> rendering");
+  assert.equal(countPrefetchFalse(comidaLocalSrc), 0, "prefetch control is inherited from the shared action bar, not duplicated locally");
+  assert.match(comidaLocalSrc, /<OwnerEntityWorkspace/, "Comida Local must render through the shared owner workspace");
+  assert.match(comidaLocalSrc, /primaryAction=\{\{ href: editHref, label: editListingLabel\(lang\) \}\}/, "Comida Local edit stays a real shared-workspace action");
+  assert.match(comidaLocalSrc, /quickActions=\{quickActions\}/, "Comida Local public-view action stays in the shared workspace action list");
 }
 
 /* ------------------------------------------------------------------------------------------ *

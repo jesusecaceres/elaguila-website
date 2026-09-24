@@ -1,25 +1,17 @@
 import type { SupportedLang } from "@/app/lib/language";
-import { buildCommunityMagazineHubCopy } from "./communityBuilder";
-import { MAGAZINE_HUB_EN, MAGAZINE_HUB_ES, MAGAZINE_HUB_VI } from "./esEnVi";
+import { MAGAZINE_HUB_EN, MAGAZINE_HUB_ES } from "./esEn";
 import type { MagazineHubPageCopy } from "./types";
 
-export const MAGAZINE_HUB_REGISTRY: Record<SupportedLang, MagazineHubPageCopy> = {
+/**
+ * Revista hub copy: Spanish primary, English at full parity. Every other route language reads the English
+ * copy (the site's launch fallback); the dedicated reader routes keep their own per-language copy in
+ * `magazineReaderCopy`. Adding a language later is a data-only change to this registry.
+ */
+export const MAGAZINE_HUB_REGISTRY: Partial<Record<SupportedLang, MagazineHubPageCopy>> = {
   es: MAGAZINE_HUB_ES,
   en: MAGAZINE_HUB_EN,
-  vi: MAGAZINE_HUB_VI,
-  pt: buildCommunityMagazineHubCopy("pt"),
-  tl: buildCommunityMagazineHubCopy("tl"),
-  km: buildCommunityMagazineHubCopy("km"),
-  zh: buildCommunityMagazineHubCopy("zh"),
-  ja: buildCommunityMagazineHubCopy("ja"),
-  ko: buildCommunityMagazineHubCopy("ko"),
-  hi: buildCommunityMagazineHubCopy("hi"),
-  hy: buildCommunityMagazineHubCopy("hy"),
-  ru: buildCommunityMagazineHubCopy("ru"),
-  pa: buildCommunityMagazineHubCopy("pa"),
 };
 
-/** Magazine hub page UI copy — native for all 13 active non-RTL languages. */
 export function getMagazineHubPageCopy(lang: SupportedLang): MagazineHubPageCopy {
   return MAGAZINE_HUB_REGISTRY[lang] ?? MAGAZINE_HUB_EN;
 }

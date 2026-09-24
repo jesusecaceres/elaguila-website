@@ -15,7 +15,7 @@ import type { WebsiteResearchEvidence, WebsiteResearchResult } from "./types";
 const FETCH_TIMEOUT_MS = 8_000;
 const MAX_REDIRECTS = 3;
 const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
-const USER_AGENT = "LeonixBusinessConciergeResearchBot/1.0 (+https://elaguila.com)";
+const USER_AGENT = "LeonixBusinessConciergeResearchBot/1.0 (+https://leonixmedia.com)";
 
 const BLOCKED_HOSTNAME_PATTERNS: RegExp[] = [
   /^localhost$/i,

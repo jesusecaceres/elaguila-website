@@ -39,7 +39,7 @@ function rowFromDb(r: Record<string, unknown>): AutosClassifiedsListingRow {
   return {
     id: String(r.id),
     leonix_ad_id: r.leonix_ad_id != null && String(r.leonix_ad_id).trim() ? String(r.leonix_ad_id).trim() : null,
-    owner_user_id: String(r.owner_user_id),
+    owner_user_id: r.owner_user_id == null || String(r.owner_user_id).trim() === "" ? null : String(r.owner_user_id),
     dealer_inventory_group_id:
       r.dealer_inventory_group_id != null && String(r.dealer_inventory_group_id).trim()
         ? String(r.dealer_inventory_group_id).trim()
@@ -82,7 +82,7 @@ export type AutosListingPersistResult = {
 export const AUTOS_DEALER_ACTIVE_LIMIT_ERROR = "dealer_active_limit_reached" as const;
 
 export type CreateAutosListingInput = {
-  ownerUserId: string;
+  ownerUserId: string | null;
   lane: AutosClassifiedsLane;
   lang: AutosClassifiedsLang;
   listing: AutoDealerListing;
@@ -109,7 +109,6 @@ async function ensureDealerInventoryParentMain(
     .from("autos_classifieds_listings")
     .update(patch)
     .eq("id", parent.id)
-    .eq("owner_user_id", parent.owner_user_id)
     .select("id");
   // Gate I.13A — this write was previously fire-and-forget (result never captured); now
   // logged so a failed/zero-row promotion is at least visible server-side, not silent.
@@ -239,13 +238,18 @@ export async function assertAutosListingOwner(listingId: string, ownerUserId: st
  */
 export async function updateAutosClassifiedsListingDraft(
   listingId: string,
-  ownerUserId: string,
+  ownerUserId: string | null,
   input: { listing: AutoDealerListing; lang?: AutosClassifiedsLang },
 ): Promise<AutosListingPersistResult> {
-  const row = await assertAutosListingOwner(listingId, ownerUserId);
+  const row = ownerUserId
+    ? await assertAutosListingOwner(listingId, ownerUserId)
+    : await getAutosClassifiedsListingById(listingId);
   if (!row) {
     // Deliberately the same outcome for "no such row" and "row belongs to another owner" —
     // matches the pre-existing anti-enumeration posture of assertAutosListingOwner, not weakened.
+    return { row: null, persistWarnings: [], errorCode: "AUTOS_LISTING_NOT_FOUND_OR_FORBIDDEN" };
+  }
+  if (!ownerUserId && row.owner_user_id != null) {
     return { row: null, persistWarnings: [], errorCode: "AUTOS_LISTING_NOT_FOUND_OR_FORBIDDEN" };
   }
 
@@ -265,18 +269,15 @@ export async function updateAutosClassifiedsListingDraft(
   });
   const { listing: payload, persistWarnings } = sanitizeAutosListingPayloadForPersistence(normalized);
   const lang: AutosClassifiedsLang = input.lang === "en" || input.lang === "es" ? input.lang : row.lang;
-  const { data, error } = await supabase
-    .from("autos_classifieds_listings")
-    .update({
-      listing_payload: payload,
-      lang,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", listingId)
-    // Defense in depth: the write itself is owner-scoped, not just the preceding read.
-    .eq("owner_user_id", ownerUserId)
-    .select()
-    .single();
+  const write = {
+    listing_payload: payload,
+    lang,
+    updated_at: new Date().toISOString(),
+  };
+  const query = ownerUserId
+    ? supabase.from("autos_classifieds_listings").update(write).eq("id", listingId).eq("owner_user_id", ownerUserId)
+    : supabase.from("autos_classifieds_listings").update(write).eq("id", listingId);
+  const { data, error } = await query.select().single();
   if (error || !data) {
     console.error("updateAutosClassifiedsListingDraft", error?.code, error?.message);
     return {
@@ -611,6 +612,10 @@ export async function activateAutosClassifiedsListing(listingId: string): Promis
   const row = await getAutosClassifiedsListingById(listingId);
   if (!row) return false;
   if (row.lane === "negocios") {
+    if (!row.owner_user_id) {
+      const now = new Date().toISOString();
+      return updateAutosListingStatus(listingId, "active", { published_at: now });
+    }
     const result = await activateAutosDealerListingAtomic({
       listingId,
       ownerUserId: row.owner_user_id,
@@ -708,6 +713,11 @@ export async function tryActivateAutosListingAfterPayment(
   if (!isAutosListingPayableStatus(existing.status)) return { ok: false, transitioned: false };
 
   if (existing.lane === "negocios") {
+    if (!existing.owner_user_id) {
+      const now = new Date().toISOString();
+      const ok = await updateAutosListingStatus(listingId, "active", { published_at: now });
+      return { ok, transitioned: ok };
+    }
     const result = await activateAutosDealerListingAtomic({
       listingId,
       ownerUserId: existing.owner_user_id,

@@ -10,7 +10,6 @@ import type { AutosClassifiedsLane } from "@/app/lib/clasificados/autos/autosCla
 import type { AutosPublishConfirmMode, AutosPublishFlowLang } from "@/app/clasificados/autos/lib/autosPublishFlowCopy";
 import { getAutosPublishFlowCopy } from "@/app/clasificados/autos/lib/autosPublishFlowCopy";
 import {
-  omitAutosInlineVideoForApiPayload,
   prepareAutosListingForApiTransport,
   prepareAutosListingOptionalMuxUpload,
 } from "@/app/(site)/publicar/autos/shared/lib/autosMuxPublishPrepare";
@@ -59,6 +58,7 @@ import {
   autosInventoryDraftHasLocalPhotos,
   resolveAutosDraftPhotosForPublish,
 } from "@/app/lib/clasificados/autos/autosDraftPhotoPublishPrepare";
+import { AssistedSaveForClientBar } from "@/app/clasificados/components/AssistedSaveForClientBar";
 
 function photosUploadingMessage(lang: AutosPublishFlowLang): string {
   return lang === "es"
@@ -568,8 +568,9 @@ export function AutosPublishConfirmCore({
         /* optional metadata */
       }
 
-      // Best-effort newsletter capture from the opt-in checkbox. Never blocks checkout.
-      void captureCheckoutNewsletterSubscriber({
+      // Best-effort newsletter capture from the opt-in checkbox. Awaited so FAILED can surface,
+      // but never blocks checkout.
+      const captureResult = await captureCheckoutNewsletterSubscriber({
         email: sessionData.session?.user?.email ?? null,
         lang,
         preferredLanguage: lang,
@@ -577,6 +578,15 @@ export function AutosPublishConfirmCore({
         interests: ["package:autos_privado", "launch_25"],
         checked: newsletterOptIn,
       });
+      if (captureResult.status === "FAILED") {
+        console.warn("[autos/confirm-privado] newsletter checkout capture failed", captureResult.reason);
+        setPersistWarnings((prev) => [
+          ...prev,
+          lang === "es"
+            ? "No pudimos guardar tu suscripción al boletín. Tu pago no se vio afectado."
+            : "We couldn't save your newsletter subscription. Your payment was not affected.",
+        ]);
+      }
 
       const revenueCheckout = await startRevenueCategoryCheckout({
         ...AUTOS_PRIVADO_CHECKOUT,
@@ -644,7 +654,7 @@ export function AutosPublishConfirmCore({
         setPhase("error");
         return;
       }
-      void captureCheckoutNewsletterSubscriber({
+      const captureResult = await captureCheckoutNewsletterSubscriber({
         email: sessionData.session?.user?.email ?? null,
         lang,
         preferredLanguage: lang,
@@ -655,6 +665,15 @@ export function AutosPublishConfirmCore({
         interests: [lane === "negocios" ? "package:autos_dealer" : "package:autos_privado", "launch_25"],
         checked: newsletterOptIn,
       });
+      if (captureResult.status === "FAILED") {
+        console.warn("[autos/confirm] newsletter checkout capture failed", captureResult.reason);
+        setPersistWarnings((prev) => [
+          ...prev,
+          lang === "es"
+            ? "No pudimos guardar tu suscripción al boletín. Tu pago no se vio afectado."
+            : "We couldn't save your newsletter subscription. Your payment was not affected.",
+        ]);
+      }
       const canonicalCheckout = await startRevenueCategoryCheckout(
         lane === "negocios"
           ? {
@@ -777,6 +796,29 @@ export function AutosPublishConfirmCore({
     <div className="mx-auto max-w-xl px-[max(1rem,env(safe-area-inset-left))] py-8 pb-[max(2rem,env(safe-area-inset-bottom))] pr-[max(1rem,env(safe-area-inset-right))] text-[color:var(--lx-text)] sm:py-10">
       <h1 className="text-2xl font-bold tracking-tight sm:text-[1.65rem]">{c.title}</h1>
       <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">{c.subtitle}</p>
+      {/* Leonix assisted sale — visible only when the SERVER confirms live Autos custody for
+          this staff session. Dealer and privado each use their own existing save endpoint.
+          clientUserId is optional; owner-null organizational custody is a valid first save. */}
+      <AssistedSaveForClientBar
+        category={lane === "negocios" ? "autos" : "autos-privado"}
+        lang={lang === "en" ? "en" : "es"}
+        buildPayload={(ctx) =>
+          lane === "negocios"
+            ? {
+                category: "autos",
+                clientUserId: ctx.clientUserId ?? null,
+                dealerListing: listingRef.current as unknown as Record<string, unknown>,
+                vehicleListing: listingRef.current as unknown as Record<string, unknown>,
+                lang: lang === "en" ? "en" : "es",
+              }
+            : {
+                category: "autos-privado",
+                listing: listingRef.current as unknown as Record<string, unknown>,
+                listingId: ctx.listingId,
+                lang: lang === "en" ? "en" : "es",
+              }
+        }
+      />
       {qaBypassActive ? (
         <p className="mt-3 inline-flex rounded-full border border-amber-300/80 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-950">
           {autosQaPaymentBypassLabel(lang)}

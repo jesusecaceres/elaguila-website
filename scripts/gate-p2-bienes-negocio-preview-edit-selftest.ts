@@ -46,7 +46,7 @@ const src = readSource(TARGET).replace(/\r\n/g, "\n");
     "checkpointConfig must return null whenever listingBoundPreview is true, not just when there's no payment requirement",
   );
   assert.ok(
-    /\},\s*\[childInventoryCount,\s*inventoryCtx,\s*lang,\s*listingBoundPreview,\s*needsNegocioPayment\]\)/.test(src),
+    /\},\s*\[[^\]]*listingBoundPreview[^\]]*\]\)/.test(src),
     "checkpointConfig's dependency array must include listingBoundPreview",
   );
 }

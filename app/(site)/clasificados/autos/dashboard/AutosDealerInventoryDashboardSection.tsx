@@ -35,9 +35,17 @@ import { autosDealerListingPreviewHref } from "@/app/(site)/dashboard/lib/autosD
 import { buildListingIdentity, resolveDashboardActions, type DashboardAction } from "@/app/lib/listingIdentity";
 import {
   fetchDashboardListingPackageEntitlementBadges,
+  dashboardEntitlementBadgeForKey,
   dashboardSubscriptionStateForKey,
+  type DashboardEntitlementBadgePayload,
   type DashboardSubscriptionStateEntry,
 } from "@/app/(site)/dashboard/lib/dashboardPackageEntitlementBadges";
+import { businessUpgradeOfferedForHeldPackageKey } from "@/app/lib/listingPlans/businessAccessLevel";
+import {
+  businessUpgradeBusyLabel,
+  businessUpgradeCtaLabel,
+  redirectBusinessSimpleToFullUpgradeCheckout,
+} from "@/app/(site)/dashboard/lib/businessSimpleToFullUpgradeCheckout";
 import { resolveCommercialStateBadges, commercialStateBadgesToLifecycleNote } from "@/app/lib/listingPlans/commercialStateBadges";
 import { OwnerEntityWorkspace, type OwnerEntitySpecializedGroup } from "@/app/(site)/dashboard/components/OwnerEntityWorkspace";
 import { DashboardListingActionBar, type ActionItem } from "@/app/(site)/dashboard/components/DashboardListingActionBar";
@@ -57,6 +65,11 @@ import { AUTOS_PRIVADO_LISTING_LIFECYCLE_CONFIG } from "@/app/lib/listingLifecyc
 import { startListingRenewalCheckout } from "@/app/lib/listingLifecycle/listingRenewalCheckout";
 import { ListingLifecycleStatusCard } from "@/app/(site)/dashboard/components/ListingLifecycleStatusCard";
 import { ListingRenewalAction } from "@/app/(site)/dashboard/components/ListingRenewalAction";
+import {
+  openDashboardBillingPortal,
+  dashboardBillingPortalLabel,
+  dashboardBillingPortalBusyLabel,
+} from "@/app/(site)/dashboard/lib/dashboardBillingPortal";
 
 type Lang = "es" | "en";
 
@@ -167,6 +180,14 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
    * (never per-vehicle-child — children never carry an independent subscription), not a new
    * resolver or a per-row call. */
   const [subscriptionStates, setSubscriptionStates] = useState<Record<string, DashboardSubscriptionStateEntry>>({});
+  /** Same fetch, second half of its answer — previously discarded here. Carries the base package
+   * key the SERVER resolved for each dealer parent, which is what decides whether this dealer is
+   * on Quick/SIMPLE and therefore has a real FULL upgrade to be offered. */
+  const [entitlementBadges, setEntitlementBadges] = useState<Record<string, DashboardEntitlementBadgePayload>>({});
+  const [upgradeBusyId, setUpgradeBusyId] = useState<string | null>(null);
+  const [upgradeErr, setUpgradeErr] = useState<{ listingId: string; message: string } | null>(null);
+  const [billingBusyId, setBillingBusyId] = useState<string | null>(null);
+  const [billingErr, setBillingErr] = useState<{ listingId: string; message: string } | null>(null);
 
   const load = useCallback(async () => {
     const supabase = createSupabaseBrowserClient();
@@ -200,15 +221,18 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
           slug: null,
           leonixAdId: row.leonix_ad_id ?? null,
         }));
-        const { subscriptionStates: subs } = await fetchDashboardListingPackageEntitlementBadges(items, token);
+        const { badges, subscriptionStates: subs } = await fetchDashboardListingPackageEntitlementBadges(items, token);
         setSubscriptionStates(subs);
+        setEntitlementBadges(badges);
       } else {
         setSubscriptionStates({});
+        setEntitlementBadges({});
       }
     } else {
       setRows([]);
       setDealerInventory(null);
       setSubscriptionStates({});
+      setEntitlementBadges({});
     }
     setLoading(false);
   }, []);
@@ -357,6 +381,42 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
       return;
     }
     window.location.href = result.checkoutUrl;
+  }
+
+  /**
+   * SIMPLE -> FULL for a Quick dealer. Buys the category's EXISTING `autos_dealer_monthly` for
+   * the dealer parent the owner already has: no content save, no status change, no second dealer
+   * row. Identity survives because nothing on this path writes to the listing.
+   */
+  async function openDealerBilling(listingId: string) {
+    setBillingBusyId(listingId);
+    setBillingErr(null);
+    const result = await openDashboardBillingPortal({
+      category: "autos-dealer",
+      listingId,
+      returnPath: `/dashboard/mis-anuncios?lang=${lang}&cat=autos`,
+      lang,
+    });
+    if (!result.ok) {
+      setBillingErr({ listingId, message: result.message });
+      setBillingBusyId(null);
+    }
+  }
+
+  async function startUpgrade(listingId: string, leonixAdId: string | null) {
+    setUpgradeBusyId(listingId);
+    setUpgradeErr(null);
+    const result = await redirectBusinessSimpleToFullUpgradeCheckout({
+      category: "autos",
+      listingId,
+      leonixAdId,
+      lang,
+      returnPath: `/dashboard/mis-anuncios?lang=${lang}&cat=autos`,
+    });
+    if (!result.ok) {
+      setUpgradeErr({ listingId, message: result.userMessage });
+      setUpgradeBusyId(null);
+    }
   }
 
   if (loading) {
@@ -570,6 +630,18 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
           });
         }
 
+        if (subState) {
+          quickActions.push({
+            label:
+              billingBusyId === parentId
+                ? dashboardBillingPortalBusyLabel(lang)
+                : dashboardBillingPortalLabel(lang),
+            onClick: () => void openDealerBilling(parentId),
+            disabled: billingBusyId === parentId,
+            tone: "secondary",
+          });
+        }
+
         const lifecycleActions: ActionItem[] = [];
         if (parentRow?.status === "active" && isLiveCapability(dealerCaps.lifecycle.archive)) {
           lifecycleActions.push({ label: t.unpublish, onClick: () => void unpublish(parentId), disabled: busy, tone: "danger" });
@@ -598,6 +670,22 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
             tone: "premium",
           });
         }
+        // SIMPLE -> FULL, read from the base package key the SERVER resolved for this dealer
+        // parent. Null for a Full dealer and for a parent with no base package, so the offer can
+        // never be shown to an owner it does not apply to.
+        const upgradeToFullPackageKey = businessUpgradeOfferedForHeldPackageKey(
+          "autos",
+          dashboardEntitlementBadgeForKey(entitlementBadges, [parentId, parentRow?.leonix_ad_id ?? ""])
+            ?.revenuePackageKey ?? null,
+        );
+        if (upgradeToFullPackageKey) {
+          specializedActions.push({
+            label: upgradeBusyId === parentId ? businessUpgradeBusyLabel(lang) : businessUpgradeCtaLabel(lang),
+            onClick: () => void startUpgrade(parentId, parentRow?.leonix_ad_id ?? null),
+            disabled: upgradeBusyId === parentId,
+            tone: "premium",
+          });
+        }
 
         return (
           <OwnerEntityWorkspace
@@ -616,7 +704,17 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
               leonixId: parentRow?.leonix_ad_id,
               badges: [t.negocios],
             }}
-            note={note ? { text: note.text, tone: note.tone } : atLimit ? { text: autosDealerInventoryLimitMessage(lang), tone: "warning" } : null}
+            note={
+              billingErr?.listingId === parentId
+                ? { text: billingErr.message, tone: "warning" }
+                : upgradeErr?.listingId === parentId
+                  ? { text: upgradeErr.message, tone: "warning" }
+                  : note
+                  ? { text: note.text, tone: note.tone }
+                  : atLimit
+                    ? { text: autosDealerInventoryLimitMessage(lang), tone: "warning" }
+                    : null
+            }
             detailItems={parentDetail}
             primaryAction={{
               href: parentCanonical.get("edit")?.href ?? autosDealerListingEditHref({ lang, listingId: parentId }),

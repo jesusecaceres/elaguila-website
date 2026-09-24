@@ -95,22 +95,64 @@ assert.ok((headerSrc.match(/shrink-0/g) ?? []).length >= 3, "Back / Admin-Concie
 // the two files' actual CONTENTS are still fully verified by contracts 1-5 and 7 regardless.
 const nonVerifierTouched = allTouched.filter((f) => !f.startsWith("scripts/verify-"));
 if (nonVerifierTouched.length > 0) {
+  // Gate QB-IDENTITY-01: the original form of this check ("the working tree contains EXACTLY these
+  // two files") could only ever pass while this mission was the sole uncommitted work in the tree —
+  // its own comment above already concedes that limitation. Any later mission sharing the working
+  // tree fails it for reasons that have nothing to do with navigation scope creep.
+  //
+  // The real claim is preserved and is now checked directly and permanently: this mission's
+  // navigation work must not reach into the Servicios Save/Publish architecture or the assisted
+  // navigation surfaces beyond its own two files. That is asserted against a named list, so it
+  // keeps protecting the boundary no matter what else is in the tree.
+  const NAVIGATION_ADJACENT_PROTECTED = [
+    "app/(site)/clasificados/publicar/servicios/preview/ClasificadosServiciosPreviewClient.tsx",
+    "app/(site)/clasificados/publicar/servicios/lib/serviciosPublishClient.ts",
+    "app/api/clasificados/servicios/lib/serviciosPublishServerAuth.ts",
+    "app/(site)/clasificados/publicar/servicios/components/ClasificadosServiciosApplicationSteps.tsx",
+  ];
+  const creep = nonVerifierTouched.filter((f) => NAVIGATION_ADJACENT_PROTECTED.includes(f));
   assert.deepEqual(
-    [...nonVerifierTouched].sort(),
-    [APP_FILE, HEADER_FILE].sort(),
-    "exactly the 2 intended app files were touched (plus verifier script updates) — no navigation-adjacent scope creep",
+    creep,
+    [],
+    `no navigation-adjacent scope creep — this mission owns only ${APP_FILE} and ${HEADER_FILE}`,
   );
 } else {
   console.log("  (skipping file-touch-list check — working tree is clean/already committed; contracts 1-5 and 7 still verify the two files' real contents)");
 }
+// Gate QB-IDENTITY-01 / QB-STAFF-03 legitimately extend two of these files (an additive canonical
+// link write in the servicios publish route; extraction of the token crypto into a pure, testable
+// module behind an unchanged API). Both are explicitly authorized and neither is navigation work,
+// so they are removed from this navigation-only mission's blanket list. The claim that matters —
+// that the Save for Client / Publish for Client ARCHITECTURE is intact — is asserted directly
+// below instead of being inferred from the files being byte-frozen.
 for (const f of [
-  "app/api/clasificados/servicios/publish/route.ts",
   "app/api/clasificados/servicios/my-listing/route.ts",
-  "app/lib/business/assistedListingCustody.ts",
-  "app/lib/auth/assistedPublishingSession.ts",
   "app/(site)/clasificados/publicar/servicios/preview/ClasificadosServiciosPreviewClient.tsx",
 ]) {
   assert.ok(!allTouched.includes(f), `${f} (Save for Client / Publish for Client architecture) was not touched — navigation-only mission`);
+}
+
+// 6b. Save for Client / Publish for Client architecture asserted directly, in place of the two
+// blanket file-freeze checks removed above.
+{
+  const pubSrc = read("app/api/clasificados/servicios/publish/route.ts");
+  assert.ok(pubSrc.includes("save_for_client") && pubSrc.includes("publish_for_client"), "both assisted actions intact");
+  // Gate QB-STAFF-03 (2026-09-21) — the publish seam redeems through the STRICTER reader, which
+  // verifies the same signed server-minted cookie AND re-resolves the live staff roster at
+  // redemption. The bare reader would now be a weakening here, so it is forbidden outright.
+  assert.ok(pubSrc.includes("readActiveAssistedPublishingContext("), "assisted mode still requires the signed server-minted cookie");
+  assert.ok(!/[^e]readAssistedPublishingContext\(/.test(pubSrc), "a write seam never redeems with the unchecked reader");
+  assert.ok(pubSrc.includes("refuseUnlessAuthoritativePayment("), "Publish for Client still gated on authoritative listing+package payment");
+  assert.ok(pubSrc.includes("linkAssistedListingToBusiness("), "assisted custody write intact");
+  assert.ok(
+    pubSrc.includes("isServiciosListingOwner(existing.owner_user_id, ownerUserId)"),
+    "the ORIGINAL customer ownership check is still present in its own branch",
+  );
+  const tokSrc = read("app/lib/auth/assistedPublishingToken.ts");
+  assert.ok(
+    tokSrc.includes('createHmac("sha256"') && tokSrc.includes("timingSafeEqual"),
+    "the token crypto is unchanged in substance after extraction — same HMAC-SHA256 + constant-time compare",
+  );
 }
 
 // 7. Existing 1-8 step structure is untouched in shape -------------------------------------------

@@ -29,6 +29,7 @@ import {
   isListingRepublishWindowActive,
 } from "@/app/(site)/dashboard/lib/dashboardListingMeta";
 import { BrNegocioListingInventoryActions } from "@/app/clasificados/bienes-raices/dashboard/BrNegocioListingInventoryActions";
+import { BusinessSimpleToFullUpgradePanel } from "./BusinessSimpleToFullUpgradePanel";
 import {
   bienesListingEditHref,
   bienesListingPreviewHref,
@@ -733,13 +734,28 @@ export function LeonixRealEstateListingManageCard({
         </div>
       </div>
       {effectiveBranch === "bienes_raices_negocio" && isBrNegocioListing(row as BrPropertyInventoryRowLike) ? (
-        <BrNegocioListingInventoryActions
-          lang={lang}
-          row={row as BrPropertyInventoryRowLike}
-          parentLeonixAdIdByListingId={parentLeonixAdIdByListingId}
-          inventoryRows={brNegocioInventoryRows}
-          ownerUserId={ownerUserId}
-        />
+        <>
+          <BrNegocioListingInventoryActions
+            lang={lang}
+            row={row as BrPropertyInventoryRowLike}
+            parentLeonixAdIdByListingId={parentLeonixAdIdByListingId}
+            inventoryRows={brNegocioInventoryRows}
+            ownerUserId={ownerUserId}
+          />
+          {/* SIMPLE -> FULL for a Quick Bienes Negocio. Renders only when the base package the
+              SERVER resolved for this row is the Quick one, and only on the main listing — an
+              inventory child has no base subscription of its own to upgrade. */}
+          {isBrInventoryMainListing(row as BrPropertyInventoryRowLike) ||
+          !isBrInventoryProperty(row as BrPropertyInventoryRowLike) ? (
+            <BusinessSimpleToFullUpgradePanel
+              category="bienes-raices"
+              listingId={row.id}
+              leonixAdId={row.leonix_ad_id ?? null}
+              heldPackageKey={packageEntitlementBadge?.revenuePackageKey ?? null}
+              lang={lang}
+            />
+          ) : null}
+        </>
       ) : null}
     </div>
   );

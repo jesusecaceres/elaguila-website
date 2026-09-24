@@ -184,7 +184,10 @@ export function buildRestaurantContactHub(d: RestauranteListingDraft, lang: "es"
       action: "call",
       fullWidth: true,
     });
-    const sms = smsHref(phone);
+  }
+  // SMS is a separate opt-in. Never fabricate it from the office phone.
+  if (nonEmpty(d.smsNumber)) {
+    const sms = smsHref(d.smsNumber!.trim());
     if (sms) {
       pushUniqueButton(contactUs, {
         id: "sms",

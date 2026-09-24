@@ -7,6 +7,7 @@ import { MagazineReaderAdvertiseDropdown } from "@/app/(site)/magazine/component
 import {
   getMagazineUi,
   getJune2026Title,
+  getJune2026MonthLabel,
 } from "@/app/(site)/magazine/2026/june/issueContent";
 import {
   getMagazineVisualAsset,
@@ -15,6 +16,7 @@ import {
 import { isMagazinePrintSource } from "@/app/lib/magazine/qrBridge";
 import { getQrGuideCopy } from "@/app/lib/magazine/qrGuideCopy";
 import { MagazineFlipbookModal } from "@/app/(site)/magazine/components/MagazineFlipbookModal";
+import { MagazineCover } from "@/app/(site)/magazine/components/MagazineCover";
 import { MagazinePrintPrimaryActions } from "@/app/(site)/magazine/components/MagazinePrintPrimaryActions";
 import {
   MagazinePrintVisualGuide,
@@ -25,11 +27,6 @@ import {
 } from "@/app/(site)/magazine/components/MagazineReaderActionBar";
 import { MagazineTranslatedReader } from "@/app/(site)/magazine/components/MagazineTranslatedReader";
 import { resolveRouteLang } from "@/app/lib/language";
-import {
-  getCompanionOpenLabel,
-  magazineCompanionHref,
-} from "@/app/lib/magazine/june2026CompanionContent";
-import Image from "next/image";
 
 function JuneReaderContent() {
   const params = useSearchParams()!;
@@ -46,13 +43,9 @@ function JuneReaderContent() {
   const [flipOpen, setFlipOpen] = useState(false);
   const openFlipbook = useCallback(() => setFlipOpen(true), []);
   const closeFlipbook = useCallback(() => setFlipOpen(false), []);
-  const companionHref = magazineCompanionHref(lang, {
-    sourcePage: "magazine_read",
-    sourceCta: "open_companion",
-  });
-  const companionLabel = getCompanionOpenLabel(lang);
-  const companionBtnClass =
-    "inline-flex min-h-[3rem] w-full min-w-0 items-center justify-center rounded-full border-2 border-[#2A4536]/35 bg-[#2A4536] px-5 py-3 text-center text-sm font-bold text-[#F8F4EA] transition hover:bg-[#223528] sm:min-h-[3.125rem]";
+  // Gate 6: visually present, intentionally non-functional — the archive page.tsx does not exist yet.
+  const archiveComingSoonLabel = lang === "es" ? "Ver ediciones anteriores" : "View previous editions";
+  const comingSoonBadge = lang === "es" ? "Próximamente" : "Coming soon";
 
   return (
     <main lang={lang} className="min-h-screen overflow-x-hidden bg-[#FAF6EE] pb-20 text-[#1F241C]">
@@ -73,11 +66,6 @@ function JuneReaderContent() {
               afterActions={
                 <>
                   <MagazinePrintPrimaryActions lang={lang} onOpenFlipbook={openFlipbook} />
-                  <div className="mt-4">
-                    <Link href={companionHref} className={companionBtnClass}>
-                      {companionLabel}
-                    </Link>
-                  </div>
                   <section
                     id="leonix-quick-summary"
                     className="mt-8 scroll-mt-28 min-w-0 rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] p-5 sm:p-7"
@@ -115,40 +103,44 @@ function JuneReaderContent() {
 
             <header className="mt-6 max-w-3xl">
               <p className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#556B3E]">
-                {ui.readerPreviewBadge}
+                LEONIX MEDIA
               </p>
               <h1 className="mt-3 font-serif text-3xl font-bold leading-tight text-[#2A4536] sm:text-4xl">
-                {ui.readPageTitle}
+                {getJune2026Title(lang)}
               </h1>
               <p className="mt-3 text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">
                 {ui.readPageSubtitle}
               </p>
-              <p className="mt-3 rounded-lg border border-[#C9A84A]/35 bg-[#FFFDF7] px-3 py-2.5 text-xs leading-relaxed text-[#3D3428] sm:text-sm">
-                {ui.futureFlipbookNote}
-              </p>
-              <div className="mt-4">
-                <Link href={companionHref} className={`${companionBtnClass} sm:w-auto sm:px-6`}>
-                  {companionLabel}
-                </Link>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <span
+                  aria-disabled="true"
+                  className="inline-flex min-h-[2.25rem] cursor-not-allowed items-center gap-2 rounded-full border border-[#D6C7AD] bg-[#FAF6EE] px-4 text-xs font-semibold text-[#3D3428]/60"
+                >
+                  {archiveComingSoonLabel}
+                  <span className="rounded-full bg-[#D6C7AD]/70 px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-wide text-[#3D3428]/70">
+                    {comingSoonBadge}
+                  </span>
+                </span>
               </div>
             </header>
 
             <section
               id="original-edition"
-              className="mt-8 scroll-mt-28 overflow-hidden rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] p-6 sm:p-8"
+              className="mt-8 scroll-mt-28 overflow-hidden rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] p-5 shadow-[0_20px_48px_-22px_rgba(31,36,28,0.22)] ring-1 ring-[#C9A84A]/15 sm:p-8"
             >
               <h2 className="font-serif text-xl font-bold text-[#2A4536]">{ui.originalEditionTitle}</h2>
               <p className="mt-2 text-sm leading-relaxed text-[#3D3428]">{ui.originalEditionNote}</p>
-              <div className="mt-6 grid min-w-0 gap-6 sm:grid-cols-[minmax(0,10rem)_1fr] sm:items-start">
-                <div className="mx-auto w-full max-w-[10rem] overflow-hidden rounded-lg border border-[#D6C7AD] bg-[#FAF6EE] p-1 sm:mx-0">
-                  <Image
-                    src={visual.coverUrl}
-                    alt={getJune2026Title(lang)}
-                    width={320}
-                    height={420}
-                    className="h-auto w-full object-contain"
-                    sizes="160px"
-                  />
+              <div className="mt-6 grid min-w-0 gap-6 sm:grid-cols-[minmax(0,15rem)_1fr] sm:items-center lg:grid-cols-[minmax(0,18rem)_1fr] lg:gap-10">
+                <div className="mx-auto w-full max-w-[15rem] sm:max-w-none">
+                  <div className="overflow-hidden rounded-xl border border-[#D6C7AD] bg-[#FAF6EE] p-1 shadow-[0_16px_40px_-18px_rgba(31,36,28,0.3)]">
+                    <MagazineCover
+                      src={visual.coverUrl}
+                      alt={getJune2026Title(lang)}
+                      label={getJune2026MonthLabel(lang)}
+                      priority
+                      sizes="(max-width: 640px) 240px, (max-width: 1024px) 280px, 288px"
+                    />
+                  </div>
                 </div>
                 <MagazinePrintPrimaryActions lang={lang} onOpenFlipbook={openFlipbook} />
               </div>

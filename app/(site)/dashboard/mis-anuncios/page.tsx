@@ -12,6 +12,10 @@ import {
   applyOwnerListingPatch,
 } from "../lib/ownerListingsLifecycleClient";
 import { dashboardSafeMutationErrorCopy } from "../lib/dashboardSafeErrorCopy";
+import {
+  openDashboardBillingPortal,
+  dashboardBillingPortalErrorCopy,
+} from "../lib/dashboardBillingPortal";
 import { EnVentaListingManageCard } from "@/app/clasificados/en-venta/dashboard/EnVentaListingManageCard";
 import { enVentaPublicLabel } from "@/app/clasificados/en-venta/shared/constants/enVentaPublicLabels";
 import { AutosClassifiedListingManageCard } from "@/app/clasificados/autos/dashboard/AutosClassifiedListingManageCard";
@@ -606,6 +610,8 @@ function MyListingsPageContent() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [renewalCheckoutBusyId, setRenewalCheckoutBusyId] = useState<string | null>(null);
   const [couponEditBusyId, setCouponEditBusyId] = useState<string | null>(null);
+  const [restaurantesLifecycleBusyId, setRestaurantesLifecycleBusyId] = useState<string | null>(null);
+  const [billingBusyId, setBillingBusyId] = useState<string | null>(null);
   const [serviciosManageBusySlug, setServiciosManageBusySlug] = useState<string | null>(null);
   const [empleosLifecycleBusyId, setEmpleosLifecycleBusyId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("all");
@@ -1016,6 +1022,53 @@ function MyListingsPageContent() {
         lang === "es" ? "No se pudo abrir la edición de cupones." : "Could not open coupon editing.",
       );
       setCouponEditBusyId(null);
+    }
+  }
+
+  async function manageRecurringBilling(
+    category: "servicios" | "restaurantes",
+    listingId: string,
+  ) {
+    setBillingBusyId(listingId);
+    setError(null);
+    const result = await openDashboardBillingPortal({
+      category,
+      listingId,
+      returnPath: `/dashboard/mis-anuncios?lang=${lang}&cat=${category}`,
+      lang,
+    });
+    if (!result.ok) {
+      setError(result.message || dashboardBillingPortalErrorCopy(lang));
+      setBillingBusyId(null);
+    }
+  }
+
+  async function manageRestauranteListing(listingId: string, action: "pause" | "resume") {
+    if (!accessToken) return;
+    setRestaurantesLifecycleBusyId(listingId);
+    setError(null);
+    try {
+      const res = await fetch("/api/clasificados/restaurantes/lifecycle", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ listingId, action }),
+      });
+      const json = (await res.json().catch(() => ({}))) as { ok?: boolean; status?: string };
+      if (!res.ok || json.ok !== true || typeof json.status !== "string") {
+        setError(dashboardSafeMutationErrorCopy(lang));
+        return;
+      }
+      const updatedAt = new Date().toISOString();
+      setRestaurantRawRows((prev) =>
+        prev.map((row) => (row.id === listingId ? { ...row, status: json.status!, updated_at: updatedAt } : row)),
+      );
+    } catch {
+      setError(dashboardSafeMutationErrorCopy(lang));
+    } finally {
+      setRestaurantesLifecycleBusyId(null);
     }
   }
 
@@ -1950,6 +2003,17 @@ function MyListingsPageContent() {
                       onCouponEdit: () => void openRestauranteCouponEdit(item),
                       couponEditBusy: couponEditBusyId === item.id,
                       ownerUserId: userId,
+                      onRestaurantesManage: (action) => void manageRestauranteListing(item.id, action),
+                      restaurantesManageBusy: restaurantesLifecycleBusyId === item.id,
+                      hasSubscription: Boolean(
+                        dashboardSubscriptionStateForKey(subscriptionStates, [
+                          item.id,
+                          item.slug ?? "",
+                          item.leonixAdId ?? "",
+                        ]),
+                      ),
+                      onManageBilling: () => void manageRecurringBilling("restaurantes", item.id),
+                      manageBillingBusy: billingBusyId === item.id,
                     })}
                   />
                 ))
@@ -2112,6 +2176,15 @@ function MyListingsPageContent() {
                       ownerUserId: userId,
                       onServiciosManage: (action) => void manageServiciosListing(item.slug ?? "", action),
                       serviciosManageBusy: serviciosManageBusySlug === item.slug,
+                      hasSubscription: Boolean(
+                        dashboardSubscriptionStateForKey(subscriptionStates, [
+                          item.id,
+                          item.slug ?? "",
+                          item.leonixAdId ?? "",
+                        ]),
+                      ),
+                      onManageBilling: () => void manageRecurringBilling("servicios", item.id),
+                      manageBillingBusy: billingBusyId === item.id,
                     })}
                   />
                 ))

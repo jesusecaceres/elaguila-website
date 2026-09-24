@@ -1,3 +1,4 @@
+import { LEONIX_SITE_ORIGIN } from "@/app/lib/leonixBrand";
 import type {
   CtaAdLabelInput,
   CtaContactShareExtras,
@@ -81,6 +82,11 @@ const INTERNAL_PATH_SNIPPETS = [
  * Heuristic: URLs that are usually not canonical public listing URLs for share flows
  * (admin, publish wizard, preview, drafts, tokenized previews).
  */
+function isVercelPreviewHost(hostname: string): boolean {
+  const host = hostname.trim().toLowerCase();
+  return host === "vercel.app" || host.endsWith(".vercel.app");
+}
+
 export function isLikelyInternalOrPreviewUrl(url: string | null | undefined): boolean {
   const raw = trim(url);
   if (!raw) return false;
@@ -88,6 +94,7 @@ export function isLikelyInternalOrPreviewUrl(url: string | null | undefined): bo
   try {
     if (/^https?:\/\//i.test(raw)) {
       const u = new URL(raw);
+      if (isVercelPreviewHost(u.hostname)) return true;
       haystack = `${u.pathname}${u.search}`.toLowerCase();
     }
   } catch {
@@ -108,19 +115,40 @@ export function isLikelyPublicAdUrl(url: string | null | undefined): boolean {
 }
 
 /**
- * Prefer a safe canonical listing URL for share UIs. Falls back to `fallbackUrl` when `publicUrl`
- * looks like admin/preview. If only “suspicious” URLs exist, returns them as a last resort so
- * preview/dev flows still get a string (callers can still gate on empty).
+ * Published listing shares must never leave Preview / Vercel dashboard identity in the URL.
+ * Public listing paths are rewritten onto the canonical Leonix origin. Private preview/admin
+ * paths stay rejected rather than being dressed up as public listings.
  */
+export function rewriteCanonicalPublicListingUrl(url: string | null | undefined): string {
+  const raw = trim(url);
+  if (!raw) return "";
+  try {
+    const parsed = /^https?:\/\//i.test(raw) ? new URL(raw) : new URL(raw, LEONIX_SITE_ORIGIN);
+    const pathAndSearch = `${parsed.pathname}${parsed.search}`;
+    if (isLikelyInternalOrPreviewUrl(pathAndSearch)) return "";
+    if (isVercelPreviewHost(parsed.hostname) || parsed.origin !== LEONIX_SITE_ORIGIN) {
+      if (!parsed.pathname.startsWith("/clasificados/") && !parsed.pathname.startsWith("/servicios/") && !parsed.pathname.startsWith("/iglesias/") && !parsed.pathname.startsWith("/recursos-comunitarios/")) {
+        if (isVercelPreviewHost(parsed.hostname)) return "";
+      }
+      return `${LEONIX_SITE_ORIGIN}${parsed.pathname}${parsed.search}${parsed.hash}`;
+    }
+    return parsed.toString();
+  } catch {
+    return raw.startsWith("/") ? `${LEONIX_SITE_ORIGIN}${raw}` : "";
+  }
+}
+
 export function getSafePublicAdUrl(input: { publicUrl?: string | null; fallbackUrl?: string | null }): string {
+  const rewrittenPrimary = rewriteCanonicalPublicListingUrl(input.publicUrl);
+  if (rewrittenPrimary) return rewrittenPrimary;
+  const rewrittenFallback = rewriteCanonicalPublicListingUrl(input.fallbackUrl);
+  if (rewrittenFallback) return rewrittenFallback;
   const p = trim(input.publicUrl);
   const f = trim(input.fallbackUrl);
   if (p && !isLikelyInternalOrPreviewUrl(p)) return p;
   if (f && !isLikelyInternalOrPreviewUrl(f)) return f;
   if (p && isLikelyInternalOrPreviewUrl(p) && f && !isLikelyInternalOrPreviewUrl(f)) return f;
   if (!p && f && !isLikelyInternalOrPreviewUrl(f)) return f;
-  if (f) return f;
-  if (p) return p;
   return "";
 }
 

@@ -599,8 +599,8 @@ check("G1: no 'Business Concierge' eyebrow/UI anywhere on public /aprender (comm
 check("G1: hero copy exists in ES and EN (locked concepts, CTAs to the doors and the helper, four trust marks)", () => {
   const es = learningLandingCopy("es").hero;
   const en = learningLandingCopy("en").hero;
-  assert.strictEqual(es.title, "Aprende. Construye. Haz crecer tu idea.");
-  assert.strictEqual(en.title, "Learn. Build. Grow your idea.");
+  assert.strictEqual(es.title, "Aprende. Sirve. Construye para durar.");
+  assert.strictEqual(en.title, "Learn. Serve. Build to last.");
   assert.strictEqual(es.ctaPrimary, "Encontrar mi punto de partida");
   assert.strictEqual(en.ctaPrimary, "Find where to start");
   assert.strictEqual(es.ctaSecondary, "No sé por dónde empezar");
@@ -629,7 +629,7 @@ check("G1: three journey doors (3/3) with title, empathy, outcome and CTA in bot
   assert.strictEqual(es.negocio.title, "Ya tengo un negocio");
   assert.strictEqual(es.idea.cta, "Empezar por mi idea");
   assert.strictEqual(es.empezando.cta, "Preparar mi negocio");
-  assert.strictEqual(es.negocio.cta, "Hacer crecer mi negocio");
+  assert.strictEqual(es.negocio.cta, "Fortalecer mi negocio");
 });
 
 check("G1: journey hrefs are route-mode (/aprender/ruta/{journey}) — 3/3, never the Phase-1 query/anchor form", () => {

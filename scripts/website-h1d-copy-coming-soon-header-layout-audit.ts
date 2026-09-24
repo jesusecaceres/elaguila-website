@@ -74,7 +74,7 @@ for (const protectedPath of CS_V2_PROTECTED) {
 
 add("Normal header does not import ComingSoonV2Shell", !navbar.includes("ComingSoonV2Shell"), "Navbar.tsx");
 add("Header recreates CS V2 layout locally", navbar.includes("max-w-6xl") && navbar.includes("grid-cols-[auto_1fr_auto]"), "Navbar.tsx");
-add("Compact logo block", navbar.includes("ring-[#C9A84A]/35") && navbar.includes("/logo.png"), "Navbar.tsx");
+add("Compact logo block", navbar.includes("ring-[#C9A84A]/35") && navbar.includes("/logo-clean.png"), "Navbar.tsx");
 add("CS V2 nav link active style", navbar.includes("underline-offset-[0.3em]"), "Navbar.tsx");
 add("CS V2 lang toggle style", navbar.includes("rounded-full border border-[#D6C7AD]"), "Navbar.tsx");
 add("CS V2 burgundy CTA style", navbar.includes("bg-[#7A1E2C]") && navbar.includes("rounded-full"), "Navbar.tsx");

@@ -11,6 +11,7 @@ import {
 import type { BrNegocioListing } from "./listingTypes";
 import { BadgeStack } from "./BadgeStack";
 import { IconBath, IconBed, IconCalendar, IconMapPin, IconRuler } from "./cardIcons";
+import { LeonixCommunityTrustCardStrip } from "@/app/components/leonixCommunityTrust/LeonixCommunityTrustCardStrip";
 
 function sellerKindUi(listing: BrNegocioListing): "privado" | "negocio" {
   if (listing.sellerKind) return listing.sellerKind;
@@ -183,6 +184,11 @@ export function BienesRaicesNegocioCard({
         <p className="mt-2 line-clamp-2 text-sm text-[#4A4A4A]">{listing.metaLines[0]}</p>
       ) : null}
       {listing.advertiser.name ? compactSellerLine : null}
+      {lane === "negocio" ? (
+        <div className="mt-3" data-servicios-card-trust-strip="1">
+          <LeonixCommunityTrustCardStrip lang={lang === "en" ? "en" : "es"} count={listing.publicEndorsementCount ?? 0} />
+        </div>
+      ) : null}
       <Link
         href={href}
         onClick={trackResultOpen}
@@ -205,6 +211,11 @@ export function BienesRaicesNegocioCard({
         <p className="mt-2 line-clamp-2 text-sm text-[#4A4A4A]">{listing.metaLines[0]}</p>
       ) : null}
       <IdentityRow listing={listing} sellerKindLabels={sellerKindLabels} />
+      {lane === "negocio" ? (
+        <div className="mt-3" data-servicios-card-trust-strip="1">
+          <LeonixCommunityTrustCardStrip lang={lang === "en" ? "en" : "es"} count={listing.publicEndorsementCount ?? 0} />
+        </div>
+      ) : null}
       <div className="mt-4 flex flex-wrap gap-3">
         <Link href={href} onClick={trackResultOpen} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-medium text-sm transition-all duration-200 border bg-[#D4A574] text-white border-[#D4A574] hover:bg-[#C19A6B]">
           {lang === "en" ? "View property" : "Ver propiedad"}

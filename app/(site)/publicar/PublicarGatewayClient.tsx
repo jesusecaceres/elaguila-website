@@ -21,6 +21,8 @@ import {
 import { LEONIX_CATEGORY_VISUALS } from "@/app/(site)/clasificados/config/categoryVisuals";
 import { normalizeLang, replaceLangInHref } from "@/app/lib/language";
 import { getPublishChooserCopy } from "@/app/lib/clasificados/publishChooserCopy";
+import { quickClassifiedsChooserPath } from "@/app/lib/quickClassifieds/quickClassifiedRoutes";
+import { quickBusinessChooserPath } from "@/app/lib/quickBusiness/quickBusinessRoutes";
 import newLogo from "../../../public/logo.png";
 import {
   normalizePublicarGatewayDeepLink,
@@ -102,6 +104,20 @@ export default function PublicarGatewayClient({
                 className="rounded-lg border border-[#B28A2F]/45 bg-[#B28A2F]/12 px-4 py-2 text-sm font-semibold text-[#6E4E18] hover:bg-[#B28A2F]/20"
               >
                 {copy.back}
+              </Link>
+              {/* Quick Classifieds — additive customer entry into the simplified intake (same pipelines). */}
+              <Link
+                href={quickClassifiedsChooserPath(routeLang, "gateway")}
+                className="rounded-lg border border-[#7A1E2C]/40 bg-[#7A1E2C]/10 px-4 py-2 text-sm font-semibold text-[#7A1E2C] hover:bg-[#7A1E2C]/15"
+              >
+                {lang === "en" ? "⚡ Quick version" : "⚡ Versión rápida"}
+              </Link>
+              {/* Quick Business — additive customer entry into the business intake (same existing business products). */}
+              <Link
+                href={quickBusinessChooserPath(routeLang, "gateway")}
+                className="rounded-lg border border-[#7A1E2C]/40 bg-[#7A1E2C]/10 px-4 py-2 text-sm font-semibold text-[#7A1E2C] hover:bg-[#7A1E2C]/15"
+              >
+                {lang === "en" ? "🏢 Quick business" : "🏢 Negocio rápido"}
               </Link>
             </div>
           </div>

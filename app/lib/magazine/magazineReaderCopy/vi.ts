@@ -57,8 +57,8 @@ export const MAGAZINE_READER_VI: MagazineReaderLangBundle = {
     },
     {
       id: "about-magazine",
-      title: "Giới thiệu El Águila & tạp chí",
-      body: "Leonix Media là tạp chí cao cấp trong hệ sinh thái El Águila: cộng đồng, văn hóa và kinh doanh trong phiên bản kỹ thuật số và in. Số tháng 6 năm 2026 gồm câu chuyện địa phương, quảng cáo doanh nghiệp, cảm hứng cộng đồng và cầu nối tới marketplace rao vặt.",
+      title: "Giới thiệu Leonix & tạp chí",
+      body: "Leonix Media là tạp chí cao cấp trong hệ sinh thái Leonix: cộng đồng, văn hóa và kinh doanh trong phiên bản kỹ thuật số và in. Số tháng 6 năm 2026 gồm câu chuyện địa phương, quảng cáo doanh nghiệp, cảm hứng cộng đồng và cầu nối tới marketplace rao vặt.",
       bullets: [
         "Tạp chí in cao cấp dành cho cộng đồng Latinh địa phương.",
         "Phiên bản kỹ thuật số với flipbook và PDF tiếng Tây Ban Nha (hình ảnh gốc).",

@@ -8,7 +8,12 @@ export type BusinessLaneKey =
   | "autos-dealer"
   | "bienes-raices";
 
-/** Sector grid order — Ofertas Locales featured separately above the grid. */
+/**
+ * Sector grid membership — Ofertas Locales featured separately above the grid.
+ * Visual order on the page is derived from this set alphabetically by localized
+ * label (see `NegociosLocalesClient.tsx`), so this array's literal order is only
+ * the membership list, not the display order.
+ */
 export const NEGOCIOS_SECTOR_GRID_ORDER: readonly BusinessLaneKey[] = [
   "servicios",
   "restaurantes",
@@ -71,8 +76,8 @@ export const NEGOCIOS_LANE_COPY: Record<BusinessLaneKey, LaneCopy> = {
     labelEn: "Restaurants",
     descEs: "Restaurantes, cafés y negocios de comida con perfil premium en Leonix.",
     descEn: "Restaurants, cafés, and food businesses with premium Leonix presence.",
-    noteEs: "Checkpoint primero — luego aplicación de restaurante.",
-    noteEn: "Checkpoint first — then restaurant application.",
+    noteEs: "Comienza con los datos de tu restaurante y continúa con la solicitud.",
+    noteEn: "Start with your restaurant details and continue to the application.",
     advertiseEs: "Anunciar en Restaurantes",
     advertiseEn: "Advertise in Restaurants",
   },
@@ -89,8 +94,8 @@ export const NEGOCIOS_LANE_COPY: Record<BusinessLaneKey, LaneCopy> = {
     labelEn: "Auto Dealers",
     descEs: "Concesionarios y negocios de autos para conectar compradores con inventario local.",
     descEn: "Dealerships and auto businesses connecting buyers with local inventory.",
-    noteEs: "Checkpoint primero — elige dealer o privado en el siguiente paso.",
-    noteEn: "Checkpoint first — choose dealer or private on the next step.",
+    noteEs: "Comienza con los datos de tu negocio y continúa con la solicitud.",
+    noteEn: "Start with your business details and continue to the application.",
     advertiseEs: "Publicar en Dealers de Autos",
     advertiseEn: "Publish as Auto Dealer",
   },

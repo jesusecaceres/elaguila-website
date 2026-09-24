@@ -87,8 +87,12 @@ assert(
 );
 assert(
   "6. Open-house helper copy EN/ES present",
-  read(copyEn).includes("Hosting an open house on multiple days?") &&
-    read(copyEs).includes("¿Tendrás casa abierta durante varios días?") &&
+  read(copyEn).includes(
+    "The first date is the starting date. If the open house continues on more days, add the ending date and list any different days or hours below.",
+  ) &&
+    read(copyEs).includes(
+      "La primera fecha es la fecha de inicio. Si la casa abierta continúa durante más días, agrega la fecha de finalización y escribe abajo cualquier día u horario diferente.",
+    ) &&
     read(step09).includes("openHouseHelper"),
 );
 assert(

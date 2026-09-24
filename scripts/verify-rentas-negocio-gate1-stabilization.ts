@@ -462,7 +462,11 @@ function rowFromParams(params: Record<string, unknown>): Record<string, unknown>
   assert(src.includes('.eq("category", "rentas")'), "and category-scoped");
   assert(src.includes('code: "leonix_id_mismatch"'), "a Leonix ad id mismatch is rejected");
   assert(src.includes('code: "lane_mismatch"'), "the lane is verified from the ROW");
-  assert(src.includes("mergeDetailPairs(existing.detail_pairs"), "unknown legacy detail_pairs are preserved by the route");
+  assert(
+    src.includes("mergeDetailPairs(existingDetailPairs") &&
+      src.includes("buildPatchFromParams(built, existing.detail_pairs, existing.images)"),
+    "unknown legacy detail_pairs are preserved by the route",
+  );
   assert(src.includes("rejectUnsafeMedia("), "unsafe media still cannot reach a published row");
   assert(!/stripe|revenue-os|checkout/i.test(src), "the edit path calls no payment engine");
   // This gate did not modify the route at all.

@@ -128,6 +128,40 @@ export const OFERTAS_LOCALES_COUPONS_CHECKOUT = {
   returnPath: "/dashboard/ofertas-locales",
 } as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
 
+/**
+ * Quick / SIMPLE business checkouts ($99/mo). Deliberately separate constants rather than a flag
+ * on the Full ones: the flow that renders the checkout is what knows whether the customer came
+ * through Quick intake or the standard application, and a separate constant makes that choice
+ * greppable instead of hidden behind a boolean.
+ *
+ * Choosing the cheaper package is not a privilege escalation. The server prices the checkout
+ * from the matrix and writes the purchased package key onto the entitlement row, and access is
+ * derived from that key — so buying Quick yields the Simple product, never Full at a discount.
+ */
+export const SERVICIOS_QUICK_CHECKOUT = {
+  category: "servicios",
+  packageKey: "servicios_quick_monthly",
+  returnPath: "/clasificados/servicios",
+} as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
+
+export const RESTAURANTES_QUICK_CHECKOUT = {
+  category: "restaurantes",
+  packageKey: "restaurantes_quick_monthly",
+  returnPath: "/clasificados/restaurantes",
+} as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
+
+export const AUTOS_DEALER_QUICK_CHECKOUT = {
+  category: "autos",
+  packageKey: "autos_dealer_quick_monthly",
+  returnPath: "/clasificados/autos",
+} as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
+
+export const BIENES_RAICES_NEGOCIO_QUICK_CHECKOUT = {
+  category: "bienes-raices",
+  packageKey: "br_agent_quick_monthly",
+  returnPath: "/clasificados/bienes-raices",
+} as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
+
 export type RevenueCheckoutAddOnPayload = {
   key: string;
   quantity?: number;
@@ -158,6 +192,14 @@ export type RevenueCategoryCheckoutPayload = {
   /** Package C Build 2 (C4) — explicit customer request for the verified-15% introductory
    * discount. Mutually exclusive with promoCode; the server rejects a request carrying both. */
   requestVerifiedIntroDiscount?: boolean;
+  /**
+   * LEONIX IX REWARDS — credits the customer asked to apply, in cents.
+   *
+   * A REQUEST, never a price. The server re-plans it under a row lock against the live balance,
+   * the $1 floor, the 50%-of-purchase ceiling, the amount due and the payment rail's minimum
+   * charge, and charges what IT decides. A forged figure here buys nothing.
+   */
+  requestedCreditsCents?: number | null;
 };
 
 export function buildRevenueCategoryCheckoutBody(
@@ -190,5 +232,8 @@ export function buildRevenueCategoryCheckoutBody(
     ...(input.returnContext?.trim() ? { returnContext: input.returnContext.trim() } : {}),
     ...(input.recurringConsent ? { recurringConsent: input.recurringConsent } : {}),
     ...(input.requestVerifiedIntroDiscount ? { requestVerifiedIntroDiscount: true } : {}),
+    ...(Number(input.requestedCreditsCents ?? 0) > 0
+      ? { requestedCreditsCents: Math.max(0, Math.floor(Number(input.requestedCreditsCents))) }
+      : {}),
   };
 }

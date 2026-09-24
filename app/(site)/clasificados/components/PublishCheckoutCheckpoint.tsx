@@ -36,6 +36,7 @@ import {
   buildVerifiedIntroChargeScheduleText,
 } from "@/app/lib/listingPlans/recurringConsentCopy";
 import { VerifiedIntroDiscountVerifyPanel } from "./VerifiedIntroDiscountVerifyPanel";
+import LeonixCheckoutCreditsPanel from "./LeonixCheckoutCreditsPanel";
 
 export type RecurringConsentAcknowledgmentPayload = {
   accepted: true;
@@ -84,6 +85,12 @@ export type PublishCheckoutCheckpointProps = {
     /** Package C Build 2 (C4) — explicit customer request for the verified-15% introductory
      * discount. Mutually exclusive with promoCode; the server rejects a request carrying both. */
     requestVerifiedIntroDiscount: boolean;
+    /**
+     * LEONIX IX REWARDS — how many of the customer's credits to apply, in cents. A PREVIEW: the
+     * server re-plans it under a row lock against the live balance and its answer wins. Zero when
+     * the control is not mounted, the customer has no credits, or they applied none.
+     */
+    requestedCreditsCents: number;
   }) => void | Promise<void>;
   onFreePublish?: (ctx: {
     newsletterOptIn: boolean;
@@ -110,6 +117,15 @@ export type PublishCheckoutCheckpointProps = {
    * `finalButtonEnabled`; newsletter capture failure must never block the paid transaction.
    */
   newsletterCaptureNote?: string | null;
+  /**
+   * LEONIX IX REWARDS — mount the credits control for this category.
+   *
+   * Opt-in, exactly like `onPromoApply`: a category that has not been wired for credits renders
+   * no control and its checkout is byte-for-byte unchanged. The control itself decides whether to
+   * show anything, because a signed-out customer or one with no balance must see nothing rather
+   * than an empty box.
+   */
+  creditsEligible?: boolean;
   /** When set, shown as CTA when Restaurante coupon add-on blocks checkout. */
   editHref?: string;
   /** Optional "Ver reglas de Leonix" modal shown above confirmations (opt-in per category). */
@@ -138,6 +154,7 @@ export function PublishCheckoutCheckpoint({
   newsletterEmail,
   onNewsletterEmailChange,
   newsletterCaptureNote,
+  creditsEligible,
   editHref,
   rulesModal,
   className = "",
@@ -155,6 +172,7 @@ export function PublishCheckoutCheckpoint({
   const [promoPercentOff, setPromoPercentOff] = useState<number | null>(null);
   const [promoMessage, setPromoMessage] = useState<string | null>(null);
   const [promoBusy, setPromoBusy] = useState(false);
+  const [requestedCreditsCents, setRequestedCreditsCents] = useState(0);
   // Package C Build 2 (C4) — verified 15% introductory discount, mutually exclusive with promo.
   const [verifiedIntroDiscountApplied, setVerifiedIntroDiscountApplied] = useState(false);
   const [verifiedIntroDiscountEstimateCents, setVerifiedIntroDiscountEstimateCents] = useState<number | null>(null);
@@ -260,6 +278,7 @@ export function PublishCheckoutCheckpoint({
             ? buildRecurringConsentAcknowledgment(lang === "en" ? "en" : "es")
             : null,
         requestVerifiedIntroDiscount: verifiedIntroDiscountApplied,
+        requestedCreditsCents,
       });
     } else {
       void onFreePublish?.(baseCtx);
@@ -422,6 +441,44 @@ export function PublishCheckoutCheckpoint({
             setVerifiedIntroDiscountApplied(active);
             setVerifiedIntroDiscountEstimateCents(estimatedDiscountCents);
           }}
+        />
+      ) : null}
+
+      {/* LEONIX IX REWARDS — apply your credits to this purchase.
+          Sits below the discount controls and ABOVE the total, because it changes what is due.
+          Credits are not a promo code: `validateDiscountCombination` allows them alongside the
+          one promo slot, so this never hides or competes with the field above. */}
+      {/* NOT ON A RECURRING PLAN. In `subscription` mode the discount is applied by lowering the
+          line item's `unit_amount`, and that line item recurs monthly — so a ONE-TIME credit debit
+          would set the subscription's price for every renewal, for ever. The server refuses credits
+          there by name, and mounting the control anyway meant the customer applied credits, saw a
+          green "Credits applied $199.50 · Remaining to pay $199.50", pressed pay, and was told the
+          credits could not be applied with no reason given. A control whose action the server will
+          always refuse is a phantom discount with extra steps. */}
+      {/* Credits now reach a monthly plan through a Stripe `duration: "once"` coupon on the first
+          invoice, so the control mounts for BOTH billing modes. The recurring price is untouched —
+          the line item still carries the full $249 — and the panel says so, because a customer
+          applying credits to a subscription needs to know what they pay NOW and what they pay
+          every month after. The old branch here rendered a notice saying credits did not apply to
+          monthly plans; that is no longer true, and a notice that is no longer true is a defect. */}
+      {resolved.mode === "checkout" && creditsEligible ? (
+        <LeonixCheckoutCreditsPanel
+          lang={lang === "en" ? "en" : "es"}
+          // POST-DISCOUNT, because that is what the customer is actually charged now and what the
+          // server sizes the 50% ceiling against. Showing a ceiling computed from the undiscounted
+          // price would offer the customer more credits than the server will accept, and the
+          // refusal would arrive after they pressed pay.
+          eligiblePurchaseCents={Math.max(0, resolved.totalCents - (resolved.discountCents ?? 0))}
+          amountDueCents={Math.max(0, resolved.totalCents - (resolved.discountCents ?? 0))}
+          // On a monthly plan the credits come off the FIRST invoice only; the plan keeps billing
+          // its full price. The panel says so rather than leaving the customer to assume either.
+          recurringAmountCents={basePackageIsMonthly ? resolved.totalCents : null}
+          onRequestedCentsChange={setRequestedCreditsCents}
+          disabled={busy}
+          borderColor={LEONIX_BORDER}
+          textColor={LEONIX_CHARCOAL}
+          mutedColor={LEONIX_MUTED}
+          successColor={LEONIX_SUCCESS}
         />
       ) : null}
 

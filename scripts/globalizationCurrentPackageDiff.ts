@@ -618,6 +618,48 @@ export const GLOBALIZATION_CURRENT_PACKAGE_FILES: ReadonlySet<string> = new Set(
   "scripts/verify-package-f-f2-final-fix-build.mjs",
   "scripts/gate-i5-8-empleos-autos-viajes-route-drift-selftest.ts",
   "scripts/globalizationCurrentPackageDiff.ts",
+
+  // ═══ PHASE 4 CANONICAL CONSOLIDATION — CTA / branding / newsletter / preview-parity repairs ═══
+  // WhatsApp must never be inferred from a phone number; Rentas shared-anuncio must redirect to
+  // the canonical listing shell; checkout newsletter capture must be awaited; Viajes dashboard
+  // preview must keep stagedId; obsolete El Águila user-facing copy and elaguila.net fallbacks
+  // replaced with Leonix. Isolation checks only — every other product assertion still runs.
+  "app/(site)/clasificados/anuncio/[id]/page.tsx",
+  "app/(site)/clasificados/autos/privado/preview/AutosPrivadoPreviewClient.tsx",
+  "app/(site)/clasificados/bienes-raices/listing/mapBrListingRowToPrivadoPreviewVm.ts",
+  "app/(site)/clasificados/busco/BuscoResultsClient.tsx",
+  "app/(site)/clasificados/busco/BuscoResultsSearchPanel.tsx",
+  "app/(site)/clasificados/empleos/premium-preview/EmpleoPremiumPreviewClient.tsx",
+  "app/(site)/clasificados/empleos/quick-preview/EmpleoQuickPreviewClient.tsx",
+  "app/(site)/clasificados/en-venta/listing/EnVentaAnuncioLayout.tsx",
+  "app/(site)/clasificados/lib/leonixPublishRealEstateFromDraftState.ts",
+  "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewClient.tsx",
+  "app/(site)/clasificados/publicar/bienes-raices/privado/application/mapping/mapBienesRaicesPrivadoStateToPreviewVm.ts",
+  "app/(site)/clasificados/publicar/rentas/privado/application/mapping/mapRentasPrivadoStateToPreviewVm.ts",
+  "app/(site)/clasificados/rentas/listing/mapRentasListingLiveToPreviewVm.ts",
+  "app/(site)/clasificados/rentas/preview/negocio/components/RentasNegocioPreviewClient.tsx",
+  "app/(site)/clasificados/rentas/preview/privado/components/RentasPrivadoPreviewClient.tsx",
+  "app/(site)/dashboard/lib/dashboardInventory.ts",
+  "app/(site)/dashboard/mis-anuncios/[id]/editar/categoryLifecycleAdapters.ts",
+  "app/(site)/publicar/autos/shared/components/AutosPublishConfirmCore.tsx",
+  "app/(site)/publicar/busco/shared/buscoQuickAdViewModel.ts",
+  "app/(site)/publicar/ofertas-locales/preview/OfertasLocalesPreviewCard.tsx",
+  "app/api/stripe/billing-portal-session/route.ts",
+  "app/components/LeonixRootJsonLd.tsx",
+  "app/components/Navbar.tsx",
+  "app/components/digitalContact/DigitalContactQuickActions.tsx",
+  "app/components/digitalContact/humanConnection/HumanConnectionPanel.tsx",
+  "app/lib/business/aiResearch/websiteAdapter.ts",
+  "app/lib/magazine/june2026CompanionContent.ts",
+  "app/lib/magazine/magazineReaderCopy/community.ts",
+  "app/lib/magazine/magazineReaderCopy/en.ts",
+  "app/lib/magazine/magazineReaderCopy/es.ts",
+  "app/lib/magazine/magazineReaderCopy/vi.ts",
+  "app/lib/ofertas-locales/ofertasLocalesPublicDetailHelpers.ts",
+  "app/lib/ofertas-locales/ofertasLocalesPublicSearchHelpers.ts",
+  "scripts/gate-i5-4d-rentas-canonical-public-route-selftest.ts",
+  "scripts/website-h1d-copy-coming-soon-header-layout-audit.ts",
+  "scripts/gate-4-busco-se-busca-qa-selftest.ts",
 ]);
 
 /** Drop the current package's own authorized files from a changed-file list before running a

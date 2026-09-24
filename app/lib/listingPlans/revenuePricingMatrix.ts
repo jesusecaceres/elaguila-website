@@ -65,6 +65,17 @@ export type RevenuePackageDefinition = {
    */
   capabilities?: string[];
   /**
+   * SIMPLE vs FULL commercial access. Declares how much of the DIGITAL business product this
+   * package grants, resolved by `businessAccessLevel.ts`. Deliberately separate from
+   * `capabilities` above: `full` never invents a per-package capability such as `coupons_offers`
+   * for a category whose package never declared one. Absent on non-business packages (classified
+   * listings, community posts), which confer no business access at all.
+   *
+   * The type is written inline rather than imported so the pricing matrix stays a leaf module and
+   * `businessAccessLevel.ts` can import from it without a cycle.
+   */
+  businessAccessLevel?: "simple" | "full";
+  /**
    * Package C Build 3 (C5/C6) — true when this package can no longer be purchased (new sales),
    * while the definition itself stays resolvable for historical price/label reads. The actual
    * sale-blocking enforcement is `stripeEligible: false` / `promoEligible: false` on the same
@@ -115,6 +126,28 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     placementEligible: true,
     stripeEligible: true,
     unresolvedOwnerDecision: null,
+    businessAccessLevel: "full",
+  },
+  {
+    // Quick / Simple dealer access. Same canonical dealer product, same public output, lower
+    // entitlement: one active vehicle and no inventory pack, so Simple can never silently
+    // inherit the Full package's 10-vehicle allowance.
+    category: "autos",
+    packageKey: "autos_dealer_quick_monthly",
+    customerType: "dealer_business",
+    label: "Autos dealer Quick monthly (Simple) — $249/mo",
+    priceCents: 24900,
+    billingMode: "monthly_subscription",
+    durationDays: null,
+    includedInventory: "1 active vehicle",
+    addOnInventory: null,
+    promoEligible: true,
+    printCompEligible: false,
+    placementEligible: false,
+    stripeEligible: true,
+    unresolvedOwnerDecision: null,
+    capabilities: [],
+    businessAccessLevel: "simple",
   },
   {
     category: "autos",
@@ -148,6 +181,27 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     placementEligible: true,
     stripeEligible: true,
     unresolvedOwnerDecision: null,
+    businessAccessLevel: "full",
+  },
+  {
+    // Quick / Simple agent access. Same canonical agent product and public output, lower
+    // entitlement: one active property and no inventory pack.
+    category: "bienes-raices",
+    packageKey: "br_agent_quick_monthly",
+    customerType: "agent_business",
+    label: "Bienes Raíces agent Quick monthly (Simple) — $249/mo",
+    priceCents: 24900,
+    billingMode: "monthly_subscription",
+    durationDays: null,
+    includedInventory: "1 active property",
+    addOnInventory: null,
+    promoEligible: true,
+    printCompEligible: false,
+    placementEligible: false,
+    stripeEligible: true,
+    unresolvedOwnerDecision: null,
+    capabilities: [],
+    businessAccessLevel: "simple",
   },
   {
     category: "bienes-raices",
@@ -215,6 +269,27 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     // Package C Build 3 (C5/C6) — owner-locked: coupons/offers are now INCLUDED in the $399
     // base package (supersedes the retired restaurantes_offers_addon $79 add-on below).
     capabilities: ["coupons_offers"],
+    businessAccessLevel: "full",
+  },
+  {
+    // Quick / Simple restaurant access. `capabilities: []` is deliberate — coupons/offers stays
+    // a Full-package grant, so Simple cannot reach the offers module.
+    category: "restaurantes",
+    packageKey: "restaurantes_quick_monthly",
+    customerType: "restaurant_business",
+    label: "Restaurantes Quick monthly (Simple) — $249/mo",
+    priceCents: 24900,
+    billingMode: "monthly_subscription",
+    durationDays: null,
+    includedInventory: "1 profile/listing",
+    addOnInventory: null,
+    promoEligible: true,
+    printCompEligible: false,
+    placementEligible: false,
+    stripeEligible: true,
+    unresolvedOwnerDecision: null,
+    capabilities: [],
+    businessAccessLevel: "simple",
   },
   {
     category: "restaurantes",
@@ -257,6 +332,27 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     // Package C Build 3 (C5/C6) — owner-locked: coupons/offers are now INCLUDED in the $399
     // base package (supersedes the retired servicios_offers_addon $79 add-on below).
     capabilities: ["coupons_offers"],
+    businessAccessLevel: "full",
+  },
+  {
+    // Quick / Simple services access. `capabilities: []` is deliberate — coupons/offers stays a
+    // Full-package grant, so Simple cannot reach the offers module.
+    category: "servicios",
+    packageKey: "servicios_quick_monthly",
+    customerType: "service_business",
+    label: "Servicios Quick monthly (Simple) — $249/mo",
+    priceCents: 24900,
+    billingMode: "monthly_subscription",
+    durationDays: null,
+    includedInventory: "1 profile/listing",
+    addOnInventory: null,
+    promoEligible: true,
+    printCompEligible: false,
+    placementEligible: false,
+    stripeEligible: true,
+    unresolvedOwnerDecision: null,
+    capabilities: [],
+    businessAccessLevel: "simple",
   },
   {
     category: "servicios",

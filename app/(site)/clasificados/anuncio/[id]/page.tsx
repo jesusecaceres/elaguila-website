@@ -3,9 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import {useCallback, useEffect, useMemo, useRef, useState, Suspense } from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Navbar from "../../../../components/Navbar";
-import newLogo from "../../../../../public/logo.png";
 
 import { SAMPLE_LISTINGS } from "../../../../data/classifieds/sampleListings";
 import { extractProVideoInfos } from "../../components/proVideo";
@@ -101,6 +100,7 @@ import {
   RENTAS_DP_MAP_URL,
 } from "../../rentas/lib/rentasMachineDetailPairs";
 import { rentasLeadSmsBody } from "../../rentas/shared/rentasLeadContactCopy";
+import { rentasListingPublicPath } from "../../rentas/shared/utils/rentasPublishRoutes";
 import { useAutosAnuncioDerived } from "../../autos/listing/hooks/useAutosAnuncioDerived";
 import { AutosAnuncioMetaFactCards } from "../../autos/listing/components/AutosAnuncioMetaFactCards";
 import { AutosAnuncioLaneContextStrip } from "../../autos/listing/components/AutosAnuncioLaneContextStrip";
@@ -436,8 +436,13 @@ function mapDbListingRowToListing(row: Record<string, unknown>): Listing {
   return out;
 }
 
+function shouldRedirectRentasSharedAnuncio(category: string): boolean {
+  return category === "rentas";
+}
+
 function AnuncioDetallePageContent() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
 
   // ✅ Null-safe guard: some setups type useSearchParams() as possibly null
   const sp = useSearchParams();
@@ -703,6 +708,13 @@ function AnuncioDetallePageContent() {
 
   const listing: Listing | undefined = sampleListing ?? fetchedListing;
 
+  useEffect(() => {
+    if (!listing || !shouldRedirectRentasSharedAnuncio(listing.category)) return;
+    const qs = sp?.toString() ?? "";
+    const dest = qs ? `${rentasListingPublicPath(listing.id)}?${qs}` : rentasListingPublicPath(listing.id);
+    router.replace(dest);
+  }, [listing, router, sp]);
+
   const listingKey = useMemo(
     () => (listing?.leonix_ad_id?.trim() || listing?.id || "").trim(),
     [listing?.leonix_ad_id, listing?.id],
@@ -807,20 +819,18 @@ function AnuncioDetallePageContent() {
 
   const rentasLiveContactExtras = useMemo(() => {
     if (!listing || listing.category !== "rentas") return null;
-    const phoneRaw = leonixLiveContact?.phoneForTel ?? "";
-    const phoneDigits = String(phoneRaw).replace(/\D/g, "").slice(0, 15);
     const pairs = (listing as Listing & { detail_pairs?: unknown }).detailPairs ?? (listing as { detail_pairs?: unknown }).detail_pairs;
     const smsM = (readLeonixDetailPairValue(pairs, RENTAS_DP_CONTACT_SMS_DIGITS) ?? "").replace(/\D/g, "").slice(0, 15);
     const waM = (readLeonixDetailPairValue(pairs, RENTAS_DP_CONTACT_WHATSAPP_DIGITS) ?? "").replace(/\D/g, "").slice(0, 15);
     const mapUrl = (readLeonixDetailPairValue(pairs, RENTAS_DP_MAP_URL) ?? "").trim();
     const fallbackMap = String((listing as { mapsUrl?: string }).mapsUrl ?? "").trim();
     return {
-      smsNumber: smsM || phoneDigits,
-      waDigits: waM || phoneDigits,
+      smsNumber: smsM,
+      waDigits: waM,
       mapsUrl: mapUrl || fallbackMap || undefined,
       leadBody: rentasLeadSmsBody(lang),
     };
-  }, [listing, leonixLiveContact, lang]);
+  }, [listing, lang]);
 
   const communityQuickPairMap = useMemo(() => {
     if (!listing || (listing.category !== "clases" && listing.category !== "comunidad")) return null;
@@ -1323,7 +1333,7 @@ function AnuncioDetallePageContent() {
         <Navbar />
         <section className="max-w-screen-2xl mx-auto px-6 pt-28">
           <div className="text-center">
-            <Image src={newLogo} alt="LEONIX" width={260} className="mx-auto mb-6" />
+            <Image src="/logo-clean.png" alt="Leonix" width={80} height={80} className="mx-auto mb-6 object-contain" />
             <p className="text-lg font-medium text-[#111111]/80">
               {lang === "es" ? "Cargando anuncio…" : "Loading listing…"}
             </p>
@@ -1339,7 +1349,7 @@ function AnuncioDetallePageContent() {
         <Navbar />
         <section className="max-w-screen-2xl mx-auto px-6 pt-28">
           <div className="text-center max-w-lg mx-auto">
-            <Image src={newLogo} alt="LEONIX" width={260} className="mx-auto mb-6" />
+            <Image src="/logo-clean.png" alt="Leonix" width={80} height={80} className="mx-auto mb-6 object-contain" />
             <h1 className="text-2xl font-bold text-[#111111]">
               {lang === "es" ? "No se pudo cargar el anuncio" : "Could not load this listing"}
             </h1>
@@ -1364,7 +1374,7 @@ function AnuncioDetallePageContent() {
         <Navbar />
         <section className="max-w-screen-2xl mx-auto px-6 pt-28">
           <div className="text-center">
-            <Image src={newLogo} alt="LEONIX" width={260} className="mx-auto mb-6" />
+            <Image src="/logo-clean.png" alt="Leonix" width={80} height={80} className="mx-auto mb-6 object-contain" />
             <h1 className="text-5xl md:text-6xl font-bold text-yellow-400">{t.notFoundTitle}</h1>
             <p className="mt-5 text-[#111111] max-w-2xl mx-auto text-lg">{t.notFoundBody}</p>
 
@@ -1382,6 +1392,22 @@ function AnuncioDetallePageContent() {
                 {t.post}
               </a>
             </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  if (shouldRedirectRentasSharedAnuncio(listing.category)) {
+    return (
+      <div className="bg-[#D9D9D9] min-h-screen text-[#111111] pb-24">
+        <Navbar />
+        <section className="max-w-screen-2xl mx-auto px-6 pt-28">
+          <div className="text-center">
+            <Image src="/logo-clean.png" alt="Leonix" width={80} height={80} className="mx-auto mb-6 object-contain" />
+            <p className="text-lg font-medium text-[#111111]/80">
+              {lang === "es" ? "Cargando anuncio…" : "Loading listing…"}
+            </p>
           </div>
         </section>
       </div>
@@ -2580,9 +2606,7 @@ function AnuncioDetallePageContent() {
                       ? rentasLiveContactExtras?.waDigits
                       : communityQuickContactExtras?.waDigits?.length === 10
                         ? communityQuickContactExtras.waDigits
-                        : communityQuickContactExtras?.phoneDigits?.length === 10
-                          ? communityQuickContactExtras.phoneDigits
-                          : undefined
+                        : undefined
                   }
                   whatsappMessage={
                     listing?.category === "rentas"

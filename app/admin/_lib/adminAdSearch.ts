@@ -100,7 +100,7 @@ export function empleosRowMatchesAdminQueueSearch(
 
 export type AutosAdminQueueRowLite = {
   id: string;
-  owner_user_id: string;
+  owner_user_id: string | null;
   title: string;
   city: string;
   /** When `autos_classifieds_listings.leonix_ad_id` exists. */
@@ -120,8 +120,8 @@ export function autosRowMatchesAdminQueueSearch(
   if (row.id === q || row.id.toLowerCase() === n || row.id.toLowerCase().startsWith(n)) return true;
   const urlId = adminQueueExtractAutosListingIdFromUrl(q);
   if (urlId && row.id === urlId) return true;
-  if (row.owner_user_id === q || row.owner_user_id.toLowerCase().includes(n)) return true;
-  if (profileOwnerIds.size > 0 && profileOwnerIds.has(row.owner_user_id)) return true;
+  if (row.owner_user_id && (row.owner_user_id === q || row.owner_user_id.toLowerCase().includes(n))) return true;
+  if (row.owner_user_id && profileOwnerIds.size > 0 && profileOwnerIds.has(row.owner_user_id)) return true;
   if (row.title.toLowerCase().includes(n)) return true;
   if (row.city.toLowerCase().includes(n)) return true;
   if (row.vehicleTextBlob && row.vehicleTextBlob.includes(n)) return true;

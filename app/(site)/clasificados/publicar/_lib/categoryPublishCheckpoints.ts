@@ -4,6 +4,7 @@ import {
   getRevenuePackageDefinition,
   getRevenuePackagePriceCents,
 } from "@/app/lib/listingPlans/revenuePricingMatrix";
+import { withQuickPlanParam } from "@/app/lib/listingPlans/businessQuickPlanSignal";
 import type { PublishCheckpointLang } from "./publishCheckpointCopy";
 
 export type PublishCheckpointVariant = "paid" | "free" | "dealer" | "upgrade" | "community";
@@ -93,6 +94,14 @@ function isPromoEligible(packageKey: string): boolean {
   return def?.promoEligible === true;
 }
 
+function withBusinessPlanParam(href: string, plan: "quick" | "full"): string {
+  const [path, rawQuery = ""] = href.split("?");
+  const params = new URLSearchParams(rawQuery);
+  params.set("plan", plan);
+  const qs = params.toString();
+  return qs ? `${path}?${qs}` : path;
+}
+
 export function getRestaurantesCheckpointCards(
   lang: PublishCheckpointLang,
   withLang: (path: string, extra?: Record<string, string>) => string,
@@ -102,6 +111,7 @@ export function getRestaurantesCheckpointCards(
     ? "Cupones y ofertas destacadas incluidos sin costo adicional."
     : "Featured coupons and offers included at no extra cost.";
   const establishedPrice = monthlyPrice("restaurantes_base_monthly", "restaurantes", lang);
+  const restaurantesQuickPrice = monthlyPrice("restaurantes_quick_monthly", "restaurantes", lang);
   // Comida Local is its own category with its own real price (comida_local_base_monthly) — this
   // card is a cross-link to that canonical product for a visitor browsing the Restaurantes
   // selector, never a separate Restaurantes-priced product. It must show the real current Comida
@@ -114,16 +124,38 @@ export function getRestaurantesCheckpointCards(
 
   return [
     {
+      id: "restaurante_quick",
+      variant: "paid",
+      eyebrow: es ? "Elige paquete" : "Choose your plan",
+      title: es ? "Quick Business" : "Quick Business",
+      priceLabel: restaurantesQuickPrice,
+      shortDescription: es
+        ? "La misma aplicación de restaurante. Hasta 3 fotos. Sin video."
+        : "The same restaurant application. Up to 3 photos. No video.",
+      ctaLabel: es ? "Continuar con Quick" : "Continue with Quick",
+      ctaHref: withLang("/publicar/restaurantes", { plan: "quick" }),
+      moreLabel: es ? "Ver más" : "See more",
+      modalTitle: es ? `Qué incluye Quick Business — ${restaurantesQuickPrice}` : `What's included with Quick Business — ${restaurantesQuickPrice}`,
+      modalIntro: es
+        ? "Quick y PRO usan la misma ficha de restaurante."
+        : "Quick and PRO use the same restaurant application.",
+      includedBullets: es
+        ? ["Misma aplicación de Restaurantes", "Hasta 3 fotos", "Sin video", `Precio: ${restaurantesQuickPrice}`]
+        : ["Same Restaurants application", "Up to 3 photos", "No video", `Price: ${restaurantesQuickPrice}`],
+      couponEligible: isPromoEligible("restaurantes_quick_monthly"),
+      highlighted: true,
+    },
+    {
       id: "restaurante_establecido",
       variant: "paid",
       eyebrow: es ? "Establecimiento" : "Establishment",
-      title: es ? "Restaurante establecido" : "Established restaurant",
+      title: es ? "PRO — Restaurante establecido" : "Full Business — Established restaurant",
       priceLabel: establishedPrice,
       shortDescription: es
         ? "Para restaurantes, cafés, panaderías, food trucks establecidos y negocios con perfil completo. Incluye ficha premium con galería, horarios, ubicación, contacto, redes, platillos destacados y presencia en Leonix."
         : "For restaurants, cafés, bakeries, established food trucks, and businesses with complete profile. Includes premium profile with gallery, hours, location, contact, social media, featured dishes and presence on Leonix.",
       ctaLabel: es ? "Publicar restaurante" : "Publish restaurant",
-      ctaHref: withLang("/publicar/restaurantes", { product: "established_restaurant" }),
+      ctaHref: withLang("/publicar/restaurantes", { product: "established_restaurant", plan: "full" }),
       moreLabel: es ? "Ver más" : "See more",
       modalTitle: es
         ? `Qué incluye Restaurante establecido — ${establishedPrice}`
@@ -251,6 +283,48 @@ export function getServiciosCheckpointCard(
   };
 }
 
+/** Public Servicios checkpoint: Quick $249 and PRO $399 enter the same canonical application. */
+export function getServiciosCheckpointCards(
+  lang: PublishCheckpointLang,
+  applicationHref: string,
+): PublishCheckpointCardData[] {
+  const es = lang === "es";
+  const full = getServiciosCheckpointCard(lang, applicationHref);
+  const quickPrice = monthlyPrice("servicios_quick_monthly", "servicios", lang);
+  const quick: PublishCheckpointCardData = {
+    id: "servicios_quick",
+    variant: "paid",
+    eyebrow: es ? "Elige paquete" : "Choose your plan",
+    title: es ? "Quick Business" : "Quick Business",
+    priceLabel: quickPrice,
+    shortDescription: es
+      ? "Misma aplicación profesional. Hasta 3 fotos. Sin video. Ideal para empezar."
+      : "The same professional application. Up to 3 photos. No video. Built to start simply.",
+    ctaLabel: es ? "Continuar con Quick" : "Continue with Quick",
+    ctaHref: withQuickPlanParam(applicationHref),
+    moreLabel: es ? "Ver más" : "See more",
+    modalTitle: es ? `Qué incluye Quick Business — ${quickPrice}` : `What's included with Quick Business — ${quickPrice}`,
+    modalIntro: es
+      ? "Quick y PRO usan la misma ficha. Quick limita fotos y video."
+      : "Quick and PRO use the same profile. Quick limits photos and video.",
+    includedBullets: es
+      ? ["Misma aplicación de Servicios", "Hasta 3 fotos", "Sin video", `Precio: ${quickPrice}`]
+      : ["Same Services application", "Up to 3 photos", "No video", `Price: ${quickPrice}`],
+    couponEligible: isPromoEligible("servicios_quick_monthly"),
+    highlighted: true,
+  };
+  return [
+    quick,
+    {
+      ...full,
+      eyebrow: es ? "Elige paquete" : "Choose your plan",
+      title: es ? "PRO" : "PRO",
+      ctaLabel: es ? "Continuar con PRO" : "Continue with PRO",
+      ctaHref: withBusinessPlanParam(full.ctaHref, "full"),
+    },
+  ];
+}
+
 export function getAutosCheckpointCards(
   lang: PublishCheckpointLang,
   privadoHref: string,
@@ -259,6 +333,7 @@ export function getAutosCheckpointCards(
   const es = lang === "es";
   const privadoPrice = oneTimePrice("autos_privado_30d", "autos", lang, 30);
   const dealerPrice = monthlyPrice("autos_dealer_monthly", "autos", lang);
+  const dealerQuickPrice = monthlyPrice("autos_dealer_quick_monthly", "autos", lang);
   const upgradeDef = getRevenuePackageDefinition("autos_dealer_inventory_pack_monthly");
   const upgradePrice = upgradeDef ? formatRevenuePriceLabel(upgradeDef.priceCents) : "$129";
 
@@ -295,17 +370,39 @@ export function getAutosCheckpointCards(
       couponEligible: isPromoEligible("autos_privado_30d"),
     },
     {
+      id: "autos_dealer_quick",
+      variant: "dealer",
+      eyebrow: es ? "Elige paquete" : "Choose your plan",
+      title: es ? "Quick Business — Dealer" : "Quick Business — Dealer",
+      priceLabel: dealerQuickPrice,
+      shortDescription: es
+        ? "La misma aplicación de dealer. Hasta 3 fotos. Sin video."
+        : "The same dealer application. Up to 3 photos. No video.",
+      ctaLabel: es ? "Continuar con Quick" : "Continue with Quick",
+      ctaHref: withQuickPlanParam(negociosHref),
+      moreLabel: es ? "Ver más" : "See more",
+      modalTitle: es ? `Qué incluye Quick Business — ${dealerQuickPrice}` : `What's included with Quick Business — ${dealerQuickPrice}`,
+      modalIntro: es
+        ? "Quick y PRO usan la misma aplicación de dealer."
+        : "Quick and PRO use the same dealer application.",
+      includedBullets: es
+        ? ["Misma aplicación de dealer", "Hasta 3 fotos", "Sin video", `Precio: ${dealerQuickPrice}`]
+        : ["Same dealer application", "Up to 3 photos", "No video", `Price: ${dealerQuickPrice}`],
+      couponEligible: isPromoEligible("autos_dealer_quick_monthly"),
+      highlighted: true,
+    },
+    {
       id: "autos_dealer",
       variant: "dealer",
       eyebrow: es ? "Dealer / negocio" : "Dealer / business",
-      title: es ? "Dealers de Autos" : "Auto Dealers",
+      title: es ? "PRO — Dealers de Autos" : "PRO — Auto Dealers",
       priceLabel: dealerPrice,
       billingLabel: es ? "10 vehículos incluidos" : "10 vehicles included",
       shortDescription: es
         ? "Para agencias y negocios de autos que necesitan presencia profesional e inventario de vehículos."
         : "For dealerships and auto businesses that need a professional presence and vehicle inventory.",
       ctaLabel: es ? "Empezar como dealer" : "Start as dealer",
-      ctaHref: negociosHref,
+      ctaHref: withBusinessPlanParam(negociosHref, "full"),
       moreLabel: es ? "Ver más" : "See more",
       modalTitle: es ? `Qué incluye Dealer — ${dealerPrice}` : `What's included with Dealer — ${dealerPrice}`,
       modalIntro: es
@@ -427,6 +524,7 @@ export function getBienesRaicesCheckpointCards(
 ): PublishCheckpointCardData[] {
   const es = lang === "es";
   const agentPrice = monthlyPrice("br_agent_monthly", "bienes-raices", lang);
+  const agentQuickPrice = monthlyPrice("br_agent_quick_monthly", "bienes-raices", lang);
   const fsboPrice = oneTimePrice("br_fsbo_45d", "bienes-raices", lang, 45);
   const packPrice = formatRevenuePriceLabel(
     getRevenuePackageDefinition("br_inventory_pack_monthly")?.priceCents ?? 9900,
@@ -455,16 +553,38 @@ export function getBienesRaicesCheckpointCards(
       couponEligible: isPromoEligible("br_fsbo_45d"),
     },
     {
+      id: "br_negocio_quick",
+      variant: "dealer",
+      eyebrow: es ? "Elige paquete" : "Choose your plan",
+      title: es ? "Quick Business — Agente" : "Quick Business — Agent",
+      priceLabel: agentQuickPrice,
+      shortDescription: es
+        ? "La misma aplicación de negocio. Hasta 3 fotos. Sin video."
+        : "The same business application. Up to 3 photos. No video.",
+      ctaLabel: es ? "Continuar con Quick" : "Continue with Quick",
+      ctaHref: withQuickPlanParam(negocioHref),
+      moreLabel: es ? "Ver más" : "See more",
+      modalTitle: es ? `Qué incluye Quick Business — ${agentQuickPrice}` : `What's included with Quick Business — ${agentQuickPrice}`,
+      modalIntro: es
+        ? "Quick y PRO usan la misma aplicación de Bienes Negocio."
+        : "Quick and PRO use the same Real Estate Business application.",
+      includedBullets: es
+        ? ["Misma aplicación de negocio", "Hasta 3 fotos", "Sin video", `Precio: ${agentQuickPrice}`]
+        : ["Same business application", "Up to 3 photos", "No video", `Price: ${agentQuickPrice}`],
+      couponEligible: isPromoEligible("br_agent_quick_monthly"),
+      highlighted: true,
+    },
+    {
       id: "br_negocio",
       variant: "dealer",
       eyebrow: es ? "Profesional" : "Professional",
-      title: es ? "Negocio / agente" : "Business / agent",
+      title: es ? "PRO — Negocio / agente" : "PRO — Business / agent",
       priceLabel: agentPrice,
       shortDescription: es
         ? "Para agentes, equipos, oficinas y desarrolladores. Incluye vitrina de agente con 1 propiedad principal destacada."
         : "For agents, teams, offices, and developers. Includes agent showcase with 1 featured primary property.",
       ctaLabel: es ? "Publicar como agente" : "Publish as agent",
-      ctaHref: negocioHref,
+      ctaHref: withBusinessPlanParam(negocioHref, "full"),
       moreLabel: es ? "Ver más" : "See more",
       modalTitle: es ? `Qué incluye Vitrina de agente — ${agentPrice}` : `What's included with Agent showcase — ${agentPrice}`,
       modalIntro: es
@@ -482,8 +602,8 @@ export function getBienesRaicesCheckpointCards(
             `Base price: ${agentPrice}`,
           ],
       optionalUpgradeLine: es
-        ? `Opcional: Paquete de inventario +${packPrice}/mes (hasta 4 propiedades adicionales)`
-        : `Optional: Inventory pack +${packPrice}/mo (up to 4 additional properties)`,
+        ? `Opcional: Paquete de inventario +${packPrice}/mes (hasta 3 propiedades adicionales)`
+        : `Optional: Inventory pack +${packPrice}/mo (up to 3 additional properties)`,
       optionalUpgradeBullets: es
         ? [`Paquete de inventario: +${packPrice}/mes · hasta 4 propiedades adicionales`]
         : [`Inventory pack: +${packPrice}/mo · up to 4 additional properties`],

@@ -702,7 +702,10 @@ function buildContactVm(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPre
   );
   const llamarHref = buildTelHref(phone);
   const whatsappHref = buildWhatsappHref(phone, trim(s.cta.mensajePrellenado));
-  const smsHref = buildSmsHref(phone);
+  // Prefer explicit smsPersonal when agente_individual set it (Quick intake). Never fabricate
+  // SMS from phone when a distinct explicit number was provided.
+  const explicitSms = adv === "agente_individual" ? trim(s.identityAgente.smsPersonal ?? "") : "";
+  const smsHref = explicitSms ? buildSmsHref(explicitSms) : buildSmsHref(phone);
 
   const fbWeb =
     adv === "agente_individual"

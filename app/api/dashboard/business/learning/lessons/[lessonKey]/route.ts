@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { extractBearerToken, resolveAuthenticatedUserId } from "@/app/lib/business/supabaseUserClient";
 import { resolveLearningCenterFlagTier } from "@/app/lib/business/learning/featureFlag";
+import { applyLeonixLessonDoctrine } from "@/app/lib/business/learning/leonixDoctrine";
 import { getPublishedLessonByKey, listAllPublishedResources } from "@/app/lib/business/learning/repository";
 
 /**
@@ -20,8 +21,9 @@ export async function GET(req: NextRequest, context: { params: Promise<{ lessonK
     return NextResponse.json({ ok: false, error: "feature_disabled" }, { status: 404 });
   }
 
-  const lesson = await getPublishedLessonByKey(lessonKey);
-  if (!lesson) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
+  const stored = await getPublishedLessonByKey(lessonKey);
+  if (!stored) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
+  const lesson = applyLeonixLessonDoctrine(stored);
 
   const allResources = await listAllPublishedResources();
   const relatedResources = allResources.filter((r) => r.lessonId === lesson.id);

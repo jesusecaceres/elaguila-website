@@ -29,7 +29,6 @@ import {
 } from "./ofertasLocalesPreviewHelpers";
 import type {
   OfertaLocalItemDbRow,
-  OfertaLocalItemReviewViewModel,
   OfertaLocalPublicDetailHubItem,
   OfertaLocalPublicSearchItem,
   OfertaLocalPublicSearchSort,
@@ -43,7 +42,6 @@ import {
   type OfertaLocalPartnerPublicVm,
 } from "./ofertasLocalesPartnerOperations";
 import {
-  OFERTAS_LOCALES_PUBLIC_SEARCH_PARENT_SELECT,
   parseOfertaLocalDraftSnapshot,
   readDraftSnapshotLocationFields,
   readDraftSnapshotMembershipFields,
@@ -227,7 +225,6 @@ export function isOfertaLocalPublicSearchRowEligible(
 
   const itemFrom = row.valid_from?.trim() ?? "";
   const itemUntil = row.valid_until?.trim() ?? "";
-  const validFrom = itemFrom || parent.valid_from;
   const validUntil = itemUntil || parent.valid_until;
 
   return canOfertaLocalItemBePubliclyEligible(
@@ -276,9 +273,9 @@ export function mapOfertaLocalPublicSearchRowToItem(
   const state = sanitizePublicText(row.business_state || parent.state, 40);
   const zipCode = sanitizePublicText(row.business_zip_code || parent.zip_code, 20);
   const address = sanitizePublicText(row.business_address || parent.address, 200);
-  const phoneRaw = sanitizePublicText(parent.phone || parent.whatsapp, 40);
+  const phoneRaw = sanitizePublicText(parent.phone, 40);
   const phoneHref = buildOfertaLocalTelHref(phoneRaw);
-  const whatsappHref = buildOfertaLocalWhatsAppHref(parent.whatsapp ?? parent.phone ?? "", businessName);
+  const whatsappHref = buildOfertaLocalWhatsAppHref(parent.whatsapp ?? "", businessName);
   const websiteHref = safePublicHref(parent.website_url);
   const directionsDirect = safePublicHref(parent.directions_url);
   const directionsHref =
@@ -288,12 +285,6 @@ export function mapOfertaLocalPublicSearchRowToItem(
           [address, city, state, locationFields.country, zipCode].filter(Boolean).join(", ")
         )}`
       : null);
-
-  const priceVm: Pick<OfertaLocalItemReviewViewModel, "priceText" | "priceAmount" | "unit"> = {
-    priceText: row.price_text ?? "",
-    priceAmount: row.price_amount,
-    unit: row.unit ?? "",
-  };
 
   return {
     id: row.id,

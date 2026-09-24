@@ -13,6 +13,9 @@ export type ListingPackageEntitlementRow = {
   listing_source: string;
   listing_id: string | null;
   package_tier: string;
+  /** Revenue OS SKU when distinct from the print tier. Null on legacy admin print rows that
+   * predate the column, and on digital_only rows granted before Package C Build 3. */
+  package_key: string | null;
   entitlement_code: string | null;
   contract_code: string | null;
   customer_name: string | null;
@@ -75,6 +78,10 @@ function rowFromDb(raw: Record<string, unknown>): ListingPackageEntitlementRow {
         ? String(raw.listing_id).trim()
         : null,
     package_tier: String(raw.package_tier),
+    package_key:
+      raw.package_key != null && String(raw.package_key).trim() !== ""
+        ? String(raw.package_key).trim()
+        : null,
     entitlement_code: raw.entitlement_code != null ? String(raw.entitlement_code) : null,
     contract_code: raw.contract_code != null ? String(raw.contract_code) : null,
     customer_name: raw.customer_name != null ? String(raw.customer_name) : null,
@@ -206,6 +213,10 @@ export function matchesEntitlementSearch(row: ListingPackageEntitlementRow, q: s
     row.business_name,
     row.customer_name,
     row.listing_id,
+    // The tracker already renders the SKU on every row, but it was not searchable — so staff
+    // could read "this one is Quick" and still had no way to ask "show me all the Quick ones".
+    // The tier filter cannot answer that: Quick and Full are both `digital_only`.
+    row.package_key,
     metadataStr(meta, "sales_rep_id"),
     metadataStr(meta, "sales_rep_name"),
     metadataStr(meta, "leonix_ad_id"),

@@ -60,6 +60,7 @@ import type {
   ComidaLocalSocialPlatform,
 } from "@/app/lib/clasificados/comida-local/comidaLocalTypes";
 import { useComidaLocalDraft } from "@/app/lib/clasificados/comida-local/useComidaLocalDraft";
+import { AssistedSaveForClientBar } from "@/app/clasificados/components/AssistedSaveForClientBar";
 import {
   validateComidaLocalDraftForFuturePublish,
   validateComidaLocalDraftForPreview,
@@ -299,6 +300,8 @@ export default function ComidaLocalApplicationClient() {
   const { draft, setDraft, updateDraft, resetDraft, hasLoadedDraft, lastSavedAt, isDraftDirty } = useComidaLocalDraft({
     storageKey: editStorageKey,
   });
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
 
   useBusinessApplicationLeaveGuard({
     isDirty: hasLoadedDraft && Boolean(draft.businessName?.trim()) && isDraftDirty,
@@ -751,6 +754,16 @@ export default function ComidaLocalApplicationClient() {
             </button>
           </div>
         </header>
+        <AssistedSaveForClientBar
+          category="comida-local"
+          lang={es ? "es" : "en"}
+          buildPayload={() => ({
+            category: "comida-local",
+            draft: draftRef.current as unknown as Record<string, unknown>,
+            draftListingId: draftRef.current.draftListingId || null,
+            lang: es ? "es" : "en",
+          })}
+        />
 
         <div className="mb-6">
           <ComidaLocalValidationPanel

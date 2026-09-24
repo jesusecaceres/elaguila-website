@@ -4,6 +4,10 @@
  */
 
 import "server-only";
+import { isBusinessBasePackageKey } from "./businessAccessLevel";
+import { convergeQuickToFullAfterPayment } from "./quickToFullConvergence";
+import { awardCreditsForSettledPayment, earnBaseFromPaymentMetadata } from "@/app/lib/rewards/rewardsFulfillment";
+import { commitCheckoutCredits, releaseCheckoutCredits } from "@/app/lib/rewards/rewardsCheckoutRedemption";
 import type Stripe from "stripe";
 import { isPaymentCleared } from "./paymentTracking";
 import { activateEntitlementsForPayment } from "./revenueEntitlementFulfillment";
@@ -11,14 +15,12 @@ import { writeRevenueAuditLog } from "./revenueAuditLog";
 import {
   activatePaidRestauranteListingFromRevenueOs,
   activateRestauranteCouponAddonFromRevenueOs,
-  RESTAURANTES_BASE_MONTHLY_PACKAGE_KEY,
   RESTAURANTES_OFFERS_ADDON_PACKAGE_KEY,
 } from "./revenueRestaurantFulfillment";
 import {
   activatePaidServiciosListingFromRevenueOs,
   grantServiciosOffersAddonEntitlementFromBasePayment,
   normalizeServiciosOffersAddonEntitlementSource,
-  SERVICIOS_BASE_MONTHLY_PACKAGE_KEY,
   SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
 } from "./revenueServiciosFulfillment";
 import { triggerServiciosSavedSearchMatchBestEffort } from "@/app/lib/saved-search/servicios/serviciosSavedSearchMatchOrchestrator";
@@ -50,7 +52,6 @@ import {
 } from "./revenueBienesFsboFulfillment";
 import {
   activatePaidBienesNegocioListingFromRevenueOs,
-  BIENES_NEGOCIO_BASE_PACKAGE_KEY,
 } from "./revenueBienesNegocioFulfillment";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { getOfertaLocalCommercialProductByPackageKey } from "@/app/lib/ofertas-locales/ofertasLocalesCommercial";
@@ -282,7 +283,7 @@ async function tryActivateRestauranteListingAfterEntitlement(input: {
   stripeEventId: string;
   stripeCheckoutSessionId: string;
 }): Promise<{ ok: boolean; code?: string; message?: string }> {
-  if (input.packageDef.packageKey !== RESTAURANTES_BASE_MONTHLY_PACKAGE_KEY) {
+  if (!isBusinessBasePackageKey("restaurantes", input.packageDef.packageKey)) {
     return { ok: true };
   }
 
@@ -529,7 +530,7 @@ async function tryActivateServiciosListingAfterEntitlement(input: {
   stripeEventId: string;
   stripeCheckoutSessionId: string;
 }): Promise<{ ok: boolean; code?: string; message?: string }> {
-  if (input.packageDef.packageKey !== SERVICIOS_BASE_MONTHLY_PACKAGE_KEY) {
+  if (!isBusinessBasePackageKey("servicios", input.packageDef.packageKey)) {
     return { ok: true };
   }
 
@@ -1172,7 +1173,7 @@ async function tryActivateBienesNegocioListingAfterEntitlement(input: {
   stripeEventId: string;
   stripePaymentIntentId?: string | null;
 }): Promise<{ ok: boolean; code?: string; message?: string }> {
-  if (input.packageDef.packageKey !== BIENES_NEGOCIO_BASE_PACKAGE_KEY) {
+  if (!isBusinessBasePackageKey("bienes-raices", input.packageDef.packageKey)) {
     return { ok: true };
   }
 
@@ -1422,6 +1423,21 @@ export async function fulfillCheckoutSessionCompleted(input: {
   };
 
   if (isPaymentCleared(paymentRecord.payment_status)) {
+    // THE REDELIVERY PATH HAS TO SETTLE THE CREDITS TOO.
+    //
+    // This branch runs on every Stripe redelivery of an already-paid session, and it did not touch
+    // the hold. The commit below is `.catch`-ed and logged, so if the FIRST delivery's commit
+    // threw, the redelivery re-fulfilled and never retried it: thirty minutes later the expiry
+    // sweep returned the credits to a customer who had paid the reduced price. It is idempotent
+    // through `commit:<ref>`, so running it here costs one lookup and closes that window.
+    await commitCheckoutCredits({ paymentRecordId: paymentRecord.id }).catch((err: unknown) => {
+      console.error("[fulfillment] rewards redemption commit threw on the already-paid path", {
+        paymentRecordId: paymentRecord.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return { committed: false, amountCents: 0, reason: "threw" as string | undefined };
+    });
+
     const entitlementResult = await activateEntitlementsForPayment({
       paymentRecord,
       packageDef,
@@ -1721,6 +1737,41 @@ export async function fulfillCheckoutSessionCompleted(input: {
       paymentRecordId: paymentRecord.id,
     };
   }
+
+  // LEONIX IX REWARDS — COMMIT the credits this checkout held, THE MOMENT THE PAYMENT SETTLES.
+  //
+  // The hold was taken at checkout creation, keyed on THIS payment record's id, and has been
+  // sitting in `reserved` ever since. Committing any earlier would let an abandoned checkout
+  // consume a balance; committing any later is how the balance gets consumed by nothing.
+  //
+  // THIS USED TO BE THE LAST STEP OF FULFILLMENT, behind roughly fifteen early returns that all
+  // run AFTER the payment is marked paid. A permanent activation failure — a listing gate that
+  // will never pass for a data reason — therefore exhausted Stripe's retries with the hold still
+  // uncommitted, and thirty minutes later the expiry sweep handed the credits back. The customer
+  // paid the reduced price, kept the credits, and the only trace was a console line. Settling the
+  // money the payment was made with does not depend on whether a listing activated; the customer
+  // is owed the listing either way, and that is a different problem from a different queue.
+  //
+  // If the 30-minute hold expired before the customer finished paying — a Stripe session lives far
+  // longer than the hold does — `commitCheckoutCredits` RE-DEBITS the credits rather than
+  // reporting success over a hold that is no longer there, and when the balance can no longer
+  // cover it, records the shortfall as recovery debt instead of losing it.
+  const creditCommit = await commitCheckoutCredits({
+    paymentRecordId: paymentRecord.id,
+  }).catch((err: unknown) => {
+    console.error("[fulfillment] rewards redemption commit threw", {
+      paymentRecordId: paymentRecord.id,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return { committed: false, amountCents: 0, reason: "threw" as string | undefined };
+  });
+  if (creditCommit && !creditCommit.committed && creditCommit.reason && creditCommit.reason !== "no_hold") {
+    console.error("[fulfillment] rewards redemption commit did not settle", {
+      paymentRecordId: paymentRecord.id,
+      reason: creditCommit.reason,
+    });
+  }
+
 
   await writeRevenueAuditLog({
     action: "revenue_payment_completed",
@@ -2051,6 +2102,69 @@ export async function fulfillCheckoutSessionCompleted(input: {
     };
   }
 
+  // LEONIX IX REWARDS — award 9% back in Leonix Credits for this settled payment.
+  //
+  // Runs only AFTER the payment is marked paid above, so an abandoned or failed checkout never
+  // earns. Card money is awarded as PENDING because it can still be refunded or disputed; it is
+  // promoted to spendable once the settlement window passes. Best-effort by contract: a rewards
+  // problem must never fail a payment that actually settled, so this never throws and its result
+  // does not gate the fulfillment return. A failure is recorded as retryable in the audit log.
+  if (refreshed.owner_user_id) {
+    await awardCreditsForSettledPayment({
+      paymentRecordId: paymentRecord.id,
+      ownerUserId: String(refreshed.owner_user_id),
+      // Credits spent on this purchase must not themselves earn credits — and must not be
+      // subtracted twice. This record's total is already net of them, which the shared helper
+      // reads off the row rather than inferring.
+      ...earnBaseFromPaymentMetadata({
+        amountPaidCents: Number(refreshed.amount_total_cents ?? refreshed.amount_cents ?? 0),
+        metadata: refreshed.metadata as Record<string, unknown> | null,
+      }),
+      promoDiscountCents: Number(refreshed.amount_discount_cents ?? 0),
+      source: "stripe",
+      sourceKind: "stripe_payment",
+      sourceId: eventId,
+      pendingUntilSettlementFinal: true,
+    }).catch((err: unknown) => {
+      console.error("[fulfillment] rewards earn threw", {
+        paymentRecordId: paymentRecord.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return null;
+    });
+  }
+
+  // Gate QB-CONVERGENCE-02 — the customer just paid for a Full base plan, so any Quick
+  // subscription this Full plan supersedes is cancelled IMMEDIATELY (with proration), not at
+  // period end: a period-end cancellation would bill both plans concurrently for up to a month.
+  //
+  // This runs only AFTER the payment has been marked paid above, which is what makes the Full
+  // payment authoritative — an abandoned or failed checkout never reaches here, so Quick is
+  // preserved. The convergence module itself writes the attempted/completed/skipped/failed audit
+  // trail; a `failed` outcome is recorded as retryable rather than swallowed. It never throws,
+  // and its result deliberately does not gate the fulfillment return: a settled payment must not
+  // be reported as failed because a downstream cancellation had trouble.
+  if (refreshed.owner_user_id && refreshed.category && refreshed.package_key) {
+    await convergeQuickToFullAfterPayment({
+      full: {
+        ownerUserId: String(refreshed.owner_user_id),
+        category: String(refreshed.category),
+        packageKey: String(refreshed.package_key),
+        paid: true,
+        stripeCustomerId: refreshed.stripe_customer_id ? String(refreshed.stripe_customer_id) : null,
+        stripeSubscriptionId: refreshed.stripe_subscription_id ? String(refreshed.stripe_subscription_id) : null,
+      },
+      eventId,
+      paymentRecordId: paymentRecord.id,
+    }).catch((err: unknown) => {
+      console.error("[fulfillment] convergence threw", {
+        paymentRecordId: paymentRecord.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return null;
+    });
+  }
+
   return {
     ok: true,
     idempotent: paidResult.idempotent === true && entitlementResult.idempotent === true,
@@ -2132,6 +2246,17 @@ export async function markCheckoutSessionExpired(input: {
         stripe_event_id: eventId,
       },
     });
+  }
+
+  // LEONIX IX REWARDS — the session expired, so the purchase will not happen and the credits it
+  // was holding go straight back to the customer. Released here on the event rather than left to
+  // the 30-minute sweep, so the balance is spendable again the moment Stripe says the checkout is
+  // over. Idempotent through `release:<ref>`, and a hold already committed is left alone.
+  {
+    await releaseCheckoutCredits({
+      reason: "checkout_session_expired",
+      paymentRecordId: paymentRecord.id,
+    }).catch(() => null);
   }
 
   const promoRedemptionId = paymentRecord.promo_redemption_id ?? metadata.promoRedemptionId;

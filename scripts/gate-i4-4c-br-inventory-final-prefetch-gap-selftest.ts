@@ -76,8 +76,8 @@ assert.equal(countLinks(actionBarSrc), 1, "the shared action bar must still rend
 assert.equal(countPrefetchFalse(actionBarSrc), 1, "the shared action bar's per-listing Link must still disable prefetch");
 
 const dedicatedCards: Array<[string[], number]> = [
-  [["app", "(site)", "clasificados", "en-venta", "dashboard", "EnVentaListingManageCard.tsx"], 5],
-  [["app", "(site)", "dashboard", "components", "LeonixRealEstateListingManageCard.tsx"], 3],
+  [["app", "(site)", "clasificados", "en-venta", "dashboard", "EnVentaListingManageCard.tsx"], 6],
+  [["app", "(site)", "dashboard", "components", "LeonixRealEstateListingManageCard.tsx"], 4],
   // Package E Build E2, Gate 4 — real Autos Privado Edit link added, prefetch-disabled like
   // every other per-listing action; 1 -> 2.
   [["app", "(site)", "clasificados", "autos", "dashboard", "AutosClassifiedListingManageCard.tsx"], 2],
@@ -89,7 +89,8 @@ for (const [pathParts, expected] of dedicatedCards) {
 }
 
 const comidaLocalSrc = src("app", "lib", "clasificados", "comida-local", "ComidaLocalDashboardListings.tsx");
-assert.equal(countPrefetchFalse(comidaLocalSrc), 2, "Comida Local must still have its 2 per-listing links prefetch-disabled");
+assert.equal(countPrefetchFalse(comidaLocalSrc), 0, "Comida Local delegates per-listing links to the shared OwnerEntityWorkspace action bar");
+assert.match(comidaLocalSrc, /<OwnerEntityWorkspace/, "Comida Local must remain on the shared owner-workspace action path");
 
 const misAnunciosSrc = src("app", "(site)", "dashboard", "mis-anuncios", "page.tsx");
 {

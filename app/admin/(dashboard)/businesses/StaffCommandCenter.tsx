@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { adminBtnPrimary, adminBtnSecondary } from "../../_components/adminTheme";
 import { BusinessConciergeInstallBanner } from "./BusinessConciergeInstallBanner";
+import { QuickApplicationsLaunchpad } from "./QuickApplicationsLaunchpad";
 import { LeonixServiceWorkerRegister } from "@/app/components/digitalContact/LeonixServiceWorkerRegister";
 import type { StaffConciergeAttentionEntry, StaffConciergeHome } from "../../_lib/staffConciergeHome";
 import type { StaffOperatingSystem, StaffOsLink } from "../../_lib/staffOperatingSystem";
@@ -168,6 +169,9 @@ export function StaffCommandCenter({
             fallback; same worker, same file, no second registration path. */}
         <LeonixServiceWorkerRegister />
       </div>
+
+      {/* Quick Classifieds — high-visibility staff launchpad (additive; deep Concierge below is untouched). */}
+      <QuickApplicationsLaunchpad />
 
       {summaryUnavailable ? (
         <p className="mt-4 rounded-xl border border-[#E8DFD0] bg-white px-3 py-3 text-xs text-[#7A7164]">

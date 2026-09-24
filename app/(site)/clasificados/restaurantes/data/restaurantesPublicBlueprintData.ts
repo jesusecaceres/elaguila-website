@@ -125,6 +125,8 @@ export type RestaurantesPublicBlueprintRow = {
   };
   /** Analytics metrics */
   likesCount?: number;
+  /** Canonical `leonix_endorsement_votes` count for this listing id (read-only on cards). */
+  publicEndorsementCount?: number;
   savesCount?: number;
   sharesCount?: number;
   ctaClicksCount?: number;

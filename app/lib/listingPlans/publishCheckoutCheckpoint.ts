@@ -56,7 +56,7 @@ export const AUTOS_PRIVADO_30D_PACKAGE_KEY = "autos_privado_30d";
 /** Canonical Revenue OS package key for Autos dealer base plan ($399/mo). */
 export const AUTOS_DEALER_MONTHLY_PACKAGE_KEY = "autos_dealer_monthly";
 
-/** Canonical Revenue OS package key for Bienes Raíces property inventory pack (+4 properties). */
+/** Canonical Revenue OS package key for Bienes Raíces property inventory pack (+3 properties; 4 total with the included property). */
 export const BR_INVENTORY_PACK_PACKAGE_KEY = "br_inventory_pack_monthly";
 
 export const BR_INVENTORY_PACK_PRICE_CENTS = 9900;
@@ -78,6 +78,17 @@ export const AUTOS_DEALER_INVENTORY_PACK_ADDITIONAL_VEHICLES = 10;
 export const AUTOS_DEALER_BASE_INCLUDED_VEHICLES = 10;
 export const AUTOS_DEALER_TOTAL_WITH_INVENTORY_PACK_LIMIT =
   AUTOS_DEALER_BASE_INCLUDED_VEHICLES + AUTOS_DEALER_INVENTORY_PACK_ADDITIONAL_VEHICLES;
+
+/**
+ * The Quick (SIMPLE) allowance for the two inventory categories. Quick is the smaller product:
+ * one real vehicle / one real property, and no inventory pack is offered at all, so a $99
+ * customer can never reach the Full allowance by buying an add-on at checkout.
+ *
+ * These restate `includedInventory` on the Quick matrix entries; the verifier asserts they agree,
+ * so the number cannot drift away from the package that is actually sold.
+ */
+export const AUTOS_DEALER_QUICK_INCLUDED_VEHICLES = 1;
+export const BR_QUICK_INCLUDED_PROPERTIES = 1;
 
 export type PublishCheckpointMode = "checkout" | "free_publish";
 
@@ -217,8 +228,8 @@ export function formatPublishCheckpointMoney(
 function brInventoryPackBlockReason(lang: PublishCheckpointLanguage, childCount: number): string | null {
   if (childCount > BR_INVENTORY_PACK_MAX_CHILDREN) {
     return lang === "es"
-      ? "Ya tienes 4 propiedades adicionales en este paquete de inventario. Elimina una propiedad o contacta a Leonix para un plan de oficina más grande."
-      : "You already have 4 additional properties in this inventory pack. Remove one property or contact Leonix for a larger office plan.";
+      ? "Este paquete permite hasta 3 propiedades adicionales. Elimina una propiedad o contacta a Leonix para un plan de oficina más grande."
+      : "This inventory pack allows up to 3 additional properties. Remove one property or contact Leonix for a larger office plan.";
   }
   if (childCount >= 1 && !REVENUE_OS_BR_INVENTORY_PACK_SUPPORTED) {
     return lang === "es"

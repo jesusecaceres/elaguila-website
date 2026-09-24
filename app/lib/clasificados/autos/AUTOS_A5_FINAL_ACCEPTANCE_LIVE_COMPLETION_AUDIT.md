@@ -118,7 +118,7 @@ Evidence: `AutosInventoryVehicleDrawerForm` (steppedMode) + `autosAdditionalInve
 
 ## Step 5 inherited/prefilled proof
 
-**PASS (source)** — `AutosInventoryInheritedDealerStep` displays read-only: dealer name, phones, email, website, booking URL, address, finance fields, socials, Google/Yelp, custom links (max 2 from parent), hours. Copy: “Esta información se toma de la solicitud principal del concesionario.” Edit action navigates to parent Step 5 without mutating parent from child.
+**PASS (source)** — `AutosInventoryInheritedDealerStep` displays read-only: dealer name, phones, email, website, booking URL, address, finance fields, socials, Google/Yelp, custom links (max 2 from parent), hours. Copy: “La información del dealer se hereda de la aplicación principal del concesionario.” Edit action navigates to parent Step 5 without mutating parent from child.
 
 ## Save/save-and-add result
 

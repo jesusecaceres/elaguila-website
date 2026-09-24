@@ -24,6 +24,7 @@ import { CommunityPublishConfirmationSection } from "@/app/publicar/community/sh
 import { COMMUNITY_PUBLISH_COPY } from "@/app/publicar/community/shared/copy/communityPublishCopy";
 
 import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlowLifecycleClient";
+import { formatWhatsAppInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 
 import { mascotasPerdidosFormCopy } from "../shared/mascotasPerdidosFormCopy";
 import { mascotasPerdidosHandoffPreviewUrl } from "../shared/mascotasPerdidosPublishRoutes";
@@ -548,7 +549,7 @@ export default function MascotasPerdidosQuickFormClient() {
             <EmpleosFieldLabel lang={lang} optional>
               {copy.fields.whatsapp}
             </EmpleosFieldLabel>
-            <input className={INPUT} type="tel" inputMode="tel" value={state.whatsapp} onChange={(e) => patch({ whatsapp: e.target.value })} />
+            <input className={INPUT} type="tel" inputMode="tel" value={state.whatsapp} onChange={(e) => patch({ whatsapp: formatWhatsAppInputDisplay(e.target.value) })} />
           </label>
           <label className="block text-sm">
             <EmpleosFieldLabel lang={lang} optional>

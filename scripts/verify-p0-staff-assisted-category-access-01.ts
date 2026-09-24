@@ -62,12 +62,24 @@ const tokenModuleSrc = read("app/lib/auth/assistedPublishingSession.ts");
 assert.ok(tokenModuleSrc.includes('import "server-only";'), "token module is server-only");
 assert.ok(tokenModuleSrc.includes("ASSISTED_PUBLISHING_SESSION_SECRET"), "uses its own dedicated secret env var");
 assert.ok(!tokenModuleSrc.includes("process.env.ADMIN_BOOTSTRAP_SESSION_SECRET") && !tokenModuleSrc.includes("process.env.ADMIN_PASSWORD"), "never reads the bootstrap secret or the shared admin password env vars — independent failure domains (doc comment may still name them for context)");
-assert.ok(tokenModuleSrc.includes('createHmac("sha256"') && tokenModuleSrc.includes("timingSafeEqual"), "same HMAC-SHA256 + constant-time-compare pattern as the proven bootstrap token, not reinvented crypto");
+/**
+ * Gate QB-STAFF-03 — the HMAC construction now lives in the pure, importable
+ * `assistedPublishingToken.ts` so it can be attacked by a real test instead of only matched as a
+ * string. The assertion is UNCHANGED in substance (same claim, same strictness); it simply reads
+ * the file that now holds the crypto. The behavioural proof that a forged or tampered token is
+ * actually rejected lives in scripts/verify-quick-assisted-operations-01.ts (12 attack cases).
+ */
+const tokenCryptoSrc = read("app/lib/auth/assistedPublishingToken.ts");
+assert.ok(tokenCryptoSrc.includes('createHmac("sha256"') && tokenCryptoSrc.includes("timingSafeEqual"), "same HMAC-SHA256 + constant-time-compare pattern as the proven bootstrap token, not reinvented crypto");
+assert.ok(tokenModuleSrc.includes("verifyAssistedPublishingTokenWithSecret") && tokenModuleSrc.includes("createAssistedPublishingTokenWithSecret"), "the server-only wrapper delegates to that crypto rather than duplicating it");
 assert.ok(/if \(!secret\) return null;/.test(tokenModuleSrc), "fails closed when the secret is not configured (create)");
 assert.ok(/if \(!secret\) return null;[\s\S]{0,400}LEONIX_ASSISTED_PUBLISH_COOKIE/.test(tokenModuleSrc) || tokenModuleSrc.match(/if \(!secret\) return null;/g)!.length >= 2, "fails closed on verify too");
 assert.ok(tokenModuleSrc.includes("httpOnly: true") && tokenModuleSrc.includes('sameSite: "strict"'), "cookie is httpOnly + sameSite strict, mirroring applyLeonixAdminSessionCookies");
-assert.ok(/expiresAtMs\s*<=\s*Date\.now\(\)/.test(tokenModuleSrc) || /parsed\.expiresAtMs\s*<=\s*Date\.now\(\)/.test(tokenModuleSrc), "verifies expiry, not just signature");
-assert.ok(/60\s*\*\s*60;/.test(tokenModuleSrc), "short-lived (1 hour), not a standing credential");
+// Expiry and lifetime now live with the crypto in assistedPublishingToken.ts. Same claims, same
+// strictness, correct file — plus real expiry attacks in verify-quick-assisted-operations-01.ts.
+assert.ok(/expiresAtMs\s*<=\s*nowMs/.test(tokenCryptoSrc) || /parsed\.expiresAtMs\s*<=\s*nowMs/.test(tokenCryptoSrc), "verifies expiry, not just signature");
+assert.ok(/issuedAtMs\s*>\s*nowMs/.test(tokenCryptoSrc), "rejects a token issued in the future (clock-skew forgery)");
+assert.ok(/60\s*\*\s*60;/.test(tokenCryptoSrc), "short-lived (1 hour), not a standing credential");
 adminSessionUntouched();
 function adminSessionUntouched() {
   assert.ok(!allTouched.includes("app/lib/supabase/adminSession.ts"), "the existing, proven admin bootstrap session module was never touched");
@@ -125,21 +137,90 @@ for (const f of PER_CATEGORY_LAYOUTS) {
 // strict bearer-token / Revenue OS checkout gates inside that file are still fully intact,
 // byte-identical in shape, only additively bypassed when a server-verified assisted context is
 // present. Restaurantes and the shared bearer-auth helper remain untouched by either mission.
+//
+// Gate QB-IDENTITY-01 extends app/api/clasificados/restaurantes/publish/route.ts the same way and
+// for the same kind of reason: an ADDITIVE canonical `business_listing_links` write on the
+// self-service branch, so customer-published and Leonix-published listings converge on one
+// relationship. It is therefore removed from the blanket "untouched" list, following the exact
+// precedent above — and replaced immediately below by TARGETED assertions that the publish-time
+// customer auth enforcement inside it is still fully intact. A blanket file-unchanged check would
+// freeze the file forever; the targeted checks below are stricter about the thing that matters.
 for (const f of [
-  "app/api/clasificados/restaurantes/publish/route.ts",
   "app/api/clasificados/servicios/lib/serviciosPublishServerAuth.ts",
 ]) {
   assert.ok(!allTouched.includes(f), `${f} (real publish-time customer auth enforcement) was not touched — unweakened, unchanged`);
 }
 
+// 5b. Restaurantes publish: the customer auth enforcement is re-proven directly, in place of the
+// blanket untouched check removed above. Each assertion names a distinct enforcement property.
+{
+  const rsrc = read("app/api/clasificados/restaurantes/publish/route.ts");
+  assert.ok(
+    /const verifiedOwnerId = await restauranteOwnerIdFromBearer\(req\);/.test(rsrc),
+    "restaurantes publish still derives the customer identity from a real Supabase bearer token",
+  );
+  assert.ok(
+    /if \(strict && !verifiedOwnerId && !isAssistedRequest\)/.test(rsrc),
+    "strict (production) publishing still REQUIRES a real customer bearer token unless a server-verified assisted context is present",
+  );
+  assert.ok(
+    /assistedContext\?\.clientUserId/.test(rsrc) && /isAssistedRequest/.test(rsrc),
+    "an assisted publish takes customer ownership only from the signed custody token, never from the staff bearer",
+  );
+  assert.ok(
+    !/const ownerUserId = isAssistedRequest \? verifiedOwnerId/.test(rsrc),
+    "staff never impersonate the customer as listing owner",
+  );
+  assert.ok(
+    /existingOwnerUserId && verifiedOwnerId && existingOwnerUserId !== verifiedOwnerId/.test(rsrc),
+    "the cross-owner mutation guard is intact — one customer can never overwrite another's listing",
+  );
+  // The additive change must be exactly that: a link write, never an ownership write.
+  assert.ok(
+    !/owner_user_id:\s*body\.|owner_user_id:\s*draft\./.test(rsrc),
+    "ownership is never taken from the request body or the draft",
+  );
+}
+
 // 6. No new architecture ------------------------------------------------------------------------
-assert.ok(!allTouched.some((f) => f.startsWith("supabase/migrations/")), "no new Supabase migration — draft custody stays out of the database");
+// Gate QB-LIFECYCLE-02 authors ONE additive migration that only widens two lifecycle CHECK
+// constraints (it creates no table and no custody architecture, and is deliberately not applied).
+// The claim this guard protects is "draft custody stays out of the database", so it is narrowed to
+// that claim rather than dropped: no migration may introduce custody/listing-link architecture.
+const CUSTODY_ARCHITECTURE_RE = /create\s+table[\s\S]*?(business_listing_links|custody|assisted_)/i;
+for (const f of allTouched.filter((x) => x.startsWith("supabase/migrations/"))) {
+  const sql = read(f);
+  assert.ok(
+    !CUSTODY_ARCHITECTURE_RE.test(sql),
+    `${f} must not introduce custody/listing-link database architecture — draft custody stays composed from existing tables`,
+  );
+}
 // LEONIX ASSISTED SERVICIOS NAVIGATION CLEANUP (later, explicitly-authorized, navigation-only
 // mission) legitimately touches ClasificadosServiciosApplication.tsx for a persistent assisted
 // header + extracted step-transition callbacks — no new field, no new persistence, no duplicate
 // application. See verify-p0-assisted-servicios-navigation-01.ts for the dedicated proof.
+// LEONIX FINAL QUICK SALES PREVIEW WORKSPACE (later, explicitly-authorized mission) mounts the
+// SHARED staff save-for-client strip inside the Restaurantes application, exactly as the Servicios
+// preview already carried one. The contract this assertion exists to protect is "no new or
+// duplicated application", not "this file is frozen": so the file may be touched, and what is
+// asserted is that the touch adds the shared component and nothing that looks like a second
+// application — no new draft persistence, no forked publish endpoint, no new form state.
 for (const f of ["app/(site)/publicar/restaurantes/RestauranteApplicationClient.tsx"]) {
-  assert.ok(!allTouched.includes(f), `${f} (a category's own form component) was not touched — no new/duplicate application`);
+  if (!allTouched.includes(f)) continue;
+  const src = read(f);
+  assert.ok(
+    src.includes("AssistedSaveForClientBar"),
+    `${f} may only gain the SHARED assisted strip — a bespoke staff form here would be a duplicate application`,
+  );
+  assert.equal(
+    (src.match(/useRestauranteDraft\(/g) ?? []).length,
+    1,
+    `${f} must still hold exactly one application draft — a second one would be a duplicate application`,
+  );
+  assert.ok(
+    !/fetch\(\s*"\/api\/clasificados\/restaurantes\/publish"[\s\S]{0,400}assistedAction/.test(src),
+    `${f} must not fork its own assisted publish call — the shared caller owns that contract`,
+  );
 }
 const returnCtxSrc = read("app/lib/business/applicationContext/conciergeReturnContext.ts");
 assert.ok(returnCtxSrc.includes('managementMode: "leonix_assisted"') && returnCtxSrc.includes("customerOwner: null") && returnCtxSrc.includes("createdByStaffActor"), "draft custody metadata (Gate 3) lives in the existing sessionStorage context, not a new DB row");

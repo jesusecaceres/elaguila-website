@@ -19,8 +19,8 @@ export const OFERTAS_LOCALES_PUBLIC_TERM_DAYS = 30;
 export const OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY = "ofertas_locales_flyer_30d";
 export const OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY = "ofertas_locales_coupons_30d";
 export const OFERTAS_LOCALES_FLYER_PRICE_CENTS = 39900;
-/** Cupones y promociones is a free product (locked) — see ofertasLocalesCommercial.ts. */
-export const OFERTAS_LOCALES_COUPONS_PRICE_CENTS = 0;
+/** Must match `revenuePricingMatrix.ts` `ofertas_locales_coupons_30d.priceCents` (server checkout authority). */
+export const OFERTAS_LOCALES_COUPONS_PRICE_CENTS = 19900;
 export const OFERTAS_LOCALES_CURRENCY = "usd" as const;
 
 /** Digital-first supermarket value proposition — print is not the core sell. */
@@ -97,7 +97,7 @@ export const OFERTAS_LOCALES_STEP1_BASE_PRODUCTS = [
     pricingKey: "digitalCouponListing" as const,
     labelEs: "Cupón o promoción",
     labelEn: "Coupon / Promotion",
-    priceDisplayMonthly: 0,
+    priceDisplayMonthly: 199,
     valueCopyEs:
       "Publica cupones, promociones, combos, especiales de temporada o descuentos por tiempo limitado.",
     valueCopyEn:
@@ -149,10 +149,10 @@ export const OFERTAS_LOCALES_PUBLISH_PRODUCT_CATALOG = {
     primaryAdFormat: "local_coupons" as const,
     labelEs: "Cupones Leonix",
     labelEn: "Leonix Coupons",
-    displayPriceUsd: 0,
+    displayPriceUsd: 199,
     currency: "USD" as const,
     durationDays: 30,
-    /** Cupones y promociones is a free, manual-entry product — no AI scan/review. */
+    /** Coupon lane is manual-entry (no AI scan/review). Price is the existing 30-day server package. */
     aiIncluded: false,
     productSearchIncluded: false,
     productShoppingListIncluded: false,
@@ -237,9 +237,9 @@ export const OFERTAS_LOCALES_PRICING: Record<
   OfertaLocalPricingPackage
 > = {
   digitalCouponListing: {
-    label: "Digital Coupon Listing (Free)",
-    regularPriceMonthly: 0,
-    pickupPartnerPriceMonthly: 0,
+    label: "Digital Coupon Listing",
+    regularPriceMonthly: 199,
+    pickupPartnerPriceMonthly: 199,
     interval: "month",
   },
   digitalWeeklySpecials: {
@@ -324,7 +324,7 @@ export const OFERTAS_LOCALES_VERSION_2_FEATURES = [
   "Item-to-flyer flow",
   "Review and approve workflow",
   "Google Document AI scan jobs",
-  "AI analysis included in both locked publish products",
+  "AI analysis included in the Interactive Flyer product; Coupons remain manual-entry",
 ] as const;
 
 export const OFERTAS_LOCALES_DEFAULT_FILTERS = {

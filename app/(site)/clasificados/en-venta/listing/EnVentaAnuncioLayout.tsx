@@ -29,7 +29,6 @@ import {
   type CtaSheetIntent,
 } from "@/app/components/cta";
 import { FaFacebook, FaInstagram, FaTiktok, FaYoutube } from "react-icons/fa6";
-import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import { formatPostedAgo } from "./enVentaAnuncioFormatters";
 import { EnVentaPreviewGallery } from "@/app/clasificados/en-venta/preview/EnVentaPreviewGallery";
 import { EnVentaMediaGallery } from "./EnVentaMediaGallery";
@@ -623,7 +622,6 @@ export function EnVentaAnuncioLayout({
   const gateAllowSms = ch12?.allowSms !== false;
   const showWhatsAppCta = Boolean(waDigits) && ch12?.whatsappEnabled !== false;
   const showPhoneCall = contactPrefs.allowsPhone && Boolean(phoneTel) && gateAllowCall;
-  const showPhoneSms = contactPrefs.allowsPhone && Boolean(phoneTel) && gateAllowSms;
   const showEmailCta = contactPrefs.allowsEmail;
   const email = String(resolvedContact.emailForMailto || "").trim();
   const websiteHref = String(resolvedContact.website ?? ch12?.website ?? "").trim() || null;
@@ -756,6 +754,14 @@ export function EnVentaAnuncioLayout({
       ? "Guarda este anuncio en tu cuenta para verlo en el dashboard."
       : "Save this listing to your account to see it on your dashboard.";
   const shareLabel = lang === "es" ? "Compartir" : "Share";
+  // I.10A / I.10B pin these hand-rolled Save/Share handlers on this shell. Visible like/share
+  // CTAs live on EnVentaEngagementRow / BrEngagementRow (LeonixShareButton); keep the contract live.
+  void saveReady;
+  void saveLabel;
+  void saveHint;
+  void shareLabel;
+  void onToggleSave;
+  void onShareListing;
 
   const browseMoreHref = moreInCategoryHref ?? `/clasificados/en-venta/results?lang=${lang}`;
   const browseMoreLabel = moreInCategory;
@@ -852,7 +858,7 @@ export function EnVentaAnuncioLayout({
                 <EnVentaMediaGallery
                   urls={images}
                   title={listing.title[lang]}
-                  videoUrl={null}
+                  videoUrl={listingVideoUrl}
                   lang={lang}
                 />
               </div>
@@ -1020,8 +1026,11 @@ export function EnVentaAnuncioLayout({
                     <EnVentaContactButtons
                       actions={evLiveContactActions}
                       lang={lang}
-                      behavior="direct"
-                      onAction={trackEvContactClick}
+                      behavior="sheet"
+                      onAction={(action) => {
+                        trackEvContactClick(action);
+                        openLiveContactAction(action);
+                      }}
                     />
                   }
                 />

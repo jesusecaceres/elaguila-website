@@ -1,14 +1,17 @@
 import "server-only";
 
-import { unstable_cache } from "next/cache";
-
 import type { ViajesResultRow } from "../data/viajesResultsSampleData";
-import { VIAJES_CACHE_TAG_BROWSE } from "./viajesCacheTags";
 import { mergeViajesPublicResultRows } from "./viajesPublicInventory";
 import { mapViajesStagedRowToViajesBusinessResult } from "./mapViajesStagedRowToViajesResult";
 import { fetchApprovedViajesStagedRows } from "./viajesStagedListingsDbServer";
 
-async function fetchViajesPublicBrowseRowsMergedUncached(): Promise<{
+/**
+ * Approved staged rows merged with curated seed.
+ * Intentionally uncached: resultados is `force-dynamic` and must reflect approvals
+ * immediately (tag expire alone was insufficient under `next start` for e2e).
+ * Offer-detail caches remain tag-scoped separately.
+ */
+export async function fetchViajesPublicBrowseRowsMerged(): Promise<{
   rows: ViajesResultRow[];
   stagedApprovedCount: number;
 }> {
@@ -18,14 +21,4 @@ async function fetchViajesPublicBrowseRowsMergedUncached(): Promise<{
     rows: mergeViajesPublicResultRows(mapped),
     stagedApprovedCount: mapped.length,
   };
-}
-
-/** Approved staged rows merged with curated seed; tag-invalidated on moderation changes. */
-export async function fetchViajesPublicBrowseRowsMerged(): Promise<{
-  rows: ViajesResultRow[];
-  stagedApprovedCount: number;
-}> {
-  return unstable_cache(fetchViajesPublicBrowseRowsMergedUncached, ["viajes-public-browse-rows-merged-v1"], {
-    tags: [VIAJES_CACHE_TAG_BROWSE],
-  })();
 }

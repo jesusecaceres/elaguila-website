@@ -13,6 +13,7 @@ import {
 } from "./components/OwnerManagedEntitiesPreview";
 import { OwnerRecentActivity } from "./components/OwnerRecentActivity";
 import { OwnerBusinessGrowthEntry } from "./components/OwnerBusinessGrowthEntry";
+import { LeonixCreditsPanel } from "./components/LeonixCreditsPanel";
 import { accountCommandCenterCopy } from "./lib/dashboardI18n";
 import { supabase } from "../../lib/supabaseClient";
 import {
@@ -245,7 +246,6 @@ function DashboardPageContent() {
       accountRef={accountRef}
       membershipTier={membershipTier}
       accountType={accountType}
-      ownerId={userId}
       contentLayout="workbench"
     >
       {authLoading ? (
@@ -288,6 +288,10 @@ function DashboardPageContent() {
           ) : (
             <p className="max-w-4xl text-xs leading-relaxed text-[#7A7164]">{t.metricsFootnote}</p>
           )}
+          {/* LEONIX IX REWARDS — the customer's own credit wallet, mounted in the canonical owner
+              dashboard rather than on a page of its own. It renders nothing for a signed-out
+              visitor and shows a truthful zero state for a customer who has not earned yet. */}
+          <LeonixCreditsPanel lang={lang} />
           <OwnerManagedEntitiesPreview
             lang={lang}
             q={q}

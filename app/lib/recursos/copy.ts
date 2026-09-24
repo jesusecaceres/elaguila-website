@@ -22,7 +22,7 @@ export const RECURSOS_PAGE_COPY = {
     description:
       "Encuentra espacios comunitarios, actividades, aprendizaje, ayuda y conexiones locales en un solo lugar. Esta sección reúne recursos útiles para familias, organizaciones y vecinos.",
     ctaExplore: "Explorar recursos",
-    ctaPost: "Publicar recurso",
+    ctaPost: "Sugerir un recurso",
     sectionLanes: "Explorar por recurso",
     explore: "EXPLORAR",
     searchEyebrow: "BÚSQUEDA COMUNITARIA",
@@ -39,10 +39,10 @@ export const RECURSOS_PAGE_COPY = {
     filterAyuda: "Ayuda",
     filterMascotas: "Mascotas",
     filterSolicitudes: "Solicitudes",
-    promoTitle: "¿Tienes un recurso para compartir?",
+    promoTitle: "¿Conoces un recurso verificado?",
     promoDescription:
-      "Publica eventos, clases, ayuda comunitaria o información útil para que más personas puedan encontrarla.",
-    promoButton: "Publicar recurso",
+      "Leonix revisa cada recurso antes de publicarlo. El público no puede publicar recursos por su cuenta.",
+    promoButton: "Sugerir un recurso",
 
     // Verified directory — hero trust copy + category grid heading
     heroTrustLine: "Cada recurso se revisa contra su fuente oficial actual antes de publicarse.",
@@ -64,7 +64,7 @@ export const RECURSOS_PAGE_COPY = {
     description:
       "Find community spaces, activities, learning, support, and local connections in one place. This section brings together useful resources for families, organizations, and neighbors.",
     ctaExplore: "Explore resources",
-    ctaPost: "Post resource",
+    ctaPost: "Suggest a resource",
     sectionLanes: "Explore by resource",
     explore: "EXPLORE",
     searchEyebrow: "COMMUNITY SEARCH",
@@ -81,10 +81,10 @@ export const RECURSOS_PAGE_COPY = {
     filterAyuda: "Help",
     filterMascotas: "Pets",
     filterSolicitudes: "Requests",
-    promoTitle: "Have a resource to share?",
+    promoTitle: "Know a verified resource?",
     promoDescription:
-      "Post events, classes, community help, or useful information so more people can find it.",
-    promoButton: "Post resource",
+      "Leonix reviews every resource before it is published. The public cannot auto-publish resources.",
+    promoButton: "Suggest a resource",
 
     heroTrustLine: "Every resource is checked against its current official source before it's published.",
     directoryHeading: "Find help by topic",

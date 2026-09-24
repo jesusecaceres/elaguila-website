@@ -3,6 +3,7 @@ import "server-only";
 import { getAdminSupabase, getServerSupabaseAnon, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { mapPublicPrayer } from "./prayerPublicMapper";
 import type { PrayerPublicCard } from "./prayerTypes";
+import { isPrayerCategoryKey, isPrayerLanguage, type PrayerCategoryKey, type PrayerLanguage } from "./prayerTaxonomy";
 
 const PUBLIC_SELECT =
   "id, visibility, language, city, category, display_name, body, status, created_at, published_at, moderation_status";
@@ -11,18 +12,22 @@ export async function listPublicPrayers(opts: {
   sessionHash: string | null;
   userId: string | null;
   limit?: number;
+  /** Gate 12: lightweight wall filters. Both are optional and additive. */
+  category?: PrayerCategoryKey | null;
+  language?: PrayerLanguage | null;
 }): Promise<PrayerPublicCard[]> {
   if (!isSupabaseAdminConfigured()) return [];
   const admin = getAdminSupabase();
-  const { data: rows, error } = await admin
+  let query = admin
     .from("prayer_requests")
     .select(PUBLIC_SELECT)
     .in("visibility", ["PUBLIC_NAMED", "PUBLIC_ANONYMOUS"])
     .eq("moderation_status", "CLEARLY_SAFE")
     .in("status", ["OPEN", "STILL_NEEDS_PRAYER", "UPDATE_POSTED", "ANSWERED_OR_GRATITUDE"])
-    .not("published_at", "is", null)
-    .order("published_at", { ascending: false })
-    .limit(opts.limit ?? 40);
+    .not("published_at", "is", null);
+  if (opts.category && isPrayerCategoryKey(opts.category)) query = query.eq("category", opts.category);
+  if (opts.language && isPrayerLanguage(opts.language)) query = query.eq("language", opts.language);
+  const { data: rows, error } = await query.order("published_at", { ascending: false }).limit(opts.limit ?? 40);
 
   if (error || !rows) return [];
 

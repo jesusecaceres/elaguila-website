@@ -1,7 +1,15 @@
 import "server-only";
 
-import { createHmac, timingSafeEqual } from "node:crypto";
 import type { CookieStore } from "@/app/lib/supabase/server";
+import {
+  ASSISTED_PUBLISH_MAX_AGE_SEC,
+  type AssistedPublishingContext,
+  createAssistedPublishingTokenWithSecret,
+  verifyAssistedPublishingTokenWithSecret,
+} from "./assistedPublishingToken";
+
+export type { AssistedPublishingContext } from "./assistedPublishingToken";
+export { ASSISTED_PUBLISH_MAX_AGE_SEC } from "./assistedPublishingToken";
 
 /**
  * P0 Staff-Assisted Category Access — the ONE reusable "is this specific render authorized for a
@@ -31,44 +39,11 @@ import type { CookieStore } from "@/app/lib/supabase/server";
 
 export const LEONIX_ASSISTED_PUBLISH_COOKIE = "leonix_assisted_publish";
 
-/** Short-lived on purpose — one staff prep session, not a standing credential. Re-minted on every fresh handoff. */
-const ASSISTED_PUBLISH_MAX_AGE_SEC = 60 * 60; // 1 hour
-
 function getAssistedPublishingSecret(): string | null {
   const key = process.env.ASSISTED_PUBLISHING_SESSION_SECRET?.trim();
   return key ? key : null;
 }
 
-function signPayload(payload: string, secret: string): string {
-  return createHmac("sha256", secret).update(payload, "utf8").digest("hex");
-}
-
-function safeEqualHex(a: string, b: string): boolean {
-  const left = Buffer.from(a, "utf8");
-  const right = Buffer.from(b, "utf8");
-  if (left.length !== right.length) return false;
-  return timingSafeEqual(left, right);
-}
-
-export type AssistedPublishingContext = {
-  businessId: string;
-  /** The PublicarGatewayCategoryKey this token was minted for (e.g. "servicios"). Informational —
-   * the render gate itself only requires ANY valid, unexpired token; display surfaces (the
-   * existing ConciergeReturnBanner, which reads the separate unsigned sessionStorage context) are
-   * the source of truth for what's shown to the staff member. */
-  category: string;
-  /** admin_team_members.id of the staff actor this token was minted for. Never a bootstrap/fake id
-   * — toStaffWriteActor() already rejects owner_bootstrap before this module is ever reached. */
-  rosterId: string;
-  /** LEONIX P0 FINAL ASSISTED PUBLISHING BRIDGE — the staff actor's real Supabase Auth user id
-   * (StrictSalesActor.authUserId), re-verified fresh at mint time. Used ONLY as attribution
-   * (business_listing_links.linked_by — "who linked this record", not ownership) when a category
-   * publish route records custody of a Leonix-prepared draft. Never written to any listing's
-   * owner_user_id / customer-ownership column. */
-  authUserId: string;
-  issuedAtMs: number;
-  expiresAtMs: number;
-};
 
 /**
  * Mints a signed, expiring assisted-publishing token. Returns null (fail closed — no token can be
@@ -80,21 +55,15 @@ export function createAssistedPublishingToken(input: {
   category: string;
   rosterId: string;
   authUserId: string;
+  /** Same-row server authority — see AssistedPublishingContext.listingId. */
+  listingId?: string | null;
+  clientUserId?: string | null;
+  assistedAction?: string | null;
+  packageKey?: string | null;
 }): string | null {
   const secret = getAssistedPublishingSecret();
   if (!secret) return null;
-  const issuedAtMs = Date.now();
-  const expiresAtMs = issuedAtMs + ASSISTED_PUBLISH_MAX_AGE_SEC * 1000;
-  const payloadObj: AssistedPublishingContext = {
-    businessId: input.businessId,
-    category: input.category,
-    rosterId: input.rosterId,
-    authUserId: input.authUserId,
-    issuedAtMs,
-    expiresAtMs,
-  };
-  const payload = Buffer.from(JSON.stringify(payloadObj), "utf8").toString("base64url");
-  return `${payload}.${signPayload(payload, secret)}`;
+  return createAssistedPublishingTokenWithSecret(input, secret);
 }
 
 /**
@@ -106,40 +75,10 @@ export function createAssistedPublishingToken(input: {
 export function readAssistedPublishingContext(cookies: CookieStore): AssistedPublishingContext | null {
   const secret = getAssistedPublishingSecret();
   if (!secret) return null;
-  const raw = cookies.get(LEONIX_ASSISTED_PUBLISH_COOKIE)?.value;
-  if (!raw) return null;
-  const dot = raw.lastIndexOf(".");
-  if (dot <= 0) return null;
-  const payload = raw.slice(0, dot);
-  const signature = raw.slice(dot + 1);
-  const expectedSignature = signPayload(payload, secret);
-  if (!safeEqualHex(signature, expectedSignature)) return null;
-  let parsed: Partial<AssistedPublishingContext>;
-  try {
-    parsed = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
-  } catch {
-    return null;
-  }
-  if (
-    !parsed.businessId ||
-    !parsed.category ||
-    !parsed.rosterId ||
-    !parsed.authUserId ||
-    typeof parsed.issuedAtMs !== "number" ||
-    typeof parsed.expiresAtMs !== "number"
-  ) {
-    return null;
-  }
-  if (parsed.issuedAtMs > Date.now()) return null;
-  if (parsed.expiresAtMs <= Date.now()) return null;
-  return {
-    businessId: parsed.businessId,
-    category: parsed.category,
-    rosterId: parsed.rosterId,
-    authUserId: parsed.authUserId,
-    issuedAtMs: parsed.issuedAtMs,
-    expiresAtMs: parsed.expiresAtMs,
-  };
+  return verifyAssistedPublishingTokenWithSecret(
+    cookies.get(LEONIX_ASSISTED_PUBLISH_COOKIE)?.value,
+    secret,
+  );
 }
 
 /**
@@ -150,7 +89,16 @@ export function readAssistedPublishingContext(cookies: CookieStore): AssistedPub
  */
 export function applyAssistedPublishingCookie(
   res: { cookies: { set: (name: string, value: string, opts: Record<string, unknown>) => void } },
-  input: { businessId: string; category: string; rosterId: string; authUserId: string },
+  input: {
+    businessId: string;
+    category: string;
+    rosterId: string;
+    authUserId: string;
+    listingId?: string | null;
+    clientUserId?: string | null;
+    assistedAction?: string | null;
+    packageKey?: string | null;
+  },
 ): boolean {
   const secure = process.env.NODE_ENV === "production";
   const base = { path: "/", httpOnly: true, sameSite: "strict" as const, secure };
@@ -161,6 +109,43 @@ export function applyAssistedPublishingCookie(
   }
   res.cookies.set(LEONIX_ASSISTED_PUBLISH_COOKIE, token, { ...base, maxAge: ASSISTED_PUBLISH_MAX_AGE_SEC });
   return true;
+}
+
+/**
+ * Gate QB-STAFF-03 (2026-09-21 audit repair) — REDEMPTION-TIME roster re-check.
+ *
+ * THE GAP THIS CLOSES: the token is minted only after a full
+ * `requireStaffWorkspaceWriteAccess("assisted_category_publishing")` check, but that check happens
+ * ONCE, at mint time. The signature and expiry are all that `readAssistedPublishingContext`
+ * verifies afterwards, so a staff member deactivated, removed from the roster, or unlinked from
+ * their Auth user keeps a fully valid write token for the remainder of
+ * `ASSISTED_PUBLISH_MAX_AGE_SEC` and can still publish on a customer's behalf.
+ *
+ * WHAT THIS ADDS: every seam that WRITES on a customer's behalf re-resolves the roster row at
+ * redemption and refuses unless it is still active AND still the same row the token names.
+ * Cryptographic validity is necessary and no longer sufficient.
+ *
+ * FAIL-CLOSED, deliberately: a missing secret, a bad signature, an expired token, a roster row
+ * that is absent, inactive, or whose id no longer matches the token, and a database that cannot
+ * be reached all resolve to `null`. There is no branch in which an unverifiable roster is treated
+ * as an active one.
+ *
+ * Read-only surfaces (the UI gate, `my-listing`) deliberately keep the cheap synchronous read:
+ * they render a screen, they do not write, and adding a database round-trip to every render would
+ * buy nothing this check does not already deliver at the write boundary.
+ */
+export async function readActiveAssistedPublishingContext(
+  cookies: CookieStore,
+): Promise<AssistedPublishingContext | null> {
+  const ctx = readAssistedPublishingContext(cookies);
+  if (!ctx) return null;
+  const { lookupActiveAdminRosterByAuthUserId } = await import("@/app/lib/supabase/adminSession");
+  const roster = await lookupActiveAdminRosterByAuthUserId(ctx.authUserId);
+  if (!roster.ok) return null;
+  // The token names a specific roster row. A different row for the same Auth user (a re-invite,
+  // a re-created member) is a different actor and must re-authenticate.
+  if (roster.rosterMemberId !== ctx.rosterId) return null;
+  return ctx;
 }
 
 export function clearAssistedPublishingCookie(res: { cookies: { set: (name: string, value: string, opts: Record<string, unknown>) => void } }) {

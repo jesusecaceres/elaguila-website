@@ -147,7 +147,7 @@ const read = (p: string) => readFileSync(path.join(REPO_ROOT, p), "utf8");
 /* 7 — sweep endpoint: secured, machine-executable, never unauthenticated. */
 {
   const sweep = read("app/api/revenue-os/admin/subscription-sweep/route.ts");
-  assert.ok(sweep.includes("requireLeonixAdminPermission"), "admin-session authorization path");
+  assert.ok(sweep.includes("requireRevenueProtectedWriteAccess"), "revenue-protected admin-session authorization path");
   assert.ok(sweep.includes("timingSafeEqual"), "machine secret uses constant-time comparison");
   assert.ok(sweep.includes('{ status: 401 }'), "unauthenticated requests rejected");
   assert.ok(sweep.includes("dryRun"), "dry-run supported");

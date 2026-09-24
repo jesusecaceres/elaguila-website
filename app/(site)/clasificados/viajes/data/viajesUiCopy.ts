@@ -13,6 +13,9 @@ export type ViajesUi = {
   heroPrimaryCue: string;
   heroTitle: string;
   heroSubtitle: string;
+  /** Hero CTA row: primary explores results, secondary opens the publisher */
+  heroCtaExplore: string;
+  heroCtaPublish: string;
   /** Tier labels for landing visual hierarchy (desktop-first; mobile-safe) */
   landing: {
     tier1Eyebrow: string;
@@ -56,6 +59,25 @@ export type ViajesUi = {
   carousel: { prev: string; next: string };
   topOffers: { title: string; subtitle: string; emptyTitle: string; emptyBody: string };
   localDepartures: { title: string; subtitle: string; cta: string; byId: Record<string, { title: string; description: string }> };
+  nearbyEscapes: {
+    title: string;
+    subtitle: string;
+    cta: string;
+    byId: Record<string, { title: string; subline: string }>;
+  };
+  staySection: {
+    title: string;
+    subtitle: string;
+    cta: string;
+    hotels: { title: string; subline: string };
+    rentals: { title: string; subline: string };
+  };
+  mobilitySection: {
+    title: string;
+    subtitle: string;
+    cta: string;
+    byId: Record<string, { title: string; subline: string }>;
+  };
   destinations: { title: string; subtitle: string; cta: string; byId: Record<string, { supportingLine: string }> };
   audience: { title: string; subtitle: string; byId: Record<string, { label: string; subline: string }> };
   lower: {
@@ -143,10 +165,26 @@ export type ViajesUi = {
     discoveryLastMinute: string;
     discoveryFamilies: string;
     discoveryWeekend: string;
+    /** Discovery trio (exact, results footer) */
+    discoveryNearYou: string;
+    discoveryFamilyTrips: string;
+    discoveryGuidesInspiration: string;
     /** Shown when public rows are still demo/sample-backed */
     inventoryDemoBanner: string;
     /** Clarifies departure is hub/region — not postal code search */
     departureFieldNote: string;
+    /** Compact results header (Prompt 2) */
+    compactTitle: string;
+    compactSubtitle: string;
+    sortLabel: (value: string) => string;
+    viewGrid: string;
+    viewList: string;
+    loadMore: string;
+    activeFiltersTitle: string;
+    clearFilters: string;
+    providerRailTitle: string;
+    providerRailCta: string;
+    breadcrumbViajes: string;
   };
   filterRail: {
     destination: string;
@@ -295,9 +333,10 @@ function es(): Omit<ViajesUi, "lang"> {
       browseAllTrips: "Ver todos los viajes en resultados →",
       advertiserPresenceLine: "Perfiles con ficha en Leonix: visibilidad frente a quien ya busca viajar, con origen del listado siempre visible.",
     },
-    heroTitle: "Tu próximo viaje empieza con una búsqueda",
-    heroSubtitle:
-      "Ofertas de socios, paquetes de agencias e ideas editoriales — todo etiquetado. Usa el buscador y luego explora; el desplazamiento es opcional.",
+    heroTitle: "Tu próxima escapada comienza aquí",
+    heroSubtitle: "Descubre viajes, experiencias y negocios que te ayudan a planear algo inolvidable.",
+    heroCtaExplore: "Explorar viajes",
+    heroCtaPublish: "Publicar un viaje",
     search: {
       whereTo: "¿A dónde quieres ir?",
       departureFrom: "Salida desde",
@@ -308,8 +347,8 @@ function es(): Omit<ViajesUi, "lang"> {
       budgetEconomy: "Económico",
       budgetModerate: "Moderado",
       budgetPremium: "Premium",
-      exploreCta: "Explorar viajes",
-      useMyLocation: "📍 Usar mi ubicación",
+      exploreCta: "Buscar",
+      useMyLocation: "Usar mi ubicación",
       locationRequesting: "…",
       departureAria: "Ciudad o aeropuerto de salida",
       geoReady: (originLabel, airportLine) => `Origen por ubicación: ${originLabel} (${airportLine})`,
@@ -326,37 +365,68 @@ function es(): Omit<ViajesUi, "lang"> {
     },
     carousel: { prev: "Ver categorías anteriores", next: "Ver categorías siguientes" },
     topOffers: {
-      title: "Ofertas destacadas ahora",
-      subtitle:
-        "Listados de viajes aprobados en Leonix (negocio o particular). En producción no se mezclan anuncios de demostración salvo que actives NEXT_PUBLIC_VIAJES_SHOW_CURATED_SEED=1 en el despliegue.",
+      title: "Destacados esta semana",
+      subtitle: "Ofertas destacadas con salida desde tu zona — negocio local o socio, siempre etiquetado.",
       emptyTitle: "Aún no hay ofertas destacadas",
       emptyBody: "Publica tu viaje; cuando sea aprobado aparecerá aquí y en resultados. Los visitantes siguen pudiendo explorar con el buscador y los atajos de destino.",
     },
     localDepartures: {
-      title: "Salidas cerca de ti",
+      title: "Saliendo desde tu área",
       subtitle: "Atajos por aeropuerto o escapadas regionales — mismos filtros que arriba, ya aplicados.",
-      cta: "Ver ofertas",
+      cta: "Ver opciones",
       byId: {
-        sjo: { title: "Desde San José", description: "Escapadas a México, Caribe y ciudades de conexión desde SJO." },
+        sjc: { title: "Desde San José, CA", description: "Salidas desde el Valle de Silicio (SJC) hacia la costa, Sierra y el resto de California." },
         sfo: { title: "Desde San Francisco", description: "Vuelos directos y paquetes con salida desde la Bahía." },
         oak: { title: "Desde Oakland", description: "Opciones cercanas al Este de la Bahía con buen valor." },
-        near: { title: "Escapadas cerca de ti", description: "Fin de semana, playa, montaña y viñedos sin ir tan lejos." },
+        near: { title: "Cerca de ti", description: "Fin de semana, playa, montaña y viñedos sin ir tan lejos." },
+      },
+    },
+    nearbyEscapes: {
+      title: "Escapadas y experiencias cerca de ti",
+      subtitle: "Ideas a poca distancia de la Bahía — un clic y sigues en resultados.",
+      cta: "Explorar",
+      byId: {
+        napa: { title: "Valle de Napa", subline: "Viñedos, spas y estadías boutique a menos de dos horas." },
+        "santa-cruz": { title: "Santa Cruz", subline: "Playa, malecón y surf en la Costa Norte de California." },
+        "salidas-de-un-dia": { title: "Salidas de un día", subline: "Ida y vuelta el mismo día — sin pernoctar." },
+        "diversion-en-familia": { title: "Diversión en familia", subline: "Planes con ritmo relajado para todas las edades." },
+        "descubre-mas": { title: "Descubre más", subline: "Ver el catálogo completo de escapadas regionales." },
+      },
+    },
+    staySection: {
+      title: "Dónde hospedarte",
+      subtitle: "Dos formas de hospedarte: hotel con servicios o espacio propio para el grupo.",
+      cta: "Ver opciones",
+      hotels: { title: "Hoteles y resorts", subline: "Todo incluido, boutique y cadenas — con servicio en sitio." },
+      rentals: { title: "Rentas vacacionales", subline: "Casas y condos con cocina y espacio para grupos o familias." },
+    },
+    mobilitySection: {
+      title: "Muévete durante tu viaje",
+      subtitle: "De la llegada al hospedaje y de ahí a donde quieras — opciones de movilidad.",
+      cta: "Ver opciones",
+      byId: {
+        "autos-de-renta": { title: "Autos de renta", subline: "Recogida en aeropuerto o ciudad; compara categorías de vehículo." },
+        "traslados-al-aeropuerto": { title: "Traslados al aeropuerto", subline: "Vehículo privado o compartido hacia tu hospedaje." },
+        "vans-para-grupos": { title: "Vans para grupos", subline: "Transporte para grupos grandes o familias numerosas." },
+        "conductores-privados": { title: "Conductores privados", subline: "Servicio con chofer para el día o el itinerario completo." },
       },
     },
     destinations: {
-      title: "Destinos para explorar",
+      title: "Explora destinos",
       subtitle: "Colecciones temáticas: un clic y sigues en resultados con ese destino.",
       cta: "Ver ofertas",
       byId: {
-        "cancun-col": { supportingLine: "Playas, arrecifes y vida nocturna con paquetes curados." },
-        cr: { supportingLine: "Bosque nuboso, canopy y playas del Pacífico." },
-        sc: { supportingLine: "Costa Norte de California: surf, senderos y gastronomía." },
+        napa: { supportingLine: "Viñedos y spas a poca distancia de la Bahía." },
+        monterey: { supportingLine: "Acuario, costa y sabor del Pacífico." },
+        "big-sur": { supportingLine: "Acantilados y carretera escénica." },
+        tahoe: { supportingLine: "Lago, montaña y escapadas de temporada." },
         yosemite: { supportingLine: "Naturaleza icónica con estancias y tours guiados." },
+        "santa-cruz": { supportingLine: "Playa, malecón y surf en la Costa Norte." },
       },
     },
     audience: {
-      title: "Elige por tipo de viaje",
-      subtitle: "Familia, pareja, grupo o romance — resultados alineados a tu intención.",
+      title: "Viajes para cada plan",
+      subtitle: "Familia, pareja, grupo o aventura — resultados alineados a tu intención.",
       byId: {
         families: {
           label: "Para familias",
@@ -370,19 +440,19 @@ function es(): Omit<ViajesUi, "lang"> {
           label: "Para grupos",
           subline: "Villas, cruceros y paquetes con tarifas por habitación múltiple.",
         },
-        romantic: {
-          label: "Escapadas románticas",
-          subline: "Spa, vistas y detalles para una escapada inolvidable.",
+        adventure: {
+          label: "Aventura",
+          subline: "Naturaleza, actividades al aire libre y ritmo activo.",
         },
       },
     },
     lower: {
-      partnersTitle: "Operadores y agencias en Leonix",
+      partnersTitle: "Conoce negocios de viajes",
       partnersSubtitle: "Fichas de negocio: especialidad y contacto visibles. La reserva no pasa por Leonix.",
       businessPublished: "Negocio publicado",
       verified: "Verificado",
-      viewProfile: "Ver perfil →",
-      editorialTitle: "Guías e inspiración de viaje",
+      viewProfile: "Ver perfil y ofertas",
+      editorialTitle: "Guías e inspiración",
       editorialSubtitle: "Lectura e ideas — no es un listado transaccional; sirve para afinar tu búsqueda.",
       editorialPill: "Editorial",
       readTime: (n) => `${n} de lectura`,
@@ -407,20 +477,12 @@ function es(): Omit<ViajesUi, "lang"> {
       nearYou: "Cerca de ti",
     },
     categoryPills: {
-      weekend: "Escapadas de fin de semana",
-      day: "Viajes de un día",
-      resorts: "Resorts todo incluido",
-      hoteles: "Hoteles / estadías",
-      tours: "Tours y excursiones",
-      actividades: "Actividades en destino",
+      day: "Viaje de un día",
+      weekend: "Escapadas",
+      resorts: "Hoteles y resorts",
+      hoteles: "Rentas vacacionales",
       cruises: "Cruceros",
-      "renta-autos": "Renta de autos",
-      transporte: "Transporte / traslados",
-      "ultimo-minuto": "Último minuto",
-      family: "Viajes familiares",
-      romantic: "Viajes románticos",
-      sjo: "Salidas desde San José (SJC)",
-      budget: "Ofertas por presupuesto",
+      transporte: "Autos y traslados",
     },
     results: {
       breadcrumbResults: "Resultados",
@@ -436,7 +498,7 @@ function es(): Omit<ViajesUi, "lang"> {
       budget: "Presupuesto",
       audience: "Público",
       sort: "Orden",
-      sortFeatured: "Destacado",
+      sortFeatured: "Relevancia",
       sortNewest: "Más recientes",
       sortPriceAsc: "Precio ↑",
       sortPriceDesc: "Precio ↓",
@@ -471,9 +533,23 @@ function es(): Omit<ViajesUi, "lang"> {
       discoveryLastMinute: "Último minuto",
       discoveryFamilies: "Tours en familia",
       discoveryWeekend: "Fin de semana · salida SFO",
+      discoveryNearYou: "Escapadas cerca de ti",
+      discoveryFamilyTrips: "Viajes para familias",
+      discoveryGuidesInspiration: "Guías e inspiración",
       inventoryDemoBanner:
-        "Modo demostración: se están mezclando filas de ejemplo con las aprobadas. En producción, sin NEXT_PUBLIC_VIAJES_SHOW_CURATED_SEED=1, solo ves anuncios reales aprobados. Ocultar por completo: NEXT_PUBLIC_VIAJES_HIDE_CURATED_SEED=1.",
+        "Vista de demostración: se muestran ejemplos curados junto a anuncios aprobados para que puedas explorar el diseño completo.",
       departureFieldNote: "Salida por hub regional (Bahía / SJC), no por código postal.",
+      compactTitle: "Encuentra tu próxima escapada",
+      compactSubtitle: "Ofertas de negocios y particulares aprobados en Leonix — el origen siempre visible.",
+      sortLabel: (value) => `Ordenar: ${value}`,
+      viewGrid: "Cuadrícula",
+      viewList: "Lista",
+      loadMore: "Ver más viajes",
+      activeFiltersTitle: "Filtros activos",
+      clearFilters: "Limpiar filtros",
+      providerRailTitle: "Negocios que pueden ayudarte a planear",
+      providerRailCta: "Ver todos los negocios",
+      breadcrumbViajes: "Viajes",
     },
     filterRail: {
       destination: "Destino",
@@ -632,9 +708,11 @@ function en(): Omit<ViajesUi, "lang"> {
       advertiserPresenceLine:
         "Leonix profiles put you in front of people already planning trips — with clear source labeling on every listing.",
     },
-    heroTitle: "Your next trip starts with a search",
+    heroTitle: "Your next getaway starts here",
     heroSubtitle:
-      "Partner offers, agency packages, and editorial picks — all labeled. Search first; scrolling is optional.",
+      "Discover trips, experiences, and businesses that help you plan something unforgettable.",
+    heroCtaExplore: "Explore trips",
+    heroCtaPublish: "Post a trip",
     search: {
       whereTo: "Where do you want to go?",
       departureFrom: "Departing from",
@@ -645,8 +723,8 @@ function en(): Omit<ViajesUi, "lang"> {
       budgetEconomy: "Economy",
       budgetModerate: "Moderate",
       budgetPremium: "Premium",
-      exploreCta: "Explore trips",
-      useMyLocation: "📍 Use my location",
+      exploreCta: "Search",
+      useMyLocation: "Use my location",
       locationRequesting: "…",
       departureAria: "Departure city or airport",
       geoReady: (originLabel, airportLine) => `Location-based origin: ${originLabel} (${airportLine})`,
@@ -663,9 +741,8 @@ function en(): Omit<ViajesUi, "lang"> {
     },
     carousel: { prev: "Show previous categories", next: "Show next categories" },
     topOffers: {
-      title: "Featured offers right now",
-      subtitle:
-        "Leonix-approved trip listings (business or private). Production does not mix demo/sample rows unless the deployment sets NEXT_PUBLIC_VIAJES_SHOW_CURATED_SEED=1.",
+      title: "Featured this week",
+      subtitle: "Highlighted offers departing from your area — local business or partner, always labeled.",
       emptyTitle: "No featured offers yet",
       emptyBody: "Publish your trip; once approved it appears here and in results. Visitors can still search and use destination shortcuts.",
     },
@@ -674,10 +751,40 @@ function en(): Omit<ViajesUi, "lang"> {
       subtitle: "Airport and regional shortcuts — same filters as above, pre-applied.",
       cta: "View offers",
       byId: {
-        sjo: { title: "From San José", description: "Getaways to Mexico, the Caribbean, and connecting hubs from SJO." },
+        sjc: { title: "From San José, CA", description: "Departures from Silicon Valley (SJC) to the coast, the Sierra, and the rest of California." },
         sfo: { title: "From San Francisco", description: "Direct flights and packages departing the Bay Area." },
         oak: { title: "From Oakland", description: "Great-value options near the East Bay." },
-        near: { title: "Weekend trips nearby", description: "Beach, mountains, and wine country without going far." },
+        near: { title: "Near you", description: "Beach, mountains, and wine country without going far." },
+      },
+    },
+    nearbyEscapes: {
+      title: "Escapes near you",
+      subtitle: "Ideas a short drive from the Bay Area — one tap and you’re in filtered results.",
+      cta: "Explore",
+      byId: {
+        napa: { title: "Napa Valley", subline: "Wineries, spas, and boutique stays under two hours away." },
+        "santa-cruz": { title: "Santa Cruz", subline: "Beach, boardwalk, and surf on the Northern California coast." },
+        "salidas-de-un-dia": { title: "Day trips", subline: "There and back in a day — no overnight needed." },
+        "diversion-en-familia": { title: "Family fun", subline: "Relaxed-pace plans for every age." },
+        "descubre-mas": { title: "Discover more", subline: "See the full catalog of regional getaways." },
+      },
+    },
+    staySection: {
+      title: "Where to stay",
+      subtitle: "Two ways to stay: full-service hotel or your own space for the group.",
+      cta: "View options",
+      hotels: { title: "Hotels & resorts", subline: "All-inclusive, boutique, and chain stays with on-site service." },
+      rentals: { title: "Vacation rentals", subline: "Homes and condos with a kitchen and room for groups or families." },
+    },
+    mobilitySection: {
+      title: "Getting around",
+      subtitle: "From arrival to your stay and beyond — mobility options.",
+      cta: "View options",
+      byId: {
+        "autos-de-renta": { title: "Car rental", subline: "Airport or city pickup; compare vehicle classes." },
+        "traslados-al-aeropuerto": { title: "Airport transfers", subline: "Private or shared ride to your stay." },
+        "vans-para-grupos": { title: "Group vans", subline: "Transport for large groups or bigger families." },
+        "conductores-privados": { title: "Private drivers", subline: "Chauffeured service for the day or full itinerary." },
       },
     },
     destinations: {
@@ -685,15 +792,17 @@ function en(): Omit<ViajesUi, "lang"> {
       subtitle: "Themed collections — one tap and you’re in filtered results for that place.",
       cta: "View offers",
       byId: {
-        "cancun-col": { supportingLine: "Beaches, reefs, and nightlife with curated packages." },
-        cr: { supportingLine: "Cloud forest, canopy, and Pacific beaches." },
-        sc: { supportingLine: "Northern California coast: surf, trails, and food." },
+        napa: { supportingLine: "Vineyards and spas close to the Bay Area." },
+        monterey: { supportingLine: "Aquarium, coastline, and Pacific flavor." },
+        "big-sur": { supportingLine: "Cliffs and scenic highway drives." },
+        tahoe: { supportingLine: "Lake, mountain, and seasonal getaways." },
         yosemite: { supportingLine: "Iconic nature with stays and guided tours." },
+        "santa-cruz": { supportingLine: "Beach, boardwalk, and Northern California surf." },
       },
     },
     audience: {
       title: "Trips for every plan",
-      subtitle: "Filter by intent — family, couple, group, or romance.",
+      subtitle: "Filter by intent — family, couple, group, or adventure.",
       byId: {
         families: {
           label: "For families",
@@ -707,9 +816,9 @@ function en(): Omit<ViajesUi, "lang"> {
           label: "For groups",
           subline: "Villas, cruises, and multi-room packages.",
         },
-        romantic: {
-          label: "Romantic escapes",
-          subline: "Spa, views, and thoughtful details for a memorable trip.",
+        adventure: {
+          label: "Adventure",
+          subline: "Outdoors, active plans, and nature-forward days.",
         },
       },
     },
@@ -744,20 +853,12 @@ function en(): Omit<ViajesUi, "lang"> {
       nearYou: "Near you",
     },
     categoryPills: {
-      weekend: "Weekend getaways",
-      day: "Day trips",
-      resorts: "All-inclusive resorts",
-      hoteles: "Hotels / stays",
-      tours: "Tours & excursions",
-      actividades: "On-destination activities",
+      day: "Day trip",
+      weekend: "Getaways",
+      resorts: "Hotels & resorts",
+      hoteles: "Vacation rentals",
       cruises: "Cruises",
-      "renta-autos": "Car rental",
-      transporte: "Transport / transfers",
-      "ultimo-minuto": "Last minute",
-      family: "Family trips",
-      romantic: "Romantic trips",
-      sjo: "Departures from San José (SJC)",
-      budget: "Budget-friendly deals",
+      transporte: "Cars & transfers",
     },
     results: {
       breadcrumbResults: "Results",
@@ -773,7 +874,7 @@ function en(): Omit<ViajesUi, "lang"> {
       budget: "Budget",
       audience: "Audience",
       sort: "Sort",
-      sortFeatured: "Featured",
+      sortFeatured: "Relevance",
       sortNewest: "Newest",
       sortPriceAsc: "Price ↑",
       sortPriceDesc: "Price ↓",
@@ -808,9 +909,23 @@ function en(): Omit<ViajesUi, "lang"> {
       discoveryLastMinute: "Last minute",
       discoveryFamilies: "Family tours",
       discoveryWeekend: "Weekend · depart SFO",
+      discoveryNearYou: "Getaways near you",
+      discoveryFamilyTrips: "Family trips",
+      discoveryGuidesInspiration: "Guides & inspiration",
       inventoryDemoBanner:
-        "Demo mode: sample rows are merged with approved listings. In production, without NEXT_PUBLIC_VIAJES_SHOW_CURATED_SEED=1, only real approved ads are shown. To hide all samples: NEXT_PUBLIC_VIAJES_HIDE_CURATED_SEED=1.",
+        "Demo view: curated examples appear alongside approved listings so you can explore the full layout.",
       departureFieldNote: "Departure is a regional hub (Bay Area / SJC), not postal-code search.",
+      compactTitle: "Find your next getaway",
+      compactSubtitle: "Approved business and private offers on Leonix — source always visible.",
+      sortLabel: (value) => `Sort: ${value}`,
+      viewGrid: "Grid",
+      viewList: "List",
+      loadMore: "See more trips",
+      activeFiltersTitle: "Active filters",
+      clearFilters: "Clear filters",
+      providerRailTitle: "Businesses that can help you plan",
+      providerRailCta: "See all businesses",
+      breadcrumbViajes: "Viajes",
     },
     filterRail: {
       destination: "Destination",

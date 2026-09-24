@@ -27,6 +27,7 @@ import { adminCategoryWorkspaceQueueHref } from "../_lib/adminCategoryWorkspaceQ
 import type { adminMessages } from "../_lib/adminI18n";
 import type { LeoExecutiveReportingSnapshot } from "@/app/leo/_lib/leoExecutiveReportingTypes";
 import type { LeoSystemHealthSnapshot } from "@/app/leo/_lib/leoTypes";
+import { QUICK_SALES_WORKSPACE_PATH } from "@/app/lib/sales/quickSalesRoutes";
 
 type Msg = ReturnType<typeof adminMessages>;
 
@@ -68,34 +69,6 @@ function PriorityTile({
       <p className="mt-1 text-2xl font-bold tabular-nums text-[#1E1810] sm:text-3xl">{value}</p>
       {hint ? <p className="mt-1 text-[11px] leading-snug text-[#7A7164]">{hint}</p> : null}
       <AdminDashboardCta href={href} label={ctaLabel} variant={variant} className="mt-2 !min-h-[40px] !py-2 !text-xs" />
-    </div>
-  );
-}
-
-function CommandCard({
-  title,
-  count,
-  nextAction,
-  href,
-  ctaLabel,
-  variant = "primary",
-  footnote,
-}: {
-  title: string;
-  count: ReactNode;
-  nextAction: string;
-  href: string;
-  ctaLabel: string;
-  variant?: "primary" | "warning" | "view" | "active" | "neutral";
-  footnote?: string;
-}) {
-  return (
-    <div className={`${adminCardBase} min-w-0 p-4`}>
-      <p className="text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">{title}</p>
-      <p className="mt-2 text-2xl font-bold tabular-nums text-[#1E1810]">{count}</p>
-      <p className="mt-1 text-xs text-[#5C5346]">{nextAction}</p>
-      {footnote ? <p className="mt-1 text-[11px] text-[#9A9084]">{footnote}</p> : null}
-      <AdminDashboardCta href={href} label={ctaLabel} variant={variant} className="mt-3" />
     </div>
   );
 }
@@ -224,7 +197,6 @@ function CompactExpiringRow({ row, m, locale }: { row: AdminDashboardExpiringQue
 function CompactReviewRow({
   row,
   m,
-  locale,
 }: {
   row: AdminDashboardPendingReviewQueueRow;
   m: Msg;
@@ -703,7 +675,7 @@ export function AdminCommandCenterDashboard({
           status="real"
           body="Understand businesses, follow up, meet prepared, review opportunities, and create from verified truth. Staff home: TODAY · CLIENT WORK · COMMERCIAL · CUSTOMER COMMUNICATION · MY LEONIX."
           primary={{ href: "/admin/businesses", label: "Open Business Concierge", variant: "primary" }}
-          secondary={{ href: "/admin/businesses/create-for-client", label: "Create for Client", variant: "active" }}
+          secondary={{ href: QUICK_SALES_WORKSPACE_PATH, label: "Quick Sales · Venta asistida", variant: "active" }}
         />
       </div>
     </AdminSectionCard>

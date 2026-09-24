@@ -12,6 +12,8 @@ import type {
   LeoActionProposalGovernanceLevel,
   LeoActionProposalState,
 } from "@/app/leo/_lib/leoActionProposalTypes";
+import type { LeoActionProposalRecord, LeoConnectedActionProposal, LeoToolId } from "@/app/leo/_lib/leoTypes";
+import { computeLeoActionProposalFingerprint } from "@/app/leo/_lib/leoActionProposalFingerprint";
 
 type Row = {
   id: string;
@@ -120,6 +122,85 @@ export async function getLeoActionProposalForOwner(
     .maybeSingle();
   if (error || !data) return null;
   return mapRow(data as Row);
+}
+
+export async function getLeoActionProposalForActor(
+  proposalId: string,
+  actorAuthUserId: string,
+): Promise<LeoActionProposalRecord | null> {
+  const proposal = await getLeoActionProposalForOwner(proposalId, actorAuthUserId);
+  if (!proposal) return null;
+  const connectedProposal = (proposal.normalizedTarget as Record<string, unknown>)
+    .connectedProposal as LeoConnectedActionProposal | undefined;
+  if (!connectedProposal) return null;
+  return {
+    id: proposal.proposalId,
+    actorAuthUserId: proposal.ownerActorId,
+    toolId: connectedProposal.toolId,
+    proposal: connectedProposal,
+    fingerprint: proposal.proposalFingerprint,
+    createdAt: proposal.createdAt,
+    expiresAt: proposal.expiresAt,
+  };
+}
+
+export async function createLeoConnectedActionProposal(input: {
+  actorAuthUserId: string;
+  toolId: LeoToolId;
+  proposal: LeoConnectedActionProposal;
+  expiresAt?: string;
+}): Promise<
+  | { ok: true; id: string; fingerprint: string; expiresAt: string; proposal: LeoConnectedActionProposal }
+  | { ok: false; error: string }
+> {
+  const fingerprint = computeLeoActionProposalFingerprint(input.proposal);
+  const expiresAt = input.expiresAt ?? new Date(Date.now() + 15 * 60_000).toISOString();
+  const email = input.proposal.email;
+  const calendar = input.proposal.calendar;
+  const actionFamily: LeoActionProposalActionFamily = email
+    ? email.kind === "REPLY_EMAIL"
+      ? "GMAIL_REPLY"
+      : "GMAIL_SEND"
+    : calendar?.kind === "UPDATE_CALENDAR_EVENT"
+      ? "CALENDAR_UPDATE"
+      : "CALENDAR_CREATE";
+  const structuredPayload = email
+    ? {
+        recipient: email.recipientEmail,
+        subject: email.subject,
+        body: email.bodyText,
+        ...(email.replyToThreadId ? { replyToThreadId: email.replyToThreadId } : {}),
+        sourceEvidenceRefs: [],
+      }
+    : {
+        title: calendar!.title,
+        start: calendar!.startIso,
+        end: calendar!.endIso,
+        timezone: calendar!.timezone,
+        attendees: calendar!.attendees.map((attendee) => ({ email: attendee.email, name: attendee.displayName })),
+        location: calendar!.location,
+        description: calendar!.description,
+        sourceEvidenceRefs: [],
+      };
+  const created = await createLeoActionProposal({
+    ownerActorId: input.actorAuthUserId,
+    actionFamily,
+    governanceLevel: "RED",
+    normalizedTarget: { toolId: input.toolId, connectedProposal: input.proposal },
+    structuredPayload: structuredPayload as LeoActionProposalCreateInput["structuredPayload"],
+    referentSnapshot: {},
+    proposalFingerprint: fingerprint,
+    executionClaimKey: `${input.actorAuthUserId}:${input.toolId}:${fingerprint}`,
+    expiresAt,
+  });
+  if (!created.ok) return created;
+  return {
+    ok: true,
+    id: created.proposal.proposalId,
+    fingerprint,
+    expiresAt: created.proposal.expiresAt,
+    proposal: input.proposal,
+  };
 }
 
 /**

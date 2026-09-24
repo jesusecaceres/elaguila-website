@@ -6,6 +6,16 @@
 import { getCleanPhone } from "@/app/components/cta/ctaDataHelpers";
 import { isValidPublicEmail, isValidPublicPhoneDigits } from "./channelValidation";
 
+/**
+ * 3-digit "N11" service codes (211/311/411/511/611/711/811/911) and the 988 crisis line are
+ * dialed as their bare code — never prefixed with +1. Without this, `isValidPublicPhoneDigits`
+ * (>= 8 digits) rejects them outright, and even a relaxed length check would still have produced
+ * an invalid `tel:+988`/`tel:+1988`.
+ */
+function isShortServiceCode(digits: string): boolean {
+  return digits === "988" || /^[2-9]11$/.test(digits);
+}
+
 export function buildTelHref(phone: string | null | undefined): string | null {
   const raw = String(phone ?? "").trim();
   if (!raw) return null;
@@ -14,6 +24,7 @@ export function buildTelHref(phone: string | null | undefined): string | null {
     return raw;
   }
   const digits = getCleanPhone(raw);
+  if (isShortServiceCode(digits)) return `tel:${digits}`;
   if (!isValidPublicPhoneDigits(digits)) return null;
   if (digits.length === 10) return `tel:+1${digits}`;
   if (digits.length === 11 && digits.startsWith("1")) return `tel:+${digits}`;

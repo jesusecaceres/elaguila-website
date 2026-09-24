@@ -27,10 +27,23 @@ import {
   dashboardAddonStatusForKey,
   dashboardEntitlementBadgeForKey,
   dashboardHasCapabilityForKey,
+  dashboardSubscriptionStateForKey,
   fetchDashboardListingPackageEntitlementBadges,
   type DashboardEntitlementBadgePayload,
+  type DashboardSubscriptionStateEntry,
 } from "../lib/dashboardPackageEntitlementBadges";
+import {
+  openDashboardBillingPortal,
+  dashboardBillingPortalLabel,
+  dashboardBillingPortalBusyLabel,
+} from "../lib/dashboardBillingPortal";
 import { RESTAURANTES_COUPON_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
+import { businessUpgradeOfferedForHeldPackageKey } from "@/app/lib/listingPlans/businessAccessLevel";
+import {
+  businessUpgradeBusyLabel,
+  businessUpgradeCtaLabel,
+  redirectBusinessSimpleToFullUpgradeCheckout,
+} from "../lib/businessSimpleToFullUpgradeCheckout";
 import { buildRestaurantesEligibilityInput } from "@/app/lib/listingIdentity/restaurantesLifecycleAdapter";
 import { resolveAttentionState, resolveOwnerFacingStatus } from "@/app/lib/listingIdentity";
 import {
@@ -39,6 +52,8 @@ import {
   publicResultsListingLabel,
   publicResultsLabel,
   analyticsLabel,
+  pauseListingLabel,
+  resumeListingLabel,
 } from "../lib/dashboardMisAnunciosCategoryTools";
 import type { ActionItem } from "../components/DashboardListingActionBar";
 import { getOwnerEntityCapabilities } from "../lib/ownerEntityCapabilityRegistry";
@@ -156,6 +171,13 @@ function DashboardRestaurantesPageContent() {
   const [hydrateErr, setHydrateErr] = useState<string | null>(null);
   const [couponEditBusyId, setCouponEditBusyId] = useState<string | null>(null);
   const [couponErr, setCouponErr] = useState<string | null>(null);
+  const [upgradeBusyId, setUpgradeBusyId] = useState<string | null>(null);
+  const [upgradeErr, setUpgradeErr] = useState<string | null>(null);
+  const [lifecycleBusyId, setLifecycleBusyId] = useState<string | null>(null);
+  const [lifecycleErr, setLifecycleErr] = useState<string | null>(null);
+  const [billingBusyId, setBillingBusyId] = useState<string | null>(null);
+  const [billingErr, setBillingErr] = useState<string | null>(null);
+  const [subscriptionStates, setSubscriptionStates] = useState<Record<string, DashboardSubscriptionStateEntry>>({});
   const [entitlementBadges, setEntitlementBadges] = useState<
     Record<string, DashboardEntitlementBadgePayload>
   >({});
@@ -216,7 +238,7 @@ function DashboardRestaurantesPageContent() {
       try {
         const { data: sessData } = await supabase.auth.getSession();
         const accessToken = sessData.session?.access_token ?? null;
-        const { badges } = await fetchDashboardListingPackageEntitlementBadges(
+        const { badges, subscriptionStates: subs } = await fetchDashboardListingPackageEntitlementBadges(
           loaded.map((r) => ({
             key: r.id,
             category: "restaurantes",
@@ -229,6 +251,7 @@ function DashboardRestaurantesPageContent() {
           accessToken,
         );
         setEntitlementBadges(badges);
+        setSubscriptionStates(subs);
       } catch (badgeErr) {
         console.error("[dashboard/restaurantes] entitlement badge fetch failed", badgeErr);
       }
@@ -359,9 +382,100 @@ function DashboardRestaurantesPageContent() {
     [lang, router],
   );
 
+  /**
+   * SIMPLE -> FULL. Buys the category's EXISTING Full package for the listing the owner already
+   * has: no content save, no status change, no second listing. Identity survives because nothing
+   * in this path writes to the listing row.
+   */
+  const startUpgrade = useCallback(
+    async (row: DashboardRestaurantRow) => {
+      setUpgradeBusyId(row.id);
+      setUpgradeErr(null);
+      const result = await redirectBusinessSimpleToFullUpgradeCheckout({
+        category: "restaurantes",
+        listingId: row.id,
+        leonixAdId: row.leonix_ad_id,
+        lang,
+        customerEmail: email,
+        returnPath: appendLangToPath("/dashboard/restaurantes", lang),
+      });
+      if (!result.ok) {
+        setUpgradeErr(result.userMessage);
+        setUpgradeBusyId(null);
+      }
+    },
+    [email, lang],
+  );
+
+  const openBilling = useCallback(
+    async (row: DashboardRestaurantRow) => {
+      setBillingBusyId(row.id);
+      setBillingErr(null);
+      const result = await openDashboardBillingPortal({
+        category: "restaurantes",
+        listingId: row.id,
+        returnPath: `/dashboard/restaurantes?lang=${lang}`,
+        lang,
+      });
+      if (!result.ok) {
+        setBillingErr(result.message);
+        setBillingBusyId(null);
+      }
+    },
+    [lang],
+  );
+
+  const manageLifecycle = useCallback(
+    async (row: DashboardRestaurantRow, action: "pause" | "resume") => {
+      setLifecycleBusyId(row.id);
+      setLifecycleErr(null);
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token ?? null;
+        if (!token) {
+          setLifecycleErr(lang === "es" ? "Tu sesión expiró. Inicia sesión de nuevo." : "Your session expired. Sign in again.");
+          setLifecycleBusyId(null);
+          return;
+        }
+        const res = await fetch("/api/clasificados/restaurantes/lifecycle", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ listingId: row.id, action }),
+        });
+        const json = (await res.json().catch(() => ({}))) as { ok?: boolean; status?: string; error?: string };
+        if (!res.ok || json.ok !== true || typeof json.status !== "string") {
+          setLifecycleErr(
+            lang === "es"
+              ? "No se pudo cambiar el estado del anuncio. Actualiza la página e inténtalo de nuevo."
+              : "Could not change the listing status. Refresh the page and try again.",
+          );
+          setLifecycleBusyId(null);
+          return;
+        }
+        const updatedAt = new Date().toISOString();
+        setRows((prev) =>
+          prev.map((item) => (item.id === row.id ? { ...item, status: json.status!, updated_at: updatedAt } : item)),
+        );
+      } catch {
+        setLifecycleErr(
+          lang === "es"
+            ? "No se pudo cambiar el estado del anuncio."
+            : "Could not change the listing status.",
+        );
+      } finally {
+        setLifecycleBusyId(null);
+      }
+    },
+    [lang],
+  );
+
   const publishHref = appendLangToPath("/publicar/restaurantes", lang);
   const categoryResultsHref = `/clasificados/restaurantes/resultados?${q}`;
-  const frameError = fetchErr || hydrateErr || couponErr || null;
+  const frameError = fetchErr || hydrateErr || couponErr || upgradeErr || lifecycleErr || billingErr || null;
 
   return (
     <LeonixDashboardShell
@@ -473,11 +587,58 @@ function DashboardRestaurantesPageContent() {
                 // cluster entirely. CREATE/PUBLISH is workspace-level: the page-level
                 // "Publicar un restaurante" button above already covers this job once, not once
                 // per listing.
+                const capabilities = getOwnerEntityCapabilities("restaurantes");
                 const quickActions: ActionItem[] = [
                   { href: publicHref, label: publicViewLabel(lang), tone: "secondary" },
                   { href: resultsHref, label: publicResultsListingLabel(lang), tone: "subtle" },
                   { href: `/dashboard/analytics?${q}`, label: analyticsLabel(lang), tone: "subtle" },
                 ];
+                const subscriptionState = dashboardSubscriptionStateForKey(subscriptionStates, [
+                  r.id,
+                  r.slug ?? "",
+                  r.leonix_ad_id ?? "",
+                ]);
+                if (subscriptionState) {
+                  quickActions.push({
+                    label:
+                      billingBusyId === r.id
+                        ? dashboardBillingPortalBusyLabel(lang)
+                        : dashboardBillingPortalLabel(lang),
+                    onClick: () => void openBilling(r),
+                    disabled: billingBusyId === r.id,
+                    tone: "secondary",
+                  });
+                }
+                if (r.status === "published" && capabilities.lifecycle.pause === "supported") {
+                  quickActions.push({
+                    label: lifecycleBusyId === r.id
+                      ? lang === "es" ? "Pausando…" : "Pausing…"
+                      : pauseListingLabel(lang),
+                    onClick: () => void manageLifecycle(r, "pause"),
+                    disabled: lifecycleBusyId === r.id,
+                    tone: "warning",
+                  });
+                } else if (r.status === "paused" && capabilities.lifecycle.reactivate === "supported") {
+                  quickActions.push({
+                    label: lifecycleBusyId === r.id
+                      ? lang === "es" ? "Reactivando…" : "Reactivating…"
+                      : resumeListingLabel(lang),
+                    onClick: () => void manageLifecycle(r, "resume"),
+                    disabled: lifecycleBusyId === r.id,
+                    tone: "positive",
+                  });
+                }
+                // SIMPLE -> FULL, from the package key the SERVER resolved for this row. Absent
+                // for a Full listing and for a listing with no base package, so the offer can
+                // never be shown to someone it does not apply to.
+                const upgradeToFullPackageKey = businessUpgradeOfferedForHeldPackageKey(
+                  "restaurantes",
+                  dashboardEntitlementBadgeForKey(entitlementBadges, [
+                    r.id,
+                    r.slug ?? "",
+                    r.leonix_ad_id ?? "",
+                  ])?.revenuePackageKey ?? null,
+                );
                 const specializedActions: ActionItem[] = couponEditEligible
                   ? [
                       {
@@ -493,13 +654,20 @@ function DashboardRestaurantesPageContent() {
                       },
                     ]
                   : [];
+                if (upgradeToFullPackageKey) {
+                  specializedActions.push({
+                    label: upgradeBusyId === r.id ? businessUpgradeBusyLabel(lang) : businessUpgradeCtaLabel(lang),
+                    onClick: () => void startUpgrade(r),
+                    disabled: upgradeBusyId === r.id,
+                    tone: "premium",
+                  });
+                }
                 const couponFooterHint = couponUpgradeEligible
                   ? restauranteCouponInactiveDashboardHint(lang)
                   : couponEditEligible
                     ? restauranteCouponEditFooterHint(lang)
                     : null;
                 const cardFooterHint = [listingPlanFootnote(lang), couponFooterHint].filter(Boolean).join(" · ");
-                const capabilities = getOwnerEntityCapabilities("restaurantes");
                 const trustSummary = communityTrustById[r.id];
                 const trustEntries: OwnerCommunityTrustEntry[] | null =
                   capabilities.communityTrust === "supported" && trustSummary

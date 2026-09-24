@@ -212,6 +212,7 @@ export const TAXONOMY_KEY_OTHER_LANG = "other_lang" as const;
 export const RESTAURANTE_CONTACT_PLACEHOLDERS: Record<string, string> = {
   websiteUrl: "https://tusitio.com",
   phoneNumber: "(408) 555-0142",
+  smsNumber: "(408) 555-0188",
   email: "nombre@negocio.com",
   whatsAppNumber: "14085550142",
   instagramUrl: "https://instagram.com/tu_negocio",

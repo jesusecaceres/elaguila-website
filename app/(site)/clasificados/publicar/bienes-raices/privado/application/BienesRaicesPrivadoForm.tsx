@@ -47,14 +47,25 @@ import { compressImageFileToJpegDataUrl } from "./utils/brPrivadoMediaCompress";
 import { LeonixRealEstateSortablePhotoStrip } from "@/app/clasificados/lib/LeonixRealEstateSortablePhotoStrip";
 import { BrPrivadoCiudadZonaCombobox } from "./components/BrPrivadoCiudadZonaCombobox";
 import {
+  COMERCIAL_DESTACADO_EN,
   COMERCIAL_DESTACADOS_CHECKLIST_DEFS,
   COMERCIAL_SUBTIPO_POR_TIPO,
+  COMERCIAL_SUBVALUE_LABEL_EN,
+  COMERCIAL_TIPO_LABEL_EN,
   COMERCIAL_TIPO_OPCIONES,
+  TERRENO_DESTACADO_EN,
   TERRENO_DESTACADOS_CHECKLIST_DEFS,
   TERRENO_SUBTIPO_POR_TIPO,
+  TERRENO_SUBVALUE_LABEL_EN,
+  TERRENO_TIPO_LABEL_EN,
   TERRENO_TIPO_OPCIONES,
 } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteComercialTerrenoMeta";
-import { TIPO_PROPIEDAD_OPCIONES, selectableSubtipoOptionsForTipo } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteResidencialTipoMeta";
+import {
+  SUBTIPO_SUBVALUE_LABEL_EN,
+  TIPO_PROPIEDAD_LABEL_EN,
+  TIPO_PROPIEDAD_OPCIONES,
+  selectableSubtipoOptionsForTipo,
+} from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteResidencialTipoMeta";
 import {
   createEmptyBienesRaicesPrivadoFormState,
   MAX_PRIVADO_VIDEO_URLS,
@@ -78,10 +89,44 @@ function formatPricePreviewUsd(digitsRaw: string): string {
   return formatUsdWhole(digitsRaw);
 }
 
-function BrSqftPreview({ value }: { value: string }) {
+function brPrivateUi(lang: "es" | "en", es: string, en: string): string {
+  return lang === "en" ? en : es;
+}
+
+const BR_HIGHLIGHT_PRESET_EN: Record<string, string> = {
+  piscina: "Pool",
+  cocinaRemodelada: "Remodeled kitchen",
+  electrodomesticosLujo: "Luxury appliances",
+  patio: "Patio",
+  balcon: "Balcony",
+  vista: "View",
+  comunidadCerrada: "Gated community",
+  techosAltos: "High ceilings",
+  cuartoPrincipalGrande: "Large primary bedroom",
+  walkInCloset: "Walk-in closet",
+  oficinaEnCasa: "Home office",
+  panelesSolares: "Solar panels",
+  smartHome: "Smart home",
+  chimenea: "Fireplace",
+  lavanderia: "Laundry",
+  estacionamientoTechado: "Covered parking",
+  accesoControlado: "Controlled access",
+  elevador: "Elevator",
+  terraza: "Terrace",
+  gimnasio: "Gym",
+  amenidadesDesarrollo: "Development amenities",
+  sotano: "Basement",
+  garaje: "Garage",
+  portonElectrico: "Electric gate",
+  adu: "ADU / guest house",
+  remodelada: "Remodeled",
+  nuevaConstruccion: "New construction",
+};
+
+function BrSqftPreview({ value, lang }: { value: string; lang: "es" | "en" }) {
   const shown = formatSqftDisplay(value);
   if (!shown) return null;
-  return <p className="mt-1.5 text-xs font-medium text-[#5C5346]">Vista previa: {shown}</p>;
+  return <p className="mt-1.5 text-xs font-medium text-[#5C5346]">{brPrivateUi(lang, "Vista previa:", "Preview:")} {shown}</p>;
 }
 
 const BR_PRIVADO_MAX_OPEN_HOUSE_SLOTS = 4;
@@ -92,10 +137,12 @@ function BrPrivadoOpenHouseSlots({
   state,
   setState,
   fieldClass,
+  lang,
 }: {
   state: BienesRaicesPrivadoFormState;
   setState: React.Dispatch<React.SetStateAction<BienesRaicesPrivadoFormState>>;
   fieldClass: string;
+  lang: "es" | "en";
 }) {
   const slots = state.gate12d.openHouseSlots;
 
@@ -131,7 +178,7 @@ function BrPrivadoOpenHouseSlots({
 
   return (
     <div>
-      <span className={aiLabelClass}>Open house / visitas</span>
+      <span className={aiLabelClass}>{brPrivateUi(lang, "Open house / visitas", "Open house / showings")}</span>
       <div className="mt-2 space-y-3">
         {slots.map((slot, i) => (
           <div key={i} className="rounded-lg border border-[#E8DFD0] bg-[#FFFDF9] p-3">
@@ -140,20 +187,20 @@ function BrPrivadoOpenHouseSlots({
                 Open house{slots.length > 1 ? ` ${i + 1}` : ""}
               </p>
               <button type="button" className="text-xs font-semibold text-[#8B7355] underline-offset-2 hover:underline" onClick={() => removeSlot(i)}>
-                Eliminar
+                {brPrivateUi(lang, "Eliminar", "Remove")}
               </button>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <AiField label="Fecha">
+              <AiField label={brPrivateUi(lang, "Fecha", "Date")}>
                 <input className={fieldClass} type="date" value={slot.fecha} onChange={(e) => patchSlot(i, { fecha: e.target.value })} />
               </AiField>
-              <AiField label="Hora inicio">
+              <AiField label={brPrivateUi(lang, "Hora inicio", "Start time")}>
                 <input className={fieldClass} type="time" value={slot.inicio} onChange={(e) => patchSlot(i, { inicio: e.target.value })} />
               </AiField>
-              <AiField label="Hora fin">
+              <AiField label={brPrivateUi(lang, "Hora fin", "End time")}>
                 <input className={fieldClass} type="time" value={slot.fin} onChange={(e) => patchSlot(i, { fin: e.target.value })} />
               </AiField>
-              <AiField label="Notas (opcional)">
+              <AiField label={brPrivateUi(lang, "Notas (opcional)", "Notes (optional)")}>
                 <input className={fieldClass} value={slot.notas} onChange={(e) => patchSlot(i, { notas: e.target.value })} />
               </AiField>
             </div>
@@ -166,7 +213,7 @@ function BrPrivadoOpenHouseSlots({
           className="mt-3 w-full rounded-lg border border-dashed border-[#C9B46A]/60 bg-[#FFFCF7] px-3 py-2.5 text-sm font-semibold text-[#5C4A28] transition hover:border-[#B8954A]/80 hover:bg-[#FFF6E7]"
           onClick={addSlot}
         >
-          + Añadir horario / visita
+          {brPrivateUi(lang, "+ Añadir horario / visita", "+ Add time / showing")}
         </button>
       ) : null}
     </div>
@@ -396,8 +443,8 @@ export function BienesRaicesPrivadoForm() {
         <LeonixApplicationDataLossNotice lang={lang} />
 
         <section className={`${aiCardClass} min-w-0`}>
-          <h2 className={aiTitleClass}>Categoría</h2>
-          <p className={aiSubClass}>Elige una; los demás campos se adaptan en el formulario y en la vista previa.</p>
+          <h2 className={aiTitleClass}>{brPrivateUi(lang, "Categoría", "Category")}</h2>
+          <p className={aiSubClass}>{brPrivateUi(lang, "Elige una; los demás campos se adaptan en el formulario y en la vista previa.", "Choose one; the remaining fields adapt in the form and preview.")}</p>
           <div className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
             {CATEGORIAS.map((c) => (
               <button
@@ -410,7 +457,7 @@ export function BienesRaicesPrivadoForm() {
                     : "border-[#E8DFD0] bg-white text-[#5C5346] hover:border-[#C9B46A]/60"
                 }`}
               >
-                {c.label}
+                {brPrivateUi(lang, c.label, c.id === "residencial" ? "Residential" : c.id === "comercial" ? "Commercial" : "Land / lot")}
               </button>
             ))}
           </div>
@@ -420,7 +467,7 @@ export function BienesRaicesPrivadoForm() {
           <h2 className={aiTitleClass}>{lang === "en" ? "Listing" : "Anuncio"}</h2>
           <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
             <div className="sm:col-span-2">
-              <AiField required label="Título">
+              <AiField required label={brPrivateUi(lang, "Título", "Title")}>
                 <input
                   className={fieldClass}
                   value={state.titulo}
@@ -431,8 +478,8 @@ export function BienesRaicesPrivadoForm() {
             </div>
             <AiField
               required
-              label="Precio (USD)"
-              hint="Escribe solo números; se formatea automáticamente con $ y comas."
+              label={brPrivateUi(lang, "Precio (USD)", "Price (USD)")}
+              hint={brPrivateUi(lang, "Escribe solo números; se formatea automáticamente con $ y comas.", "Enter numbers only; the price is formatted automatically with $ and commas.")}
             >
               <input
                 className={fieldClass}
@@ -442,10 +489,10 @@ export function BienesRaicesPrivadoForm() {
                 autoComplete="off"
               />
               {!pricePreview && state.precio.trim() ? (
-                <p className="mt-2 text-xs text-[#5C5346]/85">Revisa el número (debe ser mayor que cero).</p>
+                <p className="mt-2 text-xs text-[#5C5346]/85">{brPrivateUi(lang, "Revisa el número (debe ser mayor que cero).", "Check the number (it must be greater than zero).")}</p>
               ) : null}
             </AiField>
-            <AiField label="Estado del anuncio">
+            <AiField label={brPrivateUi(lang, "Estado del anuncio", "Listing status")}>
               <select
                 className={fieldClass}
                 value={state.estadoAnuncio}
@@ -455,14 +502,14 @@ export function BienesRaicesPrivadoForm() {
               >
                 {ESTADOS.map((o) => (
                   <option key={o.id} value={o.id}>
-                    {o.label}
+                    {brPrivateUi(lang, o.label, o.id === "disponible" ? "Available" : o.id === "pendiente" ? "Pending" : o.id === "bajo_contrato" ? "Under contract" : "Sold")}
                   </option>
                 ))}
               </select>
             </AiField>
             <AiField
-              label="Ciudad o zona"
-              hint="Escribe y elige una sugerencia NorCal, o escribe tu propia zona. Sirve para ubicación en el anuncio y para filtros futuros."
+              label={brPrivateUi(lang, "Ciudad o zona", "City or area")}
+              hint={brPrivateUi(lang, "Escribe y elige una sugerencia NorCal, o escribe tu propia zona. Sirve para ubicación en el anuncio y para filtros futuros.", "Type and choose a Northern California suggestion, or enter your own area. It is used for the listing location and future filters.")}
             >
               <BrPrivadoCiudadZonaCombobox
                 className={fieldClass}
@@ -472,10 +519,10 @@ export function BienesRaicesPrivadoForm() {
             </AiField>
             <details className="sm:col-span-2 min-w-0 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7]/60 px-3 py-2">
               <summary className="cursor-pointer select-none text-sm font-semibold text-[#1E1810]">
-                Dirección estructurada (opcional)
+                {brPrivateUi(lang, "Dirección estructurada (opcional)", "Structured address (optional)")}
               </summary>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <AiField label="Número y calle" hint="Ej.: 123 Oak Street">
+                <AiField label={brPrivateUi(lang, "Número y calle", "Street number and name")} hint={brPrivateUi(lang, "Ej.: 123 Oak Street", "E.g. 123 Oak Street")}>
                   <input
                     className={fieldClass}
                     value={state.gate12d.calleNumero}
@@ -485,7 +532,7 @@ export function BienesRaicesPrivadoForm() {
                     autoComplete="street-address"
                   />
                 </AiField>
-                <AiField label="Unidad / apt / suite (opcional)">
+                <AiField label={brPrivateUi(lang, "Unidad / apt / suite (opcional)", "Unit / apt / suite (optional)")}>
                   <input
                     className={fieldClass}
                     value={state.gate12d.unidad}
@@ -493,7 +540,7 @@ export function BienesRaicesPrivadoForm() {
                     autoComplete="off"
                   />
                 </AiField>
-                <AiField label="Estado / provincia">
+                <AiField label={brPrivateUi(lang, "Estado / provincia", "State / province")}>
                   <input
                     className={fieldClass}
                     value={state.gate12d.estado}
@@ -501,7 +548,7 @@ export function BienesRaicesPrivadoForm() {
                     autoComplete="address-level1"
                   />
                 </AiField>
-                <AiField label="Código postal">
+                <AiField label={brPrivateUi(lang, "Código postal", "ZIP / postal code")}>
                   <input
                     className={fieldClass}
                     inputMode="numeric"
@@ -516,7 +563,7 @@ export function BienesRaicesPrivadoForm() {
                   />
                 </AiField>
                 <div className="sm:col-span-2">
-                  <AiField label="Colonia / vecindario (opcional)">
+                  <AiField label={brPrivateUi(lang, "Colonia / vecindario (opcional)", "Neighborhood (optional)")}>
                     <input
                       className={fieldClass}
                       value={state.gate12d.colonia}
@@ -528,8 +575,8 @@ export function BienesRaicesPrivadoForm() {
               </div>
             </details>
             <AiField
-              label="Referencia adicional (opcional)"
-              hint="Texto libre si quieres añadir contexto (cruces, puntos de referencia). No sustituye a la dirección estructurada arriba."
+              label={brPrivateUi(lang, "Referencia adicional (opcional)", "Additional location reference (optional)")}
+              hint={brPrivateUi(lang, "Texto libre si quieres añadir contexto (cruces, puntos de referencia). No sustituye a la dirección estructurada arriba.", "Free text for extra context such as cross streets or landmarks. It does not replace the structured address above.")}
             >
               <input
                 className={fieldClass}
@@ -539,8 +586,8 @@ export function BienesRaicesPrivadoForm() {
               />
             </AiField>
             <AiField
-              label="Mostrar dirección exacta cuando aplique"
-              hint="Si no activas esta opción, mostraremos una ubicación aproximada."
+              label={brPrivateUi(lang, "Mostrar dirección exacta cuando aplique", "Show exact address when applicable")}
+              hint={brPrivateUi(lang, "Si no activas esta opción, mostraremos una ubicación aproximada.", "If you do not enable this option, we will show an approximate location.")}
             >
               <label className="flex min-h-[44px] items-center gap-3 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] px-3 py-2 text-sm text-[#2C2416]">
                 <input
@@ -550,13 +597,12 @@ export function BienesRaicesPrivadoForm() {
                   onChange={(e) => setState((s) => ({ ...s, mostrarDireccionExacta: e.target.checked }))}
                 />
                 <span className="min-w-0">
-                  Mostrar calle y unidad en vista previa, resultados y mapa cuando la información estructurada esté
-                  completa.
+                  {brPrivateUi(lang, "Mostrar calle y unidad en vista previa, resultados y mapa cuando la información estructurada esté completa.", "Show street and unit in preview, results, and map when the structured address is complete.")}
                 </span>
               </label>
             </AiField>
             <p className="sm:col-span-2 text-xs text-[#5C5346]">
-              Para vista previa: ciudad o línea de ubicación (al menos uno)
+              {brPrivateUi(lang, "Para vista previa: ciudad o línea de ubicación (al menos uno)", "For preview: city or location line (at least one)")}
               <span className="text-[#B8954A]" aria-hidden>
                 {" "}
                 *
@@ -569,8 +615,8 @@ export function BienesRaicesPrivadoForm() {
                 entries simply never populate it again. */}
             <div className="sm:col-span-2">
               <AiField
-                label="Descripción principal"
-                hint="Describe la propiedad, el espacio, las reglas importantes y lo que debe saber la persona interesada."
+                label={brPrivateUi(lang, "Descripción principal", "Main description")}
+                hint={brPrivateUi(lang, "Describe la propiedad, el espacio, las reglas importantes y lo que debe saber la persona interesada.", "Describe the property, the space, important rules, and what an interested person should know.")}
               >
                 <textarea
                   className={textareaFieldClass}
@@ -582,8 +628,8 @@ export function BienesRaicesPrivadoForm() {
             </div>
             <div className="sm:col-span-2">
               <AiField
-                label="¿Se permiten mascotas?"
-                hint="Requerido para publicar: se guarda como dato estructurado y alimenta el filtro “Mascotas” en resultados. En el anuncio publicado, el detalle de mascotas va en la sección HOA y comunidad (no como chip genérico)."
+                label={brPrivateUi(lang, "¿Se permiten mascotas?", "Are pets allowed?")}
+                hint={brPrivateUi(lang, "Requerido para publicar: se guarda como dato estructurado y alimenta el filtro “Mascotas” en resultados. En el anuncio publicado, el detalle de mascotas va en la sección HOA y comunidad (no como chip genérico).", "Required to publish: this is stored as structured data and powers the Pets filter in results. In the published listing, pet details appear in the HOA and community section, not as a generic chip.")}
               >
                 <select
                   className={fieldClass}
@@ -595,15 +641,15 @@ export function BienesRaicesPrivadoForm() {
                     }))
                   }
                 >
-                  <option value="">Selecciona…</option>
-                  <option value="yes">Sí, se permiten</option>
-                  <option value="no">No, no se permiten</option>
+                  <option value="">{brPrivateUi(lang, "Selecciona…", "Select…")}</option>
+                  <option value="yes">{brPrivateUi(lang, "Sí, se permiten", "Yes, pets allowed")}</option>
+                  <option value="no">{brPrivateUi(lang, "No, no se permiten", "No, pets not allowed")}</option>
                 </select>
               </AiField>
             </div>
             <BrGate12dHoaCommunitySection
               variant="privado"
-              lang="es"
+              lang={lang}
               gate12d={state.gate12d}
               onChange={(patch) =>
                 setState((s) => ({
@@ -614,10 +660,10 @@ export function BienesRaicesPrivadoForm() {
             />
             <details className="sm:col-span-2 min-w-0 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7]/60 px-3 py-2">
               <summary className="cursor-pointer select-none text-sm font-semibold text-[#1E1810]">
-                Open house y visitas (opcional)
+                {brPrivateUi(lang, "Open house y visitas (opcional)", "Open house and showings (optional)")}
               </summary>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <AiField label="Open house activo">
+                <AiField label={brPrivateUi(lang, "Open house activo", "Open house active")}>
                   <label className="flex min-h-[44px] items-center gap-2 text-sm text-[#2C2416]">
                     <input
                       type="checkbox"
@@ -627,13 +673,13 @@ export function BienesRaicesPrivadoForm() {
                         setState((s) => ({ ...s, gate12d: { ...s.gate12d, openHouseEnabled: e.target.checked } }))
                       }
                     />
-                    Sí, planeo un open house
+                    {brPrivateUi(lang, "Sí, planeo un open house", "Yes, I plan an open house")}
                   </label>
                 </AiField>
                 <div className="sm:col-span-2">
-                  <BrPrivadoOpenHouseSlots state={state} setState={setState} fieldClass={fieldClass} />
+                  <BrPrivadoOpenHouseSlots state={state} setState={setState} fieldClass={fieldClass} lang={lang} />
                 </div>
-                <AiField label="Visitas solo con cita">
+                <AiField label={brPrivateUi(lang, "Visitas solo con cita", "Showings by appointment only")}>
                   <label className="flex min-h-[44px] items-center gap-2 text-sm text-[#2C2416]">
                     <input
                       type="checkbox"
@@ -646,11 +692,11 @@ export function BienesRaicesPrivadoForm() {
                         }))
                       }
                     />
-                    Sí
+                    {brPrivateUi(lang, "Sí", "Yes")}
                   </label>
                 </AiField>
                 <div className="sm:col-span-2">
-                  <AiField label="Instrucciones para visitas">
+                  <AiField label={brPrivateUi(lang, "Instrucciones para visitas", "Showing instructions")}>
                     <textarea
                       className={textareaFieldClass}
                       rows={3}
@@ -665,7 +711,7 @@ export function BienesRaicesPrivadoForm() {
                   </AiField>
                 </div>
                 <div className="sm:col-span-2">
-                  <AiField label="Tour virtual (URL https, opcional)" hint="Matterport, YouTube 360, etc.">
+                  <AiField label={brPrivateUi(lang, "Tour virtual (URL https, opcional)", "Virtual tour (HTTPS URL, optional)")} hint="Matterport, YouTube 360, etc.">
                     <input
                       className={fieldClass}
                       type="url"
@@ -677,7 +723,7 @@ export function BienesRaicesPrivadoForm() {
                     />
                   </AiField>
                   {/^https?:\/\/\S+/i.test(state.gate12d.virtualTourUrl.trim()) ? (
-                    <p className="mt-2 text-xs font-bold text-[#2F6B3C]">Enlace añadido</p>
+                    <p className="mt-2 text-xs font-bold text-[#2F6B3C]">{brPrivateUi(lang, "Enlace añadido", "Link added")}</p>
                   ) : null}
                 </div>
               </div>
@@ -686,16 +732,14 @@ export function BienesRaicesPrivadoForm() {
         </section>
 
         <section className={`${aiCardClass} min-w-0`}>
-          <h2 className={aiTitleClass}>Fotos y video</h2>
+          <h2 className={aiTitleClass}>{brPrivateUi(lang, "Fotos y video", "Photos and video")}</h2>
           <p className={aiSubClass}>
-            Hasta {MAX_PHOTOS} fotos (se comprimen en el navegador). Para una vista previa completa hace falta al menos una
-            foto
+            {brPrivateUi(lang, `Hasta ${MAX_PHOTOS} fotos (se comprimen en el navegador). Para una vista previa completa hace falta al menos una foto`, `Up to ${MAX_PHOTOS} photos (compressed in the browser). A complete preview needs at least one photo`)}
             <span className="text-[#B8954A]" aria-hidden>
               {" "}
               *
             </span>
-            . Un solo video por enlace (opcional).
-            Nada se sube a servidores en este paso; el borrador vive en esta sesión hasta que exista publicación.
+            {brPrivateUi(lang, ". Un solo video por enlace (opcional). Nada se sube a servidores en este paso; el borrador vive en esta sesión hasta que exista publicación.", ". One video per external link (optional). Nothing is uploaded to servers in this step; the draft remains in this session until publishing.")}
           </p>
           {mediaNotice ? (
             <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50/90 px-3 py-2 text-xs text-amber-950" role="status">
@@ -703,13 +747,13 @@ export function BienesRaicesPrivadoForm() {
             </p>
           ) : null}
           <div className="mt-4">
-            <span className={aiLabelClass}>Fotos del anuncio</span>
+            <span className={aiLabelClass}>{brPrivateUi(lang, "Fotos del anuncio", "Listing photos")}</span>
             <input
               ref={photosInputRef}
               type="file"
               accept="image/*"
               multiple
-              aria-label="Fotos del anuncio"
+              aria-label={brPrivateUi(lang, "Fotos del anuncio", "Listing photos")}
               className="sr-only"
               onChange={(e) => onPhotos(e.target.files)}
             />
@@ -719,15 +763,14 @@ export function BienesRaicesPrivadoForm() {
                 className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[#C9B46A]/70 bg-[#FFF6E7] px-4 text-sm font-semibold text-[#1E1810] transition hover:bg-[#FFEFD8]"
                 onClick={() => photosInputRef.current?.click()}
               >
-                Subir o añadir fotos
+                {brPrivateUi(lang, "Subir o añadir fotos", "Upload or add photos")}
               </button>
               <span className="self-center text-xs text-[#5C5346]">
-                {state.media.photoDataUrls.length}/{MAX_PHOTOS} seleccionadas
+                {state.media.photoDataUrls.length}/{MAX_PHOTOS} {brPrivateUi(lang, "seleccionadas", "selected")}
               </span>
             </div>
             <p className="mt-2 text-xs leading-relaxed text-[#5C5346]">
-              Cada foto es una tarjeta con vista previa. Usa el control <strong className="text-[#1E1810]">⋮⋮ Orden</strong>{" "}
-              para arrastrar y reordenar. La portada puede ser distinta del primer casillero.
+              {lang === "en" ? <>Each photo is a preview card. Use <strong className="text-[#1E1810]">⋮⋮ Order</strong>{" "}to drag and reorder. The cover can be different from the first slot.</> : <>Cada foto es una tarjeta con vista previa. Usa el control <strong className="text-[#1E1810]">⋮⋮ Orden</strong>{" "}para arrastrar y reordenar. La portada puede ser distinta del primer casillero.</>}
             </p>
             {state.media.photoDataUrls.length > 0 ? (
               <LeonixRealEstateSortablePhotoStrip
@@ -770,10 +813,9 @@ export function BienesRaicesPrivadoForm() {
             ) : null}
           </div>
           <div className="mt-6 border-t border-[#E8DFD0] pt-5">
-            <span className={aiLabelClass}>Video (opcional)</span>
+            <span className={aiLabelClass}>{brPrivateUi(lang, "Video (opcional)", "Video (optional)")}</span>
             <p className={aiHintClass}>
-              Comparte hasta {MAX_PRIVADO_VIDEO_URLS} enlaces externos (YouTube, Vimeo, mp4, etc.). No se aceptan
-              archivos de video del dispositivo.
+              {brPrivateUi(lang, `Comparte hasta ${MAX_PRIVADO_VIDEO_URLS} enlaces externos (YouTube, Vimeo, mp4, etc.). No se aceptan archivos de video del dispositivo.`, `Share up to ${MAX_PRIVADO_VIDEO_URLS} external links (YouTube, Vimeo, MP4, etc.). Video files from the device are not accepted.`)}
             </p>
             <div className="mt-4">
               <LeonixVideoUrlAddRows
@@ -782,25 +824,25 @@ export function BienesRaicesPrivadoForm() {
                 onChange={(next) => {
                   for (let i = 0; i < next.length; i++) onVideoUrlChange(i, next[i]);
                 }}
-                fieldLabel="Video por enlace"
-                urlLabel={(n) => (n === 1 ? "Video por enlace" : `Video ${n} por enlace`)}
-                addLabel="+ Agregar video"
-                removeLabel="Quitar"
-                addedLabel="Video añadido"
+                fieldLabel={brPrivateUi(lang, "Video por enlace", "Video by link")}
+                urlLabel={(n) => (n === 1 ? brPrivateUi(lang, "Video por enlace", "Video by link") : brPrivateUi(lang, `Video ${n} por enlace`, `Video ${n} by link`))}
+                addLabel={brPrivateUi(lang, "+ Agregar video", "+ Add video")}
+                removeLabel={brPrivateUi(lang, "Quitar", "Remove")}
+                addedLabel={brPrivateUi(lang, "Video añadido", "Video added")}
               />
             </div>
           </div>
         </section>
 
         <section className={`${aiCardClass} min-w-0`}>
-          <h2 className={aiTitleClass}>Propietario (particular)</h2>
+          <h2 className={aiTitleClass}>{brPrivateUi(lang, "Propietario (particular)", "Owner (private seller)")}</h2>
           <p className={aiSubClass}>
-            Tu nombre y cómo te contactan. No se pide sitio web ni redes sociales. Para vista previa: nombre
+            {brPrivateUi(lang, "Tu nombre y cómo te contactan. No se pide sitio web ni redes sociales. Para vista previa: nombre", "Your name and how people can contact you. No website or social media is requested. For preview: name")}
             <span className="text-[#B8954A]" aria-hidden>
               {" "}
               *
             </span>{" "}
-            y al menos un medio de contacto (teléfono, WhatsApp o correo)
+            {brPrivateUi(lang, "y al menos un medio de contacto (teléfono, WhatsApp o correo)", "and at least one contact method (phone, WhatsApp, or email)")}
             <span className="text-[#B8954A]" aria-hidden>
               {" "}
               *
@@ -809,12 +851,12 @@ export function BienesRaicesPrivadoForm() {
           </p>
           <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
             <div className="sm:col-span-2">
-              <span className={aiLabelClass}>Foto del propietario (opcional)</span>
+              <span className={aiLabelClass}>{brPrivateUi(lang, "Foto del propietario (opcional)", "Owner photo (optional)")}</span>
               <input
                 ref={ownerPhotoInputRef}
                 type="file"
                 accept="image/*"
-                aria-label="Foto del propietario"
+                aria-label={brPrivateUi(lang, "Foto del propietario", "Owner photo")}
                 className="sr-only"
                 onChange={async (e) => {
                   const f = e.target.files?.[0];
@@ -822,11 +864,11 @@ export function BienesRaicesPrivadoForm() {
                   if (!f) return;
                   setSellerPhotoNotice(null);
                   if (!f.type.startsWith("image/")) {
-                    setSellerPhotoNotice("Elige un archivo de imagen válido.");
+                    setSellerPhotoNotice(brPrivateUi(lang, "Elige un archivo de imagen válido.", "Choose a valid image file."));
                     return;
                   }
                   if (f.size > MAX_SELLER_PHOTO_BYTES) {
-                    setSellerPhotoNotice(`La foto supera ${Math.round(MAX_SELLER_PHOTO_BYTES / (1024 * 1024))} MB. Elige una imagen más ligera.`);
+                    setSellerPhotoNotice(brPrivateUi(lang, `La foto supera ${Math.round(MAX_SELLER_PHOTO_BYTES / (1024 * 1024))} MB. Elige una imagen más ligera.`, `The photo exceeds ${Math.round(MAX_SELLER_PHOTO_BYTES / (1024 * 1024))} MB. Choose a smaller image.`));
                     return;
                   }
                   try {
@@ -837,7 +879,7 @@ export function BienesRaicesPrivadoForm() {
                       return out;
                     });
                   } catch {
-                    setSellerPhotoNotice("No se pudo leer la foto. Inténtalo de nuevo.");
+                    setSellerPhotoNotice(brPrivateUi(lang, "No se pudo leer la foto. Inténtalo de nuevo.", "The photo could not be read. Try again."));
                   }
                 }}
               />
@@ -847,7 +889,7 @@ export function BienesRaicesPrivadoForm() {
                   className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-full border border-[#C9B46A]/70 bg-[#FFF6E7] px-4 text-sm font-semibold text-[#1E1810] transition hover:bg-[#FFEFD8]"
                   onClick={() => ownerPhotoInputRef.current?.click()}
                 >
-                  Subir foto
+                  {brPrivateUi(lang, "Subir foto", "Upload photo")}
                 </button>
                 {state.seller.fotoDataUrl ? (
                   <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
@@ -869,14 +911,14 @@ export function BienesRaicesPrivadoForm() {
                         });
                       }}
                     >
-                      Quitar foto
+                      {brPrivateUi(lang, "Quitar foto", "Remove photo")}
                     </button>
                   </div>
                 ) : null}
               </div>
               {sellerPhotoNotice ? <p className="mt-2 text-xs font-semibold text-[#9A3B1F]">{sellerPhotoNotice}</p> : null}
             </div>
-            <AiField required label="Nombre completo">
+            <AiField required label={brPrivateUi(lang, "Nombre completo", "Full name")}>
               <input
                 className={fieldClass}
                 value={state.seller.nombre}
@@ -884,7 +926,7 @@ export function BienesRaicesPrivadoForm() {
                 autoComplete="name"
               />
             </AiField>
-            <AiField label="Teléfono" hint="Número de 10 dígitos en EE. UU., sin el 1 inicial (para que no se duplique al marcar).">
+            <AiField label={brPrivateUi(lang, "Teléfono", "Phone")} hint={brPrivateUi(lang, "Número de 10 dígitos en EE. UU., sin el 1 inicial (para que no se duplique al marcar).", "10-digit U.S. number without the leading 1.")}>
               <input
                 className={fieldClass}
                 inputMode="numeric"
@@ -897,7 +939,7 @@ export function BienesRaicesPrivadoForm() {
                 autoComplete="tel"
               />
             </AiField>
-            <AiField label="WhatsApp" hint="Puede ser el mismo número de teléfono o uno diferente.">
+            <AiField label="WhatsApp" hint={brPrivateUi(lang, "Puede ser el mismo número de teléfono o uno diferente.", "It can be the same phone number or a different one.")}>
               <input
                 className={fieldClass}
                 inputMode="numeric"
@@ -910,7 +952,7 @@ export function BienesRaicesPrivadoForm() {
                 autoComplete="tel"
               />
             </AiField>
-            <AiField label="Número para mensajes de texto (SMS, opcional)" hint="Puede ser el mismo número de teléfono o uno diferente.">
+            <AiField label={brPrivateUi(lang, "Número para mensajes de texto (SMS, opcional)", "Text message number (SMS, optional)")} hint={brPrivateUi(lang, "Puede ser el mismo número de teléfono o uno diferente.", "It can be the same phone number or a different one.")}>
               <input
                 className={fieldClass}
                 inputMode="numeric"
@@ -924,7 +966,7 @@ export function BienesRaicesPrivadoForm() {
               />
             </AiField>
             <div className="sm:col-span-2">
-              <AiField label="Correo electrónico">
+              <AiField label={brPrivateUi(lang, "Correo electrónico", "Email")}>
                 <input
                   className={fieldClass}
                   type="email"
@@ -935,7 +977,7 @@ export function BienesRaicesPrivadoForm() {
               </AiField>
             </div>
             <div className="sm:col-span-2">
-              <AiField label="Mensaje para interesados (opcional)" hint="Texto breve que verán antes de escribirte o llamarte.">
+              <AiField label={brPrivateUi(lang, "Mensaje para interesados (opcional)", "Message for interested people (optional)")} hint={brPrivateUi(lang, "Texto breve que verán antes de escribirte o llamarte.", "Brief text they will see before messaging or calling you.")}>
                 <textarea
                   className={textareaFieldClass}
                   rows={3}
@@ -949,9 +991,9 @@ export function BienesRaicesPrivadoForm() {
 
         {cat === "residencial" ? (
           <section className={`${aiCardClass} min-w-0`}>
-            <h2 className={aiTitleClass}>Detalle residencial</h2>
+            <h2 className={aiTitleClass}>{brPrivateUi(lang, "Detalle residencial", "Residential details")}</h2>
             <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
-              <AiField label="Tipo">
+              <AiField label={brPrivateUi(lang, "Tipo", "Type")}>
                 <select
                   className={fieldClass}
                   value={state.residencial.tipoCodigo}
@@ -964,12 +1006,12 @@ export function BienesRaicesPrivadoForm() {
                 >
                   {TIPO_PROPIEDAD_OPCIONES.map((o) => (
                     <option key={o.value} value={o.value}>
-                      {o.label}
+                      {lang === "en" ? TIPO_PROPIEDAD_LABEL_EN[o.value] : o.label}
                     </option>
                   ))}
                 </select>
               </AiField>
-              <AiField label="Subtipo">
+              <AiField label={brPrivateUi(lang, "Subtipo", "Subtype")}>
                 <select
                   className={fieldClass}
                   value={state.residencial.subtipo}
@@ -977,24 +1019,24 @@ export function BienesRaicesPrivadoForm() {
                 >
                   {selectableSubtipoOptionsForTipo(state.residencial.tipoCodigo, state.residencial.subtipo).map((o) => (
                     <option key={o.value || "none"} value={o.value}>
-                      {o.label}
+                      {lang === "en" ? SUBTIPO_SUBVALUE_LABEL_EN[o.value] ?? o.label : o.label}
                     </option>
                   ))}
                 </select>
               </AiField>
-              <AiField label="Niveles / pisos" hint="Opcional. Distinto del subtipo (ej. condominio de 2 niveles).">
+              <AiField label={brPrivateUi(lang, "Niveles / pisos", "Levels / stories")} hint={brPrivateUi(lang, "Opcional. Distinto del subtipo (ej. condominio de 2 niveles).", "Optional. Separate from subtype (for example, a two-level condominium).")}>
                 <select
                   className={fieldClass}
                   value={state.residencial.niveles}
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, niveles: e.target.value } }))}
                 >
-                  <option value="">— No indicado</option>
+                  <option value="">{brPrivateUi(lang, "— No indicado", "— Not specified")}</option>
                   <option value="1">1</option>
                   <option value="2">2</option>
                   <option value="3+">3+</option>
                 </select>
               </AiField>
-              <AiField label="Recámaras">
+              <AiField label={brPrivateUi(lang, "Recámaras", "Bedrooms")}>
                 <input
                   className={fieldClass}
                   inputMode="numeric"
@@ -1002,7 +1044,7 @@ export function BienesRaicesPrivadoForm() {
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, recamaras: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Baños completos">
+              <AiField label={brPrivateUi(lang, "Baños completos", "Full bathrooms")}>
                 <input
                   className={fieldClass}
                   inputMode="decimal"
@@ -1010,7 +1052,7 @@ export function BienesRaicesPrivadoForm() {
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, banos: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Medios baños">
+              <AiField label={brPrivateUi(lang, "Medios baños", "Half bathrooms")}>
                 <input
                   className={fieldClass}
                   inputMode="decimal"
@@ -1018,32 +1060,32 @@ export function BienesRaicesPrivadoForm() {
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, mediosBanos: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Interior (ft²)">
+              <AiField label={brPrivateUi(lang, "Interior (ft²)", "Interior (ft²)")}>
                 <input
                   className={fieldClass}
                   inputMode="numeric"
                   value={state.residencial.interiorSqft}
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, interiorSqft: e.target.value } }))}
                 />
-                <BrSqftPreview value={state.residencial.interiorSqft} />
+                <BrSqftPreview value={state.residencial.interiorSqft} lang={lang} />
               </AiField>
-              <AiField label="Lote (ft²)">
+              <AiField label={brPrivateUi(lang, "Lote (ft²)", "Lot (ft²)")}>
                 <input
                   className={fieldClass}
                   inputMode="numeric"
                   value={state.residencial.loteSqft}
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, loteSqft: e.target.value } }))}
                 />
-                <BrSqftPreview value={state.residencial.loteSqft} />
+                <BrSqftPreview value={state.residencial.loteSqft} lang={lang} />
               </AiField>
-              <AiField label="Estacionamiento">
+              <AiField label={brPrivateUi(lang, "Estacionamiento", "Parking")}>
                 <input
                   className={fieldClass}
                   value={state.residencial.estacionamiento}
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, estacionamiento: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Año de construcción">
+              <AiField label={brPrivateUi(lang, "Año de construcción", "Year built")}>
                 <input
                   className={fieldClass}
                   inputMode="numeric"
@@ -1051,7 +1093,7 @@ export function BienesRaicesPrivadoForm() {
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, ano: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Condición">
+              <AiField label={brPrivateUi(lang, "Condición", "Condition")}>
                 <select
                   className={fieldClass}
                   value={state.residencial.condicion}
@@ -1064,15 +1106,15 @@ export function BienesRaicesPrivadoForm() {
                 >
                   {CONDICION_OPTS.map((o) => (
                     <option key={o.value || "x"} value={o.value}>
-                      {o.label}
+                      {brPrivateUi(lang, o.label, o.value === "excelente" ? "Excellent" : o.value === "buena" ? "Good" : o.value === "regular" ? "Fair" : o.value === "necesita_reparacion" ? "Needs repair" : "—")}
                     </option>
                   ))}
                 </select>
               </AiField>
             </div>
             <div className="mt-6">
-              <span className={aiLabelClass}>Destacados</span>
-              <p className={aiHintClass}>Opcional: qué destacar en la vista previa.</p>
+              <span className={aiLabelClass}>{brPrivateUi(lang, "Destacados", "Highlights")}</span>
+              <p className={aiHintClass}>{brPrivateUi(lang, "Opcional: qué destacar en la vista previa.", "Optional: choose what to highlight in preview.")}</p>
               <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
                 {BR_HIGHLIGHT_PRESET_DEFS.map((d) => (
                   <label key={d.key} className="flex cursor-pointer items-start gap-3 text-sm leading-snug">
@@ -1089,16 +1131,16 @@ export function BienesRaicesPrivadoForm() {
                         })
                       }
                     />
-                    <span className="min-w-0 flex-1">{d.label}</span>
+                    <span className="min-w-0 flex-1">{lang === "en" ? BR_HIGHLIGHT_PRESET_EN[d.key] ?? d.label : d.label}</span>
                   </label>
                 ))}
               </div>
               <LeonixCustomHighlightChipAdd
-                label="Agregar otra característica"
-                placeholder="Ej. Piso de mármol"
-                addLabel="Añadir"
-                removeAriaLabel={(label) => `Quitar: ${label}`}
-                capReachedLabel="Alcanzaste el máximo de características personalizadas."
+                label={brPrivateUi(lang, "Agregar otra característica", "Add another feature")}
+                placeholder={brPrivateUi(lang, "Ej. Piso de mármol", "E.g. Marble flooring")}
+                addLabel={brPrivateUi(lang, "Añadir", "Add")}
+                removeAriaLabel={(label) => brPrivateUi(lang, `Quitar: ${label}`, `Remove: ${label}`)}
+                capReachedLabel={brPrivateUi(lang, "Alcanzaste el máximo de características personalizadas.", "You've reached the maximum custom features.")}
                 pendingValue={state.residencial.pendingCustomHighlight}
                 onPendingChange={(next) =>
                   setState((s) => ({ ...s, residencial: { ...s.residencial, pendingCustomHighlight: next } }))
@@ -1160,9 +1202,9 @@ export function BienesRaicesPrivadoForm() {
 
         {cat === "comercial" ? (
           <section className={`${aiCardClass} min-w-0`}>
-            <h2 className={aiTitleClass}>Detalle comercial</h2>
+            <h2 className={aiTitleClass}>{brPrivateUi(lang, "Detalle comercial", "Commercial details")}</h2>
             <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
-              <AiField label="Tipo comercial">
+              <AiField label={brPrivateUi(lang, "Tipo comercial", "Commercial type")}>
                 <select
                   className={fieldClass}
                   value={state.comercial.tipoCodigo}
@@ -1175,12 +1217,12 @@ export function BienesRaicesPrivadoForm() {
                 >
                   {COMERCIAL_TIPO_OPCIONES.map((o) => (
                     <option key={o.value} value={o.value}>
-                      {o.label}
+                      {lang === "en" ? COMERCIAL_TIPO_LABEL_EN[o.value] : o.label}
                     </option>
                   ))}
                 </select>
               </AiField>
-              <AiField label="Subtipo">
+              <AiField label={brPrivateUi(lang, "Subtipo", "Subtype")}>
                 <select
                   className={fieldClass}
                   value={state.comercial.subtipo}
@@ -1188,13 +1230,13 @@ export function BienesRaicesPrivadoForm() {
                 >
                   {COMERCIAL_SUBTIPO_POR_TIPO[state.comercial.tipoCodigo].map((o) => (
                     <option key={o.value || "none"} value={o.value}>
-                      {o.label}
+                      {lang === "en" ? COMERCIAL_SUBVALUE_LABEL_EN[o.value] ?? o.label : o.label}
                     </option>
                   ))}
                 </select>
               </AiField>
               <div className="sm:col-span-2">
-                <AiField label="Uso">
+                <AiField label={brPrivateUi(lang, "Uso", "Use")}>
                   <input
                     className={fieldClass}
                     value={state.comercial.uso}
@@ -1202,51 +1244,51 @@ export function BienesRaicesPrivadoForm() {
                   />
                 </AiField>
               </div>
-              <AiField label="Interior (ft²)">
+              <AiField label={brPrivateUi(lang, "Interior (ft²)", "Interior (ft²)")}>
                 <input
                   className={fieldClass}
                   inputMode="numeric"
                   value={state.comercial.interiorSqft}
                   onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, interiorSqft: e.target.value } }))}
                 />
-                <BrSqftPreview value={state.comercial.interiorSqft} />
+                <BrSqftPreview value={state.comercial.interiorSqft} lang={lang} />
               </AiField>
-              <AiField label="Oficinas">
+              <AiField label={brPrivateUi(lang, "Oficinas", "Offices")}>
                 <input
                   className={fieldClass}
                   value={state.comercial.oficinas}
                   onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, oficinas: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Baños">
+              <AiField label={brPrivateUi(lang, "Baños", "Bathrooms")}>
                 <input
                   className={fieldClass}
                   value={state.comercial.banos}
                   onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, banos: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Niveles">
+              <AiField label={brPrivateUi(lang, "Niveles", "Levels")}>
                 <input
                   className={fieldClass}
                   value={state.comercial.niveles}
                   onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, niveles: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Estacionamiento">
+              <AiField label={brPrivateUi(lang, "Estacionamiento", "Parking")}>
                 <input
                   className={fieldClass}
                   value={state.comercial.estacionamiento}
                   onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, estacionamiento: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Zonificación">
+              <AiField label={brPrivateUi(lang, "Zonificación", "Zoning")}>
                 <input
                   className={fieldClass}
                   value={state.comercial.zonificacion}
                   onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, zonificacion: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Condición">
+              <AiField label={brPrivateUi(lang, "Condición", "Condition")}>
                 <select
                   className={fieldClass}
                   value={state.comercial.condicion}
@@ -1271,11 +1313,11 @@ export function BienesRaicesPrivadoForm() {
                   checked={state.comercial.accesoCarga}
                   onChange={(e) => setState((s) => ({ ...s, comercial: { ...s.comercial, accesoCarga: e.target.checked } }))}
                 />
-                <span className="text-sm font-medium text-[#2C2416]">Acceso de carga</span>
+                <span className="text-sm font-medium text-[#2C2416]">{brPrivateUi(lang, "Acceso de carga", "Loading access")}</span>
               </label>
             </div>
             <div className="mt-6">
-              <span className={aiLabelClass}>Destacados</span>
+              <span className={aiLabelClass}>{brPrivateUi(lang, "Destacados", "Highlights")}</span>
               <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
                 {COMERCIAL_DESTACADOS_CHECKLIST_DEFS.map((d) => (
                   <label key={d.id} className="flex cursor-pointer items-start gap-3 text-sm leading-snug">
@@ -1292,7 +1334,7 @@ export function BienesRaicesPrivadoForm() {
                         })
                       }
                     />
-                    <span className="min-w-0 flex-1">{d.label}</span>
+                    <span className="min-w-0 flex-1">{lang === "en" ? COMERCIAL_DESTACADO_EN[d.id] ?? d.label : d.label}</span>
                   </label>
                 ))}
               </div>
@@ -1302,9 +1344,9 @@ export function BienesRaicesPrivadoForm() {
 
         {cat === "terreno_lote" ? (
           <section className={`${aiCardClass} min-w-0`}>
-            <h2 className={aiTitleClass}>Detalle terreno / lote</h2>
+            <h2 className={aiTitleClass}>{brPrivateUi(lang, "Detalle terreno / lote", "Land / lot details")}</h2>
             <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 sm:gap-5">
-              <AiField label="Tipo">
+              <AiField label={brPrivateUi(lang, "Tipo", "Type")}>
                 <select
                   className={fieldClass}
                   value={state.terreno.tipoCodigo}
@@ -1317,12 +1359,12 @@ export function BienesRaicesPrivadoForm() {
                 >
                   {TERRENO_TIPO_OPCIONES.map((o) => (
                     <option key={o.value} value={o.value}>
-                      {o.label}
+                      {lang === "en" ? TERRENO_TIPO_LABEL_EN[o.value] : o.label}
                     </option>
                   ))}
                 </select>
               </AiField>
-              <AiField label="Subtipo">
+              <AiField label={brPrivateUi(lang, "Subtipo", "Subtype")}>
                 <select
                   className={fieldClass}
                   value={state.terreno.subtipo}
@@ -1330,42 +1372,42 @@ export function BienesRaicesPrivadoForm() {
                 >
                   {TERRENO_SUBTIPO_POR_TIPO[state.terreno.tipoCodigo].map((o) => (
                     <option key={o.value || "none"} value={o.value}>
-                      {o.label}
+                      {lang === "en" ? TERRENO_SUBVALUE_LABEL_EN[o.value] ?? o.label : o.label}
                     </option>
                   ))}
                 </select>
               </AiField>
-              <AiField label="Lote (ft²)">
+              <AiField label={brPrivateUi(lang, "Lote (ft²)", "Lot (ft²)")}>
                 <input
                   className={fieldClass}
                   inputMode="numeric"
                   value={state.terreno.loteSqft}
                   onChange={(e) => setState((s) => ({ ...s, terreno: { ...s.terreno, loteSqft: e.target.value } }))}
                 />
-                <BrSqftPreview value={state.terreno.loteSqft} />
+                <BrSqftPreview value={state.terreno.loteSqft} lang={lang} />
               </AiField>
-              <AiField label="Uso / zonificación">
+              <AiField label={brPrivateUi(lang, "Uso / zonificación", "Use / zoning")}>
                 <input
                   className={fieldClass}
                   value={state.terreno.usoZonificacion}
                   onChange={(e) => setState((s) => ({ ...s, terreno: { ...s.terreno, usoZonificacion: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Acceso">
+              <AiField label={brPrivateUi(lang, "Acceso", "Access")}>
                 <input
                   className={fieldClass}
                   value={state.terreno.acceso}
                   onChange={(e) => setState((s) => ({ ...s, terreno: { ...s.terreno, acceso: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Servicios">
+              <AiField label={brPrivateUi(lang, "Servicios", "Utilities")}>
                 <input
                   className={fieldClass}
                   value={state.terreno.servicios}
                   onChange={(e) => setState((s) => ({ ...s, terreno: { ...s.terreno, servicios: e.target.value } }))}
                 />
               </AiField>
-              <AiField label="Topografía">
+              <AiField label={brPrivateUi(lang, "Topografía", "Topography")}>
                 <input
                   className={fieldClass}
                   value={state.terreno.topografia}
@@ -1379,7 +1421,7 @@ export function BienesRaicesPrivadoForm() {
                   checked={state.terreno.listoConstruir}
                   onChange={(e) => setState((s) => ({ ...s, terreno: { ...s.terreno, listoConstruir: e.target.checked } }))}
                 />
-                <span className="text-sm font-medium">Listo para construir</span>
+                <span className="text-sm font-medium">{brPrivateUi(lang, "Listo para construir", "Ready to build")}</span>
               </label>
               <label className="flex cursor-pointer items-center gap-2">
                 <input
@@ -1388,11 +1430,11 @@ export function BienesRaicesPrivadoForm() {
                   checked={state.terreno.cercado}
                   onChange={(e) => setState((s) => ({ ...s, terreno: { ...s.terreno, cercado: e.target.checked } }))}
                 />
-                <span className="text-sm font-medium">Cercado</span>
+                <span className="text-sm font-medium">{brPrivateUi(lang, "Cercado", "Fenced")}</span>
               </label>
             </div>
             <div className="mt-6">
-              <span className={aiLabelClass}>Destacados</span>
+              <span className={aiLabelClass}>{brPrivateUi(lang, "Destacados", "Highlights")}</span>
               <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
                 {TERRENO_DESTACADOS_CHECKLIST_DEFS.map((d) => (
                   <label key={d.id} className="flex cursor-pointer items-start gap-3 text-sm leading-snug">
@@ -1409,7 +1451,7 @@ export function BienesRaicesPrivadoForm() {
                         })
                       }
                     />
-                    <span className="min-w-0 flex-1">{d.label}</span>
+                    <span className="min-w-0 flex-1">{lang === "en" ? TERRENO_DESTACADO_EN[d.id] ?? d.label : d.label}</span>
                   </label>
                 ))}
               </div>

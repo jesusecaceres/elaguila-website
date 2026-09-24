@@ -27,15 +27,15 @@ export function MagazinePrintPrimaryActions({
   const contactHref = magazineReadContactHref(lang);
 
   const btnPrimary =
-    "inline-flex min-h-[3rem] w-full min-w-0 items-center justify-center rounded-full bg-[#7A1E2C] px-5 py-3 text-center text-sm font-bold text-[#FFFDF7] transition hover:bg-[#5e1721] sm:min-h-[3.125rem] sm:text-[0.9375rem]";
+    "inline-flex min-h-[2.875rem] w-full min-w-0 items-center justify-center rounded-full bg-[#7A1E2C] px-5 py-2.5 text-center text-sm font-bold text-[#FFFDF7] transition hover:bg-[#5e1721] sm:w-auto sm:px-7";
   const btnOutline =
-    "inline-flex min-h-[3rem] w-full min-w-0 items-center justify-center rounded-full border-2 border-[#7A1E2C]/80 bg-[#FFFDF7] px-5 py-3 text-center text-sm font-bold text-[#7A1E2C] transition hover:bg-[#FBF7EF] sm:min-h-[3.125rem] sm:text-[0.9375rem]";
+    "inline-flex min-h-[2.875rem] w-full min-w-0 items-center justify-center rounded-full border-2 border-[#7A1E2C]/80 bg-[#FFFDF7] px-5 py-2.5 text-center text-sm font-bold text-[#7A1E2C] transition hover:bg-[#FBF7EF] sm:w-auto sm:px-7";
   const btnGold =
-    "inline-flex min-h-[3rem] w-full min-w-0 items-center justify-center rounded-full border-2 border-[#C9A84A] bg-[#FFFDF7] px-5 py-3 text-center text-sm font-bold text-[#1F241C] transition hover:border-[#b89742] hover:bg-[#FBF7EF] sm:min-h-[3.125rem] sm:text-[0.9375rem]";
+    "inline-flex min-h-[2.875rem] w-full min-w-0 items-center justify-center rounded-full border-2 border-[#C9A84A] bg-[#FFFDF7] px-5 py-2.5 text-center text-sm font-bold text-[#1F241C] transition hover:border-[#b89742] hover:bg-[#FBF7EF] sm:w-auto sm:px-7";
 
   return (
     <section
-      className="mt-4 rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] p-4 sm:p-6"
+      className="mt-4 min-w-0 rounded-2xl border border-[#D6C7AD] bg-[#FFFDF7] p-4 sm:p-5"
       aria-labelledby="print-primary-actions-title"
     >
       <p
@@ -44,7 +44,7 @@ export function MagazinePrintPrimaryActions({
       >
         {copy.actionsEyebrow}
       </p>
-      <div className="mt-4 flex min-w-0 flex-col gap-2.5 sm:flex-row sm:flex-wrap">
+      <div className="mt-3 flex min-w-0 flex-col gap-2.5 sm:flex-row sm:flex-wrap">
         <button type="button" onClick={onOpenFlipbook} className={btnPrimary}>
           {copy.actions.openDigital}
         </button>

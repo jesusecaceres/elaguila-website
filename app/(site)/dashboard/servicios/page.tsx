@@ -4,6 +4,13 @@ import {useEffect, useMemo, useState, Suspense } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { listLocalServiciosPublishSummaries } from "@/app/clasificados/servicios/lib/localServiciosPublishStorage";
+import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { businessUpgradeOfferedForHeldPackageKey } from "@/app/lib/listingPlans/businessAccessLevel";
+import {
+  businessUpgradeBusyLabel,
+  businessUpgradeCtaLabel,
+  redirectBusinessSimpleToFullUpgradeCheckout,
+} from "../lib/businessSimpleToFullUpgradeCheckout";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
 import {
   fetchOwnerEngagementDashboard,
@@ -29,10 +36,18 @@ import {
 import { resolveListingUiStatus, listingUiStatusLabel, listingUiStatusChipClass } from "../lib/listingDisplayStatus";
 import { resolveOwnerDashboardStatusDisplay, ownerDashboardStatusLabel } from "../lib/dashboardOwnerStatusDisplay";
 import {
+  dashboardEntitlementBadgeForKey,
   dashboardHasCapabilityForKey,
+  dashboardSubscriptionStateForKey,
   fetchDashboardListingPackageEntitlementBadges,
   type DashboardEntitlementBadgePayload,
+  type DashboardSubscriptionStateEntry,
 } from "../lib/dashboardPackageEntitlementBadges";
+import {
+  openDashboardBillingPortal,
+  dashboardBillingPortalLabel,
+  dashboardBillingPortalBusyLabel,
+} from "../lib/dashboardBillingPortal";
 import { getOwnerEntityCapabilities } from "../lib/ownerEntityCapabilityRegistry";
 import { ownerBusinessToolsSpecializedGroup } from "../lib/ownerBusinessToolsSpecializedGroup";
 import { OwnerEntityWorkspace, type OwnerEntitySpecializedGroup } from "../components/OwnerEntityWorkspace";
@@ -162,12 +177,31 @@ function DashboardServiciosPageContent() {
   >([]);
   const [manageBusy, setManageBusy] = useState<string | null>(null);
   const [manageNotice, setManageNotice] = useState<string | null>(null);
+  const [upgradeBusyId, setUpgradeBusyId] = useState<string | null>(null);
+  const [billingBusyId, setBillingBusyId] = useState<string | null>(null);
+  const [subscriptionStates, setSubscriptionStates] = useState<Record<string, DashboardSubscriptionStateEntry>>({});
   const [communityTrustById, setCommunityTrustById] = useState<
     Record<string, { key: string; es: string; en: string; count: number }[]>
   >({});
   const [entitlementBadges, setEntitlementBadges] = useState<
     Record<string, DashboardEntitlementBadgePayload>
   >({});
+
+  async function openBilling(row: MergedRow) {
+    if (!row.id) return;
+    setBillingBusyId(row.id);
+    setManageNotice(null);
+    const result = await openDashboardBillingPortal({
+      category: "servicios",
+      listingId: row.id,
+      returnPath: `/dashboard/servicios?lang=${lang}`,
+      lang,
+    });
+    if (!result.ok) {
+      setManageNotice(result.message);
+      setBillingBusyId(null);
+    }
+  }
 
   function serviciosEditHref(row: MergedRow): string {
     return serviciosListingEditHref({
@@ -355,7 +389,7 @@ function DashboardServiciosPageContent() {
       const cloudRows = merged.filter((r) => r.source === "cloud" && r.id);
       if (token && cloudRows.length > 0) {
         try {
-          const { badges } = await fetchDashboardListingPackageEntitlementBadges(
+          const { badges, subscriptionStates: subs } = await fetchDashboardListingPackageEntitlementBadges(
             cloudRows.map((r) => ({
               key: r.id as string,
               category: "servicios",
@@ -366,7 +400,10 @@ function DashboardServiciosPageContent() {
             })),
             token,
           );
-          if (mounted) setEntitlementBadges(badges);
+          if (mounted) {
+            setEntitlementBadges(badges);
+            setSubscriptionStates(subs);
+          }
         } catch (badgeErr) {
           console.error("[dashboard/servicios] entitlement badge fetch failed", badgeErr);
         }
@@ -444,6 +481,28 @@ function DashboardServiciosPageContent() {
       setManageNotice(lang === "es" ? "No pudimos completar esta acción. Intenta de nuevo." : "We couldn't complete that action. Please try again.");
     } finally {
       setManageBusy(null);
+    }
+  }
+
+  /**
+   * SIMPLE -> FULL. Buys the category's EXISTING Full package for the listing the owner already
+   * has: no content save, no status change, no second listing. Identity survives because nothing
+   * in this path writes to the listing row.
+   */
+  async function startUpgrade(listingId: string, leonixAdId: string | null) {
+    setUpgradeBusyId(listingId);
+    setManageNotice(null);
+    const result = await redirectBusinessSimpleToFullUpgradeCheckout({
+      category: "servicios",
+      listingId,
+      leonixAdId,
+      lang,
+      customerEmail: email,
+      returnPath: appendLangToPath("/dashboard/servicios", lang),
+    });
+    if (!result.ok) {
+      setManageNotice(result.userMessage);
+      setUpgradeBusyId(null);
     }
   }
 
@@ -566,6 +625,25 @@ function DashboardServiciosPageContent() {
                     tone: "primary",
                   });
                 }
+                const subscriptionState =
+                  r.id
+                    ? dashboardSubscriptionStateForKey(subscriptionStates, [
+                        r.id,
+                        r.slug,
+                        r.leonixAdId ?? "",
+                      ])
+                    : null;
+                if (subscriptionState && r.id) {
+                  quickActions.push({
+                    label:
+                      billingBusyId === r.id
+                        ? dashboardBillingPortalBusyLabel(lang)
+                        : dashboardBillingPortalLabel(lang),
+                    onClick: () => void openBilling(r),
+                    disabled: billingBusyId === r.id,
+                    tone: "secondary",
+                  });
+                }
                 const lifecycleActions: ActionItem[] = [];
                 if (r.source === "cloud" && r.listingStatus === "published") {
                   lifecycleActions.push({
@@ -604,6 +682,17 @@ function DashboardServiciosPageContent() {
                   capabilities.specialized.offers !== "unsupported" && specializedActions.length === 0
                     ? serviciosOffersInactiveDashboardHint(lang)
                     : null;
+                // SIMPLE -> FULL, from the package key the SERVER resolved for this row. Null
+                // for a Full listing and for a listing with no base package, so the offer is
+                // never shown to an owner it does not apply to.
+                const upgradeToFullPackageKey = businessUpgradeOfferedForHeldPackageKey(
+                  "servicios",
+                  dashboardEntitlementBadgeForKey(entitlementBadges, [
+                    r.id ?? "",
+                    r.slug,
+                    r.leonixAdId ?? "",
+                  ])?.revenuePackageKey ?? null,
+                );
                 const rowLeads = leads.filter((l) => l.listing_slug === r.slug);
                 const activityItems: OwnerEntityActivityItem[] = rowLeads.map((l) => ({
                   id: l.id,
@@ -642,6 +731,22 @@ function DashboardServiciosPageContent() {
                     specialized={[
                       capabilities.specialized.offers !== "unsupported"
                         ? { title: serviciosOffersEditLabel(lang), actions: specializedActions }
+                        : null,
+                      upgradeToFullPackageKey && r.id
+                        ? {
+                            title: businessUpgradeCtaLabel(lang),
+                            actions: [
+                              {
+                                label:
+                                  upgradeBusyId === r.id
+                                    ? businessUpgradeBusyLabel(lang)
+                                    : businessUpgradeCtaLabel(lang),
+                                onClick: () => void startUpgrade(r.id as string, r.leonixAdId ?? null),
+                                disabled: upgradeBusyId === r.id,
+                                tone: "premium" as const,
+                              },
+                            ],
+                          }
                         : null,
                       ownerBusinessToolsSpecializedGroup(capabilities.specialized.businessTools, lang),
                     ].filter((group): group is OwnerEntitySpecializedGroup => group !== null)}

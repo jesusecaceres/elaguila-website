@@ -86,8 +86,8 @@ export const QR_GUIDE_ES: QrGuideCopy = {
     "Este resumen ayuda, pero la revista visual original permanece en español.",
   actionsEyebrow: "Acciones Leonix",
   actions: {
-    openDigital: "Abrir revista digital original",
-    downloadPdf: "Descargar PDF original",
+    openDigital: "Abrir revista digital",
+    downloadPdf: "Descargar PDF",
     mediaKit: "Ver Media Kit",
     contact: "Contactar Leonix",
   },
