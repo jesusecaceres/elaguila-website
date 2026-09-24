@@ -11,6 +11,9 @@
       "next/headers": [
         "./stubs/nextHeaders.mjs"
       ],
+      "next/cache": [
+        "./stubs/nextCache.mjs"
+      ],
       "@supabase/supabase-js": [
         "./stubs/supabaseJs.mjs"
       ],

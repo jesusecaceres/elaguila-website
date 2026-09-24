@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
+import { businessPlanFromSearchParams } from "@/app/lib/listingPlans/businessQuickPlanSignal";
 import {
   DndContext,
   closestCenter,
@@ -56,6 +58,9 @@ export function RestaurantePublishMediaStrip({
   uploadLabels,
   setUploadLabels,
 }: Props) {
+  const searchParams = useSearchParams();
+  const isQuickBusinessPlan = businessPlanFromSearchParams(searchParams) === "quick";
+  const galleryLimit = isQuickBusinessPlan ? 3 : MAX_GALLERY;
   const displaySequence = useMemo(() => {
     const seq = computePublishGallerySequence(draft);
     const imgs = draft.galleryImages ?? [];
@@ -125,14 +130,14 @@ export function RestaurantePublishMediaStrip({
   /** Append one image at a time so the UI shows progress instead of blocking until all compress+read finish. */
   const addGalleryFiles = async (files: FileList | null) => {
     const list = files ? Array.from(files) : [];
-    const toRead = list.slice(0, MAX_GALLERY);
+    const toRead = list.slice(0, galleryLimit);
     for (const f of toRead) {
       const u = await readRestauranteImageAsDataUrl(f, RESTAURANTE_GRID_IMAGE_COMPRESSION_OPTS);
       if (!isRestauranteDisplayableImageRef(u)) continue;
       const trimmed = u.trim();
       setDraftPatch((prev) => {
         const prevImgs = prev.galleryImages ?? [];
-        if (prevImgs.length >= MAX_GALLERY) return {};
+        if (prevImgs.length >= galleryLimit) return {};
         const imgs = [...prevImgs, trimmed];
         const prevSeq = resolveRestauranteGallerySequence(prev);
         const hadV = prevSeq.includes("v");
@@ -211,14 +216,20 @@ export function RestaurantePublishMediaStrip({
               helperText="Varias a la vez, o arrastra imágenes aquí."
               accept="image/*"
               multiple
-              disabled={((draft.galleryImages ?? []).length ?? 0) >= MAX_GALLERY}
+              disabled={((draft.galleryImages ?? []).length ?? 0) >= galleryLimit}
               selectedLabel={
                 (draft.galleryImages?.length ?? 0) > 0
-                  ? `${draft.galleryImages!.length} foto(s) · máx. ${MAX_GALLERY}`
+                  ? `${draft.galleryImages!.length} foto(s) · máx. ${galleryLimit}`
                   : null
               }
               onFilesSelected={(fl) => void addGalleryFiles(fl)}
             />
+            {isQuickBusinessPlan ? (
+              <div className="rounded-xl border border-[#C9B46A]/60 bg-[#FFF6E7] p-3" data-quick-video-locked="1">
+                <p className="text-sm font-bold text-[#3D2C12]">El video está disponible con PRO $399</p>
+                <p className="mt-1 text-xs text-[#5D4A25]">Tu plan de $249 admite hasta 3 imágenes en la misma ficha profesional.</p>
+              </div>
+            ) : (
             <RestauranteUploadRow
               buttonLabel="Subir video"
               helperText="Archivo local (vista previa en el borrador)."
@@ -226,6 +237,7 @@ export function RestaurantePublishMediaStrip({
               selectedLabel={uploadLabels.video ?? (draft.videoFile ? "Video en el borrador" : null)}
               onFilesSelected={(fl) => void addVideoFile(fl)}
             />
+            )}
           </div>
           {hasGalleryTiles || hasVideoTile ? (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>

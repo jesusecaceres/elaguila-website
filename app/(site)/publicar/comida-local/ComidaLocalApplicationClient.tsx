@@ -22,6 +22,8 @@ import { resolveDraftPrecedence } from "@/app/lib/listingDrafts/draftWorkspaceCo
 import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications/useBusinessApplicationLeaveGuard";
 import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { PhoneInput } from "@/app/components/forms/PhoneInput";
+import { BusinessAddressVerifiedInput } from "@/app/components/forms/BusinessAddressVerifiedInput";
+import type { BusinessAddress } from "@/app/lib/businessAddress/businessAddressContract";
 import { LanguagesInput } from "@/app/components/forms/LanguagesInput";
 import { HoursEditor, type HoursEditorDayRow } from "@/app/components/forms/HoursEditor";
 import { AddedConfirmationBadge, useAddedConfirmation } from "@/app/components/forms/AddedConfirmation";
@@ -60,6 +62,7 @@ import type {
   ComidaLocalSocialPlatform,
 } from "@/app/lib/clasificados/comida-local/comidaLocalTypes";
 import { useComidaLocalDraft } from "@/app/lib/clasificados/comida-local/useComidaLocalDraft";
+import { AssistedSaveForClientBar } from "@/app/clasificados/components/AssistedSaveForClientBar";
 import {
   validateComidaLocalDraftForFuturePublish,
   validateComidaLocalDraftForPreview,
@@ -299,6 +302,8 @@ export default function ComidaLocalApplicationClient() {
   const { draft, setDraft, updateDraft, resetDraft, hasLoadedDraft, lastSavedAt, isDraftDirty } = useComidaLocalDraft({
     storageKey: editStorageKey,
   });
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
 
   useBusinessApplicationLeaveGuard({
     isDirty: hasLoadedDraft && Boolean(draft.businessName?.trim()) && isDraftDirty,
@@ -347,6 +352,7 @@ export default function ComidaLocalApplicationClient() {
       setWebsiteLinkConfirmVisible((prev) => ({ ...prev, [index]: false }));
     }, 2200);
   }, []);
+  const [businessAddressSelection, setBusinessAddressSelection] = useState<BusinessAddress | null>(null);
   const [publishBusy, setPublishBusy] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
   const [publishSuccess, setPublishSuccess] = useState<{
@@ -751,6 +757,16 @@ export default function ComidaLocalApplicationClient() {
             </button>
           </div>
         </header>
+        <AssistedSaveForClientBar
+          category="comida-local"
+          lang={es ? "es" : "en"}
+          buildPayload={() => ({
+            category: "comida-local",
+            draft: draftRef.current as unknown as Record<string, unknown>,
+            draftListingId: draftRef.current.draftListingId || null,
+            lang: es ? "es" : "en",
+          })}
+        />
 
         <div className="mb-6">
           <ComidaLocalValidationPanel
@@ -1279,11 +1295,38 @@ export default function ComidaLocalApplicationClient() {
                     />
                   ) : null}
                   <FieldBlock fieldKey="businessAddressLine" es={es}>
-                    <input
-                      className={INPUT}
-                      value={draft.businessAddressLine}
-                      onChange={(e) => updateDraft({ businessAddressLine: e.target.value })}
-                      placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.businessAddressLine, es).placeholder}
+                    <BusinessAddressVerifiedInput
+                      lang={es ? "es" : "en"}
+                      value={
+                        businessAddressSelection ?? {
+                          street: draft.businessAddressLine,
+                          city: draft.cityDisplay || draft.cityCanonical,
+                          region: "",
+                          postalCode: "",
+                          country: "US",
+                          verificationStatus: "manual",
+                          provider: null,
+                          providerPlaceId: null,
+                          manualEntry: true,
+                        }
+                      }
+                      locationHint={draft.cityDisplay || draft.cityCanonical}
+                      inputClassName={INPUT}
+                      onChange={(next) => {
+                        setBusinessAddressSelection(next);
+                        const formatted =
+                          next.formattedAddress?.trim() ||
+                          [next.street, next.unit, next.city, next.region, next.postalCode]
+                            .filter(Boolean)
+                            .join(", ");
+                        const cityPatch = next.city?.trim()
+                          ? syncComidaLocalCityFromInput(next.city)
+                          : {};
+                        updateDraft({
+                          businessAddressLine: formatted,
+                          ...cityPatch,
+                        });
+                      }}
                     />
                   </FieldBlock>
                   {draft.businessAddressLine.trim() ? (

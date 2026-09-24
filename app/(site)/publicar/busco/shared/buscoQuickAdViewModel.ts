@@ -91,7 +91,7 @@ function resolveContactFields(draft: { phone: string; whatsapp: string; smsPhone
 
   return {
     phoneDigits: phoneDigits.length >= 10 ? phoneDigits : "",
-    whatsappDigits: waDig.length >= 10 ? waDig : phoneDigits.length >= 10 ? phoneDigits : "",
+    whatsappDigits: waDig.length >= 10 ? waDig : "",
     smsDigits: smsDigits.length >= 10 ? smsDigits : "",
     email: draft.email.trim(),
   };

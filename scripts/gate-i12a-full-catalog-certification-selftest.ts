@@ -156,33 +156,18 @@ async function main() {
   }
 
   /* ============================================================================================
-   * MESSAGING OPTION B — the one live ungated surface is fixed; the already-correct surfaces are
-   * proven unchanged (regression), not just assumed.
+   * MESSAGING — the real receiver-scoped global inbox is enabled. Restaurant cards deliberately
+   * do not pretend that global messages are listing-scoped; the shared shell is the real entry.
    * ========================================================================================== */
   {
     const restaurantesSrc = readSource(RESTAURANTES_DASHBOARD);
-    assert.ok(restaurantesSrc.includes("DASHBOARD_INTERNAL_INBOX_READY"), "Restaurantes dashboard must import the existing readiness flag");
-    const msgLineIdx = restaurantesSrc.indexOf('label: t.openMessages');
-    assert.ok(msgLineIdx > -1, "the messages action must still exist (not deleted)");
-    const surroundingBlock = restaurantesSrc.slice(Math.max(0, msgLineIdx - 200), msgLineIdx);
-    assert.ok(surroundingBlock.includes("DASHBOARD_INTERNAL_INBOX_READY"), "the messages action must now be conditioned on the readiness flag");
-    // Every other action must remain unconditional — no unrelated navigation removed.
-    for (const stillPresent of ["t.linkPublic", "t.linkResults", "t.openAnalytics", "t.linkForm"]) {
-      assert.ok(restaurantesSrc.includes(stillPresent), `unrelated action "${stillPresent}" must remain present`);
-    }
-
-    // Regression: the already-correct shared shell and derived-feed gates are untouched.
+    assert.ok(!restaurantesSrc.includes("openMessages"), "restaurant cards must not expose a fake listing-scoped messages action");
     const shellSrc = readSource(DASHBOARD_SHELL);
-    assert.ok(shellSrc.includes("DASHBOARD_INTERNAL_INBOX_READY") && shellSrc.includes('navItem("messages"'), "shared dashboard shell must still gate the messages nav item");
+    assert.ok(shellSrc.includes("DASHBOARD_INTERNAL_INBOX_READY") && shellSrc.includes('navItem("messages"'), "shared dashboard shell must expose the real inbox when ready");
     const feedSrc = readSource(DERIVED_FEED);
-    assert.ok(feedSrc.includes("DASHBOARD_INTERNAL_INBOX_READY && unreadInbox > 0"), "derived feed inbox item must still be gated");
-    // Package E Build E2, Gate 5 — the flag was false because no gate had built a real inbox
-    // yet (I.12A's own assertion message says "I.12A does not build the inbox" — a statement
-    // about I.12A's scope, not a permanent lock). E2 built the real, receiver_id-scoped
-    // `messages` inbox at /dashboard/mensajes and only then flipped the flag; pin the new,
-    // real truth instead of a now-stale assumption.
+    assert.ok(feedSrc.includes("DASHBOARD_INTERNAL_INBOX_READY && unreadInbox > 0"), "derived feed inbox item must remain gated");
     const truthSrc = readSource(PRODUCT_TRUTH);
-    assert.ok(truthSrc.includes("DASHBOARD_INTERNAL_INBOX_READY = true"), "the readiness flag must be true now that Package E Build E2 built the real inbox");
+    assert.ok(truthSrc.includes("DASHBOARD_INTERNAL_INBOX_READY = true"), "real receiver-scoped inbox must remain enabled");
   }
 
   /* ============================================================================================

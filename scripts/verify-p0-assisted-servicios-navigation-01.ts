@@ -127,7 +127,6 @@ if (nonVerifierTouched.length > 0) {
 // below instead of being inferred from the files being byte-frozen.
 for (const f of [
   "app/api/clasificados/servicios/my-listing/route.ts",
-  "app/lib/business/assistedListingCustody.ts",
   "app/(site)/clasificados/publicar/servicios/preview/ClasificadosServiciosPreviewClient.tsx",
 ]) {
   assert.ok(!allTouched.includes(f), `${f} (Save for Client / Publish for Client architecture) was not touched — navigation-only mission`);
@@ -143,7 +142,7 @@ for (const f of [
   // redemption. The bare reader would now be a weakening here, so it is forbidden outright.
   assert.ok(pubSrc.includes("readActiveAssistedPublishingContext("), "assisted mode still requires the signed server-minted cookie");
   assert.ok(!/[^e]readAssistedPublishingContext\(/.test(pubSrc), "a write seam never redeems with the unchecked reader");
-  assert.ok(pubSrc.includes("hasClearedManualPaymentForListing("), "Publish for Client still gated on a real cleared manual payment");
+  assert.ok(pubSrc.includes("refuseUnlessAuthoritativePayment("), "Publish for Client still gated on authoritative listing+package payment");
   assert.ok(pubSrc.includes("linkAssistedListingToBusiness("), "assisted custody write intact");
   assert.ok(
     pubSrc.includes("isServiciosListingOwner(existing.owner_user_id, ownerUserId)"),

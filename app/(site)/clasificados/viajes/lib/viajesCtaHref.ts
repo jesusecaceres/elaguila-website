@@ -10,5 +10,6 @@ export function isPlaceholderViajesCtaHref(href: string): boolean {
   if (/^tel:\s*$/i.test(h)) return true;
   if (/^mailto:\s*$/i.test(h)) return true;
   if (h === "https://" || h === "http://") return true;
+  if (/^https?:\/\/(www\.)?example\.(com|org|net)(\/|$)/i.test(h)) return true;
   return false;
 }

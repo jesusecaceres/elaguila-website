@@ -1,7 +1,7 @@
 /**
  * Gate QB-BILLING-01 — server-created Stripe Billing Portal session.
  *
- * POST {category: string, returnPath?: string}
+ * POST {category: string, listingId?: string, returnPath?: string}
  *
  * Replaces the static NEXT_PUBLIC_STRIPE_CUSTOMER_PORTAL_URL env var. Resolves
  * the Stripe customer ID from the server-side payment ledger for the authenticated
@@ -13,6 +13,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import Stripe from "stripe";
 import { getBearerUserId } from "@/app/api/clasificados/_lib/bearerUser";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { LEONIX_SITE_ORIGIN } from "@/app/lib/leonixBrand";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,25 +41,33 @@ function getStripeClient(): Stripe | null {
 function getBaseUrl(): string {
   const vercelUrl = process.env.VERCEL_URL;
   if (vercelUrl) return `https://${vercelUrl}`;
-  return process.env.NEXT_PUBLIC_SITE_URL ?? "https://elaguila.net";
+  return process.env.NEXT_PUBLIC_SITE_URL ?? LEONIX_SITE_ORIGIN;
 }
 
 async function resolveStripeCustomerIdForUser(
   ownerUserId: string,
   category: string,
+  listingId: string | null,
 ): Promise<string | null> {
   if (!isSupabaseAdminConfigured()) return null;
   const db = getAdminSupabase();
   // Find the most recent paid subscription for this user+category that has a Stripe customer ID.
-  const { data } = await db
+  let query = db
     .from("leonix_payment_records")
     .select("stripe_customer_id, stripe_subscription_id")
     .eq("owner_user_id", ownerUserId)
     .eq("category", category)
-    .eq("billing_mode", "subscription")
-    .eq("payment_status", "paid")
+    // Canonical Revenue OS rows use monthly_subscription; keep subscription for legacy compatibility.
+    .in("billing_mode", ["monthly_subscription", "subscription"])
+    .in("payment_status", ["paid", "succeeded"])
     .not("stripe_customer_id", "is", null)
-    .not("stripe_subscription_id", "is", null)
+    .not("stripe_subscription_id", "is", null);
+
+  // Dashboard callers always send the exact canonical listing id. This prevents an owner with
+  // multiple subscriptions in one category from opening the wrong customer's/listing's portal.
+  if (listingId) query = query.eq("listing_id", listingId);
+
+  const { data } = await query
     .order("paid_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -77,7 +86,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
   }
 
-  let body: { category?: unknown; returnPath?: unknown } = {};
+  let body: { category?: unknown; listingId?: unknown; returnPath?: unknown } = {};
   try {
     body = (await request.json()) as typeof body;
   } catch {
@@ -96,9 +105,21 @@ export async function POST(request: NextRequest) {
     "autos-dealer": "autos",
     "bienes-negocio": "bienes-raices",
   };
-  const paymentCategory = categoryMap[category] ?? category;
+  const paymentCategory = categoryMap[category];
+  if (!paymentCategory) {
+    return NextResponse.json({ ok: false, error: "unsupported_category" }, { status: 400 });
+  }
 
-  const stripeCustomerId = await resolveStripeCustomerIdForUser(ownerUserId, paymentCategory);
+  const listingId = typeof body.listingId === "string" ? body.listingId.trim() : "";
+  if (!listingId) {
+    return NextResponse.json({ ok: false, error: "listing_id_required" }, { status: 400 });
+  }
+
+  const stripeCustomerId = await resolveStripeCustomerIdForUser(
+    ownerUserId,
+    paymentCategory,
+    listingId,
+  );
   if (!stripeCustomerId) {
     return NextResponse.json({ ok: false, error: "no_subscription_found" }, { status: 404 });
   }

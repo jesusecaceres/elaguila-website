@@ -237,9 +237,9 @@ export const OFERTAS_LOCALES_PRICING: Record<
   OfertaLocalPricingPackage
 > = {
   digitalCouponListing: {
-    label: "Digital Coupon Listing (Free)",
-    regularPriceMonthly: 0,
-    pickupPartnerPriceMonthly: 0,
+    label: "Digital Coupon Listing",
+    regularPriceMonthly: 199,
+    pickupPartnerPriceMonthly: 199,
     interval: "month",
   },
   digitalWeeklySpecials: {
@@ -324,7 +324,7 @@ export const OFERTAS_LOCALES_VERSION_2_FEATURES = [
   "Item-to-flyer flow",
   "Review and approve workflow",
   "Google Document AI scan jobs",
-  "AI analysis included in both locked publish products",
+  "AI analysis included in the Interactive Flyer product; Coupons remain manual-entry",
 ] as const;
 
 export const OFERTAS_LOCALES_DEFAULT_FILTERS = {

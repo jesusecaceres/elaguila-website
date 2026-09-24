@@ -22,6 +22,8 @@ import { saveRestauranteDraftToStorageResolved } from "@/app/clasificados/restau
 import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications/useBusinessApplicationLeaveGuard";
 import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { PhoneInput } from "@/app/components/forms/PhoneInput";
+import { BusinessAddressVerifiedInput } from "@/app/components/forms/BusinessAddressVerifiedInput";
+import type { BusinessAddress } from "@/app/lib/businessAddress/businessAddressContract";
 import { LanguagesInput } from "@/app/components/forms/LanguagesInput";
 import { HoursEditor } from "@/app/components/forms/HoursEditor";
 import { AddedConfirmationBadge, useAddedConfirmation } from "@/app/components/forms/AddedConfirmation";
@@ -85,7 +87,6 @@ import {
   RESTAURANTE_FORM_BUSINESS_TYPES,
   RESTAURANTE_FORM_SERVICE_OPTIONS,
   RESTAURANTE_MAX_CUSTOM_LANGUAGES,
-  RESTAURANTE_US_STATE_OPTIONS,
   resolveRestauranteCustomLanguages,
 } from "@/app/lib/clasificados/restaurantes/restauranteFormCleanupConfig";
 
@@ -101,10 +102,6 @@ const stepPanel = CARD;
 /** Stacks I / J / K — visually dominant vs. canonical service modes + channel rows below */
 const PRIMARY_OP_CARD =
   "flex h-full flex-col rounded-2xl border-2 border-[color:var(--lx-gold-border)]/70 bg-gradient-to-b from-[color:var(--lx-section)] to-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.18)] ring-2 ring-[color:var(--lx-gold-border)]/25";
-
-/** Secondary fulfillment toggles — lighter visual weight */
-const SECONDARY_CHANNEL_CLUSTER =
-  "rounded-2xl border border-dashed border-[color:var(--lx-nav-border)]/90 bg-[color:var(--lx-section)]/40 p-4";
 
 const OTHER_INPUT =
   "mt-1.5 w-full max-w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm text-[color:var(--lx-text)]";
@@ -224,6 +221,7 @@ export default function RestauranteApplicationClient() {
     },
   });
   const [serviceErr, setServiceErr] = useState(false);
+  const [businessAddressSelection, setBusinessAddressSelection] = useState<BusinessAddress | null>(null);
   /** Pending text before user confirms custom language with Añadir. */
   const [languageOtherPending, setLanguageOtherPending] = useState("");
 
@@ -264,9 +262,9 @@ export default function RestauranteApplicationClient() {
   const [confirmCommunityRules, setConfirmCommunityRules] = useState(false);
   const [confirmCouponTerms, setConfirmCouponTerms] = useState(false);
   /** Coupon image upload state */
-  const [couponImageUploading, setCouponImageUploading] = useState<Record<number, boolean>>({});
+  const [_couponImageUploading, setCouponImageUploading] = useState<Record<number, boolean>>({});
   /** Flyer image upload state */
-  const [flyerImageUploading, setFlyerImageUploading] = useState(false);
+  const [_flyerImageUploading, setFlyerImageUploading] = useState(false);
   const [dashboardAddonCheckoutBusy, setDashboardAddonCheckoutBusy] = useState(false);
   const [dashboardSaveBusy, setDashboardSaveBusy] = useState(false);
   const [dashboardContextErr, setDashboardContextErr] = useState<string | null>(null);
@@ -453,7 +451,7 @@ export default function RestauranteApplicationClient() {
   /** Can continue to preview */
   const canContinueToPreview = minPreviewOk && finalPreviewConfirmationsOk;
 
-  const serviceOk = useMemo(() => satisfiesRestauranteServiceModes(draft.serviceModes), [draft.serviceModes]);
+  const _serviceOk = useMemo(() => satisfiesRestauranteServiceModes(draft.serviceModes), [draft.serviceModes]);
   const deliveryRelevant = useMemo(
     () =>
       Boolean(draft.delivery) ||
@@ -1647,6 +1645,16 @@ export default function RestauranteApplicationClient() {
                   />
                 </div>
                 <div>
+                  <FieldLabel optional lang={lang}>{fc.sectionD.smsLabel}</FieldLabel>
+                  <HelperText>{fc.sectionD.smsHelper}</HelperText>
+                  <PhoneInput
+                    className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                    placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.smsNumber ?? "(408) 555-0188"}
+                    value={draft.smsNumber ?? ""}
+                    onChange={(next) => setDraftPatch({ smsNumber: next || undefined })}
+                  />
+                </div>
+                <div>
                   <FieldLabel optional lang={lang}>{fc.sectionD.whatsAppLabel}</FieldLabel>
                   <HelperText>{fc.sectionD.whatsAppHelper}</HelperText>
                   <input
@@ -1823,10 +1831,34 @@ export default function RestauranteApplicationClient() {
             <div>
               <FieldLabel optional lang={lang}>{fc.sectionE.addressLine1Label}</FieldLabel>
               <HelperText>{fc.sectionE.addressLine1Helper}</HelperText>
-              <input
-                className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                value={draft.addressLine1 ?? ""}
-                onChange={(e) => setDraftPatch({ addressLine1: e.target.value || undefined })}
+              <BusinessAddressVerifiedInput
+                lang={lang}
+                value={
+                  businessAddressSelection ?? {
+                    street: draft.addressLine1 ?? "",
+                    unit: draft.addressLine2,
+                    city: draft.cityCanonical ?? "",
+                    region: draft.state ?? "",
+                    postalCode: draft.zipCode ?? "",
+                    country: draft.country ?? "US",
+                    verificationStatus: "manual",
+                    provider: null,
+                    providerPlaceId: null,
+                    manualEntry: true,
+                  }
+                }
+                locationHint={[draft.cityCanonical, draft.state].filter(Boolean).join(", ")}
+                inputClassName="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                onChange={(next) => {
+                  setBusinessAddressSelection(next);
+                  setDraftPatch({
+                    addressLine1: next.street || undefined,
+                    cityCanonical: next.city || draft.cityCanonical,
+                    state: next.region || draft.state,
+                    zipCode: next.postalCode || draft.zipCode,
+                    country: next.country || draft.country,
+                  });
+                }}
               />
             </div>
             <div>
@@ -1846,7 +1878,10 @@ export default function RestauranteApplicationClient() {
                 variant="light"
                 freeText
                 value={draft.cityCanonical}
-                onChange={(v) => setDraftPatch({ cityCanonical: v })}
+                onChange={(v) => {
+                  setBusinessAddressSelection(null);
+                  setDraftPatch({ cityCanonical: v });
+                }}
                 placeholder={fc.sectionE.cityPlaceholder}
               />
             </div>
@@ -1856,7 +1891,10 @@ export default function RestauranteApplicationClient() {
               <input
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                 value={draft.state ?? ""}
-                onChange={(e) => setDraftPatch({ state: e.target.value || undefined })}
+                onChange={(e) => {
+                  setBusinessAddressSelection(null);
+                  setDraftPatch({ state: e.target.value || undefined });
+                }}
                 placeholder={fc.sectionE.statePlaceholder}
               />
             </div>
@@ -1867,7 +1905,10 @@ export default function RestauranteApplicationClient() {
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                 inputMode="numeric"
                 value={draft.zipCode ?? ""}
-                onChange={(e) => setDraftPatch({ zipCode: e.target.value.replace(/\D/g, "").slice(0, 5) || undefined })}
+                onChange={(e) => {
+                  setBusinessAddressSelection(null);
+                  setDraftPatch({ zipCode: e.target.value.replace(/\D/g, "").slice(0, 5) || undefined });
+                }}
               />
             </div>
             <div>
@@ -1876,7 +1917,10 @@ export default function RestauranteApplicationClient() {
               <input
                 className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                 value={draft.country ?? ""}
-                onChange={(e) => setDraftPatch({ country: e.target.value || undefined })}
+                onChange={(e) => {
+                  setBusinessAddressSelection(null);
+                  setDraftPatch({ country: e.target.value || undefined });
+                }}
                 placeholder={fc.sectionE.countryPlaceholder}
               />
             </div>

@@ -1,10 +1,10 @@
-import Image from "next/image";
 import Link from "next/link";
 
 import type { ViajesUi } from "../data/viajesUiCopy";
 import { VIAJES_LOCAL_DEPARTURES } from "../data/viajesLandingSampleData";
 import { viajesResultsBrowseUrl } from "../lib/viajesBrowseContract";
 import { ViajesLandingBrowseMore } from "./ViajesLandingBrowseMore";
+import { ViajesSafeImage } from "./ViajesSafeImage";
 import { ViajesSectionHeader } from "./ViajesSectionHeader";
 
 type ViajesLocalDeparturesProps = {
@@ -32,12 +32,12 @@ export function ViajesLocalDepartures({ ui, browseAllHref }: ViajesLocalDepartur
               className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[color:var(--lx-gold-border)] bg-[#fffefb] shadow-[0_12px_40px_-20px_rgba(30,24,16,0.12)] transition hover:-translate-y-[2px] hover:shadow-[0_20px_48px_-22px_rgba(30,50,70,0.14)]"
             >
               <div className="relative aspect-[16/10] w-full min-w-0 overflow-hidden">
-                <Image
+                <ViajesSafeImage
                   src={card.imageSrc}
                   alt={card.imageAlt}
-                  fill
+                  className="absolute inset-0 h-full w-full object-cover object-center"
                   sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 25vw"
-                  className="object-cover object-center"
+                  mode="editorial"
                 />
               </div>
               <div className="flex min-w-0 flex-1 flex-col p-4 sm:p-5">

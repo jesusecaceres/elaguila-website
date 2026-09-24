@@ -83,7 +83,6 @@ const read = (p: string) => readFileSync(path.join(REPO_ROOT, p), "utf8");
     "app/(site)/clasificados/empleos/feria-preview/EmpleoFeriaPreviewClient.tsx",
     "app/(site)/publicar/community/shared/preview/CommunityQuickPreviewClient.tsx",
     "app/(site)/publicar/mascotas-y-perdidos/quick/preview/MascotasPerdidosQuickPreviewClient.tsx",
-    "app/(site)/clasificados/comida-local/preview/ComidaLocalPreviewClient.tsx",
   ];
   for (const file of freePreviewFiles) {
     const src = read(file);
@@ -92,6 +91,14 @@ const read = (p: string) => readFileSync(path.join(REPO_ROOT, p), "utf8");
       `${file} is a free-lane preview and must not render a checkout — adding one requires adopting the shared preview-mode guard first`,
     );
   }
+}
+
+/* Comida Local is now paid; checkout is new-publish only. */
+{
+  const src = read("app/(site)/clasificados/comida-local/preview/ComidaLocalPreviewClient.tsx");
+  assert.ok(src.includes("resolvePreviewMode"));
+  assert.ok(src.includes('previewMode === "new-publish"'));
+  assert.ok(src.includes("PublishCheckoutCheckpoint"));
 }
 
 /* 4 — Lane-registry correction backing this gate: Empleos quick is the paid job-post lane. */

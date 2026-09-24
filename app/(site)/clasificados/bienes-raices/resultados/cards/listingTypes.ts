@@ -85,4 +85,6 @@ export type BrNegocioListing = {
    * at the point of use in `filterBrListings`'s default sort — a `privado`-lane row must never
    * benefit even if this field happens to be populated. */
   canonicalPlacementRankWeight?: number | null;
+  /** Canonical `leonix_endorsement_votes` count for negocio identity / listing. Cards are read-only. */
+  publicEndorsementCount?: number;
 };

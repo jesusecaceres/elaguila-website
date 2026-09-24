@@ -33,7 +33,12 @@ export async function PublishAuthGateLayout({ children }: { children: React.Reac
   // Only what the banner and the UI context need crosses to the client: the business, the
   // category and the bound row. Roster and Auth ids stay server-side.
   const assisted = verified
-    ? { businessId: verified.businessId, category: verified.category, listingId: verified.listingId ?? null }
+    ? {
+        businessId: verified.businessId,
+        category: verified.category,
+        listingId: verified.listingId ?? null,
+        ...(verified.packageKey ? { packageKey: verified.packageKey } : {}),
+      }
     : null;
 
   return (

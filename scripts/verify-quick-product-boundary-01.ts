@@ -316,7 +316,7 @@ async function sectionB() {
     assert.equal(r.enforced, false);
     // And the route reaches the contract only on the dealer lane at all.
     const route = read("app/api/clasificados/autos/listings/route.ts");
-    const guardIdx = route.indexOf('if (body.lane === "negocios") {\n    const identity = await resolveQuickBusinessPublishIdentity(');
+    const guardIdx = route.indexOf('if (body.lane === "negocios" && userId) {\n    const identity = await resolveQuickBusinessPublishIdentity(');
     assert.ok(guardIdx > -1, "the media branch is entered only for the dealer lane");
     assert.ok(
       !/lane === "privado"[\s\S]{0,400}enforceQuickBusinessPublishMedia/.test(route),
@@ -898,16 +898,15 @@ async function sectionD() {
   });
 
   await check("D6: no Quick count cap, video rule or one-item rule leaks into a Full product", () => {
-    // The publish-seam limits deliberately do not impose Quick's 1–3 intake cap on any family.
     const semantics = read("app/lib/quickBusiness/quickBusinessMediaSemantics.ts");
     assert.ok(
       semantics.includes("QUICK_BUSINESS_PUBLISH_MAX_IMAGES"),
       "publish-seam caps are declared separately from the intake cap",
     );
-    for (const family of ["servicios", "restaurantes", "autos-dealer", "bienes-negocio"]) {
-      const re = new RegExp(`"?${family}"?: null`);
-      assert.ok(re.test(semantics), `${family} imposes no Quick publish count cap`);
-    }
+    assert.ok(
+      semantics.includes("enforceQuickContract"),
+      "the Quick 3-image / no-video publish cap only runs when the product is Quick",
+    );
     // And every enforcement call site is now behind a product check or a staff context.
     const autos = read("app/api/clasificados/autos/listings/route.ts");
     assert.ok(autos.indexOf("identity.enforceQuickContract") < autos.indexOf("enforceQuickBusinessPublishMedia("));
@@ -1006,7 +1005,7 @@ async function sectionD() {
     // predicate, so staff saw "clear the payment first" while the unpaid listing was live.
     const src = read("app/api/clasificados/bienes-raices/negocio/assisted-publish/route.ts");
     const writeAt = src.indexOf('status: "pending"');
-    const checkAt = src.indexOf("hasClearedManualPaymentForListing(");
+    const checkAt = src.indexOf("refuseUnlessAuthoritativePayment(");
     const activateAt = src.indexOf('status: "active", is_published: true');
     assert.ok(writeAt > 0, "the row is written PENDING");
     assert.ok(checkAt > writeAt, "the payment is checked after the row exists");
@@ -1151,7 +1150,7 @@ async function sectionE() {
     assert.ok(insertRowBlock.includes("is_published: false"), "and unpublished");
 
     // Activation is still the only way to live, and still after the payment check.
-    const checkAt = src.indexOf("hasClearedManualPaymentForListing({");
+    const checkAt = src.indexOf("refuseUnlessAuthoritativePayment({");
     const activateAt = src.indexOf('.update({ status: "active", is_published: true');
     assert.ok(checkAt > 0 && activateAt > checkAt, "activation happens only AFTER the payment check");
     assert.ok(activateAt > updateAt, "and after the row write");

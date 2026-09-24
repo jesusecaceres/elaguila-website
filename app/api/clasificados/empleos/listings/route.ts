@@ -8,6 +8,10 @@ import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { QUICK_LISTING_EXISTING_IDENTITY_INVALID_CODE } from "@/app/(site)/clasificados/lib/quickListingIdempotency";
 import { getBearerUserId } from "../../_lib/bearerUser";
 import { resolveCanonicalPlacementRankWeights } from "@/app/lib/listingPlans/placementResultsOverlay";
+import { applyAssistedPublishingCookie } from "@/app/lib/auth/assistedPublishingSession";
+import { isListingLinkedToBusiness, linkAssistedListingToBusiness } from "@/app/lib/business/assistedListingCustody";
+import { recordSalesWorkspaceAudit } from "@/app/lib/sales/salesWorkspaceAudit";
+import { resolveStaffAssistedCategorySave, isStaffAssistedSaveRefusal } from "@/app/lib/sales/staffAssistedCategorySave";
 
 export const runtime = "nodejs";
 
@@ -39,11 +43,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ ok: false, error: "supabase_not_configured" }, { status: 503 });
   }
 
-  const ownerUserId = await getBearerUserId(req);
-  if (!ownerUserId) {
-    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
-  }
-
   let body: unknown;
   try {
     body = await req.json();
@@ -52,11 +51,47 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
   const b = body as Record<string, unknown>;
   const envelope = b.envelope as EmpleosPublishEnvelope | undefined;
-  const mode = b.mode === "draft" ? "draft" : "publish";
   if (!envelope || typeof envelope !== "object") {
     return NextResponse.json({ ok: false, error: "missing_envelope" }, { status: 400 });
   }
 
+  const assisted = await resolveStaffAssistedCategorySave({
+    request: req,
+    expectedCategory: "empleos",
+    assistedActionRaw: typeof b.assistedAction === "string" ? b.assistedAction : "",
+    bodyListingId: envelope.listingId,
+    bodyClientUserId: typeof b.clientUserId === "string" ? b.clientUserId : null,
+  });
+  if (isStaffAssistedSaveRefusal(assisted)) {
+    return NextResponse.json({ ok: false, error: assisted.error }, { status: assisted.status });
+  }
+
+  let ownerUserId: string | null = await getBearerUserId(req);
+  let staffMode: "draft" | "publish" | null = null;
+  if (assisted.assisted) {
+    if (assisted.isPublish) {
+      return NextResponse.json({ ok: false, error: "publish_via_cockpit_only" }, { status: 403 });
+    }
+    ownerUserId = assisted.clientUserId;
+    staffMode = "draft";
+    if (assisted.listingId) {
+      const linked = await isListingLinkedToBusiness({
+        businessId: assisted.ctx.businessId,
+        listingSource: "empleos_public_listings",
+        listingId: assisted.listingId,
+      });
+      if (!linked) {
+        return NextResponse.json({ ok: false, error: "listing_not_linked_to_business" }, { status: 403 });
+      }
+      envelope.listingId = assisted.listingId;
+    }
+  } else if (!ownerUserId) {
+    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  }
+
+  const mode = staffMode ?? (b.mode === "draft" ? "draft" : "publish");
+
+  const wasNew = !String(envelope.listingId ?? "").trim();
   const res = await upsertEmpleosListingFromEnvelope({ envelope, ownerUserId, mode });
   if (!res.ok) {
     const status =
@@ -70,6 +105,24 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
               ? 400
               : 500;
     return NextResponse.json({ ok: false, error: res.error }, { status });
+  }
+
+  if (assisted.assisted && wasNew) {
+    await linkAssistedListingToBusiness({
+      businessId: assisted.ctx.businessId,
+      listingSource: "empleos_public_listings",
+      listingId: res.id,
+      linkedByAuthUserId: assisted.ctx.authUserId,
+    });
+    await recordSalesWorkspaceAudit({
+      action: "quick_sales_save_for_client",
+      actorRosterId: assisted.ctx.rosterId,
+      businessId: assisted.ctx.businessId,
+      category: "empleos",
+      listingSource: "empleos_public_listings",
+      listingId: res.id,
+      outcome: "ok",
+    });
   }
 
   revalidatePath("/clasificados/empleos/resultados");
@@ -91,11 +144,25 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     /* optional */
   }
 
-  return NextResponse.json({
+  const json = NextResponse.json({
     ok: true,
     id: res.id,
+    listingId: res.id,
     slug: res.slug,
     lifecycle_status: res.lifecycle_status,
     leonix_ad_id: leonixAdId,
   });
+  if (assisted.assisted && wasNew) {
+    applyAssistedPublishingCookie(json, {
+      businessId: assisted.ctx.businessId,
+      category: "empleos",
+      rosterId: assisted.ctx.rosterId,
+      authUserId: assisted.ctx.authUserId,
+      listingId: res.id,
+      clientUserId: assisted.clientUserId,
+      assistedAction: "save_for_client",
+      packageKey: assisted.ctx.packageKey ?? null,
+    });
+  }
+  return json;
 }

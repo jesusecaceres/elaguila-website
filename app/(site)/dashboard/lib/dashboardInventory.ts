@@ -2,7 +2,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import {
-  autosDealerInventoryEditHref,
   autosDealerListingEditHref,
   autosDealerListingPreviewHref,
 } from "@/app/(site)/dashboard/lib/autosDashboardInventoryAddonCheckout";
@@ -393,10 +392,12 @@ export async function fetchOwnerServiciosListings(accessToken: string | null): P
   }
 }
 
-function viajesStagedPreviewPath(lane: string): string {
+function viajesStagedPreviewPath(lane: string, stagedId?: string): string {
   const raw = String(lane ?? "").trim().toLowerCase();
-  if (raw === "private") return "/clasificados/viajes/preview/privado";
-  return "/clasificados/viajes/preview/negocios";
+  const base = raw === "private" ? "/clasificados/viajes/preview/privado" : "/clasificados/viajes/preview/negocios";
+  const id = String(stagedId ?? "").trim();
+  if (!id) return base;
+  return `${base}?stagedId=${encodeURIComponent(id)}`;
 }
 
 /** Dashboard Mis anuncios preview for saved Restaurante listings — live public detail with identity. */
@@ -518,7 +519,7 @@ export function buildViajesInventoryItems(
     statusDisplay: resolveOwnerDashboardStatusDisplay("viajes", row.lifecycle_status),
     publicHref: appendLangToPath(`/clasificados/viajes/oferta/${encodeURIComponent(row.slug)}`, L),
     editHref: `/dashboard/viajes?${q}&stagedId=${encodeURIComponent(row.id)}`,
-    previewHref: appendLangToPath(viajesStagedPreviewPath(row.lane), L),
+    previewHref: appendLangToPath(viajesStagedPreviewPath(row.lane, row.id), L),
     resultsHref: `/clasificados/viajes/resultados?${q}`,
     analyticsHref: `/dashboard/viajes?${q}`,
     publishedAt: row.published_at,

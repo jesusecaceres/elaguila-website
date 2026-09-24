@@ -148,9 +148,19 @@ function privadoSellerContact(seller: {
   whatsapp?: string;
   correo?: string;
 }): { phone: string | null; email: string | null } {
-  const phone = digitsOnly(seller.telefono ?? "") || digitsOnly(seller.whatsapp ?? "");
+  const phone = digitsOnly(seller.telefono ?? "");
   const email = trim(seller.correo) || null;
   return { phone: phone.length >= 10 ? phone.slice(0, 15) : null, email };
+}
+
+function withPrivadoWhatsappPair(
+  pairs: { label: string; value: string }[],
+  seller: { whatsapp?: string },
+): { label: string; value: string }[] {
+  const wa = digitsOnly(seller.whatsapp ?? "");
+  if (wa.length < 10) return pairs;
+  if (pairs.some((p) => p.label === "Leonix:whatsappDigits")) return pairs;
+  return [...pairs, { label: "Leonix:whatsappDigits", value: wa.slice(0, 15) }];
 }
 
 function petsRequiredForBrPublish(
@@ -227,12 +237,15 @@ export function buildPublishParamsFromBienesRaicesPrivadoDraft(
   const human = buildDetailPairsFromBienesRaicesPrivadoPreviewVm(vm);
   const opSummary = String(vm.operationSummary ?? "").toLowerCase();
   const operation = opSummary.includes("renta") ? "rent" : "sale";
-  const pairs = mergeLeonixListingContractDetailPairs(human, {
-    branch: "bienes_raices_privado",
-    operation,
-    categoriaPropiedad: state.categoriaPropiedad,
-    machineFacetPairs: buildLeonixMachineFacetPairsFromBienesRaicesPrivadoState(state),
-  });
+  const pairs = withPrivadoWhatsappPair(
+    mergeLeonixListingContractDetailPairs(human, {
+      branch: "bienes_raices_privado",
+      operation,
+      categoriaPropiedad: state.categoriaPropiedad,
+      machineFacetPairs: buildLeonixMachineFacetPairsFromBienesRaicesPrivadoState(state),
+    }),
+    state.seller,
+  );
   const contact = privadoSellerContact(state.seller);
   const zipPriv = zipFromBrPrivadoDraft(state);
 
@@ -331,9 +344,10 @@ export function buildRentasPrivadoListingParams(
   state: RentasPrivadoFormState,
   lang: "es" | "en",
   mux?: RentasListingPublishMuxFields | null,
+  opts?: { allowEmptyGallery?: boolean },
 ): LeonixBrDraftPublishBuildResult {
   const orderedGallery = orderedRentasGallerySourcesForPublish(state.media.photoDataUrls, state.media.primaryImageIndex);
-  if (!orderedGallery.length) {
+  if (!orderedGallery.length && !opts?.allowEmptyGallery) {
     return {
       ok: false,
       error:
@@ -365,14 +379,17 @@ export function buildRentasPrivadoListingParams(
   const prefs = trim(state.rentasPreferenciasEspacioCompartido);
   if (prefs) human = [...human, { label: "Preferencias del espacio compartido", value: prefs }];
   const withMachine = mergeRentasPrivadoMachinePairs(state, human);
-  const pairs = mergeLeonixListingContractDetailPairs(withMachine, {
-    branch: "rentas_privado",
-    operation: "rent",
-    // Item 13 fix — always write the canonical category derived from tipoDeRenta, defensively,
-    // even if a mismatched state somehow reached publish (the form itself now keeps them in sync).
-    categoriaPropiedad: rentasCategoriaPropiedadForTipo(state.tipoDeRenta),
-    machineFacetPairs: buildLeonixMachineFacetPairsFromRentasPrivadoFormState(state),
-  });
+  const pairs = withPrivadoWhatsappPair(
+    mergeLeonixListingContractDetailPairs(withMachine, {
+      branch: "rentas_privado",
+      operation: "rent",
+      // Item 13 fix — always write the canonical category derived from tipoDeRenta, defensively,
+      // even if a mismatched state somehow reached publish (the form itself now keeps them in sync).
+      categoriaPropiedad: rentasCategoriaPropiedadForTipo(state.tipoDeRenta),
+      machineFacetPairs: buildLeonixMachineFacetPairsFromRentasPrivadoFormState(state),
+    }),
+    state.seller,
+  );
   const contact = privadoSellerContact(state.seller);
   const muxPid = mux?.muxPlaybackId?.trim() ?? "";
   return {

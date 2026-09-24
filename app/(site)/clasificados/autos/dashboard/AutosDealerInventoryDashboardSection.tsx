@@ -65,6 +65,11 @@ import { AUTOS_PRIVADO_LISTING_LIFECYCLE_CONFIG } from "@/app/lib/listingLifecyc
 import { startListingRenewalCheckout } from "@/app/lib/listingLifecycle/listingRenewalCheckout";
 import { ListingLifecycleStatusCard } from "@/app/(site)/dashboard/components/ListingLifecycleStatusCard";
 import { ListingRenewalAction } from "@/app/(site)/dashboard/components/ListingRenewalAction";
+import {
+  openDashboardBillingPortal,
+  dashboardBillingPortalLabel,
+  dashboardBillingPortalBusyLabel,
+} from "@/app/(site)/dashboard/lib/dashboardBillingPortal";
 
 type Lang = "es" | "en";
 
@@ -181,6 +186,8 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
   const [entitlementBadges, setEntitlementBadges] = useState<Record<string, DashboardEntitlementBadgePayload>>({});
   const [upgradeBusyId, setUpgradeBusyId] = useState<string | null>(null);
   const [upgradeErr, setUpgradeErr] = useState<{ listingId: string; message: string } | null>(null);
+  const [billingBusyId, setBillingBusyId] = useState<string | null>(null);
+  const [billingErr, setBillingErr] = useState<{ listingId: string; message: string } | null>(null);
 
   const load = useCallback(async () => {
     const supabase = createSupabaseBrowserClient();
@@ -381,6 +388,21 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
    * the dealer parent the owner already has: no content save, no status change, no second dealer
    * row. Identity survives because nothing on this path writes to the listing.
    */
+  async function openDealerBilling(listingId: string) {
+    setBillingBusyId(listingId);
+    setBillingErr(null);
+    const result = await openDashboardBillingPortal({
+      category: "autos-dealer",
+      listingId,
+      returnPath: `/dashboard/mis-anuncios?lang=${lang}&cat=autos`,
+      lang,
+    });
+    if (!result.ok) {
+      setBillingErr({ listingId, message: result.message });
+      setBillingBusyId(null);
+    }
+  }
+
   async function startUpgrade(listingId: string, leonixAdId: string | null) {
     setUpgradeBusyId(listingId);
     setUpgradeErr(null);
@@ -608,6 +630,18 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
           });
         }
 
+        if (subState) {
+          quickActions.push({
+            label:
+              billingBusyId === parentId
+                ? dashboardBillingPortalBusyLabel(lang)
+                : dashboardBillingPortalLabel(lang),
+            onClick: () => void openDealerBilling(parentId),
+            disabled: billingBusyId === parentId,
+            tone: "secondary",
+          });
+        }
+
         const lifecycleActions: ActionItem[] = [];
         if (parentRow?.status === "active" && isLiveCapability(dealerCaps.lifecycle.archive)) {
           lifecycleActions.push({ label: t.unpublish, onClick: () => void unpublish(parentId), disabled: busy, tone: "danger" });
@@ -671,9 +705,11 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
               badges: [t.negocios],
             }}
             note={
-              upgradeErr?.listingId === parentId
-                ? { text: upgradeErr.message, tone: "warning" }
-                : note
+              billingErr?.listingId === parentId
+                ? { text: billingErr.message, tone: "warning" }
+                : upgradeErr?.listingId === parentId
+                  ? { text: upgradeErr.message, tone: "warning" }
+                  : note
                   ? { text: note.text, tone: note.tone }
                   : atLimit
                     ? { text: autosDealerInventoryLimitMessage(lang), tone: "warning" }

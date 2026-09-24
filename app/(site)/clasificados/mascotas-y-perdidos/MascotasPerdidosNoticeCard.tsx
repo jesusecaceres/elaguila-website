@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 
 import type { MascotasPerdidosNoticeCardModel } from "./shared/mascotasPerdidosCardModel";
+import { TranslateAdControl } from "@/app/components/translation/TranslateAdControl";
+import { requestAdTranslation } from "@/app/lib/translation/requestAdTranslation";
+import type { AdTranslationResult } from "@/app/lib/translation/types";
 
 const LISTING_IMAGE_FALLBACK = "/logo.png";
 
@@ -34,7 +37,24 @@ export function MascotasPerdidosNoticeCard({ model, lang }: Props) {
   const t = LABELS[lang];
   const cta = CTA[lang];
   const [photoFailed, setPhotoFailed] = useState(false);
+  const [translation, setTranslation] = useState<AdTranslationResult | null>(null);
+  const [showTranslated, setShowTranslated] = useState(false);
   const badge = STATUS_BADGE[model.noticeType];
+  const translatableContent = useMemo(
+    () => ({
+      title: model.title.trim() || undefined,
+      description: model.excerpt?.trim() || undefined,
+    }),
+    [model.title, model.excerpt],
+  );
+  const displayedTitle =
+    showTranslated && translation?.translated?.title?.trim()
+      ? translation.translated.title.trim()
+      : model.title;
+  const displayedExcerpt =
+    showTranslated && translation?.translated?.description?.trim()
+      ? translation.translated.description.trim()
+      : model.excerpt;
 
   useEffect(() => {
     setPhotoFailed(false);
@@ -49,7 +69,7 @@ export function MascotasPerdidosNoticeCard({ model, lang }: Props) {
         <Link
           href={model.detailHref}
           className="relative aspect-[16/10] w-full shrink-0 overflow-hidden bg-[#EDE8DF] sm:aspect-auto sm:h-auto sm:w-[min(44%,220px)] sm:min-h-[180px]"
-          aria-label={`${cta}: ${model.title}`}
+          aria-label={`${cta}: ${displayedTitle}`}
         >
           {model.imageUrl && !photoFailed ? (
             <img
@@ -88,7 +108,7 @@ export function MascotasPerdidosNoticeCard({ model, lang }: Props) {
         <div className="flex min-w-0 flex-1 flex-col gap-1.5 p-4 sm:pl-3">
           <Link href={model.detailHref} className="block min-w-0">
             <h3 className="line-clamp-2 text-base font-bold leading-snug text-[#1E1810] transition group-hover:text-[#6B5A32] sm:text-[1.05rem]">
-              {model.title}
+              {displayedTitle}
             </h3>
           </Link>
 
@@ -102,15 +122,32 @@ export function MascotasPerdidosNoticeCard({ model, lang }: Props) {
             </p>
           ) : null}
 
-          {model.excerpt ? <p className="line-clamp-2 text-sm leading-relaxed text-[#2a241c]/85">{model.excerpt}</p> : null}
+          {displayedExcerpt ? <p className="line-clamp-2 text-sm leading-relaxed text-[#2a241c]/85">{displayedExcerpt}</p> : null}
 
-          <div className="mt-auto pt-2">
+          <div className="mt-auto flex flex-wrap items-end justify-between gap-2 pt-2">
             <Link
               href={model.detailHref}
               className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-[#7A1E2C] px-4 py-2.5 text-sm font-semibold text-[#FFFCF7] transition hover:opacity-95 sm:w-auto sm:min-w-[10.5rem]"
             >
               {cta}
             </Link>
+            {(translatableContent.title || translatableContent.description) ? (
+              <TranslateAdControl
+                siteLocale={lang}
+                originalLocale="unknown"
+                category="mascotas-y-perdidos"
+                listingKey={model.leonixAdId ?? model.id}
+                version="mascotas-card-v1"
+                translatableContent={translatableContent}
+                requestTranslation={requestAdTranslation}
+                onTranslated={(result) => {
+                  setTranslation(result);
+                  setShowTranslated(true);
+                }}
+                onShowOriginal={() => setShowTranslated(false)}
+                className="w-fit"
+              />
+            ) : null}
           </div>
         </div>
       </div>

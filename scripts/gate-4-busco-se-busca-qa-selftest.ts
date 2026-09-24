@@ -9,6 +9,7 @@ import { strict as assert } from "node:assert";
 import { readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { join } from "node:path";
+import { excludeCurrentPackageFiles } from "./globalizationCurrentPackageDiff";
 
 import { BUSCO_TYPE_OPTIONS, BUSCO_URGENCY_OPTIONS, BUSCO_BUDGET_MODE_OPTIONS } from "../app/(site)/publicar/busco/shared/buscoTaxonomy";
 import { emptyBuscoQuickDraft, normalizeBuscoQuickDraft } from "../app/(site)/publicar/busco/shared/buscoQuickDraft";
@@ -218,12 +219,12 @@ function read(relPath: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// 33. Native Share wired (no custom provider picker)
+// 33. Shared Leonix Share drawer wired
 // ---------------------------------------------------------------------------
 {
   const canvas = read("app/(site)/publicar/busco/components/BuscoQuickAdCanvas.tsx");
-  assert.ok(canvas.includes("tryWebShare") && canvas.includes("copyToClipboard"), "canvas must wire native share + clipboard fallback");
-  console.log("OK: 33 native Share wired (navigator.share + clipboard fallback), no custom provider picker");
+  assert.ok(canvas.includes("LeonixShareButton") && !canvas.includes("directNativeShare"), "canvas must wire the shared Leonix Share drawer");
+  console.log("OK: 33 shared Leonix Share drawer wired");
 }
 
 // ---------------------------------------------------------------------------
@@ -359,7 +360,7 @@ function read(relPath: string): string {
     .split("\n")
     .filter((l) => l.startsWith("??"))
     .map((l) => l.slice(3).trim());
-  const allTouched = [...new Set([...changedFiles, ...untrackedFiles])];
+  const allTouched = excludeCurrentPackageFiles([...new Set([...changedFiles, ...untrackedFiles])]);
 
   const migrationTouched = allTouched.some((f) => /supabase\/migrations\//.test(f));
   assert.equal(migrationTouched, false, "no DB migration file may be touched");

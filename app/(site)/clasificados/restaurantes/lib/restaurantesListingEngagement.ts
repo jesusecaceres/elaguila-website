@@ -80,6 +80,16 @@ export function restaurantesEngagementListingKey(row: Pick<RestaurantesPublicLis
   return (row.id ?? "").trim();
 }
 
+export function applyRestauranteEndorsementCountsToBlueprintRows(
+  rows: RestaurantesPublicBlueprintRow[],
+  countsByListingId: Map<string, number>,
+): RestaurantesPublicBlueprintRow[] {
+  return rows.map((r) => {
+    const n = countsByListingId.get((r.id ?? "").trim()) ?? 0;
+    return n > 0 ? { ...r, publicEndorsementCount: n } : { ...r, publicEndorsementCount: 0 };
+  });
+}
+
 export function applyRestauranteLikeCountsToBlueprintRows(
   rows: RestaurantesPublicBlueprintRow[],
   /** Normalized `listing_id` → net like count (may include separate buckets for UUID vs Leonix id). */

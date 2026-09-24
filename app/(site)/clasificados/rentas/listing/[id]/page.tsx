@@ -32,7 +32,13 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
       title,
       description: listing.addressLine,
       url: canonical,
-      images: listing.imageUrl ? [{ url: listing.imageUrl }] : undefined,
+      images: listing.imageUrl ? [{ url: listing.imageUrl, alt: listing.title }] : undefined,
+    },
+    twitter: {
+      card: listing.imageUrl ? "summary_large_image" : "summary",
+      title,
+      description: listing.addressLine,
+      images: listing.imageUrl ? [listing.imageUrl] : undefined,
     },
   };
 }

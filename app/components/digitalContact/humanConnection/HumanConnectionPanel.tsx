@@ -102,7 +102,7 @@ export function HumanConnectionPanel({
   const readyScrolledRef = useRef(false);
 
   const meta = analyticsMeta(surface, source, lang);
-  const whatsappDigits = profile.whatsappDigits || profile.phoneDigits;
+  const whatsappDigits = profile.whatsappDigits;
   const hasPhone = Boolean(profile.phoneDigits?.trim());
   const hasEmail = Boolean(profile.email?.trim());
 
@@ -192,8 +192,6 @@ export function HumanConnectionPanel({
       cancelled = true;
       clearWaitTimer();
     };
-    // intentionally once per slug/lang/surface
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile.slug, lang, surface]);
 
   const startWaitTimer = useCallback(() => {
@@ -514,6 +512,7 @@ export function HumanConnectionPanel({
               >
                 {copy.fallbackCall}
               </button>
+              {whatsappDigits ? (
               <button
                 type="button"
                 onClick={() => {
@@ -524,6 +523,7 @@ export function HumanConnectionPanel({
               >
                 {copy.fallbackWhatsapp}
               </button>
+              ) : null}
               <button
                 type="button"
                 onClick={() => {

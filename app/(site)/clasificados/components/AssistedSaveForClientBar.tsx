@@ -4,10 +4,10 @@
  * The staff bar that appears inside a category's OWN intake when — and only when — the server says
  * an assisted custody context is live for that category.
  *
- * ONE bar, four categories. This is what "do not duplicate the four Quick intakes" looks like in
- * practice: the intake keeps building the ad exactly as it does for a customer, and this strip adds
- * the two staff actions (save the draft for the client, get a private preview link to show them)
- * without the intake having to know anything about custody, tokens or audit.
+ * ONE bar, eight categories. This is what "do not duplicate the eight canonical intakes" looks like
+ * in practice: the intake keeps building the ad exactly as it does for a customer, and this strip
+ * adds the two staff actions (save the draft for the client, get a private preview link to show
+ * them) without the intake having to know anything about custody, tokens or audit.
  *
  * IT DECIDES NOTHING. Visibility comes from a server read, the save goes to the category's real
  * assisted endpoint, and the canonical row id it shows is the one the SERVER returned. A customer
@@ -16,9 +16,8 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import {
-  bindCanonicalRow,
+  handleAssistedSaveClick,
   readAssistedCustodyContext,
-  saveForClient,
   type AssistedCustodyContext,
   type AssistedSavePayload,
 } from "@/app/lib/sales/assistedSaveForClientClient";
@@ -57,21 +56,15 @@ export function AssistedSaveForClientBar({
     }
     setBusy(true);
     setNote(null);
-    const result = await saveForClient(payload);
+    const result = await handleAssistedSaveClick({ category, ctx, payload });
     if (!result.ok) {
       setBusy(false);
       setNote(
-        result.message ??
-          (lang === "en"
-            ? `Not saved (${result.status}): ${result.error}`
-            : `No se guardó (${result.status}): ${result.error}`),
+        lang === "en"
+          ? `Not saved${result.status ? ` (${result.status})` : ""}: ${result.error}`
+          : `No se guardó${result.status ? ` (${result.status})` : ""}: ${result.error}`,
       );
       return;
-    }
-    // The row exists now, so the context is re-minted to carry it. Every later save in this
-    // session lands on this row rather than creating another one.
-    if (result.listingId) {
-      await bindCanonicalRow({ category, businessId: ctx.businessId, listingId: result.listingId });
     }
     await refresh();
     setBusy(false);
@@ -131,6 +124,8 @@ export function AssistedSaveForClientBar({
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
+          data-staff-save-for-client="true"
+          data-staff-save-category={category}
           disabled={busy}
           onClick={() => void onSave()}
           className="min-h-[44px] rounded-full bg-[#3B66AD] px-4 py-2 text-xs font-bold text-white disabled:opacity-45"
@@ -139,6 +134,7 @@ export function AssistedSaveForClientBar({
         </button>
         <button
           type="button"
+          data-staff-preview-link="true"
           disabled={busy || !ctx.listingId}
           onClick={() => void onPreview()}
           className="min-h-[44px] rounded-full border border-[#B8860B] px-4 py-2 text-xs font-bold disabled:opacity-45"

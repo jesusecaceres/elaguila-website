@@ -202,6 +202,12 @@ export async function POST(request: Request) {
     }
 
     const vehicleLimit = resolveDealerActiveVehicleLimit(boostActive);
+    if (!row.owner_user_id) {
+      return NextResponse.json(
+        { ok: false, error: "owner_required", message: "This dealer listing has no customer owner for self-serve checkout." },
+        { status: 409 },
+      );
+    }
     const dealerInventory = await getAutosDealerInventorySummaryForOwner(row.owner_user_id, {
       excludeListingId: row.id,
       groupScopeParent: row,

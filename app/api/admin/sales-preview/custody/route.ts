@@ -26,13 +26,16 @@ import {
   applyAssistedPublishingCookie,
   readActiveAssistedPublishingContext,
 } from "@/app/lib/auth/assistedPublishingSession";
-import {
-  hasClearedManualPaymentForListing,
-  isListingLinkedToBusiness,
-} from "@/app/lib/business/assistedListingCustody";
+import { isListingLinkedToBusiness } from "@/app/lib/business/assistedListingCustody";
+import { readListingPackagePaymentAuthority } from "@/app/lib/listingPlans/listingPackagePaymentAuthorityServer";
 import { isClientAuthorizedForBusiness } from "@/app/lib/sales/assistedClientAuthorization";
 import { recordSalesWorkspaceAudit } from "@/app/lib/sales/salesWorkspaceAudit";
 import { QUICK_SALES_CATEGORY_MAP, isQuickSalesCategory } from "@/app/lib/sales/quickSalesCategories";
+import {
+  resolveStaffBusinessPackage,
+  staffIntakePathForCategory,
+} from "@/app/lib/sales/staffBusinessProduct";
+import { createMinimalAssistedBusiness } from "@/app/lib/sales/createMinimalAssistedBusiness";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -53,9 +56,30 @@ export async function GET(request: NextRequest) {
   }
   const descriptor = QUICK_SALES_CATEGORY_MAP[ctx.category];
   const listingId = typeof ctx.listingId === "string" ? ctx.listingId : "";
-  const paymentCleared = listingId
-    ? await hasClearedManualPaymentForListing({ listingSource: descriptor.listingSource, listingId })
-    : false;
+  const resolved = resolveStaffBusinessPackage({
+    category: ctx.category,
+    livePackageKey: ctx.packageKey,
+  });
+  const plan = resolved.ok && resolved.plan ? resolved.plan : null;
+  const packageKey = resolved.ok && resolved.packageKey ? resolved.packageKey : ctx.packageKey ?? null;
+  const boundPackageKey = typeof ctx.packageKey === "string" ? ctx.packageKey.trim() : "";
+  const paymentDecision =
+    listingId && boundPackageKey
+      ? await readListingPackagePaymentAuthority({
+          listingSource: descriptor.listingSource,
+          listingId,
+          packageKey: boundPackageKey,
+          category: ctx.category,
+        })
+      : null;
+  const paymentCleared = paymentDecision?.ok === true;
+  const paymentState = listingId
+    ? paymentCleared
+      ? "cleared"
+      : paymentDecision && !paymentDecision.ok && paymentDecision.error === "wrong_package"
+        ? "wrong_package"
+        : "not_cleared"
+    : "no_listing";
   return NextResponse.json(
     {
       ok: true,
@@ -65,11 +89,13 @@ export async function GET(request: NextRequest) {
         listingId: listingId || null,
         clientUserId: typeof ctx.clientUserId === "string" ? ctx.clientUserId : null,
         listingSource: descriptor.listingSource,
-        intakePath: descriptor.intakePath,
+        intakePath: staffIntakePathForCategory(ctx.category, plan, descriptor.intakePath),
         saveEndpoint: descriptor.saveEndpoint,
         assistedAction: ctx.assistedAction ?? null,
+        packageKey,
+        plan,
         expiresAtMs: ctx.expiresAtMs,
-        paymentState: listingId ? (paymentCleared ? "cleared" : "not_cleared") : "no_listing",
+        paymentState,
         publishReady: paymentCleared,
       },
     },
@@ -95,13 +121,28 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "invalid_category" }, { status: 400 });
   }
   const descriptor = QUICK_SALES_CATEGORY_MAP[category];
+  const live = await readActiveAssistedPublishingContext(request.cookies);
+  const liveMatchesCategory = Boolean(live) && live!.category === category;
 
-  const businessId = typeof body.businessId === "string" ? body.businessId.trim() : "";
+  let businessId = typeof body.businessId === "string" ? body.businessId.trim() : "";
+  if (!businessId && liveMatchesCategory) businessId = live!.businessId;
+  if (!businessId && body.createDraft === true) {
+    const drafted = await createMinimalAssistedBusiness(
+      { businessName: `Borrador · ${descriptor.labelEs}`, confirmCreateDespiteDuplicates: true },
+      access.actor,
+    );
+    if (!drafted.ok) {
+      return NextResponse.json({ ok: false, error: drafted.error }, { status: drafted.error === "invalid_input" ? 400 : 500 });
+    }
+    businessId = drafted.businessId;
+  }
   if (!businessId) {
     return NextResponse.json({ ok: false, error: "business_id_required" }, { status: 400 });
   }
 
-  const clientUserId = typeof body.clientUserId === "string" ? body.clientUserId.trim() : "";
+  const clientUserId =
+    (typeof body.clientUserId === "string" ? body.clientUserId.trim() : "") ||
+    (liveMatchesCategory && typeof live!.clientUserId === "string" ? live!.clientUserId.trim() : "");
   if (descriptor.requiresClientUserId && !clientUserId) {
     return NextResponse.json({ ok: false, error: "client_user_id_required" }, { status: 400 });
   }
@@ -124,7 +165,22 @@ export async function POST(request: NextRequest) {
   // Reopening an existing draft: the custody ledger, not the browser, decides whether this
   // business holds this row. A bound id that failed this check would be a signed pointer at
   // someone else's listing.
-  const listingId = typeof body.listingId === "string" ? body.listingId.trim() : "";
+  const listingId =
+    (typeof body.listingId === "string" ? body.listingId.trim() : "") ||
+    (liveMatchesCategory && typeof live!.listingId === "string" ? live!.listingId.trim() : "");
+  const liveSameScope =
+    Boolean(live) && live!.businessId === businessId && live!.category === category;
+  const resolvedPackage = resolveStaffBusinessPackage({
+    category,
+    requestedPlan: body.plan,
+    requestedPackageKey: body.packageKey,
+    livePackageKey: liveSameScope ? live!.packageKey : null,
+  });
+  if (!resolvedPackage.ok) {
+    return NextResponse.json({ ok: false, error: resolvedPackage.error }, { status: 400 });
+  }
+  const packageKey = resolvedPackage.packageKey;
+  const plan = resolvedPackage.plan;
   if (listingId) {
     const linked = await isListingLinkedToBusiness({
       businessId,
@@ -152,9 +208,11 @@ export async function POST(request: NextRequest) {
     businessId,
     listingId: listingId || null,
     listingSource: descriptor.listingSource,
-    intakePath: descriptor.intakePath,
+    intakePath: staffIntakePathForCategory(category, plan, descriptor.intakePath),
     saveEndpoint: descriptor.saveEndpoint,
     assistedAction: "save_for_client",
+    packageKey,
+    plan,
     expiresInSec: ASSISTED_PUBLISH_MAX_AGE_SEC,
   });
 
@@ -168,6 +226,7 @@ export async function POST(request: NextRequest) {
     listingId: listingId || null,
     clientUserId: clientUserId || null,
     assistedAction: "save_for_client",
+    packageKey,
   });
   if (!applied) {
     return NextResponse.json({ ok: false, error: "assisted_context_unavailable" }, { status: 503 });

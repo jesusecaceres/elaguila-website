@@ -164,8 +164,12 @@ for (const f of [
     "strict (production) publishing still REQUIRES a real customer bearer token unless a server-verified assisted context is present",
   );
   assert.ok(
-    /const ownerUserId = isAssistedRequest \? null : verifiedOwnerId;/.test(rsrc),
-    "an assisted publish still leaves owner_user_id unclaimed — it never fabricates customer ownership",
+    /assistedContext\?\.clientUserId/.test(rsrc) && /isAssistedRequest/.test(rsrc),
+    "an assisted publish takes customer ownership only from the signed custody token, never from the staff bearer",
+  );
+  assert.ok(
+    !/const ownerUserId = isAssistedRequest \? verifiedOwnerId/.test(rsrc),
+    "staff never impersonate the customer as listing owner",
   );
   assert.ok(
     /existingOwnerUserId && verifiedOwnerId && existingOwnerUserId !== verifiedOwnerId/.test(rsrc),

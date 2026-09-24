@@ -76,11 +76,9 @@
  * whose entitlement, ledger or assisted context names the Full package is untouched — while an
  * absent or unreadable signal lands on the stricter side rather than the permissive one.
  *
- * What this costs a genuine Full customer is nothing they were not already paying before this
- * module existed: the publish-seam contract imposes NO count cap in any family
- * (`QUICK_BUSINESS_PUBLISH_MAX_IMAGES` is `null` throughout), only "at least one image declared to
- * depict the subject, and no video". Every one of those seams enforced exactly that, on every
- * publish, before this module was introduced.
+ * What this costs a genuine Full customer is nothing: the publish-seam contract is skipped on a
+ * proven Full product. Quick is the same application with a real entitlement difference — at most
+ * 3 images and no video — enforced only when `enforceQuickContract` is true.
  *
  * A category with no Simple/Full split at all — Autos Privado, Bienes FSBO, every private
  * classified — answers `source: "no_quick_product"` and is never touched by any of this.

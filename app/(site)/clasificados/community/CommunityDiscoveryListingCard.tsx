@@ -1,9 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import { TranslateAdControl } from "@/app/components/translation/TranslateAdControl";
+import { requestAdTranslation } from "@/app/lib/translation/requestAdTranslation";
+import type { AdTranslationResult, TranslatableAdFields } from "@/app/lib/translation/types";
 
 import type { CommunityDiscoveryCardModel } from "./shared/communityDiscoveryListingCardModel";
 
@@ -28,6 +31,24 @@ export function CommunityDiscoveryListingCard({ model, lang, variant }: Props) {
   const L = lang === "es";
   const cta = CTA[variant][lang];
   const [listingPhotoFailed, setListingPhotoFailed] = useState(false);
+  const [translation, setTranslation] = useState<AdTranslationResult | null>(null);
+  const [showTranslated, setShowTranslated] = useState(false);
+
+  const translatableContent = useMemo<TranslatableAdFields>(
+    () => ({
+      ...(model.title.trim() ? { title: model.title.trim() } : {}),
+      ...(model.excerpt?.trim() ? { description: model.excerpt.trim() } : {}),
+    }),
+    [model.title, model.excerpt],
+  );
+  const displayTitle =
+    showTranslated && translation?.translated.title?.trim()
+      ? translation.translated.title.trim()
+      : model.title;
+  const displayExcerpt =
+    showTranslated && translation?.translated.description?.trim()
+      ? translation.translated.description.trim()
+      : model.excerpt;
 
   useEffect(() => {
     setListingPhotoFailed(false);
@@ -95,18 +116,37 @@ export function CommunityDiscoveryListingCard({ model, lang, variant }: Props) {
             <div className="min-w-0 flex-1">
               <Link href={model.detailHref} className="block min-w-0">
                 <h3 className="line-clamp-2 text-base font-bold leading-snug text-[#1E1810] transition group-hover:text-[#A67C00] sm:text-[1.05rem]">
-                  {model.title}
+                  {displayTitle}
                 </h3>
               </Link>
               {model.organizer ? (
                 <p className="mt-1 line-clamp-1 text-sm font-medium text-[#5C564E]">{model.organizer}</p>
               ) : null}
             </div>
-            {model.costBadge ? (
-              <span className="shrink-0 rounded-full bg-[#111111] px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-[#FFFCF7]">
-                {model.costBadge}
-              </span>
-            ) : null}
+            <div className="flex shrink-0 flex-col items-end gap-2">
+              {model.costBadge ? (
+                <span className="rounded-full bg-[#111111] px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-[#FFFCF7]">
+                  {model.costBadge}
+                </span>
+              ) : null}
+              {model.title.trim() || model.excerpt?.trim() ? (
+                <TranslateAdControl
+                  siteLocale={lang}
+                  originalLocale="unknown"
+                  category={variant}
+                  listingKey={`community-card:${model.id}`}
+                  version="community-discovery-card-v1"
+                  translatableContent={translatableContent}
+                  onTranslated={(result) => {
+                    setTranslation(result);
+                    setShowTranslated(true);
+                  }}
+                  onShowOriginal={() => setShowTranslated(false)}
+                  requestTranslation={requestAdTranslation}
+                  className="w-fit"
+                />
+              ) : null}
+            </div>
           </div>
 
           {model.locationLine ? (
@@ -136,7 +176,7 @@ export function CommunityDiscoveryListingCard({ model, lang, variant }: Props) {
           ) : null}
 
           {model.excerpt ? (
-            <p className="line-clamp-3 text-[13px] leading-relaxed text-[#4a453c]/95">{model.excerpt}</p>
+            <p className="line-clamp-3 text-[13px] leading-relaxed text-[#4a453c]/95">{displayExcerpt}</p>
           ) : null}
 
           <div className="mt-auto flex pt-1">

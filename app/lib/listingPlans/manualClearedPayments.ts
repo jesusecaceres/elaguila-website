@@ -17,6 +17,7 @@ import "server-only";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { writeRevenueAuditLog } from "./revenueAuditLog";
 import { getRevenuePackageDefinition } from "./revenuePricingMatrix";
+import { isCanonicalRecordedAmountForPackage } from "./listingPackagePaymentAuthority";
 import { activateEntitlementsForPayment, type PaymentRecordRow } from "./revenueEntitlementFulfillment";
 import { applyPaymentSuspension } from "./subscriptionLifecycle";
 
@@ -50,8 +51,24 @@ export async function recordManualPaymentPendingVerification(
   if (!isSupabaseAdminConfigured()) return { ok: false, code: "supabase_not_configured", message: "Admin storage unavailable." };
   const packageDef = getRevenuePackageDefinition(input.packageKey);
   if (!packageDef) return { ok: false, code: "unknown_package", message: `Unknown package key: ${input.packageKey}` };
+  const category = String(input.category ?? "").trim().toLowerCase();
+  if (!category) return { ok: false, code: "invalid_category", message: "Category is required." };
+  if (category !== packageDef.category) {
+    return {
+      ok: false,
+      code: "category_package_mismatch",
+      message: `Category ${category} does not sell package ${packageDef.packageKey}.`,
+    };
+  }
   if (!Number.isFinite(input.amountCents) || input.amountCents <= 0) {
     return { ok: false, code: "invalid_amount", message: "Amount must be a positive cent value." };
+  }
+  if (!isCanonicalRecordedAmountForPackage(packageDef.packageKey, input.amountCents)) {
+    return {
+      ok: false,
+      code: "amount_package_mismatch",
+      message: "Amount must equal the canonical package price (or the verified-intro first invoice for Quick $249).",
+    };
   }
 
   const supabase = getAdminSupabase();

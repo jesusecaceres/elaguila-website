@@ -47,6 +47,7 @@ export function trimDraftStrings(d: RestauranteListingDraft): RestauranteListing
     temporaryHoursNote: t(d.temporaryHoursNote),
     websiteUrl: t(d.websiteUrl),
     phoneNumber: t(d.phoneNumber),
+    smsNumber: t(d.smsNumber),
     email: t(d.email),
     whatsAppNumber: t(d.whatsAppNumber),
     instagramUrl: t(d.instagramUrl),

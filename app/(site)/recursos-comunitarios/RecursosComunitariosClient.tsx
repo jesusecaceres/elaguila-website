@@ -34,8 +34,7 @@ function buildPublishHref(lane: ResourceLaneKey, lang: Lang): string {
 }
 
 function buildPostResourceEntryHref(lang: Lang): string {
-  const redirect = encodeURIComponent(`/publicar?lang=${lang}`);
-  return `/login?mode=post&lang=${lang}&redirect=${redirect}`;
+  return appendLangToPath("/recursos-comunitarios/sugerir", lang);
 }
 
 function LaneMark({ lane }: { lane: ResourceLaneKey }) {

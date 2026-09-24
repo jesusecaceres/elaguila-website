@@ -97,6 +97,7 @@ export function RestauranteShellInteractiveCtas({
   leonixAdId,
   ownerUserId,
   persistListingEngagement = true,
+  lang = "es",
   ctas,
   layout = "wrap",
 }: {
@@ -106,6 +107,7 @@ export function RestauranteShellInteractiveCtas({
   leonixAdId?: string | null;
   ownerUserId?: string | null;
   persistListingEngagement?: boolean;
+  lang?: "es" | "en";
   ctas: ShellPrimaryCta[];
   layout?: CtaLayout;
 }) {
@@ -228,7 +230,7 @@ export function RestauranteShellInteractiveCtas({
                 savedListingKey={sourceId}
                 ownerUserId={ownerUserId ?? undefined}
                 variant="default"
-                lang="es"
+                lang={lang}
                 category="restaurantes"
                 persistEngagement={persistListingEngagement}
                 saveExtras={saveExtras}
@@ -248,9 +250,8 @@ export function RestauranteShellInteractiveCtas({
               listingUrl={shareUrl}
               listingTitle={typeof document !== "undefined" ? document.title : cta.label}
               category="restaurantes"
-              lang="es"
+              lang={lang}
               variant="default"
-              directNativeShare
               persistEngagement={persistListingEngagement && Boolean(sourceId)}
               recordShareEvent={
                 globalListing ? restaurantesGlobalShareRecorder(globalListing, "detail_share") : undefined
@@ -305,7 +306,7 @@ export function RestauranteShellInteractiveCtas({
         href={dataModal?.href ?? ""}
         title={dataModal?.title ?? ""}
       />
-      <CtaActionSheet open={ctaIntent != null} onClose={() => setCtaIntent(null)} intent={ctaIntent} lang="es" />
+      <CtaActionSheet open={ctaIntent != null} onClose={() => setCtaIntent(null)} intent={ctaIntent} lang={lang} />
     </div>
   );
 }

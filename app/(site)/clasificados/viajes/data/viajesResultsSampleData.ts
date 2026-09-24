@@ -70,8 +70,9 @@ export interface ViajesBusinessResult {
    */
   listingSearchExtras?: string;
   discovery?: ViajesDiscoverySignals;
+  slug?: string;
+  businessProfileSlug?: string;
 }
-
 /** Labeled inspiration — not a transactional book-now row. */
 export interface ViajesEditorialResult {
   kind: "editorial";

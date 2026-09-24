@@ -1,0 +1,77 @@
+name: Public launch source readiness
+
+on:
+  push:
+    branches:
+      - release/public-launch-readiness-2026-09-22
+      - integration/leonix-canonical-launch-consolidation-2026-09-22
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout exact release head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Prove clean checkout and local equals remote
+        shell: bash
+        run: |
+          git fetch origin "$GITHUB_REF_NAME"
+          echo "LOCAL_SHA=$(git rev-parse HEAD)"
+          echo "REMOTE_SHA=$(git rev-parse "origin/$GITHUB_REF_NAME")"
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "origin/$GITHUB_REF_NAME")"
+          test -z "$(git status --porcelain)"
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Restore tracked LFS assets
+        run: |
+          git lfs install --local
+          git lfs pull
+          test "$(stat -c%s public/logo.png)" -gt 100000
+          test "$(stat -c%s public/branding/leonix-media-wordmark-slogan.png)" -gt 100000
+
+      - name: Full repository gate self-tests
+        run: npm run test:gates
+
+      - name: Launch truth
+        run: npm run verify:launch-truth
+
+      - name: Applications package source gate
+        run: npm run verify:applications-package
+
+      - name: Final launch-truth burndown
+        run: npm run verify:launch-truth-final-burndown
+
+      - name: Translation parity category matrix
+        run: npx tsx scripts/verify-translation-parity-all-classifieds-01.ts
+
+      - name: Global i18n audit
+        run: npm run i18n:check
+
+      - name: Full typecheck
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
+        run: npm run typecheck
+
+      - name: Production-equivalent Next build gate
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
+          # Public browser credentials only. Canonical Leonix Media project; never Staging/Certification.
+          NEXT_PUBLIC_SUPABASE_URL: https://xuieateniufcrsfdomwl.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_OEQNE3deSzcHCcXrPXpocA_OCPYk3md
+        run: npm run build

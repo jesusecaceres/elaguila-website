@@ -17,7 +17,6 @@ import {
   trackOfertaLocalEvent,
   trackOfertaLocalListingOpen,
   trackOfertaLocalProductOpen,
-  trackOfertaLocalShare,
 } from "@/app/lib/ofertas-locales/ofertasLocalesPublicAnalytics";
 
 import { OfertasLocalesPublicItemCard } from "./OfertasLocalesPublicItemCard";
@@ -27,6 +26,9 @@ import { ofertaLocalPublicOfferTypeLabel } from "./ofertasLocalesPublicSearchCop
 import { ofertasLocalesPublicDetailCopy } from "./ofertasLocalesPublicDetailCopy";
 import { useOfertasLocalesShoppingList } from "./useOfertasLocalesShoppingList";
 import { dispatchConnectionHubCta, type ConnectionHubCtaKind } from "@/app/lib/analytics/client/connectionHubCtaDispatch";
+import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import { LEONIX_SITE_ORIGIN } from "@/app/lib/leonixBrand";
+import { ofertaLocalPublicDetailPath } from "@/app/lib/ofertas-locales/ofertasLocalesPublicDetailHelpers";
 import { useOfertasLocalesPublicTranslation } from "./lib/useOfertasLocalesPublicTranslation";
 
 const BTN =
@@ -292,16 +294,12 @@ function ContactHub({
   lang: _lang,
   offer,
   c,
-  onShare,
   onCta,
-  shareCopied,
 }: {
   lang: OfertasLocalesAppLang;
   offer: OfertaLocalPublicOfferDetail;
   c: ReturnType<typeof ofertasLocalesPublicDetailCopy>;
-  onShare: () => void;
   onCta: (cta: "phone" | "sms" | "whatsapp" | "website" | "directions") => void;
-  shareCopied: boolean;
 }) {
   const social = offer.socialLinks ?? {};
   const smsHref = offer.phoneDisplay
@@ -420,19 +418,19 @@ function ContactHub({
               {c.directions}
             </a>
           ) : null}
-          <button
-            type="button"
-            className={BTN}
-            onClick={() => {
-              track("share");
-              void onShare();
-            }}
-          >
-            {c.share}
-          </button>
+          <div onClick={() => track("share")}>
+            <LeonixShareButton
+              listingId={offer.id}
+              listingUrl={`${LEONIX_SITE_ORIGIN}${ofertaLocalPublicDetailPath(offer.id, _lang)}`}
+              listingTitle={offer.title || offer.businessName}
+              shareText={offer.description || null}
+              lang={_lang}
+              category="ofertas-locales"
+              className={BTN}
+            />
+          </div>
         </div>
       ) : null}
-      {shareCopied ? <p className="mt-2 text-xs font-medium text-[#2A4536]">{c.linkCopied}</p> : null}
 
       {hasSocial ? (
         <div className="mt-3 flex flex-wrap gap-2 border-t border-[#D4C4A8]/50 pt-3">
@@ -540,7 +538,6 @@ export function OfertasLocalesPublicDetailView({ lang, offer, items }: Props) {
   const shoppingList = useOfertasLocalesShoppingList();
   const [selectedItem, setSelectedItem] = useState<OfertaLocalPublicSearchItem | null>(null);
   const [listOpen, setListOpen] = useState(false);
-  const [shareCopied, setShareCopied] = useState(false);
 
   const location = [offer.city, offer.state, offer.zipCode].filter(Boolean).join(", ");
   const dates =
@@ -605,26 +602,6 @@ export function OfertasLocalesPublicDetailView({ lang, offer, items }: Props) {
     },
     [analyticsIdentity, shoppingList],
   );
-
-  const handleShare = useCallback(async () => {
-    if (typeof window === "undefined") return;
-    const url = window.location.href;
-    try {
-      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
-        await navigator.share({ title: offer.title || offer.businessName, url });
-        trackOfertaLocalShare(analyticsIdentity, "native", "public_detail");
-        return;
-      }
-      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(url);
-        trackOfertaLocalShare(analyticsIdentity, "clipboard", "public_detail");
-        setShareCopied(true);
-        window.setTimeout(() => setShareCopied(false), 2000);
-      }
-    } catch {
-      /* user cancelled */
-    }
-  }, [analyticsIdentity, offer.title, offer.businessName]);
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#FDFBF7]">
@@ -708,9 +685,7 @@ export function OfertasLocalesPublicDetailView({ lang, offer, items }: Props) {
             lang={lang}
             offer={offer}
             c={c}
-            onShare={handleShare}
             onCta={(cta) => trackOfertaLocalCta(analyticsIdentity, cta, "public_detail")}
-            shareCopied={shareCopied}
           />
         </div>
 

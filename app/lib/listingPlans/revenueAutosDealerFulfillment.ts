@@ -234,7 +234,7 @@ export async function activatePaidAutosDealerListingFromRevenueOs(input: {
   if (pendingChildren.length > 0) {
     const alreadyPublishedCount = await countAutosDealerListingChildRows(listingId);
     const remainingChildren = publishableChildren(pendingChildren).slice(alreadyPublishedCount);
-    if (remainingChildren.length > 0) {
+    if (remainingChildren.length > 0 && row.owner_user_id) {
       const bundle = await publishNegociosBundleAdditionalVehicles({
         ownerUserId: row.owner_user_id,
         mainListingId: listingId,

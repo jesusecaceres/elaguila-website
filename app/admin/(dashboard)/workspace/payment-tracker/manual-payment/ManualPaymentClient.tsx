@@ -28,9 +28,17 @@ function formatMoney(cents: number | null, currency = "usd"): string {
 export function ManualPaymentClient({
   packageOptions,
   pendingManual,
+  initialListingId,
+  initialPackageKey,
+  initialCategory,
+  initialAmountDollars,
 }: {
   packageOptions: PackageOption[];
   pendingManual: LeonixPaymentRecordRow[];
+  initialListingId?: string;
+  initialPackageKey?: string;
+  initialCategory?: string;
+  initialAmountDollars?: string;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -118,7 +126,12 @@ export function ManualPaymentClient({
         <form onSubmit={handleRecordSubmit} className="mt-4 grid gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1 text-xs font-semibold text-[#5C5346]">
             Package
-            <select name="packageKey" required className="rounded-lg border border-[#E8DFD0] bg-white px-2.5 py-2 text-sm" onChange={(e) => {
+            <select
+              name="packageKey"
+              required
+              defaultValue={initialPackageKey ?? ""}
+              className="rounded-lg border border-[#E8DFD0] bg-white px-2.5 py-2 text-sm"
+              onChange={(e) => {
               const opt = packageOptions.find((p) => p.packageKey === e.currentTarget.value);
               const catInput = e.currentTarget.form?.elements.namedItem("category") as HTMLInputElement | null;
               if (opt && catInput) catInput.value = opt.category;
@@ -133,11 +146,11 @@ export function ManualPaymentClient({
           </label>
           <label className="flex flex-col gap-1 text-xs font-semibold text-[#5C5346]">
             Category (auto-filled from package)
-            <input name="category" required readOnly className="rounded-lg border border-[#E8DFD0] bg-[#FAF7F2] px-2.5 py-2 text-sm" />
+            <input name="category" required readOnly defaultValue={initialCategory ?? ""} className="rounded-lg border border-[#E8DFD0] bg-[#FAF7F2] px-2.5 py-2 text-sm" />
           </label>
           <label className="flex flex-col gap-1 text-xs font-semibold text-[#5C5346]">
             Amount received (USD)
-            <input name="amountDollars" type="number" step="0.01" min="0.01" required className="rounded-lg border border-[#E8DFD0] bg-white px-2.5 py-2 text-sm" />
+            <input name="amountDollars" type="number" step="0.01" min="0.01" required defaultValue={initialAmountDollars} className="rounded-lg border border-[#E8DFD0] bg-white px-2.5 py-2 text-sm" />
           </label>
           <label className="flex flex-col gap-1 text-xs font-semibold text-[#5C5346]">
             Payment method
@@ -167,7 +180,7 @@ export function ManualPaymentClient({
           </label>
           <label className="flex flex-col gap-1 text-xs font-semibold text-[#5C5346]">
             Listing id (if this payment is for an existing listing)
-            <input name="listingId" placeholder="uuid — optional" className="rounded-lg border border-[#E8DFD0] bg-white px-2.5 py-2 text-sm" />
+            <input name="listingId" placeholder="uuid — optional" defaultValue={initialListingId ?? ""} className="rounded-lg border border-[#E8DFD0] bg-white px-2.5 py-2 text-sm" />
           </label>
           <label className="flex flex-col gap-1 text-xs font-semibold text-[#5C5346]">
             Leonix Ad ID (optional)

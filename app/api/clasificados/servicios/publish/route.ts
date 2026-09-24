@@ -38,11 +38,12 @@ import {
 } from "@/app/clasificados/servicios/lib/serviciosOwnerMutationPolicy";
 import { readActiveAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
 import {
-  hasClearedManualPaymentForListing,
   isListingLinkedToBusiness,
   linkAssistedListingToBusiness,
 } from "@/app/lib/business/assistedListingCustody";
+import { refuseUnlessAuthoritativePayment } from "@/app/lib/listingPlans/listingPackagePaymentAuthorityServer";
 import { linkSelfServiceListingToBusiness } from "@/app/lib/business/canonicalListingLink";
+import { syncCanonicalBusinessFromApplication } from "@/app/lib/sales/extractBusinessProfileFromApplication";
 import { resolveServiciosReactivationAuthority } from "@/app/clasificados/servicios/lib/serviciosReactivationAuthorityServer";
 import { resolveBusinessToolsAccess } from "@/app/lib/listingPlans/categoryCommercialPlan";
 import {
@@ -324,6 +325,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: sessionConflict.error }, { status: sessionConflict.status });
   }
   const assistedBoundListingId = assistedBinding?.ok ? assistedBinding.listingId : "";
+  const assistedOwnerUserId =
+    isAssistedRequest && typeof assistedContext?.clientUserId === "string" && assistedContext.clientUserId.trim()
+      ? assistedContext.clientUserId.trim()
+      : null;
   if (isAssistedPublishForClient && !assistedBoundListingId) {
     return NextResponse.json({ ok: false, error: "existing_listing_required" }, { status: 400 });
   }
@@ -413,6 +418,7 @@ export async function POST(req: NextRequest) {
     // name-derived slug matched nothing, so BOTH server legs answered empty on every republish
     // and the product was permanently `unverified`.
     listingId: typeof b.existingListingId === "string" ? b.existingListingId.trim() || null : null,
+    assistedPackageKey: assistedContext?.packageKey ?? null,
     declaredPackageKey: typeof b.basePackageKey === "string" ? b.basePackageKey : null,
   });
   const serviciosMediaItems = [
@@ -496,9 +502,11 @@ export async function POST(req: NextRequest) {
     // LEONIX P0 FINAL ASSISTED PUBLISHING BRIDGE — the ONE alternate authorization: an assisted
     // request may reopen/update this SAME row only when it still has NO customer owner AND it is
     // already verified-linked to the exact business the staff actor's cookie was minted for.
+    const assistedOwnerMatches =
+      row.owner_user_id == null || (assistedOwnerUserId != null && row.owner_user_id === assistedOwnerUserId);
     const assistedAuthorizedForRow =
       isAssistedRequest &&
-      row.owner_user_id == null &&
+      assistedOwnerMatches &&
       (await isListingLinkedToBusiness({
         businessId: assistedContext!.businessId,
         listingSource: "servicios_public_listings",
@@ -717,7 +725,10 @@ export async function POST(req: NextRequest) {
         // owner). This branch is the ONLY place an unowned row may legitimately be written.
         if (existing) {
           const existingId = canonicalListingId ?? (typeof existing.id === "string" ? existing.id : "");
-          if (existing.owner_user_id != null || !existingId) {
+          const assistedExistingOwnerOk =
+            existing.owner_user_id == null ||
+            (assistedOwnerUserId != null && existing.owner_user_id === assistedOwnerUserId);
+          if (!assistedExistingOwnerOk || !existingId) {
             await insertServiciosAnalyticsEvent({
               listingSlug: slug,
               eventType: "publish_failure",
@@ -744,22 +755,24 @@ export async function POST(req: NextRequest) {
           }
           let nextStatus = "draft";
           if (isAssistedPublishForClient) {
-            const cleared = await hasClearedManualPaymentForListing({
+            const paid = await refuseUnlessAuthoritativePayment({
               listingSource: "servicios_public_listings",
               listingId: existingId,
+              packageKey: assistedContext?.packageKey ?? "",
+              category: "servicios",
             });
-            if (!cleared) {
+            if (!paid.ok) {
               await insertServiciosAnalyticsEvent({
                 listingSlug: slug,
                 eventType: "publish_failure",
-                meta: { reason: "manual_payment_not_cleared", assisted: true },
+                meta: { reason: paid.error, assisted: true },
               });
               return NextResponse.json(
                 {
                   ok: false,
-                  error: "manual_payment_not_cleared",
+                  error: paid.error,
                   message:
-                    "No cleared manual payment found for this listing yet. Record and clear it in the Payment Tracker first.",
+                    "No authoritative payment found for this listing and package yet. Record and clear it in the Payment Tracker first.",
                 },
                 { status: 402 },
               );
@@ -767,11 +780,10 @@ export async function POST(req: NextRequest) {
             nextStatus = SERVICIOS_LISTING_STATUS_PUBLISHED;
           }
           actualListingStatus = nextStatus;
-          // owner_user_id is deliberately never written here — it stays unclaimed/null (Gate 5 #6)
-          // whether this is a hidden draft or a published-for-client row.
           const updateQuery = supabase
             .from("servicios_public_listings")
             .update({
+              ...(assistedOwnerUserId ? { owner_user_id: assistedOwnerUserId } : {}),
               business_name: businessName,
               city,
               profile_json: publicWireForPersistence,
@@ -813,9 +825,11 @@ export async function POST(req: NextRequest) {
           });
           return NextResponse.json({ ok: false, error: "listing_not_found" }, { status: 404 });
         } else {
-          // First-ever Save for Client: INSERT, owner_user_id intentionally omitted (unclaimed).
+          // First-ever Save for Client: attach the customer account when this assisted sale
+          // already provisioned one; legacy Leonix-managed drafts may still remain owner-null.
           actualListingStatus = listingStatus;
           const insertRow: Record<string, unknown> = {
+            ...(assistedOwnerUserId ? { owner_user_id: assistedOwnerUserId } : {}),
             slug,
             business_name: businessName,
             city,
@@ -861,6 +875,14 @@ export async function POST(req: NextRequest) {
             listingSource: "servicios_public_listings",
             listingId: persistedListingId,
             linkedByAuthUserId: assistedContext!.authUserId,
+          });
+          await syncCanonicalBusinessFromApplication(assistedContext!.businessId, {
+            businessName,
+            publicName: businessName,
+            phone: state.phone,
+            email: state.email,
+            website: state.website,
+            whatsapp: state.whatsapp,
           });
           // REQUIRED REPAIR 6 — the staff actor, the row, and the lifecycle state this write
           // actually left behind. `listingStatus` is the server's own decision, not the caller's.

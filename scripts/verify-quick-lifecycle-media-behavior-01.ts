@@ -242,25 +242,19 @@ check("B10b: the two BUSINESS families attribute their gallery structurally, and
   assert.ok(codes("restaurantes", [logo]).includes("missing_subject_role"), "a declared logo is not a restaurant photo");
 });
 
-check("B10c: the PUBLISH limits keep the subject rule and drop Quick's count cap", () => {
-  // The publish seams are shared with each category's FULL application, whose truthful gallery
-  // caps are its own (Servicios/Restaurantes 24, Autos/Bienes uncapped). Imposing Quick's 1-3 cap
-  // on a shared publish route would be a false requirement, so publish limits carry the semantic
-  // rule only; each family's own count validator still runs beside it.
+check("B10c: the PUBLISH limits keep the subject rule and the Quick 3-image cap", () => {
   for (const cat of ["servicios", "restaurantes", "autos-dealer", "bienes-negocio"]) {
     const limits = buildQuickPublishMediaLimits(cat)!;
     assert.equal(limits.minSubjectImages, 1, `${cat}: publish still demands one real subject photo`);
-    assert.equal(limits.maxImages, null, `${cat}: publish does not impose Quick's intake cap`);
+    assert.equal(limits.maxImages, 3, `${cat}: Quick publish enforces the 3-image entitlement`);
+    assert.equal(limits.videoAllowed, false, `${cat}: Quick publish forbids video`);
     assert.equal(limits.requiredSubjectRole, requiredSubjectRoleForCategory(cat), `${cat}: same subject role`);
     assert.equal(limits.subjectAttribution, SUBJECT_ATTRIBUTION[cat as keyof typeof SUBJECT_ATTRIBUTION]);
   }
   assert.equal(buildQuickPublishMediaLimits("not-a-family"), null);
-  // Four vehicle photos are refused at INTAKE (Quick sells 1-3) but not by the publish seam.
   assert.ok(codes("autos-dealer", [vehicle, vehicle, vehicle, vehicle]).includes("too_many_images"));
-  assert.deepEqual(
-    enforceQuickBusinessPublishMedia({ category: "autos-dealer", items: [vehicle, vehicle, vehicle, vehicle] }),
-    { ok: true, category: "autos-dealer" },
-  );
+  const four = enforceQuickBusinessPublishMedia({ category: "autos-dealer", items: [vehicle, vehicle, vehicle, vehicle] });
+  assert.equal(four && four.ok, false, "Quick publish refuses a fourth image");
 });
 
 check("B10d: the canonical entry point refuses with one shape, and passes real sets", () => {
@@ -419,13 +413,16 @@ check("B15 WIRING: a QUICK Bienes publish is written by the SERVER, and cannot f
   assert.ok(custodyIdx > -1 && insertIdx > custodyIdx, "the browser insert sits behind the Quick branch, not beside it");
 });
 
-check("B16 WIRING: both staff-assisted routes remain protected, through the same entry point", () => {
+check("B16 WIRING: staff-assisted routes protect Quick without capping proven Full/PRO", () => {
   for (const p of [
     "app/api/clasificados/autos/assisted-publish/route.ts",
     "app/api/clasificados/bienes-raices/negocio/assisted-publish/route.ts",
   ]) {
     const src = read(p);
-    assert.ok(src.includes(CANONICAL_VALIDATOR), `${p} must call the canonical validator`);
+    assert.ok(src.includes("resolveQuickBusinessPublishIdentity("), `${p} must resolve the server-owned package before media enforcement`);
+    assert.ok(src.includes("assistedPackageKey: assistedContext.packageKey"), `${p} must use signed assisted package authority`);
+    assert.ok(src.includes("assistedProduct.enforceQuickContract"), `${p} must gate Quick-only media rules on the resolved product`);
+    assert.ok(src.includes(CANONICAL_VALIDATOR), `${p} must call the canonical validator for Quick`);
     assert.ok(src.includes("extractSemanticMediaItems("), `${p} must extract the media set`);
     assert.ok(src.includes("semanticMedia.body"), `${p} must answer with the canonical refusal body`);
     assert.ok(src.includes("semanticMedia.status"), `${p} must answer with the canonical 422 status`);

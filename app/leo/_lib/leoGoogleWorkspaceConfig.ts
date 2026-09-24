@@ -19,6 +19,12 @@ export const LEO_CALENDAR_READONLY_SCOPE =
  */
 export const LEO_GMAIL_SEND_SCOPE =
   "https://www.googleapis.com/auth/gmail.send" as const;
+export const LEO_GMAIL_COMPOSE_SCOPE =
+  "https://www.googleapis.com/auth/gmail.compose" as const;
+export const LEO_CALENDAR_EVENTS_SCOPE =
+  "https://www.googleapis.com/auth/calendar.events" as const;
+export const LEO_CONTACTS_READONLY_SCOPE =
+  "https://www.googleapis.com/auth/contacts.readonly" as const;
 
 /** Alias: scopes that must be present on the live refresh-token grant today. */
 export const LEO_GOOGLE_CURRENT_READ_SCOPES = [
@@ -31,6 +37,11 @@ export const LEO_GOOGLE_CURRENT_READ_SCOPES = [
  * Must not include gmail.send until a separate RED consent gate.
  */
 export const LEO_GOOGLE_EXPECTED_SCOPES = LEO_GOOGLE_CURRENT_READ_SCOPES;
+export const LEO_GOOGLE_WRITE_SCOPES = [
+  LEO_GMAIL_COMPOSE_SCOPE,
+  LEO_CALENDAR_EVENTS_SCOPE,
+  LEO_CONTACTS_READONLY_SCOPE,
+] as const;
 
 /** Future write scope required for GMAIL_REPLY live send (not granted yet). */
 export const LEO_GMAIL_REPLY_REQUIRED_WRITE_SCOPE = LEO_GMAIL_SEND_SCOPE;
@@ -58,6 +69,29 @@ export const LEO_GMAIL_REPLY_WRITE_CAPABILITY_ENABLED: boolean = false;
  */
 export function isLeoGmailReplyWriteCapabilityEnabled(): boolean {
   return isLeoGmailReplyWriteFlagEnabled();
+}
+
+export function isLeoGoogleWriteEnabled(): boolean {
+  return process.env.LEO_GOOGLE_WRITE_ENABLED?.trim().toLowerCase() === "true";
+}
+
+export function getLeoGoogleCapabilityDiagnostic(input: {
+  tokenAvailable: boolean;
+}): import("@/app/leo/_lib/leoTypes").LeoGoogleCapabilityDiagnostic {
+  const configured = isLeoGoogleWorkspaceConfigured();
+  const read = !configured
+    ? "CONFIG_MISSING"
+    : !input.tokenAvailable
+      ? "TOKEN_UNAVAILABLE"
+      : "READ_READY";
+  const write = !configured
+    ? "CONFIG_MISSING"
+    : !input.tokenAvailable
+      ? "TOKEN_UNAVAILABLE"
+      : !isLeoGoogleWriteEnabled()
+        ? "WRITE_DISABLED"
+        : "WRITE_READY";
+  return { read, write, writeEnabledFlag: isLeoGoogleWriteEnabled() };
 }
 
 export const LEO_GOOGLE_BOUNDS = {

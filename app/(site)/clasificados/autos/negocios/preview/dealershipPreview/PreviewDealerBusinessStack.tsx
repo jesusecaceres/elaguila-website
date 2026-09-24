@@ -339,23 +339,6 @@ export function PreviewDealerBusinessStack({
     });
   }
 
-  const onShare = async () => {
-    const url = publicUrl?.trim() || (typeof window !== "undefined" ? window.location.href : "");
-    const title = data.vehicleTitle?.trim() || data.dealerName?.trim() || "Leonix Autos";
-    if (!url) return;
-    try {
-      if (typeof navigator !== "undefined" && navigator.share) {
-        await navigator.share({ title, url });
-        return;
-      }
-      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(url);
-      }
-    } catch {
-      /* user cancelled or clipboard blocked */
-    }
-  };
-
   const premiumHub = showPremiumHubHeader;
 
   return (
@@ -672,21 +655,24 @@ export function PreviewDealerBusinessStack({
                   lang={lang}
                   category="autos"
                   persistEngagement
-                  directNativeShare
                   recordShareEvent={autosGlobalShareRecorderFromContext(analyticsCtx, "detail_share")}
                   className={QUICK_ACTION_CLASS}
                 />
               ) : publicPlaybackOnly || Boolean(publicUrl?.trim()) ? (
                 // Gate H: a canonical-active listing is genuinely already published — publicUrl is
-                // only ever set (by the Preview client) once a real public URL exists — so Share
-                // here uses the real `onShare` handler (navigator.share / clipboard fallback)
-                // against that URL. It intentionally skips the analytics-tracked LeonixShareButton
-                // branch above (no fake self-share event recorded while the owner previews their
-                // own listing) — this is a real, working action, not decorative.
-                <button type="button" className={QUICK_ACTION_CLASS} onClick={() => void onShare()}>
-                  <FiShare2 className="h-4 w-4 shrink-0 text-[#7A1E2C]" aria-hidden />
-                  {shareLabel}
-                </button>
+                // only ever set once a real public URL exists. Owner Preview opens the same Leonix
+                // Share drawer as public playback, with persistence disabled so previewing never
+                // records a fake self-share event.
+                <LeonixShareButton
+                  listingId={(data as { id?: string | null }).id ?? null}
+                  listingUrl={publicUrl?.trim() || ""}
+                  listingTitle={data.vehicleTitle?.trim() || data.dealerName?.trim() || "Leonix Autos"}
+                  variant="default"
+                  lang={lang}
+                  category="autos"
+                  persistEngagement={false}
+                  className={QUICK_ACTION_CLASS}
+                />
               ) : (
                 <p className="inline-flex min-h-[40px] items-center gap-3 px-1 text-sm text-[#8A8074]">
                   <FiShare2 className="h-4 w-4 shrink-0" aria-hidden />
@@ -712,15 +698,20 @@ export function PreviewDealerBusinessStack({
                     lang={lang}
                     category="autos"
                     persistEngagement
-                    directNativeShare
                     recordShareEvent={autosGlobalShareRecorderFromContext(analyticsCtx, "detail_share")}
                     className={QUICK_ACTION_CLASS}
                   />
                 ) : publicPlaybackOnly || Boolean(publicUrl?.trim()) ? (
-                  <button type="button" className={QUICK_ACTION_CLASS} onClick={() => void onShare()}>
-                    <FiShare2 className="h-4 w-4 shrink-0 text-[#7A1E2C]" aria-hidden />
-                    {shareLabel}
-                  </button>
+                  <LeonixShareButton
+                    listingId={(data as { id?: string | null }).id ?? null}
+                    listingUrl={publicUrl?.trim() || ""}
+                    listingTitle={data.vehicleTitle?.trim() || data.dealerName?.trim() || "Leonix Autos"}
+                    variant="default"
+                    lang={lang}
+                    category="autos"
+                    persistEngagement={false}
+                    className={QUICK_ACTION_CLASS}
+                  />
                 ) : (
                   <button
                     type="button"

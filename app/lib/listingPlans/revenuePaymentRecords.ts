@@ -415,7 +415,17 @@ export async function markPaymentRecordPaid(input: {
 
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
-  const { error } = await supabase
+  // A Stripe checkout can be authoritatively PAID after Leonix already marked the local
+  // attempt canceled (for example a user returns through the cancel path while the hosted
+  // Checkout Session finishes in another tab, or a completion webhook was temporarily
+  // unreachable). Stripe's verified paid session is the money truth, so "canceled" is recoverable
+  // here. Refunded/disputed/other terminal states are deliberately NOT accepted.
+  //
+  // The old UPDATE also never selected the mutated row: a zero-row CAS miss returned {ok:true}
+  // and fulfillment continued as if the payment had been marked paid. That is fail-open in the
+  // worst possible direction. Require a changed row, then tolerate only a concurrent transition
+  // that a re-read proves is already paid.
+  const { data: updated, error } = await supabase
     .from("leonix_payment_records")
     .update({
       payment_status: "paid",
@@ -434,10 +444,23 @@ export async function markPaymentRecordPaid(input: {
       },
     })
     .eq("id", input.paymentRecordId)
-    .in("payment_status", ["pending", "unpaid", "requires_action"]);
+    .in("payment_status", ["pending", "unpaid", "requires_action", "canceled"])
+    .select("id");
 
   if (error) {
     return { ok: false, code: "payment_record_update_failed", message: error.message };
+  }
+
+  if (!updated?.length) {
+    const current = await loadPaymentRecordById(input.paymentRecordId);
+    if (current?.payment_status === "paid" || current?.payment_status === "succeeded") {
+      return { ok: true, idempotent: true };
+    }
+    return {
+      ok: false,
+      code: "payment_record_state_conflict",
+      message: "Payment record is not in a Stripe-paid recoverable state.",
+    };
   }
 
   return { ok: true };

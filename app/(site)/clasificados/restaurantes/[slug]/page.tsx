@@ -36,6 +36,9 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
   }
   const name = row.business_name.trim() || (lang === "en" ? "Restaurant" : "Restaurante");
   const summary = row.summary_short?.trim();
+  const metadataDraft = listingJsonToDraft(row.listing_json);
+  const metadataShell = mapRestauranteDraftToShellData(metadataDraft, { lang });
+  const heroImage = metadataShell.heroImageUrl?.trim() || undefined;
   const canonical = `/clasificados/restaurantes/${encodeURIComponent(slug)}`;
   // Package F Build F2, Gate 17 (P1 SEO fix) — category label was previously hardcoded Spanish
   // regardless of `?lang=`; business_name/summary are user-authored content, never translated.
@@ -50,6 +53,13 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
       title: `${name} · ${categoryLabel}`,
       type: "website",
       url: canonical,
+      images: heroImage ? [{ url: heroImage, alt: name }] : undefined,
+    },
+    twitter: {
+      card: heroImage ? "summary_large_image" : "summary",
+      title: `${name} · ${categoryLabel}`,
+      description: summary?.slice(0, 155),
+      images: heroImage ? [heroImage] : undefined,
     },
   };
 }

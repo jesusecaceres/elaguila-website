@@ -7,14 +7,19 @@ import type { ViajesHeroVisualKind } from "../lib/viajesOfferHeroFallbacks";
 export type ViajesContactChannelKind =
   | "tel"
   | "telOffice"
+  | "sms"
   | "whatsapp"
   | "email"
   | "website"
+  | "directions"
   | "facebook"
   | "instagram"
   | "tiktok"
   | "youtube"
-  | "twitter";
+  | "twitter"
+  | "linkedin"
+  | "snapchat"
+  | "pinterest"
 
 export type ViajesContactChannel = {
   kind: ViajesContactChannelKind;
@@ -27,6 +32,8 @@ export type ViajesOfferPartnerBlock = {
   isAffiliate: boolean;
   /** Private individual listing — distinct from business agency card */
   privateSeller?: boolean;
+  /** Guía Leonix / editorial inspiration lane */
+  editorial?: boolean;
   affiliateDisclosure?: string;
   /** Business / operator logo (URL or blob:) for draft previews */
   logoSrc?: string;
@@ -66,13 +73,13 @@ export type ViajesOfferDetailModel = {
 export const VIAJES_OFFER_DETAILS: Record<string, ViajesOfferDetailModel> = {
   "cancun-resort-mar": {
     slug: "cancun-resort-mar",
-    heroImageSrc: "/child-categories/viajes/cancun.jpg",
+    heroImageSrc: "https://images.unsplash.com/photo-1552074284-5e88f742d1f5?auto=format&fit=crop&w=2000&q=80",
     heroImageAlt: "Playa de Cancún",
     title: "Cancún · resort frente al mar",
     destination: "Cancún, Quintana Roo, México",
     priceFrom: "Desde $549 por persona",
     duration: "5 días · 4 noches",
-    departureCity: "San Francisco u Oakland (conexión desde SJO disponible)",
+    departureCity: "San Francisco u Oakland (conexión desde SJC disponible)",
     tags: ["Familiar", "Pareja", "Todo incluido"],
     mainCtaLabel: "Reservar con socio",
     mainCtaHref: "https://example.com/partner-booking",
@@ -106,7 +113,7 @@ export const VIAJES_OFFER_DETAILS: Record<string, ViajesOfferDetailModel> = {
   },
   "roma-venecia-express": {
     slug: "roma-venecia-express",
-    heroImageSrc: "/child-categories/viajes/editorial-canals.jpg",
+    heroImageSrc: "https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?auto=format&fit=crop&w=2000&q=80",
     heroImageAlt: "Canales de Venecia",
     title: "Europa express: Roma + Venecia",
     destination: "Italia (Roma y Venecia)",
@@ -141,7 +148,7 @@ export const VIAJES_OFFER_DETAILS: Record<string, ViajesOfferDetailModel> = {
   },
   "maui-boutique": {
     slug: "maui-boutique",
-    heroImageSrc: "/child-categories/viajes/maui.jpg",
+    heroImageSrc: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2000&q=80",
     heroImageAlt: "Costa de Maui",
     title: "Maui · boutique junto a la playa",
     destination: "Maui, Hawái",
@@ -173,13 +180,13 @@ export const VIAJES_OFFER_DETAILS: Record<string, ViajesOfferDetailModel> = {
   },
   "cr-familia-arenal-manuel": {
     slug: "cr-familia-arenal-manuel",
-    heroImageSrc: "/child-categories/viajes/cr.jpg",
+    heroImageSrc: "https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?auto=format&fit=crop&w=2000&q=80",
     heroImageAlt: "Naturaleza en Costa Rica",
     title: "Arenal + Manuel Antonio en familia",
     destination: "Costa Rica",
     priceFrom: "Desde $1,420 por persona",
     duration: "7 días · 6 noches",
-    departureCity: "San José (SJO)",
+    departureCity: "San José, California (SJC)",
     tags: ["Familiar", "Naturaleza", "Aventura suave"],
     mainCtaLabel: "Solicitar itinerario",
     mainCtaHref: "https://wa.me/50688881234",
@@ -202,7 +209,7 @@ export const VIAJES_OFFER_DETAILS: Record<string, ViajesOfferDetailModel> = {
   },
   "riviera-todo-incluido": {
     slug: "riviera-todo-incluido",
-    heroImageSrc: "/child-categories/viajes/riviera.jpg",
+    heroImageSrc: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2000&q=80",
     heroImageAlt: "Resort con piscina",
     title: "Riviera Maya · todo incluido 5★",
     destination: "Playa del Carmen, México",
@@ -225,7 +232,7 @@ export const VIAJES_OFFER_DETAILS: Record<string, ViajesOfferDetailModel> = {
   },
   "cancun-renta-auto": {
     slug: "cancun-renta-auto",
-    heroImageSrc: "/child-categories/viajes/cancun-col.jpg",
+    heroImageSrc: "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=2000&q=80",
     heroImageAlt: "Auto en carretera tropical",
     title: "Renta de auto en Cancún (CUN)",
     destination: "Cancún, Quintana Roo, México",
@@ -261,7 +268,7 @@ export const VIAJES_OFFER_DETAILS: Record<string, ViajesOfferDetailModel> = {
   },
   "tahoe-fin-semana": {
     slug: "tahoe-fin-semana",
-    heroImageSrc: "/child-categories/viajes/lake-mountains.jpg",
+    heroImageSrc: "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=2000&q=80",
     heroImageAlt: "Lago Tahoe",
     title: "Lago Tahoe · fin de semana",
     destination: "California / Nevada",
@@ -285,7 +292,7 @@ export const VIAJES_OFFER_DETAILS: Record<string, ViajesOfferDetailModel> = {
   },
   "los-cabos-snorkel": {
     slug: "los-cabos-snorkel",
-    heroImageSrc: "/child-categories/viajes/cabos.jpg",
+    heroImageSrc: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?auto=format&fit=crop&w=2000&q=80",
     heroImageAlt: "Arrecife y embarcación en Los Cabos",
     title: "Los Cabos · snorkel y arco en lancha",
     destination: "Cabo San Lucas, Baja California Sur, México",
@@ -319,7 +326,7 @@ export const VIAJES_OFFER_DETAILS: Record<string, ViajesOfferDetailModel> = {
   },
   "napa-valley-escape": {
     slug: "napa-valley-escape",
-    heroImageSrc: "/child-categories/viajes/near.jpg",
+    heroImageSrc: "https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?auto=format&fit=crop&w=2000&q=80",
     heroImageAlt: "Viñedos al atardecer en Napa",
     title: "Napa Valley · hotel boutique y viñedos",
     destination: "Napa & Sonoma, California",

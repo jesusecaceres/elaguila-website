@@ -67,18 +67,18 @@ add(
 add("Drag reorder exists", photos.includes("onDrop") && photos.includes("reorderImages"), "PhotosSection.tsx");
 add(
   "Drag handle/copy exists",
-  photos.includes("dragHandleAria") && photos.includes("Arrastra para ordenar"),
+  photos.includes("dragHandleAria") && photos.includes("Arrastra las fotos para cambiar el orden."),
   "PhotosSection.tsx"
 );
 add(
   "Video saved draft copy exists",
-  photos.includes("Enlace de video guardado en el borrador") &&
+  photos.includes("Video guardado para vista previa.") &&
     photos.includes("Video guardado en el borrador. Se procesará al publicar."),
   "PhotosSection.tsx"
 );
 add(
   "Price label/helper exists",
-  basic.includes("Precio del artículo (MXN)") && basic.includes("Si aceptas ofertas, usa Precio negociable"),
+  basic.includes("Precio del artículo (USD)") && basic.includes("Si aceptas ofertas, usa Precio negociable"),
   "BasicInfoSection.tsx"
 );
 add(

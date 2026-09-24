@@ -86,6 +86,7 @@ import {
   saveRentasListingEditWorkspace,
 } from "../../shared/rentasListingEditWorkspace";
 import { resolveDraftPrecedence } from "@/app/lib/listingDrafts/draftWorkspaceContract";
+import { AssistedSaveForClientBar } from "@/app/clasificados/components/AssistedSaveForClientBar";
 
 const MAX_PHOTOS = 8;
 const MAX_VIDEO_URLS = 4;
@@ -102,6 +103,29 @@ const PREVIEW_MUST_FINISH_LOADING: Record<OfficialLocale, string> = {
   en: "The published listing must finish loading before preview.",
   pt: "O anúncio publicado deve terminar de carregar antes da prévia.",
   tl: "Kailangang matapos mag-load ang published listing bago ang preview.",
+};
+
+const RENTAS_PRIVADO_UI: Record<OfficialLocale, { categoryAutoHint: string; addVideo: string; removeVideo: string }> = {
+  es: {
+    categoryAutoHint: "Se determina automáticamente según el tipo de renta (abajo) — ya no se puede elegir de forma independiente.",
+    addVideo: "+ Agregar video",
+    removeVideo: "Quitar",
+  },
+  en: {
+    categoryAutoHint: "Determined automatically from the rental type below — it can no longer be set independently.",
+    addVideo: "+ Add video",
+    removeVideo: "Remove",
+  },
+  pt: {
+    categoryAutoHint: "É determinado automaticamente pelo tipo de aluguel abaixo — não pode mais ser definido de forma independente.",
+    addVideo: "+ Adicionar vídeo",
+    removeVideo: "Remover",
+  },
+  tl: {
+    categoryAutoHint: "Awtomatikong tinutukoy mula sa uri ng renta sa ibaba — hindi na ito maaaring itakda nang hiwalay.",
+    addVideo: "+ Magdagdag ng video",
+    removeVideo: "Alisin",
+  },
 };
 
 const RESIDENTIAL_FLOW_HIGHLIGHTS_ONLY: Record<OfficialLocale, string> = {
@@ -553,6 +577,16 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
           </h1>
           <p className={aiSubClass}>{editContext ? rm.page.introEdit : rm.page.introNew}</p>
         </header>
+        <AssistedSaveForClientBar
+          category="rentas"
+          lang={routeLang === "en" ? "en" : "es"}
+          buildPayload={() => ({
+            category: "rentas",
+            draft: stateRef.current as unknown as Record<string, unknown>,
+            lane: "privado",
+            lang: routeLang === "en" ? "en" : "es",
+          })}
+        />
 
         {editContext ? (
           <section className="rounded-2xl border border-[#C9B46A]/45 bg-[#FFF8E8] p-4 text-sm text-[#3D3428]">
@@ -627,11 +661,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
         <section className={`${aiCardClass} min-w-0`}>
           <h2 className={aiTitleClass}>{rm.category.title}</h2>
           <p className={aiSubClass}>
-            {state.tipoDeRenta
-              ? lang === "en"
-                ? "Determined automatically from the rental type below — it can no longer be set independently."
-                : "Se determina automáticamente según el tipo de renta (abajo) — ya no se puede elegir de forma independiente."
-              : rm.category.hint}
+            {state.tipoDeRenta ? RENTAS_PRIVADO_UI[lang].categoryAutoHint : rm.category.hint}
           </p>
           <div className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
             {CATEGORIAS.map((c) => (
@@ -777,8 +807,8 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                 }}
                 fieldLabel={rm.media.videosByLink}
                 urlLabel={(n) => fillTemplate(rm.media.videoN, { n })}
-                addLabel="+ Agregar video"
-                removeLabel="Quitar"
+                addLabel={RENTAS_PRIVADO_UI[lang].addVideo}
+                removeLabel={RENTAS_PRIVADO_UI[lang].removeVideo}
                 addedLabel={rm.media.linksReady}
                 placeholder="https://youtube.com/..."
               />

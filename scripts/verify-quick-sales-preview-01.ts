@@ -39,6 +39,18 @@ import {
   resolveAssistedRowBinding,
 } from "../app/lib/sales/assistedSameRowBinding";
 import { QUICK_SALES_CATEGORY_MAP, QUICK_SALES_CATEGORIES } from "../app/lib/sales/quickSalesCategories";
+import { BUSINESS_CATEGORY_PACKAGE_PAIR } from "../app/lib/listingPlans/businessAccessLevel";
+import { STAFF_CATEGORY_PRICED_PACKAGE_KEYS } from "../app/lib/sales/staffBusinessProduct";
+import { getRevenuePackageDefinition } from "../app/lib/listingPlans/revenuePricingMatrix";
+import {
+  createEmptyRentasPrivadoFormState,
+  mergePartialRentasPrivadoState,
+} from "../app/(site)/clasificados/publicar/rentas/privado/schema/rentasPrivadoFormState";
+import { buildRentasPrivadoListingParams } from "../app/(site)/clasificados/lib/leonixPublishRealEstateFromDraftState";
+import { normalizeEmpleosQuickDraft } from "../app/(site)/publicar/empleos/shared/types/empleosQuickDraft";
+import { buildEmpleosPublishEnvelopeFromQuick } from "../app/(site)/publicar/empleos/shared/publish/buildEmpleosPublishEnvelope";
+import { createEmptyComidaLocalDraft } from "../app/lib/clasificados/comida-local/createEmptyComidaLocalDraft";
+import { mergeComidaLocalDraftFromStorage } from "../app/lib/clasificados/comida-local/comidaLocalDraftPersistence";
 
 const PREVIEW_SECRET = "preview-secret-harness-only";
 const ASSISTED_SECRET = "assisted-secret-harness-only";
@@ -68,13 +80,26 @@ async function checkAsync(name: string, fn: () => Promise<void>) {
 const NOW = 1_800_000_000_000;
 
 const CATEGORY_SOURCE: Record<ProspectPreviewCategory, ProspectPreviewSource> = {
+  rentas: "listings",
+  empleos: "empleos_public_listings",
+  "autos-privado": "autos_classifieds_listings",
   servicios: "servicios_public_listings",
   restaurantes: "restaurantes_public_listings",
+  "comida-local": "comida_local_public_listings",
   autos: "autos_classifieds_listings",
   "bienes-raices": "listings",
 };
 
-const ALL: ProspectPreviewCategory[] = ["servicios", "restaurantes", "autos", "bienes-raices"];
+const ALL: ProspectPreviewCategory[] = [
+  "rentas",
+  "empleos",
+  "autos-privado",
+  "servicios",
+  "restaurantes",
+  "comida-local",
+  "autos",
+  "bienes-raices",
+];
 
 function mintPreview(category: ProspectPreviewCategory, listingId = "listing-1", ttlSec?: number) {
   return createProspectPreviewTokenWithSecret(
@@ -259,16 +284,33 @@ check("B6: a request naming a different business than the context is refused", (
   assert.equal(refusal?.status, 409);
 });
 
-check("B7: every category maps to exactly one canonical table and one EXISTING intake", () => {
+check("B7: every category maps to exactly one canonical table and one EXISTING fillable intake", () => {
   const sources = new Set<string>();
   for (const key of QUICK_SALES_CATEGORIES) {
     const d = QUICK_SALES_CATEGORY_MAP[key];
     assert.equal(d.category, key);
     assert.ok(d.saveEndpoint.startsWith("/api/"), "the save endpoint must be a real API route");
-    assert.ok(d.intakePath.startsWith("/clasificados/"), "the intake must be the category's existing one");
+    assert.equal(d.requiresClientUserId, false, `${key} is owner-null organizational custody`);
+    if (key === "servicios") {
+      assert.equal(d.intakePath, "/publicar/servicios", "Servicios staff doorway is the canonical application, not the checkpoint or Quick adapter");
+    } else if (key === "restaurantes") {
+      assert.equal(d.intakePath, "/publicar/restaurantes");
+    } else if (key === "autos") {
+      assert.equal(d.intakePath, "/publicar/autos/negocios");
+    } else if (key === "bienes-raices") {
+      assert.equal(d.intakePath, "/clasificados/publicar/bienes-raices/negocio");
+    } else if (key === "rentas") {
+      assert.equal(d.intakePath, "/clasificados/publicar/rentas/privado");
+    } else if (key === "empleos") {
+      assert.equal(d.intakePath, "/publicar/empleos/quick");
+    } else if (key === "autos-privado") {
+      assert.equal(d.intakePath, "/publicar/autos/privado");
+    } else if (key === "comida-local") {
+      assert.equal(d.intakePath, "/publicar/comida-local");
+    }
     sources.add(d.listingSource);
   }
-  assert.equal(sources.size, 4, "four categories, four distinct canonical tables");
+  assert.equal(sources.size, 6, "eight families share six canonical tables (autos+privado, rentas+bienes)");
 });
 
 // =============================================================================
@@ -310,13 +352,23 @@ function makeRequest(body: unknown, cookieJar: Record<string, string> = {}) {
   } as never;
 }
 
+function packageFor(category: string): { key: string; cents: number } {
+  const pair = BUSINESS_CATEGORY_PACKAGE_PAIR[category];
+  if (pair) return { key: pair.simple, cents: 24900 };
+  const key = STAFF_CATEGORY_PRICED_PACKAGE_KEYS[category as keyof typeof STAFF_CATEGORY_PRICED_PACKAGE_KEYS];
+  const def = key ? getRevenuePackageDefinition(key) : null;
+  return { key: key ?? "", cents: def?.priceCents ?? 0 };
+}
+
 function assistedCookie(input: {
   category: string;
   listingId?: string | null;
   businessId?: string;
   rosterId?: string;
   authUserId?: string;
+  packageKey?: string | null;
 }): string {
+  const pkg = packageFor(input.category);
   return createAssistedPublishingTokenWithSecret(
     {
       businessId: input.businessId ?? BIZ,
@@ -325,6 +377,7 @@ function assistedCookie(input: {
       authUserId: input.authUserId ?? STAFF_AUTH,
       listingId: input.listingId ?? null,
       assistedAction: "save_for_client",
+      packageKey: input.packageKey ?? pkg.key ?? null,
     },
     ASSISTED_SECRET,
   )!;
@@ -367,9 +420,158 @@ function readyRowsFor(category: ProspectPreviewCategory): Record<string, unknown
       }];
     case "autos":
       return [
-        { id: "row-1", status: "draft", inventory_role: "main", listing_payload: { businessName: "Dealer Uno" }, published_at: null, created_at: "2026-09-01T00:00:00Z" },
-        { id: "row-1-v", status: "draft", inventory_role: "inventory_vehicle", dealer_inventory_parent_listing_id: "row-1", listing_payload: { images: [{ url: "https://cdn.example.test/car.jpg", role: "vehicle" }] }, published_at: null, created_at: "2026-09-01T00:00:01Z" },
+        {
+          id: "row-1",
+          status: "draft",
+          inventory_role: "main",
+          listing_payload: { businessName: "Dealer Uno", dealerName: "Dealer Uno", dealerPhoneOffice: "4085550110" },
+          published_at: null,
+          created_at: "2026-09-01T00:00:00Z",
+        },
+        {
+          id: "row-1-v",
+          status: "draft",
+          inventory_role: "inventory_vehicle",
+          dealer_inventory_parent_listing_id: "row-1",
+          listing_payload: {
+            year: 2018,
+            make: "Honda",
+            model: "Civic",
+            price: 12900,
+            city: "San Jose",
+            zip: "95116",
+            dealerPhoneOffice: "4085550111",
+            images: [{ url: "https://cdn.example.test/car.jpg", role: "vehicle" }],
+            mediaImages: [{ url: "https://cdn.example.test/car.jpg", role: "vehicle" }],
+          },
+          published_at: null,
+          created_at: "2026-09-01T00:00:01Z",
+        },
       ];
+    case "autos-privado":
+      return [{
+        id: "row-1",
+        status: "draft",
+        lane: "privado",
+        listing_payload: {
+          year: 2018,
+          make: "Honda",
+          model: "Civic",
+          price: 12900,
+          city: "San Jose",
+          zip: "95116",
+          dealerPhoneOffice: "4085550111",
+          dealerWhatsapp: "4085550112",
+          mediaImages: [{ url: "https://cdn.example.test/civic.jpg", role: "vehicle" }],
+        },
+        published_at: null,
+      }];
+    case "empleos": {
+      const envelope = buildEmpleosPublishEnvelopeFromQuick(
+        normalizeEmpleosQuickDraft({
+          title: "Niño's Landscaping lead",
+          businessName: "El Sazón de Mamá",
+          city: "Oakland",
+          state: "CA",
+          stateRegion: "CA",
+          country: "United States",
+          jobType: "tiempo-completo",
+          schedule: "Lunes a viernes",
+          payAmount: "28",
+          payUnit: "hora",
+          description: "A-1 Plumbing adjacent crew. Accents and ñ stay.",
+          images: [{ id: "img1", url: "https://cdn.example.test/job.jpg", alt: "crew", isMain: true }],
+          phone: "5105550100",
+          whatsapp: "5105550101",
+          smsPhone: "5105550102",
+          email: "jobs@example.test",
+        }),
+        "es",
+      );
+      return [{
+        id: "row-1",
+        slug: "job-1",
+        lane: "quick",
+        title: "Niño's Landscaping lead",
+        company_name: "El Sazón de Mamá",
+        city: "Oakland",
+        state: "CA",
+        modality: "onsite",
+        job_type: "full_time",
+        experience: "entry",
+        company_type: "restaurant",
+        lifecycle_status: "draft",
+        listing_snapshot: { envelope },
+        published_at: null,
+      }];
+    }
+    case "comida-local":
+      return [{
+        id: "row-1",
+        slug: "comida-1",
+        status: "draft",
+        business_name: "Elote Loco",
+        food_type: "tacos",
+        city_display: "San José",
+        listing_json: mergeComidaLocalDraftFromStorage({
+          ...createEmptyComidaLocalDraft(),
+          businessName: "Elote Loco",
+          foodType: "tacos",
+          cityDisplay: "Oakland",
+          cityCanonical: "oakland",
+          queVendes: "Elotes preparados every morning at the corner stand.",
+          phone: "4085550199",
+          mainPhoto: { url: "https://cdn.example.test/elote.jpg", role: "main" },
+        }),
+        published_at: null,
+      }];
+    case "rentas": {
+      const built = buildRentasPrivadoListingParams(
+        mergePartialRentasPrivadoState({
+          ...createEmptyRentasPrivadoFormState(),
+          titulo: "José's Auto Repair loft",
+          rentaMensual: "1850",
+          tipoDeRenta: "apartamento",
+          ciudad: "San José",
+          direccionEstado: "CA",
+          direccionCodigoPostal: "95112",
+          direccionLinea1: "1601 Coleman Ave",
+          mostrarDireccionExacta: true,
+          seller: {
+            ...createEmptyRentasPrivadoFormState().seller,
+            nombre: "María & Sons",
+            telefono: "4085550199",
+            whatsapp: "4085550188",
+            mensajesTexto: "4085550177",
+          },
+          media: {
+            ...createEmptyRentasPrivadoFormState().media,
+            photoDataUrls: ["https://cdn.example.test/rental.jpg"],
+          },
+        }),
+        "es",
+      );
+      if (!built.ok) throw new Error(`rentas ready fixture failed: ${built.error}`);
+      return [{
+        id: "row-1",
+        status: "pending",
+        is_published: false,
+        published_at: null,
+        title: built.params.title,
+        description: built.params.description ?? "",
+        city: built.params.city,
+        state: built.params.state,
+        zip: built.params.zip,
+        price: built.params.price,
+        category: "rentas",
+        images: built.params.imageSources,
+        detail_pairs: built.params.detailPairs,
+        contact_phone: built.params.contactPhoneDigits,
+        contact_email: built.params.contactEmail,
+        listing_json: built.params.listingJson ?? null,
+        contact_json: built.params.contactJson ?? null,
+      }];
+    }
     case "bienes-raices":
     default:
       return [{ id: "row-1", status: "pending", is_published: false, published_at: null, title: "Oficina", images: ["https://cdn.example.test/house.jpg"] }];
@@ -501,8 +703,21 @@ async function run() {
       // STORED row. The rows seeded here are therefore COMPLETE per that contract; the incomplete
       // variants live in verify-quick-sales-canonical-publish-readiness-01.ts.
       __seed(descriptor.listingSource, readyRowsFor(category));
+      const pkg = packageFor(category);
       __seed("leonix_payment_records", [
-        { id: "pay-1", listing_source: descriptor.listingSource, listing_id: "row-1", manual_state: "cleared" },
+        {
+          id: "pay-1",
+          listing_source: descriptor.listingSource,
+          listing_id: "row-1",
+          package_key: pkg.key,
+          source: "admin_manual",
+          manual_state: "cleared",
+          payment_status: "paid",
+          currency: "usd",
+          amount_cents: pkg.cents,
+          amount_total_cents: pkg.cents,
+          amount_paid_cents: pkg.cents,
+        },
       ]);
       const jar = { leonix_assisted_publish: assistedCookie({ category, listingId: "row-1" }) };
       const res = await workspacePublish.POST(makeRequest({}, jar));
@@ -529,7 +744,8 @@ async function run() {
       // Each category's own public value — servicios uses a separate lifecycle column, and
       // restaurantes' public state is "published" where autos/bienes use "active".
       if (category === "servicios") assert.equal(row.listing_status, "published");
-      else if (category === "restaurantes") assert.equal(row.status, "published");
+      else if (category === "restaurantes" || category === "comida-local") assert.equal(row.status, "published");
+      else if (category === "empleos") assert.equal(row.lifecycle_status, "published");
       else assert.equal(row.status, "active");
       if (isBienes) assert.equal(row.is_published, true);
 
@@ -800,7 +1016,7 @@ run()
       process.exit(1);
     }
     console.log(
-      `verify-quick-sales-preview-01: OK (${checks} executed checks — 4 categories, real token attacks, real route calls, no DB, no network)`,
+      `verify-quick-sales-preview-01: OK (${checks} executed checks — eight families, real token attacks, real route calls, no DB, no network)`,
     );
   })
   .catch((e) => {

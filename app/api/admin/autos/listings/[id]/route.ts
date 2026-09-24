@@ -167,6 +167,9 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     // Package C Build 4 (C7, Gate 4) — capacity-increasing admin reactivation of a negocios row
     // now routes through the atomic RPC (previously: role-guarded only, zero capacity check).
     if (row.lane === "negocios") {
+      if (!row.owner_user_id) {
+        return NextResponse.json({ ok: false, error: "owner_required" }, { status: 409 });
+      }
       const rpcResult = await activateAutosDealerListingAtomic({
         listingId: id,
         ownerUserId: row.owner_user_id,

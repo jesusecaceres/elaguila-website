@@ -2,6 +2,10 @@
 
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { TranslateAdControl } from "@/app/components/translation/TranslateAdControl";
+import { requestAdTranslation } from "@/app/lib/translation/requestAdTranslation";
+import { applyAnuncioTranslation, buildAnuncioTranslatableContent, hasAnuncioTranslatableProse } from "@/app/lib/translation/anuncioTranslateAd";
+import type { AdTranslationResult } from "@/app/lib/translation/types";
 import { clearLeonixPreviewNavSessionFlag } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import {
   resolveClasificadosPublishLang,
@@ -111,6 +115,8 @@ export function EnVentaPreviewPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
   const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
+  const [previewTranslation, setPreviewTranslation] = useState<AdTranslationResult | null>(null);
+  const [showPreviewTranslation, setShowPreviewTranslation] = useState(false);
 
   /**
    * Defer clearing the "opening preview" session flag until after the previous document's
@@ -152,6 +158,64 @@ export function EnVentaPreviewPage() {
   const vm = useMemo(() => buildEnVentaPreviewModel(state, lang, plan), [state, lang, plan]);
   const contentStack = useMemo(() => buildEnVentaContentStackFromDraftState(state, lang), [state, lang]);
   const draftMeta = useMemo(() => loadEnVentaPreviewDraftMeta(), [plan]);
+
+  const previewTranslationSource = useMemo(() => {
+    const detailPairs = [
+      contentStack.conditionAndUse ? { label: lang === "es" ? "Condición y uso" : "Condition and use", value: contentStack.conditionAndUse } : null,
+      contentStack.accessories ? { label: lang === "es" ? "Accesorios" : "Accessories", value: contentStack.accessories } : null,
+      contentStack.technicalDetails ? { label: lang === "es" ? "Detalles técnicos" : "Technical details", value: contentStack.technicalDetails } : null,
+      ...(contentStack.deliveryItems ?? [])
+        .filter((item) => Boolean(item.note?.trim()))
+        .map((item) => ({ label: item.label, value: item.note!.trim() })),
+    ].filter((pair): pair is { label: string; value: string } => Boolean(pair));
+
+    return {
+      title: { es: vm.title, en: vm.title },
+      blurb: { es: contentStack.description ?? "", en: contentStack.description ?? "" },
+      detailPairs,
+    };
+  }, [vm.title, contentStack, lang]);
+
+  const previewTranslatableContent = useMemo(
+    () => buildAnuncioTranslatableContent(previewTranslationSource, lang),
+    [previewTranslationSource, lang],
+  );
+
+  const translatedPreview = useMemo(() => {
+    if (!showPreviewTranslation || !previewTranslation?.translated) return null;
+    return applyAnuncioTranslation(previewTranslationSource, lang, previewTranslation.translated);
+  }, [showPreviewTranslation, previewTranslation, previewTranslationSource, lang]);
+
+  const translatedDetailPairs = useMemo(() => {
+    if (!translatedPreview || !Array.isArray(translatedPreview.detailPairs)) return [];
+    return translatedPreview.detailPairs as Array<{ label: string; value: string }>;
+  }, [translatedPreview]);
+
+  const translatedContentStack = useMemo(() => {
+    if (!translatedPreview) return contentStack;
+    let pairIndex = 0;
+    const nextPair = () => translatedDetailPairs[pairIndex++]?.value?.trim() || null;
+    const conditionAndUse = contentStack.conditionAndUse ? nextPair() ?? contentStack.conditionAndUse : contentStack.conditionAndUse;
+    const accessories = contentStack.accessories ? nextPair() ?? contentStack.accessories : contentStack.accessories;
+    const technicalDetails = contentStack.technicalDetails ? nextPair() ?? contentStack.technicalDetails : contentStack.technicalDetails;
+    const deliveryItems = (contentStack.deliveryItems ?? []).map((item) => {
+      if (!item.note?.trim()) return item;
+      const note = nextPair();
+      return note ? { ...item, note } : item;
+    });
+    return {
+      ...contentStack,
+      description: translatedPreview.blurb[lang]?.trim() || contentStack.description,
+      conditionAndUse,
+      accessories,
+      technicalDetails,
+      deliveryItems,
+    };
+  }, [translatedPreview, translatedDetailPairs, contentStack, lang]);
+
+  const displayedPreviewTitle = translatedPreview?.title[lang]?.trim() || vm.title;
+  const offerPreviewTranslate = hasAnuncioTranslatableProse(previewTranslatableContent);
+  const previewTranslationKey = `preview:${plan}:${draftMeta?.updatedAt ?? "draft"}`;
   const shellStatusLine = useMemo(() => {
     if (draftMeta?.updatedAt) return relativeTimeLabel(draftMeta.updatedAt, lang);
     return vm.shellStatusLine;
@@ -263,9 +327,27 @@ export function EnVentaPreviewPage() {
   };
 
   const mainTop = (
-    <EnVentaListingHero
+    <div className="space-y-3">
+      {offerPreviewTranslate ? (
+        <TranslateAdControl
+          siteLocale={lang}
+          originalLocale="unknown"
+          category="en-venta"
+          listingKey={previewTranslationKey}
+          version="en-venta-preview-v1"
+          translatableContent={previewTranslatableContent}
+          requestTranslation={requestAdTranslation}
+          onTranslated={(result) => {
+            setPreviewTranslation(result);
+            setShowPreviewTranslation(true);
+          }}
+          onShowOriginal={() => setShowPreviewTranslation(false)}
+          className="w-fit"
+        />
+      ) : null}
+      <EnVentaListingHero
       lang={lang}
-      title={vm.title}
+      title={displayedPreviewTitle}
       priceLine={vm.priceLine}
       negotiable={vm.negotiable}
       statusLine={shellStatusLine}
@@ -281,14 +363,15 @@ export function EnVentaPreviewPage() {
           lang={lang}
           mode="preview"
           listingUrl={previewPublicUrl}
-          listingTitle={vm.title}
+          listingTitle={displayedPreviewTitle}
         />
       }
-    />
+      />
+    </div>
   );
 
   const lowerContent = (
-    <EnVentaDetailContentStack lang={lang} model={contentStack} descriptionAnchorId="leonix-listing-description" />
+    <EnVentaDetailContentStack lang={lang} model={translatedContentStack} descriptionAnchorId="leonix-listing-description" />
   );
 
   const previewContactSection = (

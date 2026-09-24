@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { addListingView } from "@/app/lib/recentlyViewed";
+import { LEONIX_SITE_ORIGIN } from "@/app/lib/leonixBrand";
 import { mascotasPerdidosPublishedQuickToDraft } from "@/app/(site)/publicar/mascotas-y-perdidos/shared/mascotasPerdidosPublishedQuickToDraft";
 import { MascotasPerdidosQuickAdCanvas } from "@/app/(site)/publicar/mascotas-y-perdidos/components/MascotasPerdidosQuickAdCanvas";
 
@@ -62,7 +63,14 @@ export function MascotasPerdidosPublishedDetailPage({
         </Link>
       </div>
 
-      <MascotasPerdidosQuickAdCanvas draft={draft} lang={lang} shell="standalone" leonixAdId={listing.leonix_ad_id ?? null} />
+      <MascotasPerdidosQuickAdCanvas
+        draft={draft}
+        lang={lang}
+        shell="standalone"
+        leonixAdId={listing.leonix_ad_id ?? null}
+        listingId={listing.id}
+        publicUrl={`${LEONIX_SITE_ORIGIN}/clasificados/anuncio/${encodeURIComponent(listing.id)}`}
+      />
     </MascotasPerdidosShellLayout>
   );
 }

@@ -663,6 +663,50 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
     // -----------------------------------------------------------------------
     "app/lib/sales/canonicalPublishReadiness.ts", // new: the Quick-only canonical readiness + activation adapter
     "app/api/admin/sales-preview/publish/route.ts", // cockpit: readiness after payment, before any write
+    // -----------------------------------------------------------------------
+    // STAFF GATEWAY EIGHT-FAMILY REPAIR (2026-09-22) — existing canonical applications gain the
+    // shared Save-for-Client bar; payment authority fails closed; claim transfer refuses false
+    // success. No parallel product, no new intake, no Quick-specific table.
+    // -----------------------------------------------------------------------
+    "app/(site)/clasificados/publicar/rentas/privado/application/RentasPrivadoForm.tsx",
+    "app/(site)/clasificados/publicar/rentas/shared/rentasDashboardEditHydration.ts",
+    "app/(site)/clasificados/publicar/servicios/components/ClasificadosServiciosApplication.tsx",
+    "app/(site)/publicar/empleos/quick/EmpleoQuickApplicationClient.tsx",
+    "app/(site)/publicar/restaurantes/restauranteApplicationFormCopy.ts",
+    "app/(site)/clasificados/lib/leonixBrMachineFacetPairsFromFormState.ts",
+    "app/(site)/clasificados/bienes-raices/resultados/cards/BienesRaicesNegocioCard.tsx",
+    "app/(site)/clasificados/bienes-raices/resultados/cards/listingTypes.ts",
+    "app/(site)/clasificados/comida-local/components/ComidaLocalListingCard.tsx",
+    "app/(site)/clasificados/comida-local/page.tsx",
+    "app/(site)/clasificados/empleos/lib/empleosPublicListingsDbServer.ts",
+    "app/(site)/clasificados/restaurantes/application/buildRestaurantePublishPayload.ts",
+    "app/(site)/clasificados/restaurantes/application/createEmptyRestauranteDraft.ts",
+    "app/(site)/clasificados/restaurantes/application/mapRestauranteDraftToShell.ts",
+    "app/(site)/clasificados/restaurantes/application/restauranteTaxonomy.ts",
+    "app/(site)/clasificados/restaurantes/application/useRestauranteDraft.ts",
+    "app/(site)/clasificados/restaurantes/components/RestaurantePublishedListingCard.tsx",
+    "app/(site)/clasificados/restaurantes/data/restaurantesPublicBlueprintData.ts",
+    "app/(site)/clasificados/restaurantes/lib/restaurantesLandingInventoryServer.ts",
+    "app/(site)/clasificados/restaurantes/lib/restaurantesListingEngagement.ts",
+    "app/(site)/clasificados/restaurantes/lib/restaurantesResultsInventoryServer.ts",
+    "app/(site)/clasificados/restaurantes/shell/RestaurantePreviewCard.tsx",
+    "app/admin/(dashboard)/workspace/clasificados/autos/page.tsx",
+    "app/admin/(dashboard)/workspace/payment-tracker/manual-payment/ManualPaymentClient.tsx",
+    "app/admin/(dashboard)/workspace/payment-tracker/manual-payment/page.tsx",
+    "app/admin/_lib/adminAdSearch.ts",
+    "app/api/admin/autos/listings/[id]/route.ts",
+    "app/api/business/ownership-claim/accept/route.ts",
+    "app/api/clasificados/autos/checkout/route.ts",
+    "app/api/clasificados/autos/listings/[id]/route.ts",
+    "app/api/clasificados/comida-local/publish/route.ts",
+    "app/api/clasificados/empleos/listings/route.ts",
+    "app/api/clasificados/rentas/listing-edit/route.ts",
+    "app/components/forms/BusinessAddressVerifiedInput.tsx",
+    "app/components/leonixCommunityTrust/LeonixCommunityTrustCardStrip.tsx",
+    "app/lib/business/ownership/linkedListingOwnerTransfer.ts",
+    "app/lib/business/ownership/linkedListingOwnerTransferServer.ts",
+    "app/lib/listingPlans/listingPackagePaymentAuthority.ts",
+    "app/lib/listingPlans/listingPackagePaymentAuthorityServer.ts",
   ]);
   // A touched entry from `git status --short` may be a directory (`app/api/new-dir/`) for newly
   // added dirs not yet staged; check if it is authorized directly or all contained authorized files.

@@ -88,7 +88,7 @@ const read = (p: string) => readFileSync(path.join(REPO_ROOT, p), "utf8");
 /* Autos — direct child dashboard edit action + deep link handler. */
 {
   const dashboard = read("app/(site)/clasificados/autos/dashboard/AutosDealerInventoryDashboardSection.tsx");
-  assert.ok(dashboard.includes("editVehicleId=") && dashboard.includes("isChildRow && parentId"), "child rows must offer the direct Edit action");
+  assert.ok(dashboard.includes("editVehicleId=") && dashboard.includes("if (isChildRow)") && dashboard.includes("childActions.push"), "child rows must offer the direct Edit action through the shared action model");
   const application = read("app/(site)/publicar/autos/negocios/components/AutosNegociosApplication.tsx");
   assert.ok(application.includes('searchParams?.get("editVehicleId")'), "the dealer application must read the child deep-link param");
   assert.ok(application.includes("setInventoryDrawerOpen(true, editVehicleId)"), "the deep link must open THIS vehicle's drawer editor");

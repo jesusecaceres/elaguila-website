@@ -82,10 +82,13 @@ check(
 );
 
 const canvas = read(rel("app/(site)/publicar/comunidad/components/ComunidadQuickAdCanvas.tsx"));
+const contactModel = read(rel("app/(site)/publicar/comunidad/lib/buildComunidadContactCanvasModel.ts"));
 check(
   "Preview canvas uses custom link titles via contact canvas",
-  read(rel("app/(site)/publicar/community/shared/preview/CommunityContactCanvas.tsx")).includes("el.customLink1Label.trim()"),
-  "CommunityContactCanvas",
+  canvas.includes("CommunityContactCanvas") &&
+    canvas.includes("buildComunidadContactCanvasModel") &&
+    contactModel.includes("el.customLink1Label.trim()"),
+  "ComunidadQuickAdCanvas + buildComunidadContactCanvasModel",
 );
 check("Preview passes Leonix Ad ID", canvas.includes("CommunityPremiumTrustFooter"), "ComunidadQuickAdCanvas");
 

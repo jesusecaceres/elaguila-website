@@ -111,7 +111,8 @@ assert(engagement.includes("user_liked_listings"), "Like count sourced from user
 assert(engagement.includes("trackBrLikeGlobal"), "Engagement records like against BR analytics");
 assert(engagement.includes("trackBrListingShareGlobal"), "Engagement records share against BR analytics");
 assert(engagement.includes('mode === "preview"'), "Preview mode disables live analytics");
-assert(engagement.includes("directNativeShare"), "Share uses native/copy path");
+assert(!engagement.includes("directNativeShare"), "Share opens the shared Leonix drawer instead of bypassing it");
+assert(engagement.includes("LeonixShareButton"), "Share uses the shared Leonix share component");
 assert(likeBtn.includes('countDisplay === "numeric"'), "Like button supports numeric count mode");
 assert(likeBtn.includes("displayCount > 0"), "Zero likes omits numeric zero");
 assert(likeBtn.includes("data-leonix-like-count"), "Like count exposed for QA");

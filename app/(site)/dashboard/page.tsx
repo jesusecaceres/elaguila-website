@@ -246,7 +246,6 @@ function DashboardPageContent() {
       accountRef={accountRef}
       membershipTier={membershipTier}
       accountType={accountType}
-      ownerId={userId}
       contentLayout="workbench"
     >
       {authLoading ? (

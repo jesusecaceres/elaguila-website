@@ -238,8 +238,10 @@ async function main() {
     assert.equal(buscoContract!.writableTable, "listings");
     assert.equal(CLASSIFIEDS_OPS_CONTRACTS.filter((c) => c.slug === "busco").length, 1, "no duplicate busco entry");
 
-    // Ofertas Locales deliberately NOT added — locked system for this package.
-    assert.equal(getClassifiedsOpsContract("ofertas-locales"), undefined, "ofertas-locales must not be added to this contract by this package — Ofertas/Cupones is locked");
+    // Ofertas Locales now has a real dedicated-table ops contract and real admin queue.
+    const ofertasContract = getClassifiedsOpsContract("ofertas-locales");
+    assert.ok(ofertasContract, "ofertas-locales must expose its real admin operations contract");
+    assert.equal(ofertasContract!.writableTable, "ofertas_locales");
   }
 
   /* ============================================================================================

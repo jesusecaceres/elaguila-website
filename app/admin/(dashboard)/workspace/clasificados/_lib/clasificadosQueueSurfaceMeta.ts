@@ -31,7 +31,7 @@ export function clasificadosQueueSurfaceForSlug(slug: string): ClasificadosQueue
       return {
         sourceTable: "public.comida_local_public_listings",
         publicHref: "/clasificados/comida-local",
-        publishHref: "/publicar/comida-local",
+        publishHref: buildQuickSalesHref({ category: "comida-local" }),
       };
     case "ofertas-locales":
       return {
@@ -43,13 +43,19 @@ export function clasificadosQueueSurfaceForSlug(slug: string): ClasificadosQueue
       return {
         sourceTable: "public.empleos_public_listings",
         publicHref: "/clasificados/empleos",
-        publishHref: "/clasificados/publicar/empleos",
+        publishHref: buildQuickSalesHref({ category: "empleos" }),
       };
     case "autos":
       return {
         sourceTable: "public.autos_classifieds_listings",
         publicHref: "/clasificados/autos",
         publishHref: buildQuickSalesHref({ category: "autos" }),
+      };
+    case "autos-privado":
+      return {
+        sourceTable: "public.autos_classifieds_listings",
+        publicHref: "/clasificados/autos",
+        publishHref: buildQuickSalesHref({ category: "autos-privado" }),
       };
     case "travel":
     case "viajes":
@@ -73,7 +79,9 @@ export function clasificadosQueueSurfaceForSlug(slug: string): ClasificadosQueue
             ? "/publicar/busco/quick"
             : s === "bienes-raices"
               ? buildQuickSalesHref({ category: "bienes-raices" })
-              : `/clasificados/publicar/${encodeURIComponent(s)}`,
+              : s === "rentas"
+                ? buildQuickSalesHref({ category: "rentas" })
+                : `/clasificados/publicar/${encodeURIComponent(s)}`,
       };
     default:
       return {

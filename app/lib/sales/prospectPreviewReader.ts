@@ -43,6 +43,8 @@ const SOURCE_COLUMNS: Record<ProspectPreviewContext["listingSource"], string> = 
   restaurantes_public_listings: "id, slug, status, listing_json",
   autos_classifieds_listings: "id, status, lang, listing_payload",
   listings: "id, title, description, city, state, price, is_free, status, is_published, listing_json",
+  empleos_public_listings: "id, title, company_name, city, state, lifecycle_status, listing_snapshot",
+  comida_local_public_listings: "id, business_name, city_display, city_canonical, status, listing_json",
 };
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -119,6 +121,36 @@ export async function readProspectPreviewPayload(
           lifecycleState: lifecycle,
           isPublic: lifecycle === "active",
           content: payload,
+          expiresAtMs: ctx.expiresAtMs,
+        };
+      }
+      case "empleos_public_listings": {
+        const snapshot = asRecord(row.listing_snapshot);
+        const lifecycle = str(row.lifecycle_status);
+        return {
+          category: ctx.category,
+          listingId: ctx.listingId,
+          title: str(row.title) ?? str(row.company_name),
+          city: str(row.city),
+          state: str(row.state),
+          lifecycleState: lifecycle,
+          isPublic: lifecycle === "published",
+          content: snapshot,
+          expiresAtMs: ctx.expiresAtMs,
+        };
+      }
+      case "comida_local_public_listings": {
+        const listing = asRecord(row.listing_json);
+        const lifecycle = str(row.status);
+        return {
+          category: ctx.category,
+          listingId: ctx.listingId,
+          title: str(row.business_name) ?? str(listing?.businessName),
+          city: str(row.city_display) ?? str(row.city_canonical),
+          state: str(listing?.state),
+          lifecycleState: lifecycle,
+          isPublic: lifecycle === "published",
+          content: listing,
           expiresAtMs: ctx.expiresAtMs,
         };
       }

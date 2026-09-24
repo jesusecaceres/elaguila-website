@@ -12,7 +12,7 @@ import { AUTOS_PUBLIC_BLUEPRINT_COPY } from "../../lib/autosPublicBlueprintCopy"
 import type { AutosPublicLang } from "../../lib/autosPublicBlueprintCopy";
 import { parseAutosBrowseUrl, serializeAutosBrowseUrl, type AutosBrowseUrlBundle } from "../../filters/autosBrowseFilterContract";
 import { emptyAutosPublicFilters } from "../../filters/autosPublicFilterTypes";
-import { AutosPublicStandardCard } from "./AutosPublicStandardCard";
+import { AutosPublicTranslatedCard } from "./AutosPublicTranslatedCard";
 import { useAutosPublicListingsFetch } from "./useAutosPublicListingsFetch";
 import {
   applyAutosPublicFilters,
@@ -449,7 +449,7 @@ export function AutosPublicResultsShell({ market = "private" }: { market?: Autos
             <section>
               <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3">
                 {pagedGrid.map((l) => (
-                  <AutosPublicStandardCard key={l.id} listing={l} copy={copy} lang={lang} />
+                  <AutosPublicTranslatedCard key={l.id} listing={l} copy={copy} lang={lang} />
                 ))}
               </div>
               {gridListings.length === 0 && !emptyCatalog ? (

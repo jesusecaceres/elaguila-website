@@ -4,9 +4,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { useMemo } from "react";
 import { trackRestaurantesResultCardClick } from "../lib/restaurantesCtaTracking";
+import { LeonixCommunityTrustCardStrip } from "@/app/components/leonixCommunityTrust/LeonixCommunityTrustCardStrip";
 import { FiGlobe, FiMapPin, FiPhone } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
 import type { RestaurantDetailShellData } from "./restaurantDetailShellTypes";
+import { TranslateAdControl } from "@/app/components/translation/TranslateAdControl";
+import { requestAdTranslation } from "@/app/lib/translation/requestAdTranslation";
+import { useRestauranteShellTranslation } from "../lib/useRestauranteShellTranslation";
 
 const PREVIEW_CARD =
   "overflow-hidden rounded-[22px] border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-card)] shadow-[0_14px_46px_-30px_rgba(42,36,22,0.18)] transition-shadow duration-300 hover:shadow-[0_18px_60px_-36px_rgba(42,36,22,0.24)]";
@@ -86,6 +90,7 @@ interface RestaurantePreviewCardProps {
   presentation?: "preview" | "public_discovery";
   /** Net public likes (from `listing_analytics`); shown only when `presentation="public_discovery"` and value &gt; 0. */
   likesCount?: number;
+  publicEndorsementCount?: number;
   /** Results grid: primary navigation to public detail. */
   publicDetailHref?: string;
   publicDetailLabel?: string;
@@ -109,6 +114,7 @@ export function RestaurantePreviewCard({
   lang = "es",
   presentation = "preview",
   likesCount,
+  publicEndorsementCount,
   publicDetailHref,
   publicDetailLabel,
   discoveryRefineHref,
@@ -117,6 +123,10 @@ export function RestaurantePreviewCard({
   listingSlug,
   leonixAdId = null,
 }: RestaurantePreviewCardProps) {
+  const translationListingKey = (listingSourceId ?? data.id ?? listingSlug ?? "").trim();
+  const cardTranslation = useRestauranteShellTranslation(data, lang, translationListingKey);
+  const displayData = cardTranslation.displayData;
+
   const heroImage = data.heroImageUrl?.trim() || "";
   const logoCandidate = (data.businessLogo ?? "").trim();
   const logoUrl = isRenderableLogoUrl(logoCandidate) ? logoCandidate : "";
@@ -169,7 +179,7 @@ export function RestaurantePreviewCard({
   const addressQuery = (data.contact?.mapsSearchQuery || data.contact?.addressLine1 || "").trim();
   const addressHref = addressQuery ? mapsSearchHref(addressQuery) : "";
 
-  const summary = (data.aboutBody || data.cuisineTypeLine || "").trim();
+  const summary = (displayData.aboutBody || displayData.cuisineTypeLine || "").trim();
 
   const ctasDesktop = useMemo(() => {
     const want = new Set(["call", "website", "directions", "whatsapp"]);
@@ -262,7 +272,23 @@ export function RestaurantePreviewCard({
 
         <div className={CONTENT}>
           <div className="min-w-0 space-y-1.5 md:space-y-3">
-            <h2 className={TITLE}>{data.businessName}</h2>
+            <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
+              <h2 className={TITLE}>{data.businessName}</h2>
+              {presentation === "public_discovery" && cardTranslation.offerTranslate ? (
+                <TranslateAdControl
+                  siteLocale={lang}
+                  originalLocale={cardTranslation.sourceLocale}
+                  category="restaurantes"
+                  listingKey={translationListingKey}
+                  version="restaurantes-card-v1"
+                  translatableContent={cardTranslation.translatableContent}
+                  onTranslated={cardTranslation.onTranslated}
+                  onShowOriginal={cardTranslation.onShowOriginal}
+                  requestTranslation={requestAdTranslation}
+                  className="shrink-0"
+                />
+              ) : null}
+            </div>
 
             {showLikeBadge ? (
               <p className="text-sm font-semibold text-[#8B5E34]" aria-label={lang === "en" ? "Likes" : "Me gusta"}>
@@ -443,6 +469,12 @@ export function RestaurantePreviewCard({
                   </div>
                 );
               })}
+            </div>
+          ) : null}
+
+          {presentation === "public_discovery" ? (
+            <div className="pt-1" data-servicios-card-trust-strip="1">
+              <LeonixCommunityTrustCardStrip lang={lang === "en" ? "en" : "es"} count={publicEndorsementCount ?? 0} />
             </div>
           ) : null}
 

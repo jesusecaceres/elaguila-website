@@ -61,7 +61,7 @@ import {
   RENTAS_RESULTS,
 } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
-import { RentasResultCard } from "./cards/RentasResultCard";
+import { RentasTranslatedResultCard } from "./cards/RentasTranslatedResultCard";
 import { RentasResultsActiveFilters } from "./components/RentasResultsActiveFilters";
 import { RentasResultsShell } from "./components/RentasResultsShell";
 import { RentasResultsToolbar } from "./components/RentasResultsToolbar";
@@ -426,13 +426,13 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
         ) : view === "list" ? (
           <div className="mt-4 flex flex-col gap-3">
             {displayedListings.map((l) => (
-              <RentasResultCard key={l.id} listing={l} copy={copy} lang={lang} />
+              <RentasTranslatedResultCard key={l.id} listing={l} copy={copy} lang={lang} />
             ))}
           </div>
         ) : (
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {displayedListings.map((l) => (
-              <RentasResultCard key={l.id} listing={l} copy={copy} lang={lang} />
+              <RentasTranslatedResultCard key={l.id} listing={l} copy={copy} lang={lang} />
             ))}
           </div>
         )}

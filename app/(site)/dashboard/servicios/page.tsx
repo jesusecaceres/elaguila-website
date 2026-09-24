@@ -38,9 +38,16 @@ import { resolveOwnerDashboardStatusDisplay, ownerDashboardStatusLabel } from ".
 import {
   dashboardEntitlementBadgeForKey,
   dashboardHasCapabilityForKey,
+  dashboardSubscriptionStateForKey,
   fetchDashboardListingPackageEntitlementBadges,
   type DashboardEntitlementBadgePayload,
+  type DashboardSubscriptionStateEntry,
 } from "../lib/dashboardPackageEntitlementBadges";
+import {
+  openDashboardBillingPortal,
+  dashboardBillingPortalLabel,
+  dashboardBillingPortalBusyLabel,
+} from "../lib/dashboardBillingPortal";
 import { getOwnerEntityCapabilities } from "../lib/ownerEntityCapabilityRegistry";
 import { ownerBusinessToolsSpecializedGroup } from "../lib/ownerBusinessToolsSpecializedGroup";
 import { OwnerEntityWorkspace, type OwnerEntitySpecializedGroup } from "../components/OwnerEntityWorkspace";
@@ -171,12 +178,30 @@ function DashboardServiciosPageContent() {
   const [manageBusy, setManageBusy] = useState<string | null>(null);
   const [manageNotice, setManageNotice] = useState<string | null>(null);
   const [upgradeBusyId, setUpgradeBusyId] = useState<string | null>(null);
+  const [billingBusyId, setBillingBusyId] = useState<string | null>(null);
+  const [subscriptionStates, setSubscriptionStates] = useState<Record<string, DashboardSubscriptionStateEntry>>({});
   const [communityTrustById, setCommunityTrustById] = useState<
     Record<string, { key: string; es: string; en: string; count: number }[]>
   >({});
   const [entitlementBadges, setEntitlementBadges] = useState<
     Record<string, DashboardEntitlementBadgePayload>
   >({});
+
+  async function openBilling(row: MergedRow) {
+    if (!row.id) return;
+    setBillingBusyId(row.id);
+    setManageNotice(null);
+    const result = await openDashboardBillingPortal({
+      category: "servicios",
+      listingId: row.id,
+      returnPath: `/dashboard/servicios?lang=${lang}`,
+      lang,
+    });
+    if (!result.ok) {
+      setManageNotice(result.message);
+      setBillingBusyId(null);
+    }
+  }
 
   function serviciosEditHref(row: MergedRow): string {
     return serviciosListingEditHref({
@@ -364,7 +389,7 @@ function DashboardServiciosPageContent() {
       const cloudRows = merged.filter((r) => r.source === "cloud" && r.id);
       if (token && cloudRows.length > 0) {
         try {
-          const { badges } = await fetchDashboardListingPackageEntitlementBadges(
+          const { badges, subscriptionStates: subs } = await fetchDashboardListingPackageEntitlementBadges(
             cloudRows.map((r) => ({
               key: r.id as string,
               category: "servicios",
@@ -375,7 +400,10 @@ function DashboardServiciosPageContent() {
             })),
             token,
           );
-          if (mounted) setEntitlementBadges(badges);
+          if (mounted) {
+            setEntitlementBadges(badges);
+            setSubscriptionStates(subs);
+          }
         } catch (badgeErr) {
           console.error("[dashboard/servicios] entitlement badge fetch failed", badgeErr);
         }
@@ -595,6 +623,25 @@ function DashboardServiciosPageContent() {
                     href: `${serviciosPreviewHref(r)}#servicios-publish-checkout-checkpoint`,
                     label: lang === "es" ? "Completar pago" : "Complete payment",
                     tone: "primary",
+                  });
+                }
+                const subscriptionState =
+                  r.id
+                    ? dashboardSubscriptionStateForKey(subscriptionStates, [
+                        r.id,
+                        r.slug,
+                        r.leonixAdId ?? "",
+                      ])
+                    : null;
+                if (subscriptionState && r.id) {
+                  quickActions.push({
+                    label:
+                      billingBusyId === r.id
+                        ? dashboardBillingPortalBusyLabel(lang)
+                        : dashboardBillingPortalLabel(lang),
+                    onClick: () => void openBilling(r),
+                    disabled: billingBusyId === r.id,
+                    tone: "secondary",
                   });
                 }
                 const lifecycleActions: ActionItem[] = [];

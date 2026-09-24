@@ -1,11 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 
 import type { ViajesUi } from "../data/viajesUiCopy";
 import type { ViajesEditorialResult } from "../data/viajesResultsSampleData";
 import { setLangOnHref } from "../lib/viajesLangHref";
+import { ViajesSafeImage } from "./ViajesSafeImage";
 
 export function ViajesResultsEditorialCard({ row, ui }: { row: ViajesEditorialResult; ui: ViajesUi }) {
   const href = setLangOnHref(row.href, ui.lang);
@@ -13,7 +13,13 @@ export function ViajesResultsEditorialCard({ row, ui }: { row: ViajesEditorialRe
   return (
     <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-dashed border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)]/90 shadow-[0_10px_28px_-18px_rgba(30,40,55,0.12)]">
       <div className="relative h-32 w-full min-w-0 overflow-hidden sm:h-36">
-        <Image src={row.imageSrc} alt={row.imageAlt} fill className="object-cover object-center" sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 33vw" />
+        <ViajesSafeImage
+          src={row.imageSrc}
+          alt={row.imageAlt}
+          className="absolute inset-0 h-full w-full object-cover object-center"
+          sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 33vw"
+          mode="editorial"
+        />
         <div className="absolute left-2 top-2 rounded-md bg-[#2A2620]/90 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#FAF7F2]">{ui.cards.sourceIdeas}</div>
       </div>
       <div className="flex flex-1 flex-col p-3">

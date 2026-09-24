@@ -28,6 +28,8 @@ import type { TipoPropiedadCodigo } from "../schema/agenteResidencialTipoMeta";
 import { BrAgenteLocationFormFields } from "@/app/lib/clasificados/bienes-raices/brLocationFormFields";
 import { useBrAgenteResidencialCopy } from "../application/BrAgenteResidencialLocaleContext";
 import { formatPrecioUsd } from "../lib/agenteResidencialPreviewFormat";
+import { BusinessAddressVerifiedInput } from "@/app/components/forms/BusinessAddressVerifiedInput";
+import type { BusinessAddress } from "@/app/lib/businessAddress/businessAddressContract";
 
 /** Legacy tour file accept (tour row is URL-only in UI; kept for draft restore compatibility). */
 export const BR_AGENTE_RES_TOUR_FILE_ACCEPT =
@@ -454,6 +456,16 @@ export function Step02InformacionBasica({
   const { lang, t } = useBrAgenteResidencialCopy();
   const est = t.step02.estados;
   const precioPreview = formatPrecioUsd(state.precio);
+  const [businessAddressSelection, setBusinessAddressSelection] = useState<BusinessAddress | null>(null);
+  const activeBusinessAddress =
+    businessAddressSelection &&
+    businessAddressSelection.street === state.direccionLinea1 &&
+    (businessAddressSelection.city || "") === (state.ciudad || "") &&
+    (businessAddressSelection.region || "") === (state.direccionEstado || "") &&
+    (businessAddressSelection.postalCode || "") === (state.direccionCodigoPostal || "") &&
+    (businessAddressSelection.country || "") === (state.direccionPais || "US")
+      ? businessAddressSelection
+      : null;
 
   return (
     <section className={aiCardClass}>
@@ -504,14 +516,37 @@ export function Step02InformacionBasica({
         </AiField>
         <div className="sm:col-span-2">
           <AiField label={t.step02.direccion} hint={t.step02.direccionHint}>
-            <input
-              className={aiInputClass}
-              value={state.direccionLinea1}
-              onChange={(ev) => {
-                const v = ev.target.value;
-                setState((s) => ({ ...s, direccionLinea1: v, direccion: v }));
+            <BusinessAddressVerifiedInput
+              lang={lang}
+              value={
+                activeBusinessAddress ?? {
+                  street: state.direccionLinea1,
+                  unit: state.direccionLinea2,
+                  city: state.ciudad,
+                  region: state.direccionEstado,
+                  postalCode: state.direccionCodigoPostal,
+                  country: state.direccionPais || "US",
+                  verificationStatus: "manual",
+                  provider: null,
+                  providerPlaceId: null,
+                  manualEntry: true,
+                }
+              }
+              locationHint={[state.ciudad, state.direccionEstado, state.direccionPais].filter(Boolean).join(", ")}
+              inputClassName={aiInputClass}
+              onChange={(next) => {
+                setBusinessAddressSelection(next);
+                setState((s) => ({
+                  ...s,
+                  direccionLinea1: next.street,
+                  direccion: next.street,
+                  direccionLinea2: next.unit ?? s.direccionLinea2,
+                  ciudad: next.city || s.ciudad,
+                  direccionEstado: next.region || s.direccionEstado,
+                  direccionCodigoPostal: next.postalCode || s.direccionCodigoPostal,
+                  direccionPais: next.country || s.direccionPais,
+                }));
               }}
-              autoComplete="street-address"
             />
           </AiField>
         </div>

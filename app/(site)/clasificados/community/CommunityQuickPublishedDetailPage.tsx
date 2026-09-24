@@ -5,9 +5,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import {
   trackCommunityListingView,
-  trackCommunityListingShare,
   type CommunityAnalyticsCategory,
 } from "@/app/lib/clasificados/comunidad/comunidadClasesBuscoGlobalAnalytics";
+import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import { LEONIX_SITE_ORIGIN } from "@/app/lib/leonixBrand";
 import { addListingView } from "@/app/lib/recentlyViewed";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { submitListingReportAction } from "@/app/admin/actions";
@@ -111,6 +112,7 @@ export function CommunityQuickPublishedDetailPage({
   const [publishSuccessVisible, setPublishSuccessVisible] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const leonixAdId = formatLeonixAdId(listing.id);
+  const canonicalListingUrl = `${LEONIX_SITE_ORIGIN}/clasificados/anuncio/${encodeURIComponent(listing.id)}?lang=${lang}`;
 
   const isOwner = Boolean(
     viewerUserId && listing.owner_id && String(listing.owner_id) === String(viewerUserId),
@@ -155,8 +157,7 @@ export function CommunityQuickPublishedDetailPage({
   };
 
   const handleCopyLink = async () => {
-    const url = typeof window !== "undefined" ? window.location.href : "";
-    await copyText(url);
+    await copyText(canonicalListingUrl);
     setLinkCopied(true);
     setTimeout(() => setLinkCopied(false), 2000);
   };
@@ -165,38 +166,8 @@ export function CommunityQuickPublishedDetailPage({
     const title = listing.title[lang];
     const price = listing.priceLabel[lang];
     const city = listing.city;
-    const url = typeof window !== "undefined" ? window.location.href : "";
-    return `${title} — ${price} (${city})\n${url}`;
-  }, [listing, lang]);
-
-  const handleShare = async () => {
-    const supabase = createSupabaseBrowserClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    const uid = user?.id ?? null;
-    const url = typeof window !== "undefined" ? window.location.href : "";
-    const title = listing.title[lang];
-    const text = listing.blurb[lang];
-    const nav: unknown = typeof navigator !== "undefined" ? navigator : null;
-    const shareFn =
-      nav && typeof (nav as { share?: unknown }).share === "function"
-        ? (nav as { share: (opts: unknown) => Promise<void> }).share
-        : null;
-
-    try {
-      if (shareFn) {
-        await shareFn({ title, text, url });
-        if (!skipAnalytics) trackCommunityListingShare({ listingUuid: listing.id, category: listing.category as CommunityAnalyticsCategory }, "native_share");
-        return;
-      }
-    } catch {
-      /* fall through */
-    }
-
-    await copyText(url || buildShareMessage());
-    if (!skipAnalytics) trackCommunityListingShare({ listingUuid: listing.id, category: listing.category as CommunityAnalyticsCategory }, "copy_link");
-  };
+    return `${title} — ${price} (${city})\n${canonicalListingUrl}`;
+  }, [listing, lang, canonicalListingUrl]);
 
   const handleReportSubmit = async () => {
     const reason = reportReason.trim();
@@ -267,13 +238,17 @@ export function CommunityQuickPublishedDetailPage({
                     >
                       {linkCopied ? t.linkCopied : t.copyLink}
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleShare()}
-                      className="inline-flex min-h-[36px] items-center rounded-lg border border-emerald-600/40 bg-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-900 transition hover:bg-emerald-200"
-                    >
-                      {t.shareListing}
-                    </button>
+                    <LeonixShareButton
+                      listingId={listing.id}
+                      listingUrl={canonicalListingUrl}
+                      listingTitle={listing.title[lang]}
+                      shareText={listing.blurb[lang]}
+                      lang={lang}
+                      category={listing.category}
+                      ownerUserId={listing.owner_id ?? undefined}
+                      persistEngagement={!skipAnalytics}
+                      variant="small"
+                    />
                   </div>
                 </div>
               </div>
@@ -310,8 +285,20 @@ export function CommunityQuickPublishedDetailPage({
             organizerName={organizerName}
             listingId={listing.id}
             isOwner={isOwner}
-            onShare={() => void handleShare()}
-            onCopyLink={() => void copyText(typeof window !== "undefined" ? window.location.href : "")}
+            shareControl={
+              <LeonixShareButton
+                listingId={listing.id}
+                listingUrl={canonicalListingUrl}
+                listingTitle={listing.title[lang]}
+                shareText={listing.blurb[lang]}
+                lang={lang}
+                category={listing.category}
+                ownerUserId={listing.owner_id ?? undefined}
+                persistEngagement={!skipAnalytics}
+                variant="small"
+              />
+            }
+            onCopyLink={() => void copyText(canonicalListingUrl)}
             onCopyInfo={() => void copyText(buildShareMessage())}
           />
         }

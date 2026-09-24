@@ -27,6 +27,8 @@ import { empleosHandoffPreviewUrl } from "@/app/publicar/empleos/shared/constant
 import { emptyEmpleosFeriaDraft, type EmpleosFeriaDraft } from "@/app/publicar/empleos/shared/types/empleosFeriaDraft";
 import { EmpleosFieldLabel, EmpleosSectionCard } from "@/app/publicar/empleos/shared/ui/empleosFormPrimitives";
 import { EmpleosStringLinesEditor } from "@/app/publicar/empleos/shared/ui/empleosStringLinesEditor";
+import { BusinessAddressVerifiedInput } from "@/app/components/forms/BusinessAddressVerifiedInput";
+import type { BusinessAddress } from "@/app/lib/businessAddress/businessAddressContract";
 
 const INPUT = "mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm";
 
@@ -53,6 +55,7 @@ export default function EmpleoFeriaApplicationClient() {
   const [publishOpen, setPublishOpen] = useState(false);
   const [stagedNotice, setStagedNotice] = useState(false);
   const [serverListingId, setServerListingId] = useState<string | null>(null);
+  const [verifiedAddress, setVerifiedAddress] = useState<BusinessAddress | null>(null);
   const loadedEditRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -163,6 +166,17 @@ export default function EmpleoFeriaApplicationClient() {
           closeOverlayAria: "Close",
         };
 
+  const activeVerifiedAddress =
+    verifiedAddress &&
+    verifiedAddress.street === state.addressLine1 &&
+    (verifiedAddress.unit || "") === (state.addressLine2 || "") &&
+    (verifiedAddress.city || "") === (state.city || "") &&
+    (verifiedAddress.region || "") === (state.stateRegion || state.state || "") &&
+    (verifiedAddress.postalCode || "") === (state.postalCode || "") &&
+    (verifiedAddress.country || "") === (state.country || "")
+      ? verifiedAddress
+      : null;
+
   if (!hydrated) {
     return <div className="min-h-[50vh] bg-[color:var(--lx-page)]" aria-busy="true" />;
   }
@@ -208,7 +222,37 @@ export default function EmpleoFeriaApplicationClient() {
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block text-sm">
                 <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "Dirección línea 1" : "Address line 1"}</EmpleosFieldLabel>
-                <input className={INPUT} value={state.addressLine1} onChange={(e) => patch({ addressLine1: e.target.value })} />
+                <BusinessAddressVerifiedInput
+                  lang={lang}
+                  value={
+                    activeVerifiedAddress ?? {
+                      street: state.addressLine1,
+                      unit: state.addressLine2,
+                      city: state.city,
+                      region: state.stateRegion || state.state,
+                      postalCode: state.postalCode,
+                      country: state.country || "US",
+                      verificationStatus: "manual",
+                      provider: null,
+                      providerPlaceId: null,
+                      manualEntry: true,
+                    }
+                  }
+                  locationHint={[state.city, state.stateRegion || state.state, state.country].filter(Boolean).join(", ")}
+                  inputClassName={INPUT}
+                  onChange={(next) => {
+                    setVerifiedAddress(next);
+                    patch({
+                      addressLine1: next.street,
+                      addressLine2: next.unit ?? state.addressLine2,
+                      city: next.city || state.city,
+                      state: next.region || state.state,
+                      stateRegion: next.region || state.stateRegion,
+                      postalCode: next.postalCode || state.postalCode,
+                      country: next.country || state.country,
+                    });
+                  }}
+                />
               </label>
               <label className="block text-sm">
                 <EmpleosFieldLabel lang={lang} optional>{lang === "es" ? "Dirección línea 2" : "Address line 2"}</EmpleosFieldLabel>

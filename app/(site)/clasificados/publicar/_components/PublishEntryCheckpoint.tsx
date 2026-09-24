@@ -31,10 +31,13 @@ export function PublishEntryCheckpointLaunchBanner({
   return null;
 }
 
+type AssistedPairCategory = "servicios" | "restaurantes" | "autos" | "bienes-raices";
+
 type PaidPublishCheckpointCardProps = {
   card: PublishCheckpointCardData;
   lang: PublishCheckpointLang;
   onMoreClick: () => void;
+  assistedCategory?: AssistedPairCategory;
   /**
    * Gate 2D — owner-QA debt: on Comunidad/Clases the pre-CTA card face had too much vertical
    * content before reaching Publicar/Ver más. When true, the card-face description clamps to one
@@ -57,9 +60,12 @@ export function PaidPublishCheckpointCard({
   card,
   lang,
   onMoreClick,
+  assistedCategory,
   compactCouponLine = true,
   compact = false,
 }: PaidPublishCheckpointCardProps & { compactCouponLine?: boolean }) {
+  const [selectingPlan, setSelectingPlan] = useState(false);
+  const [selectionError, setSelectionError] = useState<string | null>(null);
   const couponLine = compactCouponLine
     ? publishCheckpointCouponLineShort(lang, card.couponEligible)
     : publishCheckpointCouponLine(lang, card.couponEligible);
@@ -67,8 +73,38 @@ export function PaidPublishCheckpointCard({
   return (
     <Link
       href={card.disabled ? "#" : card.ctaHref}
-      className={`${cardSurfaceClass(card)} ${card.disabled ? "pointer-events-none opacity-60" : ""}`}
-      aria-disabled={card.disabled}
+      className={`${cardSurfaceClass(card)} ${card.disabled ? "pointer-events-none opacity-60" : ""} ${selectingPlan ? "pointer-events-none opacity-70" : ""}`}
+      aria-disabled={card.disabled || selectingPlan}
+      onClick={(e) => {
+        if (!assistedCategory || card.disabled) return;
+        const href = new URL(card.ctaHref, window.location.origin);
+        const plan = href.searchParams.get("plan");
+        if (plan !== "quick" && plan !== "full") return;
+        e.preventDefault();
+        setSelectingPlan(true);
+        setSelectionError(null);
+        void fetch("/api/admin/sales-preview/custody", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ category: assistedCategory, plan }),
+          cache: "no-store",
+        })
+          .then(async (res) => {
+            const json = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+            if (!res.ok || json.ok !== true) {
+              throw new Error(json.error || "package_selection_failed");
+            }
+            window.location.assign(card.ctaHref);
+          })
+          .catch(() => {
+            setSelectingPlan(false);
+            setSelectionError(
+              lang === "es"
+                ? "No pudimos confirmar el paquete. Intenta de nuevo."
+                : "We couldn't confirm the package. Please try again.",
+            );
+          });
+      }}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
@@ -95,7 +131,9 @@ export function PaidPublishCheckpointCard({
         </div>
       </div>
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <p className="text-sm font-bold text-[#7A1E2C]">{card.ctaLabel}</p>
+        <p className="text-sm font-bold text-[#7A1E2C]">
+          {selectingPlan ? (lang === "es" ? "Confirmando paquete…" : "Confirming package…") : card.ctaLabel}
+        </p>
         <button
           type="button"
           onClick={(e) => {
@@ -107,6 +145,7 @@ export function PaidPublishCheckpointCard({
           {card.moreLabel}
         </button>
       </div>
+      {selectionError ? <p className="mt-3 text-xs font-semibold text-red-700">{selectionError}</p> : null}
     </Link>
   );
 }
@@ -197,6 +236,8 @@ type PublishEntryCheckpointLayoutProps = {
   backLabel?: string;
   /** Category slug for Launch 25 banner source tracking (e.g. rentas, servicios). */
   checkpointCategory?: string;
+  /** Staff-assisted pair entry: show the plan that was selected upstream, but require confirmation here. */
+  selectedPlan?: "quick" | "full" | null;
   /** When set, banner shows only if at least one paid-style card exists (mixed free/paid pages). */
   launchBannerCards?: PublishCheckpointCardData[];
 };
@@ -209,6 +250,7 @@ export function PublishEntryCheckpointLayout({
   backHref,
   backLabel,
   checkpointCategory,
+  selectedPlan,
   launchBannerCards,
 }: PublishEntryCheckpointLayoutProps) {
   const showLaunchBanner = useMemo(() => {
@@ -230,6 +272,20 @@ export function PublishEntryCheckpointLayout({
         ) : null}
         <h1 className={`text-3xl font-extrabold text-[#1E1810] ${backHref ? "mt-3" : ""}`}>{title}</h1>
         <p className="mt-2 text-sm text-[#5C5346]/88">{body}</p>
+        {selectedPlan ? (
+          <div className="mt-5 rounded-xl border border-[#C9B46A]/60 bg-[#FFF6E7] p-4 text-sm text-[#3D2C12]">
+            <p className="font-bold">
+              {lang === "es"
+                ? `Seleccionaste ${selectedPlan === "quick" ? "Quick $249" : "Full $399"}`
+                : `You selected ${selectedPlan === "quick" ? "Quick $249" : "Full $399"}`}
+            </p>
+            <p className="mt-1 text-xs text-[#5D4A25]">
+              {lang === "es"
+                ? "Confirma este paquete o cambia de plan antes de entrar a la aplicación."
+                : "Confirm this package or change plans before entering the application."}
+            </p>
+          </div>
+        ) : null}
         {showLaunchBanner && checkpointCategory ? (
           <div className="mt-6">
             <PublishEntryCheckpointLaunchBanner lang={lang} category={checkpointCategory} />
@@ -246,9 +302,10 @@ type PublishEntryCheckpointStackProps = {
   lang: PublishCheckpointLang;
   /** Gate 2D — forwarded to each card; defaults to false (unchanged for every existing caller). */
   compact?: boolean;
+  assistedCategory?: AssistedPairCategory;
 };
 
-export function PublishEntryCheckpointStack({ cards, lang, compact = false }: PublishEntryCheckpointStackProps) {
+export function PublishEntryCheckpointStack({ cards, lang, compact = false, assistedCategory }: PublishEntryCheckpointStackProps) {
   const [openId, setOpenId] = useState<string | null>(null);
   const openCard = cards.find((c) => c.id === openId) ?? null;
 
@@ -261,6 +318,7 @@ export function PublishEntryCheckpointStack({ cards, lang, compact = false }: Pu
           lang={lang}
           onMoreClick={() => setOpenId(card.id)}
           compact={compact}
+          assistedCategory={assistedCategory}
         />
       ))}
       <PaidPublishCheckpointModal

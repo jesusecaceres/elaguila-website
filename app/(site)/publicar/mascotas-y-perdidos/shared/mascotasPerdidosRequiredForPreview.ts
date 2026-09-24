@@ -1,6 +1,6 @@
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
-import { digitsOnly } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
+import { digitsOnly, isValidWhatsAppNumber } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 
 import type { MascotasPerdidosQuickDraft } from "./mascotasPerdidosQuickTypes";
 
@@ -20,7 +20,7 @@ const GATE = {
     contact: "Al menos un método de contacto (teléfono, texto, WhatsApp o correo)",
     phoneDigits: "Teléfono: ingresa 10 dígitos o déjalo vacío",
     smsDigits: "Mensajes de texto: ingresa 10 dígitos o déjalo vacío",
-    whatsappDigits: "WhatsApp: ingresa 10 dígitos o déjalo vacío",
+    whatsappDigits: "WhatsApp: ingresa un número internacional válido o déjalo vacío",
     emailInvalid: "Correo: ingresa un email válido",
     rewardAmount: "Monto de la recompensa",
     confirmations: "Marca las tres confirmaciones de Leonix antes de continuar",
@@ -36,7 +36,7 @@ const GATE = {
     contact: "At least one contact method (phone, text, WhatsApp, or email)",
     phoneDigits: "Phone: enter 10 digits or leave blank",
     smsDigits: "Text number: enter 10 digits or leave blank",
-    whatsappDigits: "WhatsApp: enter 10 digits or leave blank",
+    whatsappDigits: "WhatsApp: enter a valid international number or leave blank",
     emailInvalid: "Email: enter a valid email address",
     rewardAmount: "Reward amount",
     confirmations: "Check all three Leonix confirmations before continuing",
@@ -51,7 +51,7 @@ function hasAnyDirectContact(d: MascotasPerdidosQuickDraft): boolean {
   return (
     digitsOnly(d.phone).length === 10 ||
     digitsOnly(d.smsPhone).length === 10 ||
-    digitsOnly(d.whatsapp).length === 10 ||
+    isValidWhatsAppNumber(d.whatsapp) && digitsOnly(d.whatsapp).length > 0 ||
     (st(d.email) !== "" && isProbablySafeEmail(d.email))
   );
 }
@@ -84,7 +84,7 @@ export function gateMascotasPerdidosQuickPreview(
 
   if (st(d.phone) && digitsOnly(d.phone).length !== 10) issues.push(L.phoneDigits);
   if (st(d.smsPhone) && digitsOnly(d.smsPhone).length !== 10) issues.push(L.smsDigits);
-  if (st(d.whatsapp) && digitsOnly(d.whatsapp).length !== 10) issues.push(L.whatsappDigits);
+  if (st(d.whatsapp) && !isValidWhatsAppNumber(d.whatsapp)) issues.push(L.whatsappDigits);
   const email = st(d.email);
   if (email && !isProbablySafeEmail(email)) issues.push(L.emailInvalid);
   if (!hasAnyDirectContact(d)) issues.push(L.contact);

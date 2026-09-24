@@ -4,20 +4,22 @@
  * identity. The harness maps tokens to user ids so a test can present a real caller, a forged
  * one, or none at all — and so an IDOR that reads identity from a query parameter instead of the
  * token fails a test rather than a reading.
+ *
+ * `rpc` is the caller-scoped accept_business_ownership_claim path. Tests set the result with
+ * `__setBearerRpc` so a successful claim can still fail later on listing transfer.
  */
 const tokens = new Map();
+let rpcResult = { data: null, error: { message: "harness: no bearer rpc" } };
 
-/**
- * A token maps to a user. The value may be a plain user id (the common case) or a full user
- * object, which is what the VERIFIED-identity gates read: `getVerifiedBearerUser` needs `email`
- * and `email_confirmed_at`, and a stub that returned only an id could never carry a checkout past
- * `emailVerified`. That is why the verified-intro discount path had no executed coverage at all.
- */
 export function __setBearerTokens(map) {
   tokens.clear();
   for (const [token, value] of Object.entries(map ?? {})) {
     tokens.set(token, typeof value === "string" ? { id: value } : { ...value });
   }
+}
+
+export function __setBearerRpc(result) {
+  rpcResult = result ?? { data: null, error: { message: "harness: no bearer rpc" } };
 }
 
 export function createClient() {
@@ -28,6 +30,9 @@ export function createClient() {
         if (!user) return { data: { user: null }, error: { message: "invalid token" } };
         return { data: { user: { ...user } }, error: null };
       },
+    },
+    async rpc() {
+      return rpcResult;
     },
   };
 }

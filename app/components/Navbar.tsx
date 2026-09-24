@@ -24,7 +24,7 @@ import { LeonixHeaderLanguageSelector } from "@/app/(site)/magazine/components/L
 import { getNavbarChromeCopy } from "@/app/lib/leonix/publicNavCopy";
 import { resolveRouteLang, resolveRouteLangSsrSafe, type SupportedLang } from "@/app/lib/language";
 
-const HEADER_LOGO_SRC = "/logo.png";
+const HEADER_LOGO_SRC = "/logo-clean.png";
 
 const ALL_NAV_HREFS = [...PUBLIC_NAV_PRIMARY, ...PUBLIC_NAV_UTILITY_LINKS].map((item) => item.href);
 

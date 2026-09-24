@@ -134,7 +134,7 @@ function envelopeTitle(e: EmpleosPublishEnvelope): string {
 
 export async function upsertEmpleosListingFromEnvelope(input: {
   envelope: EmpleosPublishEnvelope;
-  ownerUserId: string;
+  ownerUserId: string | null;
   mode: "draft" | "publish";
 }): Promise<{ ok: true; id: string; slug: string; lifecycle_status: EmpleosListingLifecycleDb } | { ok: false; error: string }> {
   if (!isSupabaseAdminConfigured()) {
@@ -158,8 +158,15 @@ export async function upsertEmpleosListingFromEnvelope(input: {
   if (candidateId && !existing) {
     return { ok: false, error: QUICK_LISTING_EXISTING_IDENTITY_INVALID_CODE };
   }
-  if (existing && (existing as { owner_user_id: string | null }).owner_user_id !== input.ownerUserId) {
-    return { ok: false, error: "forbidden" };
+  if (existing) {
+    const existingOwner = (existing as { owner_user_id: string | null }).owner_user_id ?? null;
+    const incomingOwner = input.ownerUserId ?? null;
+    if (existingOwner && existingOwner !== incomingOwner) {
+      return { ok: false, error: "forbidden" };
+    }
+    if (!existingOwner && incomingOwner) {
+      return { ok: false, error: "forbidden" };
+    }
   }
   if (existing) {
     const existingLane = String((existing as EmpleosPublicListingRow).lane ?? "").trim();
@@ -201,7 +208,7 @@ export async function upsertEmpleosListingFromEnvelope(input: {
 
   const canonical = empleosEnvelopeToCanonical(stamped, {
     listingId,
-    ownerId: input.ownerUserId,
+    ownerId: input.ownerUserId ?? "",
     slug,
     status: canonicalStatus,
     publishedAt: canonicalPublishedAt,
@@ -210,7 +217,7 @@ export async function upsertEmpleosListingFromEnvelope(input: {
   const snapshot: EmpleosListingSnapshotJson = {
     version: 1,
     jobRecord: canonical.jobRecord,
-    envelope: input.envelope,
+    envelope: stamped,
     canonical,
   };
 
@@ -224,6 +231,7 @@ export async function upsertEmpleosListingFromEnvelope(input: {
     lifecycle,
     snapshot,
   );
+  row.owner_user_id = input.ownerUserId;
 
   if (existing) {
     // An owner content save must never erase a staff decision or the original publish date:

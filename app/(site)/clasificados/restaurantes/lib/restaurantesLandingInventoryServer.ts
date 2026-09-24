@@ -4,8 +4,10 @@ import { blueprintRowToLandingCard } from "@/app/clasificados/restaurantes/data/
 import type { RestaurantesPublicBlueprintRow } from "@/app/clasificados/restaurantes/data/restaurantesPublicBlueprintData";
 import { mapRestaurantesPublicListingDbRowsToShellInventory } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingMapper";
 import {
+  applyRestauranteEndorsementCountsToBlueprintRows,
   applyRestauranteLikeCountsToBlueprintRows,
 } from "@/app/clasificados/restaurantes/lib/restaurantesListingEngagement";
+import { fetchLeonixEndorsementCountsByTargets } from "@/app/lib/leonixCommunityTrust/leonixEndorsementCountBatchServer";
 import { fetchRestaurantesNetLikeCountsForDbRows } from "@/app/clasificados/restaurantes/lib/restaurantesListingEngagementServer";
 import {
   isSupabaseAdminConfigured,
@@ -85,7 +87,14 @@ export async function loadRestaurantesLandingInventoryForPage(): Promise<Restaur
   });
   const mapped = mapRestaurantesPublicListingDbRowsToShellInventory(rowsForMap);
   const likeMap = await fetchRestaurantesNetLikeCountsForDbRows(rowsForMap);
-  const shellRows = applyRestauranteLikeCountsToBlueprintRows(mapped, likeMap);
+  const endorsementMap = await fetchLeonixEndorsementCountsByTargets({
+    targetType: "restaurantes_listing",
+    ids: mapped.map((r) => r.id),
+  });
+  const shellRows = applyRestauranteEndorsementCountsToBlueprintRows(
+    applyRestauranteLikeCountsToBlueprintRows(mapped, likeMap),
+    endorsementMap,
+  );
   const destacadosRows = getRestaurantesDestacadosRows(shellRows);
   const featured = selectLandingDestacadosCandidates(shellRows).map(blueprintRowToLandingCard);
   const recent = selectLandingRecientesCandidates(shellRows).map(blueprintRowToLandingCard);

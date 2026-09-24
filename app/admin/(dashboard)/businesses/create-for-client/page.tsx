@@ -182,9 +182,20 @@ export default async function CreateForClientPage({ searchParams }: { searchPara
             const visual = publicarGatewayVisual(key);
             const target = categoryHref(key, business?.id ?? null, lang);
             return (
-              <Link key={key} href={target.href} target="_blank" rel="noreferrer" className={`rounded-xl border ${visual.border} bg-gradient-to-br ${visual.tint} p-3 text-left hover:opacity-90`}>
+              <Link
+                key={key}
+                href={target.href}
+                target={target.sameTab ? undefined : "_blank"}
+                rel={target.sameTab ? undefined : "noreferrer"}
+                data-quick-sales-lane={target.quickSales ? key : undefined}
+                className={`rounded-xl border ${target.quickSales ? "border-[#7A1E2C]/60" : visual.border} bg-gradient-to-br ${visual.tint} p-3 text-left hover:opacity-90`}
+              >
                 <span className="block text-sm font-semibold text-[#1E1810]">{visual.emoji} {copy.label}</span>
-                <span className="mt-0.5 block text-[11px] text-[#7A7164]">{copy.description}</span>
+                <span className="mt-0.5 block text-[11px] text-[#7A7164]">
+                  {target.quickSales
+                    ? "⚡ Venta asistida Quick · custodia Leonix / Quick assisted sale · Leonix custody"
+                    : copy.description}
+                </span>
               </Link>
             );
           })}

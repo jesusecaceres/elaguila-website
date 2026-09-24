@@ -11,6 +11,8 @@ import {
 import type { BrNegocioListing } from "./listingTypes";
 import { BadgeStack } from "./BadgeStack";
 import { IconBath, IconBed, IconCalendar, IconMapPin, IconRuler } from "./cardIcons";
+import { LeonixCommunityTrustCardStrip } from "@/app/components/leonixCommunityTrust/LeonixCommunityTrustCardStrip";
+import { useBienesRaicesCardTranslation } from "./useBienesRaicesCardTranslation";
 
 function sellerKindUi(listing: BrNegocioListing): "privado" | "negocio" {
   if (listing.sellerKind) return listing.sellerKind;
@@ -132,6 +134,7 @@ export function BienesRaicesNegocioCard({
   const op = operationKind(listing);
   const lane = sellerKindUi(listing);
   const articleClass = className ? `${cardShell} ${className}` : cardShell;
+  const cardTranslation = useBienesRaicesCardTranslation({ listingId: listing.id, title: listing.title, lang });
 
   const trackResultOpen = () => {
     trackBrResultCardClickGlobal(brAnalyticsContextFromListing(listing));
@@ -183,6 +186,11 @@ export function BienesRaicesNegocioCard({
         <p className="mt-2 line-clamp-2 text-sm text-[#4A4A4A]">{listing.metaLines[0]}</p>
       ) : null}
       {listing.advertiser.name ? compactSellerLine : null}
+      {lane === "negocio" ? (
+        <div className="mt-3" data-servicios-card-trust-strip="1">
+          <LeonixCommunityTrustCardStrip lang={lang === "en" ? "en" : "es"} count={listing.publicEndorsementCount ?? 0} />
+        </div>
+      ) : null}
       <Link
         href={href}
         onClick={trackResultOpen}
@@ -205,6 +213,11 @@ export function BienesRaicesNegocioCard({
         <p className="mt-2 line-clamp-2 text-sm text-[#4A4A4A]">{listing.metaLines[0]}</p>
       ) : null}
       <IdentityRow listing={listing} sellerKindLabels={sellerKindLabels} />
+      {lane === "negocio" ? (
+        <div className="mt-3" data-servicios-card-trust-strip="1">
+          <LeonixCommunityTrustCardStrip lang={lang === "en" ? "en" : "es"} count={listing.publicEndorsementCount ?? 0} />
+        </div>
+      ) : null}
       <div className="mt-4 flex flex-wrap gap-3">
         <Link href={href} onClick={trackResultOpen} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-medium text-sm transition-all duration-200 border bg-[#D4A574] text-white border-[#D4A574] hover:bg-[#C19A6B]">
           {lang === "en" ? "View property" : "Ver propiedad"}
@@ -225,9 +238,12 @@ export function BienesRaicesNegocioCard({
           </div>
           <div className="flex min-w-0 flex-1 flex-col p-4">
             <p className="text-xl font-bold text-[#2A7F3E] leading-tight">{listing.price}</p>
-            <Link href={href} className="mt-1.5 block text-lg font-bold text-[#1A1A1A] leading-tight hover:text-[#D4A574] transition-colors">
-              {listing.title}
-            </Link>
+            <div className="mt-1.5 flex min-w-0 items-start justify-between gap-2">
+              <Link href={href} className="min-w-0 flex-1 text-lg font-bold text-[#1A1A1A] leading-tight hover:text-[#D4A574] transition-colors">
+                {cardTranslation.displayTitle}
+              </Link>
+              {cardTranslation.translateControl}
+            </div>
             <p className="mt-2 flex items-start gap-2 text-sm text-[#4A4A4A]">
               <IconMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#D4A574]" />
               <span className="line-clamp-2">{listing.addressLine}</span>
@@ -245,9 +261,12 @@ export function BienesRaicesNegocioCard({
       <div className="relative aspect-[16/10]">{imageBlock}</div>
       <div className="flex flex-1 flex-col p-6">
         <p className="text-2xl font-bold text-[#2A7F3E] leading-tight">{listing.price}</p>
-        <Link href={href} className="mt-2 block text-xl font-bold text-[#1A1A1A] leading-tight hover:text-[#D4A574] transition-colors sm:text-2xl">
-          {listing.title}
-        </Link>
+        <div className="mt-2 flex min-w-0 items-start justify-between gap-2">
+          <Link href={href} className="min-w-0 flex-1 text-xl font-bold text-[#1A1A1A] leading-tight hover:text-[#D4A574] transition-colors sm:text-2xl">
+            {cardTranslation.displayTitle}
+          </Link>
+          {cardTranslation.translateControl}
+        </div>
         <p className="mt-2 flex items-start gap-2 text-sm text-[#4A4A4A]">
           <IconMapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#D4A574]" />
           <span className="line-clamp-2">{listing.addressLine}</span>

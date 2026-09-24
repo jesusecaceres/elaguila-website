@@ -381,7 +381,166 @@ export const LEO_TOOL_REGISTRY: Record<LeoToolId, LeoToolDefinition> = {
     verified: false,
     version: "13.0.0",
   }),
+  "leo.contacts.resolve": def({
+    id: "leo.contacts.resolve",
+    name: "Contacts resolution",
+    description: "Resolve a recipient by name/email against the owner's saved Google contacts.",
+    category: "COMMUNICATION",
+    operationModes: ["READ"],
+    availability: "NOT_CONFIGURED",
+    requiredGovernanceAction: "READ",
+    readScopes: ["contacts_readonly"],
+    writeScopes: [],
+    externalSystem: "GOOGLE",
+    supportsPreparation: false,
+    evidenceRequirements: ["LEO_GOOGLE_REFRESH_TOKEN"],
+    limitations: [
+      ...INTERNAL_LIMITATIONS,
+      "Saved contacts only — no directory-wide lookup.",
+      "Never invents a recipient address.",
+    ],
+    verified: false,
+    version: "final02.0.0",
+  }),
+  "leo.calendar.availability": def({
+    id: "leo.calendar.availability",
+    name: "Calendar availability",
+    description: "Free/busy truth for the primary calendar over a proposed window.",
+    category: "CALENDAR",
+    operationModes: ["READ"],
+    availability: "NOT_CONFIGURED",
+    requiredGovernanceAction: "READ",
+    readScopes: ["calendar_readonly"],
+    writeScopes: [],
+    externalSystem: "GOOGLE",
+    supportsPreparation: false,
+    evidenceRequirements: ["LEO_GOOGLE_REFRESH_TOKEN"],
+    limitations: [...INTERNAL_LIMITATIONS, "UNKNOWN/UNAVAILABLE never silently becomes AVAILABLE."],
+    verified: false,
+    version: "final02.0.0",
+  }),
+  "leo.calendar.create": def({
+    id: "leo.calendar.create",
+    name: "Calendar event create",
+    description: "Create a real event on the owner's primary calendar. Consequential provider write.",
+    category: "CALENDAR",
+    operationModes: ["WRITE"],
+    availability: "NOT_CONFIGURED",
+    requiredGovernanceAction: "OTHER",
+    readScopes: [],
+    writeScopes: ["calendar_events"],
+    externalSystem: "GOOGLE",
+    supportsPreparation: true,
+    evidenceRequirements: ["LEO_GOOGLE_REFRESH_TOKEN", "LEO_GOOGLE_WRITE_ENABLED"],
+    limitations: [
+      ...INTERNAL_LIMITATIONS,
+      "Requires explicit owner confirmation and a server-side write rollout gate.",
+      "Fail-closed until FINAL-03 OAuth reconsent and rollout are complete.",
+    ],
+    verified: false,
+    version: "final02.0.0",
+  }),
+  "leo.calendar.update": def({
+    id: "leo.calendar.update",
+    name: "Calendar event update",
+    description: "Update an existing, proven calendar event. Consequential provider write.",
+    category: "CALENDAR",
+    operationModes: ["WRITE"],
+    availability: "NOT_CONFIGURED",
+    requiredGovernanceAction: "OTHER",
+    readScopes: [],
+    writeScopes: ["calendar_events"],
+    externalSystem: "GOOGLE",
+    supportsPreparation: true,
+    evidenceRequirements: ["LEO_GOOGLE_REFRESH_TOKEN", "LEO_GOOGLE_WRITE_ENABLED"],
+    limitations: [
+      ...INTERNAL_LIMITATIONS,
+      "Requires a proven existing event ID — never a fuzzy/destructive mutation.",
+      "Fail-closed until FINAL-03 OAuth reconsent and rollout are complete.",
+    ],
+    verified: false,
+    version: "final02.0.0",
+  }),
+  "leo.gmail.draft.create": def({
+    id: "leo.gmail.draft.create",
+    name: "Gmail draft create",
+    description: "Create a draft in the owner's actual Gmail mailbox. Consequential provider write.",
+    category: "COMMUNICATION",
+    operationModes: ["WRITE"],
+    availability: "NOT_CONFIGURED",
+    requiredGovernanceAction: "OTHER",
+    readScopes: [],
+    writeScopes: ["gmail_compose"],
+    externalSystem: "GOOGLE",
+    supportsPreparation: true,
+    evidenceRequirements: ["LEO_GOOGLE_REFRESH_TOKEN", "LEO_GOOGLE_WRITE_ENABLED"],
+    limitations: [
+      ...INTERNAL_LIMITATIONS,
+      "Writing into the real mailbox — requires explicit owner confirmation.",
+      "Fail-closed until FINAL-03 OAuth reconsent and rollout are complete.",
+    ],
+    verified: false,
+    version: "final02.0.0",
+  }),
+  "leo.gmail.send": def({
+    id: "leo.gmail.send",
+    name: "Gmail send",
+    description: "Send a new email from the owner's account. Consequential provider write.",
+    category: "COMMUNICATION",
+    operationModes: ["WRITE"],
+    availability: "NOT_CONFIGURED",
+    requiredGovernanceAction: "OTHER",
+    readScopes: [],
+    writeScopes: ["gmail_compose"],
+    externalSystem: "GOOGLE",
+    supportsPreparation: true,
+    evidenceRequirements: ["LEO_GOOGLE_REFRESH_TOKEN", "LEO_GOOGLE_WRITE_ENABLED"],
+    limitations: [
+      ...INTERNAL_LIMITATIONS,
+      "Always requires explicit owner confirmation before send.",
+      "Fail-closed until FINAL-03 OAuth reconsent and rollout are complete.",
+    ],
+    verified: false,
+    version: "final02.0.0",
+  }),
+  "leo.gmail.reply": def({
+    id: "leo.gmail.reply",
+    name: "Gmail reply",
+    description: "Reply within an existing Gmail thread. Consequential provider write.",
+    category: "COMMUNICATION",
+    operationModes: ["WRITE"],
+    availability: "NOT_CONFIGURED",
+    requiredGovernanceAction: "OTHER",
+    readScopes: [],
+    writeScopes: ["gmail_compose"],
+    externalSystem: "GOOGLE",
+    supportsPreparation: true,
+    evidenceRequirements: ["LEO_GOOGLE_REFRESH_TOKEN", "LEO_GOOGLE_WRITE_ENABLED"],
+    limitations: [
+      ...INTERNAL_LIMITATIONS,
+      "Requires a proven thread ID — never fuzzy-matched.",
+      "Fail-closed until FINAL-03 OAuth reconsent and rollout are complete.",
+    ],
+    verified: false,
+    version: "final02.0.0",
+  }),
 };
+
+/**
+ * LEO FINAL-02: the ONLY tool IDs ever allowed to request WRITE/EXECUTE.
+ * This replaces the previous blanket WRITE/EXECUTE block. Being allowlisted
+ * here is necessary but never sufficient — leoActionExecutionService.ts still
+ * separately requires owner_admin, capability readiness (LEO_GOOGLE_WRITE_ENABLED
+ * + proven config), explicit confirmation, and an idempotent claim before any
+ * provider call happens. Any tool ID not in this set is denied unconditionally.
+ */
+export const LEO_WRITE_ALLOWLIST: ReadonlySet<LeoToolId> = new Set<LeoToolId>([
+  "leo.calendar.create",
+  "leo.calendar.update",
+  "leo.gmail.draft.create",
+  "leo.gmail.send",
+  "leo.gmail.reply",
+]);
 
 export function isLeoToolId(v: unknown): v is LeoToolId {
   return typeof v === "string" && Object.prototype.hasOwnProperty.call(LEO_TOOL_REGISTRY, v);
@@ -459,7 +618,10 @@ export function evaluateLeoToolRequestGate(input: {
     };
   }
   const defn = LEO_TOOL_REGISTRY[input.toolId];
-  if (input.operation === "WRITE" || input.operation === "EXECUTE") {
+  if (
+    (input.operation === "WRITE" || input.operation === "EXECUTE") &&
+    !LEO_WRITE_ALLOWLIST.has(input.toolId)
+  ) {
     return {
       ok: false,
       errorCode: "WRITE_EXECUTE_BLOCKED",

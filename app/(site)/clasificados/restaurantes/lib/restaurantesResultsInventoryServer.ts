@@ -2,8 +2,10 @@ import "server-only";
 
 import { mapRestaurantesPublicListingDbRowsToShellInventory } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingMapper";
 import {
+  applyRestauranteEndorsementCountsToBlueprintRows,
   applyRestauranteLikeCountsToBlueprintRows,
 } from "@/app/clasificados/restaurantes/lib/restaurantesListingEngagement";
+import { fetchLeonixEndorsementCountsByTargets } from "@/app/lib/leonixCommunityTrust/leonixEndorsementCountBatchServer";
 import { fetchRestaurantesNetLikeCountsForDbRows } from "@/app/clasificados/restaurantes/lib/restaurantesListingEngagementServer";
 import {
   isSupabaseAdminConfigured,
@@ -79,7 +81,14 @@ export async function loadRestaurantesResultsInventoryForPage(): Promise<Restaur
   const rowsForMap = hydrated.map(applyRestaurantesPromotedFromEntitlement);
   const mapped = mapRestaurantesPublicListingDbRowsToShellInventory(rowsForMap);
   const likeMap = await fetchRestaurantesNetLikeCountsForDbRows(rowsForMap);
-  let rows = applyRestauranteLikeCountsToBlueprintRows(mapped, likeMap);
+  const endorsementMap = await fetchLeonixEndorsementCountsByTargets({
+    targetType: "restaurantes_listing",
+    ids: mapped.map((r) => r.id),
+  });
+  let rows = applyRestauranteEndorsementCountsToBlueprintRows(
+    applyRestauranteLikeCountsToBlueprintRows(mapped, likeMap),
+    endorsementMap,
+  );
 
   // Package D Build D3, Gate 1 — attach canonical leonix_placement_entitlements weight, batched.
   const canonicalWeights = await resolveCanonicalVisibilityBucketWeights(rows, {

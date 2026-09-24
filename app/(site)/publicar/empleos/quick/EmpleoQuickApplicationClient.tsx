@@ -3,8 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import type { Lang } from "@/app/clasificados/config/clasificadosHub";
-import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { resolveClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
@@ -43,6 +41,9 @@ import {
 import type { JobModalitySlug } from "@/app/clasificados/empleos/data/empleosJobTypes";
 
 import { EmpleosFieldLabel, EmpleosSectionCard } from "@/app/publicar/empleos/shared/ui/empleosFormPrimitives";
+import { AssistedSaveForClientBar } from "@/app/clasificados/components/AssistedSaveForClientBar";
+import { BusinessAddressVerifiedInput } from "@/app/components/forms/BusinessAddressVerifiedInput";
+import type { BusinessAddress } from "@/app/lib/businessAddress/businessAddressContract";
 
 const INPUT = "mt-1 w-full min-h-[44px] rounded-lg border border-black/10 px-3 py-2 text-sm";
 const SELECT = `${INPUT} bg-white`;
@@ -76,9 +77,12 @@ export default function EmpleoQuickApplicationClient() {
     EMPLEOS_SESSION_KEYS.quick,
     emptyEmpleosQuickDraft()
   );
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
   const [stagedNotice, setStagedNotice] = useState(false);
   const [serverListingId, setServerListingId] = useState<string | null>(null);
+  const [verifiedAddress, setVerifiedAddress] = useState<BusinessAddress | null>(null);
   const loadedEditRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -223,6 +227,16 @@ export default function EmpleoQuickApplicationClient() {
   }
 
   const es = lang === "es";
+  const activeVerifiedAddress =
+    verifiedAddress &&
+    verifiedAddress.street === state.addressLine1 &&
+    (verifiedAddress.unit || "") === (state.addressLine2 || "") &&
+    (verifiedAddress.city || "") === (state.city || "") &&
+    (verifiedAddress.region || "") === (state.stateRegion || state.state || "") &&
+    (verifiedAddress.postalCode || "") === (state.postalCode || state.addressZip || "") &&
+    (verifiedAddress.country || "") === (state.country || "")
+      ? verifiedAddress
+      : null;
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#FCF9F2] px-4 pb-24 pt-24 text-[#2A2826] sm:px-5">
@@ -243,6 +257,15 @@ export default function EmpleoQuickApplicationClient() {
             </p>
           </div>
         </header>
+        <AssistedSaveForClientBar
+          category="empleos"
+          lang={lang === "en" ? "en" : "es"}
+          buildPayload={() => ({
+            category: "empleos",
+            envelope: buildEmpleosPublishEnvelopeFromQuick(stateRef.current, lang) as unknown as Record<string, unknown>,
+            lang: lang === "en" ? "en" : "es",
+          })}
+        />
 
         <EmpleosReadinessBanner visible={!gate.ok} intro={copy.gateFail} issues={previewIssues} />
 
@@ -579,7 +602,40 @@ export default function EmpleoQuickApplicationClient() {
             </label>
             <label className="block text-sm">
               <EmpleosFieldLabel lang={lang}>{es ? "Dirección línea 1" : "Address line 1"}</EmpleosFieldLabel>
-              <input className={INPUT} value={state.addressLine1} onChange={(e) => patch({ addressLine1: e.target.value })} />
+              <BusinessAddressVerifiedInput
+                lang={lang}
+                value={
+                  activeVerifiedAddress ?? {
+                    street: state.addressLine1,
+                    unit: state.addressLine2,
+                    city: state.city,
+                    region: state.stateRegion || state.state,
+                    postalCode: state.postalCode || state.addressZip,
+                    country: state.country || "US",
+                    verificationStatus: "manual",
+                    provider: null,
+                    providerPlaceId: null,
+                    manualEntry: true,
+                  }
+                }
+                locationHint={[state.city, state.stateRegion || state.state, state.country].filter(Boolean).join(", ")}
+                inputClassName={INPUT}
+                onChange={(next) => {
+                  setVerifiedAddress(next);
+                  patch({
+                    addressLine1: next.street,
+                    addressLine2: next.unit ?? state.addressLine2,
+                    city: next.city || state.city,
+                    addressCity: next.city || state.addressCity,
+                    state: next.region || state.state,
+                    stateRegion: next.region || state.stateRegion,
+                    addressState: next.region || state.addressState,
+                    postalCode: next.postalCode || state.postalCode,
+                    addressZip: next.postalCode || state.addressZip,
+                    country: next.country || state.country,
+                  });
+                }}
+              />
             </label>
             <label className="block text-sm">
               <EmpleosFieldLabel lang={lang}>{es ? "Dirección línea 2" : "Address line 2"}</EmpleosFieldLabel>

@@ -169,7 +169,6 @@ const REPO_ROOT = path.resolve(__dirname, "..");
       getEnVentaCheckpointCard("es", "/clasificados/publicar/en-venta/pro"),
       "/clasificados/publicar/en-venta/pro",
     ],
-    ["comida-local", getComidaLocalCheckpointCard("es", "/publicar/comida-local"), "/publicar/comida-local"],
   ];
   for (const [label, card, expectedHref] of freeCards) {
     assert.equal(card.variant, "free", `${label} card must be a free-variant card`);
@@ -177,6 +176,11 @@ const REPO_ROOT = path.resolve(__dirname, "..");
     assert.equal(card.couponEligible, false, `${label} free card must never claim coupon eligibility`);
     assert.equal(card.ctaHref, expectedHref, `${label} card CTA must target the unchanged application`);
   }
+  const comidaLocalCard = getComidaLocalCheckpointCard("es", "/publicar/comida-local");
+  assert.equal(comidaLocalCard.variant, "paid", "Comida Local is the owner-locked paid $129/mo product");
+  assert.equal(comidaLocalCard.priceLabel, "$129.00/mes");
+  assert.equal(comidaLocalCard.ctaHref, "/publicar/comida-local");
+
   // EN variants say Free.
   assert.equal(getBuscoCheckpointCard("en", "x").priceLabel, "Free");
   assert.equal(getEnVentaCheckpointCard("en", "x").priceLabel, "Free");

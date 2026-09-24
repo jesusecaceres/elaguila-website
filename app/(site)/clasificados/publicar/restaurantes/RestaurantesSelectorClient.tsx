@@ -32,7 +32,12 @@ export function RestaurantesSelectorClient({
   const withLang = (path: string, extra?: Record<string, string>) =>
     withClasificadosPublishLang(path, routeLang, extra);
 
-  const cards = useMemo(() => getRestaurantesCheckpointCards(lang, withLang), [lang, routeLang]);
+  const selectedPlan = searchParams?.get("plan") === "full" ? "full" : searchParams?.get("plan") === "quick" ? "quick" : null;
+  const assistedCategory = searchParams?.get("staff") === "1" ? "restaurantes" : undefined;
+  const cards = useMemo(() => {
+    const all = getRestaurantesCheckpointCards(lang, withLang);
+    return assistedCategory ? all.filter((card) => card.id !== "comida_local") : all;
+  }, [lang, routeLang, assistedCategory]);
 
   return (
     <PublishEntryCheckpointLayout
@@ -40,9 +45,10 @@ export function RestaurantesSelectorClient({
       title={t.title}
       body={t.body}
       checkpointCategory="restaurantes"
+      selectedPlan={selectedPlan}
       launchBannerCards={cards}
     >
-      <PublishEntryCheckpointStack cards={cards} lang={lang} />
+      <PublishEntryCheckpointStack cards={cards} lang={lang} assistedCategory={assistedCategory} />
     </PublishEntryCheckpointLayout>
   );
 }

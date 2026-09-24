@@ -10,6 +10,7 @@ import { ViajesOfferDetailLayout } from "../../components/ViajesOfferDetailLayou
 import { getViajesOfferDetailBySlug, VIAJES_OFFER_SLUGS } from "../../data/viajesOfferDetailSampleData";
 import { getViajesUi } from "../../data/viajesUiCopy";
 import { resolveViajesOfferBack } from "../../lib/viajesOfferLink";
+import { LEONIX_SITE_ORIGIN } from "@/app/lib/leonixBrand";
 import { resolveViajesStagedOfferDetailBundle } from "../../lib/resolveViajesOfferDetailFromStagedServer";
 import { viajesAllowCuratedDemoCatalog } from "../../lib/viajesPublicInventory";
 
@@ -38,9 +39,27 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const bundle = await resolveViajesStagedOfferDetailBundle(slug, lang);
   const offer = bundle?.offer ?? (viajesAllowCuratedDemoCatalog() ? getViajesOfferDetailBySlug(slug) : null);
   if (!offer) return { title: "Oferta | Leonix Viajes" };
+  const title = `${offer.title} | Leonix Viajes`;
+  const description = offer.description.slice(0, 155);
+  const canonical = `${LEONIX_SITE_ORIGIN}/clasificados/viajes/oferta/${encodeURIComponent(offer.slug)}?lang=${lang}`;
+  const heroImage = offer.heroImageSrc?.trim() || undefined;
   return {
-    title: `${offer.title} | Leonix Viajes`,
-    description: offer.description.slice(0, 155),
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      url: canonical,
+      images: heroImage ? [{ url: heroImage, alt: offer.heroImageAlt || offer.title }] : undefined,
+    },
+    twitter: {
+      card: heroImage ? "summary_large_image" : "summary",
+      title,
+      description,
+      images: heroImage ? [heroImage] : undefined,
+    },
   };
 }
 

@@ -87,6 +87,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { normalizeLang } from "@/app/lib/language";
 import { withClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import { useOfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
+import { BusinessAddressVerifiedInput } from "@/app/components/forms/BusinessAddressVerifiedInput";
+import type { BusinessAddress } from "@/app/lib/businessAddress/businessAddressContract";
 import { useOfertasLocalesDraft } from "@/app/lib/ofertas-locales/useOfertasLocalesDraft";
 import { validateOfertaLocalDraftForPreview } from "@/app/lib/ofertas-locales/ofertasLocalesValidation";
 import { OfertasLocalesAiScanReviewWorkspace } from "./OfertasLocalesAiScanReviewWorkspace";
@@ -827,6 +829,7 @@ export default function OfertasLocalesApplicationClient() {
   const resolvedBusinessLogoUrl = getOfertaLocalBusinessLogoUrl(draft);
   const businessLogoAssetId = useMemo(() => crypto.randomUUID(), []);
   const logoFileInputRef = useRef<HTMLInputElement>(null);
+  const [verifiedAddress, setVerifiedAddress] = useState<BusinessAddress | null>(null);
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
   const membershipUrlAccepted = hasOfertaLocalUrlAccepted(draft.membershipUrl);
@@ -1998,11 +2001,40 @@ export default function OfertasLocalesApplicationClient() {
               helper={c.addressHelper}
               confirm={addressAccepted ? c.addressAccepted : undefined}
             >
-              <input
-                className={INPUT}
-                value={draft.address}
-                onChange={(e) => updateDraft({ address: e.target.value })}
-                autoComplete="street-address"
+              <BusinessAddressVerifiedInput
+                lang={lang}
+                value={
+                  verifiedAddress &&
+                  verifiedAddress.street === draft.address &&
+                  (verifiedAddress.city || "") === (draft.city || "") &&
+                  (verifiedAddress.region || "") === (draft.state || "") &&
+                  (verifiedAddress.postalCode || "") === (draft.zipCode || "") &&
+                  (verifiedAddress.country || "") === (draft.country || OFERTA_LOCAL_DEFAULT_COUNTRY)
+                    ? verifiedAddress
+                    : {
+                        street: draft.address,
+                        city: draft.city,
+                        region: draft.state,
+                        postalCode: draft.zipCode,
+                        country: draft.country || OFERTA_LOCAL_DEFAULT_COUNTRY,
+                        verificationStatus: "manual",
+                        provider: null,
+                        providerPlaceId: null,
+                        manualEntry: true,
+                      }
+                }
+                locationHint={[draft.city, draft.state, draft.country].filter(Boolean).join(", ")}
+                inputClassName={INPUT}
+                onChange={(next) => {
+                  setVerifiedAddress(next);
+                  updateDraft({
+                    address: next.street,
+                    city: next.city || draft.city,
+                    state: next.region || draft.state,
+                    zipCode: next.postalCode || draft.zipCode,
+                    country: next.country || draft.country,
+                  });
+                }}
               />
             </FieldBlock>
             <div className="grid gap-4 sm:grid-cols-2">

@@ -1,6 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo, useState } from "react";
+import { TranslateAdControl } from "@/app/components/translation/TranslateAdControl";
+import { requestAdTranslation } from "@/app/lib/translation/requestAdTranslation";
+import type { AdTranslationResult } from "@/app/lib/translation/types";
 import type { EnVentaResultsCardModel } from "./buildEnVentaResultsCardModel";
 import { EN_VENTA_SURFACE } from "../shared/styles/enVentaBrand";
 import { trackEnVentaResultCardClickGlobal } from "@/app/lib/clasificados/en-venta/analytics/enVentaGlobalAnalytics";
@@ -84,6 +88,13 @@ export function EnVentaResultListingCard({
   href: string;
 }) {
   const isPreview = mode === "preview";
+  const [cardTranslation, setCardTranslation] = useState<AdTranslationResult | null>(null);
+  const [showCardTranslation, setShowCardTranslation] = useState(false);
+  const cardTranslatableContent = useMemo(() => ({ title: model.title.trim() || undefined }), [model.title]);
+  const displayedTitle =
+    showCardTranslation && cardTranslation?.translated?.title?.trim()
+      ? cardTranslation.translated.title.trim()
+      : model.title;
   const isPro = model.plan === "pro";
   const isCompact = !isPreview && density === "compact";
   const L =
@@ -228,7 +239,7 @@ export function EnVentaResultListingCard({
                 : "line-clamp-2 text-base sm:text-[17px]"
           )}
         >
-          {model.title}
+          {displayedTitle}
         </h3>
         <p
           className={cx(
@@ -339,17 +350,30 @@ export function EnVentaResultListingCard({
     trackEnVentaResultCardClickGlobal({ listingUuid: model.id });
   };
 
-  if (layout === "list") {
-    return (
+  const translateControl = model.title.trim() ? (
+    <TranslateAdControl
+      siteLocale={lang}
+      originalLocale="unknown"
+      category="en-venta"
+      listingKey={`card:${model.id}`}
+      version="en-venta-card-v1"
+      translatableContent={cardTranslatableContent}
+      requestTranslation={requestAdTranslation}
+      onTranslated={(result) => {
+        setCardTranslation(result);
+        setShowCardTranslation(true);
+      }}
+      onShowOriginal={() => setShowCardTranslation(false)}
+      className="w-fit"
+    />
+  ) : null;
+
+  return (
+    <div className="w-full min-w-0">
       <Link href={href} className={frame} onClick={onCardNavigate}>
         {inner}
       </Link>
-    );
-  }
-
-  return (
-    <Link href={href} className={frame} onClick={onCardNavigate}>
-      {inner}
-    </Link>
+      {translateControl ? <div className="mt-2 flex justify-end px-1">{translateControl}</div> : null}
+    </div>
   );
 }

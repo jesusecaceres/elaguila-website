@@ -10,6 +10,8 @@ import { iglesiasNeedLabel } from "@/app/lib/iglesias/taxonomy";
 import { IglesiasPageShell } from "../components/IglesiasPageShell";
 import { IglesiasSafeImage } from "../components/IglesiasSafeImage";
 import { IglesiasPrayerForm } from "../components/IglesiasPrayerForm";
+import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import { IglesiasProfileAboutTranslation } from "../components/IglesiasProfileAboutTranslation";
 
 export const dynamic = "force-dynamic";
 
@@ -33,18 +35,27 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
       ? `${church.name} in ${church.city || "San Jose"}. Service times, ministries, and contact on Leonix Media.`
       : `${church.name} en ${church.city || "San José"}. Horarios, ministerios y contacto en Leonix Media.`);
   const path = `/iglesias/${encodeURIComponent(church.slug)}`;
+  const canonical = `${LEONIX_SITE_ORIGIN}${path}?lang=${lang}`;
+  const heroImage = church.heroUrl || church.logoUrl || undefined;
   return {
     title,
     description,
-    alternates: { canonical: path },
+    alternates: { canonical },
     robots: { index: true, follow: true },
     openGraph: {
       title: leonixPageTitle(title),
       description,
-      url: path,
+      url: canonical,
       siteName: LEONIX_MEDIA_SITE_NAME,
       type: "website",
       locale: lang === "en" ? "en_US" : "es_ES",
+      images: heroImage ? [{ url: heroImage, alt: church.imageAlt || church.name }] : undefined,
+    },
+    twitter: {
+      card: heroImage ? "summary_large_image" : "summary",
+      title: leonixPageTitle(title),
+      description,
+      images: heroImage ? [heroImage] : undefined,
     },
   };
 }
@@ -64,6 +75,10 @@ export default async function IglesiasChurchPage(props: Props) {
     actions.push({ href: googleDirectionsHref(church.addressLine1), label: copy.cardDirections, external: true });
   }
   if (church.phone) actions.push({ href: telHref(church.phone), label: copy.cardCall });
+  if (church.whatsapp) {
+    const whatsappDigits = church.whatsapp.replace(/\D/g, "");
+    if (whatsappDigits.length >= 8) actions.push({ href: `https://wa.me/${whatsappDigits}`, label: "WhatsApp", external: true });
+  }
   if (church.website) actions.push({ href: church.website, label: copy.profileWebsite, external: true });
   if (church.livestreamUrl) actions.push({ href: church.livestreamUrl, label: copy.profileLivestream, external: true });
 
@@ -130,20 +145,27 @@ export default async function IglesiasChurchPage(props: Props) {
             </div>
           ) : null}
 
-          {actions.length ? (
-            <div className="mt-6 flex flex-wrap gap-2">
-              {actions.map((a) => (
-                <a
-                  key={a.href}
-                  href={a.href}
-                  className="inline-flex min-h-11 items-center rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] px-4 text-sm font-semibold text-[#1F241C] hover:bg-[#FAF6EE]"
-                  {...(a.external ? { target: "_blank", rel: "noreferrer" } : {})}
-                >
-                  {a.label}
-                </a>
-              ))}
-            </div>
-          ) : null}
+          <div className="mt-6 flex flex-wrap gap-2">
+            {actions.map((a) => (
+              <a
+                key={a.href}
+                href={a.href}
+                className="inline-flex min-h-11 items-center rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] px-4 text-sm font-semibold text-[#1F241C] hover:bg-[#FAF6EE]"
+                {...(a.external ? { target: "_blank", rel: "noreferrer" } : {})}
+              >
+                {a.label}
+              </a>
+            ))}
+            <LeonixShareButton
+              listingId={church.id}
+              listingUrl={`${LEONIX_SITE_ORIGIN}/iglesias/${encodeURIComponent(church.slug)}?lang=${lang}`}
+              listingTitle={church.name}
+              shareText={church.shortDescription || church.mission || null}
+              lang={lang}
+              category="iglesias"
+              persistEngagement={false}
+            />
+          </div>
 
           <section className="mt-10 overflow-hidden rounded-[1.5rem] border border-[#C9A84A]/35 bg-[#FFFDF7] px-5 py-6 sm:px-7" aria-labelledby="iglesias-services-title">
             <h2 id="iglesias-services-title" className="font-serif text-2xl font-bold text-[#1F241C]">
@@ -164,16 +186,12 @@ export default async function IglesiasChurchPage(props: Props) {
             )}
           </section>
 
-          {church.mission || church.shortDescription ? (
-            <section className="mt-6 overflow-hidden rounded-[1.5rem] border border-[#C9A84A]/35 bg-[#FFFDF7] px-5 py-6 sm:px-7" aria-labelledby="iglesias-about-title">
-              <h2 id="iglesias-about-title" className="font-serif text-2xl font-bold text-[#1F241C]">
-                {copy.profileAbout}
-              </h2>
-              <p className="mt-3 max-w-3xl whitespace-pre-wrap text-sm leading-relaxed text-[#3D3428] sm:text-base">
-                {church.mission || church.shortDescription}
-              </p>
-            </section>
-          ) : null}
+          <IglesiasProfileAboutTranslation
+            lang={lang}
+            listingKey={church.id}
+            heading={copy.profileAbout}
+            text={church.mission || church.shortDescription || ""}
+          />
 
           {church.ministries.length ? (
             <section className="mt-6 overflow-hidden rounded-[1.5rem] border border-[#C9A84A]/35 bg-[#FFFDF7] px-5 py-6 sm:px-7" aria-labelledby="iglesias-help-title">

@@ -80,7 +80,7 @@ export function autosInventoryDrawerLocationInheritHint(lang: AutosClassifiedsLa
 }
 
 export function autosAddInventorySaveCta(lang: AutosClassifiedsLang): string {
-  return lang === "es" ? "Guardar inventario" : "Save inventory";
+  return lang === "es" ? "Guardar en inventario" : "Save to inventory";
 }
 
 export function autosAddInventorySaveAndAnotherCta(lang: AutosClassifiedsLang): string {

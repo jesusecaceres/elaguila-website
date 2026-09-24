@@ -3,31 +3,24 @@
  *
  * The visitor here has no account, no session and no permissions, and must never acquire any. The
  * ONLY thing they present is a signed, expiring, read-only token scoped to one category and one
- * canonical row. This page verifies it, reads a whitelist of safe public fields, and renders them
- * under an unmissable "not published" banner in both Spanish and English.
+ * canonical row. This page verifies it, reads a whitelist of safe public fields, and renders a
+ * Leonix-style category preview (not a JSON dump) under an unmissable "not published" banner.
  *
  * Every failure — no token, malformed, tampered, expired, wrong category, custody revoked, signing
- * secret absent — produces the SAME safe refusal. A preview link that has stopped working must not
- * explain why: "this row exists but your token is for another category" is an oracle.
+ * secret absent — produces the SAME safe refusal.
  *
- * It renders a compact, read-only summary rather than reusing a category's full public component.
- * Those components are built for a complete, published listing and reach for fields an unfinished
- * draft has not got; feeding one a partial draft is how a preview starts rendering placeholders,
- * throwing, or surfacing a field nobody meant to show a prospect. The whitelist in
- * `prospectPreviewReader.ts` is the contract, and this page shows exactly what it returns.
- *
- * NOTHING ON THIS PAGE MUTATES ANYTHING. There is no form, no action, no write, and no endpoint it
- * can reach with this token. Viewing a preview never publishes the ad — the lifecycle value it
- * shows is read back from the row untouched.
+ * NOTHING ON THIS PAGE MUTATES ANYTHING.
  */
 import type { Metadata } from "next";
 import { PREVIEW_NOINDEX_METADATA } from "@/app/lib/seo/previewRouteMetadata";
 import { readProspectPreviewContext, PROSPECT_PREVIEW_TOKEN_PARAM } from "@/app/lib/auth/prospectPreviewSession";
 import { readProspectPreviewPayload } from "@/app/lib/sales/prospectPreviewReader";
 import { QUICK_SALES_CATEGORY_MAP, isQuickSalesCategory } from "@/app/lib/sales/quickSalesCategories";
+import { buildProspectLeonixPreviewVm } from "@/app/lib/sales/prospectPreviewDisplay";
+import { ProspectPreviewTranslateAd } from "./ProspectPreviewTranslateAd";
+import { ProspectCategoryPreviewShell } from "./ProspectCategoryPreviewShell";
 
 export const dynamic = "force-dynamic";
-/** A preview link is per-recipient and expiring. It is never stored by a cache, anywhere. */
 export const fetchCache = "force-no-store";
 export const revalidate = 0;
 
@@ -35,6 +28,8 @@ export const metadata: Metadata = {
   ...PREVIEW_NOINDEX_METADATA,
   title: "Vista previa / Preview",
 };
+
+type PreviewLang = "es" | "en";
 
 type PageProps = {
   params: Promise<{ category: string }>;
@@ -46,21 +41,32 @@ function firstParam(value: string | string[] | undefined): string | null {
   return value ?? null;
 }
 
-function SafeRefusal() {
+function previewLang(value: string | string[] | undefined): PreviewLang {
+  return firstParam(value)?.trim().toLowerCase() === "en" ? "en" : "es";
+}
+
+function SafeRefusal({ lang }: { lang: PreviewLang }) {
+  const copy =
+    lang === "en"
+      ? {
+          badge: "Preview",
+          heading: "This link is no longer available",
+          body: "This preview link has expired or is not valid. Ask your Leonix representative to send you a new one.",
+        }
+      : {
+          badge: "Vista previa",
+          heading: "Este enlace ya no está disponible",
+          body: "El enlace de vista previa expiró o no es válido. Pídele a tu representante de Leonix que te envíe uno nuevo.",
+        };
+
   return (
-    <main style={styles.shell}>
+    <main style={styles.shell} data-prospect-preview-clears-navbar="1">
       <div style={styles.card}>
-        <p style={styles.badge}>Vista previa / Preview</p>
-        <h1 style={styles.heading}>Este enlace ya no está disponible</h1>
-        <p style={styles.sub}>This link is no longer available</p>
-        <p style={styles.body}>
-          El enlace de vista previa expiró o no es válido. Pídele a tu representante de Leonix que
-          te envíe uno nuevo.
-        </p>
-        <p style={styles.bodyEn}>
-          This preview link has expired or is not valid. Ask your Leonix representative to send you
-          a new one.
-        </p>
+        <p style={styles.badge}>{copy.badge}</p>
+        <h1 style={styles.heading} data-prospect-preview-heading="1">
+          {copy.heading}
+        </h1>
+        <p style={styles.body}>{copy.body}</p>
       </div>
     </main>
   );
@@ -69,55 +75,71 @@ function SafeRefusal() {
 export default async function ProspectPreviewPage({ params, searchParams }: PageProps) {
   const { category } = await params;
   const query = await searchParams;
+  const lang = previewLang(query.lang);
 
-  // The reader states which category it is serving. The token is checked against it, so a token
-  // minted for one category can never open another category's preview.
-  if (!isQuickSalesCategory(category)) return <SafeRefusal />;
+  if (!isQuickSalesCategory(category)) return <SafeRefusal lang={lang} />;
 
   const rawToken = firstParam(query[PROSPECT_PREVIEW_TOKEN_PARAM]);
   const ctx = readProspectPreviewContext(rawToken, category);
-  if (!ctx) return <SafeRefusal />;
+  if (!ctx) return <SafeRefusal lang={lang} />;
 
   const payload = await readProspectPreviewPayload(ctx);
-  if (!payload) return <SafeRefusal />;
+  if (!payload) return <SafeRefusal lang={lang} />;
 
   const descriptor = QUICK_SALES_CATEGORY_MAP[category];
   const expires = new Date(payload.expiresAtMs);
-  const location = [payload.city, payload.state].filter(Boolean).join(", ");
+  const vm = buildProspectLeonixPreviewVm({
+    category,
+    title: payload.title,
+    city: payload.city,
+    state: payload.state,
+    content: payload.content,
+  });
+  const categoryLabel = lang === "en" ? descriptor.labelEn : descriptor.labelEs;
+  const expiresLabel =
+    lang === "en"
+      ? `This link expires ${expires.toLocaleString("en-US")}`
+      : `Este enlace expira el ${expires.toLocaleString("es-MX")}`;
 
   return (
-    <main style={styles.shell}>
-      <div style={styles.card}>
-        {/* The banner is the point of the page, so it is first, unconditional and bilingual. */}
+    <main style={styles.shell} data-prospect-preview-clears-navbar="1">
+      <div style={styles.wrap}>
         <div style={styles.banner}>
-          <strong style={styles.bannerStrong}>Vista previa / Preview</strong>
-          <span style={styles.bannerText}>No publicado / Not published</span>
+          <strong style={styles.bannerStrong}>{lang === "en" ? "Preview" : "Vista previa"}</strong>
+          <span style={styles.bannerText}>{lang === "en" ? "Not published" : "No publicado"}</span>
         </div>
 
-        <p style={styles.badge}>
-          {descriptor.labelEs} / {descriptor.labelEn}
-        </p>
-        <h1 style={styles.heading}>{payload.title ?? "Borrador sin título / Untitled draft"}</h1>
-        {location ? <p style={styles.sub}>{location}</p> : null}
+        <p style={styles.badge}>{categoryLabel}</p>
+        <ProspectPreviewTranslateAd
+          category={category}
+          listingId={payload.listingId}
+          title={payload.title}
+          content={payload.content}
+          siteLocale={lang}
+        >
+          {({ title, description }) => (
+            <ProspectCategoryPreviewShell
+              vm={vm}
+              title={title ?? vm.title}
+              description={description}
+              listingId={payload.listingId}
+              lang={lang}
+            />
+          )}
+        </ProspectPreviewTranslateAd>
 
         <p style={styles.body}>
-          Así se verá tu anuncio. Todavía no está publicado y nadie más puede encontrarlo.
-        </p>
-        <p style={styles.bodyEn}>
-          This is how your ad will look. It is not published yet and nobody else can find it.
+          {lang === "en"
+            ? "This is how your ad will look. It is not published yet and nobody else can find it."
+            : "Así se verá tu anuncio. Todavía no está publicado y nadie más puede encontrarlo."}
         </p>
 
-        <PreviewContent content={payload.content} />
-
-        <p style={styles.footnote}>
-          Este enlace expira el {expires.toLocaleString("es-MX")} · This link expires{" "}
-          {expires.toLocaleString("en-US")}
-        </p>
-        {/* Truthful even in the case nobody expects: if the row IS already live, say so rather
-            than showing a "not published" claim the row contradicts. */}
+        <p style={styles.footnote}>{expiresLabel}</p>
         {payload.isPublic ? (
           <p style={styles.footnote}>
-            Este anuncio ya está activo / This ad is already live ({payload.lifecycleState})
+            {lang === "en"
+              ? `This ad is already live (${payload.lifecycleState})`
+              : `Este anuncio ya está activo (${payload.lifecycleState})`}
           </p>
         ) : null}
       </div>
@@ -125,49 +147,30 @@ export default async function ProspectPreviewPage({ params, searchParams }: Page
   );
 }
 
-/** Renders only simple scalar fields from the whitelisted content blob — never raw HTML. */
-function PreviewContent({ content }: { content: Record<string, unknown> | null }) {
-  if (!content) return null;
-  const rows: { key: string; value: string }[] = [];
-  for (const [key, value] of Object.entries(content)) {
-    if (rows.length >= 14) break;
-    if (typeof value === "string" && value.trim()) {
-      rows.push({ key, value: value.trim().slice(0, 400) });
-    } else if (typeof value === "number" || typeof value === "boolean") {
-      rows.push({ key, value: String(value) });
-    }
-  }
-  if (!rows.length) return null;
-  return (
-    <dl style={styles.list}>
-      {rows.map((row) => (
-        <div key={row.key} style={styles.listRow}>
-          <dt style={styles.listKey}>{row.key}</dt>
-          <dd style={styles.listValue}>{row.value}</dd>
-        </div>
-      ))}
-    </dl>
-  );
-}
-
-/* Mobile-first, self-contained styles: a prospect opens this on a phone, usually on data, often
-   while the staff member is standing next to them. No external stylesheet to wait for. */
 const styles: Record<string, React.CSSProperties> = {
   shell: {
     minHeight: "100vh",
-    background: "#0b1220",
-    padding: "16px",
+    background: "#F4EEE4",
+    // Navbar is `fixed top-0` (~4.5–5rem). Clear it so headings never sit under chrome.
+    paddingTop: "calc(5.25rem + env(safe-area-inset-top, 0px))",
+    paddingRight: 16,
+    paddingBottom: 16,
+    paddingLeft: 16,
     display: "flex",
     justifyContent: "center",
     alignItems: "flex-start",
   },
+  wrap: {
+    width: "100%",
+    maxWidth: 720,
+  },
   card: {
     width: "100%",
-    maxWidth: 560,
-    background: "#ffffff",
-    borderRadius: 16,
-    padding: "20px 16px",
-    boxShadow: "0 12px 40px rgba(0,0,0,0.25)",
+    maxWidth: 720,
+    background: "#FFFCF7",
+    border: "1px solid #E8D9C4",
+    borderRadius: 22,
+    padding: "20px 18px",
   },
   banner: {
     display: "flex",
@@ -186,9 +189,5 @@ const styles: Record<string, React.CSSProperties> = {
   sub: { fontSize: 14, color: "#475569", margin: "0 0 12px" },
   body: { fontSize: 15, color: "#0f172a", margin: "12px 0 4px" },
   bodyEn: { fontSize: 14, color: "#475569", margin: "0 0 12px" },
-  list: { margin: "12px 0 0", padding: 0 },
-  listRow: { display: "flex", gap: 8, padding: "6px 0", borderTop: "1px solid #e2e8f0" },
-  listKey: { flex: "0 0 40%", fontSize: 12, color: "#64748b", margin: 0, wordBreak: "break-word" },
-  listValue: { flex: 1, fontSize: 14, color: "#0f172a", margin: 0, wordBreak: "break-word" },
   footnote: { fontSize: 12, color: "#64748b", marginTop: 16 },
 };

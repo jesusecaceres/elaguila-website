@@ -1,6 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
+import { BusinessAddressVerifiedInput } from "@/app/components/forms/BusinessAddressVerifiedInput";
+import type { BusinessAddress } from "@/app/lib/businessAddress/businessAddressContract";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import {
   EmpleosFieldLabel,
@@ -106,6 +109,18 @@ export function LocationSection({
   sectionTitle,
   onChange,
 }: LocationProps) {
+  const [verifiedAddress, setVerifiedAddress] = useState<BusinessAddress | null>(null);
+  const activeVerifiedAddress =
+    verifiedAddress &&
+    verifiedAddress.street === addressValue &&
+    (verifiedAddress.unit || "") === (addressLine2Value || "") &&
+    (verifiedAddress.city || "") === (publicCity || "") &&
+    (verifiedAddress.region || "") === (stateValue || "") &&
+    (verifiedAddress.postalCode || "") === (zipValue || "") &&
+    (verifiedAddress.country || "") === (countryValue || "")
+      ? verifiedAddress
+      : null;
+
   return (
     <EmpleosSectionCard title={sectionTitle}>
       <p className="text-xs text-[color:var(--lx-muted)]">{discoveryLine}</p>
@@ -122,18 +137,45 @@ export function LocationSection({
         />
       </label>
 
-      <label className="block text-sm">
+      <div className="block text-sm">
         <EmpleosFieldLabel lang={lang} optional>
           {addressLabel}
         </EmpleosFieldLabel>
-        <input
-          className={INPUT}
-          value={addressValue}
-          onChange={(e) => onChange({ addressLine1: e.target.value })}
-          placeholder={addressPlaceholder}
+        <BusinessAddressVerifiedInput
+          lang={lang}
+          value={
+            activeVerifiedAddress ?? {
+              street: addressValue,
+              unit: addressLine2Value,
+              city: publicCity,
+              region: stateValue,
+              postalCode: zipValue,
+              country: countryValue || "US",
+              verificationStatus: "manual",
+              provider: null,
+              providerPlaceId: null,
+              manualEntry: true,
+            }
+          }
+          locationHint={[publicCity, stateValue, countryValue].filter(Boolean).join(", ")}
+          inputClassName={INPUT}
+          onChange={(next) => {
+            setVerifiedAddress(next);
+            onChange({
+              addressLine1: next.street,
+              addressLine2: next.unit ?? addressLine2Value,
+              publicCity: next.city || publicCity,
+              state: next.region || stateValue,
+              zip: next.postalCode || zipValue,
+              country: next.country || countryValue,
+            });
+          }}
         />
         <p className="mt-1.5 text-xs leading-relaxed text-[color:var(--lx-text-2)]">{addressHelperText}</p>
-      </label>
+        {!addressValue.trim() ? (
+          <p className="mt-1 text-[11px] text-[color:var(--lx-muted)]">{addressPlaceholder}</p>
+        ) : null}
+      </div>
 
       <label className="block text-sm">
         <EmpleosFieldLabel lang={lang} optional>

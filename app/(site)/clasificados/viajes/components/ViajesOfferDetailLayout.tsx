@@ -17,6 +17,8 @@ import { ViajesPartnerLogo } from "./ViajesPartnerLogo";
 import { ViajesPublicInquiryForm } from "./ViajesPublicInquiryForm";
 import { ViajesSheetCtaLink } from "./ViajesSheetCtaLink";
 import { isViajesContactHref } from "../lib/viajesCtaSheet";
+import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import { LEONIX_SITE_ORIGIN } from "@/app/lib/leonixBrand";
 
 const ACCENT = "#D97706";
 
@@ -342,7 +344,20 @@ function ViajesOfferDetailLayoutBody({
       </ViajesOfferHeroBackdrop>
 
       <div className="mx-auto max-w-7xl space-y-7 px-4 py-8 sm:space-y-9 sm:px-5 sm:py-10 lg:space-y-11 lg:px-6 lg:py-12">
-        {translateControl && !preview ? <div>{translateControl}</div> : null}
+        {!preview ? (
+          <div className="flex flex-wrap items-center gap-2">
+            {translateControl}
+            <LeonixShareButton
+              listingId={stagedListingId}
+              listingUrl={`${LEONIX_SITE_ORIGIN}/clasificados/viajes/oferta/${encodeURIComponent(offer.slug)}?lang=${ui.lang}`}
+              listingTitle={offer.title}
+              shareText={offer.description || null}
+              lang={ui.lang}
+              category="viajes"
+              persistEngagement={Boolean(stagedListingId)}
+            />
+          </div>
+        ) : null}
 
         {(!sparseSections || offer.includes.length > 0) && (
           <section className="overflow-hidden rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] shadow-[0_10px_44px_-18px_rgba(0,0,0,0.1)]">
