@@ -88,7 +88,8 @@ function run() {
 
   assert.ok(engagement.includes("data-autos-gallery-utility-row"), "Gallery utility row marker required");
   assert.ok(engagement.includes('countDisplay="numeric"'), "Compact like display required");
-  assert.ok(engagement.includes("directNativeShare"), "Share native path preserved");
+  assert.ok(!engagement.includes("directNativeShare"), "Share opens the shared Leonix drawer instead of bypassing it");
+  assert.ok(engagement.includes("LeonixShareButton"), "Share uses the shared Leonix component");
 
   assert.ok(directLink.includes("wa.me"), "WhatsApp wa.me path required");
   assert.ok(directLink.includes('target="_blank"'), "WhatsApp new tab required");
