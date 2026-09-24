@@ -250,9 +250,8 @@ export function RestauranteShellInteractiveCtas({
               listingUrl={shareUrl}
               listingTitle={typeof document !== "undefined" ? document.title : cta.label}
               category="restaurantes"
-              lang="es"
+              lang={lang}
               variant="default"
-              directNativeShare
               persistEngagement={persistListingEngagement && Boolean(sourceId)}
               recordShareEvent={
                 globalListing ? restaurantesGlobalShareRecorder(globalListing, "detail_share") : undefined
