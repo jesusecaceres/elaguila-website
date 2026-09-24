@@ -54,8 +54,8 @@ check("⚠️32 every Servicios general-share mount is native-first (directNativ
 });
 check("⚠️32 shared button: navigator.share first, clipboard copy-link fallback with visible confirmation; hub intact", () => {
   const button = raw("app/components/clasificados/analytics/LeonixShareButton.tsx");
-  const native = button.indexOf("await navigator.share(shareData)");
-  const copy = button.indexOf("await navigator.clipboard.writeText(urlToShare || body || safeTitle)");
+  const native = button.indexOf("await tryWebShare(");
+  const copy = button.indexOf("await copyToClipboard(urlToShare || body || safeTitle)");
   assert.ok(native > 0 && copy > native, "native share is tried before the clipboard fallback");
   assert.ok(button.includes("setCopyFeedback(true)"), "fallback confirms visibly");
   assert.ok(button.includes('linkCopied: "Enlace copiado"') && button.includes('linkCopied: "Link copied"'), "bilingual confirmation");
@@ -74,7 +74,7 @@ check("⚠️32A share-link parity: with a URL the payload is `{ title, url }` l
   assert.ok(!button.includes("text: body || safeTitle, url: urlToShare"), "title is never duplicated into `text` next to the URL");
   assert.ok(button.includes(": { title: safeTitle, text: body || safeTitle };"), "no-URL fallback payload unchanged");
   assert.ok(button.includes("const publicUrl = getSafePublicAdUrl({ publicUrl: resolvedListingUrl }).trim();"), "canonical listing URL is the shared URL");
-  assert.ok(button.includes("publicUrl ||\n      (allowTrack && typeof window !== \"undefined\" ? window.location.href.trim() : \"\")"), "Preview without a canonical URL stays safe (no tracked URL)");
+  assert.ok(!button.includes("window.location.href"), "Preview without a canonical URL stays safe (no tracked URL)");
   // Proven "Share link" callers share exactly `{ title, url }` — the shape this reuses.
   for (const rel of [
     "app/(site)/clasificados/en-venta/listing/EnVentaAnuncioLayout.tsx",
