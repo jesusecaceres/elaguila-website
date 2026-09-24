@@ -8,6 +8,7 @@ export type IglesiasCopy = {
   heroScripture: string;
   ctaFind: string;
   ctaPrayer: string;
+  ctaJoinPrayer: string;
   ctaChurch: string;
   collageCaption: string;
   welcomeEyebrow: string;
@@ -106,6 +107,7 @@ const ES: IglesiasCopy = {
   heroScripture: "Ámense unos a otros. Donde dos o más se reúnen, hay presencia y esperanza.",
   ctaFind: "Encontrar una iglesia",
   ctaPrayer: "Necesito oración",
+  ctaJoinPrayer: "Únete en oración",
   ctaChurch: "Soy una iglesia",
   collageCaption: "Imágenes editoriales de comunidad. No representan iglesias listadas en Leonix.",
   welcomeEyebrow: "Un espacio abierto",
@@ -181,17 +183,18 @@ const ES: IglesiasCopy = {
   applySupport: "Las solicitudes claras se publican automáticamente. Solo las excepciones se revisan.",
   applyPendingNote: "Si hace falta revisión, te lo confirmamos al enviar.",
   applyPrayerTeamLegend: "¿Tu iglesia tiene un equipo o ministerio de oración?",
-  applyPrayerTeamHelp: "Esto es solo intención. No activa la Red de Oración. Un administrador revisa cada solicitud.",
-  applyPrayerTeamYes: "Sí",
-  applyPrayerTeamNo: "No",
-  applyPrayerTeamInterested: "Nos interesa",
+  applyPrayerTeamHelp:
+    "Cuéntanos si tu iglesia ya cuenta con un equipo de oración o si le gustaría participar. Nuestro equipo confirmará los próximos pasos antes de habilitar solicitudes privadas.",
+  applyPrayerTeamYes: "Sí, ya tenemos un equipo",
+  applyPrayerTeamNo: "No por ahora",
+  applyPrayerTeamInterested: "Nos interesa participar",
   applySubmit: "Enviar solicitud",
   applySuccessTitle: "Solicitud recibida",
-  applySuccessBody: "Recibimos tu solicitud. Necesitamos revisar algunos detalles antes de publicarla.",
+  applySuccessBody: "Recibimos tu información. Revisaremos los datos necesarios antes de mostrar o verificar el perfil.",
   applySuccessPublishedTitle: "Iglesia publicada",
   applySuccessPublishedBody: "Tu iglesia fue recibida y publicada correctamente.",
   applySuccessReviewTitle: "Solicitud recibida",
-  applySuccessReviewBody: "Recibimos tu solicitud. Necesitamos revisar algunos detalles antes de publicarla.",
+  applySuccessReviewBody: "Recibimos tu información. Revisaremos los datos necesarios antes de mostrar o verificar el perfil.",
   applySuccessBlockedTitle: "Solicitud recibida",
   applySuccessBlockedBody: "Recibimos tu solicitud. No podemos publicarla en este momento.",
   applyError: "No pudimos enviar la solicitud. Inténtalo de nuevo.",
@@ -211,6 +214,7 @@ const EN: IglesiasCopy = {
   heroScripture: "Love one another. Where two or more gather, there is presence and hope.",
   ctaFind: "Find a church",
   ctaPrayer: "I need prayer",
+  ctaJoinPrayer: "Join in Prayer",
   ctaChurch: "I am a church",
   collageCaption: "Editorial community photography. These images are not listed Leonix churches.",
   welcomeEyebrow: "An open space",
@@ -285,17 +289,18 @@ const EN: IglesiasCopy = {
   applySupport: "Clear applications are published automatically. Only exceptions are reviewed.",
   applyPendingNote: "If a review is needed, we will confirm that when you submit.",
   applyPrayerTeamLegend: "Does your church have a prayer team or prayer ministry?",
-  applyPrayerTeamHelp: "This is intent only. It does not enable the Prayer Network. Every application still needs admin review.",
-  applyPrayerTeamYes: "Yes",
-  applyPrayerTeamNo: "No",
-  applyPrayerTeamInterested: "Interested",
+  applyPrayerTeamHelp:
+    "Tell us whether your church already has a prayer team or would like to participate. Our team will confirm next steps before enabling private requests.",
+  applyPrayerTeamYes: "Yes, we already have a team",
+  applyPrayerTeamNo: "Not right now",
+  applyPrayerTeamInterested: "We're interested",
   applySubmit: "Submit application",
   applySuccessTitle: "Application received",
-  applySuccessBody: "We received your application. We need to review a few details before publishing it.",
+  applySuccessBody: "We received your information. We will review the necessary details before showing or verifying the profile.",
   applySuccessPublishedTitle: "Church published",
   applySuccessPublishedBody: "Your church was received and published successfully.",
   applySuccessReviewTitle: "Application received",
-  applySuccessReviewBody: "We received your application. We need to review a few details before publishing it.",
+  applySuccessReviewBody: "We received your information. We will review the necessary details before showing or verifying the profile.",
   applySuccessBlockedTitle: "Application received",
   applySuccessBlockedBody: "We received your application. We cannot publish it at this time.",
   applyError: "We could not send the application. Please try again.",

@@ -10,10 +10,14 @@ export function IglesiasSearch({
   copy,
   lang,
   browse,
+  actionHref = "/iglesias",
+  clearHref,
 }: {
   copy: IglesiasCopy;
   lang: "es" | "en";
   browse: IglesiasBrowseState;
+  actionHref?: string;
+  clearHref?: string;
 }) {
   const landingNeeds = IGLESIAS_NEED_CATALOG.filter((n) => n.landingTile);
   const cityZip = browse.city || browse.zip;
@@ -28,7 +32,7 @@ export function IglesiasSearch({
             {copy.searchHeading}
           </h2>
         </div>
-        <form action="/iglesias" method="get" className="grid gap-4 p-5 sm:grid-cols-2 sm:p-7 lg:grid-cols-4">
+        <form action={actionHref} method="get" className="grid gap-4 p-5 sm:grid-cols-2 sm:p-7 lg:grid-cols-4">
           <input type="hidden" name="lang" value={lang} />
           <label className="block min-w-0">
             <span className="mb-1.5 block text-xs font-semibold text-[#5C5346]">{copy.searchName}</span>
@@ -67,7 +71,7 @@ export function IglesiasSearch({
             </button>
             {hasFilters ? (
               <a
-                href={`/iglesias?lang=${lang}#buscar`}
+                href={clearHref ?? `${actionHref}?lang=${lang}#buscar`}
                 className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[#D6C7AD] bg-white px-6 text-sm font-semibold text-[#3D3428] hover:bg-[#FAF6EE] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]"
               >
                 {copy.searchClear}

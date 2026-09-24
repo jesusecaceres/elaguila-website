@@ -33,6 +33,8 @@ export type ChurchRow = {
   latitude: number | null;
   longitude: number | null;
   languages: IglesiasServiceLanguage[];
+  /** Gate 16: free-text additional languages (e.g. "Vietnamita"), beyond es/en/bilingual. */
+  other_languages: string[];
   phone: string | null;
   email: string | null;
   website: string | null;
@@ -84,6 +86,7 @@ export type PublicChurchCard = {
   city: string | null;
   state: string | null;
   languages: IglesiasServiceLanguage[];
+  otherLanguages: string[];
   phone: string | null;
   publicLocation: boolean;
   addressLine1: string | null;
