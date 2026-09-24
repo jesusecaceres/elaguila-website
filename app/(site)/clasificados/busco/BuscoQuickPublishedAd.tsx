@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import { LEONIX_SITE_ORIGIN } from "@/app/lib/leonixBrand";
 
 import { BuscoQuickAdCanvas } from "@/app/(site)/publicar/busco/components/BuscoQuickAdCanvas";
 import { buscoViewModelFromPublished } from "@/app/(site)/publicar/busco/shared/buscoQuickAdViewModel";
@@ -27,6 +28,8 @@ export function BuscoQuickPublishedAd({ listing, lang }: { listing: BuscoPublish
       lang={lang}
       shell="embedded"
       contactSectionId="busco-contact-actions"
+      listingId={listing.id}
+      publicUrl={`${LEONIX_SITE_ORIGIN}/clasificados/anuncio/${encodeURIComponent(listing.id)}`}
     />
   );
 }
