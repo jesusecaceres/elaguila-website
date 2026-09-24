@@ -28,6 +28,7 @@ import type { TipoPropiedadCodigo } from "../schema/agenteResidencialTipoMeta";
 import { BrAgenteLocationFormFields } from "@/app/lib/clasificados/bienes-raices/brLocationFormFields";
 import { useBrAgenteResidencialCopy } from "../application/BrAgenteResidencialLocaleContext";
 import { formatPrecioUsd } from "../lib/agenteResidencialPreviewFormat";
+import { BusinessAddressVerifiedInput } from "@/app/components/forms/BusinessAddressVerifiedInput";
 
 /** Legacy tour file accept (tour row is URL-only in UI; kept for draft restore compatibility). */
 export const BR_AGENTE_RES_TOUR_FILE_ACCEPT =
@@ -504,14 +505,34 @@ export function Step02InformacionBasica({
         </AiField>
         <div className="sm:col-span-2">
           <AiField label={t.step02.direccion} hint={t.step02.direccionHint}>
-            <input
-              className={aiInputClass}
-              value={state.direccionLinea1}
-              onChange={(ev) => {
-                const v = ev.target.value;
-                setState((s) => ({ ...s, direccionLinea1: v, direccion: v }));
+            <BusinessAddressVerifiedInput
+              lang={lang}
+              value={{
+                street: state.direccionLinea1,
+                unit: state.direccionLinea2,
+                city: state.ciudad,
+                region: state.direccionEstado,
+                postalCode: state.direccionCodigoPostal,
+                country: state.direccionPais || "US",
+                verificationStatus: "manual",
+                provider: null,
+                providerPlaceId: null,
+                manualEntry: true,
               }}
-              autoComplete="street-address"
+              locationHint={[state.ciudad, state.direccionEstado, state.direccionPais].filter(Boolean).join(", ")}
+              inputClassName={aiInputClass}
+              onChange={(next) =>
+                setState((s) => ({
+                  ...s,
+                  direccionLinea1: next.street,
+                  direccion: next.street,
+                  direccionLinea2: next.unit ?? s.direccionLinea2,
+                  ciudad: next.city || s.ciudad,
+                  direccionEstado: next.region || s.direccionEstado,
+                  direccionCodigoPostal: next.postalCode || s.direccionCodigoPostal,
+                  direccionPais: next.country || s.direccionPais,
+                }))
+              }
             />
           </AiField>
         </div>
