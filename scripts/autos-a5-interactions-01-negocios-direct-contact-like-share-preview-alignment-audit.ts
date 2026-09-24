@@ -102,7 +102,8 @@ function run() {
   assert.ok(engagement.includes('countDisplay="numeric"'), "Compact numeric like display required");
   assert.ok(engagement.includes("numericShowZero"), "Zero like count display required");
   assert.ok(engagement.includes('previewLabelMode="iconOnly"'), "No Te gusta/Me gusta visible labels");
-  assert.ok(engagement.includes("directNativeShare"), "Native share path required");
+  assert.ok(!engagement.includes("directNativeShare"), "Engagement Share opens the shared Leonix drawer");
+  assert.ok(engagement.includes("LeonixShareButton"), "Engagement Share uses the shared Leonix component");
   assert.ok(engagement.includes("autosGlobalShareRecorderFromContext"), "listing_share recorder preserved");
   assert.ok(engagement.includes("autosGlobalLikeRecorderFromContext"), "listing_like recorder preserved");
   assert.ok(!engagement.match(/Te gusta|Me gusta/), "No visible Me gusta/Te gusta in engagement row");
