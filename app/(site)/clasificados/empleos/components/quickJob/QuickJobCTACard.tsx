@@ -214,16 +214,14 @@ export function QuickJobCTACard({
   // Shared Leonix share drawer (CtaActionSheet): social options + canonical leonixmedia.com URL.
   const shareTitle = businessName?.trim() || listingTitle?.trim() || "Leonix Media";
   const shareListingId = contactAnalyticsMeta?.sourceId?.trim() || "";
-  const shareRecorder = shareListingId
-    ? empleosGlobalShareRecorder(
-        empleosGlobalListingFromRow({
-          id: shareListingId,
-          slug: contactAnalyticsMeta?.slug,
-          leonix_ad_id: contactAnalyticsMeta?.leonixAdId,
-        }),
-        "detail_share",
-      )
-    : undefined;
+  const shareGlobalListing = shareListingId
+    ? empleosGlobalListingFromRow({
+        id: shareListingId,
+        slug: contactAnalyticsMeta?.slug,
+        leonix_ad_id: contactAnalyticsMeta?.leonixAdId,
+      })
+    : null;
+  const shareRecorder = shareGlobalListing ? empleosGlobalShareRecorder(shareGlobalListing, "detail_share") : undefined;
   const shareSlug = contactAnalyticsMeta?.slug?.trim() || "";
   const shareListingUrl = shareSlug
     ? `${LEONIX_SITE_ORIGIN}/clasificados/empleos/${shareSlug}${lang === "en" ? "?lang=en" : ""}`
