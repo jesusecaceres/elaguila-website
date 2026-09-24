@@ -12,7 +12,7 @@ export const COMMUNITY_PUBLISH_COPY = {
     gateFail: "Completa los campos marcados con * antes de la vista previa:",
     publishBlocked: "Completa los requisitos de vista previa antes de publicar.",
     paidClassPublishBlocked:
-      "Las clases con costo requieren la tarifa de anuncio Leonix de $24.99 por 30 días. Al publicar, te llevaremos a un pago seguro para completar la publicación.",
+      "La publicación de clases con costo aún no está disponible. Guarda tu borrador; puedes previsualizarlo sin publicarlo.",
     finalStep: {
       title: "Revisión final",
       intro:
@@ -54,7 +54,7 @@ export const COMMUNITY_PUBLISH_COPY = {
     gateFail: "Complete required fields (*) before preview:",
     publishBlocked: "Complete preview requirements before publishing.",
     paidClassPublishBlocked:
-      "Paid classes require the Leonix listing fee of $24.99 per 30 days. When you publish, we'll take you to secure checkout to complete the listing.",
+      "Publishing paid classes is not available yet. Save your draft; you can preview it without publishing.",
     finalStep: {
       title: "Final review",
       intro:
@@ -169,7 +169,7 @@ export const CLASES_QUICK_COPY = {
     priceSummary: {
       title: "Resumen de precios",
       leonixFeeFree: "Tarifa de anuncio Leonix: gratis",
-      leonixFeePaid: "Tarifa de anuncio Leonix: $24.99 por 30 días",
+      leonixFeePaid: "Publicación de clases con costo: aún no disponible",
       classPriceLabel: "Precio de la clase (lo que cobra el instructor)",
     },
     primaryCtaHint:
@@ -249,7 +249,7 @@ export const CLASES_QUICK_COPY = {
     priceSummary: {
       title: "Price summary",
       leonixFeeFree: "Leonix listing fee: free",
-      leonixFeePaid: "Leonix listing fee: $24.99 per 30 days",
+      leonixFeePaid: "Paid class publishing: not yet available",
       classPriceLabel: "Class price (what the instructor charges)",
     },
     primaryCtaHint:
