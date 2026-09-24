@@ -292,3 +292,23 @@ export function draftToRestaurantePublicListingInsert(
 export function listingJsonToDraft(listingJson: unknown): RestauranteListingDraft {
   return mergeRestauranteDraft(listingJson);
 }
+
+/**
+ * The stored `restaurantes_public_listings` row -> editable intake draft. This is the SAME mapping
+ * the owner dashboard's "Editar" performs (`listing_json` through `mergeRestauranteDraft`, with the
+ * row's own `draft_listing_id` as the stable draft key, since the publish route resolves the row by
+ * that key). Shared by the staff assisted reopen so it never forks a second row -> draft mapper.
+ * Returns null when the row carries no `listing_json` (nothing safe to hydrate).
+ */
+export function restauranteRowToEditableDraft(row: {
+  listing_json?: unknown;
+  draft_listing_id?: unknown;
+}): RestauranteListingDraft | null {
+  if (!row.listing_json || typeof row.listing_json !== "object") return null;
+  const merged = listingJsonToDraft(row.listing_json);
+  const stableDraftId =
+    typeof row.draft_listing_id === "string" && row.draft_listing_id.trim()
+      ? row.draft_listing_id.trim()
+      : merged.draftListingId;
+  return { ...merged, draftListingId: stableDraftId };
+}

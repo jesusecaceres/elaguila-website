@@ -5,6 +5,7 @@ import type {
   ServiciosSpecialHourRow,
   ServiciosWeeklyHourRow,
 } from "@/app/servicios/types/serviciosBusinessProfile";
+import { mergeServiciosPrivateAddressForOwner } from "@/app/clasificados/servicios/lib/serviciosAddressPrivacy";
 import { sanitizeCustomServiciosAmenityLabels, sanitizeServiciosAmenityOptionIds } from "@/app/servicios/lib/serviciosAmenitiesCatalog";
 import { sanitizeCertificationLabels } from "@/app/servicios/lib/serviciosCredentialsCatalog";
 import { sanitizeCustomPaymentMethodLabels, sanitizeServiciosPaymentMethodIds } from "@/app/servicios/lib/serviciosPaymentMethodCatalog";
@@ -547,4 +548,28 @@ export function serviciosPublishedToApplicationDraft(
     newFieldsAvailable: newFieldsMissing.length > 0,
     newFieldsMissing,
   };
+}
+
+/**
+ * ASSISTED REOPEN — map the RAW stored `servicios_public_listings` row (what the staff bound-row
+ * reader returns) through the SAME mapper the owner edit hydration uses. The owner route
+ * (`/api/clasificados/servicios/my-listing`) re-attaches the private exact address before mapping;
+ * this does the identical merge from the row's own `private_contact` so a hidden-address listing
+ * round-trips unchanged. No second mapper, no second listing truth.
+ */
+export function serviciosBoundRowToApplicationDraft(row: Record<string, unknown>): ServiciosPublishedHydrationResult {
+  const profile = mergeServiciosPrivateAddressForOwner(
+    (row.profile_json ?? null) as ServiciosBusinessProfile | null,
+    row.private_contact,
+  );
+  return serviciosPublishedToApplicationDraft({
+    id: typeof row.id === "string" ? row.id : null,
+    slug: typeof row.slug === "string" ? row.slug : null,
+    leonix_ad_id: typeof row.leonix_ad_id === "string" ? row.leonix_ad_id : null,
+    business_name: typeof row.business_name === "string" ? row.business_name : null,
+    city: typeof row.city === "string" ? row.city : null,
+    listing_status: typeof row.listing_status === "string" ? row.listing_status : null,
+    leonix_verified: row.leonix_verified === true,
+    profile_json: profile,
+  });
 }

@@ -9,6 +9,7 @@ import {
   ASSISTED_PUBLISH_MAX_AGE_SEC,
   applyAssistedPublishingCookie,
 } from "@/app/lib/auth/assistedPublishingSession";
+import { isListingLinkedToBusiness } from "@/app/lib/business/assistedListingCustody";
 import { createMinimalAssistedBusiness } from "@/app/lib/sales/createMinimalAssistedBusiness";
 import {
   provisionAssistedCustomerAccount,
@@ -53,6 +54,8 @@ export async function POST(request: NextRequest) {
   const existingBusinessId = typeof body.businessId === "string" ? body.businessId.trim() : "";
   const listingId = typeof body.listingId === "string" ? body.listingId.trim() : "";
   const newClient = body.newClient === true || !existingBusinessId;
+  // Creating a business that looks like one Leonix already holds needs an explicit staff yes.
+  const confirmDuplicateBusiness = body.confirmDuplicateBusiness === true;
 
   if (item.mode === "admin") {
     return NextResponse.json({
@@ -84,11 +87,18 @@ export async function POST(request: NextRequest) {
         contactName: clientName || null,
         phone: clientPhone || null,
         email: clientEmail,
-        confirmCreateDespiteDuplicates: true,
+        confirmCreateDespiteDuplicates: confirmDuplicateBusiness,
       },
       access.actor,
     );
-    if (!drafted.ok) return fail(drafted.error === "invalid_input" ? 400 : 500, drafted.error);
+    if (!drafted.ok) {
+      if (drafted.error === "duplicate_business_warning") {
+        // 409, not a silent create: the cockpit shows the candidates and either reuses one or
+        // re-submits with `confirmDuplicateBusiness: true`.
+        return fail(409, "duplicate_business_warning", { duplicateWarning: drafted.duplicateWarning });
+      }
+      return fail(drafted.error === "invalid_input" ? 400 : 500, drafted.error);
+    }
     businessId = drafted.businessId;
 
     const account = await provisionAssistedCustomerAccount({
@@ -115,6 +125,16 @@ export async function POST(request: NextRequest) {
   if (item.mode === "assisted" && item.assistedCategory && isQuickSalesCategory(item.assistedCategory)) {
     const category = item.assistedCategory;
     const descriptor = QUICK_SALES_CATEGORY_MAP[category];
+    // Reopen: a bound row id enters the signed cookie only after the custody ledger says THIS
+    // business holds THIS row. The launcher never mints a pointer at someone else's listing.
+    if (listingId) {
+      const linked = await isListingLinkedToBusiness({
+        businessId,
+        listingSource: descriptor.listingSource,
+        listingId,
+      });
+      if (!linked) return fail(403, "listing_not_linked_to_business");
+    }
     const resolved = resolveStaffBusinessPackage({
       category,
       requestedPlan,

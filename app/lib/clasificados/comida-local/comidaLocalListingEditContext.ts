@@ -74,6 +74,21 @@ export function clearComidaLocalEditContext(): void {
   }
 }
 
+/**
+ * Staff assisted reopen: the raw canonical row the signed context is bound to -> the application
+ * draft, via the same mapper as the owner edit. Null (never a blank draft) when the row has no stored
+ * `listing_json` or is not editable, so a reopen can never replace the form with an empty one.
+ */
+export function comidaLocalDraftFromAssistedBoundRow(
+  row: Record<string, unknown>,
+  listingId: string,
+): ComidaLocalDraft | null {
+  const json = row.listing_json;
+  if (!json || typeof json !== "object" || Array.isArray(json)) return null;
+  const result = comidaLocalEditHydrationFromRow(row, listingId);
+  return result.ok ? result.draft : null;
+}
+
 export type ComidaLocalEditHydrationResult =
   | { ok: true; draft: ComidaLocalDraft; context: ComidaLocalListingEditContext }
   | { ok: false; reason: "not_found" | "not_editable_legacy_row" | "query_error" };
@@ -101,7 +116,17 @@ export async function fetchOwnerComidaLocalListingForEdit(
   if (error) return { ok: false, reason: "query_error" };
   if (!data) return { ok: false, reason: "not_found" };
 
-  const row = data as Record<string, unknown>;
+  return comidaLocalEditHydrationFromRow(data as Record<string, unknown>, listingId);
+}
+
+/**
+ * The category's ONE row -> draft mapper (pure). Shared by the owner-scoped fetch above and by the
+ * staff assisted reopen (`useAssistedBoundRow`), so a reopened row hydrates exactly like an owner edit.
+ */
+export function comidaLocalEditHydrationFromRow(
+  row: Record<string, unknown>,
+  listingId: string,
+): ComidaLocalEditHydrationResult {
   const slug = typeof row.slug === "string" ? row.slug.trim() : "";
   const rowDraftListingId = typeof row.draft_listing_id === "string" ? row.draft_listing_id.trim() : "";
   if (!slug || !rowDraftListingId) return { ok: false, reason: "not_editable_legacy_row" };

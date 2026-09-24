@@ -96,6 +96,8 @@ import {
   saveBienesListingEditWorkspace,
 } from "./utils/bienesDashboardListingEditWorkspace";
 import { resolveDraftPrecedence } from "@/app/lib/listingDrafts/draftWorkspaceContract";
+import { useAssistedBoundRow } from "@/app/lib/sales/useAssistedBoundRow";
+import { bienesPublishedRowToAgenteApplicationDraft } from "./utils/bienesPublishedToAgenteApplicationDraft";
 
 const BR_AGENTE_RES_PREVIEW_ROUTE = "/clasificados/publicar/bienes-raices/negocio/agente-individual/preview";
 
@@ -274,6 +276,32 @@ export default function AgenteIndividualResidencialApplication() {
   useEffect(() => {
     if (isExistingDashboardListingMode) setParentDraftReady(true);
   }, [isExistingDashboardListingMode]);
+
+  /* ASSISTED REOPEN: the SERVER copy of the row a Leonix staff session is bound to (customers get
+     status "none"). Hydrated ONCE per reopen (`shouldHydrate`) through the SAME published-row ->
+     Agente draft mapper the owner dashboard edit uses, run on the raw stored row, then persisted
+     into the application draft store the Preview -> "Volver a editar" round trip reads. Preview
+     return never re-hydrates (marker), so in-progress edits survive. The bound row id itself lives
+     in the signed assisted context, so the next save targets the same row. Inventory add / child
+     routes and owner dashboard edit modes keep their own flows. */
+  const assistedBound = useAssistedBoundRow("bienes-raices");
+  useEffect(() => {
+    if (isExistingDashboardListingMode || inventoryAdd.inventoryModeAdd || inventoryChildRoute.active) return;
+    if (!parentDraftReady) return;
+    if (assistedBound.status !== "ready" || !assistedBound.shouldHydrate) return;
+    const mapped = bienesPublishedRowToAgenteApplicationDraft({ row: assistedBound.bound.row });
+    setState(mapped);
+    setChildInventoryMediaBridge(mapped.additionalInventoryProperties ?? []);
+    persistAgenteResApplicationDraftQuiet(mapped, { applicationInstanceId });
+    assistedBound.markHydrated();
+  }, [
+    applicationInstanceId,
+    assistedBound,
+    inventoryAdd.inventoryModeAdd,
+    inventoryChildRoute.active,
+    isExistingDashboardListingMode,
+    parentDraftReady,
+  ]);
 
   useEffect(() => {
     if (!isExistingDashboardListingMode || !editListingId || dashboardHydratedRef.current) return;

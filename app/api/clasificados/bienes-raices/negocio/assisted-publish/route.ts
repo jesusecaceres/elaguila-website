@@ -283,23 +283,47 @@ export async function POST(request: NextRequest) {
     delete patch.status;
     delete patch.is_published;
     delete patch.published_at;
+    // PARENT/CHILD INVARIANTS ARE STRUCTURE, NOT FORM DATA. The row's inventory role and group/parent
+    // links were fixed when it was created (main -> group id = its own id); an update built from a
+    // reopened draft must never rewrite them, or re-saving could demote a main row or detach a child.
+    delete patch.inventory_role;
+    delete patch.br_inventory_group_id;
+    delete patch.br_inventory_parent_listing_id;
+    // REOPEN — the bound row is targeted BY ID under proven custody (ledger link checked above, signed
+    // context, category re-read here). Custody, not `owner_id`, is the authority for a Leonix-prepared
+    // row: it may be owner-null (Leonix-managed) or owned by a client that changed since the first
+    // save, and demanding an owner match 409'd every such reopen. Ownership and lifecycle are never
+    // written here.
+    const { data: existingRow, error: existingError } = await db
+      .from("listings")
+      .select("id, category, owner_id")
+      .eq("id", listingId)
+      .maybeSingle();
+    if (existingError) {
+      return NextResponse.json({ ok: false, error: "listing_update_failed" }, { status: 500 });
+    }
+    if (!existingRow?.id) {
+      return NextResponse.json({ ok: false, error: "listing_not_found" }, { status: 404 });
+    }
+    if (String(existingRow.category ?? "") !== "bienes-raices") {
+      return NextResponse.json({ ok: false, error: "listing_category_mismatch" }, { status: 422 });
+    }
     // ZERO ROWS IS NOT SUCCESS.
     //
-    // `.update(...).eq(...).eq("owner_id", clientUserId)` with no `.select()` returns a null error
-    // when it matches NOTHING, so a `clientUserId` that does not match the stored owner produced
-    // `{ ok: true, listingId }` having written not one column. Staff were told the client's ad had
-    // been saved; nothing had been. The row count is now the answer.
-    const updateQuery = clientUserId
-      ? db.from("listings").update(patch).eq("id", listingId).eq("owner_id", clientUserId)
-      : db.from("listings").update(patch).eq("id", listingId);
-    const { data: updatedRow, error: updateError } = await updateQuery
+    // `.update(...)` with no `.select()` returns a null error when it matches NOTHING, which used to
+    // produce `{ ok: true, listingId }` having written not one column. The row count is the answer.
+    const { data: updatedRow, error: updateError } = await db
+      .from("listings")
+      .update(patch)
+      .eq("id", listingId)
+      .eq("category", "bienes-raices")
       .select("id")
       .maybeSingle();
     if (updateError) {
       return NextResponse.json({ ok: false, error: "listing_update_failed" }, { status: 500 });
     }
     if (!updatedRow?.id) {
-      return NextResponse.json({ ok: false, error: "listing_owner_mismatch" }, { status: 409 });
+      return NextResponse.json({ ok: false, error: "listing_update_failed" }, { status: 409 });
     }
   } else {
     // Insert new listing
@@ -364,17 +388,13 @@ export async function POST(request: NextRequest) {
     const activatedAt = new Date().toISOString();
     // Same rule on the one write that makes a listing PUBLIC: a zero-row activation reported as
     // success is a listing staff believe is live and a customer cannot find.
-    const activateQuery = clientUserId
-      ? db
-          .from("listings")
-          .update({ status: "active", is_published: true, published_at: activatedAt, updated_at: activatedAt })
-          .eq("id", listingId)
-          .eq("owner_id", clientUserId)
-      : db
-          .from("listings")
-          .update({ status: "active", is_published: true, published_at: activatedAt, updated_at: activatedAt })
-          .eq("id", listingId);
-    const { data: activatedRow, error: activateError } = await activateQuery
+    // The row is either the one just inserted or the custody-proven bound row, so it is targeted by id
+    // (an owner filter here rejected owner-null / owner-changed Leonix-managed rows the same way).
+    const { data: activatedRow, error: activateError } = await db
+      .from("listings")
+      .update({ status: "active", is_published: true, published_at: activatedAt, updated_at: activatedAt })
+      .eq("id", listingId)
+      .eq("category", "bienes-raices")
       .select("id")
       .maybeSingle();
     if (activateError) {
@@ -385,7 +405,7 @@ export async function POST(request: NextRequest) {
     }
     if (!activatedRow?.id) {
       return NextResponse.json(
-        { ok: false, error: "listing_owner_mismatch", listingId },
+        { ok: false, error: "listing_activate_failed", listingId },
         { status: 409 },
       );
     }

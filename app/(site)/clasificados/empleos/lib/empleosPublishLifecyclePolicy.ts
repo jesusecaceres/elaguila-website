@@ -69,6 +69,37 @@ export function resolveEmpleosUpsertLifecycle(input: {
   return { ok: true, lifecycle: input.requireReview ? "pending_review" : "published" };
 }
 
+export type EmpleosRowOwnerDecision = { ok: true; ownerUserId: string | null } | { ok: false; error: "forbidden" };
+
+/**
+ * Owner of the row after an envelope save (`upsertEmpleosListingFromEnvelope`).
+ *
+ * Customer/owner saves (`assistedCustody` false): unchanged strict rule — the incoming owner must equal the
+ * stored owner, and an owner-null row can never be claimed.
+ *
+ * Staff assisted saves (`assistedCustody` true — ONLY set by a route that already re-proved the custody
+ * ledger for the signed-context row): a reopen must be able to update the bound row whichever way the
+ * owner attribution drifted between saves.
+ *  - stored owner-null, incoming client: the client is adopted as owner (client appeared after first save).
+ *  - stored owner X, incoming null: X is KEPT (a staff save with no client never strips or demotes ownership).
+ *  - stored owner X, incoming Y (different): still forbidden — custody never moves a row between customers.
+ */
+export function resolveEmpleosRowOwner(input: {
+  existingOwner: string | null | undefined;
+  incomingOwner: string | null | undefined;
+  assistedCustody: boolean;
+}): EmpleosRowOwnerDecision {
+  const existing = String(input.existingOwner ?? "").trim() || null;
+  const incoming = String(input.incomingOwner ?? "").trim() || null;
+  if (input.assistedCustody) {
+    if (existing && incoming && existing !== incoming) return { ok: false, error: "forbidden" };
+    return { ok: true, ownerUserId: incoming ?? existing };
+  }
+  if (existing && existing !== incoming) return { ok: false, error: "forbidden" };
+  if (!existing && incoming) return { ok: false, error: "forbidden" };
+  return { ok: true, ownerUserId: incoming };
+}
+
 export type EmpleosOwnerTransitionDecision =
   | { ok: true }
   | { ok: false; error: "payment_required" | "forbidden_transition" | "staff_hold" };

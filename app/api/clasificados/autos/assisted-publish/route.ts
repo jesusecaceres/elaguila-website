@@ -21,6 +21,10 @@ import {
   isListingLinkedToBusiness,
   linkAssistedListingToBusiness,
 } from "@/app/lib/business/assistedListingCustody";
+import {
+  proveAssistedAutosRowForWrite,
+  resolveAssistedDealerChildWriteOwner,
+} from "@/app/lib/clasificados/autos/assistedAutosRowCustody";
 import { refuseUnlessAuthoritativePayment } from "@/app/lib/listingPlans/listingPackagePaymentAuthorityServer";
 import {
   createAutosClassifiedsListing,
@@ -210,6 +214,23 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // REOPEN SAFETY — an existing dealer parent is written under the scope its STORED row dictates
+  // (owner-null organizational custody vs client-owned), after lane/role are re-proven, instead of
+  // whatever client id this request happens to carry. A mismatched client is refused, not reassigned.
+  let writeOwnerUserId: string | null = resolvedOwnerUserId;
+  if (existingMainListingId) {
+    const mainProof = await proveAssistedAutosRowForWrite({
+      businessId: assistedContext.businessId,
+      listingId: existingMainListingId,
+      clientUserId: resolvedOwnerUserId,
+      expectedLane: "negocios",
+    });
+    if (!mainProof.ok) {
+      return NextResponse.json({ ok: false, error: mainProof.error }, { status: mainProof.status });
+    }
+    writeOwnerUserId = mainProof.ownerUserId;
+  }
+
   // Create the dealer main row, or UPDATE the canonical one.
   //
   // A REPEAT SAVE THAT WRITES NOTHING IS NOT A SAVE. This branch previously reused the existing id
@@ -218,7 +239,7 @@ export async function POST(request: NextRequest) {
   // number, saw success, reopened the draft and found the old number.
   let mainListingId = existingMainListingId;
   if (mainListingId) {
-    const updated = await updateAutosClassifiedsListingDraft(mainListingId, resolvedOwnerUserId, {
+    const updated = await updateAutosClassifiedsListingDraft(mainListingId, writeOwnerUserId, {
       listing: dealerListing,
       lang,
     });
@@ -274,7 +295,16 @@ export async function POST(request: NextRequest) {
     // with no child yet inserts one.
     const existingChildId = await findExistingAssistedVehicleChildId(mainListingId);
     if (existingChildId) {
-      const updatedChild = await updateAutosClassifiedsListingDraft(existingChildId, resolvedOwnerUserId, {
+      const childProof = await resolveAssistedDealerChildWriteOwner({
+        businessId: assistedContext.businessId,
+        parentListingId: mainListingId,
+        childListingId: existingChildId,
+        clientUserId: resolvedOwnerUserId,
+      });
+      if (!childProof.ok) {
+        return NextResponse.json({ ok: false, error: childProof.error }, { status: childProof.status });
+      }
+      const updatedChild = await updateAutosClassifiedsListingDraft(existingChildId, childProof.ownerUserId, {
         listing: vehicleListing,
         lang,
       });
@@ -287,7 +317,7 @@ export async function POST(request: NextRequest) {
       vehicleListingId = existingChildId;
     } else {
       const vehicleResult = await createAutosClassifiedsListingWithInventoryParent({
-        ownerUserId: resolvedOwnerUserId,
+        ownerUserId: writeOwnerUserId,
         lane: "negocios",
         lang,
         listing: vehicleListing,

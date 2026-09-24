@@ -161,8 +161,11 @@ import {
 import {
   readServiciosDraftListingIdentity,
   reconcileServiciosPrimedIdentityOnApplicationMount,
+  rememberServiciosDraftListingIdentity,
 } from "../lib/serviciosDraftListingIdentity";
+import { useAssistedBoundRow } from "@/app/lib/sales/useAssistedBoundRow";
 import {
+  serviciosBoundRowToApplicationDraft,
   serviciosPublishedToApplicationDraft,
   type ServiciosEditIdentity,
   type ServiciosPublishedListingHydrationSource,
@@ -262,6 +265,10 @@ export function ClasificadosServiciosApplication() {
    * already read — never used for authorization.
    */
   const assistedUi = useAssistedPublishingUi();
+  // ASSISTED REOPEN — staff-only server copy of the canonical row this signed session is bound to.
+  // Customers get status "none" (401), so their owner/dashboard flow below is unchanged.
+  const assistedBound = useAssistedBoundRow("servicios");
+  const assistedHydrationEpochRef = useRef(0);
   const [assistedBusinessName, setAssistedBusinessName] = useState("");
   useEffect(() => {
     if (!assistedUi) return;
@@ -773,12 +780,40 @@ export function ClasificadosServiciosApplication() {
     };
   }, [editRequested, editListingId, editListingSlug, editLeonixAdId, lang, dashboardSource]);
 
+  // ASSISTED REOPEN — load the SERVER row the signed staff session is bound to through the SAME
+  // owner mapper (`serviciosPublishedToApplicationDraft`), instead of trusting this browser's draft.
+  // Runs once per reopen (`shouldHydrate`), after the local draft bootstrap, so Preview -> "Volver a
+  // editar" never overwrites in-progress edits. The bound id is primed so the next save targets the
+  // same row.
+  useEffect(() => {
+    if (editRequested || !hydrated) return;
+    if (assistedBound.status !== "ready" || !assistedBound.shouldHydrate) return;
+    const boundListingId = assistedBound.bound.listingId;
+    const hydratedListing = serviciosBoundRowToApplicationDraft(assistedBound.bound.row);
+    assistedHydrationEpochRef.current += 1;
+    setState(hydratedListing.state);
+    setEditIdentity(null);
+    setNewFieldsMissing(hydratedListing.newFieldsMissing);
+    primeServiciosExistingPublicSlug(hydratedListing.editIdentity.slug);
+    primeServiciosExistingListingId(boundListingId);
+    rememberServiciosDraftListingIdentity(typeof window !== "undefined" ? window.sessionStorage : null, {
+      listingId: boundListingId,
+      leonixAdId: hydratedListing.editIdentity.leonixAdId,
+      slug: hydratedListing.editIdentity.slug,
+    });
+    void saveClasificadosServiciosApplicationResolved(hydratedListing.state);
+    assistedBound.markHydrated();
+  }, [editRequested, hydrated, assistedBound]);
+
   useEffect(() => {
     if (!hydrated) return;
     let cancelled = false;
+    const assistedEpoch = assistedHydrationEpochRef.current;
     void (async () => {
       const full = await rehydrateServiciosApplicationMedia(stateRef.current);
-      if (cancelled) return;
+      // A staff reopen that loaded the server row while this ran must not be overwritten by the
+      // pre-hydration draft snapshot this call started from.
+      if (cancelled || assistedHydrationEpochRef.current !== assistedEpoch) return;
       setState(full);
       await saveClasificadosServiciosApplicationResolved(full);
     })();

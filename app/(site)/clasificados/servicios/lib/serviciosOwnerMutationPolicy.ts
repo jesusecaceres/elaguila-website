@@ -140,6 +140,28 @@ export function decideServiciosOwnerSaveStatus(input: {
   }
 }
 
+/**
+ * ASSISTED REOPEN — the listing_status an assisted "Save for Client" persists.
+ *
+ * A NEW row starts hidden as `draft`. An EXISTING row keeps whatever lifecycle state it already has:
+ * a staff edit of a live listing is a content edit, never an unpublish (the old rule forced every
+ * existing row back to `draft`, taking a published Servicios listing offline on the next save).
+ * Leonix-locked rows are refused by the caller before this is consulted, and an unknown/blank
+ * status falls back to `draft` (never to a public state). Going public is only ever
+ * `publish_for_client`, which is payment-gated and decided separately.
+ */
+export function decideServiciosAssistedSaveStatus(input: {
+  hasExistingRow: boolean;
+  existingStatus: string | null | undefined;
+}): string {
+  if (!input.hasExistingRow) return "draft";
+  const existing = String(input.existingStatus ?? "").trim().toLowerCase();
+  if (existing === "published" || existing === "paused_unpublished" || existing === "pending_review" || existing === "pending_payment") {
+    return existing;
+  }
+  return "draft";
+}
+
 export type ServiciosReactivationAuthorityDecision =
   | { allowed: true }
   | { allowed: false; reason: "subscription_inactive" | "no_base_commercial_right" };

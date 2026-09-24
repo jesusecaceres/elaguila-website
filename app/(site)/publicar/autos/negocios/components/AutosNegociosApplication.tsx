@@ -55,6 +55,8 @@ import {
 import { resolveDealerActiveVehicleLimit } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
 import { buildDashboardMisAnunciosReturnPath } from "@/app/lib/listingPlans/revenueOsReturnPath";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { useAssistedBoundRow } from "@/app/lib/sales/useAssistedBoundRow";
+import { assistedBoundRowToDealerDraft } from "@/app/publicar/autos/shared/lib/autosAssistedBoundRowMappers";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)] sm:p-6";
@@ -193,6 +195,56 @@ export function AutosNegociosApplication() {
     setEditorProgress,
   ]);
 
+  /* ASSISTED REOPEN — a Leonix staff session reopening the listing it saved for a client has no
+     owner bearer, so the dashboard hydration above cannot run and this browser may hold nothing (or
+     something stale). Load the SERVER copy of the bound canonical row once per reopen and run the
+     dealer's OWN row -> draft normalization over it, then write it to the same draft store Preview
+     reads. Customers get 401 -> status "none" -> nothing here runs for them. */
+  const assistedBound = useAssistedBoundRow("autos");
+  const {
+    status: assistedStatus,
+    shouldHydrate: assistedShouldHydrate,
+    bound: assistedRow,
+    markHydrated: markAssistedHydrated,
+  } = assistedBound;
+  const assistedHydrateStartedRef = useRef(false);
+  const assistedHydrationPending =
+    !isExistingDashboardListingMode && !inventoryAddMode && assistedStatus === "ready" && assistedShouldHydrate;
+  useEffect(() => {
+    if (!assistedHydrationPending || !hydrated || !assistedRow) return;
+    if (assistedHydrateStartedRef.current) return;
+    assistedHydrateStartedRef.current = true;
+    void (async () => {
+      try {
+        const mapped = assistedBoundRowToDealerDraft(assistedRow.row, assistedRow.children);
+        if (mapped) {
+          setVehicleTitleOverrideState(mapped.vehicleTitleOverride);
+          updateInProgressInventoryVehicleDraft(null);
+          setInventoryDrawerOpen(false, null);
+          setEditorProgress(0, 0);
+          await flushDraft({
+            listing: mapped.listing,
+            additionalInventoryVehicles: mapped.additionalInventoryVehicles,
+            editorStep: 0,
+            editorMaxReached: 0,
+          });
+        }
+      } finally {
+        markAssistedHydrated();
+      }
+    })();
+  }, [
+    assistedHydrationPending,
+    assistedRow,
+    flushDraft,
+    hydrated,
+    markAssistedHydrated,
+    setEditorProgress,
+    setInventoryDrawerOpen,
+    setVehicleTitleOverrideState,
+    updateInProgressInventoryVehicleDraft,
+  ]);
+
   useEffect(() => {
     const entitlementListingId = isExistingDashboardListingMode
       ? editListingId
@@ -296,7 +348,11 @@ export function AutosNegociosApplication() {
       )
     : withLangParam("/clasificados/autos/negocios/preview", routeLang);
 
-  if (!hydrated || (isExistingDashboardListingMode && editHydration.status === "loading")) {
+  if (
+    !hydrated ||
+    assistedHydrationPending ||
+    (isExistingDashboardListingMode && editHydration.status === "loading")
+  ) {
     return <div className="min-h-[40vh] bg-[color:var(--lx-page)]" aria-busy="true" />;
   }
 

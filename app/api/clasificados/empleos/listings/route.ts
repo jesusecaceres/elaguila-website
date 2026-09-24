@@ -68,6 +68,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   let ownerUserId: string | null = await getBearerUserId(req);
   let staffMode: "draft" | "publish" | null = null;
+  // True only after the ledger re-proof below succeeds for the signed-context row (assisted reopen).
+  let assistedCustodyProven = false;
   if (assisted.assisted) {
     if (assisted.isPublish) {
       return NextResponse.json({ ok: false, error: "publish_via_cockpit_only" }, { status: 403 });
@@ -84,6 +86,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         return NextResponse.json({ ok: false, error: "listing_not_linked_to_business" }, { status: 403 });
       }
       envelope.listingId = assisted.listingId;
+      assistedCustodyProven = true;
     }
   } else if (!ownerUserId) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
@@ -92,7 +95,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const mode = staffMode ?? (b.mode === "draft" ? "draft" : "publish");
 
   const wasNew = !String(envelope.listingId ?? "").trim();
-  const res = await upsertEmpleosListingFromEnvelope({ envelope, ownerUserId, mode });
+  const res = await upsertEmpleosListingFromEnvelope({
+    envelope,
+    ownerUserId,
+    mode,
+    assistedCustody: assistedCustodyProven,
+  });
   if (!res.ok) {
     const status =
       res.error === "forbidden"

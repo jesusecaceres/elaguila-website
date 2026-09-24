@@ -44,6 +44,8 @@ import { RestaurantePublishMediaBuckets } from "@/app/clasificados/restaurantes/
 import { mergeRestauranteDraft } from "@/app/clasificados/restaurantes/application/createEmptyRestauranteDraft";
 import { buildRestaurantePublishPayload } from "@/app/clasificados/restaurantes/application/buildRestaurantePublishPayload";
 import { AssistedSaveForClientBar } from "@/app/clasificados/components/AssistedSaveForClientBar";
+import { useAssistedBoundRow } from "@/app/lib/sales/useAssistedBoundRow";
+import { restauranteRowToEditableDraft } from "@/app/clasificados/restaurantes/lib/restaurantesPublicListingMapper";
 import { resolveRestauranteDraftMediaToRemoteUrls } from "@/app/clasificados/restaurantes/application/restauranteDraftPublishPrepare";
 import {
   redirectRestauranteDashboardCouponAddonCheckout,
@@ -206,7 +208,22 @@ export default function RestauranteApplicationClient() {
     returnPanel === "restaurantes"
       ? appendLangToPath("/dashboard/restaurantes", routeLang)
       : buildDashboardMisAnunciosReturnPath(lang, "restaurantes");
-  const { hydrated, draft, draftRef, isDraftDirty, setDraftPatch, resetDraft, trimDraftStrings } = useRestauranteDraft();
+  const { hydrated, draft, draftRef, isDraftDirty, setDraftPatch, replaceDraft, resetDraft, trimDraftStrings } = useRestauranteDraft();
+
+  // ASSISTED REOPEN — staff-only server copy of the canonical row this signed session is bound to.
+  // Customers get status "none" (401), so their own draft/dashboard flow is unchanged. Runs once per
+  // reopen (`shouldHydrate`) after the local draft bootstrap, so Preview -> Edit never overwrites
+  // in-progress edits. The row's own `draft_listing_id` becomes the draft key, so the next save
+  // resolves (and the server-side custody check accepts) the SAME row instead of a blank/new one.
+  const assistedBound = useAssistedBoundRow("restaurantes");
+  useEffect(() => {
+    if (!hydrated || isExistingDashboardListingMode) return;
+    if (assistedBound.status !== "ready" || !assistedBound.shouldHydrate) return;
+    const boundDraft = restauranteRowToEditableDraft(assistedBound.bound.row);
+    if (!boundDraft) return;
+    replaceDraft(boundDraft);
+    assistedBound.markHydrated();
+  }, [hydrated, isExistingDashboardListingMode, assistedBound, replaceDraft]);
 
   useBusinessApplicationLeaveGuard({
     isDirty: hydrated && Boolean(draft.businessName?.trim()) && isDraftDirty,

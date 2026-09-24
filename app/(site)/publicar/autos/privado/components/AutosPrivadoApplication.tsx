@@ -51,6 +51,8 @@ import { AutosVinDecodeBlock } from "@/app/publicar/autos/shared/components/Auto
 import { AutosDraftSessionRestoredBanner } from "@/app/publicar/autos/shared/components/AutosDraftSessionRestoredBanner";
 import { AutosPricingPlanBanner } from "@/app/publicar/autos/shared/components/AutosPricingPlanBanner";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import { useAssistedBoundRow } from "@/app/lib/sales/useAssistedBoundRow";
+import { assistedBoundRowToPrivadoListing } from "@/app/publicar/autos/shared/lib/autosAssistedBoundRowMappers";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)] sm:p-6";
@@ -158,6 +160,42 @@ export function AutosPrivadoApplication() {
     })();
   }, [editListingId, flushDraft, hydrated, isDashboardListingEditMode, lang, setEditorProgress]);
 
+  /* ASSISTED REOPEN — a Leonix staff session reopening the private listing it saved for a client
+     has no owner bearer, so the dashboard hydration above cannot run and this browser may hold
+     nothing (or something stale). Load the SERVER copy of the bound canonical row once per reopen
+     and write it to the same draft store Preview reads, through the privado draft's own flush.
+     Customers get 401 -> status "none" -> nothing here runs for them. */
+  const assistedBound = useAssistedBoundRow("autos-privado");
+  const {
+    status: assistedStatus,
+    shouldHydrate: assistedShouldHydrate,
+    bound: assistedRow,
+    markHydrated: markAssistedHydrated,
+  } = assistedBound;
+  const assistedHydrateStartedRef = useRef(false);
+  const assistedHydrationPending =
+    !isDashboardListingEditMode && assistedStatus === "ready" && assistedShouldHydrate;
+  useEffect(() => {
+    if (!assistedHydrationPending || !hydrated || !assistedRow) return;
+    if (assistedHydrateStartedRef.current) return;
+    assistedHydrateStartedRef.current = true;
+    void (async () => {
+      try {
+        const mapped = assistedBoundRowToPrivadoListing(assistedRow.row);
+        if (mapped) {
+          setEditorProgress(AUTOS_PUBLISH_FINAL_STEP_INDEX, AUTOS_PUBLISH_FINAL_STEP_INDEX);
+          await flushDraft({
+            listing: mapped,
+            editorStep: AUTOS_PUBLISH_FINAL_STEP_INDEX,
+            editorMaxReached: AUTOS_PUBLISH_FINAL_STEP_INDEX,
+          });
+        }
+      } finally {
+        markAssistedHydrated();
+      }
+    })();
+  }, [assistedHydrationPending, assistedRow, flushDraft, hydrated, markAssistedHydrated, setEditorProgress]);
+
   useEffect(() => {
     if (!hydrated) return;
     if (!searchParams || !pathname) return;
@@ -201,7 +239,7 @@ export function AutosPrivadoApplication() {
     }
   }, [hydrated, customEquipmentArray.length, listing.otherEquipmentDetails, setListingPatch]);
 
-  if (!hydrated || (isDashboardListingEditMode && editHydration.status === "loading")) {
+  if (!hydrated || assistedHydrationPending || (isDashboardListingEditMode && editHydration.status === "loading")) {
     return <div className="min-h-[40vh] bg-[color:var(--lx-page)]" aria-busy="true" />;
   }
 

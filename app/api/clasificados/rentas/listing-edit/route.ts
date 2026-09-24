@@ -9,7 +9,7 @@ import type { RentasPrivadoFormState } from "@/app/clasificados/publicar/rentas/
 import type { RentasNegocioFormState } from "@/app/clasificados/publicar/rentas/negocio/schema/rentasNegocioFormState";
 import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import { applyAssistedPublishingCookie } from "@/app/lib/auth/assistedPublishingSession";
-import { linkAssistedListingToBusiness } from "@/app/lib/business/assistedListingCustody";
+import { isListingLinkedToBusiness, linkAssistedListingToBusiness } from "@/app/lib/business/assistedListingCustody";
 import { recordSalesWorkspaceAudit } from "@/app/lib/sales/salesWorkspaceAudit";
 import { resolveStaffAssistedCategorySave, isStaffAssistedSaveRefusal } from "@/app/lib/sales/staffAssistedCategorySave";
 
@@ -150,6 +150,16 @@ export async function POST(request: NextRequest) {
       }
       if (trim(existing.category).toLowerCase() !== "rentas") {
         return NextResponse.json({ ok: false, code: "wrong_category" }, { status: 422 });
+      }
+      // REOPEN custody re-proof: an existing row is writable only while the custody ledger still
+      // links it to THIS business (never on the strength of the cookie or a body id alone).
+      const linked = await isListingLinkedToBusiness({
+        businessId: assisted.ctx.businessId,
+        listingSource: "listings",
+        listingId,
+      });
+      if (!linked) {
+        return NextResponse.json({ ok: false, error: "listing_not_linked_to_business" }, { status: 403 });
       }
       const existingOwner = trim(existing.owner_id) || null;
       if (existingOwner && assisted.clientUserId && existingOwner !== assisted.clientUserId) {

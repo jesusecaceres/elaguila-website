@@ -116,6 +116,26 @@ export type BusinessWorkspaceListFilters = {
   offset?: number;
 };
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Business ids whose email/phone contact matches an email or phone fragment; [] for plain-text keywords. */
+async function businessIdsMatchingContactKeyword(supabase: ReturnType<typeof getAdminSupabase>, keyword: string): Promise<string[]> {
+  const kw = keyword.trim();
+  const digits = kw.replace(/D/g, "");
+  const isEmail = kw.includes("@") && kw.length >= 4;
+  const isPhone = !isEmail && digits.length >= 7 && digits.length >= kw.replace(/s/g, "").length - 4;
+  if (!isEmail && !isPhone) return [];
+  const needle = isEmail ? kw.toLowerCase() : digits;
+  const { data, error } = await supabase
+    .from("business_contacts")
+    .select("business_id")
+    .eq("contact_type", isEmail ? "email" : "phone")
+    .ilike("normalized_value", `%${needle}%`)
+    .limit(50);
+  if (error || !data) return [];
+  return [...new Set((data as { business_id: string | null }[]).map((r) => String(r.business_id ?? "")).filter((id) => UUID_RE.test(id)))];
+}
+
 /**
  * List + filter across ALL businesses (not scoped to a single owner) — the whole point of the
  * staff workspace. Filtering that needs joined data (country, contact-method flags, ad count) is
@@ -133,7 +153,12 @@ export async function listBusinessesForWorkspace(filters: BusinessWorkspaceListF
   }
   if (filters.keyword?.trim()) {
     const kw = filters.keyword.trim();
-    query = query.or(`display_name.ilike.%${kw}%,public_name.ilike.%${kw}%,normalized_name.ilike.%${kw}%`);
+    // An email or phone fragment also finds the business that already holds that contact, so staff
+    // reuse the existing client instead of creating a duplicate. Matching only: contact values are
+    // never returned by this list.
+    const contactBusinessIds = await businessIdsMatchingContactKeyword(supabase, kw);
+    const nameFilter = `display_name.ilike.%${kw}%,public_name.ilike.%${kw}%,normalized_name.ilike.%${kw}%`;
+    query = query.or(contactBusinessIds.length ? `${nameFilter},id.in.(${contactBusinessIds.join(",")})` : nameFilter);
   }
   if (filters.broadBusinessType) query = query.eq("broad_business_type", filters.broadBusinessType);
   if (filters.businessStage) query = query.eq("business_stage", filters.businessStage);

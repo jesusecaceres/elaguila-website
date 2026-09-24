@@ -10,7 +10,7 @@ import { empleosEnvelopeToCanonical } from "./staged/empleosEnvelopeToJobRecord"
 import type { EmpleosCanonicalListing } from "./staged/empleosCanonicalListing";
 import { buildEmpleosLiveSlugBase } from "./empleosLiveSlug";
 import { resolveEmpleosPublicationLane } from "./empleosLaneResolve";
-import { resolveEmpleosOwnerTransition, resolveEmpleosUpsertLifecycle } from "./empleosPublishLifecyclePolicy";
+import { resolveEmpleosOwnerTransition, resolveEmpleosRowOwner, resolveEmpleosUpsertLifecycle } from "./empleosPublishLifecyclePolicy";
 
 export type EmpleosListingLifecycleDb =
   | "draft"
@@ -136,6 +136,12 @@ export async function upsertEmpleosListingFromEnvelope(input: {
   envelope: EmpleosPublishEnvelope;
   ownerUserId: string | null;
   mode: "draft" | "publish";
+  /**
+   * Set ONLY by a route that has already re-proved the custody ledger (`isListingLinkedToBusiness`) for the
+   * signed assisted context's bound row. Lets a staff reopen update that row when owner attribution drifted
+   * (owner-null -> client adopted; client kept when a later save names none). Never a bypass for another row.
+   */
+  assistedCustody?: boolean;
 }): Promise<{ ok: true; id: string; slug: string; lifecycle_status: EmpleosListingLifecycleDb } | { ok: false; error: string }> {
   if (!isSupabaseAdminConfigured()) {
     return { ok: false, error: "supabase_not_configured" };
@@ -158,15 +164,15 @@ export async function upsertEmpleosListingFromEnvelope(input: {
   if (candidateId && !existing) {
     return { ok: false, error: QUICK_LISTING_EXISTING_IDENTITY_INVALID_CODE };
   }
+  let effectiveOwnerUserId: string | null = input.ownerUserId ?? null;
   if (existing) {
-    const existingOwner = (existing as { owner_user_id: string | null }).owner_user_id ?? null;
-    const incomingOwner = input.ownerUserId ?? null;
-    if (existingOwner && existingOwner !== incomingOwner) {
-      return { ok: false, error: "forbidden" };
-    }
-    if (!existingOwner && incomingOwner) {
-      return { ok: false, error: "forbidden" };
-    }
+    const ownerDecision = resolveEmpleosRowOwner({
+      existingOwner: (existing as { owner_user_id: string | null }).owner_user_id ?? null,
+      incomingOwner: input.ownerUserId ?? null,
+      assistedCustody: input.assistedCustody === true && Boolean(candidateId),
+    });
+    if (!ownerDecision.ok) return { ok: false, error: ownerDecision.error };
+    effectiveOwnerUserId = ownerDecision.ownerUserId;
   }
   if (existing) {
     const existingLane = String((existing as EmpleosPublicListingRow).lane ?? "").trim();
@@ -194,7 +200,7 @@ export async function upsertEmpleosListingFromEnvelope(input: {
   const stamped: EmpleosPublishEnvelope = {
     ...input.envelope,
     listingId,
-    ownerId: input.ownerUserId,
+    ownerId: effectiveOwnerUserId,
     createdAt: (existing as { created_at?: string } | null)?.created_at ?? input.envelope.createdAt ?? now,
     updatedAt: now,
     publishedAt: lifecycle === "published" ? now : null,
@@ -208,7 +214,7 @@ export async function upsertEmpleosListingFromEnvelope(input: {
 
   const canonical = empleosEnvelopeToCanonical(stamped, {
     listingId,
-    ownerId: input.ownerUserId ?? "",
+    ownerId: effectiveOwnerUserId ?? "",
     slug,
     status: canonicalStatus,
     publishedAt: canonicalPublishedAt,
@@ -231,7 +237,7 @@ export async function upsertEmpleosListingFromEnvelope(input: {
     lifecycle,
     snapshot,
   );
-  row.owner_user_id = input.ownerUserId;
+  row.owner_user_id = effectiveOwnerUserId;
 
   if (existing) {
     // An owner content save must never erase a staff decision or the original publish date:

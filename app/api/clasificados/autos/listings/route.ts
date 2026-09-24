@@ -16,6 +16,7 @@ import { assertCommercialCapacityForWrite } from "@/app/lib/listingPlans/commerc
 import { linkSelfServiceListingToBusiness } from "@/app/lib/business/canonicalListingLink";
 import { linkAssistedListingToBusiness } from "@/app/lib/business/assistedListingCustody";
 import { applyAssistedPublishingCookie } from "@/app/lib/auth/assistedPublishingSession";
+import { proveAssistedAutosRowForWrite } from "@/app/lib/clasificados/autos/assistedAutosRowCustody";
 import { resolveStaffAssistedCategorySave, isStaffAssistedSaveRefusal } from "@/app/lib/sales/staffAssistedCategorySave";
 import { recordSalesWorkspaceAudit } from "@/app/lib/sales/salesWorkspaceAudit";
 import { enforceQuickBusinessPublishMedia } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
@@ -240,7 +241,19 @@ export async function POST(request: NextRequest) {
   const resolvedOwnerUserId = assisted.assisted ? assisted.clientUserId : userId;
 
   if (assisted.assisted && assisted.listingId) {
-    const updated = await updateAutosClassifiedsListingDraft(assisted.listingId, resolvedOwnerUserId, {
+    // REOPEN SAFETY — an existing-row write is re-proven against the custody ledger (business +
+    // category context + business_listing_links) and scoped by the STORED row's owner, so a bound
+    // owner-null row and a client-owned row both save, and an unlinked/foreign id never does.
+    const proof = await proveAssistedAutosRowForWrite({
+      businessId: assisted.ctx.businessId,
+      listingId: assisted.listingId,
+      clientUserId: resolvedOwnerUserId,
+      expectedLane: "privado",
+    });
+    if (!proof.ok) {
+      return NextResponse.json({ ok: false, error: proof.error }, { status: proof.status });
+    }
+    const updated = await updateAutosClassifiedsListingDraft(assisted.listingId, proof.ownerUserId, {
       listing: body.listing,
       lang,
     });

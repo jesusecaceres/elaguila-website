@@ -11,7 +11,7 @@ import {
 } from "@/app/lib/clasificados/comida-local/comidaLocalPublishTypes";
 import { parseComidaLocalPublishRequest, normalizeComidaLocalDraftForPublish, normalizeComidaLocalPackageTier } from "@/app/lib/clasificados/comida-local/comidaLocalPublishValidation";
 import { applyAssistedPublishingCookie } from "@/app/lib/auth/assistedPublishingSession";
-import { linkAssistedListingToBusiness } from "@/app/lib/business/assistedListingCustody";
+import { isListingLinkedToBusiness, linkAssistedListingToBusiness } from "@/app/lib/business/assistedListingCustody";
 import { recordSalesWorkspaceAudit } from "@/app/lib/sales/salesWorkspaceAudit";
 import { resolveStaffAssistedCategorySave, isStaffAssistedSaveRefusal } from "@/app/lib/sales/staffAssistedCategorySave";
 import { buildComidaLocalSlugBase } from "@/app/lib/clasificados/comida-local/comidaLocalSlug";
@@ -113,7 +113,9 @@ export async function POST(req: NextRequest) {
     request: req,
     expectedCategory: "comida-local",
     assistedActionRaw: typeof b.assistedAction === "string" ? b.assistedAction : "",
-    bodyListingId: typeof b.draftListingId === "string" ? b.draftListingId : null,
+    // `draftListingId` is the DRAFT identity (`draft_listing_id`), not the canonical row id, so it is
+    // deliberately not offered as a row-id claim: the signed context alone binds the row (see below).
+    bodyListingId: null,
     bodyClientUserId: typeof b.clientUserId === "string" ? b.clientUserId : null,
   });
   if (isStaffAssistedSaveRefusal(assisted)) {
@@ -181,17 +183,20 @@ export async function POST(req: NextRequest) {
   // `listing_json` is selected because it holds the STORED temporary-location payload and its
   // stamp — the only trustworthy "previous" state for the Find Me Today freshness decision
   // below. The request body is never used for that comparison.
-  const { data: existingByDraft, error: exErr } = await supabase
-    .from("comida_local_public_listings")
-    .select("id, slug, leonix_ad_id, status, package_tier, payment_status, owner_user_id, listing_json, draft_listing_id")
-    .eq("draft_listing_id", draftListingId)
-    .maybeSingle();
-
-  if (exErr) {
-    return NextResponse.json({ ok: false, error: "db_read_failed", detail: exErr.message }, { status: 500 });
-  }
-  let existing = existingByDraft;
-  if (!existing && assisted.assisted && assisted.listingId) {
+  let existing: {
+    id: string;
+    slug: string | null;
+    leonix_ad_id: string | null;
+    status: string | null;
+    package_tier: string | null;
+    payment_status: string | null;
+    owner_user_id: string | null;
+    listing_json: unknown;
+    draft_listing_id: string | null;
+  } | null = null;
+  if (assisted.assisted && assisted.listingId) {
+    // ASSISTED REOPEN — the signed-context row is the ONLY row this request may write. The body's
+    // `draftListingId` is a draft identity, not a row id: it never selects the row under custody.
     const { data: existingById, error: byIdErr } = await supabase
       .from("comida_local_public_listings")
       .select("id, slug, leonix_ad_id, status, package_tier, payment_status, owner_user_id, listing_json, draft_listing_id")
@@ -200,7 +205,33 @@ export async function POST(req: NextRequest) {
     if (byIdErr) {
       return NextResponse.json({ ok: false, error: "db_read_failed", detail: byIdErr.message }, { status: 500 });
     }
+    if (!existingById) {
+      // A bound row that no longer exists must fail closed, never fall through to inserting a second listing.
+      return NextResponse.json({ ok: false, error: "listing_not_found" }, { status: 404 });
+    }
     existing = existingById;
+  } else {
+    const { data: existingByDraft, error: exErr } = await supabase
+      .from("comida_local_public_listings")
+      .select("id, slug, leonix_ad_id, status, package_tier, payment_status, owner_user_id, listing_json, draft_listing_id")
+      .eq("draft_listing_id", draftListingId)
+      .maybeSingle();
+    if (exErr) {
+      return NextResponse.json({ ok: false, error: "db_read_failed", detail: exErr.message }, { status: 500 });
+    }
+    existing = existingByDraft;
+  }
+  if (assisted.assisted && existing) {
+    // Custody re-proof (ledger), also for owner-null rows: an assisted context never reaches a row
+    // this business does not hold, however the row was located.
+    const linked = await isListingLinkedToBusiness({
+      businessId: assisted.ctx.businessId,
+      listingSource: "comida_local_public_listings",
+      listingId: existing.id,
+    });
+    if (!linked) {
+      return NextResponse.json({ ok: false, error: "listing_not_linked_to_business" }, { status: 403 });
+    }
   }
 
   const slugBase = buildComidaLocalSlugBase({
@@ -220,10 +251,12 @@ export async function POST(req: NextRequest) {
       const existingOwnerUserId =
         typeof existing.owner_user_id === "string" ? existing.owner_user_id : null;
       if (existingOwnerUserId) {
-        if (!ownerUserId) {
+        // Under ledger-proven assisted custody a save that names no client keeps the row's owner
+        // (below, `ownerUserId ?? existing owner`); it is never refused and never strips ownership.
+        if (!ownerUserId && !assisted.assisted) {
           return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
         }
-        if (existingOwnerUserId !== ownerUserId) {
+        if (ownerUserId && existingOwnerUserId !== ownerUserId) {
           return NextResponse.json({ ok: false, error: "ownership_mismatch" }, { status: 403 });
         }
       }

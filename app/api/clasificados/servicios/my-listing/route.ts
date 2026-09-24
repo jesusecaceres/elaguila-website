@@ -89,8 +89,14 @@ export async function GET(req: NextRequest) {
   const rec = row as Record<string, unknown>;
 
   if (isAssistedRequest) {
+    // Assisted saves stamp the provisioned CLIENT as owner (publish route), so a valid custody row
+    // is either still owner-null (legacy Leonix-prepared draft) or owned by exactly the client the
+    // signed context names. Any other owner is refused, and the ledger link is still required.
+    const contextClientUserId = String(assistedContext!.clientUserId ?? "").trim();
+    const ownerId = typeof rec.owner_user_id === "string" ? rec.owner_user_id.trim() : "";
+    const ownerMatchesCustody = rec.owner_user_id == null || (contextClientUserId !== "" && ownerId === contextClientUserId);
     const linked =
-      rec.owner_user_id == null &&
+      ownerMatchesCustody &&
       typeof rec.id === "string" &&
       (await isListingLinkedToBusiness({
         businessId: assistedContext!.businessId,

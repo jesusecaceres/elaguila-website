@@ -14,6 +14,7 @@ import {
 } from "@/app/lib/clasificados/comida-local/comidaLocalDraftPersistence";
 import {
   clearComidaLocalEditContext,
+  comidaLocalDraftFromAssistedBoundRow,
   fetchOwnerComidaLocalListingForEdit,
   readComidaLocalEditContext,
   writeComidaLocalEditContext,
@@ -63,6 +64,7 @@ import type {
 } from "@/app/lib/clasificados/comida-local/comidaLocalTypes";
 import { useComidaLocalDraft } from "@/app/lib/clasificados/comida-local/useComidaLocalDraft";
 import { AssistedSaveForClientBar } from "@/app/clasificados/components/AssistedSaveForClientBar";
+import { useAssistedBoundRow } from "@/app/lib/sales/useAssistedBoundRow";
 import {
   validateComidaLocalDraftForFuturePublish,
   validateComidaLocalDraftForPreview,
@@ -430,6 +432,23 @@ export default function ComidaLocalApplicationClient() {
     // draft.draftListingId is intentionally read once post-load; re-running on each keystroke
     // would re-fight the owner's edits.
   }, [editListingId, hasLoadedDraft, es, editStorageKey]);
+
+  // ASSISTED REOPEN: a staff session bound to a saved row loads that row's SERVER copy through the
+  // category's own row -> draft mapper (same as the owner edit), once per reopen (markHydrated) so
+  // Preview -> "Volver a editar" never overwrites in-progress edits. The draft's draftListingId
+  // becomes the row's own column value, so a re-save is a same-row update, never a new row.
+  const assistedBound = useAssistedBoundRow("comida-local");
+  useEffect(() => {
+    if (!hasLoadedDraft || editListingId) return;
+    if (assistedBound.status !== "ready" || !assistedBound.shouldHydrate) return;
+    const { row, listingId } = assistedBound.bound;
+    const next = comidaLocalDraftFromAssistedBoundRow(row, listingId);
+    if (next) {
+      setDraft(next);
+      saveComidaLocalDraftToStorage(next);
+    }
+    assistedBound.markHydrated();
+  }, [hasLoadedDraft, editListingId, assistedBound.status, assistedBound.shouldHydrate, assistedBound.bound, assistedBound.markHydrated, setDraft]);
 
   const previewIssues = useMemo(() => validateComidaLocalDraftForPreview(draft, es), [draft, es]);
   const publishIssues = useMemo(() => validateComidaLocalDraftForFuturePublish(draft, es), [draft, es]);

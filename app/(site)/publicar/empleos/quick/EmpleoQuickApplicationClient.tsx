@@ -42,6 +42,7 @@ import type { JobModalitySlug } from "@/app/clasificados/empleos/data/empleosJob
 
 import { EmpleosFieldLabel, EmpleosSectionCard } from "@/app/publicar/empleos/shared/ui/empleosFormPrimitives";
 import { AssistedSaveForClientBar } from "@/app/clasificados/components/AssistedSaveForClientBar";
+import { useAssistedBoundRow } from "@/app/lib/sales/useAssistedBoundRow";
 import { BusinessAddressVerifiedInput } from "@/app/components/forms/BusinessAddressVerifiedInput";
 import type { BusinessAddress } from "@/app/lib/businessAddress/businessAddressContract";
 
@@ -112,6 +113,28 @@ export default function EmpleoQuickApplicationClient() {
       }
     })();
   }, [hydrated, sp, patch, router, lang]);
+
+  // ASSISTED REOPEN: a staff session bound to a saved row loads that row's SERVER envelope through the
+  // same envelope -> draft mapper the owner `?edit=` path uses. Once per reopen (markHydrated), so
+  // Preview -> "Volver a editar" never overwrites in-progress edits.
+  const assistedBound = useAssistedBoundRow("empleos");
+  useEffect(() => {
+    if (!hydrated) return;
+    if (assistedBound.status !== "ready" || !assistedBound.shouldHydrate) return;
+    const { row, listingId } = assistedBound.bound;
+    const snapshot = row.listing_snapshot as { envelope?: EmpleosPublishEnvelope | null } | null | undefined;
+    const envelope = snapshot?.envelope;
+    // The assisted lane is quick; a row of another lane is never forced into this form.
+    const next =
+      envelope && typeof envelope === "object" && String(row.lane ?? "quick") === "quick"
+        ? hydrateQuickDraftFromEnvelope(envelope)
+        : null;
+    if (next) {
+      patch(() => next);
+      setServerListingId(listingId);
+    }
+    assistedBound.markHydrated();
+  }, [hydrated, assistedBound.status, assistedBound.shouldHydrate, assistedBound.bound, assistedBound.markHydrated, patch]);
 
   const gate = useMemo(() => gateEmpleosQuickPreview(state, lang), [state, lang]);
   const previewDisabled = !gate.ok;

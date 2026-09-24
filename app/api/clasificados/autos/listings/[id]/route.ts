@@ -16,6 +16,7 @@ import {
   detectAutosLocalVideoTransport,
 } from "@/app/lib/clasificados/autos/autosPublishApiContract";
 import { resolveStaffAssistedCategorySave, isStaffAssistedSaveRefusal } from "@/app/lib/sales/staffAssistedCategorySave";
+import { proveAssistedAutosRowForWrite } from "@/app/lib/clasificados/autos/assistedAutosRowCustody";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -125,7 +126,23 @@ export async function PATCH(request: NextRequest, { params }: Props) {
     );
   }
   const lang: AutosClassifiedsLang | undefined = body.lang === "en" || body.lang === "es" ? body.lang : undefined;
-  const ownerForUpdate = assisted.assisted ? assisted.clientUserId : userId;
+  // REOPEN SAFETY — the assisted branch never re-proved custody of the row it was about to write:
+  // with no bound id in the context, any owner-null row id was accepted. Custody (business +
+  // category context + business_listing_links) and lane are proven here at every write, and the
+  // owner scope comes from the STORED row (owner-null custody vs client-owned), never a guess.
+  let ownerForUpdate: string | null = userId;
+  if (assisted.assisted) {
+    const proof = await proveAssistedAutosRowForWrite({
+      businessId: assisted.ctx.businessId,
+      listingId: id,
+      clientUserId: assisted.clientUserId,
+      expectedLane: "privado",
+    });
+    if (!proof.ok) {
+      return NextResponse.json({ ok: false, error: proof.error }, { status: proof.status });
+    }
+    ownerForUpdate = proof.ownerUserId;
+  }
   const result = await updateAutosClassifiedsListingDraft(id, ownerForUpdate, { listing: body.listing, lang });
   if (!result.row) {
     if (result.errorCode === "AUTOS_LISTING_NOT_FOUND_OR_FORBIDDEN") {
@@ -169,7 +186,7 @@ export async function PATCH(request: NextRequest, { params }: Props) {
   // failures are surfaced, never silent.
   let childSync: { updatedChildIds: string[]; failedChildIds: string[] } | null = null;
   if (result.row.lane === "negocios" && result.row.inventory_role !== "inventory_vehicle") {
-    const ownerForSync = assisted.assisted ? assisted.clientUserId : userId;
+    const ownerForSync = assisted.assisted ? ownerForUpdate : userId;
     if (ownerForSync) {
       childSync = await syncDealerInventoryChildRowsFromParentPayload(result.row.id, ownerForSync);
     }

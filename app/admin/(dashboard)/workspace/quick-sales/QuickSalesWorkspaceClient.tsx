@@ -6,6 +6,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { isQuickSalesCategory, type QuickSalesCategory } from "@/app/lib/sales/quickSalesCategories";
+import { clearAssistedHydrationMarkers } from "@/app/lib/sales/useAssistedBoundRow";
 import {
   resolveStaffNavigationFromCustodyPost,
   resolveStaffOpenIntakeNavigation,
@@ -21,6 +22,12 @@ import {
 } from "@/app/lib/sales/staffMasterLauncher";
 
 type BusinessRow = { id: string; name: string; city?: string | null };
+
+/** Likely-duplicate candidates the server found for a new client (names are masked server-side). */
+type DuplicateWarning = {
+  level: string;
+  candidates: readonly { businessId: string; displayNameMasked: string }[];
+} | null;
 
 type CustodyStatus = {
   category: QuickSalesCategory;
@@ -80,6 +87,8 @@ export function QuickSalesWorkspaceClient({
   const [previewExpiresAt, setPreviewExpiresAt] = useState<number | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [duplicateWarning, setDuplicateWarning] = useState<DuplicateWarning>(null);
+  const [confirmDuplicate, setConfirmDuplicate] = useState(false);
 
   const item = staffLauncherItem(launcherId);
   const selectedProduct = useMemo(() => {
@@ -142,7 +151,16 @@ export function QuickSalesWorkspaceClient({
       newClientEmail: clientMode === "new" ? newClientEmail.trim() : undefined,
       newClientPhone: clientMode === "new" ? newClientPhone.trim() : undefined,
       listingId: reopenListingId.trim() || undefined,
+      confirmDuplicateBusiness: clientMode === "new" && confirmDuplicate ? true : undefined,
     });
+    if (code === 409 && json.error === "duplicate_business_warning") {
+      // A likely duplicate is never created silently: show it and let staff reuse or confirm.
+      const warning = json.duplicateWarning as DuplicateWarning;
+      setBusy(false);
+      setDuplicateWarning(warning && warning.candidates?.length ? warning : { level: "possible", candidates: [] });
+      setMessage("Posible negocio duplicado. / Possible duplicate business.");
+      return;
+    }
     if (code !== 200 || json.ok !== true) {
       setBusy(false);
       setMessage(`No se pudo abrir / Could not open (${code}): ${String(json.error ?? "unknown")}`);
@@ -150,6 +168,9 @@ export function QuickSalesWorkspaceClient({
       return;
     }
     if (typeof json.businessId === "string") setBusinessId(json.businessId);
+    // Every open (new ad or reopen) drops the "already hydrated" markers so the intake loads the
+    // stored canonical row from the server instead of a stale browser copy.
+    clearAssistedHydrationMarkers();
     const href = typeof json.href === "string" ? json.href : typeof json.intakePath === "string" ? json.intakePath : "";
     if (
       item.mode === "assisted" &&
@@ -192,6 +213,7 @@ export function QuickSalesWorkspaceClient({
     newClientEmail,
     newClientPhone,
     reopenListingId,
+    confirmDuplicate,
     refreshStatus,
   ]);
 
@@ -370,7 +392,11 @@ export function QuickSalesWorkspaceClient({
                 Nombre del negocio / Business name *
                 <input
                   value={newBusinessName}
-                  onChange={(e) => setNewBusinessName(e.target.value)}
+                  onChange={(e) => {
+                    setNewBusinessName(e.target.value);
+                    setDuplicateWarning(null);
+                    setConfirmDuplicate(false);
+                  }}
                   placeholder="Ej. Taquería La Familia"
                   className="mt-1 min-h-[44px] w-full rounded-lg border border-[#E6DCC6] px-3 py-2 font-normal"
                   autoComplete="organization"
@@ -392,7 +418,11 @@ export function QuickSalesWorkspaceClient({
                   <input
                     type="email"
                     value={newClientEmail}
-                    onChange={(e) => setNewClientEmail(e.target.value)}
+                    onChange={(e) => {
+                      setNewClientEmail(e.target.value);
+                      setDuplicateWarning(null);
+                      setConfirmDuplicate(false);
+                    }}
                     placeholder="cliente@correo.com"
                     className="mt-1 min-h-[44px] w-full rounded-lg border border-[#E6DCC6] px-3 py-2 font-normal"
                     autoComplete="email"
@@ -410,6 +440,50 @@ export function QuickSalesWorkspaceClient({
                   autoComplete="tel"
                 />
               </label>
+              {duplicateWarning ? (
+                <div className="rounded-lg border border-[#B8860B] bg-[#FFF6E7] p-3 text-xs" data-staff-duplicate-warning>
+                  <p className="font-semibold">
+                    Leonix ya podría tener este negocio. / Leonix may already hold this business.
+                  </p>
+                  {duplicateWarning.candidates.length ? (
+                    <ul className="mt-2 space-y-1">
+                      {duplicateWarning.candidates.map((c) => (
+                        <li key={c.businessId} className="flex flex-wrap items-center justify-between gap-2">
+                          <span>
+                            {c.displayNameMasked} <span className="text-[#5D4A25]">({c.businessId.slice(0, 8)})</span>
+                          </span>
+                          <button
+                            type="button"
+                            data-staff-use-existing-business={c.businessId}
+                            className="min-h-[36px] rounded-lg border border-[#B8860B] px-2 py-1 font-semibold"
+                            onClick={() => {
+                              setBusinesses([{ id: c.businessId, name: c.displayNameMasked }]);
+                              setBusinessId(c.businessId);
+                              setClientMode("existing");
+                              setDuplicateWarning(null);
+                              setConfirmDuplicate(false);
+                              setMessage(null);
+                            }}
+                          >
+                            Usar este negocio / Use this business
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  <label className="mt-2 flex items-start gap-2">
+                    <input
+                      type="checkbox"
+                      checked={confirmDuplicate}
+                      onChange={(e) => setConfirmDuplicate(e.target.checked)}
+                      data-staff-confirm-duplicate
+                    />
+                    <span>
+                      Es un negocio distinto; crear de todos modos. / This is a different business; create it anyway.
+                    </span>
+                  </label>
+                </div>
+              ) : null}
               {!newClientReady ? (
                 <p className="text-xs text-[#8B4513]">
                   Completa nombre del negocio y correo válido. / Enter the business name and a valid email.
@@ -422,7 +496,7 @@ export function QuickSalesWorkspaceClient({
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Buscar negocio / Search business"
+                  placeholder="Nombre, correo o teléfono / Name, email or phone"
                   className="min-h-[44px] flex-1 rounded-lg border border-[#E6DCC6] px-3 py-2"
                   aria-label="Buscar negocio / Search business"
                 />

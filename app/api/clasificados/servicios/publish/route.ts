@@ -31,6 +31,7 @@ import { buildServiciosDiscoveryFacet } from "@/app/clasificados/servicios/lib/s
 import { insertServiciosAnalyticsEvent } from "@/app/clasificados/servicios/lib/serviciosOpsTablesServer";
 import { isServiciosStrictPublishEnvironment, serviciosOwnerIdFromBearer } from "../lib/serviciosPublishServerAuth";
 import {
+  decideServiciosAssistedSaveStatus,
   decideServiciosOwnerSaveStatus,
   isServiciosListingOwner,
   SERVICIOS_LEONIX_LOCKED_STATUSES,
@@ -753,7 +754,9 @@ export async function POST(req: NextRequest) {
           if (SERVICIOS_LEONIX_LOCKED_STATUSES.has(existingStatus)) {
             return await serviciosListingLockedResponse(slug, lang);
           }
-          let nextStatus = "draft";
+          // An existing row keeps its current lifecycle state on Save/Edit (a published listing stays
+          // live); only a NEW row starts as draft. Publish for Client stays payment-gated below.
+          let nextStatus = decideServiciosAssistedSaveStatus({ hasExistingRow: true, existingStatus });
           if (isAssistedPublishForClient) {
             const paid = await refuseUnlessAuthoritativePayment({
               listingSource: "servicios_public_listings",
@@ -790,7 +793,11 @@ export async function POST(req: NextRequest) {
               ...privateContactPatch,
               internal_group: internalGroup,
               listing_status: nextStatus,
-              published_at: nextStatus === SERVICIOS_LISTING_STATUS_PUBLISHED ? now : existing.published_at ?? null,
+              // A row that is already live keeps its original publish date on an edit-save.
+              published_at:
+                nextStatus === SERVICIOS_LISTING_STATUS_PUBLISHED && existingStatus !== SERVICIOS_LISTING_STATUS_PUBLISHED
+                  ? now
+                  : existing.published_at ?? null,
               updated_at: now,
             })
             .eq("id", existingId);
@@ -893,9 +900,9 @@ export async function POST(req: NextRequest) {
             category: "servicios",
             listingSource: "servicios_public_listings",
             listingId: persistedListingId,
-            paymentState: listingStatus === "published" ? "entitled" : "unpaid_draft",
+            paymentState: actualListingStatus === "published" ? "entitled" : "unpaid_draft",
             outcome: "ok",
-            detail: { listing_status: listingStatus, server_bound_row: assistedBinding?.ok ? assistedBinding.serverBound : false },
+            detail: { listing_status: actualListingStatus, server_bound_row: assistedBinding?.ok ? assistedBinding.serverBound : false },
           });
         }
       } else if (existing) {

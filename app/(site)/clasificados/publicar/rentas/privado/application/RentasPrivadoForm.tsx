@@ -77,7 +77,10 @@ import {
 import type { OfficialLocale } from "@/app/lib/language";
 import { getLaunchUiMessages } from "@/app/lib/i18n/launchUiDictionaries";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
-import { hydrateRentasDashboardEditDraft } from "../../shared/rentasDashboardEditHydration";
+import {
+  hydrateRentasDashboardEditDraft,
+  mapOwnedRentasListingToPrivadoFormState,
+} from "../../shared/rentasDashboardEditHydration";
 import { parseRentasListingEditContext, rentasListingEditPreviewParams, type RentasListingEditContext } from "../../shared/rentasListingEditContext";
 import {
   clearRentasListingEditWorkspace,
@@ -87,6 +90,7 @@ import {
 } from "../../shared/rentasListingEditWorkspace";
 import { resolveDraftPrecedence } from "@/app/lib/listingDrafts/draftWorkspaceContract";
 import { AssistedSaveForClientBar } from "@/app/clasificados/components/AssistedSaveForClientBar";
+import { useAssistedBoundRow } from "@/app/lib/sales/useAssistedBoundRow";
 
 const MAX_PHOTOS = 8;
 const MAX_VIDEO_URLS = 4;
@@ -202,6 +206,9 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
   /** Package A closure — Rule 3 conflict surfaced to the owner (never silently applied). */
   const [staleDraftNotice, setStaleDraftNotice] = useState<string | null>(null);
 
+  /** ASSISTED REOPEN: the SERVER copy of the row the staff session is bound to (customers: status "none"). */
+  const assistedBound = useAssistedBoundRow("rentas");
+
   const stateRef = useRef(state);
   stateRef.current = state;
   const cleanEditSnapshotRef = useRef<string>("");
@@ -296,6 +303,20 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
       setHydrated(true);
     })();
   }, [routeEditContext]);
+
+  // ASSISTED REOPEN: a staff reopen loads the SAVED server row into the form (the owner-edit reverse
+  // mapper, run on the raw row) instead of whatever this browser remembers, so re-saving can never
+  // blank the bound row. Runs once per reopen (`shouldHydrate`); Preview -> "Volver a editar" keeps
+  // in-progress edits. The bound row id lives in the signed assisted context, so the next save
+  // targets the same row. Owner dashboard edits (`editContext`) never take this path.
+  useEffect(() => {
+    if (!hydrated || editContext) return;
+    if (assistedBound.status !== "ready" || !assistedBound.shouldHydrate) return;
+    const mapped = mapOwnedRentasListingToPrivadoFormState(assistedBound.bound.row);
+    setState(mapped);
+    void saveRentasPrivadoDraft(mapped);
+    assistedBound.markHydrated();
+  }, [hydrated, editContext, assistedBound]);
 
   useEffect(() => {
     if (!hydrated) return;
