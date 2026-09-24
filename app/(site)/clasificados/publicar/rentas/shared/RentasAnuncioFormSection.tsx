@@ -30,7 +30,9 @@ import { RentasTipoFlowDetailFields } from "@/app/clasificados/publicar/rentas/s
 import { getRentasAnuncioFormCopy } from "./rentasAnuncioFormCopy";
 import { getLaunchUiMessages } from "@/app/lib/i18n/launchUiDictionaries";
 import type { OfficialLocale } from "@/app/lib/language";
-import type { Dispatch, SetStateAction } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
+import { BusinessAddressVerifiedInput } from "@/app/components/forms/BusinessAddressVerifiedInput";
+import type { BusinessAddress } from "@/app/lib/businessAddress/businessAddressContract";
 
 function precioDigitsUnbounded(raw: string): string {
   return String(raw ?? "").replace(/\D/g, "");
@@ -75,6 +77,17 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
     state.ubicacionLinea.trim() !== "" && state.ubicacionLinea.trim() !== state.direccionLinea1.trim();
   const flowGroup = rentasFlowGroupActive(state);
   const hideAmuebladoMascotas = flowGroup === "storage_parking";
+  const [businessAddressSelection, setBusinessAddressSelection] = useState<BusinessAddress | null>(null);
+  const activeBusinessAddress =
+    businessAddressSelection &&
+    businessAddressSelection.street === state.direccionLinea1 &&
+    (businessAddressSelection.unit || "") === (state.direccionLinea2 || "") &&
+    (businessAddressSelection.city || "") === (state.ciudad || "") &&
+    (businessAddressSelection.region || "") === (state.direccionEstado || "") &&
+    (businessAddressSelection.postalCode || "") === (state.direccionCodigoPostal || "") &&
+    (businessAddressSelection.country || "") === (state.direccionPais || "US")
+      ? businessAddressSelection
+      : null;
 
   return (
     <section className={`${aiCardClass} min-w-0`}>
@@ -348,19 +361,38 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
         </div>
         <div className="sm:col-span-2">
           <AiField label={c.addressLine1Label} hint={c.addressLine1Hint}>
-            <input
-              className={fieldClass}
-              value={state.direccionLinea1}
-              onChange={(e) =>
+            <BusinessAddressVerifiedInput
+              lang={lang === "en" ? "en" : "es"}
+              value={
+                activeBusinessAddress ?? {
+                  street: state.direccionLinea1,
+                  unit: state.direccionLinea2,
+                  city: state.ciudad,
+                  region: state.direccionEstado,
+                  postalCode: state.direccionCodigoPostal,
+                  country: state.direccionPais || "US",
+                  verificationStatus: "manual",
+                  provider: null,
+                  providerPlaceId: null,
+                  manualEntry: true,
+                }
+              }
+              locationHint={[state.ciudad, state.direccionEstado, state.direccionPais].filter(Boolean).join(", ")}
+              inputClassName={fieldClass}
+              onChange={(next) => {
+                setBusinessAddressSelection(next);
                 setState((s) => ({
                   ...s,
-                  direccionLinea1: e.target.value,
+                  direccionLinea1: next.street,
                   direccionNumero: "",
                   direccionCalle: "",
-                }))
-              }
-              autoComplete="street-address"
-              placeholder={c.addressLine1Placeholder}
+                  direccionLinea2: next.unit ?? s.direccionLinea2,
+                  ciudad: next.city || s.ciudad,
+                  direccionEstado: next.region || s.direccionEstado,
+                  direccionCodigoPostal: next.postalCode || s.direccionCodigoPostal,
+                  direccionPais: next.country || s.direccionPais,
+                }));
+              }}
             />
           </AiField>
         </div>
