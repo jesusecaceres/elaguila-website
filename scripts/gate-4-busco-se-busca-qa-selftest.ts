@@ -219,12 +219,12 @@ function read(relPath: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// 33. Native Share wired (no custom provider picker)
+// 33. Shared Leonix Share drawer wired
 // ---------------------------------------------------------------------------
 {
   const canvas = read("app/(site)/publicar/busco/components/BuscoQuickAdCanvas.tsx");
-  assert.ok(canvas.includes("tryWebShare") && canvas.includes("copyToClipboard"), "canvas must wire native share + clipboard fallback");
-  console.log("OK: 33 native Share wired (navigator.share + clipboard fallback), no custom provider picker");
+  assert.ok(canvas.includes("LeonixShareButton") && !canvas.includes("directNativeShare"), "canvas must wire the shared Leonix Share drawer");
+  console.log("OK: 33 shared Leonix Share drawer wired");
 }
 
 // ---------------------------------------------------------------------------
