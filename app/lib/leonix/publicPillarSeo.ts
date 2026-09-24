@@ -91,7 +91,7 @@ const PILLAR_SEO_ES: Record<PublicPillarId, PillarSeoCopy> = {
   aprender: {
     title: "Centro de Aprendizaje: educación práctica de negocios sin costo",
     description:
-      "Aprende. Construye. Haz crecer tu idea. Lecciones prácticas de negocios en lenguaje claro, bilingües y sin costo: rutas guiadas, glosario, listas y plantillas de Leonix Media.",
+      "Aprende. Sirve. Construye para durar. Lecciones prácticas de negocios en lenguaje claro, bilingües y sin costo: rutas guiadas, glosario, listas y plantillas de Leonix Media.",
     schemaName: "Centro de Aprendizaje Leonix",
   },
 };
@@ -154,7 +154,7 @@ const PILLAR_SEO_EN: Record<PublicPillarId, PillarSeoCopy> = {
   aprender: {
     title: "Learning Center: practical, no-cost business education",
     description:
-      "Learn. Build. Grow your idea. Practical business lessons in plain language, bilingual and free of charge: guided paths, a glossary, checklists, and templates from Leonix Media.",
+      "Learn. Serve. Build to last. Practical business lessons in plain language, bilingual and free of charge: guided paths, a glossary, checklists, and templates from Leonix Media.",
     schemaName: "Leonix Learning Center",
   },
 };

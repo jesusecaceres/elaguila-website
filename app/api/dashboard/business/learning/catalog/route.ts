@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { extractBearerToken, resolveAuthenticatedUserId } from "@/app/lib/business/supabaseUserClient";
 import { resolveLearningCenterFlagTier } from "@/app/lib/business/learning/featureFlag";
+import { applyLeonixCategoryDoctrine, applyLeonixLessonDoctrine } from "@/app/lib/business/learning/leonixDoctrine";
 import { listActiveCategories, listPublishedLessons } from "@/app/lib/business/learning/repository";
 import { searchPublishedLessons, toLessonSummary } from "@/app/lib/business/learning/logic";
 
@@ -25,7 +26,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const lang = searchParams.get("lang") === "en" ? "en" : "es";
   const q = searchParams.get("q") ?? "";
 
-  const [categories, lessons] = await Promise.all([listActiveCategories(), listPublishedLessons()]);
+  const [categories, lessons] = await Promise.all([
+    listActiveCategories().then((rows) => rows.map(applyLeonixCategoryDoctrine)),
+    listPublishedLessons().then((rows) => rows.map(applyLeonixLessonDoctrine)),
+  ]);
   const filtered = q.trim() ? searchPublishedLessons(lessons, q, lang) : lessons;
 
   return NextResponse.json({
