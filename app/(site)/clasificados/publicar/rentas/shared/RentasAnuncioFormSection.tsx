@@ -47,6 +47,15 @@ function toggleServicioKey(current: RentasServicioIncluidoId[], id: RentasServic
 
 type EstadoOpt<T> = { id: T; label: string };
 
+// The shared address picker currently has Spanish and English UI copy. Keep the existing
+// Spanish fallback for Portuguese and Tagalog until that picker has localized copy.
+const ADDRESS_PICKER_LANG: Record<OfficialLocale, "es" | "en"> = {
+  es: "es",
+  en: "en",
+  pt: "es",
+  tl: "es",
+};
+
 type Props<T extends RentasPrivadoFormState | RentasNegocioFormState> = {
   state: T;
   setState: Dispatch<SetStateAction<T>>;
@@ -362,7 +371,7 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
         <div className="sm:col-span-2">
           <AiField label={c.addressLine1Label} hint={c.addressLine1Hint}>
             <BusinessAddressVerifiedInput
-              lang={lang === "en" ? "en" : "es"}
+              lang={ADDRESS_PICKER_LANG[lang]}
               value={
                 activeBusinessAddress ?? {
                   street: state.direccionLinea1,
