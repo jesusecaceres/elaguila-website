@@ -165,7 +165,6 @@ export function BrEngagementRow({
         category="bienes-raices"
         ownerUserId={ownerUserId}
         persistEngagement={persist}
-        directNativeShare
         recordShareEvent={(shareMethod) => trackBrListingShareGlobal(ctx, shareMethod)}
         className={btnShell}
       />
