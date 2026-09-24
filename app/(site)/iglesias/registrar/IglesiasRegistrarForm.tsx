@@ -4,8 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { IGLESIAS_NEED_CATALOG } from "@/app/lib/iglesias/taxonomy";
 import { getIglesiasCopy } from "@/app/lib/iglesias/copy";
+import { LanguagesInput } from "@/app/components/forms/LanguagesInput";
+import { PhoneInput } from "@/app/components/forms/PhoneInput";
+import { normalizePhoneForSubmit } from "@/app/lib/leonix/leadCaptureValidation";
 import { IglesiasPageShell } from "../components/IglesiasPageShell";
 import { IglesiasLogoUploadField } from "./IglesiasLogoUploadField";
+
+const OTHER_LANGUAGE_MAX = 5;
 
 const DAYS_ES = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 const DAYS_EN = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -17,6 +22,19 @@ export function IglesiasRegistrarForm({ lang }: { lang: "es" | "en" }) {
   const [intake, setIntake] = useState<"AUTO_PUBLISH" | "HUMAN_REVIEW" | "BLOCK" | null>(null);
   const [logoUrl, setLogoUrl] = useState("");
   const [services, setServices] = useState([{ dayOfWeek: 0, startsAt: "10:00", language: "es", mode: "in_person", label: "" }]);
+  const [phone, setPhone] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [applicantPhone, setApplicantPhone] = useState("");
+  const [otherLanguageEnabled, setOtherLanguageEnabled] = useState(false);
+  const [otherLanguages, setOtherLanguages] = useState<string[]>([]);
+  const [otherLanguageInput, setOtherLanguageInput] = useState("");
+
+  function addOtherLanguage() {
+    const value = otherLanguageInput.trim();
+    if (!value || otherLanguages.length >= OTHER_LANGUAGE_MAX) return;
+    setOtherLanguages((prev) => [...prev, value]);
+    setOtherLanguageInput("");
+  }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -38,10 +56,11 @@ export function IglesiasRegistrarForm({ lang }: { lang: "es" | "en" }) {
       addressLine2: String(fd.get("addressLine2") ?? ""),
       publicLocation: fd.get("publicLocation") === "on",
       languages,
-      phone: String(fd.get("phone") ?? ""),
+      otherLanguages,
+      phone: normalizePhoneForSubmit(phone) || phone,
       email: String(fd.get("email") ?? ""),
       website: String(fd.get("website") ?? ""),
-      whatsapp: String(fd.get("whatsapp") ?? ""),
+      whatsapp: normalizePhoneForSubmit(whatsapp) || whatsapp,
       livestreamUrl: String(fd.get("livestreamUrl") ?? ""),
       facebook: String(fd.get("facebook") ?? ""),
       instagram: String(fd.get("instagram") ?? ""),
@@ -50,7 +69,7 @@ export function IglesiasRegistrarForm({ lang }: { lang: "es" | "en" }) {
       heroUrl: String(fd.get("heroUrl") ?? ""),
       applicantName: String(fd.get("applicantName") ?? ""),
       applicantEmail: String(fd.get("applicantEmail") ?? ""),
-      applicantPhone: String(fd.get("applicantPhone") ?? ""),
+      applicantPhone: normalizePhoneForSubmit(applicantPhone) || applicantPhone,
       prayerTeamIntent: String(fd.get("prayerTeamIntent") ?? ""),
       website_extra: String(fd.get("website_extra") ?? ""),
       services: services.filter((s) => s.startsAt),
@@ -180,6 +199,25 @@ export function IglesiasRegistrarForm({ lang }: { lang: "es" | "en" }) {
                 <input type="checkbox" name="languages" value="bilingual" /> {copy.langBilingual}
               </label>
             </div>
+            <LanguagesInput
+              className="mt-3"
+              options={[{ key: "other", label: lang === "en" ? "Other" : "Otro" }]}
+              selectedKeys={otherLanguageEnabled ? ["other"] : []}
+              onToggle={() => setOtherLanguageEnabled((v) => !v)}
+              otherKey="other"
+              customValues={otherLanguages}
+              customValuesMax={OTHER_LANGUAGE_MAX}
+              customInputValue={otherLanguageInput}
+              onCustomInputChange={setOtherLanguageInput}
+              onAddCustom={addOtherLanguage}
+              onRemoveCustom={(index) => setOtherLanguages((prev) => prev.filter((_, i) => i !== index))}
+              labels={{
+                otherLabel: lang === "en" ? "Add another language" : "Añadir otro idioma",
+                otherPlaceholder: lang === "en" ? "e.g. Vietnamese" : "p. ej. Vietnamita",
+                add: lang === "en" ? "Add" : "Agregar",
+                removeAria: (value) => (lang === "en" ? `Remove ${value}` : `Quitar ${value}`),
+              }}
+            />
           </fieldset>
 
           <fieldset>
@@ -264,7 +302,7 @@ export function IglesiasRegistrarForm({ lang }: { lang: "es" | "en" }) {
             <legend className="mb-2 font-serif text-xl font-bold text-[#1F241C]">{copy.profileContact}</legend>
             <label>
               <span className={label}>{lang === "en" ? "Public phone" : "Teléfono público"}</span>
-              <input name="phone" className={field} />
+              <PhoneInput value={phone} onChange={setPhone} className={field} placeholder="(408) 802-1531" />
             </label>
             <label>
               <span className={label}>{copy.profileEmail}</span>
@@ -275,11 +313,13 @@ export function IglesiasRegistrarForm({ lang }: { lang: "es" | "en" }) {
               <input name="website" type="url" className={field} placeholder="https://" />
             </label>
             <label>
-              <span className={label}>WhatsApp</span>
-              <input name="whatsapp" className={field} />
+              <span className={label}>{lang === "en" ? "WhatsApp (optional)" : "WhatsApp (opcional)"}</span>
+              <PhoneInput value={whatsapp} onChange={setWhatsapp} className={field} placeholder="(408) 802-1531" />
             </label>
             <label className="sm:col-span-2">
-              <span className={label}>{copy.profileLivestream}</span>
+              <span className={label}>
+                {lang === "en" ? "Livestream Link (optional)" : "Enlace de transmisión en vivo (opcional)"}
+              </span>
               <input name="livestreamUrl" type="url" className={field} placeholder="https://" />
             </label>
             <label>
@@ -338,7 +378,7 @@ export function IglesiasRegistrarForm({ lang }: { lang: "es" | "en" }) {
             </label>
             <label className="sm:col-span-2">
               <span className={label}>{lang === "en" ? "Your phone" : "Tu teléfono"}</span>
-              <input name="applicantPhone" className={field} />
+              <PhoneInput value={applicantPhone} onChange={setApplicantPhone} className={field} placeholder="(408) 802-1531" />
             </label>
           </fieldset>
 

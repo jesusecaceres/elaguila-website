@@ -27,9 +27,6 @@ export function IglesiasPrayerCard({
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState("INAPPROPRIATE");
   const [reportDone, setReportDone] = useState(false);
-  const [updateKind, setUpdateKind] = useState("UPDATE");
-  const [updateBody, setUpdateBody] = useState("");
-  const [updateDone, setUpdateDone] = useState(false);
   const category = prayerCategoryLabel(prayer.category, lang);
 
   async function pray() {
@@ -52,15 +49,6 @@ export function IglesiasPrayerCard({
       setReportDone(true);
       setReportOpen(false);
     }
-  }
-
-  async function sendUpdate() {
-    const res = await fetch(`/api/iglesias/prayers/${prayer.id}/update`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ kind: updateKind, body: updateBody }),
-    });
-    if (res.ok) setUpdateDone(true);
   }
 
   return (
@@ -132,38 +120,6 @@ export function IglesiasPrayerCard({
         </div>
       ) : null}
       {reportDone ? <p className="mt-2 text-sm text-[#5C5346]">{copy.reportThanks}</p> : null}
-
-      {prayer.owned ? (
-        <div className="mt-4 border-t border-[#E8DFD0] pt-3">
-          <label className="block text-sm font-semibold text-[#1F241C]">
-            {copy.updateBodyLabel}
-            <select
-              value={updateKind}
-              onChange={(e) => setUpdateKind(e.target.value)}
-              className="mt-2 w-full rounded-lg border border-[#D6C7AD] px-2 py-2 text-sm font-normal"
-            >
-              <option value="STILL_NEEDS_PRAYER">{copy.updateStill}</option>
-              <option value="UPDATE">{copy.updateNote}</option>
-              <option value="GRATITUDE">{copy.updateThanks}</option>
-              <option value="CLOSE">{copy.updateClose}</option>
-            </select>
-          </label>
-          <textarea
-            value={updateBody}
-            onChange={(e) => setUpdateBody(e.target.value)}
-            rows={3}
-            className="mt-2 w-full rounded-lg border border-[#D6C7AD] px-3 py-2 text-sm"
-          />
-          <button
-            type="button"
-            onClick={sendUpdate}
-            className="mt-2 min-h-10 rounded-lg border border-[#7A1E2C] px-3 text-sm font-semibold text-[#7A1E2C]"
-          >
-            {copy.updateSubmit}
-          </button>
-          {updateDone ? <p className="mt-2 text-sm text-[#5C5346]">OK</p> : null}
-        </div>
-      ) : null}
     </article>
   );
 }

@@ -5,6 +5,7 @@ export type ReaderCtaKey =
   | "newsletter"
   | "contact"
   | "clasificados"
+  | "negocios"
   | "mediaKit"
   | "comingSoon";
 
@@ -22,7 +23,11 @@ export type MagazineUiCopy = {
   originalMagazineLabel: string;
   languageChooserHint: string;
   readerPreviewBadge: string;
+  /** Heading for the "Read Leonix Your Way" QR/translation block (Gate 7). Optional so non-ES/EN bundles need no change. */
+  readerPreviewTitle?: string;
   readerPreviewIntro: string;
+  /** Second paragraph of the same block — what QR connects readers to. Optional, ES/EN only. */
+  readerPreviewSecondary?: string;
   futureFlipbookNote: string;
   originalEditionNote: string;
   originalEditionTitle: string;

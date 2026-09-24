@@ -25,10 +25,19 @@ export function IglesiasLandingView({
 }) {
   const copy = getIglesiasCopy(lang);
   const churchHref = `/iglesias/registrar?lang=${lang}`;
+  const directoryHref = `/iglesias/directorio?lang=${lang}`;
+  const prayerWallHref = `/iglesias/oracion?lang=${lang}`;
 
   return (
     <IglesiasPageShell>
-      <IglesiasHero copy={copy} lang={lang} findHref="#buscar" prayerHref="#oracion" churchHref={churchHref} />
+      <IglesiasHero
+        copy={copy}
+        lang={lang}
+        findHref={directoryHref}
+        prayerHref="#oracion"
+        joinPrayerHref={prayerWallHref}
+        churchHref={churchHref}
+      />
       <IglesiasCollage copy={copy} />
 
       <div className="mx-auto max-w-[88rem] overflow-x-hidden px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
@@ -55,7 +64,7 @@ export function IglesiasLandingView({
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-[#3D3428]">{copy.laneChurchSupport}</p>
             <a
-              href="#buscar"
+              href={directoryHref}
               className="mt-6 inline-flex min-h-12 items-center justify-center rounded-xl bg-[#7A1E2C] px-5 text-sm font-semibold text-white hover:bg-[#6B1A26] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]"
             >
               {copy.ctaFind}

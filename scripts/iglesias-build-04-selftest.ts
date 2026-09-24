@@ -137,8 +137,14 @@ function main() {
   const en = getIglesiasCopy("en");
   assert.equal(es.applySuccessPublishedBody, "Tu iglesia fue recibida y publicada correctamente.");
   assert.equal(en.applySuccessPublishedBody, "Your church was received and published successfully.");
-  assert.equal(es.applySuccessReviewBody, "Recibimos tu solicitud. Necesitamos revisar algunos detalles antes de publicarla.");
-  assert.equal(en.applySuccessReviewBody, "We received your application. We need to review a few details before publishing it.");
+  assert.equal(
+    es.applySuccessReviewBody,
+    "Recibimos tu información. Revisaremos los datos necesarios antes de mostrar o verificar el perfil.",
+  );
+  assert.equal(
+    en.applySuccessReviewBody,
+    "We received your information. We will review the necessary details before showing or verifying the profile.",
+  );
 
   const queue = src("app/admin/(dashboard)/workspace/iglesias/page.tsx");
   assert.ok(queue.includes("AUTO-PUBLISHED"));

@@ -35,6 +35,14 @@ function asLanguages(raw: unknown): IglesiasServiceLanguage[] {
   return raw.filter((x): x is IglesiasServiceLanguage => x === "es" || x === "en" || x === "bilingual");
 }
 
+function asOtherLanguages(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+    .map((x) => x.trim())
+    .slice(0, 8);
+}
+
 function mapChurchRow(row: Record<string, unknown>): ChurchRow {
   return {
     id: String(row.id),
@@ -58,6 +66,7 @@ function mapChurchRow(row: Record<string, unknown>): ChurchRow {
     latitude: typeof row.latitude === "number" ? row.latitude : null,
     longitude: typeof row.longitude === "number" ? row.longitude : null,
     languages: asLanguages(row.languages),
+    other_languages: asOtherLanguages(row.other_languages),
     phone: (row.phone as string | null) ?? null,
     email: (row.email as string | null) ?? null,
     website: (row.website as string | null) ?? null,
@@ -163,6 +172,7 @@ export async function listPublicChurches(browse: IglesiasBrowseState, uiLang: Ig
       city: church.city,
       state: church.state,
       languages: church.languages,
+      otherLanguages: church.other_languages,
       phone: church.phone,
       publicLocation: church.public_location,
       addressLine1: publicAddress(church),
@@ -220,6 +230,7 @@ export async function getPublicChurchBySlug(slug: string, uiLang: IglesiasUiLang
     city: church.city,
     state: church.state,
     languages: church.languages,
+    otherLanguages: church.other_languages,
     phone: church.phone,
     publicLocation: church.public_location,
     addressLine1: publicAddress(church),

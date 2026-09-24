@@ -2,7 +2,10 @@ import type { IglesiasCopy } from "@/app/lib/iglesias/copy";
 import type { PrayerPublicCard } from "@/app/lib/iglesias/prayerTypes";
 import { getPrayerUiCopy } from "@/app/lib/iglesias/prayerCopy";
 import { IglesiasPrayerForm } from "./IglesiasPrayerForm";
-import { IglesiasPrayerCard } from "./IglesiasPrayerCard";
+import { IglesiasPrayerWallList } from "./IglesiasPrayerWallList";
+
+/** Main /iglesias page shows only a preview; the full wall lives at /iglesias/oracion (Gate 3). */
+const EMBEDDED_PREVIEW_LIMIT = 4;
 
 export function IglesiasPrayerLane({
   copy,
@@ -14,6 +17,8 @@ export function IglesiasPrayerLane({
   prayers: PrayerPublicCard[];
 }) {
   const prayerCopy = getPrayerUiCopy(lang);
+  const preview = prayers.slice(0, EMBEDDED_PREVIEW_LIMIT);
+  const wallHref = `/iglesias/oracion?lang=${lang}`;
 
   return (
     <section
@@ -34,20 +39,18 @@ export function IglesiasPrayerLane({
         <IglesiasPrayerForm lang={lang} />
 
         <div>
-          <h3 className="font-serif text-xl font-bold text-[#1F241C]">{prayerCopy.wallLiveEyebrow}</h3>
-          {prayers.length === 0 ? (
-            <p className="mt-3 rounded-2xl border border-[#E8DFD0] bg-[#FAF6EE] px-4 py-6 text-sm leading-relaxed text-[#3D3428]">
-              {prayerCopy.emptyWall}
-            </p>
-          ) : (
-            <ul className="mt-3 grid gap-3">
-              {prayers.map((prayer) => (
-                <li key={prayer.id}>
-                  <IglesiasPrayerCard prayer={prayer} lang={lang} />
-                </li>
-              ))}
-            </ul>
-          )}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="font-serif text-xl font-bold text-[#1F241C]">{prayerCopy.wallLiveEyebrow}</h3>
+            <a
+              href={wallHref}
+              className="text-sm font-semibold text-[#7A1E2C] underline-offset-2 hover:underline"
+            >
+              {prayerCopy.viewWall} →
+            </a>
+          </div>
+          <div className="mt-3">
+            <IglesiasPrayerWallList prayers={preview} lang={lang} />
+          </div>
         </div>
 
         <aside className="rounded-2xl border border-[#D6C7AD]/80 bg-[#FAF6EE] p-4">

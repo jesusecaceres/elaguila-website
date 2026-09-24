@@ -59,6 +59,8 @@ export function readerCtaHref(key: ReaderCtaKey, lang: MagazineLang): string {
       return magazineReadContactHref(lang);
     case "clasificados":
       return `/clasificados?lang=${lang}`;
+    case "negocios":
+      return `/negocios-locales?lang=${lang}`;
     case "mediaKit":
       return primaryMediaKitPdfHref(lang);
     case "comingSoon":
