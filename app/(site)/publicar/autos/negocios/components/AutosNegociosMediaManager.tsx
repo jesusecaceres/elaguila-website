@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { FiImage, FiUpload } from "react-icons/fi";
+import { businessPlanFromSearchParams } from "@/app/lib/listingPlans/businessQuickPlanSignal";
 import type { AutoDealerListing, MediaImageEntry } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import type { AutosNegociosCopy } from "@/app/clasificados/autos/negocios/lib/autosNegociosCopy";
 import {
@@ -60,6 +62,9 @@ export function AutosNegociosMediaManager({
   lang?: AutosNegociosLang;
   insideModal?: boolean;
 }) {
+  const searchParams = useSearchParams();
+  const isQuickBusinessPlan = businessPlanFromSearchParams(searchParams) === "quick";
+  const imageLimit = isQuickBusinessPlan ? 3 : null;
   const m = copy.media;
   const images = sortByOrder(listing.mediaImages ?? []);
   const [singleImageUrlDraft, setSingleImageUrlDraft] = useState("");
@@ -101,17 +106,19 @@ export function AutosNegociosMediaManager({
       const filesArr = Array.from(files).filter(isLikelyImageFile);
       if (!filesArr.length) return;
       const dataUrls = await Promise.all(filesArr.map((f) => readFileAsDataUrl(f)));
-      const additions: MediaImageEntry[] = dataUrls.map((url, i) => ({
+      const room = imageLimit == null ? dataUrls.length : Math.max(0, imageLimit - base.length);
+      const additions: MediaImageEntry[] = dataUrls.slice(0, room).map((url, i) => ({
         id: newMediaImageId(),
         url,
         sourceType: "file" as const,
         isPrimary: base.length === 0 && i === 0,
         sortOrder: base.length + i,
       }));
+      if (!additions.length) return;
       const merged = normalizeMediaImagesOrder([...base, ...additions]);
       commitImages(ensureOnePrimaryMedia(merged));
     },
-    [listing.mediaImages, commitImages],
+    [listing.mediaImages, commitImages, imageLimit],
   );
 
   const addSingleImageUrl = (): boolean => {
@@ -128,6 +135,10 @@ export function AutosNegociosMediaManager({
     }
     setSingleUrlError(null);
     const base = sortByOrder(listing.mediaImages ?? []);
+    if (imageLimit != null && base.length >= imageLimit) {
+      setSingleUrlError(lang === "en" ? "This plan allows up to 3 images." : "Este plan admite hasta 3 imágenes.");
+      return false;
+    }
     const addition: MediaImageEntry = {
       id: newMediaImageId(),
       url: result.url,
@@ -380,7 +391,18 @@ export function AutosNegociosMediaManager({
         ) : null}
       </div>
 
-      {lang ? (
+      {isQuickBusinessPlan ? (
+        <div className="mt-6 rounded-xl border border-[#C9B46A]/60 bg-[#FFF6E7] p-4" data-quick-video-locked="1">
+          <p className="text-sm font-bold text-[#3D2C12]">
+            {lang === "en" ? "Video is available with PRO $399" : "El video está disponible con PRO $399"}
+          </p>
+          <p className="mt-1 text-xs text-[#5D4A25]">
+            {lang === "en"
+              ? "Your $249 plan keeps the same professional dealer application and supports up to 3 images."
+              : "Tu plan de $249 conserva la misma aplicación de dealer y admite hasta 3 imágenes."}
+          </p>
+        </div>
+      ) : lang ? (
         <AutosExternalVideoUrlsField
           lang={lang}
           videoUrls={listing.videoUrls}

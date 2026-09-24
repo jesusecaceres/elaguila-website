@@ -898,16 +898,15 @@ async function sectionD() {
   });
 
   await check("D6: no Quick count cap, video rule or one-item rule leaks into a Full product", () => {
-    // The publish-seam limits deliberately do not impose Quick's 1–3 intake cap on any family.
     const semantics = read("app/lib/quickBusiness/quickBusinessMediaSemantics.ts");
     assert.ok(
       semantics.includes("QUICK_BUSINESS_PUBLISH_MAX_IMAGES"),
       "publish-seam caps are declared separately from the intake cap",
     );
-    for (const family of ["servicios", "restaurantes", "autos-dealer", "bienes-negocio"]) {
-      const re = new RegExp(`"?${family}"?: null`);
-      assert.ok(re.test(semantics), `${family} imposes no Quick publish count cap`);
-    }
+    assert.ok(
+      semantics.includes("enforceQuickContract"),
+      "the Quick 3-image / no-video publish cap only runs when the product is Quick",
+    );
     // And every enforcement call site is now behind a product check or a staff context.
     const autos = read("app/api/clasificados/autos/listings/route.ts");
     assert.ok(autos.indexOf("identity.enforceQuickContract") < autos.indexOf("enforceQuickBusinessPublishMedia("));

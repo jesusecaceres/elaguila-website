@@ -145,20 +145,17 @@ export type QuickMediaSemanticLimits = {
 export const QUICK_BUSINESS_SEMANTIC_LIMITS = { minSubjectImages: 1, maxImages: 3, videoAllowed: false } as const;
 
 /**
- * The PUBLISH-SEAM contract.
+ * The PUBLISH-SEAM contract for a listing the server has already identified as Quick.
  *
- * The subject-role requirement is the security claim and is identical everywhere. The COUNT CAP is
- * deliberately NOT the Quick 1–3 cap here: Servicios and Restaurantes publish routes are shared
- * with those categories' full applications, whose truthful gallery caps are 24, and the Autos /
- * Bienes canonical lanes are uncapped. Imposing Quick's cap on a shared publish route would be a
- * false requirement. Each family's own cap keeps being enforced by its own existing validator
- * (`validateProposedFinalMediaSet`), which this guard sits beside rather than replaces.
+ * Full still uses each family's own gallery cap. Quick is the same canonical application with a
+ * real entitlement difference: at most 3 images and no video. This guard only runs when
+ * `enforceQuickContract` is true, so Full media is preserved.
  */
 export const QUICK_BUSINESS_PUBLISH_MAX_IMAGES: Readonly<Record<QuickBusinessMediaCategory, number | null>> = {
-  servicios: null,
-  restaurantes: null,
-  "autos-dealer": null,
-  "bienes-negocio": null,
+  servicios: QUICK_BUSINESS_SEMANTIC_LIMITS.maxImages,
+  restaurantes: QUICK_BUSINESS_SEMANTIC_LIMITS.maxImages,
+  "autos-dealer": QUICK_BUSINESS_SEMANTIC_LIMITS.maxImages,
+  "bienes-negocio": QUICK_BUSINESS_SEMANTIC_LIMITS.maxImages,
 };
 
 /** Limits for the Quick INTAKE (browser step + review). */
