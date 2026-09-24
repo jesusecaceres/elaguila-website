@@ -102,8 +102,8 @@ if (!application.includes("couponDetailOpen")) fail("Coupon modal state required
 if (/\+\s*\$99/.test(application)) {
   fail("Servicios application must not advertise a +$99 coupon add-on (coupons are included in $399)");
 }
-if (!application.includes("baseMonthlyPrice: 399")) {
-  fail("Servicios application must carry the $399/mo base truth");
+if (!application.includes("isQuickBusinessPlan ? 249 : 399") && !application.includes("baseMonthlyPrice: 399")) {
+  fail("Servicios application must carry the $249 Quick / $399 PRO base truth");
 }
 if (!application.includes("couponsFeaturedStepTitle")) {
   fail("Servicios application must present the featured coupons/offers step");
