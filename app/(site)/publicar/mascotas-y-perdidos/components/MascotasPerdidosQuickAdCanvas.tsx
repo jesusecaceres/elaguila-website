@@ -1,18 +1,16 @@
 "use client";
 
-import { useState } from "react";
 import Image from "next/image";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { FaFacebook, FaInstagram, FaWhatsapp } from "react-icons/fa";
-import { FiMail, FiMapPin, FiMessageSquare, FiPhone, FiShare2 } from "react-icons/fi";
+import { FiMail, FiMapPin, FiMessageSquare, FiPhone } from "react-icons/fi";
 import {
   buildMailtoHref,
   buildSmsHref,
   buildTelHref,
   buildWhatsAppUrl,
 } from "@/app/lib/digitalContact/humanConnection/nativeChannelHrefs";
-import { tryWebShare, copyToClipboard } from "@/app/components/cta/ctaLaunchers";
 import {
   CommunityPremiumCanvasCard,
   CommunityPremiumInfoGrid,
@@ -23,6 +21,7 @@ import {
 } from "@/app/(site)/publicar/community/shared/preview/communityQuickPremiumShell";
 
 import type { MascotasPerdidosQuickDraft } from "../shared/mascotasPerdidosQuickTypes";
+import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import { isPetNoticeType } from "../shared/mascotasPerdidosQuickTypes";
 import {
   labelMascotasSex,
@@ -130,14 +129,19 @@ export function MascotasPerdidosQuickAdCanvas({
   lang,
   shell = "standalone",
   leonixAdId,
+  listingId,
+  publicUrl,
 }: {
   draft: MascotasPerdidosQuickDraft;
   lang: Lang;
   shell?: MascotasQuickAdShell;
   leonixAdId?: string | null;
+  /** Real public row UUID when published; omitted in Preview. */
+  listingId?: string | null;
+  /** Canonical public URL when published; omitted in Preview to avoid leaking draft routes. */
+  publicUrl?: string | null;
 }) {
   const t = COPY[lang];
-  const [shareHint, setShareHint] = useState<string | null>(null);
   const isPet = isPetNoticeType(draft.noticeType);
   const isLost = draft.noticeType === "mascota-perdida";
   const isFound = draft.noticeType === "mascota-encontrada";
@@ -185,18 +189,6 @@ export function MascotasPerdidosQuickAdCanvas({
 
   const titleLine = draft.petName.trim() || draft.title.trim() || "—";
   const rewardLine = draft.offersReward && draft.rewardAmount.trim() ? `${lang === "es" ? "RECOMPENSA" : "REWARD"} $${draft.rewardAmount.trim()}` : null;
-
-  const shareTitle = titleLine;
-  const shareUrl = typeof window !== "undefined" ? window.location.href : "";
-
-  const onShare = async () => {
-    const res = await tryWebShare({ title: shareTitle, url: shareUrl });
-    if (res === "unsupported") {
-      const ok = await copyToClipboard(shareUrl);
-      setShareHint(ok ? t.shareCopied : null);
-      window.setTimeout(() => setShareHint(null), 2500);
-    }
-  };
 
   const articleClass =
     shell === "standalone"
@@ -336,17 +328,17 @@ export function MascotasPerdidosQuickAdCanvas({
           </div>
         ) : null}
 
-        {/* 10. Share */}
+        {/* 10. Share — one global Leonix drawer. Preview passes no public URL/ID, so no private route leaks. */}
         <div>
-          <button
-            type="button"
-            onClick={() => void onShare()}
-            className="inline-flex min-h-[40px] items-center gap-2 rounded-xl border border-[#C9B46A] bg-[#FCF9F2] px-3.5 py-2 text-sm font-bold text-[#2A2826] shadow-sm transition hover:opacity-95"
-          >
-            <FiShare2 className="h-4 w-4 shrink-0" aria-hidden />
-            {t.share}
-          </button>
-          {shareHint ? <span className="ml-2 text-xs font-medium text-[#5C564E]">{shareHint}</span> : null}
+          <LeonixShareButton
+            listingId={listingId ?? null}
+            listingUrl={publicUrl ?? undefined}
+            listingTitle={titleLine}
+            shareText={draft.description.trim() || null}
+            category="mascotas-y-perdidos"
+            lang={lang}
+            persistEngagement={Boolean(listingId)}
+          />
         </div>
 
         {/* 11. Approximate location + live map */}
