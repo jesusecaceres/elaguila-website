@@ -313,11 +313,18 @@ export async function provisionCustomerAuthUser(input: {
     if (createErr || !created.user?.id) {
       const msg = createErr?.message ?? "Could not create auth user.";
       if (/already|registered|exists|duplicate/i.test(msg)) {
-        return { ok: false, code: "duplicate", message: "A Supabase Auth user with this email already exists." };
+        if (input.reuseExisting) {
+          userId = await findAuthUserIdByEmail(admin, email);
+        }
+        if (!userId) {
+          return { ok: false, code: "duplicate", message: "A Supabase Auth user with this email already exists." };
+        }
+      } else {
+        return { ok: false, code: "auth_error", message: msg };
       }
-      return { ok: false, code: "auth_error", message: msg };
+    } else {
+      userId = created.user.id;
     }
-    userId = created.user.id;
   } else if (!input.reuseExisting) {
     return { ok: false, code: "duplicate", message: "A Supabase Auth user with this email already exists." };
   }
