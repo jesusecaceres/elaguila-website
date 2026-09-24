@@ -12,7 +12,7 @@ export const ES_LOCALE: PublicLocaleCopy = {
     business: "Leonix Media — datos de contacto",
     emailLabel: "Correo",
     hoursLabel: "Horario",
-    hours: "Lunes a viernes, 9:00 – 17:00 (Pacífico)",
+    hours: "Lunes a viernes, 9:00 a.\u202fm.–5:00 p.\u202fm. (Pacífico)",
     phoneLabel: "Teléfono",
     addressLabel: "Dirección",
     openMap: "Abrir mapa",
@@ -137,17 +137,21 @@ export const ES_LOCALE: PublicLocaleCopy = {
     leadSuccess: {
       advertising:
         "¡Gracias! Recibimos tu solicitud. El equipo de Leonix revisará tu información y te contactará pronto.",
-      launch:
-        "¡Gracias! Recibimos tu solicitud. El equipo de Leonix revisará tu información y te contactará pronto.",
       mediaKit:
         "¡Gracias! Recibimos tu interés en el Media Kit. El equipo de Leonix te contactará pronto para ayudarte con opciones de publicidad.",
+      radio:
+        "¡Gracias! Recibimos tu interés en radio con La Kaliente 1370. El equipo de Leonix te contactará pronto.",
       general:
         "¡Gracias! Recibimos tu solicitud. El equipo de Leonix revisará tu información y te contactará pronto.",
       promotionalProducts:
         "¡Gracias! Recibimos tu solicitud de cotización. El equipo de Leonix revisará los detalles y te contactará pronto.",
       businessListing:
         "¡Gracias! Recibimos tu solicitud. El equipo de Leonix revisará tu información y te contactará pronto.",
+      classifieds:
+        "¡Gracias! Recibimos tu solicitud. El equipo de Leonix revisará tu información y te contactará pronto.",
       partnership:
+        "¡Gracias! Recibimos tu solicitud. El equipo de Leonix revisará tu información y te contactará pronto.",
+      accountSupport:
         "¡Gracias! Recibimos tu solicitud. El equipo de Leonix revisará tu información y te contactará pronto.",
     },
     newsletterSuccess:
@@ -157,12 +161,14 @@ export const ES_LOCALE: PublicLocaleCopy = {
   },
   inquiryLabels: {
     advertising: "Publicidad / anunciar mi negocio",
-    launch: "Lanzamiento / recibir noticias",
     mediaKit: "Media Kit / paquetes de publicidad",
-    general: "Pregunta general",
+    radio: "Radio / La Kaliente 1370",
     promotionalProducts: "Productos promocionales / impresión",
-    businessListing: "Página de negocio / presencia digital",
+    businessListing: "Negocios / presencia digital",
+    classifieds: "Clasificados",
     partnership: "Alianza / partnership",
+    accountSupport: "Ayuda con mi cuenta o anuncio",
+    general: "Pregunta general",
   },
   emailBlock: {
     openEmail: "Abrir correo",
@@ -183,7 +189,7 @@ export const EN_LOCALE: PublicLocaleCopy = {
     business: "Leonix Media — contact details",
     emailLabel: "Email",
     hoursLabel: "Hours",
-    hours: "Monday–Friday, 9:00 AM – 5:00 PM Pacific",
+    hours: "Monday–Friday · 9:00 AM–5:00 PM Pacific",
     phoneLabel: "Phone",
     addressLabel: "Address",
     openMap: "Open map",
@@ -308,17 +314,21 @@ export const EN_LOCALE: PublicLocaleCopy = {
     leadSuccess: {
       advertising:
         "Thank you! We received your request. The Leonix team will review your information and contact you soon.",
-      launch:
-        "Thank you! We received your request. The Leonix team will review your information and contact you soon.",
       mediaKit:
         "Thank you! We received your Media Kit interest. The Leonix team will contact you soon to help with advertising options.",
+      radio:
+        "Thank you! We received your interest in radio advertising with La Kaliente 1370. The Leonix team will contact you soon.",
       general:
         "Thank you! We received your request. The Leonix team will review your information and contact you soon.",
       promotionalProducts:
         "Thank you! We received your quote request. The Leonix team will review the details and contact you soon.",
       businessListing:
         "Thank you! We received your request. The Leonix team will review your information and contact you soon.",
+      classifieds:
+        "Thank you! We received your request. The Leonix team will review your information and contact you soon.",
       partnership:
+        "Thank you! We received your request. The Leonix team will review your information and contact you soon.",
+      accountSupport:
         "Thank you! We received your request. The Leonix team will review your information and contact you soon.",
     },
     newsletterSuccess:
@@ -327,13 +337,15 @@ export const EN_LOCALE: PublicLocaleCopy = {
       "We could not submit your information right now. Please try again or email us at info@leonixmedia.com.",
   },
   inquiryLabels: {
-    advertising: "Advertising / promote my business",
-    launch: "Launch / receive updates",
+    advertising: "Advertising / advertise my business",
     mediaKit: "Media Kit / advertising packages",
-    general: "General question",
-    promotionalProducts: "Promotional products / print quote",
-    businessListing: "Business page / digital presence",
+    radio: "Radio / La Kaliente 1370",
+    promotionalProducts: "Promotional products / printing",
+    businessListing: "Business presence / digital presence",
+    classifieds: "Classifieds",
     partnership: "Partnership",
+    accountSupport: "Help with my account or ad",
+    general: "General question",
   },
   emailBlock: {
     openEmail: "Open email",

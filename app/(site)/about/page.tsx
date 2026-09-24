@@ -110,8 +110,8 @@ export default async function AboutPage(props: { searchParams?: Promise<{ lang?:
             <CtaLink href="/magazine/2026/june/read" lang={lang} variant="secondary">
               {c.ctaMagazine}
             </CtaLink>
-            <CtaLink href="/coming-soon-v2" lang={lang} variant="secondary">
-              {c.ctaLaunch}
+            <CtaLink href="/aprender" lang={lang} variant="secondary">
+              {c.ctaLearn}
             </CtaLink>
           </div>
         </section>
@@ -190,6 +190,12 @@ export default async function AboutPage(props: { searchParams?: Promise<{ lang?:
           <p className="mt-4 text-sm leading-relaxed text-[#3D3428] sm:text-base">{c.whatWeAreBody}</p>
         </section>
 
+        {/* Business development */}
+        <section className="mt-10 rounded-2xl border border-[#C9A84A]/40 bg-[#FFFDF7] p-6 sm:p-8">
+          <h2 className="font-serif text-2xl font-bold text-[#2A4536]">{c.businessDevTitle}</h2>
+          <p className="mt-4 text-sm leading-relaxed text-[#3D3428] sm:text-base">{c.businessDevBody}</p>
+        </section>
+
         {/* What Leonix connects */}
         <section className="mt-10" aria-labelledby="about-connects-title">
           <h2 id="about-connects-title" className="font-serif text-2xl font-bold text-[#2A4536]">
@@ -202,6 +208,19 @@ export default async function AboutPage(props: { searchParams?: Promise<{ lang?:
                 className="rounded-xl border border-[#C9A84A]/35 bg-[#FFFDF7] px-4 py-4 text-sm font-semibold text-[#1F241C] shadow-[0_8px_24px_-16px_rgba(31,36,28,0.12)]"
               >
                 {card}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {/* Approach / stewardship */}
+        <section className="mt-10 rounded-2xl border border-[#556B3E]/25 bg-[#556B3E]/5 p-6 sm:p-8">
+          <h2 className="font-serif text-2xl font-bold text-[#2A4536]">{c.approachTitle}</h2>
+          <ul className="mt-4 space-y-2">
+            {c.approachPoints.map((point) => (
+              <li key={point} className="flex items-start gap-2 text-sm leading-relaxed text-[#3D3428] sm:text-base">
+                <span className="mt-0.5 shrink-0 text-[#556B3E]">—</span>
+                {point}
               </li>
             ))}
           </ul>
@@ -246,7 +265,7 @@ export default async function AboutPage(props: { searchParams?: Promise<{ lang?:
           <h2 id="about-final-cta" className="font-serif text-2xl font-bold sm:text-3xl">
             {c.finalTitle}
           </h2>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <CtaLink href="/contacto" lang={lang} variant="primary">
               {c.ctaAdvertise}
             </CtaLink>
@@ -255,6 +274,12 @@ export default async function AboutPage(props: { searchParams?: Promise<{ lang?:
               className="inline-flex min-h-[2.875rem] items-center justify-center rounded-full border-2 border-[#C9A84A]/70 bg-transparent px-6 py-2.5 text-sm font-bold text-[#FFFDF7] transition hover:border-[#C9A84A] hover:bg-[#FFFDF7]/10"
             >
               {c.ctaContact}
+            </Link>
+            <Link
+              href="/visitanos"
+              className="inline-flex min-h-[2.875rem] items-center justify-center rounded-full border-2 border-[#C9A84A]/70 bg-transparent px-6 py-2.5 text-sm font-bold text-[#FFFDF7] transition hover:border-[#C9A84A] hover:bg-[#FFFDF7]/10"
+            >
+              {c.ctaVirtualCall}
             </Link>
           </div>
         </section>

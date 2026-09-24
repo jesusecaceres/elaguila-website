@@ -66,7 +66,7 @@ export function detectLeadReplyKind(row: LeadReplyInput): LeadReplyKind {
     return "promoPrint";
   }
   const hay = `${row.message} ${row.source_page} ${row.source_cta}`.toLowerCase();
-  if (inquiry === "launch" || /magazine|revista|magazin/.test(hay)) return "magazine";
+  if (/magazine|revista|magazin/.test(hay)) return "magazine";
   return "general";
 }
 

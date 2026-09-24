@@ -44,7 +44,7 @@ export type MediaKitPageCopy = {
     primaryCta: string;
     mediaKitInterestCta: string;
   };
-  googleTranslate: {
+  googleTranslate?: {
     question: string;
     body: string;
     cta: string;
