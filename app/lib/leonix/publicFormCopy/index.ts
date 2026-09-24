@@ -37,11 +37,21 @@ export function getPublicLocaleCopy(lang: PublicFormLang): PublicLocaleCopy {
 }
 
 export function getInquiryTypeLabel(lang: PublicFormLang, type: InquiryType): string {
-  return PUBLIC_LOCALE_COPY[lang].inquiryLabels[type];
+  return (
+    PUBLIC_LOCALE_COPY[lang].inquiryLabels[type] ??
+    PUBLIC_LOCALE_COPY.en.inquiryLabels[type] ??
+    type
+  );
 }
 
 export function getLeadSuccessMessage(lang: PublicFormLang, inquiryType: InquiryType): string {
-  return PUBLIC_LOCALE_COPY[lang].leads.leadSuccess[inquiryType];
+  return (
+    PUBLIC_LOCALE_COPY[lang].leads.leadSuccess[inquiryType] ??
+    PUBLIC_LOCALE_COPY.en.leads.leadSuccess[inquiryType] ??
+    PUBLIC_LOCALE_COPY[lang].leads.leadSuccess.general ??
+    PUBLIC_LOCALE_COPY.en.leads.leadSuccess.general ??
+    ""
+  );
 }
 
 export function getNewsletterSuccessMessage(lang: PublicFormLang): string {
