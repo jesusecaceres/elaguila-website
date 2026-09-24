@@ -34,7 +34,13 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
       title,
       description,
       url: canonical,
-      images: row.primaryImageUrl ? [{ url: row.primaryImageUrl }] : undefined,
+      images: row.primaryImageUrl ? [{ url: row.primaryImageUrl, alt: row.vehicleTitle }] : undefined,
+    },
+    twitter: {
+      card: row.primaryImageUrl ? "summary_large_image" : "summary",
+      title,
+      description,
+      images: row.primaryImageUrl ? [row.primaryImageUrl] : undefined,
     },
   };
 }
