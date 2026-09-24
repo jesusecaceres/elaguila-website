@@ -24,6 +24,13 @@ export type CreateRevenueCheckoutSessionInput = {
   successUrl: string;
   cancelUrl: string;
   customerEmail?: string | null;
+  /**
+   * Existing Stripe customer to attach the session to, resolved SERVER-SIDE from Leonix's ledger
+   * (never the request body) for a Simple->Full upgrade, so the Full subscription lives on the same
+   * customer as the Quick one it supersedes. Stripe forbids `customer` together with
+   * `customer_email`, so when this is set the email is not sent.
+   */
+  existingStripeCustomerId?: string | null;
   clientReferenceId: string;
   paymentRecordId: string;
   ownerUserId?: string | null;
@@ -226,7 +233,13 @@ export async function createRevenueStripeCheckoutSession(
   // duration:"repeating" coupon (never both coupons: the route rejects stacking first).
   const serverAttachedCouponId = input.verifiedIntroDiscountStripeCouponId || input.contractTermStripeCouponId;
 
-  const sessionParams = {
+  const existingCustomerId = /^cus_[A-Za-z0-9]+$/.test(String(input.existingStripeCustomerId ?? "").trim())
+    ? String(input.existingStripeCustomerId).trim()
+    : null;
+
+  const emailCustomerPart = input.customerEmail?.trim() ? { customer_email: input.customerEmail.trim() } : {};
+
+  const baseSessionParams = {
     mode: input.stripeMode,
     line_items: stripeLineItems,
     success_url: input.successUrl,
@@ -240,12 +253,13 @@ export async function createRevenueStripeCheckoutSession(
     // whenever a server-attached discount coupon is present; only one of the two keys ever
     // reaches Stripe on the same request.
     ...(serverAttachedCouponId ? { discounts: [{ coupon: serverAttachedCouponId }] } : { allow_promotion_codes: false }),
-    ...(input.customerEmail?.trim()
-      ? { customer_email: input.customerEmail.trim() }
-      : {}),
     ...(input.stripeMode === "payment"
       ? { payment_intent_data: { metadata: metadataPayload } }
       : { subscription_data: { metadata: metadataPayload } }),
+  };
+  const sessionParams = {
+    ...baseSessionParams,
+    ...(existingCustomerId ? { customer: existingCustomerId } : emailCustomerPart),
   };
 
   // Stable purchase-attempt idempotency (never the per-click row id).
@@ -267,6 +281,23 @@ export async function createRevenueStripeCheckoutSession(
       : await stripe.checkout.sessions.create(sessionParams);
   } catch (createErr) {
     const err = createErr as { type?: string; code?: string; statusCode?: number; requestId?: string; param?: string } | null;
+    // A reused customer that no longer exists at Stripe must not block the upgrade: fall back to
+    // the ordinary email-based session (convergence then refuses on the customer guard and an
+    // operator resolves it, which is the pre-existing fail-closed behavior).
+    if (existingCustomerId && err?.code === "resource_missing") {
+      try {
+        const fallbackParams = { ...baseSessionParams, ...emailCustomerPart };
+        const fallbackOptions = attemptKey
+          ? { idempotencyKey: `${attemptKey}:${Math.max(1, input.attemptGeneration ?? 1)}:nocus` }
+          : undefined;
+        session = fallbackOptions
+          ? await stripe.checkout.sessions.create(fallbackParams, fallbackOptions)
+          : await stripe.checkout.sessions.create(fallbackParams);
+        if (session.url && session.id) return { ok: true, sessionId: session.id, checkoutUrl: session.url };
+      } catch {
+        /* fall through to the structured failure below */
+      }
+    }
     console.error("[createRevenueStripeCheckoutSession] stripe_error", {
       stage: "checkout.sessions.create",
       type: err?.type ?? null,

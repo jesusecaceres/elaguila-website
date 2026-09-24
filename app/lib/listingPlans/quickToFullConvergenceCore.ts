@@ -41,6 +41,8 @@ export type ConvergenceLedgerPort = {
     ownerUserId: string;
     category: string;
     quickPackageKey: string;
+    /** The exact listing being upgraded. The lookup MUST be scoped to it. */
+    listingId: string;
   }): Promise<
     | {
         ok: true;
@@ -48,6 +50,7 @@ export type ConvergenceLedgerPort = {
           ownerUserId: string;
           category: string;
           packageKey: string;
+          listingId: string | null;
           stripeSubscriptionId: string;
           stripeCustomerId: string | null;
         } | null;
@@ -62,6 +65,7 @@ export type ConvergenceAuditEntry = {
   ownerUserId: string;
   category: string;
   newPackageKey: string;
+  listingId?: string | null;
   reason?: string;
   quickSubscriptionId?: string;
   error?: string;
@@ -115,6 +119,7 @@ export async function executeQuickToFullConvergence(input: {
     ownerUserId: full.ownerUserId,
     category: full.category,
     newPackageKey: full.packageKey,
+    listingId: full.listingId ?? null,
   };
 
   // 1. Snapshot-independent pre-check. Any skip other than "no_quick_subscription" is final here.
@@ -134,11 +139,20 @@ export async function executeQuickToFullConvergence(input: {
     return { ok: true, outcome: "skipped", reason: "no_quick_package_for_category" };
   }
 
-  // 2. Ledger lookup.
+  // Listing scope is mandatory. Without the listing the Quick subscription cannot be tied to the
+  // upgraded listing, and an owner-wide lookup could cancel a DIFFERENT listing's subscription.
+  const listingId = String(full.listingId ?? "").trim();
+  if (!listingId) {
+    await ports.audit.record({ ...auditBase, outcome: "refused", reason: "listing_unverified" });
+    return { ok: false, outcome: "refused", reason: "listing_unverified", retryable: false };
+  }
+
+  // 2. Ledger lookup (owner + category + package + LISTING).
   const found = await ports.ledger.findPaidQuickSubscription({
     ownerUserId: full.ownerUserId,
     category: full.category,
     quickPackageKey,
+    listingId,
   });
   if (!found.ok) {
     await ports.audit.record({ ...auditBase, outcome: "failed", reason: "ledger_lookup_failed", error: found.error });
@@ -168,6 +182,7 @@ export async function executeQuickToFullConvergence(input: {
     ownerUserId: record.ownerUserId,
     category: record.category,
     packageKey: record.packageKey,
+    listingId: record.listingId,
     stripeSubscriptionId: record.stripeSubscriptionId,
     // Stripe is authoritative for the customer; fall back to the ledger's copy.
     stripeCustomerId: retrieved.customerId ?? record.stripeCustomerId,

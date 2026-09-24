@@ -1,6 +1,8 @@
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { QUICK_SALES_CATEGORY_MAP, type QuickSalesCategory } from "@/app/lib/sales/quickSalesCategories";
 import { buildQuickSalesHref } from "@/app/lib/sales/quickSalesRoutes";
+import { resolveBusinessAccessForListings } from "@/app/lib/listingPlans/categoryCommercialPlan";
+import { isStaffBusinessPairCategory, staffUpgradeToFullHref } from "@/app/lib/sales/staffBusinessProduct";
 
 /**
  * LEONIX P0 FINAL ASSISTED PUBLISHING BRIDGE (Gate 3 — "must appear in a staff-visible
@@ -22,6 +24,8 @@ type PreparedRow = {
   status: string;
   updatedAt: string;
   reopenHref: string;
+  /** Set only when the listing holds Simple access in a pair category. */
+  upgradeHref?: string | null;
 };
 
 const CATEGORY_LABEL: Record<QuickSalesCategory, string> = {
@@ -180,12 +184,43 @@ async function listPreparedListingsForSource(businessId: string, category: Quick
     });
 }
 
+/**
+ * "Upgrade to Full" entry: for the four Simple/Full pair categories, a row whose listing currently
+ * resolves to SIMPLE access links to the existing manual-payment page prefilled with the listing,
+ * the pair map's Full package key and the category. Access is read from entitlement truth
+ * (`resolveBusinessAccessForListings`); any failure means no link, never a guessed one.
+ */
+async function attachUpgradeHrefs(rows: PreparedRow[]): Promise<PreparedRow[]> {
+  const byCategory = new Map<QuickSalesCategory, PreparedRow[]>();
+  for (const row of rows) {
+    if (!isStaffBusinessPairCategory(row.category)) continue;
+    byCategory.set(row.category, [...(byCategory.get(row.category) ?? []), row]);
+  }
+  for (const [category, categoryRows] of byCategory) {
+    try {
+      const decisions = await resolveBusinessAccessForListings({
+        category,
+        listingSource: categoryRows[0]!.listingSource,
+        listingIds: categoryRows.map((r) => r.listingId),
+      });
+      for (const row of categoryRows) {
+        if (decisions.get(row.listingId)?.level === "simple") {
+          row.upgradeHref = staffUpgradeToFullHref({ category, listingId: row.listingId });
+        }
+      }
+    } catch {
+      /* no access read = no upgrade link */
+    }
+  }
+  return rows;
+}
+
 export async function listPreparedListings(businessId: string): Promise<PreparedRow[]> {
   if (!isSupabaseAdminConfigured()) return [];
   const perSource = await Promise.all(
     (Object.keys(SOURCE_SPEC) as QuickSalesCategory[]).map((category) => listPreparedListingsForSource(businessId, category).catch(() => [] as PreparedRow[])),
   );
-  return perSource.flat().sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
+  return attachUpgradeHrefs(perSource.flat().sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1)));
 }
 
 export async function PreparedListingsStrip({ businessId }: { businessId: string }) {
@@ -206,12 +241,23 @@ export async function PreparedListingsStrip({ businessId }: { businessId: string
                 {CATEGORY_LABEL[row.category]} · {STATUS_LABEL[row.status] ?? row.status} · Leonix ID: {row.listingId}
               </p>
             </div>
-            <a
-              href={row.reopenHref}
-              className="inline-flex min-h-[36px] shrink-0 items-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-3 text-xs font-semibold text-[#1E1810] hover:bg-white"
-            >
-              Reabrir en Venta asistida / Reopen in Quick Sales
-            </a>
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              {row.upgradeHref ? (
+                <a
+                  href={row.upgradeHref}
+                  data-upgrade-to-full={row.category}
+                  className="inline-flex min-h-[36px] items-center rounded-lg border border-emerald-700/40 bg-emerald-50 px-3 text-xs font-semibold text-emerald-950 hover:bg-white"
+                >
+                  Subir a Full / Upgrade to Full
+                </a>
+              ) : null}
+              <a
+                href={row.reopenHref}
+                className="inline-flex min-h-[36px] items-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-3 text-xs font-semibold text-[#1E1810] hover:bg-white"
+              >
+                Reabrir en Venta asistida / Reopen in Quick Sales
+              </a>
+            </div>
           </li>
         ))}
       </ul>

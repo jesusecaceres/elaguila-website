@@ -91,9 +91,12 @@ function buildLedgerPort(): ConvergenceLedgerPort {
       const db = getAdminSupabase();
       const { data, error } = await db
         .from("leonix_payment_records")
-        .select("owner_user_id, category, package_key, stripe_subscription_id, stripe_customer_id")
+        .select("owner_user_id, category, package_key, listing_id, stripe_subscription_id, stripe_customer_id")
         .eq("owner_user_id", query.ownerUserId)
         .eq("category", query.category)
+        // Scoped to the EXACT listing being upgraded: another listing's Quick subscription (same
+        // owner, same category, same package key) must never be picked up.
+        .eq("listing_id", query.listingId)
         .eq("package_key", query.quickPackageKey)
         .eq("billing_mode", "subscription")
         .eq("payment_status", "paid")
@@ -107,6 +110,7 @@ function buildLedgerPort(): ConvergenceLedgerPort {
         owner_user_id: string;
         category: string;
         package_key: string;
+        listing_id: string | null;
         stripe_subscription_id: string;
         stripe_customer_id: string | null;
       };
@@ -116,6 +120,7 @@ function buildLedgerPort(): ConvergenceLedgerPort {
           ownerUserId: String(row.owner_user_id),
           category: String(row.category),
           packageKey: String(row.package_key),
+          listingId: row.listing_id ? String(row.listing_id) : null,
           stripeSubscriptionId: String(row.stripe_subscription_id),
           stripeCustomerId: row.stripe_customer_id ? String(row.stripe_customer_id) : null,
         },
@@ -146,6 +151,7 @@ function buildAuditPort(paymentRecordId: string): ConvergenceAuditPort {
           new_package_key: entry.newPackageKey,
           owner_user_id: entry.ownerUserId,
           category: entry.category,
+          listing_id: entry.listingId ?? null,
           stripe_event_id: entry.eventId,
           error: entry.error ?? null,
           // `failed` is the only retryable state; surfaced explicitly so an operator can query it.

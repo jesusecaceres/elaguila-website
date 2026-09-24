@@ -2150,6 +2150,7 @@ export async function fulfillCheckoutSessionCompleted(input: {
         ownerUserId: String(refreshed.owner_user_id),
         category: String(refreshed.category),
         packageKey: String(refreshed.package_key),
+        listingId: refreshed.listing_id ? String(refreshed.listing_id) : null,
         paid: true,
         stripeCustomerId: refreshed.stripe_customer_id ? String(refreshed.stripe_customer_id) : null,
         stripeSubscriptionId: refreshed.stripe_subscription_id ? String(refreshed.stripe_subscription_id) : null,

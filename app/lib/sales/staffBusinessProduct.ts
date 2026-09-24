@@ -9,6 +9,7 @@
  */
 import {
   BUSINESS_CATEGORY_PACKAGE_PAIR,
+  upgradeTargetPackageKey,
   type BusinessAccessLevel,
 } from "@/app/lib/listingPlans/businessAccessLevel";
 import {
@@ -214,6 +215,23 @@ export function staffIntakePathForCategory(
   const base = trimmed(fallback) || SERVICIOS_CANONICAL_INTAKE_PATH;
   if (isStaffBusinessPairCategory(category) && plan === "quick") return withQuickPlanParam(base);
   return base;
+}
+
+/**
+ * "Upgrade to Full" entry for staff: the EXISTING manual-payment page prefilled with the listing,
+ * the category's Full package key (`upgradeTargetPackageKey`, the pair map — no hardcoded key) and
+ * the category. Null when the category has no Simple/Full split. The manual-payments route then
+ * enforces that the listing is currently Simple; this link never creates a listing or application.
+ */
+export function staffUpgradeToFullHref(input: {
+  category: string | null | undefined;
+  listingId: string | null | undefined;
+}): string | null {
+  const category = trimmed(input.category).toLowerCase();
+  const listingId = trimmed(input.listingId);
+  const packageKey = upgradeTargetPackageKey(category);
+  if (!packageKey || !listingId) return null;
+  return staffManualPaymentHref({ listingId, packageKey, category });
 }
 
 export function staffManualPaymentHref(input: {

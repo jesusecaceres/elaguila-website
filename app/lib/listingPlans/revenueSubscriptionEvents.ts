@@ -36,6 +36,12 @@ import {
   reconcileSubscriptionByStripeId,
   type SubscriptionRecordRow,
 } from "./subscriptionLifecycle";
+import {
+  hasLiveFullBaseEntitlement,
+  isQuickBaseSubscription,
+  isSupersededQuickSubscriptionDeletion,
+} from "./subscriptionLifecyclePolicy";
+import { BUSINESS_CATEGORY_PACKAGE_PAIR } from "./businessAccessLevel";
 
 function getStripeClient(): Stripe | null {
   const secret = process.env.STRIPE_SECRET_KEY?.trim();
@@ -493,6 +499,49 @@ export async function handleSubscriptionUpdated(input: {
   return { ok: true, outcome: "completed" };
 }
 
+/**
+ * Does this listing currently hold a live FULL base package? Reads the entitlement rows first
+ * (authoritative) and falls back to a live Full subscription record. Returns null when the read
+ * fails so the caller can fail retryably rather than guess.
+ */
+async function listingHasLiveFullBase(category: string, listingId: string): Promise<boolean | null> {
+  const pair = BUSINESS_CATEGORY_PACKAGE_PAIR[String(category ?? "").trim().toLowerCase()];
+  if (!pair) return false;
+  try {
+    const supabase = getAdminSupabase();
+    const { data: rows, error } = await supabase
+      .from("listing_package_entitlements")
+      .select("id, package_key, package_tier, status, starts_at, ends_at")
+      .eq("category", category)
+      .eq("listing_id", listingId)
+      .eq("package_key", pair.full)
+      .in("status", ["active", "scheduled"]);
+    if (error) return null;
+    const facts = (rows ?? []).map((r) => {
+      const row = r as Record<string, unknown>;
+      return {
+        packageKey: row.package_key != null ? String(row.package_key) : null,
+        status: String(row.status ?? ""),
+        endsAt: row.ends_at != null ? String(row.ends_at) : null,
+      };
+    });
+    if (hasLiveFullBaseEntitlement({ category, rows: facts, nowMs: Date.now() })) return true;
+
+    const { data: subs, error: subError } = await supabase
+      .from("leonix_subscription_records")
+      .select("id, status")
+      .eq("category", category)
+      .eq("listing_id", listingId)
+      .eq("package_key", pair.full)
+      .in("status", ["active", "grace"])
+      .limit(1);
+    if (subError) return null;
+    return (subs ?? []).length > 0;
+  } catch {
+    return null;
+  }
+}
+
 /** customer.subscription.deleted — end per effective policy; suspend paid visibility; preserve all content. */
 export async function handleSubscriptionDeleted(input: {
   subscription: Stripe.Subscription;
@@ -503,11 +552,36 @@ export async function handleSubscriptionDeleted(input: {
   if (!record) return { ok: true, outcome: "ignored", code: "not_leonix_subscription" };
 
   const canceledAtPeriodEnd = Boolean(input.subscription.cancel_at_period_end);
-  const endedReason = canceledAtPeriodEnd ? "canceled_at_period_end" : "payment_failure_final";
+
+  // Quick->Full safety: convergence cancels the superseded Quick subscription on purpose. That is
+  // not a payment failure, and suspending the listing would take a paying Full customer offline.
+  // Only a Quick-package deletion on a listing with a live Full (or carrying the convergence
+  // marker) is treated this way; a genuine payment-failure-final on a listing with NO live Full
+  // still suspends exactly as before.
+  const subscriptionMetadata = input.subscription.metadata as Record<string, string> | null;
+  let supersededByFull = false;
+  if (!canceledAtPeriodEnd && isQuickBaseSubscription(record.category, record.package_key)) {
+    let liveFull = false;
+    // The convergence marker alone is sufficient; the entitlement lookup covers the common case where
+    // the marker was not yet on the event payload (it is written after the cancel, best-effort).
+    if (!isSupersededQuickSubscriptionDeletion({ category: record.category, packageKey: record.package_key, subscriptionMetadata, liveFullOnSameListing: false }) && record.category && record.listing_id) {
+      const found = await listingHasLiveFullBase(String(record.category), String(record.listing_id));
+      // Unreadable = unknown. Do not guess in either direction: let Stripe redeliver.
+      if (found === null) return { ok: false, outcome: "failed_retryable", code: "live_full_lookup_failed" };
+      liveFull = found;
+    }
+    supersededByFull = isSupersededQuickSubscriptionDeletion({ category: record.category, packageKey: record.package_key, subscriptionMetadata, liveFullOnSameListing: liveFull });
+  }
+
+  const endedReason = canceledAtPeriodEnd
+    ? "canceled_at_period_end"
+    : supersededByFull
+      ? "superseded_by_full_upgrade"
+      : "payment_failure_final";
   const transition = decideSubscriptionTransition(
     (record.status as "active" | "grace" | "suspended" | "pending" | "canceled") ?? "active",
     "subscription_deleted",
-    { endedReason },
+    { endedReason, supersededByFull },
   );
 
   let priorStatus: string | null = null;
@@ -538,7 +612,7 @@ export async function handleSubscriptionDeleted(input: {
     action: "revenue_payment_expired",
     targetType: "subscription",
     targetId: record.id,
-    meta: { event: "subscription_deleted", stripe_event_id: input.eventId, ended_reason: endedReason, content_preserved: true },
+    meta: { event: "subscription_deleted", stripe_event_id: input.eventId, ended_reason: endedReason, superseded_by_full: supersededByFull, content_preserved: true },
   });
   return { ok: true, outcome: "completed" };
 }

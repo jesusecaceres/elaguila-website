@@ -233,5 +233,16 @@ check("Full behaviour is unchanged: the route still serves a FULL customer", () 
   assert.ok(code.includes("recent_events: recentEvents"), "the success response is unchanged");
 });
 
+// The admin upgrade entry must not become a back door around the Simple/Full split: recording a
+// Full base payment is refused unless the listing currently resolves to Simple.
+check("manual Full upgrade is guarded server-side by the listing's current Simple access", () => {
+  const code = codeOf("app/lib/listingPlans/manualClearedPayments.ts");
+  const guard = code.indexOf("isBusinessBaseUpgradeInPlace(");
+  const insert = code.indexOf('.from("leonix_payment_records")\n    .insert') >= 0
+    ? code.indexOf('.from("leonix_payment_records")\n    .insert')
+    : code.search(/\.from\("leonix_payment_records"\)\s*\.insert\(/);
+  assert.ok(guard > 0 && insert > 0 && guard < insert, "the Simple-access guard must run before the payment record is inserted");
+});
+
 console.log(failures === 0 ? "\nOK — Full-only server gates proven" : `\n${failures} FAILED`);
 process.exit(failures === 0 ? 0 : 1);

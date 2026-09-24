@@ -352,5 +352,34 @@ check("the upgrade contract document exists and states what is preserved", () =>
   assert.ok(/never downgrade|Never downgrade/.test(doc), "the contract must forbid auto-downgrade");
 });
 
+// 5. STAFF (ADMIN) UPGRADE ENTRY ---------------------------------------------------------------
+check("admin Upgrade-to-Full entry exists, uses the pair map, and never inserts a listing", () => {
+  const staff = codeOf("app/lib/sales/staffBusinessProduct.ts");
+  assert.ok(staff.includes("staffUpgradeToFullHref"), "the staff upgrade href helper must exist");
+  assert.ok(staff.includes("upgradeTargetPackageKey("), "the helper must resolve the key through upgradeTargetPackageKey");
+
+  const entitlements = codeOf("app/admin/(dashboard)/workspace/package-entitlements/page.tsx");
+  const strip = codeOf("app/admin/(dashboard)/businesses/[businessId]/PreparedListingsStrip.tsx");
+  for (const [name, src] of [
+    ["package-entitlements page", entitlements],
+    ["PreparedListingsStrip", strip],
+  ] as const) {
+    assert.ok(src.includes("staffUpgradeToFullHref"), `${name} must link through staffUpgradeToFullHref`);
+    assert.ok(src.includes("Upgrade to Full"), `${name} must show the Upgrade to Full action`);
+    for (const pair of Object.values(BUSINESS_CATEGORY_PACKAGE_PAIR)) {
+      assert.ok(!src.includes(`"${pair.full}"`), `${name} must not hardcode ${pair.full}`);
+    }
+  }
+
+  const manual = codeOf("app/lib/listingPlans/manualClearedPayments.ts");
+  assert.ok(manual.includes("isBusinessBaseUpgradeInPlace("), "manual upgrade must require the listing to be Simple today");
+  assert.ok(manual.includes("upgradeTargetPackageKey"), "manual upgrade must classify via the pair map");
+  assert.ok(manual.includes("upgrade_requires_simple_listing"), "a non-Simple listing must be refused with a clear code");
+  assert.ok(manual.includes("convergeQuickToFullAfterPayment"), "clearing an upgrade must run the existing convergence");
+  // The only insert on this path is the payment record — an upgrade never creates a listing.
+  const inserts = [...manual.matchAll(/\.from\("([a-z_]+)"\)\s*\.insert\(/g)].map((m) => m[1]);
+  assert.deepEqual(inserts, ["leonix_payment_records"], "manual payments insert payment records only, never a listing");
+});
+
 console.log(failures === 0 ? "\nOK — upgrade contract proven" : `\n${failures} FAILED`);
 process.exit(failures === 0 ? 0 : 1);

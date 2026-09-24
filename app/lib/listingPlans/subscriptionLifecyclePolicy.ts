@@ -4,6 +4,58 @@
  * decisions against the DB and lane tables.
  */
 
+import { BUSINESS_CATEGORY_PACKAGE_PAIR } from "./businessAccessLevel";
+import { isRowCurrentlyLive, type EntitlementRowFacts } from "./categoryCommercialPlanPolicy";
+
+/** Stripe subscription metadata value written by Quick->Full convergence when it cancels Quick. */
+export const CONVERGENCE_CANCEL_REASON = "quick_to_full_upgrade";
+
+/** True when `packageKey` is the category's Quick (simple) subscription package. */
+export function isQuickBaseSubscription(
+  category: string | null | undefined,
+  packageKey: string | null | undefined,
+): boolean {
+  const pair = BUSINESS_CATEGORY_PACKAGE_PAIR[String(category ?? "").trim().toLowerCase()];
+  return Boolean(pair) && String(packageKey ?? "").trim().toLowerCase() === pair!.simple;
+}
+
+/**
+ * A Quick subscription deleted because the listing was upgraded to Full is NOT a payment failure.
+ * True when the deleted subscription's package is the category's Quick (simple) key AND either the
+ * convergence marker is present on the subscription metadata or the same listing currently holds a
+ * live Full base entitlement / subscription. Callers then drop `suspend_visibility`: the listing is
+ * held by Full, and suspending it would take a paying Full customer offline.
+ *
+ * Deliberately narrow: Full, print and non-business subscriptions never match, and a genuine
+ * payment-failure-final on a listing with NO live Full still suspends.
+ */
+export function isSupersededQuickSubscriptionDeletion(input: {
+  category: string | null | undefined;
+  packageKey: string | null | undefined;
+  subscriptionMetadata?: Record<string, string> | null;
+  liveFullOnSameListing: boolean;
+}): boolean {
+  const pair = BUSINESS_CATEGORY_PACKAGE_PAIR[String(input.category ?? "").trim().toLowerCase()];
+  if (!pair) return false;
+  if (String(input.packageKey ?? "").trim().toLowerCase() !== pair.simple) return false;
+  const marked = input.subscriptionMetadata?.leonix_convergence_reason === CONVERGENCE_CANCEL_REASON;
+  return marked || input.liveFullOnSameListing;
+}
+
+/** True when `rows` (one listing's entitlement rows) contain a currently-live Full base package. */
+export function hasLiveFullBaseEntitlement(input: {
+  category: string | null | undefined;
+  rows: readonly Pick<EntitlementRowFacts, "packageKey" | "status" | "endsAt">[];
+  nowMs: number;
+}): boolean {
+  const pair = BUSINESS_CATEGORY_PACKAGE_PAIR[String(input.category ?? "").trim().toLowerCase()];
+  if (!pair) return false;
+  return input.rows.some(
+    (row) =>
+      String(row.packageKey ?? "").trim().toLowerCase() === pair.full && isRowCurrentlyLive(row, input.nowMs),
+  );
+}
+
 /** Locked: 7 calendar days (Agreement v1.2 late/suspension policy + Bible lock). */
 export const SUBSCRIPTION_GRACE_DAYS = 7;
 /** Agreement v1.2 §15 — an undisputed amount is contractually late 5 calendar days after due. */
@@ -45,7 +97,13 @@ export type SubscriptionTransition = {
 export function decideSubscriptionTransition(
   current: LeonixSubscriptionStatus,
   event: SubscriptionEventKind,
-  ctx?: { suspensionReason?: string | null; graceExpired?: boolean; endedReason?: string | null },
+  ctx?: {
+    suspensionReason?: string | null;
+    graceExpired?: boolean;
+    endedReason?: string | null;
+    /** Quick subscription deleted while Full holds the listing: cancellation only, never suspension. */
+    supersededByFull?: boolean;
+  },
 ): SubscriptionTransition {
   switch (event) {
     case "checkout_completed":
@@ -68,6 +126,10 @@ export function decideSubscriptionTransition(
     case "subscription_deleted":
       if (ctx?.endedReason === "canceled_at_period_end") {
         // Paid-through honored: entitlement ends_at untouched; visibility follows entitlement lapse.
+        return { next: "canceled", effects: ["record_cancellation"] };
+      }
+      if (ctx?.supersededByFull) {
+        // Quick superseded by a live Full: Full stays authoritative, the listing is not suspended.
         return { next: "canceled", effects: ["record_cancellation"] };
       }
       return { next: "canceled", effects: ["record_cancellation", "suspend_visibility"] };

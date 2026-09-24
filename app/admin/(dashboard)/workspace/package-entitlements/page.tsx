@@ -41,6 +41,7 @@ import { PackageEntitlementSalesPreview } from "./PackageEntitlementSalesPreview
 import { getPackageEntitlementBenefits } from "@/app/lib/listingPlans/packageEntitlements";
 import { REVENUE_V1_PACKAGE_MATRIX } from "@/app/lib/listingPlans/revenuePricingMatrix";
 import { describeBusinessAccessRow } from "@/app/lib/listingPlans/businessAccessLevel";
+import { staffUpgradeToFullHref } from "@/app/lib/sales/staffBusinessProduct";
 import {
   attachListingToPackageEntitlementAction,
   createPackageEntitlementAction,
@@ -589,6 +590,10 @@ export default async function AdminPackageEntitlementsPage(props: {
                 packageTier: row.package_tier,
               });
               const canManage = effective !== "revoked";
+              const upgradeToFullHref =
+                canManage && businessAccessBadge?.level === "simple" && !businessAccessBadge.fromPrint
+                  ? staffUpgradeToFullHref({ category: row.category, listingId: row.listing_id })
+                  : null;
 
               return (
                 <li
@@ -685,6 +690,15 @@ export default async function AdminPackageEntitlementsPage(props: {
 
                   {canManage ? (
                     <div className="mt-3 space-y-2 border-t border-[#E8DFD0]/60 pt-3">
+                      {upgradeToFullHref ? (
+                        <p className="text-xs">
+                          {/* Thin entry into the existing manual-payment flow, prefilled for THIS
+                              listing. The route re-checks that the listing is still Simple. */}
+                          <Link href={upgradeToFullHref} className="font-bold text-[#6B5B2E] underline">
+                            Upgrade to Full / Subir a Full
+                          </Link>
+                        </p>
+                      ) : null}
                       {!row.listing_id ? (
                         <form action={attachListingToPackageEntitlementAction} className="flex flex-wrap items-end gap-2">
                           {preserveFilterHiddenFields(sp)}

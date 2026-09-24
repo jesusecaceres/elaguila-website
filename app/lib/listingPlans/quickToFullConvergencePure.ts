@@ -22,21 +22,28 @@
  * credited rather than forfeited.
  */
 
-/** The Quick (SIMPLE) monthly package key for each payment-record category. */
-export const QUICK_PACKAGE_KEYS_BY_CATEGORY: Readonly<Record<string, string>> = {
-  servicios: "servicios_quick_monthly",
-  restaurantes: "restaurantes_quick_monthly",
-  autos: "autos_dealer_quick_monthly",
-  "bienes-raices": "br_agent_quick_monthly",
-};
+import { BUSINESS_CATEGORY_PACKAGE_PAIR } from "./businessAccessLevel";
 
-/** Package-key prefixes that identify a FULL base plan purchase. */
-export const FULL_BASE_PACKAGE_PREFIXES: readonly string[] = [
-  "servicios_base",
-  "restaurantes_base",
-  "autos_dealer_base",
-  "br_agent_base",
-];
+/**
+ * SINGLE SOURCE: the Simple/Full package pair per business category lives in
+ * `BUSINESS_CATEGORY_PACKAGE_PAIR` (businessAccessLevel.ts). The Quick and Full key lists below are
+ * DERIVED from it, never restated. A duplicated prefix list previously drifted (it named
+ * `autos_dealer_base` / `br_agent_base`, which no package uses) and silently disabled convergence
+ * for Autos and Bienes Raices.
+ */
+
+/** The Quick (SIMPLE) monthly package key for each payment-record category. */
+export const QUICK_PACKAGE_KEYS_BY_CATEGORY: Readonly<Record<string, string>> = Object.freeze(
+  Object.fromEntries(Object.entries(BUSINESS_CATEGORY_PACKAGE_PAIR).map(([category, pair]) => [category, pair.simple])),
+);
+
+/**
+ * Exact FULL base package keys (derived). The export name is kept for existing importers; the
+ * values are full keys, not prefixes.
+ */
+export const FULL_BASE_PACKAGE_PREFIXES: readonly string[] = Object.freeze(
+  Object.values(BUSINESS_CATEGORY_PACKAGE_PAIR).map((pair) => pair.full),
+);
 
 /**
  * Stripe subscription statuses from which there is nothing left to cancel.
@@ -45,7 +52,8 @@ export const FULL_BASE_PACKAGE_PREFIXES: readonly string[] = [
 export const TERMINAL_SUBSCRIPTION_STATUSES: readonly string[] = ["canceled", "incomplete_expired"];
 
 export function isFullBasePackageKey(packageKey: string): boolean {
-  return FULL_BASE_PACKAGE_PREFIXES.some((prefix) => packageKey.startsWith(prefix));
+  const key = String(packageKey ?? "").trim().toLowerCase();
+  return key.length > 0 && FULL_BASE_PACKAGE_PREFIXES.includes(key);
 }
 
 export function quickPackageKeyForCategory(category: string): string | null {
@@ -57,6 +65,12 @@ export type FullPaymentFact = {
   ownerUserId: string;
   category: string;
   packageKey: string;
+  /**
+   * The listing the Full payment was bought FOR. Convergence is scoped to this exact listing: an
+   * owner with several Quick listings must never have a different listing's subscription
+   * cancelled. Null/empty fails closed (refused as `listing_unverified`).
+   */
+  listingId: string | null;
   /** True ONLY when the payment is authoritatively settled. Abandoned/failed checkout = false. */
   paid: boolean;
   stripeCustomerId: string | null;
@@ -68,6 +82,8 @@ export type QuickSubscriptionSnapshot = {
   ownerUserId: string;
   category: string;
   packageKey: string;
+  /** The listing the Quick subscription was bought for (from the payment ledger). */
+  listingId: string | null;
   stripeSubscriptionId: string;
   stripeCustomerId: string | null;
   /** Stripe `subscription.status`. */
@@ -92,6 +108,8 @@ export type ConvergenceRefusalReason =
   | "owner_mismatch"
   | "category_mismatch"
   | "package_mismatch"
+  | "listing_unverified"
+  | "listing_mismatch"
   | "customer_mismatch"
   | "customer_unverified";
 
@@ -128,6 +146,12 @@ export function planQuickToFullConvergence(
   if (quick.ownerUserId !== full.ownerUserId) return { action: "refuse", reason: "owner_mismatch" };
   if (quick.category !== full.category) return { action: "refuse", reason: "category_mismatch" };
   if (quick.packageKey !== expectedQuickKey) return { action: "refuse", reason: "package_mismatch" };
+  // Listing scope. An owner may hold Quick on several listings; only the upgraded listing's
+  // subscription may be superseded. Unknown on either side is not a match.
+  const fullListing = String(full.listingId ?? "").trim();
+  const quickListing = String(quick.listingId ?? "").trim();
+  if (!fullListing || !quickListing) return { action: "refuse", reason: "listing_unverified" };
+  if (fullListing !== quickListing) return { action: "refuse", reason: "listing_mismatch" };
   if (
     full.stripeCustomerId &&
     quick.stripeCustomerId &&

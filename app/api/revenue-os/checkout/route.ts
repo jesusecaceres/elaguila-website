@@ -22,7 +22,10 @@ import {
   SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
 } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import { isBusinessBasePackageKey } from "@/app/lib/listingPlans/businessAccessLevel";
-import { isBusinessBaseUpgradeInPlace } from "@/app/lib/listingPlans/businessBasePlanOffer";
+import {
+  isBusinessBaseUpgradeInPlace,
+  resolveQuickUpgradeStripeCustomerId,
+} from "@/app/lib/listingPlans/businessBasePlanOffer";
 import {
   markOfertaLocalCheckoutStarted,
   validateOfertasLocalesCheckoutOwnership,
@@ -628,6 +631,18 @@ export async function POST(request: NextRequest) {
         })
       : false;
 
+  // Simple->Full upgrade: reuse the owner's existing Stripe customer (server-resolved from the
+  // ledger for THIS listing, authenticated bearer only — never the request body) so the Full
+  // subscription sits on the same customer as the Quick one it supersedes. Null everywhere else.
+  const upgradeStripeCustomerId =
+    businessUpgradeInPlace && bearerUserId
+      ? await resolveQuickUpgradeStripeCustomerId({
+          category: packageDef.category,
+          listingId: listingRef,
+          ownerUserId: bearerUserId,
+        })
+      : null;
+
   // ── Autos base-package pre-flight (2026-09-18 publication-circuit audit) ─────────────────
   // This route flips the Autos listing to `pending_payment` after the Stripe session is created.
   // That write used to be unconditional: any caller who knew a public vehicle UUID could POST a base
@@ -1198,6 +1213,7 @@ export async function POST(request: NextRequest) {
     successUrl,
     cancelUrl,
     customerEmail: body.customerEmail,
+    existingStripeCustomerId: upgradeStripeCustomerId,
     clientReferenceId: paymentInsert.paymentRecordId,
     paymentRecordId: paymentInsert.paymentRecordId,
     ownerUserId,

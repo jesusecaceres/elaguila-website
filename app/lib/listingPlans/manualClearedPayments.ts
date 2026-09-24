@@ -21,6 +21,16 @@ import { isCanonicalRecordedAmountForPackage } from "./listingPackagePaymentAuth
 import { activateEntitlementsForPayment, type PaymentRecordRow } from "./revenueEntitlementFulfillment";
 import { applyPaymentSuspension } from "./subscriptionLifecycle";
 
+import { upgradeTargetPackageKey } from "./businessAccessLevel";
+import { isBusinessBaseUpgradeInPlace, readBusinessListingOwner } from "./businessBasePlanOffer";
+import { convergeQuickToFullAfterPayment } from "./quickToFullConvergence";
+
+/** True when `packageKey` is the category's FULL base package (the target of a Simple upgrade). */
+function isBusinessUpgradePackage(category: string, packageKey: string): boolean {
+  const target = upgradeTargetPackageKey(category);
+  return Boolean(target) && String(packageKey ?? "").trim().toLowerCase() === target;
+}
+
 export type ManualPaymentMethod = "cash" | "check" | "zelle" | "ach" | "money_order" | "other";
 export { canTransitionManualState, type ManualPaymentState } from "./refundDisputePolicy";
 import { canTransitionManualState, type ManualPaymentState } from "./refundDisputePolicy";
@@ -71,6 +81,41 @@ export async function recordManualPaymentPendingVerification(
     };
   }
 
+  // SIMPLE -> FULL upgrade guard (admin entry into the SAME upgrade the customer checkout runs).
+  // Recording a Full base payment is an upgrade of an EXISTING listing, never a second listing or a
+  // data re-entry: it requires the listing id, and that listing must currently resolve to Simple
+  // access for the category (`isBusinessBaseUpgradeInPlace`, the same server truth the checkout
+  // route uses). The owner is taken from the listing itself so convergence can never be attributed
+  // to the wrong account.
+  let ownerUserId = input.ownerUserId;
+  const isUpgrade = isBusinessUpgradePackage(category, packageDef.packageKey);
+  if (isUpgrade) {
+    const listingId = String(input.listingId ?? "").trim();
+    if (!listingId) {
+      return {
+        ok: false,
+        code: "upgrade_listing_required",
+        message: "A Simple to Full upgrade must be recorded against the existing listing (listingId is required).",
+      };
+    }
+    const simple = await isBusinessBaseUpgradeInPlace({ category, packageKey: packageDef.packageKey, listingId });
+    if (!simple) {
+      return {
+        ok: false,
+        code: "upgrade_requires_simple_listing",
+        message: "This listing does not currently hold Simple access for this category, so it cannot be upgraded to Full here.",
+      };
+    }
+    const listingOwner = await readBusinessListingOwner(category, listingId);
+    if (!listingOwner) {
+      return { ok: false, code: "upgrade_listing_owner_unknown", message: "The listing owner could not be verified." };
+    }
+    if (ownerUserId && String(ownerUserId).trim() !== listingOwner) {
+      return { ok: false, code: "upgrade_owner_mismatch", message: "ownerUserId does not match the listing owner." };
+    }
+    ownerUserId = listingOwner;
+  }
+
   const supabase = getAdminSupabase();
   const { data, error } = await supabase
     .from("leonix_payment_records")
@@ -79,7 +124,7 @@ export async function recordManualPaymentPendingVerification(
       listing_source: input.listingSource ?? packageDef.category,
       listing_id: input.listingId ?? null,
       leonix_ad_id: input.leonixAdId ?? null,
-      owner_user_id: input.ownerUserId,
+      owner_user_id: ownerUserId,
       customer_name: input.customerName ?? null,
       customer_email: input.customerEmail ?? null,
       business_name: input.businessName ?? null,
@@ -108,7 +153,13 @@ export async function recordManualPaymentPendingVerification(
     action: "revenue_payment_completed",
     targetType: "payment_record",
     targetId: data.id as string,
-    meta: { manual: true, manual_state: "pending_verification", method: input.method, admin: input.adminUserId },
+    meta: {
+      manual: true,
+      manual_state: "pending_verification",
+      method: input.method,
+      admin: input.adminUserId,
+      ...(isUpgrade ? { upgrade_from_simple: true, listing_id: input.listingId ?? null, package_key: packageDef.packageKey } : {}),
+    },
   });
   return { ok: true, paymentRecordId: data.id as string };
 }
@@ -121,7 +172,16 @@ export async function recordManualPaymentPendingVerification(
 export async function verifyManualPaymentCleared(input: {
   adminUserId: string;
   paymentRecordId: string;
-}): Promise<{ ok: true; idempotent?: boolean; packageEntitlementId?: string | null } | { ok: false; code: string; message: string }> {
+}): Promise<
+  | {
+      ok: true;
+      idempotent?: boolean;
+      packageEntitlementId?: string | null;
+      /** Present only for a Simple to Full upgrade: what convergence did to the Quick subscription. */
+      quickConvergence?: { outcome: string; reason?: string };
+    }
+  | { ok: false; code: string; message: string }
+> {
   if (!isSupabaseAdminConfigured()) return { ok: false, code: "supabase_not_configured", message: "Admin storage unavailable." };
   const supabase = getAdminSupabase();
 
@@ -188,13 +248,58 @@ export async function verifyManualPaymentCleared(input: {
     packageEntitlementId = fulfillment.packageEntitlementId ?? null;
   }
 
+  // SIMPLE -> FULL upgrade: once the Full entitlement exists, run the SAME convergence the Stripe
+  // webhook runs so an existing Stripe Quick subscription on THIS listing is cancelled (prorated)
+  // and the customer is not billed for both. A manual payment carries no Stripe customer or
+  // subscription, so the planner's customer guard is not evaluable and the owner + listing +
+  // category + Quick-package tie in the ledger lookup is what scopes the cancel. Best-effort by
+  // contract: a settled payment is never failed by convergence; the outcome is audited (the
+  // convergence module also writes its own attempted/completed/skipped/refused/failed trail).
+  let quickConvergence: { outcome: string; reason?: string } | null = null;
+  const recordCategory = String(record.category ?? "").trim().toLowerCase();
+  if (
+    packageEntitlementId &&
+    record.listing_id &&
+    record.owner_user_id &&
+    isBusinessUpgradePackage(recordCategory, String(record.package_key ?? ""))
+  ) {
+    const converged = await convergeQuickToFullAfterPayment({
+      full: {
+        ownerUserId: String(record.owner_user_id),
+        category: recordCategory,
+        packageKey: String(record.package_key),
+        listingId: String(record.listing_id),
+        paid: true,
+        stripeCustomerId: null,
+        stripeSubscriptionId: null,
+      },
+      eventId: `manual:${input.paymentRecordId}`,
+      paymentRecordId: input.paymentRecordId,
+    }).catch((err: unknown) => ({
+      ok: false as const,
+      outcome: "failed" as const,
+      reason: err instanceof Error ? err.message.slice(0, 200) : "convergence_threw",
+      retryable: true as const,
+    }));
+    quickConvergence = {
+      outcome: converged.outcome,
+      ...("reason" in converged && converged.reason ? { reason: converged.reason } : {}),
+    };
+  }
+
   await writeRevenueAuditLog({
     action: "revenue_entitlement_activated",
     targetType: "payment_record",
     targetId: input.paymentRecordId,
-    meta: { manual: true, manual_state: "cleared", verified_by: input.adminUserId, package_entitlement_id: packageEntitlementId },
+    meta: {
+      manual: true,
+      manual_state: "cleared",
+      verified_by: input.adminUserId,
+      package_entitlement_id: packageEntitlementId,
+      ...(quickConvergence ? { upgrade_from_simple: true, quick_convergence: quickConvergence } : {}),
+    },
   });
-  return { ok: true, packageEntitlementId };
+  return { ok: true, packageEntitlementId, ...(quickConvergence ? { quickConvergence } : {}) };
 }
 
 export async function markManualPaymentRejected(input: {
