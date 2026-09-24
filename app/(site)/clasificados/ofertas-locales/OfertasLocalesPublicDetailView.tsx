@@ -685,9 +685,7 @@ export function OfertasLocalesPublicDetailView({ lang, offer, items }: Props) {
             lang={lang}
             offer={offer}
             c={c}
-            onShare={handleShare}
             onCta={(cta) => trackOfertaLocalCta(analyticsIdentity, cta, "public_detail")}
-            shareCopied={shareCopied}
           />
         </div>
 
