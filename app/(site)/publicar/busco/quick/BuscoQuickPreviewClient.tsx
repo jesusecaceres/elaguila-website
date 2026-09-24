@@ -84,22 +84,6 @@ export default function BuscoQuickPreviewClient() {
     );
   }
 
-  const buildShareMessage = () => {
-    const title = draft.title.trim();
-    const city = draft.city.trim();
-    const url = typeof window !== "undefined" ? window.location.href : "";
-    return `${title} (${city})\n${url}`;
-  };
-
-  const copyText = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      alert(lang === "es" ? "Copiado." : "Copied.");
-    } catch {
-      window.prompt(lang === "es" ? "Copia este enlace:" : "Copy this link:", text);
-    }
-  };
-
   return (
     <CommunityQuickPublicDetailShell
       lang={lang}
@@ -148,9 +132,6 @@ export default function BuscoQuickPreviewClient() {
           lang={lang}
           mode="preview"
           organizerName={lang === "es" ? "Solicitante" : "Requester"}
-          onShare={() => void copyText(buildShareMessage())}
-          onCopyLink={() => void copyText(typeof window !== "undefined" ? window.location.href : "")}
-          onCopyInfo={() => void copyText(buildShareMessage())}
         />
       }
     />
