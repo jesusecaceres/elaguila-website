@@ -8,7 +8,12 @@ export type BusinessLaneKey =
   | "autos-dealer"
   | "bienes-raices";
 
-/** Sector grid order — Ofertas Locales featured separately above the grid. */
+/**
+ * Sector grid membership — Ofertas Locales featured separately above the grid.
+ * Visual order on the page is derived from this set alphabetically by localized
+ * label (see `NegociosLocalesClient.tsx`), so this array's literal order is only
+ * the membership list, not the display order.
+ */
 export const NEGOCIOS_SECTOR_GRID_ORDER: readonly BusinessLaneKey[] = [
   "servicios",
   "restaurantes",

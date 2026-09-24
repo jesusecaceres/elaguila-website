@@ -14,6 +14,7 @@ import {
 } from "@/app/lib/clasificados/publicCategoryCopyGuard";
 import { getClasificadosHubPageCopy } from "@/app/lib/clasificados/clasificadosHubPageCopy";
 import { navCopyLang, type SupportedLang } from "@/app/lib/language";
+import { sortByLocaleLabel } from "@/app/lib/localeAlphabeticalSort";
 import {
   appendLangToPath,
   buildHubCategoryPageUrl,
@@ -22,7 +23,12 @@ import {
 } from "./lib/hubUrl";
 import { CategoryVisibilityCta } from "./components/categoryStandard/CategoryVisibilityCta";
 
-/** Gate C1.1 — hub landing display order (browse routes unchanged). */
+/**
+ * Canonical set of classifieds categories shown on the hub grid (browse routes
+ * unchanged). Visual order on the page is derived from this set alphabetically
+ * by localized label — see `sortedCategoryKeys` below — so this array's literal
+ * order is no longer the display order; it is only the membership list.
+ */
 const C1_CATEGORY_ORDER: readonly HubCategoryKey[] = [
   "en-venta",
   "rentas",
@@ -81,6 +87,16 @@ function ClasificadosPageInner() {
   const postEntryHref = buildHubPostEntryHref(routeLang);
   const dealerBrowseHref = appendLangToPath("/clasificados/dealers-de-autos", routeLang);
   const dealerPublishHref = resolvePublicarGatewayDestination("autos", routeLang);
+
+  const sortedCategoryKeys = useMemo(
+    () =>
+      sortByLocaleLabel(
+        C1_CATEGORY_ORDER,
+        (k) => getPublicCategoryCardCopy(k, routeLang).label,
+        routeLang,
+      ),
+    [routeLang],
+  );
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#FAF6EE] pb-20 text-[#1F241C]">
@@ -143,7 +159,7 @@ function ClasificadosPageInner() {
           </h2>
 
           <ul className="mt-8 grid grid-cols-1 items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {C1_CATEGORY_ORDER.map((k) => {
+            {sortedCategoryKeys.map((k) => {
               const copy = getPublicCategoryCardCopy(k, routeLang);
               const browseHref = buildHubCategoryPageUrl(k, routeLang);
               const publishHref = buildCategoryPublishHref(k, routeLang);

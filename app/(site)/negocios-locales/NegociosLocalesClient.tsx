@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense } from "react";
+import { Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { resolveRouteLang, type SupportedLang } from "@/app/lib/language";
 import { NegociosLocalesBusinessCard } from "./_components/NegociosLocalesBusinessCard";
 import { NegociosLocalesFeaturedOfertasModule } from "./_components/NegociosLocalesFeaturedOfertasModule";
 import { NEGOCIOS_LANE_CARD_IMAGE } from "./_lib/negociosLocalesLaneImages";
+import { sortByLocaleLabel } from "@/app/lib/localeAlphabeticalSort";
 import {
   buildNegociosAdvertiseHref,
   buildNegociosExploreHref,
@@ -173,6 +174,16 @@ function NegociosLocalesInner() {
   // the page's most prominent CTAs toward one lane over the other two.
   const advertiseEntryHref = "#sectores";
 
+  const sortedLanes = useMemo(
+    () =>
+      sortByLocaleLabel(
+        NEGOCIOS_SECTOR_GRID_ORDER,
+        (lane) => (pageLang === "es" ? NEGOCIOS_LANE_COPY[lane].labelEs : NEGOCIOS_LANE_COPY[lane].labelEn),
+        pageLang,
+      ),
+    [pageLang],
+  );
+
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#FAF6EE] pb-20 text-[#1F241C]">
       <div
@@ -268,7 +279,7 @@ function NegociosLocalesInner() {
           </h2>
 
           <ul className="mt-8 grid grid-cols-1 items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {NEGOCIOS_SECTOR_GRID_ORDER.map((lane) => {
+            {sortedLanes.map((lane) => {
               const copy = NEGOCIOS_LANE_COPY[lane];
               const label = pageLang === "es" ? copy.labelEs : copy.labelEn;
               const desc = pageLang === "es" ? copy.descEs : copy.descEn;
