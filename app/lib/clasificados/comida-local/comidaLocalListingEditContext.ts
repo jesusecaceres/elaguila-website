@@ -138,7 +138,8 @@ export async function fetchOwnerComidaLocalListingForEdit(
   if (error) return { ok: false, reason: "query_error" };
   if (!data) return { ok: false, reason: "not_found" };
 
-  return comidaLocalEditHydrationFromRow(data as Record<string, unknown>, listingId);
+  // The select list is a long concatenated string, so supabase-js cannot infer a row type from it.
+  return comidaLocalEditHydrationFromRow(data as unknown as Record<string, unknown>, listingId);
 }
 
 /**
