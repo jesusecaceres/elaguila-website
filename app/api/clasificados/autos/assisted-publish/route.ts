@@ -41,6 +41,7 @@ import {
   enforceQuickBusinessPublishMedia,
   extractSemanticMediaItems,
 } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
+import { resolveQuickBusinessPublishIdentity } from "@/app/lib/listingPlans/quickBusinessProductIdentityServer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -180,8 +181,16 @@ export async function POST(request: NextRequest) {
     // assisted and self-service paths cannot drift into two different contracts. The previous
     // per-route `validateQuickBusinessMediaForCategory` call is still exercised directly by the
     // behavioral verifier; here the canonical function owns extraction and the refusal shape.
+    const assistedProduct = await resolveQuickBusinessPublishIdentity({
+      category: "autos",
+      ownerUserId: resolvedOwnerUserId ?? "",
+      listingId: existingMainListingId || null,
+      assistedPackageKey: assistedContext.packageKey ?? null,
+    });
     const vehicleMedia = extractSemanticMediaItems(body.vehicleListing);
-    const semanticMedia = enforceQuickBusinessPublishMedia({ category: "autos-dealer", items: vehicleMedia });
+    const semanticMedia = assistedProduct.enforceQuickContract
+      ? enforceQuickBusinessPublishMedia({ category: "autos-dealer", items: vehicleMedia })
+      : null;
     if (semanticMedia && !semanticMedia.ok) {
       return NextResponse.json(semanticMedia.body, { status: semanticMedia.status });
     }
