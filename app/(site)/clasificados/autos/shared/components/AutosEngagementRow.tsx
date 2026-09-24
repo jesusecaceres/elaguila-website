@@ -93,7 +93,6 @@ export function AutosEngagementRow({
             lang={lang}
             category="autos"
             persistEngagement
-            directNativeShare
             recordShareEvent={autosGlobalShareRecorderFromContext(analyticsCtx, shareEventSource)}
           />
         </div>
