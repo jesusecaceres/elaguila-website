@@ -702,10 +702,16 @@ export function PreviewDealerBusinessStack({
                     className={QUICK_ACTION_CLASS}
                   />
                 ) : publicPlaybackOnly || Boolean(publicUrl?.trim()) ? (
-                  <button type="button" className={QUICK_ACTION_CLASS} onClick={() => void onShare()}>
-                    <FiShare2 className="h-4 w-4 shrink-0 text-[#7A1E2C]" aria-hidden />
-                    {shareLabel}
-                  </button>
+                  <LeonixShareButton
+                    listingId={(data as { id?: string | null }).id ?? null}
+                    listingUrl={publicUrl?.trim() || ""}
+                    listingTitle={data.vehicleTitle?.trim() || data.dealerName?.trim() || "Leonix Autos"}
+                    variant="default"
+                    lang={lang}
+                    category="autos"
+                    persistEngagement={false}
+                    className={QUICK_ACTION_CLASS}
+                  />
                 ) : (
                   <button
                     type="button"
