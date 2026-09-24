@@ -78,6 +78,8 @@ import {
 } from "./utils/bienesRaicesPrivadoDraft";
 import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications/useBusinessApplicationLeaveGuard";
 import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlowLifecycleClient";
+import { BusinessAddressVerifiedInput } from "@/app/components/forms/BusinessAddressVerifiedInput";
+import type { BusinessAddress } from "@/app/lib/businessAddress/businessAddressContract";
 import { formatSqftDisplay, formatUsdWhole, priceDigitsUnbounded } from "@/app/(site)/clasificados/bienes-raices/shared/realEstateAddressPriceFormat";
 
 const MAX_PHOTOS = 8;
@@ -255,6 +257,7 @@ export function BienesRaicesPrivadoForm() {
   );
   const [state, setState] = useState<BienesRaicesPrivadoFormState>(createEmptyBienesRaicesPrivadoFormState);
   const [hydrated, setHydrated] = useState(false);
+  const [verifiedAddress, setVerifiedAddress] = useState<BusinessAddress | null>(null);
   const [previewGateMessage, setPreviewGateMessage] = useState<string | null>(null);
   const [mediaNotice, setMediaNotice] = useState<string | null>(null);
   const [sellerPhotoNotice, setSellerPhotoNotice] = useState<string | null>(null);
@@ -400,6 +403,15 @@ export function BienesRaicesPrivadoForm() {
     state.confirmListingAccurate && state.confirmPhotosRepresentItem && state.confirmCommunityRules;
 
   const pricePreview = formatPricePreviewUsd(state.precio);
+  const activeVerifiedAddress =
+    verifiedAddress &&
+    verifiedAddress.street === state.gate12d.calleNumero &&
+    (verifiedAddress.unit || "") === (state.gate12d.unidad || "") &&
+    (verifiedAddress.city || "") === (state.ciudad || "") &&
+    (verifiedAddress.region || "") === (state.gate12d.estado || "") &&
+    (verifiedAddress.postalCode || "") === (state.gate12d.codigoPostal || "")
+      ? verifiedAddress
+      : null;
 
   const onVerAnuncio = async () => {
     if (!confirmAll) return;
@@ -522,14 +534,39 @@ export function BienesRaicesPrivadoForm() {
                 {brPrivateUi(lang, "Dirección estructurada (opcional)", "Structured address (optional)")}
               </summary>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <AiField label={brPrivateUi(lang, "Número y calle", "Street number and name")} hint={brPrivateUi(lang, "Ej.: 123 Oak Street", "E.g. 123 Oak Street")}>
-                  <input
-                    className={fieldClass}
-                    value={state.gate12d.calleNumero}
-                    onChange={(e) =>
-                      setState((s) => ({ ...s, gate12d: { ...s.gate12d, calleNumero: e.target.value } }))
+                <AiField label={brPrivateUi(lang, "Número y calle", "Street number and name")} hint={brPrivateUi(lang, "Busca una dirección o escribe manualmente. La dirección exacta solo se publica si activas la opción correspondiente.", "Search for an address or enter it manually. The exact address is only published when you enable the matching option.")}>
+                  <BusinessAddressVerifiedInput
+                    lang={lang}
+                    value={
+                      activeVerifiedAddress ?? {
+                        street: state.gate12d.calleNumero,
+                        unit: state.gate12d.unidad,
+                        city: state.ciudad,
+                        region: state.gate12d.estado,
+                        postalCode: state.gate12d.codigoPostal,
+                        country: "US",
+                        verificationStatus: "manual",
+                        provider: null,
+                        providerPlaceId: null,
+                        manualEntry: true,
+                      }
                     }
-                    autoComplete="street-address"
+                    locationHint={[state.ciudad, state.gate12d.estado].filter(Boolean).join(", ")}
+                    inputClassName={fieldClass}
+                    onChange={(next) => {
+                      setVerifiedAddress(next);
+                      setState((s) => ({
+                        ...s,
+                        ciudad: next.city || s.ciudad,
+                        gate12d: {
+                          ...s.gate12d,
+                          calleNumero: next.street,
+                          unidad: next.unit ?? s.gate12d.unidad,
+                          estado: next.region || s.gate12d.estado,
+                          codigoPostal: next.postalCode || s.gate12d.codigoPostal,
+                        },
+                      }));
+                    }}
                   />
                 </AiField>
                 <AiField label={brPrivateUi(lang, "Unidad / apt / suite (opcional)", "Unit / apt / suite (optional)")}>
