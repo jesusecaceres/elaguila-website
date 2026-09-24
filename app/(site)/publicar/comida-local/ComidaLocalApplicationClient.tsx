@@ -1319,14 +1319,12 @@ export default function ComidaLocalApplicationClient() {
                           [next.street, next.unit, next.city, next.region, next.postalCode]
                             .filter(Boolean)
                             .join(", ");
+                        const cityPatch = next.city?.trim()
+                          ? syncComidaLocalCityFromInput(next.city)
+                          : {};
                         updateDraft({
                           businessAddressLine: formatted,
-                          ...(next.city
-                            ? {
-                                cityDisplay: next.city,
-                                cityCanonical: next.city,
-                              }
-                            : {}),
+                          ...cityPatch,
                         });
                       }}
                     />
