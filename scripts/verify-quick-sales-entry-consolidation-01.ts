@@ -230,10 +230,10 @@ check("A8: the launchpad server-renders with NO link into a customer application
   const entries = [...html.matchAll(/data-quick-sales-entry="([a-z-]+)"[^>]*href="([^"]+)"|href="([^"]+)"[^>]*data-quick-sales-entry="([a-z-]+)"/g)];
   const byCat = new Map<string, string>();
   for (const m of entries) byCat.set((m[1] ?? m[4])!, unescape((m[2] ?? m[3])!));
-  for (const c of QUICK_SALES_CATEGORIES) {
-    const href = byCat.get(c);
-    assert.ok(href && href.startsWith(`${QUICK_SALES_WORKSPACE_PATH}?`), `${c} managed verb → cockpit (${href})`);
-  }
+  // Category-first routing (d44df7d32): the launchpad is ONE doorway into the cockpit, where the
+  // eight families are chosen; it no longer renders a per-category managed verb.
+  const doorway = byCat.get("launchpad");
+  assert.ok(doorway && doorway.startsWith(QUICK_SALES_WORKSPACE_PATH), `launchpad doorway → cockpit (${doorway})`);
   assert.ok(html.includes("Copiar / Copy") && html.includes("Compartir / Share"), "customer links are still copy/share-able");
 });
 

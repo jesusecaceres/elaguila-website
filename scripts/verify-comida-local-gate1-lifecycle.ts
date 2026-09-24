@@ -414,6 +414,7 @@ check("EVERY draft field round-trips through the storage merge allowlist", () =>
     primaryContactChoice: "whatsapp",
     phone: "(408) 555-1234",
     whatsapp: "(408) 555-9876",
+    smsPhone: "(408) 555-2468",
     email: "lupita@example.com",
     queVendes: "Tacos de birria hechos al momento todos los dias.",
     instagramUrl: "https://instagram.com/tacoslupita",
@@ -496,9 +497,9 @@ check("the probe covers every field the empty draft declares (no silent blind sp
     Object.keys(empty).includes("locationUpdatedAt"),
     "the new Find Me Today field must exist on the empty draft",
   );
-  // 46 = the 45 pre-gate fields + locationUpdatedAt. A field added later without extending the
+  // 47 = the 45 pre-gate fields + locationUpdatedAt + smsPhone. A field added later without extending the
   // round-trip probe above trips this.
-  eq(Object.keys(empty).length, 46, "draft field count");
+  eq(Object.keys(empty).length, 47, "draft field count");
 });
 
 check("the autosave sanitizer preserves the stamp (it runs on EVERY save)", () => {
@@ -559,10 +560,10 @@ check("the publish route compare-and-sets on status AND the canonical draft_list
     !/\?\?\s*"published"/.test(src),
     "the `?? \"published\"` escalation must be gone from the route",
   );
-  const updateBlock = src.slice(src.indexOf(".update(updatePayload)"));
+  const updateBlock = src.slice(src.indexOf(".update({ ...updatePayload"));
   assert(
-    /\.eq\("draft_listing_id", draftListingId\)/.test(updateBlock),
-    "same-row identity: update must key on the canonical draft_listing_id",
+    /\.eq\("id", existing\.id\)/.test(updateBlock) && /draft_listing_id: persistedDraftListingId/.test(updateBlock),
+    "same-row identity: update must key on the resolved row id and keep the canonical draft_listing_id",
   );
   assert(
     /\.eq\("status", targetStatus\)/.test(updateBlock),

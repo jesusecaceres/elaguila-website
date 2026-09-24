@@ -55,8 +55,9 @@ import type { QuickBusinessCategoryKey } from "../app/lib/quickBusiness/quickBus
 const ROOT = process.cwd();
 const read = (p: string) => fs.readFileSync(path.join(ROOT, p), "utf8");
 /** Executable code only: a rule stated in a comment must not satisfy a search for its violation. */
+// LF-normalised so the source-shape regexes below also hold on a CRLF (Windows autocrlf) checkout.
 const codeOf = (p: string): string =>
-  read(p).replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  read(p).replace(/\r\n/g, "\n").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
 
 let failures = 0;
 function check(name: string, fn: () => void): void {
@@ -795,12 +796,16 @@ check("the Quick photo is a real photo of the thing being sold", () => {
   // The Media Lock above proves one photo is REQUIRED. This proves the required photo is the
   // customer's own upload landing on the canonical vehicle/property, with nothing synthesised.
   const autos = codeOf(QUICK_ADAPTERS["autos-dealer"]);
-  assert.ok(/mediaImages:\s*MediaImageEntry\[\]\s*=\s*media\.map\(/.test(autos), "dealer photos map 1:1 from the customer's upload");
+  // Videos are filtered out first (Quick has no video), so only the customer's photo entries map 1:1.
+  assert.ok(
+    /mediaImages:\s*MediaImageEntry\[\]\s*=\s*(?:galleryMediaOnly\()?media\)?\.map\(/.test(autos),
+    "dealer photos map 1:1 from the customer's upload",
+  );
   assert.ok(autos.includes("mediaImages,") && autos.includes("heroImages:"), "the photo must land on the vehicle itself");
   assert.ok(/additionalInventoryVehicles:\s*\[\]/.test(autos), "Quick publishes the first real vehicle only");
 
   const bienes = codeOf(QUICK_ADAPTERS["bienes-negocio"]);
-  assert.ok(/fotosDataUrls:\s*media\.map\(/.test(bienes), "property photos map 1:1 from the customer's upload");
+  assert.ok(/fotosDataUrls:\s*(?:galleryMediaOnly\()?media\)?\.map\(/.test(bienes), "property photos map 1:1 from the customer's upload");
 
   for (const [key, file] of Object.entries(QUICK_ADAPTERS) as [QuickBusinessCategoryKey, string][]) {
     const src = codeOf(file);
