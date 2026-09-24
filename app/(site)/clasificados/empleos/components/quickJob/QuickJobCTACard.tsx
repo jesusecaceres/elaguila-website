@@ -1,11 +1,13 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { FaCalendarAlt, FaClock, FaEnvelope, FaFacebook, FaGlobe, FaInstagram, FaLinkedin, FaPhone, FaSms, FaShareAlt, FaSnapchat, FaUser, FaYoutube } from "react-icons/fa";
+import { useState } from "react";
+import { FaCalendarAlt, FaClock, FaEnvelope, FaFacebook, FaGlobe, FaInstagram, FaLinkedin, FaPhone, FaSms, FaSnapchat, FaUser, FaYoutube } from "react-icons/fa";
 import { SiTiktok, SiWhatsapp, SiX } from "react-icons/si";
 import { normalizePayDisplayParts } from "@/app/publicar/empleos/shared/lib/empleosPayDisplay";
 import { empleosPhoneDigits, formatEmpleosPhoneDisplay } from "@/app/publicar/empleos/shared/lib/empleosPhoneDisplay";
 import type { EmpleosAnalyticsTrackMeta } from "../../lib/empleosAnalyticsIdentity";
+import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import { LEONIX_SITE_ORIGIN } from "@/app/lib/leonixBrand";
 import { trackEmpleosSidebarContactCta } from "../../lib/empleosCtaTracking";
 import { empleosGlobalListingFromRow, empleosGlobalShareRecorder } from "../../lib/recordEmpleosGlobalAnalytics";
 import {
@@ -142,7 +144,6 @@ export function QuickJobCTACard({
   businessName,
 }: Props) {
   const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
-  const [shareCopied, setShareCopied] = useState(false);
   const validEmail = email && looksLikeEmail(email) ? email : undefined;
   const hasApplyLink = Boolean(applyLink?.trim().startsWith("http"));
   const hasSms = Boolean(smsPhone?.trim());
@@ -210,45 +211,23 @@ export function QuickJobCTACard({
     openSheet(buildWebsiteIntent({ url: site, headline: websiteLabel, kind: "website" }));
   };
 
-  const handleNativeShare = useCallback(async () => {
-    const url = typeof window !== "undefined" ? window.location.href : "";
-    if (!url) return;
-
-    const title =
-      businessName?.trim() ||
-      listingTitle?.trim() ||
-      "Leonix Media";
-
-    // Build global listing for analytics when real identity exists
-    const globalListing = contactAnalyticsMeta?.sourceId?.trim()
-      ? empleosGlobalListingFromRow({
-          id: contactAnalyticsMeta.sourceId.trim(),
-          slug: contactAnalyticsMeta.slug,
-          leonix_ad_id: contactAnalyticsMeta.leonixAdId,
-        })
-      : null;
-
-    const recordShare = globalListing ? empleosGlobalShareRecorder(globalListing, "detail_share") : undefined;
-
-    try {
-      if (typeof navigator.share === "function") {
-        await navigator.share({
-          title,
-          text: title,
-          url,
-        });
-        if (recordShare) recordShare("web_share", { direct: true });
-        return;
-      }
-
-      await navigator.clipboard.writeText(url);
-      setShareCopied(true);
-      window.setTimeout(() => setShareCopied(false), 2000);
-      if (recordShare) recordShare("copy_link", { direct: true, nativeFallback: true });
-    } catch {
-      // User cancelled native share or browser blocked it.
-    }
-  }, [businessName, listingTitle, contactAnalyticsMeta]);
+  // Shared Leonix share drawer (CtaActionSheet): social options + canonical leonixmedia.com URL.
+  const shareTitle = businessName?.trim() || listingTitle?.trim() || "Leonix Media";
+  const shareListingId = contactAnalyticsMeta?.sourceId?.trim() || "";
+  const shareRecorder = shareListingId
+    ? empleosGlobalShareRecorder(
+        empleosGlobalListingFromRow({
+          id: shareListingId,
+          slug: contactAnalyticsMeta?.slug,
+          leonix_ad_id: contactAnalyticsMeta?.leonixAdId,
+        }),
+        "detail_share",
+      )
+    : undefined;
+  const shareSlug = contactAnalyticsMeta?.slug?.trim() || "";
+  const shareListingUrl = shareSlug
+    ? `${LEONIX_SITE_ORIGIN}/clasificados/empleos/${shareSlug}${lang === "en" ? "?lang=en" : ""}`
+    : undefined;
 
   const primaryIsApply = hasApplyLink;
   const primaryIsWhatsApp = !primaryIsApply && preferredApplyMethod === "whatsapp" && whatsapp;
@@ -381,18 +360,16 @@ export function QuickJobCTACard({
               {websiteLabel}
             </button>
           ) : null}
-          <button type="button" onClick={handleNativeShare} className={`flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold transition ${SOFT_BTN}`}>
-            {shareCopied ? (
-              <>
-                <span className="text-xs">{lang === "es" ? "Enlace copiado" : "Link copied"}</span>
-              </>
-            ) : (
-              <>
-                <FaShareAlt className="h-4 w-4 shrink-0" aria-hidden />
-                {lang === "es" ? "Compartir" : "Share"}
-              </>
-            )}
-          </button>
+          <LeonixShareButton
+            listingId={shareListingId}
+            listingUrl={shareListingUrl}
+            listingTitle={shareTitle}
+            lang={lang}
+            category="empleos"
+            variant="small"
+            recordShareEvent={shareRecorder}
+            className={`max-w-none w-full [&>button]:flex [&>button]:min-h-11 [&>button]:w-full [&>button]:items-center [&>button]:justify-center [&>button]:gap-2 [&>button]:rounded-xl [&>button]:px-3 [&>button]:text-sm [&>button]:font-semibold ${SOFT_BTN}`}
+          />
         </div>
       ) : null}
 

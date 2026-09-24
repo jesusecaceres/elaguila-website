@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useCallback, useState } from "react";
-import { FiHeart, FiShare2 } from "react-icons/fi";
+import { FiHeart } from "react-icons/fi";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { trackListingSaveToggleAuthed } from "@/app/lib/analytics/client/listingEngagementRecorder";
 import { isSelfEngagement } from "@/app/lib/analytics/selfEngagementGuard";
-import { copyToClipboard } from "@/app/components/cta";
+import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import { LEONIX_SITE_ORIGIN } from "@/app/lib/leonixBrand";
 import { BienesRaicesPrivadoPreviewView } from "@/app/clasificados/bienes-raices/preview/privado/BienesRaicesPrivadoPreviewView";
 import { BrSimilarOtherClientPropertiesSection } from "@/app/clasificados/bienes-raices/components/BrSimilarOtherClientPropertiesSection";
 import { extractBrFacetsFromDetailPairs } from "@/app/clasificados/bienes-raices/resultados/lib/brFacetFromDetailPairs";
@@ -25,17 +26,21 @@ type Lang = "es" | "en";
  * without sharing rendering logic that doesn't apply to Privado (no business inventory, no
  * sibling-portfolio rail — Privado never has parent/child inventory).
  */
+const SHARE_BTN_SHELL =
+  "max-w-none w-auto [&>button]:min-h-9 [&>button]:rounded-full [&>button]:border [&>button]:bg-white/90 [&>button]:px-2.5 [&>button]:text-[10px] [&>button]:font-bold [&>button]:uppercase [&>button]:tracking-[0.08em] [&>button]:text-[#5C4A28] [&>button]:transition [&>button]:hover:bg-[#FFF6E7] [&>button]:border-[#C9B46A]/40";
+
 function PrivadoPublicChromeActions({
   listingId,
+  listingTitle,
   lang,
   ownerId,
 }: {
   listingId: string;
+  listingTitle: string;
   lang: Lang;
   ownerId?: string | null;
 }) {
   const [saved, setSaved] = useState(false);
-  const [copyHint, setCopyHint] = useState("");
 
   const save = useCallback(async () => {
     const sb = createSupabaseBrowserClient();
@@ -67,12 +72,6 @@ function PrivadoPublicChromeActions({
     }
   }, [listingId, ownerId, saved]);
 
-  const share = useCallback(async () => {
-    const ok = await copyToClipboard(window.location.href);
-    setCopyHint(ok ? (lang === "en" ? "Copied" : "Copiado") : "");
-    window.setTimeout(() => setCopyHint(""), 1800);
-  }, [lang]);
-
   return (
     <div className="flex min-w-0 items-center justify-end gap-1.5">
       <button
@@ -84,15 +83,17 @@ function PrivadoPublicChromeActions({
         <FiHeart className={saved ? "h-3.5 w-3.5 fill-current" : "h-3.5 w-3.5"} aria-hidden />
         <span className="hidden sm:inline">{saved ? (lang === "en" ? "Saved" : "Guardado") : lang === "en" ? "Save" : "Guardar"}</span>
       </button>
-      <button
-        type="button"
-        onClick={share}
-        className="inline-flex min-h-9 items-center gap-1 rounded-full border bg-white/90 px-2.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#5C4A28] transition hover:bg-[#FFF6E7]"
-        style={{ borderColor: "rgba(201, 180, 106, 0.42)" }}
-      >
-        <FiShare2 className="h-3.5 w-3.5" aria-hidden />
-        <span className="hidden sm:inline">{copyHint || (lang === "en" ? "Share" : "Compartir")}</span>
-      </button>
+      {/* Shared Leonix share drawer (CtaActionSheet): social options + canonical leonixmedia.com URL. */}
+      <LeonixShareButton
+        listingId={listingId}
+        listingUrl={`${LEONIX_SITE_ORIGIN}/clasificados/anuncio/${listingId}?lang=${lang}`}
+        listingTitle={listingTitle}
+        lang={lang}
+        variant="small"
+        category="bienes-raices"
+        ownerUserId={ownerId}
+        className={SHARE_BTN_SHELL}
+      />
     </div>
   );
 }
@@ -115,7 +116,12 @@ export function BienesRaicesPrivadoLiveDetailShell({ listing, lang }: { listing:
           >
             {lang === "en" ? "Back to Real estate" : "Volver a Bienes Raíces"}
           </Link>
-          <PrivadoPublicChromeActions listingId={listing.id} lang={lang} ownerId={listing.owner_id} />
+          <PrivadoPublicChromeActions
+            listingId={listing.id}
+            listingTitle={listing.title[lang] || listing.title.es || listing.title.en}
+            lang={lang}
+            ownerId={listing.owner_id}
+          />
         </div>
         {listing.leonix_ad_id ? (
           <p className="mt-2 text-[11px] font-medium text-[#7A7164]">

@@ -65,7 +65,6 @@ export function ServiciosEndOfContentShare({
         category="servicios"
         persistEngagement={persistEngagement}
         recordShareEvent={record ? (method, meta) => record(method, { ...meta, placement: "end_of_content" }) : undefined}
-        directNativeShare
         className="shrink-0"
       />
     </section>

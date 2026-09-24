@@ -34,7 +34,7 @@ const pkg = read("package.json");
 // Servicios save recorder — never a second engine.
 // Servicios Live Launch Perfection ⚠️32 (2026-09-14, PM product decision): general Share is native/
 // device share first with a lightweight copy-link fallback — no multi-action drawer.
-assert(resultStrip.includes("directNativeShare"), "results strip: native share preserved");
+assert(!resultStrip.includes("directNativeShare"), "results strip: shared Leonix Share drawer (owner decision 2026-09-24)");
 assert(resultStrip.includes("LeonixShareButton"), "results strip: share preserved");
 assert(resultStrip.includes("<LeonixSaveButton"), "results strip: shared Save control");
 assert(resultStrip.includes("serviciosSavedListingExtras"), "results strip: canonical Servicios save extras");
@@ -122,7 +122,7 @@ assert(!listingCard.includes("CtaActionSheet"), "listing card: modal removed");
 
 // Servicios Live Launch Perfection ⚠️32 (2026-09-14, PM product decision): general Share is native/
 // device share first with a lightweight copy-link fallback — no multi-action drawer.
-assert(resultStrip.includes("directNativeShare"), "results strip: native share preserved");
+assert(!resultStrip.includes("directNativeShare"), "results strip: shared Leonix Share drawer (owner decision 2026-09-24)");
 assert(resultStrip.includes("LeonixShareButton"), "results strip: share preserved");
 assert(resultStrip.includes("<LeonixSaveButton"), "results strip: shared Save control");
 assert(resultStrip.includes("serviciosSavedListingExtras"), "results strip: canonical Servicios save extras");

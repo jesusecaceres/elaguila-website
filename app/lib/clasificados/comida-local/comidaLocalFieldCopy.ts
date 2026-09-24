@@ -173,6 +173,15 @@ export const COMIDA_LOCAL_FIELD_COPY: Record<string, ComidaLocalFieldCopy> = {
     placeholderEn: "(408) 555-1234",
     optional: true,
   },
+  smsPhone: {
+    labelEs: "Número para mensajes de texto",
+    labelEn: "Text message number",
+    helperEs: "Opcional. El botón de mensaje solo aparece si agregas este número.",
+    helperEn: "Optional. The Message button only appears if you add this number.",
+    placeholderEs: "(408) 555-1234",
+    placeholderEn: "(408) 555-1234",
+    optional: true,
+  },
   email: {
     labelEs: "Correo (opcional)",
     labelEn: "Email (optional)",

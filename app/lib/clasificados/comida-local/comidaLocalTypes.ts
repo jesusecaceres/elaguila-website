@@ -159,6 +159,8 @@ export type ComidaLocalDraft = {
   primaryContactChoice: ComidaLocalContactMethod | "";
   phone: string;
   whatsapp: string;
+  /** Dedicated text-message number (opt-in); never derived from `phone`. Stored in listing_json. */
+  smsPhone: string;
   /** Gate D10 — real persisted email; wires the shared CtaActionSheet Correo modal. */
   email: string;
   queVendes: string;

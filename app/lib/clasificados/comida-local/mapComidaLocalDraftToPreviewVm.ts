@@ -176,10 +176,12 @@ function buildContactActions(
     if (tel) {
       actions.push({ id: "call", label: en ? "Call" : "Llamar", href: tel, variant: "primary" });
     }
-    const sms = buildComidaLocalSmsHref(draft.phone);
-    if (sms) {
-      actions.push({ id: "sms", label: en ? "Message" : "Mensaje", href: sms, variant: "secondary" });
-    }
+  }
+
+  // SMS is its own opt-in channel (`smsPhone`); never assumed from the call phone.
+  const sms = buildComidaLocalSmsHref(draft.smsPhone ?? "");
+  if (sms) {
+    actions.push({ id: "sms", label: en ? "Message" : "Mensaje", href: sms, variant: "secondary" });
   }
 
   const email = draft.email.trim();

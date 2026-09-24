@@ -50,14 +50,15 @@ assert(hubRow.includes("LeonixShareButton"), "hub row: share button");
 // Servicios Live Launch Perfection ⚠️32 (2026-09-14, PM product decision): a simple general Share
 // follows the Business Hub standard — native/device share directly, lightweight copy-link fallback,
 // no multi-action drawer. (⚠️14's hub adoption was reverted by the owner.)
-assert(hubRow.includes("directNativeShare"), "hub row: direct native share (copy-link fallback)");
+// Owner decision 2026-09-24: Varios/En Venta shared Leonix Share drawer is the standard everywhere (supersedes the earlier native-first decision).
+assert(hubRow.includes("LeonixShareButton") && !hubRow.includes("directNativeShare"), "hub row: shared Leonix Share drawer");
 assert(hubRow.includes("persistEngagement={persistEngagement}"), "hub row: like uses route persistence flag");
 assert(hubRow.includes("showEngagementControls"), "hub row: visibility prop separate from persistence");
 assert(hubRow.includes("showEngagementActions"), "hub row: visibility gate");
 assert(hubRow.includes("showEngagementControls && Boolean(lxListingId)"), "hub row: visibility not tied to persistence");
 assert(!hubRow.includes("showShare ?"), "hub row: no preview-only share branch");
 
-assert(proShell.includes("directNativeShare"), "professional shell: hero native share (⚠️32)");
+assert(proShell.includes("LeonixShareButton") && !proShell.includes("directNativeShare"), "professional shell: hero shared Leonix Share drawer");
 // Zero-debt closeout 2026-09-12: this demanded the literal inline-ternary spelling
 // `showEngagementControls ?`. The gate still exists but is now a named boolean, which is clearer.
 // Assert the CONTRACT: hero engagement visibility is driven by showEngagementControls AND a real

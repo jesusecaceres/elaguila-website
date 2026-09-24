@@ -662,6 +662,20 @@ export function AutosPrivadoApplication() {
                 <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.hints.whatsapp}</p>
               </div>
               <div className="sm:col-span-2">
+                <label className={LABEL}>{t.app.dealer.smsPhone}</label>
+                <input
+                  className={`${INPUT} tabular-nums`}
+                  inputMode="tel"
+                  autoComplete="tel"
+                  value={formatPhoneInputDisplay(listing.dealerSmsPhone ?? "")}
+                  onChange={(e) => {
+                    const v = formatPhoneInputDisplay(e.target.value);
+                    setListingPatch({ dealerSmsPhone: v.trim() ? v : undefined });
+                  }}
+                />
+                <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.dealer.smsPhoneHint}</p>
+              </div>
+              <div className="sm:col-span-2">
                 <label className={LABEL}>{t.app.labels.sellerEmail}</label>
                 <input
                   className={INPUT}

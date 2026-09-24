@@ -1,11 +1,9 @@
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
+import { resolveLeonixSiteOrigin } from "@/app/lib/siteOrigin";
 
-/** Absolute site origin for SEO / JobPosting (set `NEXT_PUBLIC_SITE_URL` in production). */
+/** Absolute site origin for SEO / JobPosting — always the canonical Leonix origin in production. */
 export function empleosSiteOrigin(): string {
-  const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  if (raw) return raw.replace(/\/$/, "");
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL.replace(/\/$/, "")}`;
-  return "https://leonix.com";
+  return resolveLeonixSiteOrigin();
 }
 
 export function empleosJobPublicAbsoluteUrl(slug: string, lang: Lang): string {

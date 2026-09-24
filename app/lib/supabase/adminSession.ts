@@ -1,5 +1,6 @@
 import "server-only";
 
+import { resolveLeonixSiteOrigin as resolveCanonicalLeonixSiteOrigin } from "@/app/lib/siteOrigin";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { CookieStore } from "@/app/lib/supabase/server";
 import { getAdminSupabase, getServerSupabaseAnon, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
@@ -175,12 +176,9 @@ export function clearLeonixAdminSessionCookies(
   res.cookies.set(LEONIX_ADMIN_BOOTSTRAP_COOKIE, "", expired);
 }
 
+/** Customer-visible origin (invite/recovery links): never a production deployment hostname. */
 export function resolveLeonixSiteOrigin(): string {
-  const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  if (raw) return raw.replace(/\/+$/, "");
-  const vercel = process.env.VERCEL_URL?.trim();
-  if (vercel) return `https://${vercel.replace(/^https?:\/\//, "")}`;
-  return "http://127.0.0.1:3000";
+  return resolveCanonicalLeonixSiteOrigin();
 }
 
 export type AdminCredentialVerifyResult =

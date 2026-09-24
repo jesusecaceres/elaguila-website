@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { resolveLeonixSiteOrigin } from "@/app/lib/siteOrigin";
 import type { ServiciosBusinessProfile } from "@/app/(site)/servicios/types/serviciosBusinessProfile";
 import { getServiciosPublicListingBySlugFromDb } from "@/app/(site)/clasificados/servicios/lib/serviciosPublicListingsServer";
 import { SERVICIOS_LISTING_STATUS_PUBLISHED } from "@/app/(site)/clasificados/servicios/lib/serviciosListingLifecycle";
@@ -17,15 +18,8 @@ function isEmail(s: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
 }
 
-function buildServiciosListingPublicPageUrl(req: Request, listingSlug: string, lang: "en" | "es"): string {
-  try {
-    const u = new URL(req.url);
-    return `${u.origin}/clasificados/servicios/${encodeURIComponent(listingSlug)}?lang=${lang}`;
-  } catch {
-    const base = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
-    if (base) return `${base}/clasificados/servicios/${encodeURIComponent(listingSlug)}?lang=${lang}`;
-    return `/clasificados/servicios/${encodeURIComponent(listingSlug)}?lang=${lang}`;
-  }
+function buildServiciosListingPublicPageUrl(_req: Request, listingSlug: string, lang: "en" | "es"): string {
+  return `${resolveLeonixSiteOrigin()}/clasificados/servicios/${encodeURIComponent(listingSlug)}?lang=${lang}`;
 }
 
 function escapeHtml(s: string): string {

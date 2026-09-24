@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FiHeart, FiShare2 } from "react-icons/fi";
+import { FiHeart } from "react-icons/fi";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { trackListingSaveToggleAuthed } from "@/app/lib/analytics/client/listingEngagementRecorder";
 import { isSelfEngagement } from "@/app/lib/analytics/selfEngagementGuard";
-import { copyToClipboard } from "@/app/components/cta";
+import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import { LEONIX_SITE_ORIGIN } from "@/app/lib/leonixBrand";
 import { listingsQueryWithSelectShrink } from "@/app/(site)/clasificados/lib/listingsSelectShrink";
 import { BrAgenteResidencialLocaleProvider } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/BrAgenteResidencialLocaleContext";
 import { AgenteIndividualResidencialPreviewPage } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/AgenteIndividualResidencialPreviewPage";
@@ -40,17 +41,21 @@ const PARENT_SELECT =
   "id, business_name, business_meta, contact_phone, contact_email, status, is_published, category, seller_type";
 
 
+const SHARE_BTN_SHELL =
+  "max-w-none w-auto [&>button]:min-h-9 [&>button]:rounded-full [&>button]:border [&>button]:bg-white/90 [&>button]:px-2.5 [&>button]:text-[10px] [&>button]:font-bold [&>button]:uppercase [&>button]:tracking-[0.08em] [&>button]:text-[#5C4A28] [&>button]:transition [&>button]:hover:bg-[#FFF6E7] [&>button]:border-[#C9B46A]/40";
+
 function PublicChromeActions({
   listingId,
+  listingTitle,
   lang,
   ownerId,
 }: {
   listingId: string;
+  listingTitle: string;
   lang: Lang;
   ownerId?: string | null;
 }) {
   const [saved, setSaved] = useState(false);
-  const [copyHint, setCopyHint] = useState("");
 
   const save = useCallback(async () => {
     const sb = createSupabaseBrowserClient();
@@ -82,12 +87,6 @@ function PublicChromeActions({
     }
   }, [listingId, ownerId, saved]);
 
-  const share = useCallback(async () => {
-    const ok = await copyToClipboard(window.location.href);
-    setCopyHint(ok ? (lang === "en" ? "Copied" : "Copiado") : "");
-    window.setTimeout(() => setCopyHint(""), 1800);
-  }, [lang]);
-
   return (
     <div className="flex min-w-0 items-center justify-end gap-1.5">
       <button
@@ -99,15 +98,17 @@ function PublicChromeActions({
         <FiHeart className={saved ? "h-3.5 w-3.5 fill-current" : "h-3.5 w-3.5"} aria-hidden />
         <span className="hidden sm:inline">{saved ? (lang === "en" ? "Saved" : "Guardado") : lang === "en" ? "Save" : "Guardar"}</span>
       </button>
-      <button
-        type="button"
-        onClick={share}
-        className="inline-flex min-h-9 items-center gap-1 rounded-full border bg-white/90 px-2.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#5C4A28] transition hover:bg-[#FFF6E7]"
-        style={{ borderColor: "rgba(201, 180, 106, 0.42)" }}
-      >
-        <FiShare2 className="h-3.5 w-3.5" aria-hidden />
-        <span className="hidden sm:inline">{copyHint || (lang === "en" ? "Share" : "Compartir")}</span>
-      </button>
+      {/* Shared Leonix share drawer (CtaActionSheet): social options + canonical leonixmedia.com URL. */}
+      <LeonixShareButton
+        listingId={listingId}
+        listingUrl={`${LEONIX_SITE_ORIGIN}/clasificados/anuncio/${listingId}?lang=${lang}`}
+        listingTitle={listingTitle}
+        lang={lang}
+        variant="small"
+        category="bienes-raices"
+        ownerUserId={ownerId}
+        className={SHARE_BTN_SHELL}
+      />
     </div>
   );
 }
@@ -213,7 +214,12 @@ export function BienesRaicesNegocioLiveDetailShell({
               </Link>
             ),
             meta: listing.leonix_ad_id ? `${listing.leonix_ad_id} · ${lang === "en" ? "Published listing" : "Anuncio publicado"}` : null,
-            headerRight: <PublicChromeActions listingId={listing.id} lang={lang} ownerId={listing.owner_id} />,
+            headerRight: <PublicChromeActions
+              listingId={listing.id}
+              listingTitle={listing.title[lang] || listing.title.es || listing.title.en}
+              lang={lang}
+              ownerId={listing.owner_id}
+            />,
             beforeMainGrid: translateControl,
           }}
         />

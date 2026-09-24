@@ -45,11 +45,11 @@ const SERVICIOS_SHARE_MOUNTS = [
 /* ==============================================================================================
  * ⚠️14 — one shared Share experience.
  * ============================================================================================ */
-check("⚠️32 every Servicios general-share mount is native-first (directNativeShare on all 7)", () => {
+check("Owner 2026-09-24: every Servicios general-share mount opens the shared Leonix Share drawer (no directNativeShare on all 7)", () => {
   for (const rel of SERVICIOS_SHARE_MOUNTS) {
     const src = raw(rel);
     assert.ok(src.includes("<LeonixShareButton"), `${rel}: share button still mounted`);
-    assert.ok(src.includes("directNativeShare"), `${rel}: native-first share`);
+    assert.ok(!src.includes("directNativeShare"), `${rel}: shared Leonix Share drawer`);
   }
 });
 check("⚠️32 shared button: navigator.share first, clipboard copy-link fallback with visible confirmation; hub intact", () => {
@@ -76,13 +76,11 @@ check("⚠️32A share-link parity: with a URL the payload is `{ title, url }` l
   assert.ok(button.includes("const publicUrl = getSafePublicAdUrl({ publicUrl: resolvedListingUrl }).trim();"), "canonical listing URL is the shared URL");
   assert.ok(!button.includes("window.location.href"), "Preview without a canonical URL stays safe (no tracked URL)");
   // Proven "Share link" callers share exactly `{ title, url }` — the shape this reuses.
-  for (const rel of [
-    "app/(site)/clasificados/en-venta/listing/EnVentaAnuncioLayout.tsx",
-    "app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewDealerBusinessStack.tsx",
-  ]) {
+  // Owner 2026-09-24: Autos previews now open the shared drawer too, so En Venta is the only remaining direct-payload reference.
+  for (const rel of ["app/(site)/clasificados/en-venta/listing/EnVentaAnuncioLayout.tsx"]) {
     assert.ok(raw(rel).includes("await navigator.share({ title, url });"), `${rel}: proven Share-link payload intact`);
   }
-  // Every Servicios mount still wires directNativeShare; published mounts pass the canonical URL.
+  // Published Servicios mounts pass the canonical URL into the shared drawer.
   for (const rel of SERVICIOS_SHARE_MOUNTS) {
     const src = raw(rel);
     if (rel.includes("/preview/")) {

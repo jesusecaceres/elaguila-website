@@ -3,6 +3,7 @@
  * Gate STRIPE-REVENUE-OS-CHECKOUT-SESSION-01 — server-safe; matrix is source of truth for price.
  */
 
+import { resolveLeonixSiteOrigin } from "@/app/lib/siteOrigin";
 import {
   EMPLEOS_JOB_FAIR_FREE_PACKAGE_KEY,
   getRevenuePackageDefinition,
@@ -790,11 +791,7 @@ export async function validateBienesInventoryAddonOwnership(input: {
 }
 
 export function getRevenueSiteOrigin(): string {
-  const explicit = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, "");
-  if (explicit) return explicit;
-  const vercel = process.env.VERCEL_URL?.trim();
-  if (vercel) return `https://${vercel.replace(/^https?:\/\//, "").replace(/\/$/, "")}`;
-  return "http://localhost:3000";
+  return resolveLeonixSiteOrigin();
 }
 
 export function buildCheckoutSuccessUrl(input: {

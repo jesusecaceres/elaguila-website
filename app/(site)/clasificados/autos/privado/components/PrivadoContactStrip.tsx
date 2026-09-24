@@ -5,7 +5,7 @@ import { SiWhatsapp } from "react-icons/si";
 import { FaFacebook, FaInstagram, FaTiktok, FaXTwitter } from "react-icons/fa6";
 import type { AutoDealerListing, PrivadoSellerSocialKey } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { normalizeAutosSocialUrl } from "@/app/lib/clasificados/autos/autosSocialLinkValidation";
-import { resolveDealerOfficePhone } from "@/app/clasificados/autos/negocios/lib/dealerContactResolve";
+import { resolveDealerOfficePhone, resolveDealerSmsPhone } from "@/app/clasificados/autos/negocios/lib/dealerContactResolve";
 import { formatUsPhoneDisplay, phoneDigitsForTel, formatCityStateZipLine } from "@/app/clasificados/autos/negocios/components/autoDealerFormatters";
 import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import { buildPrivadoSellerMailtoHref, buildPrivadoSiteMessageHref, buildPrivadoWhatsappInterestHref } from "../lib/privadoContactIntent";
@@ -90,7 +90,9 @@ export function PrivadoContactStrip({
   const mailtoHref = buildPrivadoSellerMailtoHref(data, lang);
   const showEmail = Boolean(mailtoHref);
 
-  const smsHref = showCall ? `sms:${phoneForTel}` : undefined;
+  // SMS is its own opt-in channel (`dealerSmsPhone`); never assumed from the call phone.
+  const smsDigits = phoneDigitsForTel(resolveDealerSmsPhone(data));
+  const smsHref = smsDigits.length >= 10 ? `sms:${smsDigits}` : undefined;
   const showSms = Boolean(smsHref);
   const siteMessageHref = buildPrivadoSiteMessageHref(lang, data);
 

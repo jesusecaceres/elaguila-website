@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosProfile";
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
 import { getServiciosPublicListingBySlugForDiscovery } from "../lib/serviciosPublicListingsServer";
+import { serviciosSocialCards, serviciosSocialImage } from "../lib/serviciosSocialMetadata";
 import { PREVIEW_NOINDEX_METADATA } from "@/app/lib/seo/previewRouteMetadata";
 import { LEONIX_LANG_COOKIE, normalizeLang } from "@/app/lib/language";
 
@@ -75,10 +76,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       title: { absolute: `${profile.identity.businessName} · Servicios · Leonix` },
       description: profile.about?.text?.slice(0, 155) ?? undefined,
       alternates: { canonical },
-      openGraph: {
+      // Listing-specific social card (title + hero image), resolved against metadataBase
+      // (https://leonixmedia.com) so shared links never carry a deployment hostname.
+      ...serviciosSocialCards({
         title: `${profile.identity.businessName} · Servicios`,
-        type: "website",
-      },
+        description: profile.about?.text?.slice(0, 155) ?? undefined,
+        canonicalPath: canonical,
+        image: serviciosSocialImage(profile),
+      }),
       /** Plain head probe for HTTP smoke (independent of `<title>` streaming quirks). */
       other: { servicios_slug_probe: slug },
     };

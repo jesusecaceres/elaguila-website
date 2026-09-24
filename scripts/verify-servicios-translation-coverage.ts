@@ -635,7 +635,7 @@ check("914-28 General Share mechanism untouched: LeonixShareButton itself is not
   const share = raw("app/components/clasificados/analytics/LeonixShareButton.tsx");
   assert.ok(share.includes('? { title: safeTitle, text: body, url: urlToShare }\n        : { title: safeTitle, url: urlToShare }'), "⚠️32A payload shape untouched");
   for (const rel of SHELL_FILES) {
-    assert.ok(raw(rel).includes("directNativeShare"), `${rel}: native-first share still wired`);
+    assert.ok(!raw(rel).includes("directNativeShare"), `${rel}: shared Leonix Share drawer (owner decision 2026-09-24)`);
   }
 });
 

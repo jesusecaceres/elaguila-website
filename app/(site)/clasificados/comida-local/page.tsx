@@ -40,6 +40,8 @@ type PageProps = {
 
 export default async function ComidaLocalResultsPage(props: PageProps) {
   const sp = (await props.searchParams) ?? {};
+  // Active locale reaches the result cards so card chrome + Translate Ad follow the viewer's language.
+  const lang: "es" | "en" = (Array.isArray(sp.lang) ? sp.lang[0] : sp.lang) === "en" ? "en" : "es";
   const filters = parseComidaLocalResultsSearchParams(sp);
   const [inventory, filterOptions] = await Promise.all([
     listPublishedComidaLocalListings(filters),
@@ -128,7 +130,7 @@ export default async function ComidaLocalResultsPage(props: PageProps) {
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {cards.map((card) => (
               <li key={card.id} className="min-w-0">
-                <ComidaLocalListingCard card={card} />
+                <ComidaLocalListingCard card={card} lang={lang} />
               </li>
             ))}
           </ul>

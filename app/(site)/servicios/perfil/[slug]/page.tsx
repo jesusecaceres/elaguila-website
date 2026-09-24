@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
 import { getServiciosPublicListingBySlugForDiscovery } from "@/app/(site)/clasificados/servicios/lib/serviciosPublicListingsServer";
+import { serviciosSocialCards, serviciosSocialImage } from "@/app/(site)/clasificados/servicios/lib/serviciosSocialMetadata";
 import { PREVIEW_NOINDEX_METADATA } from "@/app/lib/seo/previewRouteMetadata";
 
 type PageProps = {
@@ -30,17 +31,19 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
   }
   const name = row.profile_json?.identity?.businessName?.trim() || "Servicios";
   const about = row.profile_json?.about?.text?.trim();
+  const canonicalPath = `/clasificados/servicios/${encodeURIComponent(slug)}`;
   return {
     title: `${name} · Servicios · Leonix`,
     description: about?.slice(0, 155),
     alternates: {
       canonical: `/clasificados/servicios/${encodeURIComponent(slug)}`,
     },
-    openGraph: {
+    ...serviciosSocialCards({
       title: `${name} · Servicios`,
-      type: "website",
-      url: `/clasificados/servicios/${encodeURIComponent(slug)}`,
-    },
+      description: about?.slice(0, 155),
+      canonicalPath,
+      image: serviciosSocialImage(row.profile_json ?? {}),
+    }),
   };
 }
 

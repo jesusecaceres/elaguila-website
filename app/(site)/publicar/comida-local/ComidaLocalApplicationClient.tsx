@@ -1038,6 +1038,17 @@ export default function ComidaLocalApplicationClient() {
                       placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.whatsapp, es).placeholder}
                     />
                   </FieldBlock>
+                  <FieldBlock fieldKey="smsPhone" es={es}>
+                    <input
+                      className={INPUT}
+                      type="tel"
+                      inputMode="tel"
+                      value={draft.smsPhone ?? ""}
+                      onChange={(e) => updateDraft({ smsPhone: formatComidaLocalPhoneInput(e.target.value) })}
+                      placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.smsPhone, es).placeholder}
+                      autoComplete="tel"
+                    />
+                  </FieldBlock>
                   <FieldBlock fieldKey="email" es={es}>
                     <input
                       className={INPUT}

@@ -287,6 +287,7 @@ export function mergeComidaLocalDraftFromStorage(parsed: unknown): ComidaLocalDr
         : "",
     phone: safeString(parsed.phone, 32),
     whatsapp: safeString(parsed.whatsapp, 32),
+    smsPhone: safeString(parsed.smsPhone, 32),
     email: safeString(parsed.email, 254),
     queVendes: safeString(parsed.queVendes, 2000),
     instagramUrl: safeString(parsed.instagramUrl, 512),

@@ -42,6 +42,7 @@ export function createEmptyComidaLocalDraft(): ComidaLocalDraft {
     primaryContactChoice: "",
     phone: "",
     whatsapp: "",
+    smsPhone: "",
     email: "",
     queVendes: "",
     instagramUrl: "",

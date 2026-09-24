@@ -3,6 +3,8 @@
  * Env: STRIPE_PRICE_BIENES_NEGOCIO, STRIPE_PRICE_BIENES_PRIVADO (optional privado lane).
  */
 
+import { resolveLeonixSiteOrigin } from "@/app/lib/siteOrigin";
+
 export type BrStripeLane = "negocio" | "privado";
 
 export function getStripePriceIdForBrLane(lane: BrStripeLane): string | null {
@@ -41,10 +43,5 @@ export function isBrAllowTestPublishBypassEnabled(): boolean {
 }
 
 export function getBrSiteOrigin(): string {
-  const explicit = process.env.NEXT_PUBLIC_SITE_URL?.trim() || process.env.VERCEL_URL?.trim();
-  if (explicit) {
-    const u = explicit.startsWith("http") ? explicit : `https://${explicit}`;
-    return u.replace(/\/$/, "");
-  }
-  return "http://localhost:3000";
+  return resolveLeonixSiteOrigin();
 }
