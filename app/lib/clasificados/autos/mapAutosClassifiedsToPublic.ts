@@ -99,6 +99,7 @@ export function autosClassifiedsRowToPublicListing(row: AutosClassifiedsListingR
   const publicSortTimestamp = recencyMs > 0 ? new Date(recencyMs).toISOString() : undefined;
   return {
     id: row.id,
+    sourceLang: row.lang,
     leonixAdId: row.leonix_ad_id ?? null,
     ownerUserId: row.owner_user_id,
     sellerType,
