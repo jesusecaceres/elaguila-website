@@ -57,6 +57,7 @@ type Props = {
   isFree: boolean;
   priceLabel: string;
   listingId?: string;
+  listingTitle?: string;
   ownerUserId?: string | null;
   /** contact_email from DB row (not stored in detail pairs). */
   contactEmail?: string | null;
@@ -79,6 +80,7 @@ export function CommunityQuickAnuncioDetail({
   isFree,
   priceLabel,
   listingId,
+  listingTitle,
   ownerUserId,
   contactEmail,
 }: Props) {
@@ -232,7 +234,7 @@ export function CommunityQuickAnuncioDetail({
           <LeonixShareButton
             listingId={listingId}
             listingUrl={shareUrl}
-            listingTitle={categoryDetail.sectionTitle}
+            listingTitle={listingTitle?.trim() || categoryDetail.sectionTitle}
             lang={lang}
             category={category}
             ownerUserId={ownerUserId ?? undefined}
