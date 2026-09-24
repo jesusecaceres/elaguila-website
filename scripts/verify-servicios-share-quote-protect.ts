@@ -73,7 +73,7 @@ check("⚠️32A share-link parity: with a URL the payload is `{ title, url }` l
   );
   assert.ok(!button.includes("text: body || safeTitle, url: urlToShare"), "title is never duplicated into `text` next to the URL");
   assert.ok(button.includes(": { title: safeTitle, text: body || safeTitle };"), "no-URL fallback payload unchanged");
-  assert.ok(button.includes("const publicUrl = getSafePublicAdUrl({ publicUrl: resolvedListingUrl }).trim() || resolvedListingUrl;"), "canonical listing URL is the shared URL");
+  assert.ok(button.includes("const publicUrl = getSafePublicAdUrl({ publicUrl: resolvedListingUrl }).trim();"), "canonical listing URL is the shared URL");
   assert.ok(button.includes("publicUrl ||\n      (allowTrack && typeof window !== \"undefined\" ? window.location.href.trim() : \"\")"), "Preview without a canonical URL stays safe (no tracked URL)");
   // Proven "Share link" callers share exactly `{ title, url }` — the shape this reuses.
   for (const rel of [
