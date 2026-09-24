@@ -72,8 +72,8 @@ function priceFor(packageKey: string): string {
 function pairProducts(category: QuickSalesCategory, intake: string): StaffLauncherProduct[] {
   return staffBusinessOffers(category).map((offer) => ({
     id: offer.plan,
-    labelEs: offer.plan === "quick" ? "Quick Business" : "Full Business",
-    labelEn: offer.plan === "quick" ? "Quick Business" : "Full Business",
+    labelEs: offer.plan === "quick" ? "Quick Business" : "PRO",
+    labelEn: offer.plan === "quick" ? "Quick Business" : "PRO",
     plan: offer.plan,
     packageKey: offer.packageKey,
     staffHref: offer.plan === "quick" ? withQuickPlanParam(intake) : intake,
