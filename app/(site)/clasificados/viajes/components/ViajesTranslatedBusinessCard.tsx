@@ -26,7 +26,7 @@ export function ViajesTranslatedBusinessCard({
     () => ({
       title: title || undefined,
       description: included || undefined,
-      notes: ctaHint || undefined,
+      details: ctaHint || undefined,
     }),
     [title, included, ctaHint],
   );
@@ -46,7 +46,7 @@ export function ViajesTranslatedBusinessCard({
           ...row,
           offerTitle: translation.translated.title?.trim() || row.offerTitle,
           includedSummary: translation.translated.description?.trim() || row.includedSummary,
-          ctaHint: translation.translated.notes?.trim() || row.ctaHint,
+          ctaHint: translation.translated.details?.trim() || row.ctaHint,
         }
       : row;
 
