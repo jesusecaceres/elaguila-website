@@ -10,7 +10,12 @@ import { empleosEnvelopeToCanonical } from "./staged/empleosEnvelopeToJobRecord"
 import type { EmpleosCanonicalListing } from "./staged/empleosCanonicalListing";
 import { buildEmpleosLiveSlugBase } from "./empleosLiveSlug";
 import { resolveEmpleosPublicationLane } from "./empleosLaneResolve";
-import { resolveEmpleosOwnerTransition, resolveEmpleosRowOwner, resolveEmpleosUpsertLifecycle } from "./empleosPublishLifecyclePolicy";
+import {
+  resolveEmpleosEnvelopeLane,
+  resolveEmpleosOwnerTransition,
+  resolveEmpleosRowOwner,
+  resolveEmpleosUpsertLifecycle,
+} from "./empleosPublishLifecyclePolicy";
 
 export type EmpleosListingLifecycleDb =
   | "draft"
@@ -146,6 +151,14 @@ export async function upsertEmpleosListingFromEnvelope(input: {
   if (!isSupabaseAdminConfigured()) {
     return { ok: false, error: "supabase_not_configured" };
   }
+  // D13 / F1 (recovery port): the lane is derived from `payload.lane` (single source — the field the content is
+  // built from). A top-level `envelope.lane` that disagrees is refused, and a free (feria) lane must carry a feria
+  // payload, BEFORE any read or write, so the payment decision below can never be steered by a forged top-level lane.
+  const laneDecision = resolveEmpleosEnvelopeLane(input.envelope, input.mode);
+  if (!laneDecision.ok) return { ok: false, error: laneDecision.error };
+  const authoritativeLane = laneDecision.lane;
+  const envelope: EmpleosPublishEnvelope = { ...input.envelope, lane: authoritativeLane };
+
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
 
@@ -153,7 +166,7 @@ export async function upsertEmpleosListingFromEnvelope(input: {
   // must fail closed (never silently mint a fresh id and insert a disconnected new row) when it
   // is not a valid UUID, or when it is well-formed but no row with that id actually exists. Only
   // the genuinely-new-application case (no listingId supplied at all) mints a fresh id here.
-  const rawListingId = typeof input.envelope.listingId === "string" ? input.envelope.listingId.trim() : "";
+  const rawListingId = typeof envelope.listingId === "string" ? envelope.listingId.trim() : "";
   if (rawListingId && !isUuid(rawListingId)) {
     return { ok: false, error: QUICK_LISTING_EXISTING_IDENTITY_INVALID_CODE };
   }
@@ -175,22 +188,23 @@ export async function upsertEmpleosListingFromEnvelope(input: {
     effectiveOwnerUserId = ownerDecision.ownerUserId;
   }
   if (existing) {
-    const existingLane = String((existing as EmpleosPublicListingRow).lane ?? "").trim();
-    const incomingLane = String(input.envelope.lane ?? "").trim();
-    if (existingLane && incomingLane && existingLane !== incomingLane) {
+    // The lane of an existing row never changes: a paid-lane row can never become a free (feria) one, and vice versa.
+    const existingLane = String((existing as EmpleosPublicListingRow).lane ?? "").trim().toLowerCase();
+    if (existingLane && existingLane !== authoritativeLane) {
       return { ok: false, error: "lane_mismatch" };
     }
   }
 
   const slug =
-    (existing as EmpleosPublicListingRow | null)?.slug ?? (await allocateUniqueEmpleosSlugServer(envelopeTitle(input.envelope)));
+    (existing as EmpleosPublicListingRow | null)?.slug ?? (await allocateUniqueEmpleosSlugServer(envelopeTitle(envelope)));
 
   // Lifecycle is decided by the shared policy (never trust the client's mode alone): payment for the
   // paid lanes is applied only by the Revenue OS webhook, draft saves never demote a live row, and
   // staff-held (rejected / archived / pending_review / paused) rows are never re-published here.
   const decision = resolveEmpleosUpsertLifecycle({
     mode: input.mode,
-    lane: (input.envelope.lane as string | undefined) ?? (existing as EmpleosPublicListingRow | null)?.lane,
+    // An existing row is judged by ITS stored lane (blank => paid, fail closed); a new row by the derived lane.
+    lane: existing ? (existing as EmpleosPublicListingRow).lane : authoritativeLane,
     existingStatus: (existing as EmpleosPublicListingRow | null)?.lifecycle_status ?? null,
     requireReview: publishLifecycleForInsert() === "pending_review",
   });
@@ -198,10 +212,10 @@ export async function upsertEmpleosListingFromEnvelope(input: {
   const lifecycle: EmpleosListingLifecycleDb = decision.lifecycle;
 
   const stamped: EmpleosPublishEnvelope = {
-    ...input.envelope,
+    ...envelope,
     listingId,
     ownerId: effectiveOwnerUserId,
-    createdAt: (existing as { created_at?: string } | null)?.created_at ?? input.envelope.createdAt ?? now,
+    createdAt: (existing as { created_at?: string } | null)?.created_at ?? envelope.createdAt ?? now,
     updatedAt: now,
     publishedAt: lifecycle === "published" ? now : null,
     listingStatus: lifecycle === "draft" ? "draft" : "published",
