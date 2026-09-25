@@ -290,7 +290,15 @@ check("no new database migration was added for the access model", () => {
   // database authority agrees with BASE = 5 / PRO = 10 / pack = 20. It creates no table or column, so it adds no
   // parallel product, no second listing table and no new access-model storage.
   assert.deepEqual(
-    changed.filter((f) => f.startsWith("supabase/migrations/") && !f.endsWith("20260924190000_autos_dealer_base_capacity_authority.sql")),
+    changed.filter(
+      (f) =>
+        f.startsWith("supabase/migrations/") &&
+        !f.endsWith("20260924190000_autos_dealer_base_capacity_authority.sql") &&
+        // Launch security Wave 1 (2026-09-25): ACL/RLS hardening only — revoke client EXECUTE on the capacity RPCs and
+        // lock down listing_lifecycle_reminder_events. No table, column or access-model storage is created.
+        !f.endsWith("20260925120000_revoke_capacity_rpc_client_execute.sql") &&
+        !f.endsWith("20260925120100_listing_lifecycle_reminder_events_lockdown.sql"),
+    ),
     [],
     "the access level is derived from existing columns and needs no migration",
   );
