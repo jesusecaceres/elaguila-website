@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { isVerifiedAdminSession } from "@/app/admin/_lib/adminVerifiedSession";
 import { NextResponse, type NextRequest } from "next/server";
 import { revalidatePath } from "next/cache";
 
@@ -6,7 +7,7 @@ import {
   mutateOfertaLocalAdminReview,
   type OfertaLocalAdminReviewAction,
 } from "@/app/lib/ofertas-locales/ofertasLocalesAdminReviewMutations";
-import { getAdminSupabase, isSupabaseAdminConfigured, requireAdminCookie } from "@/app/lib/supabase/server";
+import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
 
@@ -26,7 +27,7 @@ export async function POST(
   ctx: { params: Promise<{ id: string }> }
 ) {
   const cookieStore = await cookies();
-  if (!requireAdminCookie(cookieStore)) {
+  if (!(await isVerifiedAdminSession(cookieStore))) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 

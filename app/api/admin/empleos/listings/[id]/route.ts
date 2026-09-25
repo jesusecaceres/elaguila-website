@@ -7,7 +7,8 @@ import {
   canRepublishListing,
   empleosRowIsPublicLive,
 } from "@/app/admin/_lib/classifiedsRepublishCapability";
-import { getAdminSupabase, requireAdminCookie } from "@/app/lib/supabase/server";
+import { getAdminSupabase } from "@/app/lib/supabase/server";
+import { isVerifiedAdminSession } from "@/app/admin/_lib/adminVerifiedSession";
 
 type EmpleosStaffAction =
   | "suspend"
@@ -36,7 +37,7 @@ export const dynamic = "force-dynamic";
 
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const jar = await cookies();
-  if (!requireAdminCookie(jar)) {
+  if (!(await isVerifiedAdminSession(jar))) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 

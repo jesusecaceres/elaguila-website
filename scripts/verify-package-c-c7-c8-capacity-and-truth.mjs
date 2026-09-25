@@ -108,7 +108,7 @@ check(resolverCallers === 2, "both the fetch/state wiring and the render compone
 const grantActions = read("app/admin/(dashboard)/workspace/package-entitlements/actions.ts");
 check(grantActions.includes("export async function grantComplimentaryPackageEntitlementAction"), "comp/partner grant action exported");
 check(grantActions.includes("ALLOWED_COMPLIMENTARY_GRANT_TYPES"), "grant type is allowlisted (comp/partner only, not an arbitrary string)");
-check(grantActions.includes("requireAdminCookie"), "grant action requires the admin cookie like every other admin mutation");
+check(grantActions.includes("isVerifiedAdminSession(c)") || grantActions.includes("requireAdminCookie"), "grant action requires an admin session (identity-verified, final closeout) like every other admin mutation");
 
 // 10. Locked areas untouched by this build's section of the diff allowlist.
 const allowSrc = read("scripts/globalizationCurrentPackageDiff.ts");

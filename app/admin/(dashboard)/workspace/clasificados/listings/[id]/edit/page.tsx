@@ -111,6 +111,9 @@ export default async function AdminListingStaffEditPage(props: PageProps) {
         <label className="block text-sm font-semibold text-[#1E1810]">
           Status
           <input name="status" defaultValue={status} className="mt-1 w-full rounded-xl border border-[#E8DFD0] px-3 py-2 text-sm" />
+          <span className="mt-1 block text-xs font-normal text-[#6B5A44]">
+            Category never changes here. Status / published cannot turn a non-live listing on — use Restore / Republish (payment, term and capacity checked).
+          </span>
         </label>
         <label className="block text-sm font-semibold text-[#1E1810]">
           Price (USD, blank = null)

@@ -8,7 +8,7 @@ const cleanup = read("app/api/ofertas-locales/admin/cleanup-queue/execute/route.
 must(auth, "timingSafeEqual", "constant-time comparison");
 must(auth, "authorization", "authorization header");
 must(auth, "OFERTAS_INTERNAL_WORKER_SECRET", "worker secret name");
-must(adminWorker, "requireAdminCookie", "admin cookie auth");
+must(adminWorker, "isVerifiedAdminSession", "admin identity-verified session auth");
 must(adminWorker, "authenticateOfertaLocalInternalWorker", "worker auth composition");
 must(activation, "authenticateOfertaLocalAdminOrWorker", "activation worker auth");
 must(cleanup, "authenticateOfertaLocalAdminOrWorker", "cleanup worker auth");

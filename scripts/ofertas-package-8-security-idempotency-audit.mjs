@@ -7,7 +7,7 @@ const migration = read("supabase/migrations/20260801023000_ofertas_locales_renew
 
 assertContains(ownerRoute, "getBearerUserId", "owner auth");
 assertContains(ownerRoute, ".eq(\"owner_id\", ownerId)", "owner-scoped mutation");
-assertContains(adminRoute, "requireAdminCookie", "admin auth");
+assertContains(adminRoute, "isVerifiedAdminSession", "admin auth (identity-verified session)");
 assertContains(renewal, "ofertaLocalCommercialProductMatchesOfferType", "server product validation");
 assertContains(renewal, "leonix_ad_id", "same Leonix identity");
 assertContains(migration, "ofertas_renewal_one_open_attempt_idx", "duplicate open renewal prevention");

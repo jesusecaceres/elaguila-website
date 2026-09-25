@@ -10,6 +10,7 @@ import {
 } from "@/app/clasificados/empleos/lib/empleosPublicListingsDbServer";
 import { fetchProfileIdsMatchingAdminQueueSearch } from "@/app/lib/supabase/adminQueueProfileSearch";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { isVerifiedAdminSession } from "@/app/admin/_lib/adminVerifiedSession";
 import { rowToJobRecord } from "@/app/clasificados/empleos/lib/empleosPublicListingsDbServer";
 import { empleosJobRecordListLocationLine } from "@/app/clasificados/empleos/lib/empleosJobRecordListLocation";
 
@@ -19,7 +20,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   noStore();
-  if (req.cookies.get("leonix_admin")?.value !== "1") {
+  if (!(await isVerifiedAdminSession(req.cookies))) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
   if (!isSupabaseAdminConfigured()) {

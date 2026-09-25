@@ -11,6 +11,8 @@ import {
 import { ClasificadosQueueActionChrome } from "../_components/ClasificadosQueueActionChrome";
 import { getAdminLang, adminMessages } from "@/app/admin/_lib/adminI18n";
 import { autosRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCapability";
+import { adminDealerCapacityGroupKey, describeAdminDealerCapacity } from "@/app/admin/_lib/adminAutosDealerCapacity";
+import { fetchAutosDealerCapacityForRows } from "@/app/admin/_lib/adminAutosDealerCapacityServer";
 import {
   autosClassifiedsRowToDashboardRow,
   listAllAutosClassifiedsRowsForAdmin,
@@ -159,17 +161,10 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
     rows = rows.filter((r) => autosRowIsPublicLive(r as unknown as Record<string, unknown>));
   }
 
-  // Gate 17 (lifecycle closeout, 2026-09-18) — key by the dealer inventory group, not the owner:
-  // an owner_user_id can hold more than one distinct Dealer parent/group, and counting by owner
-  // alone would merge two unrelated groups' active counts into one displayed number. Ungrouped
-  // standalone parents (no dealer_inventory_group_id yet) fall back to their own row id, matching
-  // resolveAutosDealerInventoryGroupKey's own parent-fallback convention on the owner dashboard.
-  const dealerActiveCountByGroup = new Map<string, number>();
-  for (const r of rows) {
-    if (r.lane !== "negocios" || r.status !== "active") continue;
-    const groupKey = r.dealer_inventory_group_id?.trim() || r.dealer_inventory_parent_listing_id?.trim() || r.id;
-    dealerActiveCountByGroup.set(groupKey, (dealerActiveCountByGroup.get(groupKey) ?? 0) + 1);
-  }
+  // Dealer capacity (golden-survivor port of closeout 2): TOTAL active vehicles per canonical dealer group (main
+  // counts as vehicle #1), counted over EVERY active row of the visible owners - not the truncated page - against the
+  // limit golden enforcement resolves (BASE 5 / PRO 10 / PRO + inventory pack 20; BASE never shows the pack).
+  const dealerCapacityByGroup = await fetchAutosDealerCapacityForRows(rows);
 
   const surface = clasificadosQueueSurfaceForSlug("autos");
 
@@ -301,8 +296,8 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                   dash.thumbUrl ? "photo" : "",
                   payload.muxPlaybackId?.trim() || payload.muxPlaybackUrl?.trim() || (payload.videoUrls?.length ?? 0) > 0 ? "video" : "",
                 ].filter(Boolean).join(" + ");
-                const dealerGroupKey = r.dealer_inventory_group_id?.trim() || r.dealer_inventory_parent_listing_id?.trim() || r.id;
-                const dealerActiveCount = r.lane === "negocios" ? dealerActiveCountByGroup.get(dealerGroupKey) ?? 0 : null;
+                const dealerGroupKey = adminDealerCapacityGroupKey(r);
+                const dealerCapacity = dealerGroupKey ? describeAdminDealerCapacity(dealerCapacityByGroup[dealerGroupKey]) : null;
                 const liveHref =
                   r.status === "active"
                     ? `${autosLiveVehiclePath(r.id)}?lang=${r.lang === "en" ? "en" : "es"}`
@@ -326,7 +321,7 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
                       {(sellerName || contactSignal || mediaSignal) ? (
                         <p className="mt-0.5 text-[10px] font-normal text-[#7A7164]">
                           {sellerName ? sellerName : r.lane}
-                          {dealerActiveCount != null ? ` · active ${dealerActiveCount}/10` : ""}
+                          {dealerCapacity ? ` · ${dealerCapacity.text}` : ""}
                           {r.lane === "negocios" && r.inventory_role ? ` · role ${r.inventory_role}` : ""}
                           {r.dealer_inventory_parent_listing_id
                             ? ` · parent ${r.dealer_inventory_parent_listing_id.slice(0, 8)}…`

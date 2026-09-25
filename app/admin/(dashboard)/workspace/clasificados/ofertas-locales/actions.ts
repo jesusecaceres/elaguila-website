@@ -9,7 +9,8 @@ import {
   type OfertaLocalAdminReviewAction,
 } from "@/app/lib/ofertas-locales/ofertasLocalesAdminReviewMutations";
 import { buildAdminActionReturnUrl } from "@/app/admin/_lib/adminQueueActionFlow";
-import { getAdminSupabase, requireAdminCookie } from "@/app/lib/supabase/server";
+import { getAdminSupabase } from "@/app/lib/supabase/server";
+import { isVerifiedAdminSession } from "@/app/admin/_lib/adminVerifiedSession";
 
 const ALLOWED_ACTIONS: ReadonlySet<OfertaLocalAdminReviewAction> = new Set([
   "approve",
@@ -57,7 +58,7 @@ function redirectWithReviewResult(params: {
 
 export async function reviewOfertaLocalAdminAction(formData: FormData): Promise<void> {
   const c = await cookies();
-  if (!requireAdminCookie(c)) throw new Error("Unauthorized");
+  if (!(await isVerifiedAdminSession(c))) throw new Error("Unauthorized");
 
   const id = String(formData.get("offer_id") ?? "").trim();
   const action = String(formData.get("action") ?? "").trim() as OfertaLocalAdminReviewAction;

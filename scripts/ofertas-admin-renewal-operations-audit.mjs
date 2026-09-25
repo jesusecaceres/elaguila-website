@@ -2,7 +2,7 @@ import { assertContains, assertNotContains, pass, read } from "./ofertas-package
 
 const route = read("app/api/ofertas-locales/admin/[id]/renewals/route.ts");
 
-assertContains(route, "requireAdminCookie", "admin authorization");
+assertContains(route, "isVerifiedAdminSession", "admin authorization (identity-verified session)");
 assertContains(route, "approve", "approve action");
 assertContains(route, "request_correction", "correction action");
 assertContains(route, "retry_activation", "activation retry action");

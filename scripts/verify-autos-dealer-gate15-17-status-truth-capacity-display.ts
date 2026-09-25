@@ -114,30 +114,28 @@ check("admin page no longer aggregates Dealer active count by owner_user_id alon
   assert.ok(!/dealerActiveCountByOwner/.test(src), "old owner-keyed map name must be gone entirely");
 });
 
-check("admin page's active-count map keys by dealer_inventory_group_id, falling back to parent id then row id", () => {
-  const src = raw(ADMIN_PAGE);
-  assert.ok(src.includes("const dealerActiveCountByGroup = new Map<string, number>();"));
-  const idx = src.indexOf("const dealerActiveCountByGroup");
-  const block = src.slice(idx, idx + 400);
+check("admin capacity group key is group id, falling back to parent id then row id (Gate 17 key, closeout 2 module)", () => {
+  // Golden-survivor port of closeout 2: the key lives in adminDealerCapacityGroupKey and the count is TOTAL active
+  // vehicles over EVERY active row of the visible owners (not the truncated page) - see adminAutosDealerCapacity.ts.
+  const lib = raw("app/admin/_lib/adminAutosDealerCapacity.ts");
   assert.ok(
-    block.includes(
-      'const groupKey = r.dealer_inventory_group_id?.trim() || r.dealer_inventory_parent_listing_id?.trim() || r.id;',
+    lib.includes(
+      'return String(row.dealer_inventory_group_id ?? "").trim() || String(row.dealer_inventory_parent_listing_id ?? "").trim() || row.id;',
     ),
   );
-  assert.ok(block.includes("dealerActiveCountByGroup.set(groupKey,"));
+  const src = raw(ADMIN_PAGE);
+  assert.ok(src.includes("const dealerCapacityByGroup = await fetchAutosDealerCapacityForRows(rows);"));
 });
 
-check("the per-row display reads the count using the SAME group-key derivation as the aggregation loop", () => {
+check("the per-row display reads the capacity using the SAME group-key derivation as the aggregation", () => {
   const src = raw(ADMIN_PAGE);
   const idx = src.indexOf("const dealerGroupKey =");
   assert.ok(idx > 0, "per-row group key derivation must exist");
   const block = src.slice(idx, idx + 300);
-  assert.ok(
-    block.includes(
-      'const dealerGroupKey = r.dealer_inventory_group_id?.trim() || r.dealer_inventory_parent_listing_id?.trim() || r.id;',
-    ),
-  );
-  assert.ok(block.includes("dealerActiveCountByGroup.get(dealerGroupKey)"));
+  assert.ok(block.includes("const dealerGroupKey = adminDealerCapacityGroupKey(r);"));
+  assert.ok(block.includes("dealerCapacityByGroup[dealerGroupKey]"));
+  const server = raw("app/admin/_lib/adminAutosDealerCapacityServer.ts");
+  assert.ok(server.includes("adminDealerCapacityGroupKey(r)"), "aggregation keys rows with the same function");
 });
 
 check("REGRESSION GUARD: admin public-link firewall untouched — liveHref still gated strictly on status === 'active'", () => {

@@ -103,7 +103,13 @@ function run() {
   assert.ok(checkout.includes("dealer_active_limit_reached") && verify.includes("dealer_active_limit_reached"), "Checkout/activation paths must block 11th active Negocio vehicle");
 
   const admin = read("app/admin/(dashboard)/workspace/clasificados/autos/page.tsx");
-  assert.ok(admin.includes("active ${dealerActiveCount}/10"), "Admin Autos row must show dealer active inventory count");
+  // Closeout 2 (golden-survivor port): the count is the TOTAL active vehicles per dealer group over every active row of the
+  // visible owners (fetchAutosDealerCapacityForRows) against golden's resolved limit (BASE 5 / PRO 10 / PRO + pack 20),
+  // never a hard-coded /10 counted over the truncated page.
+  assert.ok(
+    admin.includes("fetchAutosDealerCapacityForRows") && admin.includes("describeAdminDealerCapacity") && !admin.includes("/10`"),
+    "Admin Autos row must show dealer active inventory count",
+  );
 
   const changed = changedFiles();
   for (const p of changed) {

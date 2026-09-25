@@ -4,11 +4,12 @@ import { NextRequest, NextResponse } from "next/server";
 import type { EmpleosListingLifecycleDb } from "@/app/clasificados/empleos/lib/empleosPublicListingsDbServer";
 import { updateEmpleosListingLifecycleAdmin } from "@/app/clasificados/empleos/lib/empleosPublicListingsDbServer";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { isVerifiedAdminSession } from "@/app/admin/_lib/adminVerifiedSession";
 
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  if (req.cookies.get("leonix_admin")?.value !== "1") {
+  if (!(await isVerifiedAdminSession(req.cookies))) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
   if (!isSupabaseAdminConfigured()) {

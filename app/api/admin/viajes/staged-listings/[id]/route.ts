@@ -1,4 +1,7 @@
+import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+
+import { isVerifiedAdminSession } from "@/app/admin/_lib/adminVerifiedSession";
 
 import { buildViajesAdminDetailView } from "@/app/(site)/clasificados/viajes/lib/viajesAdminDetailView";
 import { fetchViajesStagedRowById } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingsDbServer";
@@ -13,7 +16,7 @@ export const dynamic = "force-dynamic";
  */
 
 export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string }> }): Promise<NextResponse> {
-  if (req.cookies.get("leonix_admin")?.value !== "1") {
+  if (!(await isVerifiedAdminSession(await cookies()))) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
   if (!isSupabaseAdminConfigured()) {

@@ -24,13 +24,14 @@
 import "server-only";
 
 import { cookies } from "next/headers";
-import { requireAdminCookie, getAdminSupabase } from "@/app/lib/supabase/server";
+import { getAdminSupabase } from "@/app/lib/supabase/server";
+import { isIdentityVerifiedAdminSession } from "@/app/admin/_lib/adminVerifiedSession";
 import { getAdminOperatorEmailFromCookies } from "@/app/lib/supabase/adminSession";
 import type { AdminPermissionKey } from "@/app/admin/_lib/teamTypes";
 
 export async function requireLeonixAdminCookie(): Promise<void> {
   const c = await cookies();
-  if (!requireAdminCookie(c)) {
+  if (!(await isIdentityVerifiedAdminSession(c))) {
     throw new Error("Unauthorized");
   }
 }

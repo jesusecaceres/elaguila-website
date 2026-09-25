@@ -55,7 +55,7 @@ check("route exports only GET (no POST/PUT/PATCH/DELETE handlers)", () => {
 });
 
 check("route uses the same admin guard as sibling staged-listings route", () => {
-  const guard = `req.cookies.get("leonix_admin")?.value !== "1"`;
+  const guard = `if (!(await isVerifiedAdminSession(await cookies()))) {`;
   assert.ok(siblingRoute.includes(guard), "sibling guard drifted — re-align");
   assert.ok(route.includes(guard));
   assert.ok(route.includes(`{ ok: false, error: "Unauthorized" }, { status: 401 }`));

@@ -1,5 +1,6 @@
 "use server";
 
+import { isVerifiedAdminSession } from "@/app/admin/_lib/adminVerifiedSession";
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
@@ -22,7 +23,7 @@ import {
 } from "@/app/lib/listingPlans/packageEntitlements";
 import { resolveMagazinePlacementPriority } from "@/app/lib/listingPlans/magazinePlacementPriority";
 import { CATEGORY_BASE_PACKAGE_KEY } from "@/app/lib/listingPlans/categoryCommercialPlanPolicy";
-import { getAdminSupabase, requireAdminCookie } from "@/app/lib/supabase/server";
+import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { getRevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
 import { grantComplimentaryAccess, grantPartnerCourtesy } from "@/app/lib/listingPlans/complimentaryGrants";
 import { writePlacementEntitlement } from "@/app/lib/listingPlans/placementEntitlementWriter";
@@ -89,7 +90,7 @@ async function loadEntitlementRow(id: string) {
 
 export async function createPackageEntitlementAction(formData: FormData): Promise<void> {
   const c = await cookies();
-  if (!requireAdminCookie(c)) throw new Error("Unauthorized");
+  if (!(await isVerifiedAdminSession(c))) throw new Error("Unauthorized");
   const access = await getCurrentAdminAccessContext();
 
   const packageTierRaw = String(formData.get("package_tier") ?? "").trim();
@@ -379,7 +380,7 @@ export async function createPackageEntitlementAction(formData: FormData): Promis
 
 export async function revokePackageEntitlementAction(formData: FormData): Promise<void> {
   const c = await cookies();
-  if (!requireAdminCookie(c)) throw new Error("Unauthorized");
+  if (!(await isVerifiedAdminSession(c))) throw new Error("Unauthorized");
   const access = await getCurrentAdminAccessContext();
 
   const id = String(formData.get("id") ?? "").trim();
@@ -429,7 +430,7 @@ export async function revokePackageEntitlementAction(formData: FormData): Promis
 
 export async function extendPackageEntitlementAction(formData: FormData): Promise<void> {
   const c = await cookies();
-  if (!requireAdminCookie(c)) throw new Error("Unauthorized");
+  if (!(await isVerifiedAdminSession(c))) throw new Error("Unauthorized");
   const access = await getCurrentAdminAccessContext();
 
   const id = String(formData.get("id") ?? "").trim();
@@ -489,7 +490,7 @@ export async function extendPackageEntitlementAction(formData: FormData): Promis
 
 export async function attachListingToPackageEntitlementAction(formData: FormData): Promise<void> {
   const c = await cookies();
-  if (!requireAdminCookie(c)) throw new Error("Unauthorized");
+  if (!(await isVerifiedAdminSession(c))) throw new Error("Unauthorized");
   const access = await getCurrentAdminAccessContext();
 
   const id = String(formData.get("id") ?? "").trim();
@@ -556,7 +557,7 @@ const ALLOWED_COMPLIMENTARY_GRANT_TYPES = new Set(["comp", "partner"]);
  */
 export async function grantComplimentaryPackageEntitlementAction(formData: FormData): Promise<void> {
   const c = await cookies();
-  if (!requireAdminCookie(c)) throw new Error("Unauthorized");
+  if (!(await isVerifiedAdminSession(c))) throw new Error("Unauthorized");
   const access = await getCurrentAdminAccessContext();
 
   const grantType = String(formData.get("grant_type") ?? "").trim();

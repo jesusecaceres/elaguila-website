@@ -1,4 +1,7 @@
+import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+
+import { isVerifiedAdminSession } from "@/app/admin/_lib/adminVerifiedSession";
 
 import type { ViajesStagedLifecycleStatus } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingTypes";
 import { revalidateViajesStagedPublicSurfaces } from "@/app/(site)/clasificados/viajes/lib/viajesRevalidatePublicSurfaces";
@@ -29,7 +32,7 @@ function mapAction(a: ModerateAction): { lifecycle_status: ViajesStagedLifecycle
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  if (req.cookies.get("leonix_admin")?.value !== "1") {
+  if (!(await isVerifiedAdminSession(await cookies()))) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
   if (!isSupabaseAdminConfigured()) {
