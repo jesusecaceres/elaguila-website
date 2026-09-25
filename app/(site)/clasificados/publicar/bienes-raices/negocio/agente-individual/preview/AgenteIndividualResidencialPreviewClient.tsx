@@ -729,7 +729,11 @@ export default function AgenteIndividualResidencialPreviewClient() {
           category="bienes-raices"
           lang={lang === "en" ? "en" : "es"}
           buildPayload={(ctx) => {
-            const built = buildPublishParamsFromAgenteResidencialDraft(viewData, lang === "en" ? "en" : "es");
+            // QUICK: the customer's own "photos represent the property" confirmation becomes the explicit
+            // `property` role, exactly as the customer publish above does. Full has no role picker and
+            // declares none.
+            const st = quickPlan ? declareQuickBienesPropertyRoles(viewData) : viewData;
+            const built = buildPublishParamsFromAgenteResidencialDraft(st, lang === "en" ? "en" : "es");
             if (!("params" in built) || !built.ok) return null;
             const ownerId = ctx.clientUserId ?? null;
             const listingRow = buildListingsInsertRowForLeonixPublish(ownerId, built.params);
@@ -737,6 +741,10 @@ export default function AgenteIndividualResidencialPreviewClient() {
               category: "bienes-raices",
               clientUserId: ownerId,
               listingRow,
+              // The SAME ordered gallery the customer publish persists (cover first), with its declared
+              // roles. `saveForClient` uploads it to durable storage and sends the https URLs as
+              // `listingRow.images`; the row builder above never carries a gallery of its own.
+              gallery: { sources: built.params.imageSources, roles: st.fotoMediaRoles ?? null },
               lang: lang === "en" ? "en" : "es",
             };
           }}

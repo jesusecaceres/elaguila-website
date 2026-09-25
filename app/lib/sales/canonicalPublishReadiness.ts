@@ -51,6 +51,7 @@ import {
   type SemanticMediaItem,
 } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
 import { resolveQuickBusinessPublishIdentity } from "@/app/lib/listingPlans/quickBusinessProductIdentityServer";
+import { storedBienesMediaFacts } from "@/app/lib/clasificados/bienes-raices/assistedBienesGallery";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { RESTAURANTE_STATUS_TRANSITION_NOT_ALLOWED_ERROR, resolveRestauranteOwnerEditTargetStatus } from "@/app/lib/clasificados/restaurantes/restauranteOwnerEditStatusAuthority";
 import type { QuickSalesCategory } from "./quickSalesCategories";
@@ -391,7 +392,7 @@ async function assessAutos(listingId: string): Promise<CanonicalPublishAssessmen
 // BIENES RAÍCES NEGOCIO
 // ---------------------------------------------------------------------------------------------
 
-async function assessBienes(listingId: string): Promise<CanonicalPublishAssessment> {
+async function assessBienes(listingId: string, assistedPackageKey?: string | null): Promise<CanonicalPublishAssessment> {
   const db = getAdminSupabase();
   const { data, error } = await db
     .from("listings")
@@ -403,28 +404,23 @@ async function assessBienes(listingId: string): Promise<CanonicalPublishAssessme
   const status = String(row.status ?? "").trim().toLowerCase();
   if (status === "active" && row.is_published === true) return refuse(409, "already_published", { listingId });
 
-  // SOURCE-PROVEN PERSISTED LOCATION: `listings.images` (jsonb array of URL strings).
-  const images = Array.isArray(row.images) ? (row.images as unknown[]) : [];
-  const items: SemanticMediaItem[] = [];
-  const photos: string[] = [];
-  for (const entry of images) {
-    if (typeof entry === "string") {
-      if (entry.trim()) {
-        items.push({ role: null, mime: null });
-        if (/^https?:\/\//i.test(entry.trim())) photos.push(entry.trim());
-      }
-      continue;
-    }
-    if (!entry || typeof entry !== "object") continue;
-    const o = entry as Record<string, unknown>;
-    const url = typeof o.url === "string" ? o.url : typeof o.src === "string" ? o.src : typeof o.path === "string" ? o.path : "";
-    if (url.trim()) {
-      items.push({ role: typeof o.role === "string" ? o.role : null, mime: null });
-      if (/^https?:\/\//i.test(url.trim())) photos.push(url.trim());
-    }
+  // SOURCE-PROVEN PERSISTED LOCATION: `listings.images` (jsonb array of URL strings), plus the DECLARED
+  // photo roles the assisted save recorded in `listing_json.br_media_roles` (roles never ride in
+  // `images`, whose canonical shape is bare URLs). Same reader the assisted route uses.
+  const { items, photos } = storedBienesMediaFacts({ images: row.images, listing_json: row.listing_json });
+  // The Quick media contract is a QUICK entitlement rule: it binds a proven Quick product only. A
+  // PRO/Full row keeps its own gallery allowance (its >=1 photo rule is the preview gate below).
+  const product = await resolveQuickBusinessPublishIdentity({
+    category: "bienes-raices",
+    ownerUserId: typeof row.owner_id === "string" ? row.owner_id : "",
+    listingId: row.id,
+    assistedPackageKey: assistedPackageKey ?? null,
+    serverCustodyQuick: !assistedPackageKey,
+  });
+  if (product.enforceQuickContract) {
+    const semantic = enforceQuickBusinessPublishMedia({ category: "bienes-negocio", items });
+    if (semantic && !semantic.ok) return { ok: false, status: semantic.status, error: semantic.body.error, body: semantic.body };
   }
-  const semantic = enforceQuickBusinessPublishMedia({ category: "bienes-negocio", items });
-  if (semantic && !semantic.ok) return { ok: false, status: semantic.status, error: semantic.body.error, body: semantic.body };
 
   const priceNum = Number(row.price);
   const agente = parseBienesAgenteResidencialPublishedState({
@@ -488,7 +484,7 @@ export async function assessCanonicalPublishReadiness(input: {
     case "autos":
       return assessAutos(listingId);
     case "bienes-raices":
-      return assessBienes(listingId);
+      return assessBienes(listingId, input.assistedPackageKey ?? null);
     case "rentas":
       return assessRentas(listingId);
     case "empleos":

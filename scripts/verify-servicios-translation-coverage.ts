@@ -572,7 +572,25 @@ check("914-21/22/23 quote modal: CtaActionSheet chrome follows the effective act
   const gallery = raw("app/(site)/servicios/components/ServiciosGalleryWithTabs.tsx");
   assert.ok(gallery.includes("serviciosEffectiveQuoteMessage(profile, lang)"), "gallery quote message uses the effective-language builder");
   const contact = raw("app/(site)/servicios/components/ServiciosBusinessHubContactCard.tsx");
-  assert.ok(contact.includes("serviciosEffectiveQuoteMessage(profile, lang)"), "primary quote message uses the effective-language builder");
+  // STALE-ASSERTION FIX (Blocker 5). Commit 4ca9c3827 (2026-09-15, "Correo" residual closeout) retired the
+  // contact card's own `serviciosEffectiveQuoteMessage(profile, lang)` call: its only consumer was the bespoke
+  // ContactEmailMenu `messagePlain`, replaced by the shared CtaActionSheet send_email primitive. The card's primary
+  // quote is now a direct sms:/wa/mailto destination from resolveServiciosQuoteDestination(profile, lang) and the
+  // Correo sheet is built from that mailto by buildServiciosSendEmailIntentFromMailto(..., lang, ...) — both take the
+  // EFFECTIVE `lang` (displayLang). The quote-MODAL (get_quote) intent builders still own the bilingual fallback (below).
+  assert.ok(!contact.includes("serviciosEffectiveQuoteMessage"), "contact card no longer builds its own quote message (retired in 4ca9c3827)");
+  assert.ok(!contact.includes("<ContactEmailMenu"), "retired bespoke email menu must not return");
+  assert.ok(contact.includes("resolveServiciosQuoteDestination(profile, lang)"), "primary quote destination follows the effective action language");
+  assert.ok(
+    contact.includes("buildServiciosSendEmailIntentFromMailto(primaryMailto, lang, listingSlug, listingShareUrl)"),
+    "primary Correo sheet is built with the effective action language",
+  );
+  const ctaIntents = raw("app/(site)/servicios/lib/serviciosCtaIntents.ts");
+  const getQuoteFn = ctaIntents.slice(ctaIntents.indexOf("export function buildServiciosGetQuoteIntent"));
+  assert.ok(
+    getQuoteFn.includes("serviciosEffectiveQuoteMessage(profile, lang)"),
+    "get_quote intent builder defaults its message to the bilingual-fallback-aware effective-language builder",
+  );
 
   // Unit coverage of the builder itself.
   const esOnly = { hero: { badges: [{ kind: "spanish", label: "Español" }] } } as unknown as ServiciosProfileResolved;

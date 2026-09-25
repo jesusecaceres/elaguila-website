@@ -11,6 +11,7 @@ import { fetchRestauranteLinkedOffersForPublicPage } from "@/app/lib/clasificado
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { RestaurantesShellChrome } from "@/app/clasificados/restaurantes/shell/RestaurantesShellChrome";
 import { restauranteCouponsCapabilityActive } from "@/app/clasificados/restaurantes/lib/restauranteCouponCapabilityServer";
+import { restauranteLinkedOffersVisibleForListing } from "@/app/clasificados/restaurantes/lib/restauranteLinkedOffersVisibilityServer";
 import { listRelatedRestaurantesListings } from "@/app/clasificados/restaurantes/lib/restaurantesRelatedListings";
 import { RestaurantesRelatedListingsSection } from "@/app/clasificados/restaurantes/components/RestaurantesRelatedListingsSection";
 import { restauranteJsonLd } from "../seo/restauranteJsonLd";
@@ -78,11 +79,14 @@ export default async function RestaurantePublicDetailPage(props: PageProps) {
   const draft = listingJsonToDraft(row.listing_json);
   const shellData = mapRestauranteDraftToShellData(draft, { lang });
 
-  const [linkedOffers, couponsIncluded, related] = await Promise.all([
+  const [linkedOffers, couponsIncluded, linkedOffersVisible, related] = await Promise.all([
     isSupabaseAdminConfigured()
       ? fetchRestauranteLinkedOffersForPublicPage(getAdminSupabase(), row.id, lang)
       : Promise.resolve([]),
     restauranteCouponsCapabilityActive(row.id),
+    // Linked offers are NOT gated on the coupons capability (that gate fails closed and production never
+    // applied it to offers). They are hidden only for a PROVEN Quick listing; unknown/error shows them.
+    restauranteLinkedOffersVisibleForListing(row.id),
     // Gate RESTAURANTES-2 — related published listings, from the same canonical published reader
     // the results page uses. This route only ever renders a `status = "published"` row (the reader
     // above 404s otherwise), so no extra visibility guard is needed here.
@@ -159,9 +163,9 @@ export default async function RestaurantePublicDetailPage(props: PageProps) {
             lang={lang}
             analyticsOwnerUserId={row.owner_user_id}
             persistListingEngagement
-            // Linked offers follow the SAME live coupons_offers capability as the coupon module: a listing without it
-            // (Quick / Simple, or any listing that does not resolve it) shows none. Full is unchanged.
-            linkedOffers={couponsIncluded ? linkedOffers : []}
+            // Proven Quick (live Simple base row, no live Full grant) shows no linked offers. Full, unknown, or a
+            // failed entitlement lookup keeps production behavior: stored valid offers render (fail-open display).
+            linkedOffers={linkedOffersVisible ? linkedOffers : []}
           />
         </ClasificadosPreviewAdCanvas>
         {row.leonix_ad_id ? (

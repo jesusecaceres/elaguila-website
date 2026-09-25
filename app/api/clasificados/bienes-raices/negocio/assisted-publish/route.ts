@@ -14,9 +14,13 @@
  *  - publish_for_client: creates row as active, links to business, requires cleared
  *    manual payment before going live
  *
- * Image uploads happen out-of-band through the existing listing-images storage
- * pipeline. This route creates the row skeleton; the staff actor uploads photos
- * separately via the existing listing-edit endpoints.
+ * GALLERY. The staff application's photos are uploaded to durable storage by the browser (the
+ * same Blob upload endpoint the Rentas customer path uses) BEFORE the save, and the resulting
+ * https URLs arrive here as `listingRow.images` (URL strings, or `{url, role}` when a role was
+ * declared). This route validates every URL with the shared media contract (`isPersistableMediaUrl`:
+ * data:/blob: never persist), writes `listings.images`, and records the DECLARED roles in
+ * `listing_json.br_media_roles` so the cockpit readiness can re-read them. It never fabricates an
+ * image and never invents a role. A request with no `images` leaves the stored gallery untouched.
  */
 import { NextResponse, type NextRequest } from "next/server";
 import { readActiveAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
@@ -37,7 +41,13 @@ import { customerUserIdFromBearer } from "@/app/lib/auth/customerBearerUserId";
 import {
   enforceQuickBusinessPublishMedia,
   extractSemanticMediaItems,
+  type SemanticMediaItem,
 } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
+import {
+  parseAssistedBienesGallery,
+  storedBienesMediaFacts,
+  withStoredBienesMediaRoles,
+} from "@/app/lib/clasificados/bienes-raices/assistedBienesGallery";
 import { resolveQuickBusinessPublishIdentity } from "@/app/lib/listingPlans/quickBusinessProductIdentityServer";
 import {
   forceQuickBienesMainInventoryRow,
@@ -49,7 +59,11 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** Columns staff may supply in listingRow. owner_id is always overwritten server-side. */
+/**
+ * Columns staff may supply in listingRow. owner_id is always overwritten server-side.
+ * `images` is allowed ONLY through `parseAssistedBienesGallery` below: the raw value never reaches
+ * the row (it is replaced by the validated durable URLs, or removed).
+ */
 const ALLOWED_LISTING_COLUMNS = new Set([
   "title",
   "description",
@@ -68,6 +82,7 @@ const ALLOWED_LISTING_COLUMNS = new Set([
   "contact_json",
   "contact_phone",
   "contact_email",
+  "images",
   "inventory_role",
   "br_inventory_group_id",
   "br_inventory_parent_listing_id",
@@ -205,13 +220,39 @@ export async function POST(request: NextRequest) {
     listingId: existingListingId || null,
     assistedPackageKey: assistedContext.packageKey ?? null,
   });
-  if (isAssistedPublish) {
+
+  // THE GALLERY THE STAFF APPLICATION ACTUALLY HAS. Durable URLs only (shared media contract): a
+  // data:/blob:/relative entry is refused here rather than dropped, because a dropped photo would
+  // come back later as a misleading "no property photo" refusal. `null` = the request carries no
+  // gallery, and the stored one is left exactly as it is.
+  const galleryParse = parseAssistedBienesGallery(listingRowRaw.images);
+  if (!galleryParse.ok) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: galleryParse.error,
+        message:
+          galleryParse.error === "images_too_many"
+            ? "Too many photos for this listing."
+            : "Photos must be uploaded to durable storage before saving (no data: or blob: URLs).",
+        messageEs:
+          galleryParse.error === "images_too_many"
+            ? "Demasiadas fotos para este anuncio."
+            : "Las fotos deben subirse al almacenamiento antes de guardar (sin URLs data: ni blob:).",
+      },
+      { status: 422 },
+    );
+  }
+  const gallery = galleryParse.gallery;
+  // The role-bearing media set, read by the SAME canonical extractor the customer seams use.
+  const requestMediaItems: SemanticMediaItem[] = extractSemanticMediaItems({ images: gallery?.entries ?? [] });
+  if (isAssistedPublish && gallery) {
     // Gate QB-MEDIA-03 — the SAME canonical entry point the four self-service seams call, so the
     // assisted and self-service paths cannot drift into two different contracts.
     const semanticMedia = assistedProduct.enforceQuickContract
       ? enforceQuickBusinessPublishMedia({
           category: "bienes-negocio",
-          items: extractSemanticMediaItems(listingRowRaw),
+          items: requestMediaItems,
         })
       : null;
     if (semanticMedia && !semanticMedia.ok) {
@@ -231,11 +272,56 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // The STORED gallery + role map of the bound row, read only when this request needs it: a Quick
+  // publish that carries no gallery is judged on what is stored, and a save that declares photo
+  // roles must merge them into (never replace) the stored `listing_json`. Read AFTER the custody
+  // link check above. A failed read refuses; it is never treated as "no photos".
+  let storedGallery: { images: unknown; listing_json: unknown } | null = null;
+  const needsStoredGallery =
+    Boolean(existingListingId) &&
+    ((isAssistedPublish && !gallery && assistedProduct.enforceQuickContract) ||
+      (Boolean(gallery) && Object.keys(gallery?.roles ?? {}).length > 0 && listingRowRaw.listing_json == null));
+  if (needsStoredGallery) {
+    const { data: storedRow, error: storedError } = await getAdminSupabase()
+      .from("listings")
+      .select("images, listing_json")
+      .eq("id", existingListingId as string)
+      .eq("category", "bienes-raices")
+      .maybeSingle();
+    if (storedError) {
+      return NextResponse.json({ ok: false, error: "listing_read_failed" }, { status: 500 });
+    }
+    storedGallery = storedRow ? (storedRow as unknown as { images: unknown; listing_json: unknown }) : null;
+  }
+  if (isAssistedPublish && !gallery && assistedProduct.enforceQuickContract) {
+    // Same canonical entry point, judged on the STORED row (what the cockpit readiness also reads).
+    const storedMedia = enforceQuickBusinessPublishMedia({
+      category: "bienes-negocio",
+      items: storedGallery ? storedBienesMediaFacts(storedGallery).items : [],
+    });
+    if (storedMedia && !storedMedia.ok) {
+      return NextResponse.json(storedMedia.body, { status: storedMedia.status });
+    }
+  }
+
   // Filter to only allowed columns; always overwrite owner_id server-side
   let filteredRow: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(listingRowRaw)) {
     if (ALLOWED_LISTING_COLUMNS.has(key)) {
       filteredRow[key] = value;
+    }
+  }
+  // `images` NEVER passes through raw: it is the validated durable-URL list, or it is absent and the
+  // stored gallery is untouched. The DECLARED roles ride in `listing_json.br_media_roles` (merged into
+  // the request's own listing_json, or the stored one when the request carried none).
+  delete filteredRow.images;
+  if (gallery) {
+    filteredRow.images = gallery.urls;
+    if (Object.keys(gallery.roles).length > 0 || filteredRow.listing_json != null) {
+      filteredRow.listing_json = withStoredBienesMediaRoles(
+        filteredRow.listing_json ?? storedGallery?.listing_json ?? null,
+        gallery.roles,
+      );
     }
   }
 
@@ -260,13 +346,32 @@ export async function POST(request: NextRequest) {
     // (the request may not name a child role or a parent). Applied to the filtered row BEFORE the insert
     // row is built, so the insert path stays born-pending exactly as pinned. Full/PRO and unverified are untouched.
     filteredRow = forceQuickBienesMainInventoryRow(filteredRow);
+    // QUICK PHOTO CAP (bienes-negocio = quickImageMaxForBusinessCategory): a proven Quick gallery may not
+    // be stored past the cap. Only the count rule is applied on a save (a draft may still be missing its
+    // property photo); publish runs the whole contract above / in the cockpit readiness.
+    if (gallery) {
+      const capCheck = enforceQuickBusinessPublishMedia({ category: "bienes-negocio", items: requestMediaItems });
+      if (capCheck && !capCheck.ok && capCheck.issues.some((i) => i.code === "too_many_images")) {
+        const tooMany = capCheck.issues.find((i) => i.code === "too_many_images")!;
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "media_contract_violation",
+            issues: ["too_many_images"],
+            message: tooMany.messageEn,
+            messageEs: tooMany.messageEs,
+          },
+          { status: 422 },
+        );
+      }
+    }
     // Defence in depth ("Quick includes no video"): external video links this write would ADD. 0 after
     // the boundary; a real count would mean it failed, and the canonical contract then refuses.
     const netNewVideos = quickBienesNetNewExternalVideoCount({ row: filteredRow, existingRow: storedForBoundary });
     if (isAssistedPublish && netNewVideos > 0) {
       const videoRefusal = enforceQuickBusinessPublishMedia({
         category: "bienes-negocio",
-        items: extractSemanticMediaItems(listingRowRaw),
+        items: requestMediaItems,
         externalVideoCount: netNewVideos,
       });
       if (videoRefusal && !videoRefusal.ok) {

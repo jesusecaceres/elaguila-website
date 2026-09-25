@@ -16,6 +16,7 @@
  * owner-null first save. Public/customer callers never go through this module.
  */
 import { QUICK_SALES_CATEGORY_MAP, type QuickSalesCategory } from "./quickSalesCategories";
+import { uploadAssistedBienesGallery, type AssistedBienesGallerySource } from "./assistedBienesGalleryClient";
 
 export type AssistedSavePayload =
   | { category: "rentas"; draft: Record<string, unknown>; lane?: "privado"; lang?: "es" | "en" }
@@ -25,7 +26,18 @@ export type AssistedSavePayload =
   | { category: "restaurantes"; draft: Record<string, unknown>; lang?: "es" | "en" }
   | { category: "comida-local"; draft: Record<string, unknown>; draftListingId?: string | null; lang?: "es" | "en" }
   | { category: "autos"; clientUserId?: string | null; dealerListing: Record<string, unknown>; vehicleListing?: Record<string, unknown> | null; lang?: "es" | "en" }
-  | { category: "bienes-raices"; clientUserId?: string | null; listingRow: Record<string, unknown>; lang?: "es" | "en" };
+  | {
+      category: "bienes-raices";
+      clientUserId?: string | null;
+      listingRow: Record<string, unknown>;
+      /**
+       * The application's photos (cover first) and their declared roles. `saveForClient` uploads them to
+       * durable storage FIRST and sends the resulting https URLs as `listingRow.images`; a save never
+       * carries data:/blob: photos and never silently drops one.
+       */
+      gallery?: AssistedBienesGallerySource;
+      lang?: "es" | "en";
+    };
 
 export type AssistedSaveResult =
   | { ok: true; listingId: string | null; raw: Record<string, unknown> }
@@ -106,7 +118,16 @@ export function listingIdFrom(category: QuickSalesCategory, json: Record<string,
   return null;
 }
 
-export async function saveForClient(payload: AssistedSavePayload): Promise<AssistedSaveResult> {
+export async function saveForClient(input: AssistedSavePayload): Promise<AssistedSaveResult> {
+  let payload: AssistedSavePayload = input;
+  if (input.category === "bienes-raices" && input.gallery) {
+    // BIENES NEGOCIO: the staff application's photos become durable URLs before anything is sent.
+    const uploaded = await uploadAssistedBienesGallery(input.gallery);
+    if (!uploaded.ok) return { ok: false, status: 0, error: uploaded.error, message: uploaded.message };
+    const { gallery: _gallery, ...rest } = input;
+    void _gallery;
+    payload = { ...rest, listingRow: { ...input.listingRow, images: uploaded.entries } };
+  }
   const { method, url } = saveMethodAndUrl(payload);
   let res: Response;
   try {

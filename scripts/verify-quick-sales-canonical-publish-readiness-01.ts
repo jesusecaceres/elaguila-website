@@ -416,8 +416,9 @@ function seedBienes(row: Record<string, unknown>, status = "pending", pay = true
 // SOURCE-PROVEN persisted gallery for `listings`: the `images` jsonb column (bare URL strings) —
 // written by buildQuickBienesListingRow (`images: [...mediaUrls]`), read by the public renderer
 // (anuncio/[id]/page.tsx imageUrlsFromJsonb(row.images)). Media ROLES are validated at request
-// time and never persisted, and the assisted route drops `images` entirely. The cockpit therefore
-// reads ONLY `images`, and the canonical DECLARED-attribution contract fails closed on its own codes.
+// time; the Bienes assisted route now writes `images` (durable URLs) and records DECLARED roles in
+// `listing_json.br_media_roles` (scripts/verify-bienes-assisted-quick-publish-01.ts proves that path). With no
+// declared role the canonical DECLARED-attribution contract still fails closed on its own codes (B1 below).
 await check("B1: PAID Bienes with property URLs in `listings.images` fails CLOSED on the canonical contract (roles are not persisted) — 422 role_declaration_required, never published", async () => {
   seedBienes({ images: ["https://cdn.example.test/house.jpg"] });
   const { status, json } = await publishAs("bienes-raices", "b1", CLIENT);

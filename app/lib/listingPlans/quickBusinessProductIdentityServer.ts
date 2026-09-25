@@ -53,8 +53,9 @@ async function readLiveEntitlementRows(input: {
       .eq("category", input.category)
       .eq("listing_id", input.listingId)
       // `owner_user_id` is nullable on rows predating the Revenue OS contract. Filtering on it can
-      // therefore only ever DROP a row and land the answer on `unverified` — which now enforces —
-      // so this filter can over-protect but never under-protect.
+      // therefore only ever DROP a row and land the answer on `unverified` (no evidence, no Quick
+      // restriction, and never a borrowed answer from someone else's listing). Such rows predate the
+      // Revenue OS contract, so they cannot be Quick entitlements (Quick launched after it).
       .eq("owner_user_id", input.ownerUserId)
       .neq("status", "revoked")
       .is("revoked_at", null)
@@ -114,7 +115,7 @@ async function readCheckoutLedgerBasePackageKey(input: {
     // ONLY A SETTLED ROW NAMES A PRODUCT. An open attempt is an intention, not a purchase: a
     // dealer who opened a Quick checkout, abandoned it without it ever being marked canceled and
     // then bought Full would otherwise resolve to `quick` off the stale attempt. Falling through
-    // to `unverified` is now the safe answer anyway, since `unverified` enforces.
+    // to `unverified` (no Quick restriction) is the correct answer when nothing was settled.
     const settled = rows.find((r) => {
       const s = String(r.payment_status ?? "").trim().toLowerCase();
       return s === "paid" || s === "succeeded";

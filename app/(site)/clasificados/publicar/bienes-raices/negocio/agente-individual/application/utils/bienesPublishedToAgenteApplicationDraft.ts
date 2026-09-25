@@ -12,6 +12,7 @@ import {
   isBrInventoryProperty,
 } from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import { readStoredBienesMediaRoles } from "@/app/lib/clasificados/bienes-raices/assistedBienesGallery";
 import { listingsQueryWithSelectShrink } from "@/app/(site)/clasificados/lib/listingsSelectShrink";
 import { stripLeonixPublishedDescriptionBody } from "@/app/clasificados/lib/leonixListingGalleryMarker";
 import {
@@ -177,8 +178,18 @@ export function bienesPublishedRowToAgenteApplicationDraft(input: {
 
   const packEnabled = children.length > 0;
 
+  // The photo roles the assisted save DECLARED (`listing_json.br_media_roles`), for the photos this row
+  // still has. A reopened Quick draft therefore keeps its declared `property` roles; a photo without a
+  // stored role stays unroled. Nothing is inferred.
+  const storedRoles = readStoredBienesMediaRoles(row.listing_json);
+  const fotoMediaRoles: Record<string, string> = {};
+  for (const url of shared.fotosDataUrls ?? []) {
+    if (storedRoles[url]) fotoMediaRoles[url] = storedRoles[url];
+  }
+
   return {
     ...shared,
+    ...(Object.keys(fotoMediaRoles).length ? { fotoMediaRoles } : {}),
     // Bienes-inventory-specific truth the shared parser has no concept of.
     inventoryPackAccepted: false,
     additionalInventoryProperties: children,

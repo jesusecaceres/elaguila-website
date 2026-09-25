@@ -250,7 +250,9 @@ check("coupons / linked offers: none for Quick (preview strips draft coupons; pu
   const preview = raw(PREVIEW);
   const pub = raw(PUBLIC);
   assert.ok(/isQuickPreview\s*\?\s*\{\s*\.\.\.shellDataFromDraft, coupons: undefined, couponFlyer: undefined, couponMoreOffers: undefined/.test(preview.replace(/\n\s*/g, " ")));
-  assert.ok(pub.includes("linkedOffers={couponsIncluded ? linkedOffers : []}"));
+  // Linked offers are hidden only for a PROVEN Quick listing (restauranteLinkedOffersVisibleForListing), NOT by the
+  // fail-closed coupons capability; unknown/error keeps production behavior (see verify-restaurantes-offers-failsafe-01).
+  assert.ok(pub.includes("linkedOffers={linkedOffersVisible ? linkedOffers : []}"));
   assert.ok(pub.includes("coupons: couponsIncluded ? shellData.coupons : undefined"), "public coupon gate unchanged for Full");
   assert.ok(raw(ROUTE).includes("enforceRestauranteCouponEntitlementServerTruth("), "server coupon entitlement gate still in place");
 });

@@ -179,26 +179,28 @@ async function sectionA() {
     assert.equal(quickContractAppliesTo(captureAttempt), false);
   });
 
-  await check("A9 FAIL SAFE: an UNDETERMINED product ENFORCES; only a PROVEN Full skips", () => {
-    // THE ROUND-3 REPAIR. This check previously asserted the opposite, and the opposite was
-    // falsifiable: a first publish always precedes payment, so every server leg is silent and the
-    // only remaining signal is a declaration the browser can simply omit. Skipping on
-    // `unverified` therefore made the whole contract opt-in from the browser — omitting one field
-    // published a Quick listing with a logo and no subject photo.
+  await check("A9 AFFIRMATIVE EVIDENCE ONLY: an UNDETERMINED product does NOT enforce; only a PROVEN Quick does", () => {
+    // OWNER RULE 2026-09-24 — UNVERIFIED MUST NOT MEAN QUICK. This check previously asserted the
+    // opposite ("undetermined enforces", the round-3 fail-safe). That rule rejected legitimate FULL
+    // first publishes: a first save always precedes payment, so a Full customer resolves `unverified`
+    // and was held to Quick's cap / no-video / role rules. Quick restrictions now require affirmative
+    // server evidence (assisted context, live entitlement, settled ledger, the Quick-only operation,
+    // or a declared SIMPLE key that can only restrict its sender). The Quick contract is then
+    // enforced on every seam for a proven Quick product — see verify-quick-full-first-publish-01.
     const undetermined = shouldEnforceQuickBusinessContract({ category: "autos" });
     assert.equal(undetermined.decision.product, "unverified");
     assert.equal(undetermined.decision.source, "none");
-    assert.equal(undetermined.enforce, true, "an undetermined product must land on the STRICT side");
+    assert.equal(undetermined.enforce, false, "no evidence is not Quick");
 
-    // Both business categories, and with an unusable declaration, behave the same way.
+    // Both business categories, with any unusable or FULL declaration, behave the same way: never Quick.
     for (const category of ["autos", "bienes-raices"]) {
       for (const declared of [null, undefined, "", "   ", "not_a_package", FULL_AUTOS, FULL_BIENES]) {
         const r = shouldEnforceQuickBusinessContract({ category, declaredPackageKey: declared as string });
-        assert.equal(r.enforce, true, `${category} + declared ${JSON.stringify(declared)} must enforce`);
+        assert.equal(r.enforce, false, `${category} + declared ${JSON.stringify(declared)} must not enforce`);
       }
     }
 
-    // The ONLY skips: a proven Full, and a category with no Quick product at all.
+    // A proven Full never enforces, and a category with no Quick product never enforces.
     for (const facts of [
       { category: "autos", liveEntitlementRows: [{ packageKey: FULL_AUTOS, packageTier: "digital_only" }] },
       { category: "autos", checkoutLedgerPackageKey: FULL_AUTOS },
@@ -206,9 +208,19 @@ async function sectionA() {
     ]) {
       const r = shouldEnforceQuickBusinessContract(facts);
       assert.equal(r.decision.product, "full", "proven Full");
-      assert.equal(r.enforce, false, "a PROVEN Full is the blocker this module closes");
+      assert.equal(r.enforce, false, "a PROVEN Full is never restricted");
     }
     assert.equal(shouldEnforceQuickBusinessContract({ category: "rentas" }).enforce, false);
+
+    // Affirmative Quick evidence DOES enforce (Quick is not weakened once proven).
+    for (const facts of [
+      { category: "autos", declaredPackageKey: QUICK_AUTOS },
+      { category: "autos", assistedPackageKey: QUICK_AUTOS },
+      { category: "autos", serverCustodyQuick: true },
+      { category: "bienes-raices", checkoutLedgerPackageKey: QUICK_BIENES },
+    ]) {
+      assert.equal(shouldEnforceQuickBusinessContract(facts).enforce, true, JSON.stringify(facts));
+    }
   });
 
   await check("A10: a PRINT quarter-page grant is SIMPLE, a print half-page and up is FULL", () => {

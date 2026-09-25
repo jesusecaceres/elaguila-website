@@ -57,28 +57,31 @@
  *     which a caller can declare its way OUT of the Quick contract.
  *   - Any server-owned fact (legs 1–4) OVERRIDES the declaration outright, in both directions.
  *
- * WHAT `unverified` MEANS, AND WHY IT STILL ENFORCES
- * --------------------------------------------------
+ * WHAT `unverified` MEANS — AND WHY IT NEVER MEANS QUICK
+ * ----------------------------------------------------
  * `unverified` is "this category HAS a Quick product, but no server record names a base package
  * for this publish and nothing declared Quick".
  *
- * The first revision of this module made `unverified` skip the contract. An adversarial review
- * falsified that: a customer's FIRST publish always precedes their payment, so legs 1–4 are
- * silent by construction and the ONLY remaining signal is a declaration the browser can simply
- * omit. Skipping on `unverified` therefore did not protect Full dealers — it made the whole
- * contract OPT-IN FROM THE BROWSER. Omitting one field published a Quick Autos listing with a
- * dealership logo and no vehicle photo, which is exactly what this gate exists to refuse, and it
- * was strictly weaker than the behaviour that shipped before the gate existed.
+ * OWNER RULE (2026-09-24): UNVERIFIED MUST NOT MEAN QUICK. Quick restrictions (image cap, no video,
+ * role requirement, no socials / extra URLs / reviews / Yelp) apply ONLY when the server holds
+ * AFFIRMATIVE evidence that the listing is Quick/Simple. A customer's FIRST save or publish always
+ * precedes their payment, so the entitlement and the settled ledger are silent by construction; a
+ * legitimate FULL customer looks exactly like that. Enforcing the Quick contract on absence of
+ * evidence therefore rejected (or stripped) valid Full first publishes — 4+ photos, external video,
+ * social links, images without a declared role — merely because payment had not happened yet.
  *
- * So the rule is inverted to FAIL SAFE, which is also what the owner's contract says in as many
- * words: a missing declaration must fail safely, never pass. The contract is skipped ONLY on a
- * PROVEN `full`, from a server-owned record. That keeps the real blocker closed — a $399 dealer
- * whose entitlement, ledger or assisted context names the Full package is untouched — while an
- * absent or unreadable signal lands on the stricter side rather than the permissive one.
- *
- * What this costs a genuine Full customer is nothing: the publish-seam contract is skipped on a
- * proven Full product. Quick is the same application with a real entitlement difference — at most
- * 3 images and no video — enforced only when `enforceQuickContract` is true.
+ * The evidence that PROVES Quick, in the order the resolver reads it:
+ *   1. a verified staff assisted-publishing context (signed cookie `packageKey`, set from the Quick
+ *      Sales product the staff member chose — the URL is never this authority),
+ *   2. a live entitlement row for the listing,
+ *   3. the settled checkout ledger,
+ *   4. the Quick-only server publish operation (`serverCustodyQuick`, never settable from a body),
+ *   5. a declaration of the category's SIMPLE key, read under the one-direction rule: it can only ever
+ *      ADD the Quick contract to its own sender, never relax anything. A declared FULL key is never
+ *      trusted (`unverified`, not `full`).
+ * Every Quick session sends (5) on its own saves, and every proven-Quick listing is held to the full
+ * contract on EVERY later save, publish and edit. What the rule deliberately does not do is guess: a
+ * request with no evidence is not treated as Quick.
  *
  * A category with no Simple/Full split at all — Autos Privado, Bienes FSBO, every private
  * classified — answers `source: "no_quick_product"` and is never touched by any of this.
@@ -98,9 +101,8 @@ import {
  *  - `"quick"`      — a verified SIMPLE ($99) business publish. The Quick contract applies.
  *  - `"full"`       — a verified FULL ($399) business publish. The Quick contract NEVER applies.
  *  - `"unverified"` — the category HAS a Quick product, but no server record names a base package
- *                     for this publish and nothing declared Quick. FAILS SAFE: the contract still
- *                     applies, because the only other signal available at a first publish is one
- *                     the browser can omit.
+ *                     for this publish and nothing declared Quick. It NEVER means Quick: it may be a
+ *                     Full customer's first, pre-payment save, so no Quick restriction applies to it.
  */
 export type QuickBusinessProduct = "quick" | "full" | "unverified";
 
@@ -244,19 +246,21 @@ export function resolveQuickBusinessProduct(
 /**
  * Whether the Quick Business semantic media contract applies to this publish.
  *
- * FAIL SAFE. The contract is skipped on exactly two answers:
- *   - `no_quick_product` — the category has no Simple/Full split, so there is no Quick product to
- *     enforce and never was. Autos Privado, Bienes FSBO and every private classified land here.
- *   - a PROVEN `full`, named by a server-owned record (assisted context, live entitlement or the
- *     server-minted checkout ledger). This is the blocker the module was written to close.
- *
- * Everything else — including `unverified` — enforces. A first publish precedes payment, so an
- * undetermined product is the NORMAL case for the very requests this contract exists to govern;
- * treating it as permission to skip made the contract opt-in from the browser.
+ * AFFIRMATIVE EVIDENCE ONLY. The contract applies to exactly one answer: a product the server can
+ * name as `quick` (assisted context, live entitlement, settled ledger, the Quick-only server
+ * operation, or a declared SIMPLE key). It is skipped for:
+ *   - `no_quick_product` — the category has no Simple/Full split (Autos Privado, Bienes FSBO, every
+ *     private classified);
+ *   - a PROVEN `full`;
+ *   - `unverified` — no evidence either way. A first save/publish precedes payment, so a legitimate
+ *     Full customer looks exactly like this; treating absence of evidence as Quick rejected valid Full
+ *     media, video and links. Once the listing is proven Quick, every later seam enforces in full.
  */
 export function quickContractAppliesTo(decision: QuickBusinessProductDecision): boolean {
   if (decision.source === "no_quick_product") return false;
-  return decision.product !== "full";
+  // AFFIRMATIVE EVIDENCE ONLY. `unverified` (no record, no declaration) and a proven `full` are both
+  // outside the Quick contract; only a product the server can name as Quick is held to it.
+  return decision.product === "quick";
 }
 
 /**

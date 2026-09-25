@@ -391,16 +391,15 @@ export async function POST(req: NextRequest) {
   // the contract unconditionally held a FULL customer to a $99 product's rule, so the product now
   // comes from the same server-owned resolver Autos and Bienes use.
   //
-  // It is NOT gated on a positive `quick` answer. No Restaurantes client sends a package
-  // declaration, and a first publish precedes checkout, so a `quick` answer is unobtainable at
-  // exactly the publish this contract exists to govern — gating on it turned the check off for
-  // every real request. `enforceQuickContract` therefore means "not a PROVEN Full", which
-  // restores the pre-gate behaviour for everyone else and keeps the blocker closed for the
-  // customer whose entitlement or settled checkout actually names the Full package.
+  // It runs on AFFIRMATIVE evidence only (owner rule: `unverified` never means Quick). A first publish
+  // precedes checkout, so a legitimate FULL customer resolves `unverified` here and must not be held to
+  // Quick's cap / no-video / role rules. A Quick session proves itself: a staff assisted context, a live
+  // entitlement, or the Simple key the Quick client declares on its own saves (a declaration can only
+  // restrict its sender). `enforceQuickContract` is therefore true only for a proven Quick product.
   //
   // `listingId` arrives from the body. It cannot buy an escape: the entitlement read is scoped to
-  // the bearer-verified owner, so naming someone else's Full listing yields no rows, and an
-  // unresolvable id yields `unverified`, which enforces.
+  // the bearer-verified owner, so naming someone else's listing yields no rows and `unverified`
+  // (never a borrowed Full or Quick answer).
   const restauranteRequestBody = body as Record<string, unknown>;
   const restauranteProductListingId =
     typeof restauranteRequestBody.listingId === "string" ? restauranteRequestBody.listingId.trim() || null : null;
