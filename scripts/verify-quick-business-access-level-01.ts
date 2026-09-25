@@ -297,7 +297,12 @@ check("no new database migration was added for the access model", () => {
         // Launch security Wave 1 (2026-09-25): ACL/RLS hardening only — revoke client EXECUTE on the capacity RPCs and
         // lock down listing_lifecycle_reminder_events. No table, column or access-model storage is created.
         !f.endsWith("20260925120000_revoke_capacity_rpc_client_execute.sql") &&
-        !f.endsWith("20260925120100_listing_lifecycle_reminder_events_lockdown.sql"),
+        !f.endsWith("20260925120100_listing_lifecycle_reminder_events_lockdown.sql") &&
+        // Launch security Wave 2 (2026-09-25): a row trigger on public.listings, the Bienes capacity function restored to
+        // parent-counting, and an OBSOLETE header on 20260903150000. No table, column or access-model storage is created.
+        !f.endsWith("20260925130000_listings_owner_authority_guard.sql") &&
+        !f.endsWith("20260925130100_br_negocio_activate_listing_parent_counts.sql") &&
+        !f.endsWith("20260903150000_fix_parent_inventory_capacity_counting.sql"),
     ),
     [],
     "the access level is derived from existing columns and needs no migration",

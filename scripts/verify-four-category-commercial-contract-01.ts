@@ -419,7 +419,10 @@ check("autos DATABASE authority (TOTAL model): the RPC derives child ceilings 4 
   assert.ok(/package_key = 'autos_dealer_quick_monthly'[\s\S]{0,260}and not exists[\s\S]{0,260}package_key = 'autos_dealer_monthly'/.test(mig), "BASE = live Quick AND NO live PRO on the same parent");
   assert.ok(mig.includes("e.status in ('active', 'scheduled')") && mig.includes("e.revoked_at is null") && mig.includes("e.ends_at >= v_now"), "liveness mirrors the application resolver");
   assert.ok(!/p_limit|p_max|p_is_quick|p_plan/.test(mig), "the RPC never accepts a caller-supplied limit / plan");
-  assert.ok(/grant execute on function public\.autos_dealer_activate_listing\(uuid, uuid, text\) to service_role;/.test(mig) && /revoke all on function public\.autos_dealer_activate_listing\(uuid, uuid, text\) from public;/.test(mig), "service_role only");
+  assert.ok(/grant execute on function public\.autos_dealer_activate_listing\(uuid, uuid, text\) to service_role;/.test(mig) && /revoke all on function public\.autos_dealer_activate_listing\(uuid, uuid, text\) from public, anon, authenticated;/.test(mig) &&
+      mig.includes("has_function_privilege('anon', v_fn, 'EXECUTE')"),
+    "service_role only — client roles revoked explicitly and asserted (Launch security Wave 1)",
+  );
   assert.ok(!mig.includes("br_negocio_activate_listing"), "the Bienes function is untouched");
   assert.ok(!/(insert|update|delete)\s+(into\s+)?public\.listing_package_entitlements/i.test(mig), "the migration never mutates entitlements");
 });

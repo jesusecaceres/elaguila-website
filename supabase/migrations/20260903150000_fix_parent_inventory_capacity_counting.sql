@@ -1,3 +1,11 @@
+-- =====================================================================================================
+-- OBSOLETE / SUPERSEDED (2026-09-25) — kept only because Staging recorded it in its migration history.
+-- It EXCLUDES the dealer/agent parent from capacity, contradicting the owner rule (TOTAL vehicles/properties,
+-- parent = #1). Never apply it to Leonix Media (it was never applied there). Superseded by:
+--   * 20260924190000_autos_dealer_base_capacity_authority.sql  (Autos: BASE 5 / PRO 10 / PRO+pack 20 TOTAL)
+--   * 20260925130100_br_negocio_activate_listing_parent_counts.sql (Bienes Negocio: parent counts; 1 / 4 TOTAL)
+-- A fresh rebuild from source runs this file and then both successors, converging on production truth.
+-- =====================================================================================================
 -- Gate 6C.2 — commercial-contract correction: the dealer/agent parent must never consume one of
 -- its own purchased inventory slots.
 --

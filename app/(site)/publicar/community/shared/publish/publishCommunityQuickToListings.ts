@@ -334,8 +334,10 @@ export async function publishCommunityQuickToListings(input: {
   const photoUrls: string[] = [];
   let organizerLogoUploadedUrl: string | null = null;
 
+  // Leave the row non-public in its current draft/pending state (owner-authority guard, Wave 2): 'removed' is a one-way
+  // door for owners, and the retry path reuses this same row, so a failed publish must not archive it.
   const markPublishFailedNonPublic = async () => {
-    await supabase.from("listings").update({ status: "removed", is_published: false }).eq("id", listingId);
+    await supabase.from("listings").update({ is_published: false }).eq("id", listingId);
   };
 
   try {

@@ -192,8 +192,27 @@ begin
 end;
 $$;
 
-revoke all on function public.autos_dealer_activate_listing(uuid, uuid, text) from public;
+-- Service-role only. CREATE OR REPLACE keeps an existing ACL, but Supabase default privileges grant EXECUTE directly to
+-- anon/authenticated on (re)creation paths and `revoke ... from public` alone does not remove direct grants, so client
+-- roles are revoked explicitly (Launch security Wave 1, 20260925120000, closed this on Leonix Media; this keeps any
+-- apply order from re-opening it).
+revoke all on function public.autos_dealer_activate_listing(uuid, uuid, text) from public, anon, authenticated;
 grant execute on function public.autos_dealer_activate_listing(uuid, uuid, text) to service_role;
+
+do $post$
+declare
+  v_fn oid := 'public.autos_dealer_activate_listing(uuid,uuid,text)'::regprocedure;
+begin
+  if has_function_privilege('anon', v_fn, 'EXECUTE')
+     or has_function_privilege('authenticated', v_fn, 'EXECUTE')
+     or has_function_privilege('public', v_fn, 'EXECUTE') then
+    raise exception 'autos_dealer_base_capacity_authority: a client role can EXECUTE autos_dealer_activate_listing';
+  end if;
+  if not has_function_privilege('service_role', v_fn, 'EXECUTE') then
+    raise exception 'autos_dealer_base_capacity_authority: service_role lost EXECUTE on autos_dealer_activate_listing';
+  end if;
+end
+$post$;
 
 comment on function public.autos_dealer_activate_listing(uuid, uuid, text) is
   'Atomic, SECURITY DEFINER capacity+lifecycle-derived activation for autos_classifieds_listings negocios rows. Never accepts a caller-supplied limit. Limit is derived from the exact dealer parent entitlements and is a TOTAL of active vehicles, parent included: BASE (live autos_dealer_quick_monthly, no live autos_dealer_monthly) = 5; PRO = 10; PRO + inventory pack = 20 (child ceilings 4 / 9 / 19). active_count and effective_limit are totals. service_role execution only.';
