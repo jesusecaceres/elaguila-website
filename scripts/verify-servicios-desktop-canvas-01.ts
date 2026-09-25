@@ -1,12 +1,12 @@
 /**
  * SERVICIOS DESKTOP CANVAS — the trade profile view must never reserve a sidebar track for an empty sidebar.
  *
- * Root cause (2026-09-24): `ServiciosProfileView` always rendered a two-column grid
- * (`lg:[1fr_380px] xl:[1fr_400px]`) with an `<aside>` that holds only `ServiciosPromocionesCard`, which
- * returns null without promotions. A listing with no promotions therefore rendered its whole profile
- * (hero-adjacent About, Contact & Location hub, services, gallery) in a ~839px column beside an EMPTY
- * ~400px track at 1440. The sidebar column now exists only when it has content; without it the profile
- * takes the full canvas. The outer canvas tokens (LX_PRO_MAIN_MAX, inner pad) are unchanged.
+ * Root cause (2026-09-24): `ServiciosProfileView` put the WHOLE body in a two-column grid
+ * (`lg:[1fr_380px] xl:[1fr_400px]`) whose aside held only `ServiciosPromocionesCard`. With no promotions
+ * the aside was empty (reserved track); with promotions it still trapped About, Contact & Location,
+ * gallery and services in ~839px at 1440. The body is now one full-width canvas column; Promociones
+ * (a wide md:2 / lg:4 band by its own design) renders as a section under the coupons row on desktop.
+ * The outer canvas tokens (LX_PRO_MAIN_MAX, inner pad) are unchanged.
  *
  * Run: node node_modules/tsx/dist/cli.mjs --tsconfig scripts/lib/tsconfig.harness.json scripts/verify-servicios-desktop-canvas-01.ts
  */
@@ -28,17 +28,19 @@ const raw = (rel: string) => readFileSync(rel, "utf8").replace(/\r\n/g, "\n");
 const view = raw("app/(site)/servicios/components/ServiciosProfileView.tsx");
 const brand = raw("app/(site)/servicios/components/serviciosLeonixBrand.ts");
 
-check("the sidebar decision comes from the same predicate the sidebar card uses", () => {
-  assert.ok(view.includes("const hasSidebar = hasOfferSectionResolved(displayProfile);"));
+check("no whole-body sidebar: one full-width canvas column, no aside, no reserved track", () => {
+  assert.ok(view.includes('data-servicios-trade-canvas="full-width"'));
+  assert.ok(view.includes('<div className="grid grid-cols-1 gap-5 sm:gap-8" data-servicios-trade-canvas="full-width">'));
+  assert.ok(!view.includes("<aside"), "the Promociones-only rail is gone");
+  assert.ok(!view.includes("min(100%,380px)") && !view.includes("_400px]"), "no 380/400px track anywhere in the body grid");
+  assert.ok(!view.includes("stickyAsideTop"));
+});
+check("promotions stay: desktop band in the canvas column + the unchanged mobile/tablet copy, both from the same card", () => {
+  assert.ok(/hasOfferSectionResolved\(displayProfile\) \? \(\s*<div className="hidden lg:block" data-servicios-promotions="desktop-band">\s*<ServiciosPromocionesCard/.test(view));
+  assert.ok(/<div className="lg:hidden">\s*<ServiciosPromocionesCard/.test(view), "mobile/tablet placement unchanged");
   const card = raw("app/(site)/servicios/components/ServiciosPromocionesCard.tsx");
-  assert.ok(card.includes("if (!hasOfferSectionResolved(profile)) return null;"), "card is empty exactly when the predicate is false");
-});
-check("two-column grid only with a sidebar; full-width single column otherwise", () => {
-  assert.ok(/hasSidebar\s*\?\s*"grid grid-cols-1 gap-5 sm:gap-8 lg:grid-cols-\[minmax\(0,1fr\)_min\(100%,380px\)\] lg:gap-10 xl:grid-cols-\[minmax\(0,1fr\)_400px\]"\s*:\s*"grid grid-cols-1 gap-5 sm:gap-8"/.test(view));
-  assert.ok(view.includes('data-servicios-trade-grid={hasSidebar ? "with-sidebar" : "full-width"}'));
-});
-check("the <aside> is not rendered at all without a sidebar (no empty track, no empty sticky box)", () => {
-  assert.ok(/\{hasSidebar \? \(\s*<aside/.test(view));
+  assert.ok(card.includes("if (!hasOfferSectionResolved(profile)) return null;"), "empty when there are no promotions (no empty band)");
+  assert.ok(card.includes("md:grid-cols-2 lg:grid-cols-4"), "premium promotions card is itself a wide band, not a rail");
 });
 check("outer canvas contract untouched: shared main max width and inner padding tokens", () => {
   assert.ok(brand.includes('export const LX_PRO_MAIN_MAX = "mx-auto w-full max-w-[1440px]";'));

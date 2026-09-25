@@ -90,13 +90,8 @@ export function ServiciosProfileView({
   leonixAdIdFooter?: string | null;
   serviciosDiscoveryResultsHref?: string | null;
 }) {
-  const stickyAsideTop = showTopBar ? "lg:top-[4.5rem]" : "lg:top-4";
   const listingKey = analyticsListingSlug?.trim() || profile.identity.slug;
   const { displayProfile, translateControl, displayLang } = useServiciosPublicTranslation({ profile, lang, listingKey });
-  // The sidebar column exists ONLY when the sidebar has something to render (Promociones renders null
-  // without promotions). Reserving a 400px track for an empty aside is what squeezed the whole profile
-  // into a narrow left column on desktop; without promotions the profile takes the full canvas.
-  const hasSidebar = hasOfferSectionResolved(displayProfile);
 
   const lxListingId = (engagementListingId ?? "").trim() || profile.identity.slug;
   const lxOwner = (engagementOwnerUserId ?? "").trim() || undefined;
@@ -202,14 +197,12 @@ export function ServiciosProfileView({
           ) : null}
 
           <div className={LX_PRO_INNER_PAD}>
-            <div
-              className={
-                hasSidebar
-                  ? "grid grid-cols-1 gap-5 sm:gap-8 lg:grid-cols-[minmax(0,1fr)_min(100%,380px)] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_400px]"
-                  : "grid grid-cols-1 gap-5 sm:gap-8"
-              }
-              data-servicios-trade-grid={hasSidebar ? "with-sidebar" : "full-width"}
-            >
+            {/* ONE full-width canvas column (no whole-body sidebar). Historically the whole body sat in
+                main + a 380/400px aside that held only Promociones; that squeezed About, Contact &
+                Location, gallery and services into ~839px at 1440 whenever a listing had promotions.
+                Promociones (premium tone) is itself a wide band (md:2 / lg:4 columns), so on desktop it
+                is placed as a section under the coupons row instead of in a rail. */}
+            <div className="grid grid-cols-1 gap-5 sm:gap-8" data-servicios-trade-canvas="full-width">
               <div className="order-1 flex min-w-0 flex-col gap-5 sm:gap-8 lg:order-1">
                 {translateControl ? <div>{translateControl}</div> : null}
 
@@ -250,6 +243,20 @@ export function ServiciosProfileView({
                     couponMoreOffers={displayProfile.couponMoreOffers}
                     featuredRow
                   />
+                ) : null}
+
+                {hasOfferSectionResolved(displayProfile) ? (
+                  <div className="hidden lg:block" data-servicios-promotions="desktop-band">
+                    <ServiciosPromocionesCard
+                      profile={displayProfile}
+                      lang={displayLang}
+                      premiumLeonixTone
+                      listingSlug={analyticsListingSlug}
+                      listingSourceId={listingSourceId}
+                      engagementListingId={engagementListingId}
+                      engagementOwnerUserId={engagementOwnerUserId}
+                    />
+                  </div>
                 ) : null}
 
                 {hasGallerySectionResolved(displayProfile) ? (
@@ -321,22 +328,6 @@ export function ServiciosProfileView({
                   <ServiciosHours profile={profile} lang={displayLang} />
                 ) : null}
               </div>
-
-              {hasSidebar ? (
-                <aside
-                  className={`order-2 hidden min-w-0 lg:sticky lg:block lg:self-start ${stickyAsideTop} lg:z-10 lg:order-2`}
-                >
-                  <ServiciosPromocionesCard
-                    profile={displayProfile}
-                    lang={displayLang}
-                    premiumLeonixTone
-                    listingSlug={analyticsListingSlug}
-                    listingSourceId={listingSourceId}
-                    engagementListingId={engagementListingId}
-                    engagementOwnerUserId={engagementOwnerUserId}
-                  />
-                </aside>
-              ) : null}
             </div>
 
             {leonixAdIdFooter ? (
