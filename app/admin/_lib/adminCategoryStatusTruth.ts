@@ -21,6 +21,14 @@ export const ADMIN_CATEGORY_LIVE_STATUS_PROOF: Record<string, string> = {
   "bienes-raices": "Listings source + Leonix contract; admin queue + public browse.",
   empleos: "empleos_public_listings + admin API + public job pages.",
   servicios: "servicios_public_listings + admin queue + public service directory.",
+  autos:
+    "autos_classifieds_listings; privado + dealer publish circuits (paid, BASE/PRO); admin queue + live view; public results + vehicle detail; owner dashboard edit.",
+  clases: "listings source (category=clases); quick publish; admin queue + live view; public results + anuncio detail; Mis Anuncios edit.",
+  comunidad:
+    "listings source (category=comunidad); quick publish; admin queue + live view; public results + anuncio detail; Mis Anuncios edit.",
+  busco: "listings source (category=busco); quick publish; admin queue + live view; public results + anuncio detail; Mis Anuncios edit.",
+  "mascotas-y-perdidos":
+    "listings source (category=mascotas-y-perdidos); quick publish; admin queue + live view; public results + anuncio detail; Mis Anuncios edit.",
 };
 
 export type AdminCategoryStatusProof = {
@@ -81,8 +89,8 @@ function resolveBlockerKey(entry: AdminCategoriesHubEntry, sourceTable: string |
     return "hub.blocker.comingSoonScaffold";
   }
   if (entry.slug === "travel") return "hub.blocker.stagedViajesTable";
-  if (entry.slug === "autos") return "hub.blocker.stagedAutosPaid";
   if (entry.slug === "comida-local") return "hub.blocker.stagedComidaLocal";
+  if (entry.slug === "ofertas-locales") return "hub.blocker.stagedOfertas";
   if (entry.readiness === "partial") return "hub.blocker.stagedPartialVertical";
   return "hub.blocker.stagedGeneric";
 }
@@ -101,8 +109,8 @@ export function adminCategoryStatusReasonKey(
     return proof.hasOpsContract ? "hub.statusReason.comingSoonWithOps" : "hub.statusReason.comingSoonScaffold";
   }
   if (entry.slug === "travel") return "hub.statusReason.stagedTravel";
-  if (entry.slug === "autos") return "hub.statusReason.stagedAutos";
   if (entry.slug === "comida-local") return "hub.statusReason.stagedComidaLocal";
+  if (entry.slug === "ofertas-locales") return "hub.statusReason.stagedOfertas";
   if (entry.readiness === "partial") return "hub.statusReason.stagedPartial";
   return "hub.statusReason.stagedGeneric";
 }

@@ -21,6 +21,7 @@ import {
   isAdminCategoryStatusDbOverride,
 } from "../app/admin/_lib/adminCategoryStatusTruth";
 import { adminTr } from "../app/admin/_lib/adminStrings";
+import { mergeAdminCategoriesHubEntries } from "../app/admin/_lib/adminCategoriesHubEntries";
 
 const registry = getClasificadosCategoryRegistry();
 const servicios = registry.find((e) => e.slug === "servicios");
@@ -68,8 +69,65 @@ const dbAgrees = { ...rentas, configLayer: "database" as const, overlayNotes: "P
 assert.equal(isAdminCategoryStatusDbOverride(dbAgrees), false);
 assert.equal(adminCategoryStatusReasonKey(dbAgrees, getAdminCategoryStatusProof(dbAgrees)), "hub.statusReason.live.rentas");
 
-// Genuinely staged-by-code categories keep their specific reasons.
-const autos = registry.find((e) => e.slug === "autos")!;
-assert.equal(adminCategoryStatusReasonKey(autos, getAdminCategoryStatusProof(autos)), "hub.statusReason.stagedAutos");
+// Launch truth 2026-09-25 (category reconciliation): code defaults.
+const LIVE = [
+  "en-venta",
+  "restaurantes",
+  "rentas",
+  "bienes-raices",
+  "empleos",
+  "servicios",
+  "autos",
+  "clases",
+  "comunidad",
+  "busco",
+  "mascotas-y-perdidos",
+];
+const hub = mergeAdminCategoriesHubEntries(registry);
+for (const slug of LIVE) {
+  const e = hub.find((r) => r.slug === slug);
+  assert.ok(e, slug);
+  assert.equal(e.operationalStatus, "live", `${slug} code default live`);
+  assert.equal(e.readiness, "full", `${slug} readiness full`);
+  const code = { ...e, configLayer: "code" as const, overlayNotes: null };
+  const proof = getAdminCategoryStatusProof(code);
+  assert.equal(proof.blockerKey, null, `${slug} has no blocker`);
+  const key = adminCategoryStatusReasonKey(code, proof);
+  assert.equal(key, `hub.statusReason.live.${slug}`, `${slug} live reason key`);
+  for (const lang of ["en", "es"] as const) assert.notEqual(adminTr(lang, key), key, `${slug} ${lang} live reason text`);
+}
 
-console.log("PASS verify-admin-category-db-override-truth-01 (Servicios staged = stale site_category_config row, now named)");
+// Legitimately staged: Viajes (travel), Comida Local, Ofertas Locales — each with its own real blocker.
+const STAGED: Record<string, [string, string]> = {
+  travel: ["hub.statusReason.stagedTravel", "hub.blocker.stagedViajesTable"],
+  "comida-local": ["hub.statusReason.stagedComidaLocal", "hub.blocker.stagedComidaLocal"],
+  "ofertas-locales": ["hub.statusReason.stagedOfertas", "hub.blocker.stagedOfertas"],
+};
+for (const [slug, [reasonKey, blockerKey]] of Object.entries(STAGED)) {
+  const e = hub.find((r) => r.slug === slug);
+  assert.ok(e, slug);
+  assert.equal(e.operationalStatus, "staged", `${slug} stays staged`);
+  const code = { ...e, configLayer: "code" as const, overlayNotes: null };
+  const proof = getAdminCategoryStatusProof(code);
+  assert.equal(adminCategoryStatusReasonKey(code, proof), reasonKey, `${slug} reason key`);
+  assert.equal(proof.blockerKey, blockerKey, `${slug} blocker key`);
+  for (const lang of ["en", "es"] as const) {
+    assert.notEqual(adminTr(lang, reasonKey), reasonKey, `${slug} ${lang} reason text`);
+    assert.notEqual(adminTr(lang, blockerKey), blockerKey, `${slug} ${lang} blocker text`);
+  }
+}
+assert.match(adminTr("en", "hub.statusReason.stagedTravel"), /checkout\/fulfillment is not launch-ready and pricing remains unresolved/);
+assert.match(adminTr("en", "hub.statusReason.stagedOfertas"), /ofertas_locales source and paid review circuit exist/);
+assert.match(adminTr("en", "hub.statusReason.stagedComidaLocal"), /no production listing has completed the end-to-end paid launch circuit/);
+
+// Stale generic language removed.
+for (const lang of ["en", "es"] as const) {
+  for (const key of ["hub.statusReason.stagedPartial", "hub.blocker.stagedPartialVertical"]) {
+    const t = adminTr(lang, key);
+    assert.ok(!/maturity below primary live verticals|madurez por debajo|primary-live/.test(t), `${key} ${lang} no stale maturity claim`);
+  }
+}
+assert.equal(adminTr("en", "hub.statusReason.stagedAutos"), "hub.statusReason.stagedAutos", "stale Autos 'under QA' reason removed");
+assert.equal(adminTr("en", "hub.blocker.stagedAutosPaid"), "hub.blocker.stagedAutosPaid", "stale Autos blocker removed");
+
+console.log("PASS verify-admin-category-db-override-truth-01 (Servicios staged = stale site_category_config row, named; 11 live by code; Viajes/Comida/Ofertas staged with real blockers)");

@@ -91,7 +91,9 @@ assert(
 );
 assert(
   "servicios promoted to live in registry defaults",
-  registrySrc.includes('slug === "servicios"') && /servicios[\s\S]{0,120}return "live"/.test(registrySrc),
+  // Registry defaults are a LIVE_FULL_SLUGS set (2026-09-25 category truth reconciliation).
+  /const LIVE_FULL_SLUGS = new Set<string>\(\[[\s\S]*?"servicios"[\s\S]*?\]\)/.test(registrySrc) &&
+    /LIVE_FULL_SLUGS\.has\(slug\)\) return "live"/.test(registrySrc),
   registry,
 );
 assert(

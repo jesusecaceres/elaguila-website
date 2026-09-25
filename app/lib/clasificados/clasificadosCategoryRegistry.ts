@@ -39,52 +39,37 @@ const EXCLUDE: CategoryKey[] = ["all"];
 /**
  * Code defaults before `site_category_config` overlay.
  * LIVE = public/client-ready; STAGED = admin pipeline / partial public readiness; COMING SOON = not client-ready by rule.
+ *
+ * Launch truth 2026-09-25: Autos, Clases, Comunidad, Busco and Mascotas run full publish → public browse/detail →
+ * admin queue + live view → owner dashboard circuits (Autos incl. paid privado + dealer BASE/PRO), so they are LIVE.
+ * Viajes (travel) stays STAGED: public offers are operational but paid business checkout/fulfillment is not
+ * launch-ready and pricing is unresolved. (Comida Local / Ofertas Locales are staged in adminCategoriesHubEntries.)
  */
+const LIVE_FULL_SLUGS = new Set<string>([
+  "en-venta",
+  "restaurantes",
+  "rentas",
+  "bienes-raices",
+  "empleos",
+  "servicios",
+  "autos",
+  "comunidad",
+  "clases",
+  "busco",
+  "mascotas-y-perdidos",
+]);
+
+const STAGED_PARTIAL_SLUGS = new Set<string>(["travel"]);
+
 function defaultOperationalStatus(slug: string): ClasificadosCategoryOperationalStatus {
-  if (
-    slug === "en-venta" ||
-    slug === "restaurantes" ||
-    slug === "rentas" ||
-    slug === "bienes-raices" ||
-    slug === "empleos" ||
-    slug === "servicios"
-  ) {
-    return "live";
-  }
-  if (
-    slug === "autos" ||
-    slug === "travel" ||
-    slug === "comunidad" ||
-    slug === "clases" ||
-    slug === "busco" ||
-    slug === "mascotas-y-perdidos"
-  ) {
-    return "staged";
-  }
+  if (LIVE_FULL_SLUGS.has(slug)) return "live";
+  if (STAGED_PARTIAL_SLUGS.has(slug)) return "staged";
   return "coming_soon";
 }
 
 function defaultReadiness(slug: string): "full" | "partial" | "scaffold" {
-  if (
-    slug === "en-venta" ||
-    slug === "restaurantes" ||
-    slug === "rentas" ||
-    slug === "bienes-raices" ||
-    slug === "empleos" ||
-    slug === "servicios"
-  ) {
-    return "full";
-  }
-  if (
-    slug === "autos" ||
-    slug === "travel" ||
-    slug === "comunidad" ||
-    slug === "clases" ||
-    slug === "busco" ||
-    slug === "mascotas-y-perdidos"
-  ) {
-    return "partial";
-  }
+  if (LIVE_FULL_SLUGS.has(slug)) return "full";
+  if (STAGED_PARTIAL_SLUGS.has(slug)) return "partial";
   return "scaffold";
 }
 

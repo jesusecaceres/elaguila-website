@@ -17,7 +17,8 @@ const SUPPLEMENTAL_HUB_ENTRIES: AdminCategoriesHubEntry[] = [
     visibility: "public",
     operationalStatus: "staged",
     landingTarget: "/clasificados/comida-local",
-    notes: "Dedicated table comida_local_public_listings; L8A analytics wired.",
+    notes:
+      "comida_local_public_listings; publish + $129/mo checkout, public browse/detail, admin queue and owner edit wired — staged until one production listing completes the end-to-end paid launch circuit.",
     readiness: "partial",
     highlight: false,
     configLayer: "code",
@@ -35,7 +36,8 @@ const SUPPLEMENTAL_HUB_ENTRIES: AdminCategoriesHubEntry[] = [
     visibility: "public",
     operationalStatus: "staged",
     landingTarget: "/clasificados/ofertas-locales",
-    notes: "Dedicated table ofertas_locales; paid flyer (30d) → admin review → public offers.",
+    notes:
+      "ofertas_locales; paid Flyer $399 / Coupons $199 (30d) → admin review → public offers wired — staged until the first end-to-end pay → approve → public QA is certified.",
     readiness: "partial",
     highlight: false,
     configLayer: "code",
