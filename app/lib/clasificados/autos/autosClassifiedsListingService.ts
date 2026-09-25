@@ -34,6 +34,7 @@ import { mapInheritedDealerPreviewListing } from "./autosInventoryInheritedPrevi
 import { triggerAutosSavedSearchMatchBestEffort } from "@/app/lib/saved-search/autos/autosSavedSearchMatchOrchestrator";
 import { computeFixedDayRenewalExpiresAt } from "@/app/lib/listingLifecycle/resolveListingLifecycle";
 import { AUTOS_PRIVADO_LIFECYCLE_DURATION_DAYS } from "@/app/lib/listingLifecycle/listingLifecycleConfig";
+import { isAutosChildIdentitySubstitution } from "./autosChildIdentityGuard";
 
 function rowFromDb(r: Record<string, unknown>): AutosClassifiedsListingRow {
   return {
@@ -268,6 +269,22 @@ export async function updateAutosClassifiedsListingDraft(
     autosLane: row.lane,
   });
   const { listing: payload, persistWarnings } = sanitizeAutosListingPayloadForPersistence(normalized);
+  // Globalization Build 2 (651abd4eb): an existing row keeps its identity (UUID, Leonix Ad ID, analytics, likes) —
+  // an owner may correct a vehicle, never swap in a different one (VIN change, or year+make+model all changed).
+  const existingPayload = (row.listing_payload ?? {}) as Partial<AutoDealerListing>;
+  if (
+    isAutosChildIdentitySubstitution(
+      { vin: existingPayload.vin, year: existingPayload.year, make: existingPayload.make, model: existingPayload.model },
+      { vin: payload.vin, year: payload.year, make: payload.make, model: payload.model },
+    )
+  ) {
+    return {
+      row: null,
+      persistWarnings,
+      errorCode: "AUTOS_LISTING_IDENTITY_SUBSTITUTION_BLOCKED",
+      errorDetails: "Vehicle identity (VIN, or year/make/model together) does not match the existing listing.",
+    };
+  }
   const lang: AutosClassifiedsLang = input.lang === "en" || input.lang === "es" ? input.lang : row.lang;
   const write = {
     listing_payload: payload,

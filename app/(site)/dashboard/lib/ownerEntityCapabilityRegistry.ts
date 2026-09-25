@@ -282,7 +282,9 @@ export const OWNER_ENTITY_CAPABILITIES: Record<OwnerEntityCategoryKey, OwnerEnti
   // path, not a fabricated one) — Gate 3B surfaces it through `OwnerEntityActivity`.
   clases: merge({
     identity: { publicView: "supported", preview: "supported", results: "supported", edit: "supported", analytics: "supported" },
-    engagement: { like: "supported", save: "supported", share: "supported", report: "supported" },
+    // Globalization Build 3 (605dd9ed3) — like/save were claimed "supported" but their only wiring
+    // (CommunityResultCardEngagement.tsx) is imported nowhere; the live detail page renders Share + Report only.
+    engagement: { like: "unsupported", save: "unsupported", share: "supported", report: "supported" },
     video: "unsupported",
     contactHub: "supported",
     translateAd: "supported",
@@ -291,7 +293,8 @@ export const OWNER_ENTITY_CAPABILITIES: Record<OwnerEntityCategoryKey, OwnerEnti
   }),
   comunidad: merge({
     identity: { publicView: "supported", preview: "supported", results: "supported", edit: "supported", analytics: "supported" },
-    engagement: { like: "supported", save: "supported", share: "supported", report: "supported" },
+    // Globalization Build 3 (605dd9ed3) — same correction as Clases (reachable truth: Share + Report only).
+    engagement: { like: "unsupported", save: "unsupported", share: "supported", report: "supported" },
     video: "unsupported",
     contactHub: "supported",
     translateAd: "supported",
