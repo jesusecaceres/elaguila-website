@@ -17,6 +17,7 @@ import {
   AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY,
   AUTOS_PRIVADO_30D_PACKAGE_KEY,
   BR_INVENTORY_PACK_PACKAGE_KEY,
+  EMPLEOS_JOB_POST_PAID_PACKAGE_KEY,
   OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY,
   OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY,
   SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
@@ -76,6 +77,14 @@ import {
   requiresBaseCheckout,
 } from "@/app/lib/listingPlans/revenueActiveEntitlementGuard";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
+import { isBrFsboRow } from "@/app/lib/listingLifecycle/bienesFsboLifecycle";
+import { SERVICIOS_ACTIVATABLE_PRE_PUBLISH_STATUSES } from "@/app/lib/listingPlans/revenueServiciosFulfillment";
+import { RESTAURANTE_ACTIVATABLE_PRE_PUBLISH_STATUSES } from "@/app/lib/listingPlans/revenueRestaurantFulfillment";
+import {
+  COMIDA_LOCAL_ACTIVATABLE_PRE_PUBLISH_STATUSES,
+  COMIDA_LOCAL_BASE_MONTHLY_PACKAGE_KEY,
+} from "@/app/lib/listingPlans/revenueComidaLocalFulfillment";
+import { resolveCheckoutListingSource } from "@/app/lib/listingPlans/revenueListingSourceResolver";
 import { getVerifiedBearerUser } from "@/app/api/_lib/verifiedBearerUser";
 import { hashVerifiedIdentity, maskVerifiedEmail, maskVerifiedPhone } from "@/app/lib/security/verifiedIdentityHash";
 import { resolveCommercialBusinessIdentity } from "@/app/lib/listingPlans/commercialBusinessIdentity";
@@ -298,17 +307,22 @@ export async function POST(request: NextRequest) {
   // token for one user and a DIFFERENT `ownerUserId` in the body could otherwise borrow another
   // user's identity for the owner-scoped verified-intro-discount phone-identity lookup below, or
   // for the existing-row lookup — real, exploitable identity confusion, not merely defensive
-  // hardening. The authenticated bearer now always wins when present; `body.ownerUserId` remains
-  // only as a fallback for the (bearer-absent) case, unchanged from before.
+  // hardening. The authenticated bearer now always wins when present.
+  //
+  // D3 (2026-09 final paid/free circuit audit, ported onto golden 2026-09-25): the owner is ONLY the
+  // verified bearer user — `body.ownerUserId` is never trusted, not even as a bearer-absent fallback.
+  // A bearer-absent request used to make a caller-chosen id the payment / recurring-consent owner
+  // (a forged `leonix_billing_consents` row for a victim id). Both real clients
+  // (`startRevenueCategoryCheckout`, `startListingRenewalCheckout`) refuse to call without a session
+  // and always send the bearer, and no server code calls this route.
   const ownerUserId = isRestauranteAddonOnlyEarly || isAutosDealerInventoryAddonEarly || isBienesInventoryAddonOnlyEarly || isServiciosOffersAddonOnlyEarly || isRentasRenewalEarly || isAutosPrivadoRenewalEarly || isBienesFsboRenewalEarly || isOfertasLocalesCheckoutEarly
     ? serverVerifiedOwnerUserId ?? bearerUserId
-    : bearerUserId || body.ownerUserId?.trim() || null;
+    : bearerUserId;
 
-  // SPENDING SOMEONE'S CREDITS REQUIRES PROVING WHO YOU ARE. `ownerUserId` above still falls back
-  // to `body.ownerUserId` when no bearer token is present, because a guest checkout legitimately
-  // has no session and the field is only an attribution hint there.
+  // SPENDING SOMEONE'S CREDITS REQUIRES PROVING WHO YOU ARE. `body.ownerUserId` (no longer read
+  // for `ownerUserId` either, see D3 above) is NOT an acceptable input to a wallet.
   //
-  // It is NOT an acceptable input to a wallet. With no Authorization header at all, a request
+  // With no Authorization header at all, a request
   // could name any customer's auth id and have that customer's balance planned, held and spent on
   // the attacker's own listing — no credential, no bound listing, nothing to forge but a uuid that
   // appears in ordinary owner-scoped payloads. Measured against the real code path: a $199.50
@@ -669,6 +683,16 @@ export async function POST(request: NextRequest) {
         { status: 403 },
       );
     }
+    // The package must match the row's lane, and an inventory vehicle rides its parent's subscription - a
+    // dealer child (or a Privado row sent through a dealer package, and vice versa) never starts its own base
+    // charge. Dealer = either base key (Quick or Full), so a Simple->Full upgrade of the dealer MAIN row passes.
+    const expectedAutosLane = packageDef.packageKey === AUTOS_PRIVADO_30D_PACKAGE_KEY ? "privado" : "negocios";
+    if (autosRow.lane !== expectedAutosLane || autosRow.inventory_role === "inventory_vehicle") {
+      return NextResponse.json(
+        { ok: false, code: "autos_listing_package_mismatch", message: "This package does not apply to this vehicle listing." },
+        { status: 409 },
+      );
+    }
     if (!businessUpgradeInPlace && !isAutosListingPayableStatus(autosRow.status)) {
       return NextResponse.json(
         {
@@ -680,6 +704,242 @@ export async function POST(request: NextRequest) {
       );
     }
   }
+
+  // ── Per-lane pre-flights (2026-09 category-circuit closeout, ported onto golden 2026-09-25) ──────
+  // Each block below refuses BEFORE any consent row, payment record or Stripe session exists when the
+  // row the payment would fulfil is missing, not the bearer's, the wrong lane, or in a status the lane's
+  // fulfilment never activates from (money taken, nothing delivered). Owner checks are strict: the
+  // verified bearer is the only owner identity (D3), so a bearer-absent request is refused as auth_required.
+  const refuseAuthRequired = () =>
+    NextResponse.json(
+      { ok: false, code: "auth_required", message: "Sign in to start a secure checkout." },
+      { status: 401 },
+    );
+
+  // Empleos paid post: `empleos_job_post_paid` is not in the shared base-entitlement guard, and fulfilment only
+  // activates `draft` rows — a live / in-review / paused / rejected / archived post would be charged for nothing.
+  if (packageDef.category === "empleos" && packageDef.packageKey === EMPLEOS_JOB_POST_PAID_PACKAGE_KEY && listingRef) {
+    if (!bearerUserId) return refuseAuthRequired();
+    const { data: empleoRow } = await getAdminSupabase()
+      .from("empleos_public_listings")
+      .select("owner_user_id, lifecycle_status")
+      .eq("id", listingRef)
+      .maybeSingle();
+    const row = empleoRow as { owner_user_id: string | null; lifecycle_status: string | null } | null;
+    if (!row) {
+      return NextResponse.json({ ok: false, code: "empleos_listing_not_found", message: "Empleos listing not found." }, { status: 404 });
+    }
+    if (row.owner_user_id !== bearerUserId) {
+      return NextResponse.json({ ok: false, code: "empleos_listing_owner_mismatch", message: "This listing belongs to a different account." }, { status: 403 });
+    }
+    if (String(row.lifecycle_status ?? "").toLowerCase() !== "draft") {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "already_published_no_recharge",
+          message: `This job post is already "${row.lifecycle_status}" — no additional payment is needed. Edit it instead of checking out again.`,
+        },
+        { status: 409 },
+      );
+    }
+  }
+
+  // Shared `listings` paid lanes: rentas_30d / br_fsbo_45d / clases_paid_30d have NO base-entitlement guard, and
+  // their renewal validators only run for operation=renew_listing. Fulfilment activates only an owned, unpublished
+  // `pending` row of the matching category (and, for FSBO, a genuine private-seller row).
+  const LISTINGS_PAID_BASE_CATEGORY: Record<string, string> = {
+    rentas_30d: "rentas",
+    br_fsbo_45d: "bienes-raices",
+    clases_paid_30d: "clases",
+  };
+  const expectedListingsCategory = LISTINGS_PAID_BASE_CATEGORY[packageDef.packageKey];
+  if (expectedListingsCategory && operationEarly !== "renew_listing" && listingRef) {
+    if (!bearerUserId) return refuseAuthRequired();
+    const { data: listingsRow } = await getAdminSupabase()
+      .from("listings")
+      .select("owner_id, category, status, is_published, seller_type, listing_json")
+      .eq("id", listingRef)
+      .maybeSingle();
+    const lr = listingsRow as {
+      owner_id: string | null;
+      category: string | null;
+      status: string | null;
+      is_published: boolean | null;
+      seller_type: string | null;
+      listing_json: unknown;
+    } | null;
+    if (!lr || String(lr.category ?? "").trim().toLowerCase() !== expectedListingsCategory) {
+      return NextResponse.json({ ok: false, code: "listing_not_found", message: "Listing not found for this package." }, { status: 404 });
+    }
+    if (
+      packageDef.packageKey === "br_fsbo_45d" &&
+      !isBrFsboRow({ category: lr.category, seller_type: lr.seller_type, listing_json: lr.listing_json })
+    ) {
+      return NextResponse.json(
+        { ok: false, code: "listing_not_found", message: "Private-seller listing not found for this package." },
+        { status: 404 },
+      );
+    }
+    if (lr.owner_id !== bearerUserId) {
+      return NextResponse.json({ ok: false, code: "listing_owner_mismatch", message: "This listing belongs to a different account." }, { status: 403 });
+    }
+    if (String(lr.status ?? "").toLowerCase() !== "pending" || lr.is_published === true) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "already_published_no_recharge",
+          message: `This listing is already "${lr.status}" — it cannot start a new base payment. Use Renew for an expiring listing, or edit it instead.`,
+        },
+        { status: 409 },
+      );
+    }
+  }
+
+  // Subscription base packages (Servicios / Restaurantes Quick+Full, Comida Local): the shared active-entitlement
+  // guard has no owner, lane or status check. Each lane requires the bearer to own the row and a status the lane's
+  // activator actually activates from (the SAME constants the activators use, so they cannot drift). A Simple->Full
+  // upgrade of a LIVE row (`businessUpgradeInPlace`, server-derived from the entitlement table) is an entitlement
+  // change, not a publication, so it keeps the owner check but skips the pre-publish status check. Staff-assisted
+  // rows carry the customer's id (`clientUserId`) as owner_user_id and a `pending_payment` status, so the customer
+  // paying them passes; staff publication of a paid assisted row never uses this route (manual cleared payment).
+  const subscriptionLane =
+    packageDef.category === "servicios" && isBusinessBasePackageKey("servicios", packageDef.packageKey)
+      ? ({
+          label: "Servicios",
+          table: "servicios_public_listings",
+          statusColumn: "listing_status",
+          activatable: SERVICIOS_ACTIVATABLE_PRE_PUBLISH_STATUSES as readonly string[],
+        } as const)
+      : packageDef.category === "restaurantes" && isBusinessBasePackageKey("restaurantes", packageDef.packageKey)
+        ? ({
+            label: "Restaurantes",
+            table: "restaurantes_public_listings",
+            statusColumn: "status",
+            activatable: RESTAURANTE_ACTIVATABLE_PRE_PUBLISH_STATUSES as readonly string[],
+          } as const)
+        : packageDef.category === "comida-local" && packageDef.packageKey === COMIDA_LOCAL_BASE_MONTHLY_PACKAGE_KEY
+          ? ({
+              label: "Comida Local",
+              table: "comida_local_public_listings",
+              statusColumn: "status",
+              activatable: COMIDA_LOCAL_ACTIVATABLE_PRE_PUBLISH_STATUSES as readonly string[],
+            } as const)
+          : null;
+  if (subscriptionLane && listingRef) {
+    if (!bearerUserId) return refuseAuthRequired();
+    const { data: laneRowRaw } = await getAdminSupabase()
+      .from(subscriptionLane.table)
+      .select(`id, owner_user_id, ${subscriptionLane.statusColumn}`)
+      .eq("id", listingRef)
+      .maybeSingle();
+    const laneRow = laneRowRaw as unknown as Record<string, unknown> | null;
+    if (!laneRow) {
+      return NextResponse.json(
+        { ok: false, code: "listing_not_found", message: `${subscriptionLane.label} listing not found.` },
+        { status: 404 },
+      );
+    }
+    if (laneRow.owner_user_id !== bearerUserId) {
+      return NextResponse.json(
+        { ok: false, code: "listing_owner_mismatch", message: "This listing belongs to a different account." },
+        { status: 403 },
+      );
+    }
+    const laneStatus = String(laneRow[subscriptionLane.statusColumn] ?? "").trim().toLowerCase();
+    if (!businessUpgradeInPlace && !subscriptionLane.activatable.includes(laneStatus)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: laneStatus === "published" ? "already_published_no_recharge" : "listing_not_checkout_eligible",
+          message:
+            laneStatus === "published"
+              ? `This ${subscriptionLane.label} listing is already published — no additional base payment is needed. Edit it instead of checking out again.`
+              : `This ${subscriptionLane.label} listing is "${laneStatus}" and cannot start a new base payment.`,
+        },
+        { status: 409 },
+      );
+    }
+  }
+
+  // Bienes Raíces Negocio base (Quick or Full): only a business-lane MAIN (or legacy role-less) parent the bearer
+  // owns, pending + unpublished — unless this is a Simple->Full upgrade of the live parent.
+  if (
+    packageDef.category === "bienes-raices" &&
+    isBusinessBasePackageKey("bienes-raices", packageDef.packageKey) &&
+    listingRef
+  ) {
+    if (!bearerUserId) return refuseAuthRequired();
+    const { data: brRowRaw } = await getAdminSupabase()
+      .from("listings")
+      .select("owner_id, category, status, is_published, seller_type, inventory_role")
+      .eq("id", listingRef)
+      .maybeSingle();
+    const brRow = brRowRaw as {
+      owner_id: string | null;
+      category: string | null;
+      status: string | null;
+      is_published: boolean | null;
+      seller_type: string | null;
+      inventory_role: string | null;
+    } | null;
+    // Wrong category / private-seller (FSBO) row: fulfilment would no-op (wrong_category / wrong_lane) after the charge.
+    if (
+      !brRow ||
+      String(brRow.category ?? "").trim().toLowerCase() !== "bienes-raices" ||
+      String(brRow.seller_type ?? "").trim().toLowerCase() !== "business"
+    ) {
+      return NextResponse.json(
+        { ok: false, code: "listing_not_found", message: "Bienes Raíces business listing not found for this package." },
+        { status: 404 },
+      );
+    }
+    if (brRow.owner_id !== bearerUserId) {
+      return NextResponse.json(
+        { ok: false, code: "listing_owner_mismatch", message: "This listing belongs to a different account." },
+        { status: 403 },
+      );
+    }
+    // An inventory child rides its parent's subscription; only the main (or legacy role-less) parent starts a base charge.
+    const brRole = String(brRow.inventory_role ?? "").trim().toLowerCase();
+    if (brRole && brRole !== "main") {
+      return NextResponse.json(
+        { ok: false, code: "listing_package_mismatch", message: "This package does not apply to this listing." },
+        { status: 409 },
+      );
+    }
+    // Fulfilment activates only a pending, unpublished parent. Active / paused / expired / removed / flagged never
+    // start a new base payment (a Simple->Full upgrade of the live parent is the one exemption).
+    if (
+      !businessUpgradeInPlace &&
+      (String(brRow.status ?? "").trim().toLowerCase() !== "pending" || brRow.is_published === true)
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: brRow.is_published === true ? "already_published_no_recharge" : "listing_not_checkout_eligible",
+          message: `This listing is "${brRow.status}" and cannot start a new base payment.`,
+        },
+        { status: 409 },
+      );
+    }
+  }
+
+  // viajes_business_monthly is Stripe-eligible in the pricing matrix but has NO fulfilment path (nothing activates a
+  // viajes listing from a payment, and no golden client starts this checkout), so a charge could never deliver
+  // anything. Refuse it until an owner decision either builds fulfilment or removes the paid card.
+  if (packageDef.packageKey === "viajes_business_monthly") {
+    return NextResponse.json(
+      { ok: false, code: "viajes_checkout_not_available", message: "Paid Viajes business checkout is not available yet." },
+      { status: 422 },
+    );
+  }
+
+  // Server-derived canonical listing source for the recurring-consent row and the purchase-attempt key — never the
+  // client-supplied `body.sourceTable` (kept only as a fallback for a category with no canonical mapping).
+  const canonicalListingSource = resolveCheckoutListingSource({
+    category: packageDef.category,
+    clientSourceTable: body.sourceTable ?? null,
+  });
 
   const locale = body.locale === "en" ? "en" : "es";
   const isRestauranteAddonOnly =
@@ -737,7 +997,8 @@ export async function POST(request: NextRequest) {
       ownerUserId,
       customerEmail: body.customerEmail ?? null,
       category: packageDef.category,
-      listingSource: body.sourceTable ?? null,
+      // Server-derived canonical source, never the client-supplied `body.sourceTable`.
+      listingSource: canonicalListingSource,
       listingId: listingRef || null,
       packageKey: packageDef.packageKey,
       amountCents,
@@ -756,7 +1017,10 @@ export async function POST(request: NextRequest) {
   // open Stripe session; a genuinely new attempt requires the prior one resolved or stale.
   const checkoutAttemptKey = computeCheckoutAttemptKey({
     ownerUserId,
-    listingSource: body.sourceTable ?? packageDef.category,
+    // Server-derived canonical source (see `canonicalListingSource` above). NOTE: for callers that never sent
+    // `sourceTable` this changes the key from the bare category slug to the table name, so an attempt opened before
+    // this change is not found once (its session is simply not reused; a fresh attempt is created).
+    listingSource: canonicalListingSource ?? packageDef.category,
     listingId: listingRef,
     packageKey: packageDef.packageKey,
     addOns: addOns.map((a) => ({ key: a.key, quantity: a.quantity })),
@@ -811,6 +1075,29 @@ export async function POST(request: NextRequest) {
           reusedSession: true,
           activeDiscountSource: existingDiscountSource,
         });
+      }
+    }
+    // Never open a second Stripe session while the first may already be paid: a `complete` session whose
+    // webhook has not landed yet (or a session Stripe could not be asked about) is an in-flight payment, not a
+    // stale one. Checked for ANY prior session (also on a discount-source mismatch), before anything is released —
+    // the credit hold below stays in place while the earlier payment is being confirmed.
+    if (priorSessionId) {
+      const priorState = await retrieveRevenueCheckoutSessionState(priorSessionId);
+      if (priorState.status === "complete") {
+        return NextResponse.json(
+          {
+            ok: false,
+            code: "payment_in_progress",
+            message: "Your payment is being confirmed. Your listing will activate automatically in a moment — do not pay again.",
+          },
+          { status: 409 },
+        );
+      }
+      if (priorState.status === "unknown") {
+        return NextResponse.json(
+          { ok: false, code: "checkout_state_unverifiable", message: "We could not verify your previous checkout. Please try again in a moment." },
+          { status: 503 },
+        );
       }
     }
     // Stale (expired/completed-elsewhere/no session) OR a discount-source mismatch: release the

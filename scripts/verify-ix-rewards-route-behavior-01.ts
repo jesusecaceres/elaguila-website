@@ -1611,6 +1611,11 @@ async function main(): Promise<void> {
       // A second customer with a large balance, named in the BODY. Nothing may ever reach it.
       { id: "w-other", owner_user_id: OTHER, available_cents: 999999, pending_cents: 0, reserved_cents: 0, lifetime_earned_cents: 999999, lifetime_redeemed_cents: 0, lifetime_reversed_cents: 0, recovery_cents: 0, lifetime_restored_cents: 0 },
     ]);
+    // The checkout's per-lane pre-flights (2026-09 circuit closeout port) refuse a payment for a row that does not
+    // exist, is not the bearer's, or is not awaiting payment. The purchases these checks make are therefore for real
+    // rows the BEARER owns in the pre-payment status each lane's fulfilment activates from.
+    __seed("empleos_public_listings", [{ id: "draft-1", owner_user_id: BEARER, lifecycle_status: "draft" }]);
+    __seed("servicios_public_listings", [{ id: "draft-sub", owner_user_id: BEARER, listing_status: "pending_payment" }]);
   }
 
   function echoingLedger(): void {
@@ -1714,8 +1719,20 @@ async function main(): Promise<void> {
     echoingLedger();
     __setBearerTokens({});
     seedTwoWallets(5000);
+    // A purchase an anonymous caller can still REACH the credits step with (2026-09-25): the per-lane
+    // pre-flights now refuse a bearer-absent Empleos / Servicios checkout outright, which would stop this half
+    // before credits and let both identity mutations (`?? body.ownerUserId` on the wallet, and on the bearer
+    // itself) survive unseen. The Autos Privado pre-flight checks ownership only against a PRESENT bearer, so a
+    // draft owned by the customer the body names keeps the whole credits path reachable.
+    __seed("autos_classifieds_listings", [
+      { id: "auto-anon", owner_user_id: OTHER, lane: "privado", inventory_role: null, status: "draft", listing_payload: {}, lang: "es" },
+    ]);
     const anonymous = await postCheckoutWithoutToken({
-      ...ONE_TIME,
+      category: "autos",
+      packageKey: "autos_privado_30d",
+      listingId: "auto-anon",
+      successUrl: "http://x/ok",
+      cancelUrl: "http://x/no",
       ownerUserId: OTHER,
       requestedCreditsCents: 500,
     });

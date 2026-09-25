@@ -321,11 +321,18 @@ for (const anchor of [
   assert.ok(read(PREVIEW).includes(anchor), `protected preview wiring "${anchor}" must remain`);
 }
 // Same-row republish identity untouched by this gate.
-assert.ok(
-  publishCode.includes('.eq("draft_listing_id", draft.draftListingId)') &&
-    publishCode.includes('.eq("status", statusDecision.targetStatus)'),
-  "draft_listing_id keying + status compare-and-set must be preserved",
-);
+// 2026-09-25 (category-circuit closeout port, d3 #8): the row is still RESOLVED by draft_listing_id (now
+// duplicate-tolerant: oldest row, limit 1), and the compare-and-set update addresses that resolved row by its
+// PRIMARY KEY, so two rows sharing a draft id can never both be rewritten. Read from the raw source: the naive
+// comment stripper above swallows the lookup (a `video/*` inside a comment opens a pseudo-block-comment).
+{
+  const publishRaw = read(PUBLISH_ROUTE).replace(/\r\n/g, "\n");
+  assert.ok(
+    publishRaw.includes('.eq("draft_listing_id", draft.draftListingId)') &&
+      publishRaw.includes('.eq("id", existingListingId as string)\n        .eq("status", statusDecision.targetStatus)'),
+    "draft_listing_id row resolution + primary-key status compare-and-set must be preserved",
+  );
+}
 ok("8. protected Application/Preview wiring and same-row republish identity intact");
 
 console.log("\nverify-restaurantes-gate1-lifecycle: PASS");

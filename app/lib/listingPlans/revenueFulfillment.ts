@@ -1200,6 +1200,7 @@ async function tryActivateBienesNegocioListingAfterEntitlement(input: {
       targetId: activation.listingId ?? null,
       meta: {
         reason: "bienes_negocio_activation_unsafe_status",
+        needs_staff_action: true,
         outcome: activation.outcome,
         message: activation.message,
         payment_record_id: input.paymentRecord.id,

@@ -474,11 +474,18 @@ export async function POST(req: NextRequest) {
   let listingIdOut: string | null = null;
   let leonixAdIdOut: string | null = null;
 
-  const { data: existingByDraft, error: exErr } = await supabase
+  // Duplicate-tolerant lookup (2026-09 category closeout): `draft_listing_id` has NO unique index on
+  // restaurantes_public_listings (Comida Local does). Two concurrent first-saves can therefore both
+  // insert, after which `.maybeSingle()` errored on multiple rows and every later edit returned 500.
+  // Take the OLDEST row deterministically instead and address it by primary key below.
+  const { data: existingRowsByDraft, error: exErr } = await supabase
     .from("restaurantes_public_listings")
     .select("id, slug, leonix_verified, status, promoted, package_tier, owner_user_id, leonix_ad_id, listing_json")
     .eq("draft_listing_id", draft.draftListingId)
-    .maybeSingle();
+    .order("published_at", { ascending: true, nullsFirst: false })
+    .order("id", { ascending: true })
+    .limit(1);
+  const existingByDraft = (existingRowsByDraft ?? [])[0] ?? null;
 
   if (exErr) {
     return NextResponse.json({ ok: false, error: "db_read_failed", detail: exErr.message }, { status: 500 });
@@ -713,7 +720,7 @@ export async function POST(req: NextRequest) {
           ...baseRow,
           updated_at: now,
         })
-        .eq("draft_listing_id", draft.draftListingId)
+        .eq("id", existingListingId as string)
         .eq("status", statusDecision.targetStatus)
         .select("id")
         .maybeSingle();
@@ -737,6 +744,15 @@ export async function POST(req: NextRequest) {
         );
       }
     } else {
+      // D1 / F2 (2026-09 final paid/free circuit audit): Restaurantes is an always-paid product (no free package), so a
+      // NEW row may only be created as the hidden pre-checkout `pending_payment` row — by the self-service/Quick
+      // pre-checkout save (`activation_mode: "pending_payment"`) or a staff `save_for_client` (which pins that same
+      // status below). Without this guard a fresh `draftListingId` with no `activation_mode` inserted
+      // `status:"published"` — a public listing with no payment, entitlement or subscription. Existing-row edits
+      // (branch above) are unaffected: `resolveRestauranteOwnerEditTargetStatus` keeps protecting their status.
+      if (!pendingPayment && !isAssistedSaveForClient) {
+        return NextResponse.json({ ok: false, error: "payment_required" }, { status: 402 });
+      }
       const requested = typeof b.slug === "string" ? b.slug.trim() : "";
       const base = requested || slugifyRestauranteBusinessName(draft.businessName);
       slugOut = await allocateSlug(base);

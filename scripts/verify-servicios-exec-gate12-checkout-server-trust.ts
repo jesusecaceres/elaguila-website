@@ -56,7 +56,10 @@ check("the default checkout branch now trusts the authenticated bearer over a cl
   assert.ok(src.includes("const ownerUserId = isRestauranteAddonOnlyEarly"));
   const idx = src.indexOf("const ownerUserId = isRestauranteAddonOnlyEarly");
   const block = src.slice(idx, idx + 500);
-  assert.ok(block.includes("bearerUserId || body.ownerUserId?.trim() || null;"), "bearer must win over a client-supplied ownerUserId");
+  // 2026-09-25 (D3 port): stricter than Gate 12 - the default branch is now bearer-ONLY; the body id is not even a
+  // bearer-absent fallback.
+  assert.ok(/:\s*bearerUserId;/.test(block), "the default branch owner is the verified bearer only");
+  assert.ok(!/body\.ownerUserId/.test(block), "no client-supplied ownerUserId is read for the owner");
   assert.ok(!/:\s*body\.ownerUserId\?\.trim\(\)\s*\|\|\s*bearerUserId/.test(block), "the old, client-first priority order must be gone");
 });
 
@@ -69,8 +72,9 @@ check("REGRESSION GUARD: the special early-exit categories still only ever use s
 
 check("FIXTURE: a crafted body.ownerUserId can no longer override an authenticated bearer identity", () => {
   // Simulates the exact resolution the fixed route now performs.
-  function resolveOwnerUserId(bearerUserId: string | null, bodyOwnerUserId: string | null): string | null {
-    return bearerUserId || bodyOwnerUserId?.trim() || null;
+  function resolveOwnerUserId(bearerUserId: string | null, _bodyOwnerUserId: string | null): string | null {
+    void _bodyOwnerUserId;
+    return bearerUserId;
   }
   const attackerBearer = "attacker-uuid";
   const victimClaimedInBody = "victim-uuid";
@@ -79,8 +83,8 @@ check("FIXTURE: a crafted body.ownerUserId can no longer override an authenticat
     attackerBearer,
     "an authenticated attacker must never be able to claim a victim's identity via the request body",
   );
-  // The legitimate bearer-absent fallback (e.g. a genuinely unauthenticated/edge case) is preserved.
-  assert.equal(resolveOwnerUserId(null, victimClaimedInBody), victimClaimedInBody);
+  // 2026-09-25 (D3 port): a bearer-absent request no longer adopts the body id as its owner.
+  assert.equal(resolveOwnerUserId(null, victimClaimedInBody), null);
 });
 
 check("the real Servicios checkout client never sends ownerUserId at all (golden path was never relying on the vulnerable priority)", () => {

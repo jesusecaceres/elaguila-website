@@ -132,7 +132,10 @@ export function ComidaLocalPreviewClient() {
   const publishReady = publishIssues.every((i) => i.severity !== "error");
 
   const onCheckout = useCallback(
-    async (ctx: { newsletterOptIn: boolean }) => {
+    async (ctx: {
+      newsletterOptIn: boolean;
+      recurringConsent?: { accepted: true; consentTextVersion: string; lang: "es" | "en" } | null;
+    }) => {
       if (!draft) return;
       setCheckoutBusy(true);
       setCheckoutError(null);
@@ -203,6 +206,9 @@ export function ComidaLocalPreviewClient() {
           leonixAdId: pending.leonixAdId,
           locale: es ? "es" : "en",
           customerEmail,
+          // comida_local_base_monthly is a subscription: the server hard-requires the versioned recurring-billing
+          // consent the checkpoint collected (Agreement v1.2 §17).
+          recurringConsent: ctx.recurringConsent ?? null,
         });
 
         if (!checkout.ok) {
