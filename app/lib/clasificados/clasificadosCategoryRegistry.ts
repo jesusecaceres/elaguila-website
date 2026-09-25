@@ -30,6 +30,8 @@ export type ClasificadosCategoryRegistryEntry = {
   configLayer?: "code" | "database";
   /** Notes column in `site_category_config` only (not merged display copy). */
   overlayNotes?: string | null;
+  /** Code-default operational status before any `site_category_config` overlay (admin truth). */
+  codeDefaultOperationalStatus?: ClasificadosCategoryOperationalStatus;
 };
 
 const EXCLUDE: CategoryKey[] = ["all"];
@@ -129,6 +131,7 @@ export function getClasificadosCategoryRegistry(): ClasificadosCategoryRegistryE
         sortOrder: i,
         visibility,
         operationalStatus: op,
+        codeDefaultOperationalStatus: op,
         landingTarget:
           slug === "restaurantes"
             ? `/clasificados/restaurantes`

@@ -50,7 +50,26 @@ export function getAdminCategoryStatusProof(entry: AdminCategoriesHubEntry): Adm
   };
 }
 
+/**
+ * True when a `site_category_config` row overrides the code default. Admin must name the override
+ * instead of attributing the status to readiness/source maturity (e.g. a stale seed row staging Servicios).
+ */
+export function isAdminCategoryStatusDbOverride(entry: AdminCategoriesHubEntry): boolean {
+  return (
+    entry.configLayer === "database" &&
+    entry.codeDefaultOperationalStatus != null &&
+    entry.codeDefaultOperationalStatus !== entry.operationalStatus
+  );
+}
+
 function resolveBlockerKey(entry: AdminCategoriesHubEntry, sourceTable: string | null): string | null {
+  if (
+    entry.operationalStatus !== "live" &&
+    entry.codeDefaultOperationalStatus === "live" &&
+    isAdminCategoryStatusDbOverride(entry)
+  ) {
+    return "hub.blocker.dbOverrideBelowCodeLive";
+  }
   if (entry.operationalStatus === "live") {
     if (!sourceTable && !ADMIN_CATEGORY_LIVE_STATUS_PROOF[entry.slug]) {
       return "hub.blocker.liveMissingSource";
@@ -73,6 +92,7 @@ export function adminCategoryStatusReasonKey(
   proof: AdminCategoryStatusProof,
 ): string {
   const status = entry.operationalStatus;
+  if (isAdminCategoryStatusDbOverride(entry)) return "hub.statusReason.dbOverride";
   if (status === "live") {
     if (ADMIN_CATEGORY_LIVE_STATUS_PROOF[entry.slug]) return `hub.statusReason.live.${entry.slug}`;
     return "hub.statusReason.liveGeneric";
