@@ -227,10 +227,9 @@ export async function assertAutosListingOwner(listingId: string, ownerUserId: st
  * Payload + lang may be updated:
  *  - while status is draft / payment_failed / pending_payment (recoverable pre-publish states,
  *    all lanes, unchanged from prior behavior), OR
- *  - while status is active AND lane is "negocios" — an authenticated owner editing an
- *    already-published dealer parent or vehicle child row in place. This is the only status/
- *    lane combination this gate adds; Autos Privado's editable-status set is unchanged (an
- *    active `privado` row is still rejected here, exactly as before).
+ *  - while status is active AND lane is "negocios" or "privado" — an authenticated owner editing
+ *    an already-published dealer parent / vehicle child row, or a live private listing (dashboard
+ *    edit Save), in place. Content only: no re-activation, no term extension, no checkout.
  *
  * Never touches `status`, Stripe fields, entitlement state, `dealer_inventory_group_id`,
  * `dealer_inventory_parent_listing_id`, `inventory_role`, or `lane` — only `listing_payload`
@@ -255,7 +254,11 @@ export async function updateAutosClassifiedsListingDraft(
   }
 
   const recoverableStatus = row.status === "draft" || row.status === "payment_failed" || row.status === "pending_payment";
-  const negociosActiveEditable = row.lane === "negocios" && row.status === "active";
+  // An ACTIVE listing (either lane) may have its content edited in place: this update writes only
+  // listing_payload / lang / updated_at — never status, expires_at or payment fields. (Privado used to
+  // be refused here, so a dashboard edit of a live private listing could never persist — recovery
+  // port of d3ed73abf.) Owner scoping and the identity-substitution guard below still apply.
+  const negociosActiveEditable = (row.lane === "negocios" || row.lane === "privado") && row.status === "active";
   if (!recoverableStatus && !negociosActiveEditable) {
     return { row: null, persistWarnings: [], errorCode: "AUTOS_LISTING_STATUS_NOT_EDITABLE" };
   }

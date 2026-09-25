@@ -51,6 +51,7 @@ import { AutosVinDecodeBlock } from "@/app/publicar/autos/shared/components/Auto
 import { AutosDraftSessionRestoredBanner } from "@/app/publicar/autos/shared/components/AutosDraftSessionRestoredBanner";
 import { AutosPricingPlanBanner } from "@/app/publicar/autos/shared/components/AutosPricingPlanBanner";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import { saveAutosPrivadoDashboardEdit } from "@/app/clasificados/autos/privado/lib/saveAutosPrivadoDashboardEdit";
 import { useAssistedBoundRow } from "@/app/lib/sales/useAssistedBoundRow";
 import { assistedBoundRowToPrivadoListing } from "@/app/publicar/autos/shared/lib/autosAssistedBoundRowMappers";
 
@@ -805,6 +806,28 @@ export function AutosPrivadoApplication() {
               listing={listing}
               stepCtx={ctx}
               flushDraft={flushDraft}
+              onSaveEdit={
+                isDashboardListingEditMode
+                  ? async () => {
+                      // Dashboard edit of an EXISTING privado row: PATCH the same UUID (no new row, no
+                      // checkout, no status/term change). "Continue to publish" is hidden while set.
+                      await flushDraft();
+                      const sb = createSupabaseBrowserClient();
+                      const { data } = await sb.auth.getSession();
+                      const token = data.session?.access_token;
+                      if (!token?.trim()) {
+                        return { ok: false, message: lang === "es" ? "Inicia sesión para guardar." : "Sign in to save." };
+                      }
+                      const r = await saveAutosPrivadoDashboardEdit({
+                        listing,
+                        lang: lang === "en" ? "en" : "es",
+                        accessToken: token,
+                        listingId: editListingId,
+                      });
+                      return r.ok ? { ok: true } : { ok: false, message: r.userMessage };
+                    }
+                  : undefined
+              }
               onPreview={async () => {
                 const finalStep = AUTOS_PUBLISH_FINAL_STEP_INDEX;
                 setEditorProgress(finalStep, Math.max(editorMaxReached, finalStep));

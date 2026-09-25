@@ -5,8 +5,8 @@
  * Carried: A (Rentas / Bienes draft-key identity), B (FSBO), C (Autos dealer boost + inventory-add scope).
  * NOT carried: D (Empleos checkout memo) - the Empleos identity module belongs to the Empleos port lane; the
  * success-return cleanup here treats an `empleos` target as a no-op until that helper lands.
- * Adapted: A9 - the Rentas draft-util clear hooks (rentasPrivadoDraft / rentasNegocioDraft) are owned by the
- * Rentas port lane and are reported (not asserted) here; B2 - golden has no dashboardResumePaymentClient.
+ * Adapted: A9 - the Rentas draft-util clear hooks (rentasPrivadoDraft / rentasNegocioDraft) are now ported
+ * (recovery lane, from 1e80c0240) and ASSERTED here; B2 - golden has no dashboardResumePaymentClient.
  *
  * Run: node node_modules/tsx/dist/cli.mjs --tsconfig scripts/lib/tsconfig.harness.json scripts/verify-final-identity.ts
  */
@@ -296,11 +296,17 @@ async function main() {
     const g = (rel: string) => raw(rel);
     assert.match(g("app/(site)/clasificados/publicar/bienes-raices/privado/application/utils/bienesRaicesPrivadoDraft.ts"), /clearRealEstateDraftLifecycleForLaneInBrowser\(\{ category: "bienes-raices", sellerType: "personal" \}, "application_draft_cleared"\)/);
     assert.match(g("app/(site)/clasificados/lib/classifiedsDraftStorage.ts"), /clearAllRealEstateDraftLifecycleInBrowser\("explicit_discard"\)/);
-    const rentasHooks = [
-      "app/(site)/clasificados/publicar/rentas/privado/application/utils/rentasPrivadoDraft.ts",
-      "app/(site)/clasificados/publicar/rentas/negocio/application/utils/rentasNegocioDraft.ts",
-    ].filter((rel) => !/clearRealEstateDraftLifecycleForLaneInBrowser/.test(g(rel)));
-    if (rentasHooks.length) console.log(`  NOTE (Rentas lane, not asserted): draft-util clear hook not yet wired in ${rentasHooks.join(", ")}`);
+    // Rentas draft-util clear hooks (recovery port of 1e80c0240) - now ASSERTED, no longer a NOTE.
+    assert.match(
+      g("app/(site)/clasificados/publicar/rentas/privado/application/utils/rentasPrivadoDraft.ts"),
+      /clearRealEstateDraftLifecycleForLaneInBrowser\(\{ category: "rentas", sellerType: "personal" \}, "application_draft_cleared"\)/,
+      "Rentas Privado draft clear must release the lane's draft key",
+    );
+    assert.match(
+      g("app/(site)/clasificados/publicar/rentas/negocio/application/utils/rentasNegocioDraft.ts"),
+      /clearRealEstateDraftLifecycleForLaneInBrowser\(\{ category: "rentas", sellerType: "business" \}, "application_draft_cleared"\)/,
+      "Rentas Negocio draft clear must release the lane's draft key",
+    );
     // every call site of the key-clear API in the app tree lives in an allowed file
     const allowedFiles = new Set([
       "app/(site)/clasificados/lib/realEstateDraftKey.ts",
