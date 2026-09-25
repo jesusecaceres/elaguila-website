@@ -23,6 +23,7 @@ import {
 } from "./revenueOsReturnPath";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { quickBienesInventoryAddonRefusal } from "@/app/lib/clasificados/bienes-raices/stripQuickBienesFullOnlyFields";
+import { quickDealerInventoryAddonRefusal } from "@/app/lib/clasificados/autos/stripQuickDealerFullOnlyFields";
 import { resolveQuickBusinessPublishIdentity } from "./quickBusinessProductIdentityServer";
 
 export const RESTAURANTES_OFFERS_ADDON_PACKAGE_KEY = RESTAURANTES_COUPON_ADDON_PACKAGE_KEY;
@@ -672,6 +673,17 @@ export async function validateAutosDealerInventoryAddonOwnership(input: {
       message: "Vehicle inventory add-on can only be purchased for the dealer's main parent listing.",
     };
   }
+
+  // BASE (Quick) dealers cannot buy the +10 pack directly: it is a PRO-only entitlement, and BASE must
+  // upgrade first. Refused ONLY when the parent's product is server-PROVEN Quick, so no Full customer is
+  // blocked on a guess, and no URL / body / package-key forgery can lift it (the parent is resolved here).
+  const parentProduct = await resolveQuickBusinessPublishIdentity({
+    category: "autos",
+    ownerUserId: input.bearerUserId.trim(),
+    listingId,
+  });
+  const quickRefusal = quickDealerInventoryAddonRefusal(parentProduct);
+  if (quickRefusal) return { ok: false, ...quickRefusal };
 
   return { ok: true };
 }

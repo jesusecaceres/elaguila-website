@@ -80,14 +80,15 @@ export const AUTOS_DEALER_TOTAL_WITH_INVENTORY_PACK_LIMIT =
   AUTOS_DEALER_BASE_INCLUDED_VEHICLES + AUTOS_DEALER_INVENTORY_PACK_ADDITIONAL_VEHICLES;
 
 /**
- * The Quick (SIMPLE) allowance for the two inventory categories. Quick is the smaller product:
- * one real vehicle / one real property, and no inventory pack is offered at all, so a $99
- * customer can never reach the Full allowance by buying an add-on at checkout.
+ * The BASE (Quick / SIMPLE) allowance for the two inventory categories. BASE is the smaller product:
+ * up to FIVE active vehicles (Autos dealer, owner lock 2026-09-24) / ONE active property (Bienes), and
+ * no inventory pack is offered at all, so a $249 customer can never reach the PRO allowance (10
+ * vehicles, +10 with the pack) by buying an add-on at checkout. PRO must be bought first.
  *
  * These restate `includedInventory` on the Quick matrix entries; the verifier asserts they agree,
  * so the number cannot drift away from the package that is actually sold.
  */
-export const AUTOS_DEALER_QUICK_INCLUDED_VEHICLES = 1;
+export const AUTOS_DEALER_QUICK_INCLUDED_VEHICLES = 5;
 export const BR_QUICK_INCLUDED_PROPERTIES = 1;
 
 export type PublishCheckpointMode = "checkout" | "free_publish";

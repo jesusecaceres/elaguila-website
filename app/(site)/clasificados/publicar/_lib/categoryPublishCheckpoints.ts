@@ -6,6 +6,7 @@ import {
 } from "@/app/lib/listingPlans/revenuePricingMatrix";
 import { quickImageMaxForBusinessCategory } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
 import { withQuickPlanParam } from "@/app/lib/listingPlans/businessQuickPlanSignal";
+import { AUTOS_DEALER_QUICK_INCLUDED_VEHICLES } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import type { PublishCheckpointLang } from "./publishCheckpointCopy";
 
 export type PublishCheckpointVariant = "paid" | "free" | "dealer" | "upgrade" | "community";
@@ -387,8 +388,8 @@ export function getAutosCheckpointCards(
         ? "Quick y PRO usan la misma aplicación de dealer."
         : "Quick and PRO use the same dealer application.",
       includedBullets: es
-        ? ["Misma aplicación de dealer", `Hasta ${quickImageMaxForBusinessCategory("autos-dealer")} fotos`, "Sin video", `Precio: ${dealerQuickPrice}`]
-        : ["Same dealer application", `Up to ${quickImageMaxForBusinessCategory("autos-dealer")} photos`, "No video", `Price: ${dealerQuickPrice}`],
+        ? ["Misma aplicación de dealer", `Hasta ${AUTOS_DEALER_QUICK_INCLUDED_VEHICLES} vehículos activos`, `Hasta ${quickImageMaxForBusinessCategory("autos-dealer")} fotos`, "Sin video", `Precio: ${dealerQuickPrice}`]
+        : ["Same dealer application", `Up to ${AUTOS_DEALER_QUICK_INCLUDED_VEHICLES} active vehicles`, `Up to ${quickImageMaxForBusinessCategory("autos-dealer")} photos`, "No video", `Price: ${dealerQuickPrice}`],
       couponEligible: isPromoEligible("autos_dealer_quick_monthly"),
       highlighted: true,
     },

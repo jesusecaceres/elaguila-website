@@ -42,6 +42,11 @@ import {
   isSupersededQuickSubscriptionDeletion,
 } from "./subscriptionLifecyclePolicy";
 import { BUSINESS_CATEGORY_PACKAGE_PAIR } from "./businessAccessLevel";
+import {
+  decideLegacySubscriptionAdoption,
+  type LegacyAdoptionDecision,
+  type LegacyAdoptionEntitlementFacts,
+} from "./legacySubscriptionAdoption";
 
 function getStripeClient(): Stripe | null {
   const secret = process.env.STRIPE_SECRET_KEY?.trim();
@@ -200,6 +205,215 @@ export async function ensureSubscriptionRecordFromCheckoutSession(input: {
   }
 }
 
+/**
+ * LEGACY SUBSCRIPTION ADOPTION (impure). See `legacySubscriptionAdoption.ts` for the rule and the
+ * proven defect. Reads Stripe (metadata is only a CLAIM) and OUR payment + entitlement rows, and
+ * adopts ONLY when the pure decision agrees. Never creates or upgrades an entitlement: it only
+ * makes an existing, payment-backed entitlement renewable. Idempotent (upsert on the Stripe
+ * subscription id; a second run finds the record and never reaches this function).
+ */
+async function loadLegacyAdoptionFacts(subscription: Stripe.Subscription): Promise<{
+  decision: LegacyAdoptionDecision;
+  periodStart: Date | null;
+  periodEnd: Date | null;
+}> {
+  const supabase = getAdminSupabase();
+  const metadata = (subscription.metadata ?? {}) as Record<string, string>;
+  const period = readSubscriptionPeriod(subscription);
+  const paymentId = String(metadata.leonix_payment_record_id ?? "").trim();
+  const listingId = String(metadata.leonix_listing_id ?? "").trim();
+  const category = String(metadata.leonix_category ?? "").trim();
+
+  let payment: Parameters<typeof decideLegacySubscriptionAdoption>[0]["payment"] = null;
+  if (paymentId) {
+    const { data } = await supabase
+      .from("leonix_payment_records")
+      .select("id, category, listing_id, package_key, payment_status, stripe_subscription_id, owner_user_id")
+      .eq("id", paymentId)
+      .maybeSingle();
+    if (data) {
+      const r = data as Record<string, unknown>;
+      payment = {
+        id: String(r.id ?? ""),
+        category: r.category != null ? String(r.category) : null,
+        listingId: r.listing_id != null ? String(r.listing_id) : null,
+        packageKey: r.package_key != null ? String(r.package_key) : null,
+        paymentStatus: r.payment_status != null ? String(r.payment_status) : null,
+        stripeSubscriptionId: r.stripe_subscription_id != null ? String(r.stripe_subscription_id) : null,
+        ownerUserId: r.owner_user_id != null ? String(r.owner_user_id) : null,
+      };
+    }
+  }
+
+  const entitlements: LegacyAdoptionEntitlementFacts[] = [];
+  if (listingId && category) {
+    const { data } = await supabase
+      .from("listing_package_entitlements")
+      .select("id, category, listing_id, package_key, grant_source, status, payment_record_id, subscription_record_id")
+      .eq("category", category)
+      .eq("listing_id", listingId);
+    for (const row of data ?? []) {
+      const r = row as Record<string, unknown>;
+      entitlements.push({
+        id: String(r.id ?? ""),
+        category: r.category != null ? String(r.category) : null,
+        listingId: r.listing_id != null ? String(r.listing_id) : null,
+        packageKey: r.package_key != null ? String(r.package_key) : null,
+        grantSource: r.grant_source != null ? String(r.grant_source) : null,
+        status: String(r.status ?? ""),
+        paymentRecordId: r.payment_record_id != null ? String(r.payment_record_id) : null,
+        subscriptionRecordId: r.subscription_record_id != null ? String(r.subscription_record_id) : null,
+      });
+    }
+  }
+
+  return {
+    decision: decideLegacySubscriptionAdoption({
+      stripeSubscriptionId: subscription.id,
+      stripeStatus: subscription.status ?? null,
+      metadata,
+      payment,
+      entitlements,
+    }),
+    periodStart: period.periodStart,
+    periodEnd: period.periodEnd,
+  };
+}
+
+async function adoptLegacySubscriptionRecord(stripeSubscriptionId: string): Promise<SubscriptionRecordRow | null> {
+  const stripe = getStripeClient();
+  if (!stripe) return null;
+  let subscription: Stripe.Subscription;
+  try {
+    subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId, { expand: ["items"] });
+  } catch {
+    return null;
+  }
+  const { decision, periodStart, periodEnd } = await loadLegacyAdoptionFacts(subscription);
+  if (!decision.adopt) return null;
+
+  const supabase = getAdminSupabase();
+  const { data: upserted } = await supabase
+    .from("leonix_subscription_records")
+    .upsert(
+      {
+        stripe_subscription_id: stripeSubscriptionId,
+        stripe_customer_id: typeof subscription.customer === "string" ? subscription.customer : subscription.customer?.id ?? null,
+        stripe_price_id: subscription.items?.data?.[0]?.price?.id ?? null,
+        payment_record_id: decision.paymentRecordId,
+        package_entitlement_id: decision.entitlementId,
+        owner_user_id: decision.ownerUserId,
+        category: decision.category,
+        listing_source: decision.category,
+        listing_id: decision.listingId,
+        package_key: decision.packageKey,
+        status: "active",
+        stripe_status: subscription.status ?? null,
+        current_period_start: periodStart?.toISOString() ?? null,
+        current_period_end: periodEnd?.toISOString() ?? null,
+        metadata: {
+          legacy_adoption: {
+            at: new Date().toISOString(),
+            companion_entitlement_ids: decision.companionEntitlementIds,
+            evidence: "paid_payment_record_matches_stripe_subscription_metadata",
+          },
+        },
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "stripe_subscription_id" },
+    )
+    .select("id")
+    .maybeSingle();
+  const recordId = (upserted?.id as string | undefined) ?? null;
+  if (!recordId) return null;
+
+  for (const entitlementId of [decision.entitlementId, ...decision.companionEntitlementIds]) {
+    await supabase
+      .from("listing_package_entitlements")
+      .update({ subscription_record_id: recordId, updated_at: new Date().toISOString() })
+      .eq("id", entitlementId);
+  }
+  await writeRevenueAuditLog({
+    action: "revenue_entitlement_activated",
+    targetType: "subscription",
+    targetId: recordId,
+    meta: {
+      event: "legacy_subscription_adopted",
+      stripe_subscription_id: stripeSubscriptionId,
+      listing_id: decision.listingId,
+      package_key: decision.packageKey,
+      entitlement_id: decision.entitlementId,
+    },
+  }).catch(() => undefined);
+  return loadSubscriptionRecord(stripeSubscriptionId);
+}
+
+/**
+ * Targeted reconciliation of ONE legacy subscription whose renewals were missed: adopt it (same
+ * evidence rule), then extend the payment-backed entitlement row(s) to the REAL paid-through period
+ * Stripe reports. `dryRun` returns the decision and the planned `ends_at` without writing.
+ * Renewal payment rows and rewards are NOT created retroactively (no money moved here).
+ */
+export async function reconcileLegacySubscription(input: {
+  stripeSubscriptionId: string;
+  dryRun: boolean;
+}): Promise<{
+  ok: boolean;
+  code: string;
+  decision?: LegacyAdoptionDecision;
+  plannedEndsAt?: string;
+  entitlementIds?: string[];
+}> {
+  if (!isSupabaseAdminConfigured()) return { ok: false, code: "supabase_not_configured" };
+  const stripe = getStripeClient();
+  if (!stripe) return { ok: false, code: "stripe_not_configured" };
+  let subscription: Stripe.Subscription;
+  try {
+    subscription = await stripe.subscriptions.retrieve(input.stripeSubscriptionId, { expand: ["items"] });
+  } catch {
+    return { ok: false, code: "stripe_subscription_not_found" };
+  }
+  const { decision, periodEnd } = await loadLegacyAdoptionFacts(subscription);
+  if (!decision.adopt) return { ok: false, code: `refused_${decision.reason}`, decision };
+  if (!periodEnd) return { ok: false, code: "period_end_unresolvable", decision };
+
+  const plannedEnd = new Date(periodEnd);
+  plannedEnd.setUTCDate(plannedEnd.getUTCDate() + 7);
+  const entitlementIds = [decision.entitlementId, ...decision.companionEntitlementIds];
+  if (input.dryRun) {
+    return { ok: true, code: "dry_run", decision, plannedEndsAt: plannedEnd.toISOString(), entitlementIds };
+  }
+
+  const existing = await loadSubscriptionRecord(input.stripeSubscriptionId);
+  const record = existing ?? (await adoptLegacySubscriptionRecord(input.stripeSubscriptionId));
+  if (!record) return { ok: false, code: "adoption_failed", decision };
+  const latestInvoice =
+    typeof subscription.latest_invoice === "string" ? subscription.latest_invoice : subscription.latest_invoice?.id ?? "";
+  for (const entitlementId of entitlementIds) {
+    const extension = await extendEntitlementForInvoicePaid({
+      packageEntitlementId: entitlementId,
+      newPeriodEnd: periodEnd,
+      stripeInvoiceId: latestInvoice || `reconcile:${input.stripeSubscriptionId}`,
+      stripeEventId: `reconcile_legacy:${input.stripeSubscriptionId}`,
+    });
+    if (!extension.ok && extension.code !== "entitlement_revoked_requires_admin") {
+      return { ok: false, code: extension.code ?? "extension_failed", decision };
+    }
+  }
+  const supabase = getAdminSupabase();
+  await supabase
+    .from("leonix_subscription_records")
+    .update({
+      current_period_end: periodEnd.toISOString(),
+      last_paid_invoice_id: latestInvoice || null,
+      latest_invoice_id: latestInvoice || null,
+      stripe_status: subscription.status ?? null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", record.id);
+  return { ok: true, code: "reconciled", decision, plannedEndsAt: plannedEnd.toISOString(), entitlementIds };
+}
+
 /** invoice.paid — advance period, extend the same entitlement, recover grace/suspension. */
 export async function handleInvoicePaid(input: {
   invoice: Stripe.Invoice;
@@ -209,7 +423,10 @@ export async function handleInvoicePaid(input: {
   const stripeSubscriptionId = readInvoiceSubscriptionId(input.invoice);
   if (!stripeSubscriptionId) return { ok: true, outcome: "ignored", code: "no_subscription" };
 
-  const record = await loadSubscriptionRecord(stripeSubscriptionId);
+  // A subscription paid BEFORE subscription records existed has none; adopt it from payment
+  // evidence (never from metadata alone) so its renewals extend the entitlement.
+  const record =
+    (await loadSubscriptionRecord(stripeSubscriptionId)) ?? (await adoptLegacySubscriptionRecord(stripeSubscriptionId));
   if (!record) return { ok: true, outcome: "ignored", code: "not_leonix_subscription" };
 
   const stripe = getStripeClient();
@@ -354,6 +571,21 @@ export async function handleInvoicePaid(input: {
   });
   if (!extension.ok && extension.code !== "entitlement_revoked_requires_admin") {
     return { ok: false, outcome: "failed_retryable", code: extension.code };
+  }
+  // Rows the SAME legacy payment created (e.g. the offers add-on billed on the same subscription)
+  // renew with it, so the customer never has one row live and its sibling stale.
+  const companionIds = (record.metadata as { legacy_adoption?: { companion_entitlement_ids?: unknown } } | null)
+    ?.legacy_adoption?.companion_entitlement_ids;
+  if (Array.isArray(companionIds)) {
+    for (const companionId of companionIds) {
+      if (typeof companionId !== "string" || !companionId) continue;
+      await extendEntitlementForInvoicePaid({
+        packageEntitlementId: companionId,
+        newPeriodEnd: periodEnd,
+        stripeInvoiceId: invoiceId,
+        stripeEventId: input.eventId,
+      });
+    }
   }
   // Heal a null pointer discovered via fallback lookup.
   if (extension.ok && extension.entitlementId && extension.entitlementId !== record.package_entitlement_id) {

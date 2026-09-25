@@ -17,7 +17,7 @@ import { validateRevenuePromoForCheckout } from "@/app/lib/listingPlans/revenueC
 import { getRevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
 
 /**
- * Quick (SIMPLE) is the smaller dealer product: one active vehicle and NO inventory pack. Every
+ * BASE (Quick / SIMPLE) is the smaller dealer product: up to five active vehicles and NO inventory pack. Every
  * helper below takes the plan so the add-on can never be attached to a Quick checkout — that is
  * the one path by which a $99 dealer could otherwise reach the Full ten-vehicle allowance.
  */
@@ -68,7 +68,7 @@ export function autosDealerPreviewCheckpointConfig(input: {
         },
       ];
 
-  const includedVehicles = quickPlan ? AUTOS_DEALER_QUICK_INCLUDED_VEHICLES : AUTOS_DEALER_BASE_INCLUDED_VEHICLES;
+  const includedVehicles: number = quickPlan ? AUTOS_DEALER_QUICK_INCLUDED_VEHICLES : AUTOS_DEALER_BASE_INCLUDED_VEHICLES;
 
   return {
     category: AUTOS_DEALER_CHECKOUT.category,
@@ -84,7 +84,7 @@ export function autosDealerPreviewCheckpointConfig(input: {
       detailEs: `Incluye ${includedVehicles} vehiculo${includedVehicles === 1 ? "" : "s"} activo${includedVehicles === 1 ? "" : "s"}.`,
     },
     addOns,
-    childInventoryCount: quickPlan ? 0 : Math.max(0, input.totalVehicleCount - 1),
+    childInventoryCount: Math.max(0, input.totalVehicleCount - 1),
     confirmations: AUTOS_DEALER_CHECKPOINT_CONFIRMATIONS,
     newsletterEligible: true,
     promoEligible: baseDef?.promoEligible ?? true,

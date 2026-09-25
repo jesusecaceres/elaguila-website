@@ -21,6 +21,7 @@ import { resolveStaffAssistedCategorySave, isStaffAssistedSaveRefusal } from "@/
 import { recordSalesWorkspaceAudit } from "@/app/lib/sales/salesWorkspaceAudit";
 import { enforceQuickBusinessPublishMedia } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
 import { resolveQuickBusinessPublishIdentity } from "@/app/lib/listingPlans/quickBusinessProductIdentityServer";
+import { quickFullOnlyBoundaryApplies } from "@/app/lib/quickBusiness/quickFullOnlyBoundary";
 import { stripQuickDealerFullOnlyFields } from "@/app/lib/clasificados/autos/stripQuickDealerFullOnlyFields";
 import type { AutosClassifiedsLane, AutosClassifiedsLang } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 import {
@@ -98,6 +99,15 @@ async function resolveDealerActiveVehicleLimitForOwner(
   const { STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT } = await import(
     "@/app/lib/clasificados/autos/autosDealerInventoryPolicy"
   );
+  // A server-PROVEN BASE (Quick) dealer shows / enforces the BASE allowance (5); the pack never lifts it.
+  const mainId = rows.find((r) => isDealerInventoryMainListing(r) && r.status === "active")?.id ?? null;
+  if (mainId) {
+    const identity = await resolveQuickBusinessPublishIdentity({ category: "autos", ownerUserId, listingId: mainId });
+    if (quickFullOnlyBoundaryApplies(identity)) {
+      const { QUICK_DEALER_ACTIVE_VEHICLE_LIMIT } = await import("@/app/lib/clasificados/autos/autosDealerInventoryPolicy");
+      return QUICK_DEALER_ACTIVE_VEHICLE_LIMIT;
+    }
+  }
   const hasPack = await ownerHasActiveDealerInventoryPack(ownerUserId, rows);
   return hasPack ? AUTOS_DEALER_TOTAL_WITH_INVENTORY_PACK_LIMIT : STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT;
 }

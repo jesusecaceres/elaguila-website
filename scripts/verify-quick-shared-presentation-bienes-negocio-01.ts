@@ -9,7 +9,7 @@
  *  - the share pill keeps the shared Leonix drawer but hides its label below `sm` again (production parity);
  *  - `plan=quick` survives application -> preview -> "Volver a editar" (executed with carryBusinessPlanParam)
  *    and is never rewritten to plan=full;
- *  - the Quick photo cap (Bienes Negocio = 3) comes from the ONE table; Full keeps 40 photos + video;
+ *  - the BASE photo cap (Bienes Negocio = 8) comes from the ONE table; Full keeps 40 photos + video;
  *  - Full-only fields (extra websites, socials, Google/Yelp/Google Business, extra links, video) are hidden in
  *    the application for Quick and stripped SERVER-side (customer quick-publish, staff assisted-publish and the
  *    owner listing-edit), RESTORING stored values, and only for a PROVEN Quick product (never `unverified`);
@@ -193,8 +193,8 @@ async function main() {
   // -------------------------------------------------------------------------------------------
   // 3. Category-aware photo cap + video lock in the application
   // -------------------------------------------------------------------------------------------
-  await check("cap: Bienes Negocio Quick = 3 read from the ONE table; Full keeps 40 photos", () => {
-    assert.equal(quickImageMaxForBusinessCategory("bienes-negocio"), 3);
+  await check("cap: Bienes Negocio BASE = 8 read from the ONE table; Full keeps 40 photos", () => {
+    assert.equal(quickImageMaxForBusinessCategory("bienes-negocio"), 8);
     assert.equal(quickBienesImageCap(), quickImageMaxForBusinessCategory("bienes-negocio"));
     const steps = raw(STEPS_A);
     assert.ok(steps.includes("quickBienesImageCap()"), "Step03Media reads the cap from the helper (table)");
@@ -210,8 +210,8 @@ async function main() {
   });
 
   await check("gallery growth (executed): a Quick edit may not grow past the cap or past stored photos", () => {
-    assert.equal(quickBienesGalleryGrowthAllowed({ incomingCount: 3, existingCount: 0 }), true);
-    assert.equal(quickBienesGalleryGrowthAllowed({ incomingCount: 4, existingCount: 0 }), false);
+    assert.equal(quickBienesGalleryGrowthAllowed({ incomingCount: 8, existingCount: 0 }), true);
+    assert.equal(quickBienesGalleryGrowthAllowed({ incomingCount: 9, existingCount: 0 }), false);
     assert.equal(quickBienesGalleryGrowthAllowed({ incomingCount: 12, existingCount: 12 }), true, "stored Full photos are kept");
     assert.equal(quickBienesGalleryGrowthAllowed({ incomingCount: 13, existingCount: 12 }), false);
   });

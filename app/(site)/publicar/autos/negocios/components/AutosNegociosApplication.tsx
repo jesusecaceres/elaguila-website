@@ -291,7 +291,7 @@ export function AutosNegociosApplication() {
   const inventoryPackActive = isExistingDashboardListingMode
     ? inventoryEntitlement === "active"
     : inventoryBoostSelected;
-  // QUICK (SIMPLE) dealer: one active vehicle, no inventory pack, and no Full-only fields. The plan
+  // BASE (QUICK / SIMPLE) dealer: up to five active vehicles, no inventory pack, and no Full-only fields. The plan
   // comes from the staff custody context or the `?plan=quick` handoff marker, which is carried across
   // every application <-> preview hop below so the round trip can never silently turn Full.
   const { isQuick: isQuickBusinessPlan } = useIsQuickBusinessPlan("autos");
@@ -424,8 +424,8 @@ export function AutosNegociosApplication() {
                   </p>
                   <p className="mt-1 text-xs leading-relaxed text-[color:var(--lx-text-2)]">
                     {lang === "es"
-                      ? `Un vehículo activo, hasta ${quickImageCap} fotos y un sitio web principal. Video, redes sociales, enlaces adicionales e inventario extra son parte del plan Full.`
-                      : `One active vehicle, up to ${quickImageCap} photos and one primary website. Video, social links, extra links and extra inventory are part of the Full plan.`}
+                      ? `Hasta ${inventoryVehicleLimit} vehículos activos, hasta ${quickImageCap} fotos y un sitio web principal. Video, redes sociales, enlaces adicionales e inventario extra son parte del plan Full.`
+                      : `Up to ${inventoryVehicleLimit} active vehicles, up to ${quickImageCap} photos and one primary website. Video, social links, extra links and extra inventory are part of the Full plan.`}
                   </p>
                 </div>
               ) : (
@@ -876,25 +876,9 @@ export function AutosNegociosApplication() {
                 <AutosNegociosResultsCardPreview
                   lang={lang}
                   listing={listing}
-                  additionalCount={isQuickBusinessPlan ? 0 : additionalInventoryVehicles.length}
+                  additionalCount={additionalInventoryVehicles.length}
                   inventoryVehicleLimit={inventoryVehicleLimit}
                 />
-                {isQuickBusinessPlan ? (
-                  <div
-                    className="mt-6 rounded-xl border border-[#D8C79A]/70 bg-[#FFF6E7] p-4"
-                    data-quick-full-only-locked="1"
-                    data-quick-inventory-locked="1"
-                  >
-                    <p className="text-sm font-bold text-[#3D2C12]">
-                      {lang === "en" ? "Available with Full" : "Disponible con Full"}
-                    </p>
-                    <p className="mt-1 text-xs text-[#5D4A25]">
-                      {lang === "en"
-                        ? "Your $249 plan includes one active vehicle. Additional inventory vehicles and the inventory pack are part of the Full plan."
-                        : "Tu plan de $249 incluye un vehículo activo. Los vehículos adicionales de inventario y el paquete de inventario son parte del plan Full."}
-                    </p>
-                  </div>
-                ) : (
                 <>
                 <AutosNegociosInventoryBundlePreview
                   lang={lang}
@@ -919,54 +903,70 @@ export function AutosNegociosApplication() {
                   rehydrateFromStorage={rehydrateFromStorage}
                   {...inventoryDrawerProps}
                 />
-                <AutosNegociosInventoryValueModule
-                  lang={lang}
-                  prePublishMode={!isExistingDashboardListingMode}
-                  postPublishDashboardMode={isExistingDashboardListingMode}
-                  inventoryPackActive={inventoryPackActive}
-                  inventoryEntitlementPending={inventoryEntitlement === "pending"}
-                  inventoryVehicleLimit={inventoryVehicleLimit}
-                  copy={t}
-                  parentListing={listing}
-                  parentListingId={
-                    dashboardParentListingId ?? inventoryAddContext?.parentListingId ?? null
-                  }
-                  leonixAdId={editLeonixAdId || null}
-                  dealerInventoryGroupId={inventoryAddContext?.dealerInventoryGroupId ?? null}
-                  flushDraft={flushDraft}
-                  additionalInventoryCount={additionalInventoryVehicles.length}
-                  additionalVehicles={additionalInventoryVehicles}
-                  onSaveAdditionalVehicle={(vehicle) => {
-                    const ok = upsertAdditionalInventoryVehicle(vehicle, inventoryVehicleLimit);
-                    if (ok) void flushDraft();
-                    return ok;
-                  }}
-                  onStartInventoryCheckout={() =>
-                    void redirectAutosDealerInventoryPackCheckout({
-                      listingId: editListingId,
-                      leonixAdId: editLeonixAdId || null,
-                      lang,
-                    })
-                  }
-                  inventoryBoostSelected={inventoryBoostSelected}
-                  onInventoryBoostSelectedChange={(selected) => {
-                    setInventoryBoostSelected(selected);
-                    void flushDraft();
-                  }}
-                  inventoryDrawerProps={inventoryDrawerProps}
-                  boostEditorContext={{
-                    editorPath: pathname ?? "",
-                    editorSearch: searchParams?.toString() ? `?${searchParams.toString()}` : "",
-                    activeStep: ctx.activeStep,
-                    parentListingId:
-                      dashboardParentListingId ?? inventoryAddContext?.parentListingId ?? null,
-                    returnToListingId:
-                      dashboardParentListingId ?? inventoryAddContext?.returnToListingId ?? null,
-                    dealerInventoryGroupId: inventoryAddContext?.dealerInventoryGroupId ?? null,
-                  }}
-                />
-                </>
+                {isQuickBusinessPlan ? (
+                  <div
+                    className="mt-6 rounded-xl border border-[#D8C79A]/70 bg-[#FFF6E7] p-4"
+                    data-quick-full-only-locked="1"
+                    data-quick-inventory-locked="1"
+                  >
+                    <p className="text-sm font-bold text-[#3D2C12]">
+                      {lang === "en" ? "Available with PRO" : "Disponible con PRO"}
+                    </p>
+                    <p className="mt-1 text-xs text-[#5D4A25]">
+                      {lang === "en"
+                        ? `Your $249 BASE plan includes up to ${inventoryVehicleLimit} active vehicles. Upgrade to PRO first for up to 10 vehicles and the +10 vehicle inventory pack.`
+                        : `Tu plan BASE de $249 incluye hasta ${inventoryVehicleLimit} vehículos activos. Mejora primero a PRO para hasta 10 vehículos y el paquete de inventario de +10 vehículos.`}
+                    </p>
+                  </div>
+                ) : (
+                  <AutosNegociosInventoryValueModule
+                    lang={lang}
+                    prePublishMode={!isExistingDashboardListingMode}
+                    postPublishDashboardMode={isExistingDashboardListingMode}
+                    inventoryPackActive={inventoryPackActive}
+                    inventoryEntitlementPending={inventoryEntitlement === "pending"}
+                    inventoryVehicleLimit={inventoryVehicleLimit}
+                    copy={t}
+                    parentListing={listing}
+                    parentListingId={
+                      dashboardParentListingId ?? inventoryAddContext?.parentListingId ?? null
+                    }
+                    leonixAdId={editLeonixAdId || null}
+                    dealerInventoryGroupId={inventoryAddContext?.dealerInventoryGroupId ?? null}
+                    flushDraft={flushDraft}
+                    additionalInventoryCount={additionalInventoryVehicles.length}
+                    additionalVehicles={additionalInventoryVehicles}
+                    onSaveAdditionalVehicle={(vehicle) => {
+                      const ok = upsertAdditionalInventoryVehicle(vehicle, inventoryVehicleLimit);
+                      if (ok) void flushDraft();
+                      return ok;
+                    }}
+                    onStartInventoryCheckout={() =>
+                      void redirectAutosDealerInventoryPackCheckout({
+                        listingId: editListingId,
+                        leonixAdId: editLeonixAdId || null,
+                        lang,
+                      })
+                    }
+                    inventoryBoostSelected={inventoryBoostSelected}
+                    onInventoryBoostSelectedChange={(selected) => {
+                      setInventoryBoostSelected(selected);
+                      void flushDraft();
+                    }}
+                    inventoryDrawerProps={inventoryDrawerProps}
+                    boostEditorContext={{
+                      editorPath: pathname ?? "",
+                      editorSearch: searchParams?.toString() ? `?${searchParams.toString()}` : "",
+                      activeStep: ctx.activeStep,
+                      parentListingId:
+                        dashboardParentListingId ?? inventoryAddContext?.parentListingId ?? null,
+                      returnToListingId:
+                        dashboardParentListingId ?? inventoryAddContext?.returnToListingId ?? null,
+                      dealerInventoryGroupId: inventoryAddContext?.dealerInventoryGroupId ?? null,
+                    }}
+                  />
                 )}
+                </>
               </>
             ) : null}
             {!isExistingDashboardListingMode && !inventoryAddMode && !isQuickBusinessPlan ? (

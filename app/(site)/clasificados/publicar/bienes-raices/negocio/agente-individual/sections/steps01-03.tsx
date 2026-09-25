@@ -592,7 +592,7 @@ export function Step03Media({
   onMediaDraftCommit?: (next: AgenteIndividualResidencialFormState) => void;
   /**
    * Quick (Simple) session: the photo cap is the category-aware value from the ONE table
-   * (Bienes Negocio = 3, exactly the native hero + two supporting tiles) and the video section is locked.
+   * (Bienes Negocio = 8 real property photos; identity images never count) and the video section is locked.
    * Full keeps 40 photos and video, unchanged.
    */
   quick?: boolean;

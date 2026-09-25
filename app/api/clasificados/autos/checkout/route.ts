@@ -32,6 +32,8 @@ import { isAutosNegociosQaPublishAllowlisted, parseAutosNegociosQaPublishAllowli
 import { STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT, resolveDealerActiveVehicleLimit } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
 import { listingHasActiveDealerInventoryPack } from "@/app/lib/clasificados/autos/autosDealerInventoryPackEntitlement";
 import { validateNegociosApplicationPublishInventory } from "@/app/lib/clasificados/autos/autosDealerInventoryApplicationPublishGuard";
+import { resolveQuickBusinessPublishIdentity } from "@/app/lib/listingPlans/quickBusinessProductIdentityServer";
+import { quickFullOnlyBoundaryApplies } from "@/app/lib/quickBusiness/quickFullOnlyBoundary";
 import { buildAutosListingApiErrorPayload } from "@/app/lib/clasificados/autos/autosPublishApiContract";
 import { requiresBaseCheckout } from "@/app/lib/listingPlans/revenueActiveEntitlementGuard";
 import { AUTOS_DEALER_MONTHLY_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
@@ -185,10 +187,15 @@ export async function POST(request: Request) {
   if (row.lane === "negocios") {
     const totalVehicles = countApplicationInventoryVehicles(additionalDrafts.length);
     const boostActive = await listingHasActiveDealerInventoryPack(listingId);
+    // Only a server-PROVEN BASE (Quick) dealer is capped at five; Full and unverified keep 10 / 20.
+    const quickDealer = quickFullOnlyBoundaryApplies(
+      await resolveQuickBusinessPublishIdentity({ category: "autos", ownerUserId: userId, listingId }),
+    );
     const applicationGuard = validateNegociosApplicationPublishInventory({
       totalVehicles,
       boostActive,
       lang,
+      quick: quickDealer,
     });
     if (!applicationGuard.ok) {
       return NextResponse.json(
@@ -201,7 +208,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const vehicleLimit = resolveDealerActiveVehicleLimit(boostActive);
+    const vehicleLimit = resolveDealerActiveVehicleLimit(boostActive, { quick: quickDealer });
     if (!row.owner_user_id) {
       return NextResponse.json(
         { ok: false, error: "owner_required", message: "This dealer listing has no customer owner for self-serve checkout." },

@@ -95,9 +95,9 @@ function main() {
     assert.equal(three[1]?.role, "support");
   });
 
-  check("A4: Quick Business semantic media remains 1–3, no video", () => {
+  check("A4: Quick Business semantic media is category-aware (ceiling 8), no video", () => {
     assert.equal(QUICK_BUSINESS_SEMANTIC_LIMITS.minSubjectImages, 1);
-    assert.equal(QUICK_BUSINESS_SEMANTIC_LIMITS.maxImages, 5); // ceiling across families; per-family caps live in QUICK_BUSINESS_MAX_IMAGES_BY_CATEGORY
+    assert.equal(QUICK_BUSINESS_SEMANTIC_LIMITS.maxImages, 8); // ceiling across families; per-family caps live in QUICK_BUSINESS_MAX_IMAGES_BY_CATEGORY
     assert.equal(QUICK_BUSINESS_SEMANTIC_LIMITS.videoAllowed, false);
   });
 

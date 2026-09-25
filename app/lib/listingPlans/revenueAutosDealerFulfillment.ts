@@ -20,6 +20,7 @@ import {
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import {
   AUTOS_DEALER_INVENTORY_PACK_ADDITIONAL_VEHICLES,
+  AUTOS_DEALER_QUICK_INCLUDED_VEHICLES,
   AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY,
   AUTOS_DEALER_MONTHLY_PACKAGE_KEY,
 } from "./publishCheckoutCheckpoint";
@@ -232,12 +233,15 @@ export async function activatePaidAutosDealerListingFromRevenueOs(input: {
   // from exactly index N instead of either re-attempting (duplicating) or skipping (losing) the
   // remaining children.
   //
-  // QUICK (SIMPLE) = ONE active vehicle and no inventory pack. The base package that was actually
-  // PAID (`input.packageKey`, server-owned webhook fact, never a browser field) names the product, so
-  // a Quick dealer whose staged payload somehow carries extra vehicles never gets them published.
-  // Full is unchanged: every staged child is published as before.
+  // BASE (QUICK / SIMPLE) = up to FIVE active vehicles and no inventory pack. The base package that was
+  // actually PAID (`input.packageKey`, server-owned webhook fact, never a browser field) names the product,
+  // so a BASE dealer's staged extra vehicles are published only up to the BASE allowance (the main row is
+  // vehicle #1, so at most QUICK - 1 children). Full is unchanged: every staged child is published as before.
   const quickDealerPaid = productForBasePackageKey("autos", packageKey) === "quick";
-  const pendingChildren = quickDealerPaid ? [] : (row.listing_payload.additionalInventoryVehicles ?? []);
+  const stagedChildren = row.listing_payload.additionalInventoryVehicles ?? [];
+  const pendingChildren = quickDealerPaid
+    ? stagedChildren.slice(0, Math.max(0, AUTOS_DEALER_QUICK_INCLUDED_VEHICLES - 1))
+    : stagedChildren;
   if (pendingChildren.length > 0) {
     const alreadyPublishedCount = await countAutosDealerListingChildRows(listingId);
     const remainingChildren = publishableChildren(pendingChildren).slice(alreadyPublishedCount);

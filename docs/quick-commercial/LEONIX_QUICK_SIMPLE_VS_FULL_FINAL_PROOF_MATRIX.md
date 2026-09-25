@@ -247,7 +247,7 @@ No new public detail page, no second business table, no migration, no parallel c
 server-side throughout: V1 walks every file under `app/` and fails on any `priceCents: 9900`
 outside the matrix.
 
-**Inventory does not leak.** Quick dealer includes 1 active vehicle against Full's 10; Quick agent
+**Inventory does not leak.** BASE dealer includes 5 active vehicles against PRO's 10 (owner lock 2026-09-24); Quick agent
 includes 1 active property. Neither Quick package declares `addOnInventory`, the Quick checkouts
 attach no inventory pack row, and `CHECKOUT_ADDON_ALLOWLIST` is keyed to the Full base keys, so the
 server refuses the pack even if a client asked for it (§6.3).

@@ -37,8 +37,8 @@ function check(name: string, fn: () => void) {
 }
 const raw = (rel: string) => readFileSync(rel, "utf8").replace(/\r\n/g, "\n");
 
-check("caps: the table is category-aware and is the single source (servicios 5, restaurantes 5, autos-dealer 4, bienes-negocio 3)", () => {
-  assert.deepEqual({ ...QUICK_BUSINESS_MAX_IMAGES_BY_CATEGORY }, { servicios: 5, restaurantes: 5, "autos-dealer": 4, "bienes-negocio": 3 });
+check("caps: the table is category-aware and is the single source (servicios 5, restaurantes 5, autos-dealer 4, bienes-negocio 8)", () => {
+  assert.deepEqual({ ...QUICK_BUSINESS_MAX_IMAGES_BY_CATEGORY }, { servicios: 5, restaurantes: 5, "autos-dealer": 4, "bienes-negocio": 8 });
   assert.notEqual(new Set(Object.values(QUICK_BUSINESS_MAX_IMAGES_BY_CATEGORY)).size, 1, "not one universal number");
   for (const cat of Object.keys(QUICK_BUSINESS_MAX_IMAGES_BY_CATEGORY) as (keyof typeof QUICK_BUSINESS_MAX_IMAGES_BY_CATEGORY)[]) {
     assert.equal(quickImageMaxForBusinessCategory(cat), QUICK_BUSINESS_MAX_IMAGES_BY_CATEGORY[cat]);

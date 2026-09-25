@@ -5,8 +5,8 @@
  *   QUICK  = ONE primary website (`dealerWebsite`), the dealer's contact channels (phone / SMS /
  *            WhatsApp / email), no social links (`dealerSocials`, including its `website` key), no
  *            Google Reviews / Google Business / Yelp link, no extra business/resource links
- *            (`dealerCustomLinks`, `dealerBookingUrl`, `financeApplicationUrl`), no video, and no
- *            additional inventory vehicles (1 active vehicle, no pack).
+ *            (`dealerCustomLinks`, `dealerBookingUrl`, `financeApplicationUrl`), no video, and at most
+ *            FIVE active vehicles in total (main + up to four additional), no inventory pack.
  *   FULL   = everything, unchanged.
  *
  * This is the SERVER-enforceable half of that lock: it expresses the Full-only field paths of the
@@ -25,6 +25,7 @@
  * Pure: no IO, no React. Safe for server seams, the client preview and node:assert verifiers.
  */
 import type { QuickBusinessProductDecision } from "@/app/lib/listingPlans/quickBusinessProductIdentity";
+import { QUICK_DEALER_ACTIVE_VEHICLE_LIMIT } from "./autosDealerInventoryPolicy";
 import {
   applyQuickFullOnlyBoundary,
   quickFullOnlyBoundaryApplies,
@@ -43,7 +44,6 @@ export const AUTOS_DEALER_QUICK_FULL_ONLY_PATHS = [
   "financeApplicationUrl",
   "videoUrls",
   "videoUrl",
-  "additionalInventoryVehicles",
 ] as const;
 
 export type QuickDealerStripResult<T> = {
@@ -78,7 +78,34 @@ export function applyAutosDealerQuickBoundary<T extends object>(input: {
     if ("videoFileDataUrl" in value) value.videoFileDataUrl = undefined;
     if ("videoFileName" in value) value.videoFileName = undefined;
   }
-  return { listing: value as unknown as T, changedPaths: bounded.changedPaths };
+  const changedPaths = [...bounded.changedPaths];
+  // BASE inventory is CAPPED, not stripped: the main vehicle plus up to (allowance - 1) additional ones.
+  const staged = value.additionalInventoryVehicles;
+  const maxAdditional = Math.max(0, QUICK_DEALER_ACTIVE_VEHICLE_LIMIT - 1);
+  if (Array.isArray(staged) && staged.length > maxAdditional) {
+    value.additionalInventoryVehicles = staged.slice(0, maxAdditional);
+    changedPaths.push("additionalInventoryVehicles");
+  }
+  return { listing: value as unknown as T, changedPaths };
+}
+
+export type QuickDealerAddonRefusal = { status: number; code: string; message: string };
+
+/**
+ * Should the dealer inventory pack (+10 vehicles, $129) be refused for this parent's product?
+ * Refused ONLY for a PROVEN BASE (Quick) parent — the pack is a PRO-only entitlement, so BASE must
+ * upgrade to PRO first. Full and `unverified` are unchanged (no Full customer is blocked on a guess).
+ */
+export function quickDealerInventoryAddonRefusal(
+  decision: Pick<QuickBusinessProductDecision, "product" | "source"> | null | undefined,
+): QuickDealerAddonRefusal | null {
+  if (!quickFullOnlyBoundaryApplies(decision)) return null;
+  return {
+    status: 422,
+    code: "quick_inventory_addon_not_available",
+    message:
+      "The vehicle inventory pack is not available on the BASE package. Upgrade to PRO first to add the +10 vehicle pack.",
+  };
 }
 
 /**

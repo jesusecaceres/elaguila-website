@@ -109,8 +109,8 @@ export const QUICK_BUSINESS_DEFINITIONS: Record<QuickBusinessCategoryKey, QuickB
     label: { es: "Autos (concesionario)", en: "Autos (dealer)" },
     tagline: { es: "Tu negocio + tu primer vehículo", en: "Your dealership + your first vehicle" },
     standardApplicationPath: "/publicar/autos/negocios",
-    // Quick commercial package (autos_dealer_quick_monthly, SIMPLE access): one active vehicle,
-    // no inventory pack — Simple never inherits the Full package's larger allowance.
+    // BASE commercial package (autos_dealer_quick_monthly, SIMPLE access): up to five active vehicles,
+    // no inventory pack — Simple never inherits the PRO package's larger allowance.
     pricing: { kind: "monthly", packageKey: "autos_dealer_quick_monthly", category: "autos" },
     // Quick cap is category-aware (quickBusinessMediaSemantics.ts) regardless of the uncapped canonical dealer lane.
     media: media("autos-dealer", (n) => ({ es: `Hasta ${n} fotos reales de tu primer vehículo. La primera será la portada del vehículo.`, en: `Up to ${n} real photos of your first vehicle. The first one is the vehicle cover.` })),
@@ -122,7 +122,7 @@ export const QUICK_BUSINESS_DEFINITIONS: Record<QuickBusinessCategoryKey, QuickB
       dashboardHref: "/dashboard/mis-anuncios?cat=autos",
       editNote: { es: "Inventario y perfil desde Mis Anuncios (abre la aplicación de dealer existente con tus datos).", en: "Inventory and profile from My Ads (opens the existing dealer application with your data)." },
       endNote: { es: "Retirar / restaurar vehículos desde Mis Anuncios.", en: "Unpublish / restore vehicles from My Ads." },
-      billingNote: { es: "Suscripción mensual; un vehículo activo, sin paquete de inventario.", en: "Monthly subscription; one active vehicle, no inventory pack." },
+      billingNote: { es: "Suscripción mensual; hasta 5 vehículos activos, sin paquete de inventario (mejora a PRO para más).", en: "Monthly subscription; up to 5 active vehicles, no inventory pack (upgrade to PRO for more)." },
       billingHref: "/dashboard/perfil",
     },
     staff: {

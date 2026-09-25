@@ -164,8 +164,8 @@ check("Ofertas flyer/coupon prices stay $399 / $199", () => {
   assert.ok(ofertas?.products.some((p) => p.packageKey === "ofertas_locales_coupons_30d"));
 });
 
-check("Quick media limits: category-aware ceiling (5) / no video", () => {
-  assert.equal(QUICK_BUSINESS_SEMANTIC_LIMITS.maxImages, 5);
+check("Quick media limits: category-aware ceiling (8, Bienes) / no video", () => {
+  assert.equal(QUICK_BUSINESS_SEMANTIC_LIMITS.maxImages, 8);
   assert.equal(QUICK_BUSINESS_SEMANTIC_LIMITS.videoAllowed, false);
 });
 

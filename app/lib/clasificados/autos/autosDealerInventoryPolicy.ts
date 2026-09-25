@@ -6,7 +6,7 @@ import {
 
 export const STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT = 10;
 
-/** Quick (SIMPLE) dealer: exactly one active vehicle and no inventory pack. Full limits are unchanged. */
+/** BASE (Quick / SIMPLE) dealer: up to five active vehicles and no inventory pack. PRO limits are unchanged. */
 export const QUICK_DEALER_ACTIVE_VEHICLE_LIMIT = AUTOS_DEALER_QUICK_INCLUDED_VEHICLES;
 
 export const BOOSTED_DEALER_ACTIVE_VEHICLE_LIMIT = AUTOS_DEALER_TOTAL_WITH_INVENTORY_PACK_LIMIT;
@@ -88,7 +88,7 @@ export function summarizeDealerInventory(activeCount: number, limit = STANDARD_D
 
 /** Active limit when dealer inventory pack entitlement is paid (not draft/local flags). */
 export function resolveDealerActiveVehicleLimit(entitlementActive?: boolean, opts?: { quick?: boolean }): number {
-  // Quick never gets the pack: a stray pack entitlement cannot lift a Quick dealer past one vehicle.
+  // Quick never gets the pack: a stray pack entitlement cannot lift a BASE dealer past its five vehicles.
   if (opts?.quick === true) return QUICK_DEALER_ACTIVE_VEHICLE_LIMIT;
   if (entitlementActive === true) return BOOSTED_DEALER_ACTIVE_VEHICLE_LIMIT;
   return STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT;

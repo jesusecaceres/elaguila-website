@@ -296,9 +296,9 @@ export function quickBienesNetNewExternalVideoCount(input: {
   return Math.max(0, countBienesRowExternalVideos(input.row) - countBienesRowExternalVideos(input.existingRow ?? null));
 }
 
-/** The photo cap for a Bienes Negocio Quick listing, from the ONE per-category table (= 3). */
+/** The photo cap for a Bienes Negocio Quick (BASE) listing, from the ONE per-category table (= 8). */
 export function quickBienesImageCap(): number {
-  return quickImageMaxForBusinessCategory("bienes-negocio") ?? 3;
+  return quickImageMaxForBusinessCategory("bienes-negocio") ?? 8;
 }
 
 /**

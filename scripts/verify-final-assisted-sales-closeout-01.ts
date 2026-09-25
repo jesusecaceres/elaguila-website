@@ -104,13 +104,13 @@ function main() {
     assert.equal(QUICK_BUSINESS_PUBLISH_MAX_IMAGES.servicios, 5);
     assert.equal(QUICK_BUSINESS_PUBLISH_MAX_IMAGES.restaurantes, 5);
     assert.equal(QUICK_BUSINESS_PUBLISH_MAX_IMAGES["autos-dealer"], 4);
-    assert.equal(QUICK_BUSINESS_PUBLISH_MAX_IMAGES["bienes-negocio"], 3);
+    assert.equal(QUICK_BUSINESS_PUBLISH_MAX_IMAGES["bienes-negocio"], 8);
     const semantics = read("app/lib/quickBusiness/quickBusinessMediaSemantics.ts");
     assert.ok(semantics.includes("enforceQuickContract"));
   });
 
-  check("Autos Dealer Quick inventory is the repository-defined count of 1", () => {
-    assert.equal(AUTOS_DEALER_QUICK_INCLUDED_VEHICLES, 1);
+  check("Autos Dealer BASE inventory is the repository-defined count of 5 (owner lock 2026-09-24)", () => {
+    assert.equal(AUTOS_DEALER_QUICK_INCLUDED_VEHICLES, 5);
   });
 
   check("public listing share never keeps Vercel / admin / dashboard identity", () => {

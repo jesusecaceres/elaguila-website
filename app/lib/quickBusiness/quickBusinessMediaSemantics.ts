@@ -152,14 +152,16 @@ export type QuickMediaSemanticLimits = {
  *                     one sm row (5 columns).
  *  - restaurantes:   5 -> hero + 4 thumbnails, the full 4-column mobile row of the Comida gallery.
  *  - autos-dealer:   4 -> the gallery rail renders exactly four thumbnails under the main image.
- *  - bienes-negocio: 3 -> the native composition is hero + two supporting tiles.
+ *  - bienes-negocio: 8 -> owner lock 2026-09-24: BASE allows up to eight REAL property photos. The
+ *                     native gallery already renders hero + supporting tiles + "see all photos" and the
+ *                     lightbox carries every image, so nothing is resized or padded to fit eight.
  * Full allowances are untouched (LANE_MEDIA_REGISTRY). Video is never allowed in Quick.
  */
 export const QUICK_BUSINESS_MAX_IMAGES_BY_CATEGORY: Readonly<Record<QuickBusinessMediaCategory, number>> = {
   servicios: 5,
   restaurantes: 5,
   "autos-dealer": 4,
-  "bienes-negocio": 3,
+  "bienes-negocio": 8,
 };
 
 /** Quick's photo cap for a business family; `null` for anything that is not a Quick business family. */

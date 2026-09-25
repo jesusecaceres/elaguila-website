@@ -286,7 +286,17 @@ export async function assertCommercialCapacityForWrite(
         : AUTOS_DEALER_BASE_INCLUDED_VEHICLES;
     const activeCount = await countActiveAutosDealerGroupInventory(ownerId, parent, childListingId ?? undefined);
     const subscriptionStatus = await loadSubscriptionStatusForParent("autos", parentId);
-    return decideCommercialWrite({ operation: input.operation, capacityDelta: input.capacityDelta, activeCount, limit, subscriptionStatus });
+    const decision = decideCommercialWrite({ operation: input.operation, capacityDelta: input.capacityDelta, activeCount, limit, subscriptionStatus });
+    // BASE cannot buy the +10 pack (PRO-only), so the generic "add the inventory add-on" copy would be a
+    // dead end: tell a BASE dealer the truth — upgrade to PRO first. The refusal itself is unchanged.
+    if (quickDealer && !decision.allowed && decision.code === "capacity_reached") {
+      return {
+        ...decision,
+        message: `Your BASE plan includes up to ${limit} active vehicles (${activeCount}/${limit}). Upgrade to PRO to add more vehicles, or deactivate an existing listing first.`,
+        messageEs: `Tu plan BASE incluye hasta ${limit} vehículos activos (${activeCount}/${limit}). Mejora a PRO para agregar más vehículos, o desactiva un anuncio existente primero.`,
+      };
+    }
+    return decision;
   }
 
   // bienes-raices

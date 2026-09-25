@@ -139,9 +139,9 @@ async function main() {
       listing_json: role ? withStoredBienesMediaRoles({}, Object.fromEntries(urls.map((u) => [u, role]))) : {},
     }).items;
   };
-  for (const n of [1, 2, 3]) {
+  for (const n of [1, 2, 3, 8]) {
     await check(`(1) a Quick draft with ${n} real property photo(s) passes the contract (no too_few_subject_images)`, () => {
-      assert.equal(quickImageMaxForBusinessCategory("bienes-negocio"), 3);
+      assert.equal(quickImageMaxForBusinessCategory("bienes-negocio"), 8);
       const r = enforceQuickBusinessPublishMedia({ category: "bienes-negocio", items: stored(n, "property") });
       assert.ok(r && r.ok === true, JSON.stringify(r));
     });
@@ -150,8 +150,8 @@ async function main() {
     const r = enforceQuickBusinessPublishMedia({ category: "bienes-negocio", items: storedBienesMediaFacts({ images: [], listing_json: {} }).items });
     assert.ok(r && !r.ok && r.issues.some((i) => i.code === "too_few_subject_images"), JSON.stringify(r));
   });
-  await check("(3) four photos -> too_many_images (cap 3)", () => {
-    const r = enforceQuickBusinessPublishMedia({ category: "bienes-negocio", items: stored(4, "property") });
+  await check("(3) nine photos -> too_many_images (cap 8)", () => {
+    const r = enforceQuickBusinessPublishMedia({ category: "bienes-negocio", items: stored(9, "property") });
     assert.ok(r && !r.ok && r.issues.some((i) => i.code === "too_many_images"), JSON.stringify(r));
   });
   await check("(1b) photos with NO declared role still fail closed (nothing upgrades a missing role to property)", () => {
@@ -215,15 +215,15 @@ async function main() {
   });
   await check("QUICK: the cockpit readiness reads the STORED gallery + roles — a valid draft is NOT refused on media", async () => {
     fresh();
-    const saved = await call("save_for_client", listingRow({ images: photos(3, "property") }), QUICK_KEY);
+    const saved = await call("save_for_client", listingRow({ images: photos(8, "property") }), QUICK_KEY);
     const id = String(saved.json.listingId);
     __seed("leonix_payment_records", [paid(id, QUICK_KEY)]);
     const r = await cockpitPublish(id, QUICK_KEY);
-    assert.ok(!mediaViolation(r.json), `media contract must pass for 3 property photos: ${JSON.stringify(r.json)}`);
+    assert.ok(!mediaViolation(r.json), `media contract must pass for 8 property photos (the BASE maximum): ${JSON.stringify(r.json)}`);
     assert.ok(!(Array.isArray(r.json.issues) && (r.json.issues as string[]).includes("too_few_subject_images")), JSON.stringify(r.json));
     assert.equal(r.status, 200, JSON.stringify(r.json));
     assert.equal(rows("listings")[0]!.is_published, true, "the cockpit published the SAME row with its stored photos");
-    assert.deepEqual(rows("listings")[0]!.images, [url(1), url(2), url(3)]);
+    assert.deepEqual(rows("listings")[0]!.images, Array.from({ length: 8 }, (_, i) => url(i + 1)), "all eight real property photos are published, in order");
   });
   await check("QUICK: a draft saved with NO photo is refused by the cockpit with too_few_subject_images", async () => {
     fresh();
@@ -244,22 +244,22 @@ async function main() {
     assert.equal(r.status, 422, JSON.stringify(r.json));
     assert.deepEqual(r.json.issues, ["role_declaration_required"]);
   });
-  await check("QUICK: a stored gallery over the cap (4) is refused by the cockpit with too_many_images", async () => {
+  await check("QUICK: a stored gallery over the cap (9) is refused by the cockpit with too_many_images", async () => {
     fresh();
-    __seed("listings", [{ id: "over", status: "pending", is_published: false, owner_id: CLIENT, category: "bienes-raices", title: "Casa", images: photos(4).map((p) => p.url), listing_json: withStoredBienesMediaRoles({}, Object.fromEntries(photos(4).map((p) => [p.url, "property"]))) }]);
+    __seed("listings", [{ id: "over", status: "pending", is_published: false, owner_id: CLIENT, category: "bienes-raices", title: "Casa", images: photos(9).map((p) => p.url), listing_json: withStoredBienesMediaRoles({}, Object.fromEntries(photos(9).map((p) => [p.url, "property"]))) }]);
     __seed("business_listing_links", [{ id: "l1", business_id: BIZ, listing_source: "listings", listing_id: "over", status: "verified", linked_by: STAFF_AUTH }]);
     __seed("leonix_payment_records", [paid("over", QUICK_KEY)]);
     const r = await cockpitPublish("over", QUICK_KEY);
     assert.equal(r.status, 422, JSON.stringify(r.json));
     assert.ok((r.json.issues as string[]).includes("too_many_images"), JSON.stringify(r.json));
   });
-  await check("QUICK save over the cap is refused (too_many_images) and writes nothing; 3 is allowed", async () => {
+  await check("QUICK save over the cap is refused (too_many_images) and writes nothing; 8 is allowed", async () => {
     fresh();
-    const over = await call("save_for_client", listingRow({ images: photos(4, "property") }), QUICK_KEY);
+    const over = await call("save_for_client", listingRow({ images: photos(9, "property") }), QUICK_KEY);
     assert.equal(over.status, 422, JSON.stringify(over.json));
     assert.deepEqual(over.json.issues, ["too_many_images"]);
     assert.equal(rows("listings").length, 0);
-    const ok = await call("save_for_client", listingRow({ images: photos(3, "property") }), QUICK_KEY);
+    const ok = await call("save_for_client", listingRow({ images: photos(8, "property") }), QUICK_KEY);
     assert.equal(ok.status, 200, JSON.stringify(ok.json));
   });
   await check("a save carrying data:/blob: photos is refused and writes nothing (Quick and Full)", async () => {

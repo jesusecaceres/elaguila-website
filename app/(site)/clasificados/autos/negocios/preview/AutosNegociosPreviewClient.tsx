@@ -818,7 +818,7 @@ function AutosNegociosPreviewInner({
                   <div className={`mx-auto ${autosPreviewPageMaxWidthClass} px-4 md:px-6 lg:px-8`}>
                     <AutosNegociosResultsCardPreview lang={adDisplayLang}
                       listing={displayListing}
-                      additionalCount={quickPlan ? 0 : additionalCount}
+                      additionalCount={additionalCount}
                       inventoryVehicleLimit={quickPlan ? QUICK_DEALER_ACTIVE_VEHICLE_LIMIT : undefined}
                     />
                   </div>

@@ -83,10 +83,10 @@ check("presentation: preview and public use the shared page width token (no hard
   assert.ok(!/max-w-\[|w-\[\d/.test(quickBranch), "no width literal on a Quick-conditioned line");
 });
 
-check("presentation: preview results card shows the Quick 1-vehicle limit, never the Full 10 hint", () => {
+check("presentation: preview results card shows the BASE 5-vehicle limit, never the Full 10 hint", () => {
   const preview = raw(PREVIEW);
   assert.ok(/inventoryVehicleLimit=\{quickPlan \? QUICK_DEALER_ACTIVE_VEHICLE_LIMIT : undefined\}/.test(preview));
-  assert.ok(/additionalCount=\{quickPlan \? 0 : additionalCount\}/.test(preview));
+  assert.ok(/additionalCount=\{additionalCount\}/.test(preview), "BASE shows its real additional vehicles (up to 4)");
   const app = raw(APP);
   assert.ok(/resolveDealerActiveVehicleLimit\(inventoryPackActive, \{ quick: isQuickBusinessPlan \}\)/.test(app));
 });
@@ -214,9 +214,11 @@ check("strip: covers every Full-only dealer field name that exists on AutoDealer
   for (const p of AUTOS_DEALER_QUICK_FULL_ONLY_PATHS) {
     assert.ok(new RegExp(`\\b${p}\\??:`).test(type), `${p} is a real listing field`);
   }
+  // Additional inventory vehicles are CAPPED at the BASE allowance, not stripped (owner lock 2026-09-24).
+  assert.ok(!(AUTOS_DEALER_QUICK_FULL_ONLY_PATHS as readonly string[]).includes("additionalInventoryVehicles"));
   for (const k of [
     "dealerSocials", "googleReviewsUrl", "yelpReviewsUrl", "googleBusinessUrl", "dealerCustomLinks",
-    "dealerBookingUrl", "financeApplicationUrl", "videoUrls", "additionalInventoryVehicles",
+    "dealerBookingUrl", "financeApplicationUrl", "videoUrls",
   ]) {
     assert.ok((AUTOS_DEALER_QUICK_FULL_ONLY_PATHS as readonly string[]).includes(k), `${k} is Full-only`);
   }
@@ -240,12 +242,12 @@ check("strip: proven Quick empties every Full-only path on a NEW row, keeps the 
     assert.deepEqual(l.videoUrls, []);
     assert.equal(l.videoUrl, "", "single video url emptied");
     assert.equal(l.videoSourceType, null, "no orphan video source flag");
-    assert.deepEqual(l.additionalInventoryVehicles, []);
+    assert.deepEqual(l.additionalInventoryVehicles, [{ id: "v2" }], "one additional vehicle is within the BASE allowance and is kept");
     assert.equal(l.dealerWebsite, "https://primary.example.com");
     assert.equal(l.dealerPhoneOffice, "(555) 111-2222");
     assert.equal(l.financeContactPhone, "(555) 333-4444", "finance CONTACT channels stay");
     assert.equal(l.mediaImages.length, 1);
-    assert.ok(out.changedPaths.length >= 9);
+    assert.ok(out.changedPaths.length >= 8);
   }
 });
 
@@ -308,24 +310,24 @@ check("seams: POST, PATCH and staff assisted publish all call the strip with the
 // ---------------------------------------------------------------------------------------------
 // 6. One vehicle, no pack (Quick); Full limits unchanged
 // ---------------------------------------------------------------------------------------------
-check("limits: Quick = 1 vehicle (pack can never lift it); Full stays 10 / 20", () => {
-  assert.equal(QUICK_DEALER_ACTIVE_VEHICLE_LIMIT, 1);
-  assert.equal(resolveDealerActiveVehicleLimit(false, { quick: true }), 1);
-  assert.equal(resolveDealerActiveVehicleLimit(true, { quick: true }), 1, "a stray pack entitlement does not lift Quick");
+check("limits: BASE = 5 vehicles (pack can never lift it); PRO stays 10 / 20", () => {
+  assert.equal(QUICK_DEALER_ACTIVE_VEHICLE_LIMIT, 5);
+  assert.equal(resolveDealerActiveVehicleLimit(false, { quick: true }), 5);
+  assert.equal(resolveDealerActiveVehicleLimit(true, { quick: true }), 5, "a stray pack entitlement does not lift BASE");
   assert.equal(resolveDealerActiveVehicleLimit(false), STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT);
   assert.equal(STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT, 10);
   assert.equal(resolveDealerActiveVehicleLimit(true), BOOSTED_DEALER_ACTIVE_VEHICLE_LIMIT);
   assert.equal(resolveDealerActiveVehicleLimit(false, { quick: false }), 10);
 });
 
-check("limits: the write guard and fulfillment enforce Quick = 1 for a PROVEN product only", () => {
+check("limits: the write guard and fulfillment enforce BASE = 5 for a PROVEN product only", () => {
   const guard = raw(GUARD);
   assert.ok(/const quickDealer = quickFullOnlyBoundaryApplies\(/.test(guard));
   assert.ok(/quickDealer\s*\n?\s*\? QUICK_DEALER_ACTIVE_VEHICLE_LIMIT/.test(guard));
   assert.ok(/: boostActive\s*\n?\s*\? AUTOS_DEALER_TOTAL_WITH_INVENTORY_PACK_LIMIT\s*\n?\s*: AUTOS_DEALER_BASE_INCLUDED_VEHICLES/.test(guard), "Full 10/20 branch unchanged");
   const fulfill = raw(FULFILL);
   assert.ok(/productForBasePackageKey\("autos", packageKey\) === "quick"/.test(fulfill), "the PAID base package names the product");
-  assert.ok(/quickDealerPaid \? \[\] :/.test(fulfill), "no staged child is published for a paid Quick package");
+  assert.ok(/quickDealerPaid\s*\?\s*stagedChildren\.slice\(0, Math\.max\(0, AUTOS_DEALER_QUICK_INCLUDED_VEHICLES - 1\)\)/.test(fulfill), "a paid BASE package publishes at most (allowance - 1) staged children");
   assert.ok(fulfill.includes("publishNegociosBundleAdditionalVehicles"), "Full child publishing is intact");
 });
 

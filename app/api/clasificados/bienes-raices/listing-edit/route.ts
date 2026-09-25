@@ -253,7 +253,7 @@ async function updateOneListing(input: {
     existingImages: input.existing.images,
   });
   if (!media.ok) return { ok: false, message: media.message };
-  // QUICK: the gallery may not GROW past the category cap (3, from the one table), nor past what is
+  // QUICK: the gallery may not GROW past the category cap (8, from the one table), nor past what is
   // already stored (a downgraded owner keeps stored photos; nothing new can be added).
   if (
     input.quickBoundary &&

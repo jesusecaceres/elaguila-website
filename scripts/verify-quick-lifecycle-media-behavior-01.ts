@@ -158,11 +158,12 @@ check("B2: 1 up to each family's category-aware cap of subject images is accepte
   assert.deepEqual(codes("autos-dealer", [vehicle, vehicle, vehicle]), []);
   assert.deepEqual(codes("autos-dealer", [vehicle, vehicle, vehicle, vehicle]), [], "Autos Dealer fills its 4-thumbnail rail");
   assert.deepEqual(codes("bienes-negocio", [property]), []);
+  assert.deepEqual(codes("bienes-negocio", Array.from({ length: 8 }, () => property)), [], "Bienes BASE allows up to 8 real property photos");
 });
 
 check("B3: one image over the category cap is rejected", () => {
   assert.ok(codes("autos-dealer", [vehicle, vehicle, vehicle, vehicle, vehicle]).includes("too_many_images"));
-  assert.ok(codes("bienes-negocio", [property, property, property, property]).includes("too_many_images"));
+  assert.ok(codes("bienes-negocio", Array.from({ length: 9 }, () => property)).includes("too_many_images"));
 });
 
 check("B4: VIDEO is rejected", () => {

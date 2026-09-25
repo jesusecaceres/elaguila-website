@@ -129,9 +129,9 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     businessAccessLevel: "full",
   },
   {
-    // Quick / Simple dealer access. Same canonical dealer product, same public output, lower
-    // entitlement: one active vehicle and no inventory pack, so Simple can never silently
-    // inherit the Full package's 10-vehicle allowance.
+    // BASE (Quick / Simple) dealer access. Same canonical dealer product, same public output, lower
+    // entitlement: up to FIVE active vehicles (owner lock 2026-09-24) and no inventory pack, so
+    // Simple can never silently inherit the PRO package's 10-vehicle allowance or buy the +10 pack.
     category: "autos",
     packageKey: "autos_dealer_quick_monthly",
     customerType: "dealer_business",
@@ -139,7 +139,7 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     priceCents: 24900,
     billingMode: "monthly_subscription",
     durationDays: null,
-    includedInventory: "1 active vehicle",
+    includedInventory: "5 active vehicles",
     addOnInventory: null,
     promoEligible: true,
     printCompEligible: false,
