@@ -93,6 +93,8 @@ function main() {
   }
 
   check("B2: private prospect preview mounts the same TranslateAdControl near the title", () => {
+    // Generic-shell families. The four business families use each REAL public component's own Translate Ad
+    // (same TranslateAdControl + engine) — no ProspectPreviewTranslateAd — see verify-prospect-preview-real-components-01.ts.
     const page = read("app/(site)/vista-previa/[category]/page.tsx");
     const client = read("app/(site)/vista-previa/[category]/ProspectPreviewTranslateAd.tsx");
     assert.ok(page.includes("ProspectPreviewTranslateAd"));

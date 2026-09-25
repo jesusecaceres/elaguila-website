@@ -15,6 +15,9 @@ import {
   markPublishFlowOpeningPreview,
 } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications/useBusinessApplicationLeaveGuard";
+import { carryBusinessPlanParam } from "@/app/lib/listingPlans/businessQuickPlanSignal";
+import { useIsQuickBusinessPlan } from "@/app/lib/quickBusiness/useIsQuickBusinessPlan";
+import { quickImageMaxForBusinessCategory } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
 import { PhoneInput } from "@/app/components/forms/PhoneInput";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { BusinessAddressVerifiedInput } from "@/app/components/forms/BusinessAddressVerifiedInput";
@@ -254,9 +257,19 @@ export function ClasificadosServiciosApplication() {
     () => resolveClasificadosPublishLang(searchParams?.get("lang")),
     [searchParams],
   );
-  const businessPlan = searchParams?.get("plan") === "quick" ? "quick" : "full";
-  const isQuickBusinessPlan = businessPlan === "quick";
-  const galleryLimit = isQuickBusinessPlan ? 3 : GALLERY_MAX;
+  // Quick session: staff assisted custody plan wins, else the customer's ?plan=quick handoff. Only ever
+  // RESTRICTS (a forged marker buys the lesser product); the publish route stays the entitlement authority.
+  const { isQuick: isQuickBusinessPlan } = useIsQuickBusinessPlan("servicios");
+  const businessPlan = isQuickBusinessPlan ? "quick" : "full";
+  // Quick photo cap comes from the ONE per-category table (Servicios = 5); Full keeps its own 24.
+  const quickGalleryMax = quickImageMaxForBusinessCategory("servicios") ?? GALLERY_MAX;
+  const galleryLimit = isQuickBusinessPlan ? quickGalleryMax : GALLERY_MAX;
+  // Language toggle keeps every other query parameter (plan, product, edit context...).
+  const langToggleHref = useMemo(() => {
+    const next = new URLSearchParams(searchParams?.toString() ?? "");
+    next.set("lang", lang === "es" ? "en" : "es");
+    return `?${next.toString()}`;
+  }, [searchParams, lang]);
 
   /**
    * LEONIX ASSISTED SERVICIOS NAVIGATION CLEANUP — server-verified via PublishAuthGate/
@@ -921,7 +934,10 @@ export function ClasificadosServiciosApplication() {
         mode: isDashboardOffersEditMode ? "offers-edit" : isDashboardOffersAddonMode ? "offers-addon" : "listing-edit",
         focus: focusCoupon ? "coupon-upgrade" : null,
       })
-    : withClasificadosPublishLang("/clasificados/publicar/servicios/preview", routeLang, { plan: businessPlan });
+    : carryBusinessPlanParam(
+        withClasificadosPublishLang("/clasificados/publicar/servicios/preview", routeLang),
+        businessPlan,
+      );
   const publicarHref = withClasificadosPublishLang("/clasificados/publicar", routeLang);
 
   const goStrictPreview = useCallback(async () => {
@@ -1495,7 +1511,7 @@ export function ClasificadosServiciosApplication() {
 
           <div className="mt-4 flex justify-end">
             <Link
-              href={lang === "es" ? "?lang=en" : "?lang=es"}
+              href={langToggleHref}
               className="inline-flex min-h-[40px] items-center text-xs font-semibold text-[#5D4A25] underline underline-offset-2 hover:text-[#3B66AD]"
             >
               {copy.langToggle}
@@ -1518,8 +1534,8 @@ export function ClasificadosServiciosApplication() {
                     <p className="mt-1 text-sm font-semibold text-[#3D2C12]">
                       {isQuickBusinessPlan
                         ? (lang === "en"
-                            ? "Professional Leonix listing · up to 3 images · no video · simple management"
-                            : "Anuncio Leonix profesional · hasta 3 imágenes · sin video · administración simple")
+                            ? `Professional Leonix listing · up to ${quickGalleryMax} images · no video · simple management`
+                            : `Anuncio Leonix profesional · hasta ${quickGalleryMax} imágenes · sin video · administración simple`)
                         : (lang === "en"
                             ? "Full business experience · advanced media, analytics, leads and business tools"
                             : "Experiencia completa · medios avanzados, analítica, prospectos y herramientas de negocio")}
@@ -2044,6 +2060,7 @@ export function ClasificadosServiciosApplication() {
                     onBlur={() => setWhatsappFieldFocused(false)}
                   />
                 </div>
+                {isQuickBusinessPlan ? null : (
                 <div>
                   <label className={labelClass}>{copy.labels.whatsappBusinessUrl}</label>
                   <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.whatsappBusinessUrlHelp}</p>
@@ -2057,6 +2074,7 @@ export function ClasificadosServiciosApplication() {
                   />
                   {whatsappBizInvalid ? <p className="mt-1 text-xs text-amber-800">{copy.labels.invalidUrl}</p> : null}
                 </div>
+                )}
                 <div className="sm:col-span-2">
                   <label className={labelClass}>{copy.labels.quoteMessagePhone}</label>
                   <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.quoteMessagePhoneHelp}</p>
@@ -2104,6 +2122,22 @@ export function ClasificadosServiciosApplication() {
               </div>
             </div>
 
+            {isQuickBusinessPlan ? (
+              <div
+                className="sm:col-span-2 mt-2 rounded-xl border border-[#D8C79A]/70 bg-[#FFF6E7] p-4"
+                data-quick-full-only-locked="1"
+              >
+                <p className="text-sm font-bold text-[#3D2C12]">
+                  {lang === "en" ? "Available with Full" : "Disponible con Full"}
+                </p>
+                <p className="mt-1 text-xs text-[#5D4A25]">
+                  {lang === "en"
+                    ? "Your $249 plan includes one primary website. Social links, Google and Yelp links, and extra links are part of the Full plan."
+                    : "Tu plan de $249 incluye un sitio web principal. Los enlaces de redes sociales, Google y Yelp y los enlaces adicionales son parte del plan Full."}
+                </p>
+              </div>
+            ) : (
+            <>
             <div className="sm:col-span-2 mt-2 border-t border-[#D8C79A]/35 pt-6">
               <h3 className="text-base font-bold text-[#3D2C12]">{copy.labels.contactSocialHeading}</h3>
               <p className="mt-1 text-xs text-[#6b5c42]">
@@ -2239,6 +2273,9 @@ export function ClasificadosServiciosApplication() {
                 ))}
               </div>
             </div>
+
+            </>
+            )}
 
             <div className="sm:col-span-2 mt-2 border-t border-[#D8C79A]/35 pt-6">
               <p className={labelClass}>{copy.labels.languages}</p>
@@ -2488,8 +2525,8 @@ export function ClasificadosServiciosApplication() {
               </p>
               <p className="mt-1 text-xs text-[#5D4A25]">
                 {lang === "en"
-                  ? "Your $249 plan keeps the same professional public design and supports up to 3 images."
-                  : "Tu plan de $249 conserva el mismo diseño profesional y admite hasta 3 imágenes."}
+                  ? `Your $249 plan keeps the same professional public design and supports up to ${quickGalleryMax} images.`
+                  : `Tu plan de $249 conserva el mismo diseño profesional y admite hasta ${quickGalleryMax} imágenes.`}
               </p>
             </div>
           ) : (

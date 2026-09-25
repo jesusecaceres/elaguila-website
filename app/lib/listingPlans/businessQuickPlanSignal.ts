@@ -1,5 +1,5 @@
 /**
- * Which base package a business checkout is buying: Quick (SIMPLE, $99) or Full ($399).
+ * Which base package a business checkout is buying: Quick (SIMPLE, $249) or Full ($399).
  *
  * Quick and Full share one canonical draft, preview, publisher, listing row and public page. The
  * ONLY thing that differs is which base package the customer pays for, so the Quick intake has to
@@ -32,6 +32,20 @@ export function withQuickPlanParam(href: string): string {
   const params = new URLSearchParams(query);
   params.set(BUSINESS_PLAN_PARAM, BUSINESS_PLAN_QUICK);
   return `${base}?${params.toString()}${hash ? `#${hash}` : ""}`;
+}
+
+/**
+ * Carry the plan across an in-application navigation (application <-> preview, "Volver a editar",
+ * language toggle).
+ *
+ * A Quick session must stay Quick for the whole edit round trip: dropping `plan=quick` used to make the
+ * application re-mount as Full (24 photos, video, coupons, every social field) and the preview quote the
+ * Full checkout. Quick is preserved by writing `plan=quick`; Full is never WRITTEN into a link (absent
+ * already means Full, so the standard application stays byte for byte as it was, and a Quick link can
+ * never be rewritten into `plan=full`). Every other query parameter and the hash are preserved.
+ */
+export function carryBusinessPlanParam(href: string, plan: BusinessPlanChoice): string {
+  return plan === "quick" ? withQuickPlanParam(href) : href;
 }
 
 /** The plan a raw `plan` parameter asks for. Only the exact Quick token selects Quick. */

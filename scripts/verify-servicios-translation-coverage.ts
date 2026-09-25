@@ -487,8 +487,9 @@ check("cache / no-op protections and known-source callers are untouched", () => 
  * ============================================================================================ */
 const SHELL_FILES = [
   "app/(site)/servicios/components/ServiciosProfileView.tsx",
+  // Quick/Full shared presentation (2026-09-24): the Preview renders this same shared shell through a thin
+  // adapter, so the former third (Preview) shell entry is the same file as the public one.
   "app/(site)/servicios/components/ServiciosProfessionalProfileShell.tsx",
-  "app/(site)/clasificados/publicar/servicios/preview/ServiciosProfessionalPreviewShell.tsx",
 ];
 
 check("914-1/2/3/4/5/8/11/13/15/19/20 every listing section (hero, About, contact, media, services, credentials, why-choose-us, quick facts, how-business-works, payments, coupons) receives lang={displayLang} in all three shells", () => {

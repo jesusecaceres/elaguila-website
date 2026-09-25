@@ -17,13 +17,24 @@ import {
 } from "@/app/lib/clasificados/autos/autosPublishApiContract";
 import { resolveStaffAssistedCategorySave, isStaffAssistedSaveRefusal } from "@/app/lib/sales/staffAssistedCategorySave";
 import { proveAssistedAutosRowForWrite } from "@/app/lib/clasificados/autos/assistedAutosRowCustody";
+import { resolveQuickBusinessPublishIdentity } from "@/app/lib/listingPlans/quickBusinessProductIdentityServer";
+import { stripQuickDealerFullOnlyFields } from "@/app/lib/clasificados/autos/stripQuickDealerFullOnlyFields";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ id: string }> };
 
-type PatchBody = { listing?: AutoDealerListing; lang?: AutosClassifiedsLang };
+type PatchBody = {
+  listing?: AutoDealerListing;
+  lang?: AutosClassifiedsLang;
+  /**
+   * The base package the caller believes it is saving under. The caller's WORD, not authority: it is
+   * read only when it names the SIMPLE (Quick) key, exactly as on the create route, so it can only ever
+   * ADD the Quick field boundary and never lift a Quick dealer out of it.
+   */
+  basePackageKey?: string;
+};
 
 export async function PATCH(request: NextRequest, { params }: Props) {
   const contentLength = request.headers.get("content-length");
@@ -143,7 +154,32 @@ export async function PATCH(request: NextRequest, { params }: Props) {
     }
     ownerForUpdate = proof.ownerUserId;
   }
-  const result = await updateAutosClassifiedsListingDraft(id, ownerForUpdate, { listing: body.listing, lang });
+  // QUICK / FULL FIELD BOUNDARY (dealer rows only). This route previously enforced nothing about the
+  // product: a Quick dealer could PATCH social links, Google/Yelp/extra links, video and a staged
+  // inventory list straight into their row. For a PROVEN Quick product every Full-only path takes the
+  // value already STORED on the row (restore, never delete) or is emptied; `unverified`/Full is untouched.
+  let listingToWrite: AutoDealerListing = body.listing;
+  if (!assisted.assisted && userId) {
+    const storedRow = await assertAutosListingOwner(id, userId);
+    if (storedRow && storedRow.lane === "negocios") {
+      const identity = await resolveQuickBusinessPublishIdentity({
+        category: "autos",
+        ownerUserId: userId,
+        // An inventory vehicle is a child of the dealer identity; the product belongs to the parent row.
+        listingId:
+          storedRow.inventory_role === "inventory_vehicle" && storedRow.dealer_inventory_parent_listing_id
+            ? String(storedRow.dealer_inventory_parent_listing_id)
+            : storedRow.id,
+        declaredPackageKey: typeof body.basePackageKey === "string" ? body.basePackageKey : null,
+      });
+      listingToWrite = stripQuickDealerFullOnlyFields({
+        listing: body.listing,
+        existing: storedRow.listing_payload,
+        decision: identity,
+      }).listing;
+    }
+  }
+  const result = await updateAutosClassifiedsListingDraft(id, ownerForUpdate, { listing: listingToWrite, lang });
   if (!result.row) {
     if (result.errorCode === "AUTOS_LISTING_NOT_FOUND_OR_FORBIDDEN") {
       return NextResponse.json(

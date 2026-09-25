@@ -20,6 +20,8 @@ export async function saveServiciosPendingBeforeCheckout(args: {
   state: ClasificadosServiciosApplicationState;
   lang: ServiciosLang;
   accessToken?: string | null;
+  /** Declared SIMPLE (Quick) package key, sent only by a Quick session (restricting direction only). */
+  basePackageKey?: string;
 }): Promise<ServiciosPendingPublishResult> {
   const lang = args.lang === "en" ? "en" : "es";
   try {
@@ -28,6 +30,7 @@ export async function saveServiciosPendingBeforeCheckout(args: {
       lang: args.lang,
       accessToken: args.accessToken,
       activationMode: "pending_payment",
+      basePackageKey: args.basePackageKey,
     });
 
     if (res.status === 401) {

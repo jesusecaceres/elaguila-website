@@ -21,6 +21,9 @@ import { useRestauranteDraft } from "@/app/clasificados/restaurantes/application
 import { saveRestauranteDraftToStorageResolved } from "@/app/clasificados/restaurantes/application/restauranteDraftStorage";
 import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications/useBusinessApplicationLeaveGuard";
 import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlowLifecycleClient";
+import { carryBusinessPlanParam } from "@/app/lib/listingPlans/businessQuickPlanSignal";
+import { useIsQuickBusinessPlan } from "@/app/lib/quickBusiness/useIsQuickBusinessPlan";
+import { quickImageMaxForBusinessCategory } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
 import { PhoneInput } from "@/app/components/forms/PhoneInput";
 import { BusinessAddressVerifiedInput } from "@/app/components/forms/BusinessAddressVerifiedInput";
 import type { BusinessAddress } from "@/app/lib/businessAddress/businessAddressContract";
@@ -126,6 +129,28 @@ function dayRows(lang: RestauranteAppUiLang) {
   }));
 }
 
+/**
+ * Full-only capability shown to a Quick (Simple) session in place of the field. The stored value (if any) is
+ * never deleted here and the publish route enforces the same boundary server-side.
+ */
+function QuickFullOnlyNote({ lang, what }: { lang: RestauranteAppUiLang; what: string }) {
+  return (
+    <div
+      className="rounded-xl border border-[#D8C79A]/70 bg-[#FFF6E7] p-4"
+      data-quick-full-only-locked="1"
+    >
+      <p className="text-sm font-bold text-[#3D2C12]">
+        {lang === "en" ? "Available with Full" : "Disponible con Full"}
+      </p>
+      <p className="mt-1 text-xs text-[#5D4A25]">
+        {lang === "en"
+          ? `${what} — your Simple plan keeps the same professional presentation with one primary website.`
+          : `${what} — tu plan Simple conserva la misma presentación profesional con un sitio web principal.`}
+      </p>
+    </div>
+  );
+}
+
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return <h2 className="text-lg font-bold text-[color:var(--lx-text)]">{children}</h2>;
 }
@@ -182,6 +207,11 @@ export default function RestauranteApplicationClient() {
     () => resolveClasificadosPublishLang(searchParams?.get("lang")),
     [searchParams],
   );
+  // Quick session: staff assisted custody plan wins, else the customer's ?plan=quick handoff. Only ever
+  // RESTRICTS (a forged marker buys the lesser product); the publish route stays the entitlement authority.
+  const { isQuick: isQuickBusinessPlan } = useIsQuickBusinessPlan("restaurantes");
+  // Quick photo cap (hero + food/interior/exterior buckets) comes from the ONE per-category table.
+  const quickPhotoCap = quickImageMaxForBusinessCategory("restaurantes");
   const previewGate = useMemo(() => restaurantePreviewGateCopy(lang), [lang]);
   const fc = useMemo(() => restauranteApplicationFormCopy(lang), [lang]);
   const dashboardSource = searchParams?.get("source") === "dashboard";
@@ -558,8 +588,13 @@ export default function RestauranteApplicationClient() {
   const publishPlanLane = searchParams?.get("plan") === "pro" ? "pro" : undefined;
   const previewHrefWithPlan = useMemo(() => {
     const extra = publishPlanLane === "pro" ? { plan: "pro" } : undefined;
-    return withClasificadosPublishLang(PREVIEW_HREF, routeLang, extra);
-  }, [publishPlanLane, routeLang]);
+    // A Quick entry must reach a Quick preview (else it resolves Full and quotes the Full checkout).
+    // carryBusinessPlanParam writes plan=quick only, never plan=full.
+    return carryBusinessPlanParam(
+      withClasificadosPublishLang(PREVIEW_HREF, routeLang, extra),
+      isQuickBusinessPlan ? "quick" : "full",
+    );
+  }, [publishPlanLane, routeLang, isQuickBusinessPlan]);
 
   const goPreview = useCallback(async () => {
     if (isExistingDashboardListingMode) return;
@@ -1449,6 +1484,7 @@ export default function RestauranteApplicationClient() {
                         ))}
                       </div>
                     </div>
+                    {isQuickBusinessPlan ? null : (
                     <div>
                       <FieldLabel optional lang={lang}>{fc.sectionB.cateringInquiryUrlLabel}</FieldLabel>
                       <HelperText>{fc.sectionB.cateringInquiryUrlHelper}</HelperText>
@@ -1462,6 +1498,7 @@ export default function RestauranteApplicationClient() {
                         }
                       />
                     </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -1598,6 +1635,7 @@ export default function RestauranteApplicationClient() {
                     onChange={(e) => setDraftPatch({ websiteUrl: e.target.value || undefined })}
                   />
                 </div>
+                {isQuickBusinessPlan ? null : (
                 <div className="sm:col-span-2">
                   <FieldLabel optional lang={lang}>
                     {lang === "en" ? "Additional websites" : "Sitios web adicionales"}
@@ -1651,6 +1689,7 @@ export default function RestauranteApplicationClient() {
                     </button>
                   ) : null}
                 </div>
+                )}
                 <div>
                   <FieldLabel optional lang={lang}>{fc.sectionD.phoneLabel}</FieldLabel>
                   <HelperText>{fc.sectionD.phoneHelper}</HelperText>
@@ -1697,6 +1736,17 @@ export default function RestauranteApplicationClient() {
               </div>
             </div>
 
+            {isQuickBusinessPlan ? (
+              <QuickFullOnlyNote
+                lang={lang}
+                what={
+                  lang === "en"
+                    ? "Extra websites, social links, Google Reviews, Yelp and reservation, order and menu links"
+                    : "Sitios web adicionales, redes sociales, Google Reviews, Yelp y enlaces de reservas, pedidos y menú"
+                }
+              />
+            ) : (
+            <>
             <div className="rounded-xl border border-[color:var(--lx-nav-border)]/70 bg-[color:var(--lx-section)]/30 p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">{fc.sectionD.socialHeader}</p>
               <HelperText className="!mt-0">{fc.sectionD.socialHelper}</HelperText>
@@ -1750,10 +1800,15 @@ export default function RestauranteApplicationClient() {
               </div>
             </div>
 
+            </>
+            )}
+
             <div className="rounded-xl border border-[color:var(--lx-nav-border)]/70 bg-[color:var(--lx-section)]/30 p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-muted)]">{fc.sectionD.actionsHeader}</p>
               <HelperText className="!mt-0">{fc.sectionD.actionsHelper}</HelperText>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                {isQuickBusinessPlan ? null : (
+                <>
                 <div>
                   <FieldLabel optional lang={lang}>{fc.sectionD.reservationLabel}</FieldLabel>
                   <HelperText>{fc.sectionD.reservationHelper}</HelperText>
@@ -1784,6 +1839,8 @@ export default function RestauranteApplicationClient() {
                     onChange={(e) => setDraftPatch({ menuUrl: e.target.value || undefined })}
                   />
                 </div>
+                </>
+                )}
                 <div className="sm:col-span-2">
                   <FieldLabel optional lang={lang}>{fc.sectionD.menuFileLabel}</FieldLabel>
                   <HelperText>
@@ -2005,6 +2062,7 @@ export default function RestauranteApplicationClient() {
                       onChange={(e) => patchFeatured(i, { priceLabel: e.target.value || undefined })}
                     />
                   </div>
+                  {isQuickBusinessPlan ? null : (
                   <div>
                     <FieldLabel optional lang={lang}>{fc.sectionF.dishMenuLinkLabel}</FieldLabel>
                     <HelperText>{fc.sectionF.dishMenuLinkHelper}</HelperText>
@@ -2015,6 +2073,7 @@ export default function RestauranteApplicationClient() {
                       onChange={(e) => patchFeatured(i, { menuLink: e.target.value || undefined })}
                     />
                   </div>
+                  )}
                   <div className="sm:col-span-2">
                     <FieldLabel>{fc.sectionF.dishImageLabel}</FieldLabel>
                     <HelperText>{fc.sectionF.dishImageHelper}</HelperText>
@@ -2080,7 +2139,17 @@ export default function RestauranteApplicationClient() {
         {/* G */}
         {activeSectionId === "restaurantes-section-g" ? (
         <section id="restaurantes-section-g" className={stepPanel}>
-          {!draft.couponUpgradeEnabled ? (
+          {isQuickBusinessPlan ? (
+            <>
+              <SectionTitle>{restauranteSectionHeading("G", "g", lang)}</SectionTitle>
+              <div className="mt-6">
+                <QuickFullOnlyNote
+                  lang={lang}
+                  what={lang === "en" ? "Coupons and offers" : "Cupones y ofertas"}
+                />
+              </div>
+            </>
+          ) : !draft.couponUpgradeEnabled ? (
             isExistingDashboardListingMode ? (
               <>
                 <SectionTitle>G · {restauranteOffersModuleHeading(lang)}</SectionTitle>
@@ -2654,8 +2723,15 @@ export default function RestauranteApplicationClient() {
             <RestaurantePublishMediaBuckets
               draft={draft}
               onChange={setDraftPatch}
+              quickPhotoCap={isQuickBusinessPlan ? quickPhotoCap : null}
             />
-            <RestauranteExternalVideoUrlsSection draft={draft} setDraftPatch={setDraftPatch} lang={lang} />
+            {isQuickBusinessPlan ? (
+              <div data-quick-video-locked="1">
+                <QuickFullOnlyNote lang={lang} what="Video" />
+              </div>
+            ) : (
+              <RestauranteExternalVideoUrlsSection draft={draft} setDraftPatch={setDraftPatch} lang={lang} />
+            )}
           </div>
         </section>
         ) : null}
@@ -2734,7 +2810,9 @@ export default function RestauranteApplicationClient() {
                   ["cateringInquiryUrl", fc.sectionK.inquiryUrlLabel],
                   ["cateringNote", fc.sectionK.cateringNoteLabel],
                 ] as const
-              ).map(([k, lab]) => (
+              )
+                .filter(([k]) => !(isQuickBusinessPlan && k === "cateringInquiryUrl"))
+                .map(([k, lab]) => (
                 <div key={k}>
                   <FieldLabel optional lang={lang}>{lab}</FieldLabel>
                   {k === "bookingLeadTimeText" ? (

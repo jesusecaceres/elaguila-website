@@ -10,6 +10,24 @@ export const aiCardClass =
 export const aiTitleClass = "text-lg font-bold text-[#1E1810]";
 export const aiSubClass = "mt-1 text-sm text-[#5C5346]/88";
 
+/**
+ * Full-only capability shown to a Quick (Simple) session IN PLACE of the field (the field is hidden, not
+ * merely disabled). Any stored Full value is kept: it is never deleted here, and the server enforces the
+ * same boundary (restore-else-empty) on every write.
+ */
+export function QuickFullOnlyNote({ lang, what }: { lang: "es" | "en"; what: string }) {
+  return (
+    <div className="rounded-xl border border-[#D8C79A]/70 bg-[#FFF6E7] p-4" data-quick-full-only-locked="1">
+      <p className="text-sm font-bold text-[#3D2C12]">{lang === "en" ? "Available with Full" : "Disponible con Full"}</p>
+      <p className="mt-1 text-xs text-[#5D4A25]">
+        {lang === "en"
+          ? `${what} — your Quick plan keeps the same professional presentation with one primary website.`
+          : `${what} — tu plan Quick conserva la misma presentación profesional con un sitio web principal.`}
+      </p>
+    </div>
+  );
+}
+
 export function AiField({
   label,
   hint,

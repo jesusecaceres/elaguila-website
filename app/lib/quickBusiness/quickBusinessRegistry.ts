@@ -13,6 +13,7 @@
 import type { QuickBusinessMediaContract } from "./quickBusinessTypes";
 import type { QuickBusinessCategoryKey, QuickBusinessDefinition } from "./quickBusinessTypes";
 import { QUICK_BUSINESS_CATEGORY_KEYS } from "./quickBusinessTypes";
+import { QUICK_BUSINESS_MAX_IMAGES_BY_CATEGORY } from "./quickBusinessMediaSemantics";
 
 /**
  * SIMPLE media contract. `maxImages` always restates the category's canonical lane cap from
@@ -25,10 +26,16 @@ import { QUICK_BUSINESS_CATEGORY_KEYS } from "./quickBusinessTypes";
  * Quick ad can never publish without one real photo even where the canonical lane allows zero.
  * Drift in either direction is caught by verify-quick-business-access-level-01.ts.
  */
-// Bible §11.1: Quick Business max 3 real images, no video. Canonical lane caps are higher but
-// do not apply to the $249 Quick product. The Full lane retains its own unchanged limits.
-function media(note: { es: string; en: string }): QuickBusinessMediaContract {
-  return { minImages: 1, maxImages: 3, videoOptional: false, note };
+// Quick Business: real photos only, no video. The photo cap is category-aware and read from the ONE
+// table in quickBusinessMediaSemantics.ts (QUICK_BUSINESS_MAX_IMAGES_BY_CATEGORY): it is the count that
+// fills that family's proven native media composition. Canonical lane caps are higher but do not
+// apply to the $249 Quick product. The Full lane retains its own unchanged limits.
+function media(
+  category: keyof typeof QUICK_BUSINESS_MAX_IMAGES_BY_CATEGORY,
+  note: (max: number) => { es: string; en: string },
+): QuickBusinessMediaContract {
+  const maxImages = QUICK_BUSINESS_MAX_IMAGES_BY_CATEGORY[category];
+  return { minImages: 1, maxImages, videoOptional: false, note: note(maxImages) };
 }
 
 export const QUICK_BUSINESS_DEFINITIONS: Record<QuickBusinessCategoryKey, QuickBusinessDefinition> = {
@@ -42,8 +49,8 @@ export const QUICK_BUSINESS_DEFINITIONS: Record<QuickBusinessCategoryKey, QuickB
     // Quick commercial package (revenuePricingMatrix.ts: servicios_quick_monthly, SIMPLE access;
     // amount read at render time). servicios_base_monthly is the upgrade target, never the Quick sale.
     pricing: { kind: "monthly", packageKey: "servicios_quick_monthly", category: "servicios" },
-    // Bible §11.1: Quick cap is 3 images (canonical lane allows 24 for Full, not overridden here).
-    media: media({ es: "Hasta 3 fotos reales de tu negocio o tu trabajo. La primera será la portada.", en: "Up to 3 real photos of your business or your work. The first one is the cover." }),
+    // Quick cap is category-aware (quickBusinessMediaSemantics.ts); the canonical lane allows 24 for Full, not overridden here.
+    media: media("servicios", (n) => ({ es: `Hasta ${n} fotos reales de tu negocio o tu trabajo. La primera será la portada.`, en: `Up to ${n} real photos of your business or your work. The first one is the cover.` })),
     mediaIntro: {
       es: "Se necesita al menos una foto real de tu negocio (fachada, equipo o trabajo). La primera será la portada.",
       en: "At least one real photo of your business is required (storefront, team or work). The first one is the cover.",
@@ -71,8 +78,8 @@ export const QUICK_BUSINESS_DEFINITIONS: Record<QuickBusinessCategoryKey, QuickB
     standardApplicationPath: "/publicar/restaurantes",
     // Quick commercial package (restaurantes_quick_monthly, SIMPLE access).
     pricing: { kind: "monthly", packageKey: "restaurantes_quick_monthly", category: "restaurantes" },
-    // Bible §11.1: Quick cap is 3 images (canonical lane allows 24 for Full, not overridden here).
-    media: media({ es: "Hasta 3 fotos reales: fachada, platillos o interior. La primera será la portada.", en: "Up to 3 real photos: storefront, dishes or interior. The first one is the cover." }),
+    // Quick cap is category-aware (quickBusinessMediaSemantics.ts); the canonical lane allows 24 for Full, not overridden here.
+    media: media("restaurantes", (n) => ({ es: `Hasta ${n} fotos reales: fachada, platillos o interior. La primera será la portada.`, en: `Up to ${n} real photos: storefront, dishes or interior. The first one is the cover.` })),
     mediaIntro: {
       es: "Se necesita al menos una foto real de tu restaurante (fachada, platillos o interior). La primera será la portada.",
       en: "At least one real photo of your restaurant is required (storefront, dishes or interior). The first one is the cover.",
@@ -105,8 +112,8 @@ export const QUICK_BUSINESS_DEFINITIONS: Record<QuickBusinessCategoryKey, QuickB
     // Quick commercial package (autos_dealer_quick_monthly, SIMPLE access): one active vehicle,
     // no inventory pack — Simple never inherits the Full package's larger allowance.
     pricing: { kind: "monthly", packageKey: "autos_dealer_quick_monthly", category: "autos" },
-    // Bible §11.1: Quick cap is 3 vehicle images regardless of the uncapped canonical dealer lane.
-    media: media({ es: "Hasta 3 fotos reales de tu primer vehículo. La primera será la portada del vehículo.", en: "Up to 3 real photos of your first vehicle. The first one is the vehicle cover." }),
+    // Quick cap is category-aware (quickBusinessMediaSemantics.ts) regardless of the uncapped canonical dealer lane.
+    media: media("autos-dealer", (n) => ({ es: `Hasta ${n} fotos reales de tu primer vehículo. La primera será la portada del vehículo.`, en: `Up to ${n} real photos of your first vehicle. The first one is the vehicle cover.` })),
     mediaIntro: {
       es: "Se necesita al menos una foto real del vehículo que publicas (no del negocio). La primera será la portada del vehículo.",
       en: "At least one real photo of the vehicle you are listing is required (not of the business). The first one is the vehicle cover.",
@@ -115,7 +122,7 @@ export const QUICK_BUSINESS_DEFINITIONS: Record<QuickBusinessCategoryKey, QuickB
       dashboardHref: "/dashboard/mis-anuncios?cat=autos",
       editNote: { es: "Inventario y perfil desde Mis Anuncios (abre la aplicación de dealer existente con tus datos).", en: "Inventory and profile from My Ads (opens the existing dealer application with your data)." },
       endNote: { es: "Retirar / restaurar vehículos desde Mis Anuncios.", en: "Unpublish / restore vehicles from My Ads." },
-      billingNote: { es: "Suscripción mensual + paquete de inventario opcional.", en: "Monthly subscription + optional inventory pack." },
+      billingNote: { es: "Suscripción mensual; un vehículo activo, sin paquete de inventario.", en: "Monthly subscription; one active vehicle, no inventory pack." },
       billingHref: "/dashboard/perfil",
     },
     staff: {
@@ -140,8 +147,8 @@ export const QUICK_BUSINESS_DEFINITIONS: Record<QuickBusinessCategoryKey, QuickB
     // Quick commercial package (br_agent_quick_monthly, SIMPLE access): one active property,
     // no inventory pack.
     pricing: { kind: "monthly", packageKey: "br_agent_quick_monthly", category: "bienes-raices" },
-    // Bible §11.1: Quick cap is 3 property images (canonical lane allows 40 for Full, not overridden here).
-    media: media({ es: "Hasta 3 fotos reales de tu primera propiedad. La primera será la portada de la propiedad.", en: "Up to 3 real photos of your first property. The first one is the property cover." }),
+    // Quick cap is category-aware (quickBusinessMediaSemantics.ts); the canonical lane allows 40 for Full, not overridden here.
+    media: media("bienes-negocio", (n) => ({ es: `Hasta ${n} fotos reales de tu primera propiedad. La primera será la portada de la propiedad.`, en: `Up to ${n} real photos of your first property. The first one is the property cover.` })),
     mediaIntro: {
       es: "Se necesita al menos una foto real de la propiedad que publicas (no de tu oficina). La primera será la portada de la propiedad.",
       en: "At least one real photo of the property you are listing is required (not of your office). The first one is the property cover.",
@@ -150,7 +157,7 @@ export const QUICK_BUSINESS_DEFINITIONS: Record<QuickBusinessCategoryKey, QuickB
       dashboardHref: "/dashboard/mis-anuncios?cat=bienes-raices",
       editNote: { es: "Propiedades y perfil desde Mis Anuncios (abre la aplicación de agente existente con tus datos).", en: "Properties and profile from My Ads (opens the existing agent application with your data)." },
       endNote: { es: "Pausar / reactivar propiedades desde Mis Anuncios.", en: "Pause / resume properties from My Ads." },
-      billingNote: { es: "Suscripción mensual + paquete de inventario opcional.", en: "Monthly subscription + optional inventory pack." },
+      billingNote: { es: "Suscripción mensual; una propiedad activa, sin paquete de inventario.", en: "Monthly subscription; one active property, no inventory pack." },
       billingHref: "/dashboard/perfil",
     },
     staff: {

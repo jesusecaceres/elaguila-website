@@ -37,6 +37,9 @@ function check(name: string, fn: () => void) {
 
 function main() {
   check("A1: prospect preview page is Leonix-style, not a JSON dump", () => {
+    // OWNER LOCK (real components): this pins the GENERIC prospect shell, now used ONLY by the four out-of-scope
+    // families (rentas, empleos, autos-privado, comida-local). servicios / restaurantes / autos / bienes-raices
+    // render the real public components - see verify-prospect-preview-real-components-01.ts.
     const page = read("app/(site)/vista-previa/[category]/page.tsx");
     const shell = read("app/(site)/vista-previa/[category]/ProspectCategoryPreviewShell.tsx");
     assert.ok(page.includes("ProspectCategoryPreviewShell"));
@@ -50,6 +53,8 @@ function main() {
   });
 
   check("A2: 1 image is hero + info panel; 2 is hero+support; 3 is hero+two supports; 0 and 4 fail", () => {
+    // layoutQuickMedia is still the 1-3 image layout for the four generic-shell families only; the four
+    // business families get their gallery from the real public components instead.
     assert.deepEqual(layoutQuickMedia(0), { ok: false, error: "too_few" });
     assert.deepEqual(layoutQuickMedia(4), { ok: false, error: "too_many" });
     const one = layoutQuickMedia(1);
@@ -92,7 +97,7 @@ function main() {
 
   check("A4: Quick Business semantic media remains 1–3, no video", () => {
     assert.equal(QUICK_BUSINESS_SEMANTIC_LIMITS.minSubjectImages, 1);
-    assert.equal(QUICK_BUSINESS_SEMANTIC_LIMITS.maxImages, 3);
+    assert.equal(QUICK_BUSINESS_SEMANTIC_LIMITS.maxImages, 5); // ceiling across families; per-family caps live in QUICK_BUSINESS_MAX_IMAGES_BY_CATEGORY
     assert.equal(QUICK_BUSINESS_SEMANTIC_LIMITS.videoAllowed, false);
   });
 

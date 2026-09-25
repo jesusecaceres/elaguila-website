@@ -20,6 +20,8 @@ const hubRow = read("app/(site)/servicios/components/ServiciosBusinessHubEngagem
 const contactCard = read("app/(site)/servicios/components/ServiciosBusinessHubContactCard.tsx");
 const profileView = read("app/(site)/servicios/components/ServiciosProfileView.tsx");
 const proShell = read("app/(site)/servicios/components/ServiciosProfessionalProfileShell.tsx");
+// Quick/Full shared presentation (2026-09-24): the Preview renders the SAME shared professional shell through a thin
+// adapter (ServiciosProfessionalPreviewShell.tsx); it no longer owns a copied shell. Preview-only assertions read the adapter.
 const proPreview = read("app/(site)/clasificados/publicar/servicios/preview/ServiciosProfessionalPreviewShell.tsx");
 const clasPreview = read("app/(site)/clasificados/publicar/servicios/preview/ClasificadosServiciosPreviewClient.tsx");
 const legacyPreview = read("app/(site)/servicios/perfil/preview/ServiciosPreviewClient.tsx");
@@ -44,7 +46,10 @@ assert(
 
 assert(proPreview.includes("showEngagementControls"), "professional preview: hub visibility enabled");
 assert(proPreview.includes("persistListingEngagement={false}"), "professional preview: persistence disabled");
-assert(proPreview.includes("persistEngagement={false}"), "professional preview: hero controls non-persistent");
+assert(
+  proShell.includes("persistEngagement={persistListingEngagement}") && proPreview.includes("persistListingEngagement={false}"),
+  "professional preview: hero controls non-persistent (shared shell forwards the adapter's false)",
+);
 
 assert(clasPreview.includes("showEngagementControls"), "clas preview: trades full preview visibility");
 assert(clasPreview.includes("persistListingEngagement={false}"), "clas preview: trades full preview non-persistent");

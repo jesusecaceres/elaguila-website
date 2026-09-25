@@ -24,11 +24,18 @@ export type RestaurantePendingPublishResult =
 
 export async function saveRestaurantePendingBeforeCheckout(
   draft: RestauranteListingDraft,
-  opts: { ownerUserId?: string | null; lang: "es" | "en"; accessToken?: string | null },
+  opts: {
+    ownerUserId?: string | null;
+    lang: "es" | "en";
+    accessToken?: string | null;
+    /** Declared Simple base package key — a Quick session only (see buildRestaurantePublishPayload). */
+    basePackageKey?: string | null;
+  },
 ): Promise<RestaurantePendingPublishResult> {
   const lang = opts.lang === "en" ? "en" : "es";
   const payload = buildRestaurantePublishPayload(draft, opts.ownerUserId ?? undefined, undefined, lang, {
     activationMode: "pending_payment",
+    ...(opts.basePackageKey ? { basePackageKey: opts.basePackageKey } : {}),
   });
 
   const headers: Record<string, string> = { "Content-Type": "application/json" };

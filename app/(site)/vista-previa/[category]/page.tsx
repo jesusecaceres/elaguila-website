@@ -9,6 +9,12 @@
  * Every failure — no token, malformed, tampered, expired, wrong category, custody revoked, signing
  * secret absent — produces the SAME safe refusal.
  *
+ * OWNER LOCK — Quick uses the SAME real presentation as Full/public. For the four business
+ * families (servicios, restaurantes, autos dealer, bienes-raices negocio) the preview renders the
+ * REAL public category components from the stored row (see ProspectRealCategoryPreview) inside a
+ * full-width frame — no 720px wrap, no generic clone, no second Translate Ad. Only rentas, empleos,
+ * autos-privado and comida-local (out of scope) keep the generic shell below.
+ *
  * NOTHING ON THIS PAGE MUTATES ANYTHING.
  */
 import type { Metadata } from "next";
@@ -19,6 +25,8 @@ import { QUICK_SALES_CATEGORY_MAP, isQuickSalesCategory } from "@/app/lib/sales/
 import { buildProspectLeonixPreviewVm } from "@/app/lib/sales/prospectPreviewDisplay";
 import { ProspectPreviewTranslateAd } from "./ProspectPreviewTranslateAd";
 import { ProspectCategoryPreviewShell } from "./ProspectCategoryPreviewShell";
+import { isProspectRealComponentCategory } from "@/app/lib/sales/prospectPreviewRealCategories";
+import { renderProspectRealCategoryPreview } from "./ProspectRealCategoryPreview";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
@@ -101,6 +109,44 @@ export default async function ProspectPreviewPage({ params, searchParams }: Page
       ? `This link expires ${expires.toLocaleString("en-US")}`
       : `Este enlace expira el ${expires.toLocaleString("es-MX")}`;
 
+  // The four business families: the REAL public components, full width, under the same banner.
+  // If the stored content cannot produce a real render (e.g. no business name yet) we fall through
+  // to the generic shell below instead of showing a blank page.
+  if (isProspectRealComponentCategory(category)) {
+    const real = await renderProspectRealCategoryPreview({ category, payload, lang });
+    if (real) {
+      return (
+        <main style={styles.realShell} data-prospect-preview-clears-navbar="1" data-prospect-preview-real-components="1">
+          <div style={styles.realNotice}>
+            <div style={styles.banner}>
+              <strong style={styles.bannerStrong}>{lang === "en" ? "Preview" : "Vista previa"}</strong>
+              <span style={styles.bannerText}>{lang === "en" ? "Not published" : "No publicado"}</span>
+            </div>
+            <p style={styles.badge}>{categoryLabel}</p>
+          </div>
+
+          {real}
+
+          <div style={styles.realNotice}>
+            <p style={styles.body}>
+              {lang === "en"
+                ? "This is how your ad will look. It is not published yet and nobody else can find it."
+                : "Así se verá tu anuncio. Todavía no está publicado y nadie más puede encontrarlo."}
+            </p>
+            <p style={styles.footnote}>{expiresLabel}</p>
+            {payload.isPublic ? (
+              <p style={styles.footnote}>
+                {lang === "en"
+                  ? `This ad is already live (${payload.lifecycleState})`
+                  : `Este anuncio ya está activo (${payload.lifecycleState})`}
+              </p>
+            ) : null}
+          </div>
+        </main>
+      );
+    }
+  }
+
   return (
     <main style={styles.shell} data-prospect-preview-clears-navbar="1">
       <div style={styles.wrap}>
@@ -163,6 +209,20 @@ const styles: Record<string, React.CSSProperties> = {
   wrap: {
     width: "100%",
     maxWidth: 720,
+  },
+  // Real-component frame: full width under the fixed navbar. It sets NO width on the real component;
+  // `realNotice` only bounds the banner / footnotes, never the component itself.
+  realShell: {
+    minHeight: "100vh",
+    background: "#F4EEE4",
+    paddingTop: "calc(5.25rem + env(safe-area-inset-top, 0px))",
+    paddingBottom: 16,
+  },
+  realNotice: {
+    width: "100%",
+    maxWidth: 960,
+    margin: "0 auto",
+    padding: "0 16px",
   },
   card: {
     width: "100%",

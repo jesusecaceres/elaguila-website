@@ -99,6 +99,8 @@ export async function postServiciosPublishApi(args: {
   existingListingId?: string | null;
   /** LEONIX P0 FINAL ASSISTED PUBLISHING BRIDGE — see buildServiciosPublishPayload.ts. */
   assistedAction?: "save_for_client" | "publish_for_client";
+  /** Declared SIMPLE (Quick) package key. Sent only by a Quick session; never by Full. */
+  basePackageKey?: string;
 }): Promise<{ res: Response; data: ServiciosPublishApiResponse }> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (args.accessToken) {
@@ -152,6 +154,7 @@ export async function postServiciosPublishApi(args: {
     args.activationMode,
     existingListingId,
     args.assistedAction,
+    args.basePackageKey,
   );
   const raw = JSON.stringify(body);
   const byteSize = new Blob([raw]).size;

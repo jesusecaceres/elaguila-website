@@ -36,7 +36,13 @@ import {
   BIENES_RAICES_NEGOCIO_CHECKOUT,
   BIENES_RAICES_NEGOCIO_QUICK_CHECKOUT,
 } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
-import { businessPlanFromSearchParams } from "@/app/lib/listingPlans/businessQuickPlanSignal";
+import { carryBusinessPlanParam } from "@/app/lib/listingPlans/businessQuickPlanSignal";
+import { useIsQuickBusinessPlan } from "@/app/lib/quickBusiness/useIsQuickBusinessPlan";
+import { useBusinessBasePlanOffer } from "@/app/lib/listingPlans/businessBasePlanOfferClient";
+import {
+  blankQuickBienesFullOnlyFormFields,
+  declareQuickBienesPropertyRoles,
+} from "@/app/lib/clasificados/bienes-raices/stripQuickBienesFullOnlyFields";
 import {
   computeBrPropertyInventoryCounts,
   isBrInventoryUpgradeActive,
@@ -265,17 +271,33 @@ export default function AgenteIndividualResidencialPreviewClient() {
     };
   }, [inventoryCtx?.parentListingId]);
 
+  // ONE Quick answer for the whole session: staff custody plan wins, else the customer's ?plan=quick.
+  // Every in-application link carries it (Quick is written into the href, Full never is), so
+  // "Volver a editar" cannot silently re-mount the application as Full.
+  const { isQuick: sessionQuick } = useIsQuickBusinessPlan("bienes-raices");
+  // An EXISTING listing (dashboard edit/preview) is Quick when the SERVER says its held access is SIMPLE.
+  const baseOffer = useBusinessBasePlanOffer({
+    category: "bienes-raices",
+    listingId: listingIdParam,
+    enabled: listingBoundPreview,
+  });
+  const quickPlan = sessionQuick || baseOffer?.accessLevel === "simple";
+  const planChoice = quickPlan ? "quick" : "full";
+
   const editHref = useMemo(() => {
     if (listingBoundPreview && (listingIdParam || listingSlugParam || leonixAdIdParam)) {
-      return bienesBackToEditHrefFromPreview({
-        lang,
-        listingId: listingIdParam || null,
-        listingSlug: listingSlugParam || null,
-        leonixAdId: leonixAdIdParam || null,
-        mode: backToEditMode,
-        focus: previewFocus,
-        categoriaPropiedad: data.categoriaPropiedad,
-      });
+      return carryBusinessPlanParam(
+        bienesBackToEditHrefFromPreview({
+          lang,
+          listingId: listingIdParam || null,
+          listingSlug: listingSlugParam || null,
+          leonixAdId: leonixAdIdParam || null,
+          mode: backToEditMode,
+          focus: previewFocus,
+          categoriaPropiedad: data.categoriaPropiedad,
+        }),
+        planChoice,
+      );
     }
     const qs = new URLSearchParams();
     qs.set(BR_NEGOCIO_Q_PROPIEDAD, data.categoriaPropiedad);
@@ -289,11 +311,15 @@ export default function AgenteIndividualResidencialPreviewClient() {
         qs.set("inventoryGroupId", inventoryAdd.context.brInventoryGroupId.trim());
       }
     }
-    return withBrAgenteResLangParam(
-      withBrAgenteResApplicationInstanceParam(`${BR_PUBLICAR_NEGOCIO}?${qs.toString()}`, applicationInstanceId),
-      lang,
+    return carryBusinessPlanParam(
+      withBrAgenteResLangParam(
+        withBrAgenteResApplicationInstanceParam(`${BR_PUBLICAR_NEGOCIO}?${qs.toString()}`, applicationInstanceId),
+        lang,
+      ),
+      planChoice,
     );
   }, [
+    planChoice,
     backToEditMode,
     applicationInstanceId,
     data.categoriaPropiedad,
@@ -322,7 +348,6 @@ export default function AgenteIndividualResidencialPreviewClient() {
   // Quick Business intake hands off here with the Quick plan marker; the standard agent
   // application arrives without it and keeps the Full package and its inventory pack unchanged.
   // Quick is ONE real property with no pack, so it never carries child inventory into checkout.
-  const quickPlan = businessPlanFromSearchParams(searchParams) === "quick";
   const baseCheckout = quickPlan ? BIENES_RAICES_NEGOCIO_QUICK_CHECKOUT : BIENES_RAICES_NEGOCIO_CHECKOUT;
   const childInventoryCount = quickPlan ? 0 : data.additionalInventoryProperties?.length ?? 0;
   const hasInventoryPackage = childInventoryCount > 0 && !inventoryCtx;
@@ -362,8 +387,13 @@ export default function AgenteIndividualResidencialPreviewClient() {
       );
       return;
     }
-    const st = (await loadAgenteResPreviewDraftResolved({ applicationInstanceId })) ?? data;
-    if (!st) return;
+    const stStored = (await loadAgenteResPreviewDraftResolved({ applicationInstanceId })) ?? data;
+    if (!stStored) return;
+    // QUICK: what is published is exactly what the Quick preview showed. Full-only fields, video and
+    // inventory drafts are blanked, and the customer's own "photos represent the property" confirmation
+    // becomes the explicit `property` role the server's semantic contract requires. The server repeats
+    // the boundary; this is not the authority. Full is untouched.
+    const st = quickPlan ? declareQuickBienesPropertyRoles(blankQuickBienesFullOnlyFormFields(stStored)) : stStored;
     setPublishBusy(true);
     setPublishErr(null);
     setBridge(null);
@@ -506,7 +536,11 @@ export default function AgenteIndividualResidencialPreviewClient() {
           promoCode: ctx?.promoCode ?? null,
           recurringConsent: ctx?.recurringConsent ?? null,
           requestVerifiedIntroDiscount: ctx?.requestVerifiedIntroDiscount ?? false,
-          returnPath: withBrAgenteResLangParam("/clasificados/publicar/bienes-raices/negocio/agente-individual/preview?checkout=cancelled", lang),
+          // A cancelled Quick checkout returns to a Quick preview (plan=quick carried; Full is never written).
+          returnPath: withBrAgenteResLangParam(
+            carryBusinessPlanParam("/clasificados/publicar/bienes-raices/negocio/agente-individual/preview?checkout=cancelled", quickPlan ? "quick" : "full"),
+            lang,
+          ),
           // Quick is one property and is never sold the inventory pack.
           ...(!quickPlan && bundleCreatedCount > 0
             ? { addOns: [{ key: BR_INVENTORY_PACK_PACKAGE_KEY, quantity: 1 }] }
@@ -569,6 +603,12 @@ export default function AgenteIndividualResidencialPreviewClient() {
     }
   }, [applicationInstanceId, baseCheckout, quickPlan, data, inventoryCtx, lang, router]);
 
+  /** What the preview shows and every outgoing payload carries: Quick never shows/sends Full-only fields. */
+  const viewData = useMemo(
+    () => (quickPlan ? blankQuickBienesFullOnlyFormFields(data) : data),
+    [quickPlan, data],
+  );
+
   const onSaveListingEdit = useCallback(async () => {
     if (!listingBoundPreview || !listingIdParam || saveEditBusy) return;
     setSaveEditBusy(true);
@@ -595,7 +635,8 @@ export default function AgenteIndividualResidencialPreviewClient() {
           listingId: listingIdParam,
           leonixAdId: leonixAdIdParam || null,
           lang,
-          draft: data,
+          // Quick: Full-only fields blanked here; the SERVER restores stored values (never deletes them).
+          draft: viewData,
         }),
       });
       const json = (await res.json().catch(() => ({}))) as {
@@ -633,7 +674,7 @@ export default function AgenteIndividualResidencialPreviewClient() {
     } finally {
       setSaveEditBusy(false);
     }
-  }, [data, lang, leonixAdIdParam, listingBoundPreview, listingIdParam, saveEditBusy]);
+  }, [data, viewData, lang, leonixAdIdParam, listingBoundPreview, listingIdParam, saveEditBusy]);
 
   const handlePromoApply = useCallback(
     async (code: string) => {
@@ -688,7 +729,7 @@ export default function AgenteIndividualResidencialPreviewClient() {
           category="bienes-raices"
           lang={lang === "en" ? "en" : "es"}
           buildPayload={(ctx) => {
-            const built = buildPublishParamsFromAgenteResidencialDraft(data, lang === "en" ? "en" : "es");
+            const built = buildPublishParamsFromAgenteResidencialDraft(viewData, lang === "en" ? "en" : "es");
             if (!("params" in built) || !built.ok) return null;
             const ownerId = ctx.clientUserId ?? null;
             const listingRow = buildListingsInsertRowForLeonixPublish(ownerId, built.params);
@@ -800,7 +841,7 @@ export default function AgenteIndividualResidencialPreviewClient() {
       ) : null}
 
       <AgenteIndividualResidencialPreviewPage
-        data={data}
+        data={viewData}
         editHref={editHref}
         footerExtra={t.previewUi.footerDefault}
         onBeforeNavigateToEdit={markPublishFlowReturningToEdit}

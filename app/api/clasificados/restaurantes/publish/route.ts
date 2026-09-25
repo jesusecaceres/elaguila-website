@@ -45,6 +45,10 @@ import { refuseUnlessAuthoritativePayment } from "@/app/lib/listingPlans/listing
 import { linkSelfServiceListingToBusiness } from "@/app/lib/business/canonicalListingLink";
 import { enforceQuickBusinessPublishMedia } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
 import { resolveQuickBusinessPublishIdentity } from "@/app/lib/listingPlans/quickBusinessProductIdentityServer";
+import {
+  applyRestauranteQuickBoundary,
+  quickFullOnlyBoundaryApplies,
+} from "@/app/lib/clasificados/restaurantes/restauranteQuickFullOnlyBoundary";
 
 /** Gallery cap mirrors MAX_GALLERY in RestaurantePublishMediaStrip.tsx:29 (local, unexported). */
 const RESTAURANTE_GALLERY_MAX = 24;
@@ -414,6 +418,16 @@ export async function POST(req: NextRequest) {
   const restauranteExternalVideoCount = collectRestauranteExternalVideoUrls(draft).filter(
     (u) => typeof u === "string" && u.trim().length > 0,
   ).length;
+  // Product lock: the Quick photo cap (category-aware table, Restaurantes = 5) counts EVERY listing photo —
+  // hero + gallery + the food / interior / exterior buckets the application and the public gallery actually
+  // use. The buckets are counted ONLY for a PROVEN Quick product: `enforceQuickContract` is also true for
+  // `unverified`, which may be a Full customer whose buckets legitimately hold up to 36 photos.
+  const restauranteQuickProven = quickFullOnlyBoundaryApplies(restauranteProduct);
+  const restauranteBucketUrls = restauranteQuickProven
+    ? [...(draft.foodImages ?? []), ...(draft.interiorImages ?? []), ...(draft.exteriorImages ?? [])]
+        .map((ref) => coerceRestauranteImageRefToString(ref))
+        .filter((u): u is string => Boolean(u))
+    : [];
   const restauranteSemanticMedia = restauranteProduct.enforceQuickContract
     ? enforceQuickBusinessPublishMedia({
         category: "restaurantes",
@@ -421,6 +435,7 @@ export async function POST(req: NextRequest) {
         items: [
           ...(restauranteHeroUrl ? [{ role: null, mime: null }] : []),
           ...restauranteGalleryUrls.map(() => ({ role: null, mime: null })),
+          ...restauranteBucketUrls.map(() => ({ role: null, mime: null })),
         ],
       })
     : null;
@@ -612,11 +627,26 @@ export async function POST(req: NextRequest) {
         : undefined,
   };
 
-  const sanitizedDraft = enforceRestauranteCouponEntitlementServerTruth(
+  let sanitizedDraft = enforceRestauranteCouponEntitlementServerTruth(
     draft,
     serverVerifiedCouponEntitlement,
     trustedExistingCouponContent,
   );
+
+  // Quick / Full field boundary (self-service AND staff-assisted: both resolve through
+  // `restauranteProduct` above). ONLY for a PROVEN Quick product — never for `unverified`, which may be a Full
+  // customer. Extra websites, social links, Google/Yelp, reservation/order/menu/catering links and video are
+  // restored from the row already stored (never deleted) or emptied; the incoming value never wins.
+  if (restauranteQuickProven) {
+    const quickBoundary = applyRestauranteQuickBoundary(sanitizedDraft, existingListingJson);
+    sanitizedDraft = quickBoundary.draft;
+    if (quickBoundary.changedPaths.length) {
+      console.info("[restaurantes publish api] quick boundary applied", {
+        draftListingId: draft.draftListingId,
+        changedPaths: quickBoundary.changedPaths,
+      });
+    }
+  }
 
   let slugOut = slugifyRestauranteBusinessName(draft.businessName);
 

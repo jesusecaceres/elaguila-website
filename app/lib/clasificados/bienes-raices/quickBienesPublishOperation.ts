@@ -14,6 +14,12 @@
  */
 
 import {
+  quickBienesNetNewExternalVideoCount,
+  quickFullOnlyBoundaryApplies,
+  stripQuickBienesFullOnlyFields,
+} from "./stripQuickBienesFullOnlyFields";
+import type { QuickBusinessProductDecision } from "@/app/lib/listingPlans/quickBusinessProductIdentity";
+import {
   buildQuickBienesListingRow,
   buildQuickBienesReuseKey,
   quickBienesRefusal,
@@ -42,7 +48,18 @@ export type QuickBienesProductAnswer = {
 };
 
 export type QuickBienesReuseLookup =
-  | { ok: true; row: { id: string; listingJson: Record<string, unknown> | null } | null }
+  | {
+      ok: true;
+      row: {
+        id: string;
+        listingJson: Record<string, unknown> | null;
+        /**
+         * The reusable row's STORED business_meta / detail_pairs / profile_json / contact_json, so the Quick
+         * Full-only boundary RESTORES stored content on a retry instead of wiping it. Optional: absent = nothing stored.
+         */
+        existing?: Record<string, unknown> | null;
+      } | null;
+    }
   | { ok: false };
 
 /**
@@ -60,9 +77,11 @@ export type QuickBienesPublishPorts = {
     declaredPackageKey: string | null;
   }) => Promise<QuickBienesProductAnswer>;
   /** The Quick semantic media contract. Returns a refusal body, or null when the media is fine. */
-  validateMedia: (items: readonly { role: string | null; mime: string | null }[]) =>
-    | { message: string; messageEs: string; issues: string[] }
-    | null;
+  validateMedia: (
+    items: readonly { role: string | null; mime: string | null }[],
+    /** External video links the write carries (never a gallery MIME). Optional; 0 when omitted. */
+    externalVideoCount?: number,
+  ) => { message: string; messageEs: string; issues: string[] } | null;
   /** The caller's OWN pending Quick-shaped row, if any. `{ok:false}` is a hard stop, never an insert. */
   findReusablePendingListing: (key: QuickBienesReuseKey) => Promise<QuickBienesReuseLookup>;
   insertListing: (row: Record<string, unknown>) => Promise<{ ok: true; listingId: string } | { ok: false }>;
@@ -225,7 +244,7 @@ export async function executeQuickBienesPublish(
   }
 
   const reusable = lookup.row;
-  const row = buildQuickBienesListingRow({
+  const builtRow = buildQuickBienesListingRow({
     listingRow: request.listingRow,
     ownerUserId,
     quickPackageKey: options.quickPackageKey,
@@ -233,6 +252,35 @@ export async function executeQuickBienesPublish(
     mediaUrls,
     listingJsonBase: reusable?.listingJson ?? null,
   });
+
+  // 5b. QUICK FULL-ONLY BOUNDARY. The product is server-proven Quick here (step 2), so extra websites'
+  //     socials, Google/Yelp links, extra business links and video are restored from the stored row (a retry)
+  //     or emptied (a first save). The browser value never wins. Gated on the PROVEN product, never on the
+  //     enforce flag, so a Full or unverified customer is never touched.
+  let row: Record<string, unknown> = builtRow;
+  if (
+    quickFullOnlyBoundaryApplies({
+      product: decided.product,
+      source: decided.source as QuickBusinessProductDecision["source"],
+    })
+  ) {
+    row = stripQuickBienesFullOnlyFields({ row: builtRow, existingRow: reusable?.existing ?? null }).row;
+  }
+  // Defence in depth for "Quick includes no video": external video links this write would ADD.
+  const externalVideoCount = quickBienesNetNewExternalVideoCount({ row, existingRow: reusable?.existing ?? null });
+  if (externalVideoCount > 0) {
+    const videoRefusal = ports.validateMedia(items, externalVideoCount);
+    if (videoRefusal) {
+      return fail(
+        422,
+        quickBienesRefusal(
+          "media_contract_violation",
+          { en: videoRefusal.message, es: videoRefusal.messageEs },
+          videoRefusal.issues,
+        ),
+      );
+    }
+  }
 
   // 6. WRITE — only now.
   let listingId: string;

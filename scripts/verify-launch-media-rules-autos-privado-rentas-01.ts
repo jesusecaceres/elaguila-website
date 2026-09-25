@@ -112,7 +112,9 @@ check("autos privado: Quick image/video limits are Dealer-only - manager opts ou
   assert.match(mgr, /applyBusinessPlanLimits = true/, "manager prop defaults to true (Dealer behavior unchanged)");
   assert.match(
     mgr,
-    /const isQuickBusinessPlan = applyBusinessPlanLimits && businessPlanFromSearchParams\(searchParams\) === "quick";/,
+    // Autos Dealer Quick shared-presentation: the plan now comes from useIsQuickBusinessPlan("autos") (staff
+    // custody OR the ?plan=quick marker), still AND-ed with applyBusinessPlanLimits so Privado opts out.
+    /const isQuickBusinessPlan = applyBusinessPlanLimits && quickPlan\.isQuick;/,
   );
   assert.match(raw(PRIVADO_APP), /<AutosNegociosMediaManager[\s\S]*?applyBusinessPlanLimits=\{false\}[\s\S]*?\/>/);
   assert.ok(!/applyBusinessPlanLimits=\{false\}/.test(raw(DEALER_STEPS)), "Dealer steps must keep the Quick signal live");

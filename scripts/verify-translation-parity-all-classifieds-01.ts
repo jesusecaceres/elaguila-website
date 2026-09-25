@@ -319,6 +319,8 @@ function main() {
   });
 
   check("private Preview: same shared control/API, no auto-translation on render", () => {
+    // ProspectPreviewTranslateAd = generic-shell families only; the four business families render the real
+    // public components (each with its own real Translate Ad) — see verify-prospect-preview-real-components-01.ts.
     const src = read("app/(site)/vista-previa/[category]/ProspectPreviewTranslateAd.tsx");
     assert.ok(src.includes("TranslateAdControl"));
     assert.ok(src.includes("requestAdTranslation"));

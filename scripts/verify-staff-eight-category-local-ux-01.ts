@@ -61,6 +61,9 @@ function main() {
   });
 
   check("U3: prospect preview is mobile-first, bilingual banner, Translate Ad, no JSON dump", () => {
+    // The 720px wrap + ProspectPreviewTranslateAd asserted here belong to the GENERIC shell (rentas, empleos,
+    // autos-privado, comida-local). The four business families bypass it and render the real public
+    // components full width (verify-prospect-preview-real-components-01.ts).
     const page = read("app/(site)/vista-previa/[category]/page.tsx");
     const shell = read("app/(site)/vista-previa/[category]/ProspectCategoryPreviewShell.tsx");
     assert.ok(page.includes('paddingTop: "calc(5.25rem + env(safe-area-inset-top, 0px))"'));
@@ -75,6 +78,7 @@ function main() {
   });
 
   check("U4: 1/2/3 image layouts have no empty placeholders and no video", () => {
+    // Generic-shell families only (see U3); business families use the real components' own galleries.
     for (const n of [1, 2, 3] as const) {
       const layout = layoutQuickMedia(n);
       assert.equal("ok" in layout, false);

@@ -103,7 +103,8 @@ check("share: Empleos quick CTA card uses the shared drawer (no raw navigator.sh
 });
 check("share: every Servicios general-share mount uses the shared drawer", () => {
   for (const rel of [
-    "app/(site)/clasificados/publicar/servicios/preview/ServiciosProfessionalPreviewShell.tsx",
+    // Quick/Full shared presentation (2026-09-24): the Preview renders the shared professional shell (listed below)
+    // through a thin adapter, so it has no share mount of its own.
     "app/(site)/clasificados/servicios/ServiciosListingResultCard.tsx",
     "app/(site)/servicios/components/ServiciosBusinessHubEngagementRow.tsx",
     "app/(site)/servicios/components/ServiciosEndOfContentShare.tsx",

@@ -29,6 +29,7 @@ import { refuseUnlessAuthoritativePayment } from "@/app/lib/listingPlans/listing
 import {
   createAutosClassifiedsListing,
   createAutosClassifiedsListingWithInventoryParent,
+  getAutosClassifiedsListingById,
   isAutosClassifiedsDbConfigured,
   updateAutosClassifiedsListingDraft,
 } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
@@ -46,6 +47,8 @@ import {
   extractSemanticMediaItems,
 } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
 import { resolveQuickBusinessPublishIdentity } from "@/app/lib/listingPlans/quickBusinessProductIdentityServer";
+import { quickFullOnlyBoundaryApplies } from "@/app/lib/quickBusiness/quickFullOnlyBoundary";
+import { stripQuickDealerFullOnlyFields } from "@/app/lib/clasificados/autos/stripQuickDealerFullOnlyFields";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -180,20 +183,53 @@ export async function POST(request: NextRequest) {
   // logo is an identity asset and can never satisfy that slot. Enforced here on the server so the
   // rule holds regardless of what the client sent; the media set is read from the vehicle listing
   // because the vehicle, not the business, is what this listing is about.
+  //
+  // QUICK / FULL FIELD BOUNDARY — the product is resolved for SAVE as well as publish (it used to be
+  // resolved only on publish_for_client, so a Quick draft saved by staff could carry Full-only
+  // content). For a PROVEN Quick product every Full-only path (social links, Google/Yelp/extra links,
+  // video, staged extra vehicles) takes the value already STORED on the row (restore, never delete) or
+  // is emptied, on BOTH the dealer listing and the vehicle listing. Full / unverified is untouched.
+  const assistedProduct = await resolveQuickBusinessPublishIdentity({
+    category: "autos",
+    ownerUserId: resolvedOwnerUserId ?? "",
+    listingId: existingMainListingId || null,
+    assistedPackageKey: assistedContext.packageKey ?? null,
+  });
+  let dealerListingToWrite: AutoDealerListing = dealerListing;
+  let vehicleListingToWrite = body.vehicleListing as AutoDealerListing | null | undefined;
+  if (quickFullOnlyBoundaryApplies(assistedProduct)) {
+    const storedMain = existingMainListingId ? await getAutosClassifiedsListingById(existingMainListingId) : null;
+    dealerListingToWrite = stripQuickDealerFullOnlyFields({
+      listing: dealerListing,
+      existing: storedMain?.listing_payload ?? null,
+      decision: assistedProduct,
+    }).listing;
+    if (vehicleListingToWrite && typeof vehicleListingToWrite === "object") {
+      const storedChildId = existingMainListingId ? await findExistingAssistedVehicleChildId(existingMainListingId) : null;
+      const storedChild = storedChildId ? await getAutosClassifiedsListingById(storedChildId) : null;
+      vehicleListingToWrite = stripQuickDealerFullOnlyFields({
+        listing: vehicleListingToWrite,
+        existing: storedChild?.listing_payload ?? null,
+        decision: assistedProduct,
+      }).listing;
+    }
+  }
+
   if (isAssistedPublish) {
     // Gate QB-MEDIA-03 — the SAME canonical entry point the four self-service seams call, so the
     // assisted and self-service paths cannot drift into two different contracts. The previous
     // per-route `validateQuickBusinessMediaForCategory` call is still exercised directly by the
     // behavioral verifier; here the canonical function owns extraction and the refusal shape.
-    const assistedProduct = await resolveQuickBusinessPublishIdentity({
-      category: "autos",
-      ownerUserId: resolvedOwnerUserId ?? "",
-      listingId: existingMainListingId || null,
-      assistedPackageKey: assistedContext.packageKey ?? null,
-    });
-    const vehicleMedia = extractSemanticMediaItems(body.vehicleListing);
+    const vehicleMedia = extractSemanticMediaItems(vehicleListingToWrite);
+    // External video links live in `videoUrls` (never a video MIME type), so they must be counted
+    // explicitly or "Quick includes no video" is unenforceable here. Both listings are counted;
+    // after the boundary above a proven Quick product carries none it did not already store.
+    const externalVideoCount = [dealerListingToWrite, vehicleListingToWrite].reduce((n, l) => {
+      const urls = (l as { videoUrls?: unknown } | null | undefined)?.videoUrls;
+      return n + (Array.isArray(urls) ? urls.filter((v) => typeof v === "string" && v.trim().length > 0).length : 0);
+    }, 0);
     const semanticMedia = assistedProduct.enforceQuickContract
-      ? enforceQuickBusinessPublishMedia({ category: "autos-dealer", items: vehicleMedia })
+      ? enforceQuickBusinessPublishMedia({ category: "autos-dealer", items: vehicleMedia, externalVideoCount })
       : null;
     if (semanticMedia && !semanticMedia.ok) {
       return NextResponse.json(semanticMedia.body, { status: semanticMedia.status });
@@ -240,7 +276,7 @@ export async function POST(request: NextRequest) {
   let mainListingId = existingMainListingId;
   if (mainListingId) {
     const updated = await updateAutosClassifiedsListingDraft(mainListingId, writeOwnerUserId, {
-      listing: dealerListing,
+      listing: dealerListingToWrite,
       lang,
     });
     if (!updated.row) {
@@ -265,7 +301,7 @@ export async function POST(request: NextRequest) {
       ownerUserId: resolvedOwnerUserId,
       lane: "negocios",
       lang,
-      listing: dealerListing,
+      listing: dealerListingToWrite,
       inventoryRole: "main",
     });
     if (!mainResult.row) {
@@ -282,7 +318,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Optionally create the first vehicle row (required for publish_for_client)
-  const vehicleListing = body.vehicleListing as AutoDealerListing | null | undefined;
+  const vehicleListing = vehicleListingToWrite;
   let vehicleListingId: string | null = null;
 
   if (vehicleListing && typeof vehicleListing === "object") {

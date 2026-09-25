@@ -24,6 +24,7 @@ import {
   AUTOS_DEALER_MONTHLY_PACKAGE_KEY,
 } from "./publishCheckoutCheckpoint";
 import { getRevenuePackageDefinition } from "./revenuePricingMatrix";
+import { productForBasePackageKey } from "./quickBusinessProductIdentity";
 import type { LeonixPaymentRecordRow } from "./revenuePaymentRecords";
 
 export type AutosDealerRevenueActivationOutcome =
@@ -230,7 +231,13 @@ export async function activatePaidAutosDealerListingFromRevenueOs(input: {
   // succeeded; a Stripe retry or an owner-triggered event resend after a partial failure resumes
   // from exactly index N instead of either re-attempting (duplicating) or skipping (losing) the
   // remaining children.
-  const pendingChildren = row.listing_payload.additionalInventoryVehicles ?? [];
+  //
+  // QUICK (SIMPLE) = ONE active vehicle and no inventory pack. The base package that was actually
+  // PAID (`input.packageKey`, server-owned webhook fact, never a browser field) names the product, so
+  // a Quick dealer whose staged payload somehow carries extra vehicles never gets them published.
+  // Full is unchanged: every staged child is published as before.
+  const quickDealerPaid = productForBasePackageKey("autos", packageKey) === "quick";
+  const pendingChildren = quickDealerPaid ? [] : (row.listing_payload.additionalInventoryVehicles ?? []);
   if (pendingChildren.length > 0) {
     const alreadyPublishedCount = await countAutosDealerListingChildRows(listingId);
     const remainingChildren = publishableChildren(pendingChildren).slice(alreadyPublishedCount);

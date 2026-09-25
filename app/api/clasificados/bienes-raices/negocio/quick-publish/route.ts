@@ -81,8 +81,10 @@ export function buildQuickBienesPublishPorts(request: NextRequest): QuickBienesP
 
     // The same canonical entry point every other Quick seam calls, so the contract cannot drift
     // between paths. Only a role descriptor is ever seen here: no bytes, no URLs.
-    validateMedia: (items) => {
-      const result = enforceQuickBusinessPublishMedia({ category: "bienes-negocio", items });
+    validateMedia: (items, externalVideoCount) => {
+      // `externalVideoCount`: external video links this write would ADD (0 after the Quick Full-only
+      // boundary; a real count would mean the boundary failed, and the contract then refuses).
+      const result = enforceQuickBusinessPublishMedia({ category: "bienes-negocio", items, externalVideoCount });
       if (!result || result.ok) return null;
       return {
         message: result.body.message,
@@ -94,7 +96,7 @@ export function buildQuickBienesPublishPorts(request: NextRequest): QuickBienesP
     findReusablePendingListing: async (key) => {
       const { data, error } = await getAdminSupabase()
         .from("listings")
-        .select("id, listing_json")
+        .select("id, listing_json, business_meta, detail_pairs, profile_json, contact_json")
         .match(key)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -106,7 +108,15 @@ export function buildQuickBienesPublishPorts(request: NextRequest): QuickBienesP
         data?.listing_json && typeof data.listing_json === "object" && !Array.isArray(data.listing_json)
           ? (data.listing_json as Record<string, unknown>)
           : null;
-      return { ok: true, row: { id, listingJson } };
+      // The stored Full-only-capable columns, so the Quick boundary restores (never wipes) them on a retry.
+      const stored = data as Record<string, unknown>;
+      const existing: Record<string, unknown> = {
+        business_meta: stored.business_meta ?? null,
+        detail_pairs: stored.detail_pairs ?? null,
+        profile_json: stored.profile_json ?? null,
+        contact_json: stored.contact_json ?? null,
+      };
+      return { ok: true, row: { id, listingJson, existing } };
     },
 
     insertListing: async (row) => {

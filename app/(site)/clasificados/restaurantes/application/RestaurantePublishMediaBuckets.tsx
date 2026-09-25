@@ -16,12 +16,26 @@ const MAX_IMAGES_PER_BUCKET = 12;
 interface RestaurantePublishMediaBucketsProps {
   draft: RestauranteListingDraft;
   onChange: (patch: RestauranteDraftPatch) => void;
+  /**
+   * Quick (Simple) entitlement only: TOTAL photo cap (hero + all buckets) from the per-category Quick table.
+   * Photos beyond the hero go to the Comida bucket, the one bucket the public "Galería y Videos" section
+   * renders. Interior/Exterior are hidden (stored values are kept, never deleted) and still count toward the
+   * cap. null/undefined = Full: three buckets, 12 each, unchanged.
+   */
+  quickPhotoCap?: number | null;
 }
 
 export function RestaurantePublishMediaBuckets({
   draft,
   onChange,
+  quickPhotoCap = null,
 }: RestaurantePublishMediaBucketsProps) {
+  const isQuickCap = typeof quickPhotoCap === "number" && quickPhotoCap > 0;
+  /** Comida slots left for Quick: cap minus the hero slot minus stored interior/exterior photos. */
+  const quickFoodMax = isQuickCap
+    ? Math.max(0, (quickPhotoCap ?? 0) - 1 - (draft.interiorImages?.length ?? 0) - (draft.exteriorImages?.length ?? 0))
+    : MAX_IMAGES_PER_BUCKET;
+  const foodMax = isQuickCap ? Math.min(MAX_IMAGES_PER_BUCKET, quickFoodMax) : MAX_IMAGES_PER_BUCKET;
   const appendBucketImages = useCallback(
     async (
       field: "foodImages" | "interiorImages" | "exteriorImages",
@@ -34,12 +48,19 @@ export function RestaurantePublishMediaBuckets({
         if (!isRestauranteDisplayableImageRef(dataUrl)) continue;
         onChange((prev) => {
           const current = (prev[field] as string[] | undefined) ?? [];
-          if (current.length >= MAX_IMAGES_PER_BUCKET) return {};
+          const bucketMax = isQuickCap
+            ? Math.max(
+                0,
+                (quickPhotoCap ?? 0) - 1 - (prev.interiorImages?.length ?? 0) - (prev.exteriorImages?.length ?? 0),
+              )
+            : MAX_IMAGES_PER_BUCKET;
+          if (field !== "foodImages" && isQuickCap) return {};
+          if (current.length >= Math.min(MAX_IMAGES_PER_BUCKET, bucketMax)) return {};
           return { [field]: [...current, dataUrl.trim()] } as Partial<RestauranteListingDraft>;
         });
       }
     },
-    [onChange],
+    [onChange, isQuickCap, quickPhotoCap],
   );
 
   const addFoodImages = useCallback(
@@ -74,8 +95,8 @@ export function RestaurantePublishMediaBuckets({
             helperText="Varias a la vez, o arrastra imágenes aquí."
             accept="image/*"
             multiple
-            disabled={foodCount >= MAX_IMAGES_PER_BUCKET}
-            selectedLabel={foodCount > 0 ? `${foodCount} foto(s) · máx. ${MAX_IMAGES_PER_BUCKET}` : null}
+            disabled={foodCount >= foodMax}
+            selectedLabel={foodCount > 0 ? `${foodCount} foto(s) · máx. ${foodMax}` : null}
             onFilesSelected={(fl) => void addFoodImages(fl)}
           />
         }
@@ -86,6 +107,8 @@ export function RestaurantePublishMediaBuckets({
         showEmptyHint={foodOk === 0}
       />
 
+      {isQuickCap ? null : (
+      <>
       <BucketBlock
         title="🏠 Interior"
         description="Fotos del ambiente interior, decoración, mesas, barra y espacios del restaurante."
@@ -129,6 +152,8 @@ export function RestaurantePublishMediaBuckets({
         }
         showEmptyHint={exteriorOk === 0}
       />
+      </>
+      )}
     </div>
   );
 }

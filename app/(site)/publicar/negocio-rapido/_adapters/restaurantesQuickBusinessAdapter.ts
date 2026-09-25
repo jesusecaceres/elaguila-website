@@ -24,6 +24,7 @@ import {
 import { withClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import { withQuickPlanParam } from "@/app/lib/listingPlans/businessQuickPlanSignal";
 import type { SupportedLang } from "@/app/lib/language";
+import { quickImageMaxForBusinessCategory } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
 import type { QuickBusinessCategoryAdapter } from "@/app/lib/quickBusiness/quickBusinessTypes";
 import type { QuickIntakeStep, QuickIntakeValues } from "@/app/lib/quickClassifieds/quickClassifiedTypes";
 import { quickList, quickStr } from "@/app/lib/quickClassifieds/quickClassifiedValidation";
@@ -88,7 +89,13 @@ export const restaurantesQuickBusinessAdapter: QuickBusinessCategoryAdapter = {
     // Gate QB-MEDIA-03 — a logo never becomes the hero or a gallery photo. Restaurantes keeps its
     // logo in its own non-gallery field, so what reaches the publish route is restaurant media by
     // construction (`SUBJECT_ATTRIBUTION.restaurantes === "structural"`).
-    const [hero, ...rest] = galleryMediaOnly(media).map((m) => m.dataUrl);
+    // Photo 1 is the hero. Photos 2..N go to the Comida bucket (`foodImages`): that is the ONE bucket the public
+    // "Galería y Videos" section renders. `galleryImages` is not rendered publicly, so a photo placed there would
+    // never be seen. Total is capped by the category-aware Quick table (Restaurantes = 5), never a local literal.
+    const photoCap = quickImageMaxForBusinessCategory("restaurantes") ?? Number.MAX_SAFE_INTEGER;
+    const [hero, ...rest] = galleryMediaOnly(media)
+      .map((m) => m.dataUrl)
+      .slice(0, photoCap);
     const serviceModes = quickList(values, "serviceModes").filter((m): m is RestauranteServiceMode => RESTAURANTE_SERVICE_MODES.some((o) => o.key === m));
     const draft: RestauranteListingDraft = {
       ...base,
@@ -109,7 +116,7 @@ export const restaurantesQuickBusinessAdapter: QuickBusinessCategoryAdapter = {
       email: quickStr(values, "email") || undefined,
       websiteUrl: quickStr(values, "website") || undefined,
       heroImage: hero ?? "",
-      galleryImages: rest,
+      foodImages: rest,
     };
     const readiness = auditRestaurantePublishReadiness(draft, "draft");
     if (!readiness.readyToPublish) {

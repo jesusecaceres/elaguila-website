@@ -64,6 +64,8 @@ import {
 import { normalizeStrictExternalVideoUrl } from "@/app/lib/media/externalVideoUrlValidation";
 import { enforceQuickBusinessPublishMedia } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
 import { resolveQuickBusinessPublishIdentity } from "@/app/lib/listingPlans/quickBusinessProductIdentityServer";
+import { quickFullOnlyBoundaryApplies } from "@/app/lib/quickBusiness/quickFullOnlyBoundary";
+import { applyServiciosQuickFullOnlyBoundary } from "@/app/clasificados/publicar/servicios/lib/serviciosQuickFullOnlyPaths";
 import { SERVICIOS_MAX_VIDEO_URLS } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
 
 /** Gallery cap mirrors GALLERY_MAX in ClasificadosServiciosApplication.tsx:141 (local, unexported). */
@@ -422,12 +424,18 @@ export async function POST(req: NextRequest) {
     assistedPackageKey: assistedContext?.packageKey ?? null,
     declaredPackageKey: typeof b.basePackageKey === "string" ? b.basePackageKey : null,
   });
+  // The cover is a DISTINCT image only when it is not already one of the gallery photos. The Quick intake
+  // sets `coverUrl` to its first gallery photo (same file, kept in the gallery too), so counting both made
+  // a Quick customer with exactly the cap hit `too_many_images`. A separate cover still counts.
+  const serviciosGalleryUrlSet = new Set(state.gallery.map((g) => String(g.url ?? "").trim()).filter(Boolean));
+  const serviciosCoverIsDistinct =
+    Boolean(state.coverUrl) && !serviciosGalleryUrlSet.has(String(state.coverUrl).trim());
   const serviciosMediaItems = [
     // Servicios keeps identity media in its own non-gallery `logoUrl` field (`logoAllowed: false`
     // on this route), so a cover or gallery item is subject media by construction — which is
     // exactly what `SUBJECT_ATTRIBUTION.servicios === "structural"` states. There is no per-item
     // role on this state to read, and inventing one would be a false declaration.
-    ...(state.coverUrl ? [{ role: null, mime: null }] : []),
+    ...(serviciosCoverIsDistinct ? [{ role: null, mime: null }] : []),
     ...state.gallery.map((g) => ({ role: (g as { role?: string }).role ?? null, mime: null })),
   ];
   // Servicios keeps external video in its own link list (up to SERVICIOS_MAX_VIDEO_URLS), which
@@ -628,6 +636,19 @@ export async function POST(req: NextRequest) {
     serviciosOffersEntitled,
     trustedExistingServiciosOfferContent,
   );
+
+  // QUICK / FULL FIELD BOUNDARY (Servicios product lock). A Quick listing has ONE primary website and no
+  // social links, extra website URLs, Google Business / Google Reviews, Yelp or additional business links.
+  // Gated by a PROVEN Quick product (`quickFullOnlyBoundaryApplies`), NOT by `enforceQuickContract`: that flag
+  // is also true for `unverified`, which can be a Full customer on a first pre-payment save, and Full content
+  // must never be stripped on a guess. The stored row wins where it already has a value (a Full listing that
+  // temporarily resolves Quick keeps its data); otherwise the field is emptied. This runs before the address
+  // split and every persistence branch below (customer save, assisted save/publish for client), so one
+  // sanitizer covers both paths. Video and coupons stay enforced by the media contract above and the offers
+  // entitlement immediately before this.
+  if (quickFullOnlyBoundaryApplies(serviciosProduct)) {
+    wire = applyServiciosQuickFullOnlyBoundary({ incoming: wire, existing: previousWire }).value;
+  }
 
   const preset = getBusinessTypePreset(state.businessTypeId);
   const internalGroup = preset?.internalGroup ?? null;

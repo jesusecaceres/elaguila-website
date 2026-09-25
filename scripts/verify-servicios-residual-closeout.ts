@@ -105,11 +105,11 @@ check("ServiciosBusinessHubContactCard's primary Correo CTA opens the shared Cta
   );
 });
 check("Preview stays safe: listingShareUrl is never passed by the Preview mount, matching the existing Share-button no-leaked-URL pattern", () => {
-  const preview = raw("app/(site)/clasificados/publicar/servicios/preview/ServiciosProfessionalPreviewShell.tsx");
-  const mountIdx = preview.indexOf("<ServiciosBusinessHubContactCard");
-  assert.ok(mountIdx > 0);
-  const mountBlock = preview.slice(mountIdx, mountIdx + 600);
-  assert.ok(!mountBlock.includes("listingShareUrl="), "Preview passes no canonical share URL into the contact card, same as the proven Share-button pattern");
+  // Quick/Full shared presentation (2026-09-24): the Preview mounts the shared shell through a thin adapter.
+  // Its mount must never hand the shell a canonical share URL (the shell forwards it to the contact card).
+  const previewAdapter = raw("app/(site)/clasificados/publicar/servicios/preview/ServiciosProfessionalPreviewShell.tsx");
+  assert.ok(previewAdapter.includes("<ServiciosProfessionalProfileShell"), "Preview renders the shared shell");
+  assert.ok(!/listingShareUrl\s*=/.test(previewAdapter), "Preview passes no canonical share URL into the shell, same as the proven Share-button pattern");
 });
 check("General Share and Cotización are untouched by the Correo change", () => {
   const card = raw("app/(site)/servicios/components/ServiciosBusinessHubContactCard.tsx");

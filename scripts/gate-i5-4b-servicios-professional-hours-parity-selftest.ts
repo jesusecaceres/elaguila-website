@@ -33,7 +33,11 @@ function countOccurrences(haystack: string, needle: string): number {
 }
 
 const PUBLISHED_SHELL = "app/(site)/servicios/components/ServiciosProfessionalProfileShell.tsx";
-const PREVIEW_SHELL = "app/(site)/clasificados/publicar/servicios/preview/ServiciosProfessionalPreviewShell.tsx";
+// Quick/Full shared-presentation unification (2026-09-24): the Preview no longer owns a copied shell. It
+// renders the SAME ServiciosProfessionalProfileShell the public page renders (thin adapter
+// ServiciosProfessionalPreviewShell.tsx), so Preview parity is structural: one file. The Preview-vs-Published
+// assertions below therefore read the shared shell for both sides.
+const PREVIEW_SHELL = "app/(site)/servicios/components/ServiciosProfessionalProfileShell.tsx";
 const TRADES_SHELL = "app/(site)/servicios/components/ServiciosProfileView.tsx";
 const HOURS_COMPONENT = "app/(site)/servicios/components/ServiciosHours.tsx";
 const SHARED_MAPPER = "app/(site)/servicios/lib/mapServiciosApplicationDraftToBusinessProfile.ts";
@@ -50,7 +54,7 @@ async function main() {
    * ---------------------------------------------------------------------------------------- */
   {
     assert.ok(
-      /import\s*\{\s*ServiciosHours\s*\}\s*from\s*"@\/app\/servicios\/components\/ServiciosHours"/.test(previewSrc),
+      /import\s*\{\s*ServiciosHours\s*\}\s*from\s*"(?:@\/app\/servicios\/components\/|\.\/)ServiciosHours"/.test(previewSrc),
       "Preview shell must import the same ServiciosHours component Published uses",
     );
   }

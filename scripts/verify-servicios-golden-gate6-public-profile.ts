@@ -43,7 +43,7 @@ const raw = (rel: string) =>
   stripComments(readFileSync(new URL(`../${rel}`, import.meta.url), "utf8").replace(/\r\n/g, "\n"));
 
 const SHELL = "app/(site)/servicios/components/ServiciosProfessionalProfileShell.tsx";
-const PREVIEW_SHELL = "app/(site)/clasificados/publicar/servicios/preview/ServiciosProfessionalPreviewShell.tsx";
+const PREVIEW_SHELL = "app/(site)/servicios/components/ServiciosProfessionalProfileShell.tsx";
 const PROFILE_VIEW = "app/(site)/servicios/components/ServiciosProfileView.tsx";
 const PUBLIC_PAGE = "app/(site)/clasificados/servicios/[slug]/page.tsx";
 const TRANSLATE_AD = "app/(site)/servicios/lib/serviciosTranslateAd.ts";

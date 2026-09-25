@@ -19,6 +19,8 @@ function assert(condition, message) {
 const slugPage = read("app/(site)/clasificados/servicios/[slug]/page.tsx");
 const tradeShell = read("app/(site)/servicios/components/ServiciosProfileView.tsx");
 const proShell = read("app/(site)/servicios/components/ServiciosProfessionalProfileShell.tsx");
+// Quick/Full shared presentation (2026-09-24): the Preview renders the SAME shared professional shell through a thin
+// adapter (ServiciosProfessionalPreviewShell.tsx); it no longer owns a copied shell. Preview-only assertions read the adapter.
 const proPreview = read("app/(site)/clasificados/publicar/servicios/preview/ServiciosProfessionalPreviewShell.tsx");
 const clasPreview = read("app/(site)/clasificados/publicar/servicios/preview/ClasificadosServiciosPreviewClient.tsx");
 const templateRouting = read("app/(site)/clasificados/servicios/lib/serviciosTemplateRouting.ts");
@@ -56,8 +58,8 @@ assert(contactCard.includes("hubEngagementVariant"), "contact card: forwards hub
 
 assert(clasPreview.includes("ServiciosProfileView"), "trade preview: ServiciosProfileView");
 assert(clasPreview.includes("showTopBar={false}"), "trade preview: no top bar");
-assert(proPreview.includes("ServiciosProfessionalHero"), "pro preview: professional hero");
-assert(!proPreview.includes("ServiciosTopBar"), "pro preview: no top bar");
+assert(proPreview.includes("<ServiciosProfessionalProfileShell") && proShell.includes("ServiciosProfessionalHero"), "pro preview: professional hero (shared shell)");
+assert(proPreview.includes("showTopBar={false}"), "pro preview: no top bar");
 
 assert(templateRouting.includes("abogado_asesoria_legal"), "routing: immigration/legal business type");
 

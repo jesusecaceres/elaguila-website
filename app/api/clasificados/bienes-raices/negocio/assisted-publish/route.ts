@@ -39,6 +39,12 @@ import {
   extractSemanticMediaItems,
 } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
 import { resolveQuickBusinessPublishIdentity } from "@/app/lib/listingPlans/quickBusinessProductIdentityServer";
+import {
+  forceQuickBienesMainInventoryRow,
+  quickBienesNetNewExternalVideoCount,
+  quickFullOnlyBoundaryApplies,
+  stripQuickBienesFullOnlyFields,
+} from "@/app/lib/clasificados/bienes-raices/stripQuickBienesFullOnlyFields";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -190,15 +196,18 @@ export async function POST(request: NextRequest) {
   // Gate QB-MEDIA-02 — a property listing must carry at least one real PROPERTY photo. An agent
   // headshot and a brokerage logo are identity assets and can never satisfy that slot. Checked on
   // publish only: a save_for_client draft is allowed to be incomplete.
+  // The product this custody sells, resolved ONCE from server-owned records (signed assisted package,
+  // live entitlement, checkout ledger) for BOTH actions: the Quick Full-only boundary below applies to a
+  // save as well as a publish.
+  const assistedProduct = await resolveQuickBusinessPublishIdentity({
+    category: "bienes-raices",
+    ownerUserId: clientUserId || "",
+    listingId: existingListingId || null,
+    assistedPackageKey: assistedContext.packageKey ?? null,
+  });
   if (isAssistedPublish) {
     // Gate QB-MEDIA-03 — the SAME canonical entry point the four self-service seams call, so the
     // assisted and self-service paths cannot drift into two different contracts.
-    const assistedProduct = await resolveQuickBusinessPublishIdentity({
-      category: "bienes-raices",
-      ownerUserId: clientUserId || "",
-      listingId: existingListingId || null,
-      assistedPackageKey: assistedContext.packageKey ?? null,
-    });
     const semanticMedia = assistedProduct.enforceQuickContract
       ? enforceQuickBusinessPublishMedia({
           category: "bienes-negocio",
@@ -223,10 +232,46 @@ export async function POST(request: NextRequest) {
   }
 
   // Filter to only allowed columns; always overwrite owner_id server-side
-  const filteredRow: Record<string, unknown> = {};
+  let filteredRow: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(listingRowRaw)) {
     if (ALLOWED_LISTING_COLUMNS.has(key)) {
       filteredRow[key] = value;
+    }
+  }
+
+  // QUICK FULL-ONLY BOUNDARY (proven Quick only — never `unverified`, which may be a Full customer).
+  // Extra socials, Google/Yelp links, extra business links and video are RESTORED from the stored row
+  // (reopen) or emptied (first save); the staff/browser value never wins. Gated on the PROVEN product,
+  // not on the enforce flag.
+  const quickProven = quickFullOnlyBoundaryApplies(assistedProduct);
+  if (quickProven) {
+    let storedForBoundary: Record<string, unknown> | null = null;
+    if (existingListingId) {
+      const { data: stored } = await getAdminSupabase()
+        .from("listings")
+        .select("business_meta, detail_pairs, profile_json, contact_json")
+        .eq("id", existingListingId)
+        .eq("category", "bienes-raices")
+        .maybeSingle();
+      storedForBoundary = stored ? (stored as Record<string, unknown>) : null;
+    }
+    filteredRow = stripQuickBienesFullOnlyFields({ row: filteredRow, existingRow: storedForBoundary }).row;
+    // ONE property, no inventory: a proven Quick row is ALWAYS main and never arrives grouped/parented
+    // (the request may not name a child role or a parent). Applied to the filtered row BEFORE the insert
+    // row is built, so the insert path stays born-pending exactly as pinned. Full/PRO and unverified are untouched.
+    filteredRow = forceQuickBienesMainInventoryRow(filteredRow);
+    // Defence in depth ("Quick includes no video"): external video links this write would ADD. 0 after
+    // the boundary; a real count would mean it failed, and the canonical contract then refuses.
+    const netNewVideos = quickBienesNetNewExternalVideoCount({ row: filteredRow, existingRow: storedForBoundary });
+    if (isAssistedPublish && netNewVideos > 0) {
+      const videoRefusal = enforceQuickBusinessPublishMedia({
+        category: "bienes-negocio",
+        items: extractSemanticMediaItems(listingRowRaw),
+        externalVideoCount: netNewVideos,
+      });
+      if (videoRefusal && !videoRefusal.ok) {
+        return NextResponse.json(videoRefusal.body, { status: videoRefusal.status });
+      }
     }
   }
 

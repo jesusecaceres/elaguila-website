@@ -56,6 +56,9 @@ import { resolveDealerActiveVehicleLimit } from "@/app/lib/clasificados/autos/au
 import { buildDashboardMisAnunciosReturnPath } from "@/app/lib/listingPlans/revenueOsReturnPath";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { useAssistedBoundRow } from "@/app/lib/sales/useAssistedBoundRow";
+import { useIsQuickBusinessPlan } from "@/app/lib/quickBusiness/useIsQuickBusinessPlan";
+import { carryBusinessPlanParam } from "@/app/lib/listingPlans/businessQuickPlanSignal";
+import { quickImageMaxForBusinessCategory } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
 import { assistedBoundRowToDealerDraft } from "@/app/publicar/autos/shared/lib/autosAssistedBoundRowMappers";
 
 const CARD =
@@ -288,7 +291,13 @@ export function AutosNegociosApplication() {
   const inventoryPackActive = isExistingDashboardListingMode
     ? inventoryEntitlement === "active"
     : inventoryBoostSelected;
-  const inventoryVehicleLimit = resolveDealerActiveVehicleLimit(inventoryPackActive);
+  // QUICK (SIMPLE) dealer: one active vehicle, no inventory pack, and no Full-only fields. The plan
+  // comes from the staff custody context or the `?plan=quick` handoff marker, which is carried across
+  // every application <-> preview hop below so the round trip can never silently turn Full.
+  const { isQuick: isQuickBusinessPlan } = useIsQuickBusinessPlan("autos");
+  const businessPlan = isQuickBusinessPlan ? "quick" : "full";
+  const quickImageCap = quickImageMaxForBusinessCategory("autos-dealer");
+  const inventoryVehicleLimit = resolveDealerActiveVehicleLimit(inventoryPackActive, { quick: isQuickBusinessPlan });
   const dashboardParentListingId = isExistingDashboardListingMode
     ? editListingId
     : draftListingIdForBoost;
@@ -332,7 +341,7 @@ export function AutosNegociosApplication() {
   const stepLabels = getAutosApplicationStepLabels(lang, "negocios");
   const stepBlockWarnings = useMemo(() => getAutosPreviewBlockingStepIndices("negocios", listing), [listing]);
 
-  const previewHref = isExistingDashboardListingMode
+  const previewHrefBase = isExistingDashboardListingMode
     ? withLangParam(
         `/clasificados/autos/negocios/preview?${new URLSearchParams({
           edit: "1",
@@ -347,6 +356,9 @@ export function AutosNegociosApplication() {
         routeLang,
       )
     : withLangParam("/clasificados/autos/negocios/preview", routeLang);
+  // Plan drift fix: the preview href used to drop the plan, so one edit round trip re-mounted this
+  // application as Full (no photo cap, video, every Full-only field). Quick is written; Full never is.
+  const previewHref = carryBusinessPlanParam(previewHrefBase, businessPlan);
 
   if (
     !hydrated ||
@@ -402,7 +414,23 @@ export function AutosNegociosApplication() {
                   </a>
                 </p>
               ) : null}
-              <AutosPricingPlanBanner lang={lang} lane="negocios" />
+              {isQuickBusinessPlan ? (
+                <div
+                  className="rounded-xl border border-[color:var(--lx-gold-border)]/80 bg-[color:var(--lx-section)] px-3.5 py-3 sm:px-4"
+                  data-autos-pricing-plan-banner="negocios-quick"
+                >
+                  <p className="text-sm font-semibold leading-snug text-[color:var(--lx-text)]">
+                    {lang === "es" ? "Plan Quick · $249/mes" : "Quick plan · $249/mo"}
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed text-[color:var(--lx-text-2)]">
+                    {lang === "es"
+                      ? `Un vehículo activo, hasta ${quickImageCap} fotos y un sitio web principal. Video, redes sociales, enlaces adicionales e inventario extra son parte del plan Full.`
+                      : `One active vehicle, up to ${quickImageCap} photos and one primary website. Video, social links, extra links and extra inventory are part of the Full plan.`}
+                  </p>
+                </div>
+              ) : (
+                <AutosPricingPlanBanner lang={lang} lane="negocios" />
+              )}
               <AutosDraftSessionRestoredBanner lang={lang} restoredFromSession={restoredFromSession} />
               <ApplicationReadinessChecklist
                 title={autosDealerReadinessChecklistTitle(lang)}
@@ -552,6 +580,7 @@ export function AutosNegociosApplication() {
                   onChange={(e) => setListingPatch({ dealerWebsite: autosDraftUrlValue(e.target.value) })}
                 />
               </div>
+              {isQuickBusinessPlan ? null : (
               <div className="sm:col-span-2">
                 <label className={LABEL}>{t.app.labels.bookingUrl}</label>
                 <input
@@ -564,6 +593,7 @@ export function AutosNegociosApplication() {
                 />
                 <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.hints.bookingUrl}</p>
               </div>
+              )}
               <AutosDealerStructuredAddressFields
                 labels={{
                   street: t.app.labels.address,
@@ -592,6 +622,22 @@ export function AutosNegociosApplication() {
             <h3 className="mt-6 text-sm font-extrabold text-[color:var(--lx-text)]">{t.app.dealer.dealershipContactsHeading}</h3>
             <p className="mt-2 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.dealer.dealershipContactsHelper}</p>
 
+            {isQuickBusinessPlan ? (
+              <div
+                className="mt-6 rounded-xl border border-[#D8C79A]/70 bg-[#FFF6E7] p-4"
+                data-quick-full-only-locked="1"
+              >
+                <p className="text-sm font-bold text-[#3D2C12]">
+                  {lang === "en" ? "Available with Full" : "Disponible con Full"}
+                </p>
+                <p className="mt-1 text-xs text-[#5D4A25]">
+                  {lang === "en"
+                    ? "Your $249 plan includes one primary website and your phone, text, WhatsApp and email contact. Social links, Google and Yelp links, booking and financing links, and extra links are part of the Full plan."
+                    : "Tu plan de $249 incluye un sitio web principal y tu contacto por teléfono, texto, WhatsApp y correo. Los enlaces de redes sociales, Google y Yelp, de citas y financiamiento, y los enlaces adicionales son parte del plan Full."}
+                </p>
+              </div>
+            ) : (
+            <>
             <p className="mt-6 text-xs font-bold uppercase tracking-[0.12em] text-[color:var(--lx-muted)]">{t.app.dealer.socialHeading}</p>
             <div className={`${GRID2} mt-3`}>
               {(
@@ -742,6 +788,8 @@ export function AutosNegociosApplication() {
                 {t.app.dealer.customLinksMaxReached}
               </p>
             ) : null}
+            </>
+            )}
 
             <div className="mt-6 flex flex-wrap gap-2">
               <button
@@ -813,7 +861,13 @@ export function AutosNegociosApplication() {
               </div>
             ) : null}
 
-            <AutosDealerFinanceFields listing={listing} setListingPatch={setListingPatch} copy={t} lang={lang} />
+            <AutosDealerFinanceFields
+              listing={listing}
+              setListingPatch={setListingPatch}
+              copy={t}
+              lang={lang}
+              hideApplicationUrl={isQuickBusinessPlan}
+            />
           </section>
 
           <div className={activeStep === 6 ? "" : "hidden"} aria-hidden={activeStep !== 6}>
@@ -822,9 +876,26 @@ export function AutosNegociosApplication() {
                 <AutosNegociosResultsCardPreview
                   lang={lang}
                   listing={listing}
-                  additionalCount={additionalInventoryVehicles.length}
+                  additionalCount={isQuickBusinessPlan ? 0 : additionalInventoryVehicles.length}
                   inventoryVehicleLimit={inventoryVehicleLimit}
                 />
+                {isQuickBusinessPlan ? (
+                  <div
+                    className="mt-6 rounded-xl border border-[#D8C79A]/70 bg-[#FFF6E7] p-4"
+                    data-quick-full-only-locked="1"
+                    data-quick-inventory-locked="1"
+                  >
+                    <p className="text-sm font-bold text-[#3D2C12]">
+                      {lang === "en" ? "Available with Full" : "Disponible con Full"}
+                    </p>
+                    <p className="mt-1 text-xs text-[#5D4A25]">
+                      {lang === "en"
+                        ? "Your $249 plan includes one active vehicle. Additional inventory vehicles and the inventory pack are part of the Full plan."
+                        : "Tu plan de $249 incluye un vehículo activo. Los vehículos adicionales de inventario y el paquete de inventario son parte del plan Full."}
+                    </p>
+                  </div>
+                ) : (
+                <>
                 <AutosNegociosInventoryBundlePreview
                   lang={lang}
                   copy={t}
@@ -894,9 +965,11 @@ export function AutosNegociosApplication() {
                     dealerInventoryGroupId: inventoryAddContext?.dealerInventoryGroupId ?? null,
                   }}
                 />
+                </>
+                )}
               </>
             ) : null}
-            {!isExistingDashboardListingMode && !inventoryAddMode ? (
+            {!isExistingDashboardListingMode && !inventoryAddMode && !isQuickBusinessPlan ? (
               <AutosNegociosPackageReviewSummary lang={lang} inventoryBoostSelected={inventoryBoostSelected} />
             ) : null}
             <AutosApplicationReviewStep lane="negocios" listing={listing} copy={t} lang={lang} />

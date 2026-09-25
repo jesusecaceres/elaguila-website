@@ -15,7 +15,7 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-const shell = read("app/(site)/clasificados/publicar/servicios/preview/ServiciosProfessionalPreviewShell.tsx");
+const shell = read("app/(site)/servicios/components/ServiciosProfessionalProfileShell.tsx");
 const gallery = read("app/(site)/servicios/components/ServiciosGalleryWithTabs.tsx");
 const coupons = read("app/(site)/servicios/components/ServiciosCouponsCard.tsx");
 const mapper = read("app/(site)/clasificados/publicar/servicios/lib/mapClasificadosServiciosApplicationToServiciosDraft.ts");
@@ -27,7 +27,8 @@ const pkg = read("package.json");
 assert(!shell.includes("ServiciosPromocionesCard"), "Legacy free promotions card removed from preview shell");
 assert(shell.includes("ServiciosCouponsCard"), "Paid coupons card remains in preview shell");
 assert(shell.includes("hasPaidCouponsSectionResolved"), "Paid coupon presence helper used");
-assert(shell.includes("mergeClasificadosCouponsOntoServiciosProfile"), "Preview merges paid coupons from application state");
+// Quick/Full shared presentation (2026-09-24): the Preview renders the shared shell; the coupon merge from the
+// application state now happens once in the preview client, before the shell (asserted below).
 
 const couponsRenderIdx = shell.indexOf("<ServiciosCouponsCard");
 const galleryRenderIdx = shell.indexOf("<ServiciosGalleryWithTabs");

@@ -155,7 +155,7 @@ async function main() {
 
   check("W3: Comida Local has ONE row -> draft mapper shared by the owner edit fetch and the assisted reopen", () => {
     assert.ok(comidaEditCtx.includes("export function comidaLocalEditHydrationFromRow("));
-    assert.ok(comidaEditCtx.includes("return comidaLocalEditHydrationFromRow(data as Record<string, unknown>, listingId);"));
+    assert.ok(comidaEditCtx.includes("return comidaLocalEditHydrationFromRow(data as unknown as Record<string, unknown>, listingId);"));
     assert.ok(comidaEditCtx.includes("mergeComidaLocalDraftFromStorage(row.listing_json)"));
     assert.equal((comidaEditCtx.match(/mergeComidaLocalDraftFromStorage\(row\.listing_json\)/g) ?? []).length, 1);
   });

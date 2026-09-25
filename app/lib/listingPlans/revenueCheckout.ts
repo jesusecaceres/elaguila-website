@@ -22,6 +22,8 @@ import {
   type RevenueOsLang,
 } from "./revenueOsReturnPath";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { quickBienesInventoryAddonRefusal } from "@/app/lib/clasificados/bienes-raices/stripQuickBienesFullOnlyFields";
+import { resolveQuickBusinessPublishIdentity } from "./quickBusinessProductIdentityServer";
 
 export const RESTAURANTES_OFFERS_ADDON_PACKAGE_KEY = RESTAURANTES_COUPON_ADDON_PACKAGE_KEY;
 
@@ -786,6 +788,17 @@ export async function validateBienesInventoryAddonOwnership(input: {
       message: "Inventory add-on can only be purchased for the Bienes Raíces main parent listing.",
     };
   }
+
+  // QUICK: the +3 property inventory pack is a Full-only entitlement (Quick = ONE active property).
+  // Refused ONLY when the PARENT's product is server-PROVEN Quick (live SIMPLE entitlement or a settled
+  // Quick checkout). Full and `unverified` behave exactly as before, so no Full customer is blocked on a guess.
+  const parentProduct = await resolveQuickBusinessPublishIdentity({
+    category: "bienes-raices",
+    ownerUserId: input.bearerUserId.trim(),
+    listingId,
+  });
+  const quickRefusal = quickBienesInventoryAddonRefusal(parentProduct);
+  if (quickRefusal) return { ok: false, ...quickRefusal };
 
   return { ok: true };
 }

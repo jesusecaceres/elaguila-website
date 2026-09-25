@@ -71,9 +71,11 @@ check("the pending-payment save path reuses the proven pre-checkout helper with 
   const src = raw(PREVIEW);
   const idx = src.indexOf("const handleSaveChangesForPendingListing = useCallback(");
   assert.ok(idx > 0, "dedicated listing-bound save handler must exist");
-  const end = src.indexOf("[appState, canPublishFromPreview, lang]);", idx);
+  const end = src.indexOf("[appState, canPublishFromPreview, lang, declaredQuickPackageKey]);", idx);
   const body = src.slice(idx, end);
-  assert.ok(body.includes("saveServiciosPendingBeforeCheckout({ state: appState, lang, accessToken })"));
+  // Quick/Full shared presentation (2026-09-24): a Quick session now also passes its declared SIMPLE key
+  // (`basePackageKey`) as a trailing argument; the helper, state, lang and token are unchanged.
+  assert.ok(/saveServiciosPendingBeforeCheckout\(\{\s*state: appState,\s*lang,\s*accessToken,?/.test(body));
   assert.ok(!/startRevenueCategoryCheckout|redirectToRevenueCategoryCheckout/.test(body), "must never initiate Stripe checkout from an ordinary content save");
   assert.ok(!body.includes("clearServiciosDraftStorageAndIdb"), "must NOT clear the draft on an edit-save (unlike a first-time publish)");
   assert.ok(!body.includes("router.push"), "must NOT navigate away as if newly published");

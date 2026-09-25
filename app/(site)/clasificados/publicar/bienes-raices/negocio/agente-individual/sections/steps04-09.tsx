@@ -15,7 +15,7 @@ import {
   type BienesAdditionalBusinessLink,
 } from "../../application/bienesAdditionalBusinessLinks";
 import { COMERCIAL_DESTACADOS_CHECKLIST_DEFS, TERRENO_DESTACADOS_CHECKLIST_DEFS } from "../schema/agenteComercialTerrenoMeta";
-import { AiField, aiCardClass, aiInputClass, aiSubClass, aiTextareaClass, aiTitleClass } from "../application/formPrimitives";
+import { AiField, QuickFullOnlyNote, aiCardClass, aiInputClass, aiSubClass, aiTextareaClass, aiTitleClass } from "../application/formPrimitives";
 import { readFileAsDataUrl } from "../application/utils/readFileAsDataUrl";
 import { digitsOnly, formatUsPhoneDisplay, onPhoneInputChange } from "../application/utils/phoneMask";
 import type { BrAgenteResidencialCopy } from "../application/brAgenteResidencialCopy";
@@ -801,9 +801,17 @@ function AdditionalBusinessLinks({
 export function Step07InformacionProfesional({
   state,
   setState,
+  quick = false,
 }: {
   state: AgenteIndividualResidencialFormState;
   setState: Dispatch<SetStateAction<AgenteIndividualResidencialFormState>>;
+  /**
+   * Quick (Simple) session: ONE primary website (`agenteSitioWeb`) only. The extra websites (brand, second
+   * agent, broker), every social link, Google Business / Google Reviews / Yelp and the additional business
+   * links are HIDDEN and replaced by a "Available with Full" note. Stored Full values are never deleted
+   * here (the server restores them on write). Full renders exactly as before.
+   */
+  quick?: boolean;
 }) {
   const { t, lang } = useBrAgenteResidencialCopy();
   const s7 = t.step07 as BrAgenteResidencialCopy["step07"];
@@ -886,16 +894,18 @@ export function Step07InformacionProfesional({
         <AiField label={s7.licenciaMarca}>
           <input className={aiInputClass} value={state.marcaLicencia} onChange={(e) => setState((s) => ({ ...s, marcaLicencia: e.target.value }))} autoComplete="off" />
         </AiField>
-        <AiField label={s7.sitioMarca} hint={s7.sitioMarcaHint}>
-          <input
-            className={aiInputClass}
-            type="url"
-            value={state.marcaSitioWeb}
-            onChange={(e) => setState((s) => ({ ...s, marcaSitioWeb: e.target.value }))}
-            autoComplete="url"
-            placeholder="https://"
-          />
-        </AiField>
+        {quick ? null : (
+          <AiField label={s7.sitioMarca} hint={s7.sitioMarcaHint}>
+            <input
+              className={aiInputClass}
+              type="url"
+              value={state.marcaSitioWeb}
+              onChange={(e) => setState((s) => ({ ...s, marcaSitioWeb: e.target.value }))}
+              autoComplete="url"
+              placeholder="https://"
+            />
+          </AiField>
+        )}
       </div>
     </>
   );
@@ -1015,6 +1025,11 @@ export function Step07InformacionProfesional({
             autoComplete="url"
           />
         </AiField>
+        {quick ? (
+          <div className="sm:col-span-2">
+            <QuickFullOnlyNote lang={lang === "en" ? "en" : "es"} what={lang === "en" ? "Social links, Google and Yelp links and additional links" : "Enlaces de redes sociales, de Google y Yelp y enlaces adicionales"} />
+          </div>
+        ) : (
         <div className="sm:col-span-2">
           <p className="mt-2 text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">{s7.redes}</p>
           <p className="mt-1 text-sm text-[#5C5346]/85">{s7.redesSub}</p>
@@ -1055,6 +1070,7 @@ export function Step07InformacionProfesional({
             <AdditionalBusinessLinks state={state} setState={setState} />
           </div>
         </div>
+        )}
       </div>
     </>
   );
@@ -1206,6 +1222,12 @@ export function Step07InformacionProfesional({
                 autoComplete="email"
               />
             </AiField>
+            {quick ? (
+              <div className="sm:col-span-2">
+                <QuickFullOnlyNote lang={lang === "en" ? "en" : "es"} what={lang === "en" ? "A second website and social links" : "Un segundo sitio web y enlaces de redes sociales"} />
+              </div>
+            ) : (
+              <>
             <AiField label={s7.sitioWebAgente} hint={s7.sitioWebAgenteHint}>
               <input
                 className={aiInputClass}
@@ -1282,6 +1304,8 @@ export function Step07InformacionProfesional({
                 </AiField>
               </div>
             </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -1369,6 +1393,7 @@ export function Step07InformacionProfesional({
                 autoComplete="email"
               />
             </AiField>
+            {quick ? null : (
             <AiField label={s7.brokerSitioWeb} hint={s7.brokerSitioWebHint}>
               <input
                 className={aiInputClass}
@@ -1379,6 +1404,7 @@ export function Step07InformacionProfesional({
                 autoComplete="url"
               />
             </AiField>
+            )}
           </div>
         </div>
       )}

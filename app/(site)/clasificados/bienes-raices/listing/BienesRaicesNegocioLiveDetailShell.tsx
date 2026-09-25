@@ -41,8 +41,9 @@ const PARENT_SELECT =
   "id, business_name, business_meta, contact_phone, contact_email, status, is_published, category, seller_type";
 
 
+/* Production pill parity: the label is hidden below `sm` (icon only inside the max-w header slots); the shared Leonix drawer button is kept. */
 const SHARE_BTN_SHELL =
-  "max-w-none w-auto [&>button]:min-h-9 [&>button]:rounded-full [&>button]:border [&>button]:bg-white/90 [&>button]:px-2.5 [&>button]:text-[10px] [&>button]:font-bold [&>button]:uppercase [&>button]:tracking-[0.08em] [&>button]:text-[#5C4A28] [&>button]:transition [&>button]:hover:bg-[#FFF6E7] [&>button]:border-[#C9B46A]/40";
+  "max-w-none w-auto [&>button]:min-h-9 [&>button]:rounded-full [&>button]:border [&>button]:bg-white/90 [&>button]:px-2.5 [&>button]:text-[10px] [&>button]:font-bold [&>button]:uppercase [&>button]:tracking-[0.08em] [&>button]:text-[#5C4A28] [&>button]:transition [&>button]:hover:bg-[#FFF6E7] [&>button]:border-[#C9B46A]/40 [&>button>span]:hidden sm:[&>button>span]:inline";
 
 function PublicChromeActions({
   listingId,

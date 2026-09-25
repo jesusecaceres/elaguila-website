@@ -20,7 +20,7 @@ const draftMapper = read("app/(site)/servicios/lib/mapServiciosApplicationDraftT
 const resolver = read("app/(site)/servicios/lib/resolveServiciosProfile.ts");
 const presence = read("app/(site)/servicios/lib/serviciosProfilePresence.ts");
 const previewClient = read("app/(site)/clasificados/publicar/servicios/preview/ClasificadosServiciosPreviewClient.tsx");
-const previewShell = read("app/(site)/clasificados/publicar/servicios/preview/ServiciosProfessionalPreviewShell.tsx");
+const previewShell = read("app/(site)/servicios/components/ServiciosProfessionalProfileShell.tsx");
 const liveShell = read("app/(site)/servicios/components/ServiciosProfessionalProfileShell.tsx");
 const couponsCard = read("app/(site)/servicios/components/ServiciosCouponsCard.tsx");
 const pkg = read("package.json");
@@ -39,14 +39,16 @@ assert(presence.includes("expirationDate?.trim()"), "Presence checks expirationD
 assert(presence.includes("redemptionNote?.trim()"), "Presence checks redemptionNote");
 
 assert(previewClient.includes("mergeClasificadosCouponsOntoServiciosProfile"), "Preview client merges coupons from app state");
-assert(previewClient.includes("applicationState={appState}"), "Preview shell receives in-memory application state");
+// Quick/Full shared presentation (2026-09-24): the shared shell takes the resolved profile; application coupons are merged in the client.
+assert(previewClient.includes("mergeClasificadosCouponsOntoServiciosProfile(resolved, appState, lang)"), "Preview shell receives the in-memory application coupons via the resolved profile");
 
 assert(previewShell.includes("displayProfile.coupons"), "Preview shell renders from displayProfile.coupons");
 assert(!previewShell.includes("ServiciosPromocionesCard"), "Preview shell hides legacy promotions");
 const previewCoupon = previewShell.indexOf("<ServiciosCouponsCard");
 const previewGallery = previewShell.indexOf("<ServiciosGalleryWithTabs");
 assert(previewCoupon > 0 && previewGallery > previewCoupon, "Preview: coupons before gallery");
-assert(previewShell.includes("applicationState"), "Preview shell uses synchronous applicationState");
+// Quick/Full shared presentation (2026-09-24): the merge is synchronous in the client's profile useMemo (the shared shell has no applicationState prop).
+assert(previewClient.includes("const profile = useMemo(") && previewClient.includes("offersEntitled"), "Preview profile merges application coupons synchronously before the shared shell");
 
 assert(!liveShell.includes("ServiciosPromocionesCard"), "Live professional shell hides legacy promotions");
 assert(liveShell.includes("displayProfile.coupons"), "Live shell renders paid coupons from displayProfile");

@@ -21,6 +21,7 @@ import { resolveStaffAssistedCategorySave, isStaffAssistedSaveRefusal } from "@/
 import { recordSalesWorkspaceAudit } from "@/app/lib/sales/salesWorkspaceAudit";
 import { enforceQuickBusinessPublishMedia } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
 import { resolveQuickBusinessPublishIdentity } from "@/app/lib/listingPlans/quickBusinessProductIdentityServer";
+import { stripQuickDealerFullOnlyFields } from "@/app/lib/clasificados/autos/stripQuickDealerFullOnlyFields";
 import type { AutosClassifiedsLane, AutosClassifiedsLang } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 import {
   AUTOS_LISTING_API_MAX_BODY_BYTES,
@@ -343,6 +344,15 @@ export async function POST(request: NextRequest) {
       listingId: parentListingId || null,
       declaredPackageKey: typeof body.basePackageKey === "string" ? body.basePackageKey : null,
     });
+    // QUICK / FULL FIELD BOUNDARY — a PROVEN Quick dealer cannot add Full-only content (social links,
+    // Google/Yelp/extra links, video, extra inventory). A new row has nothing stored to restore, so
+    // those paths are emptied; an `unverified` product (possibly a Full customer) is never stripped.
+    const quickFieldBoundary = stripQuickDealerFullOnlyFields({
+      listing: body.listing,
+      existing: null,
+      decision: identity,
+    });
+    if (quickFieldBoundary.changedPaths.length > 0) body.listing = quickFieldBoundary.listing;
     // External video links live in `videoUrls`, never in the image gallery, so they carry no
     // `video/*` MIME and the contract could not see them. "Quick includes no video" was therefore
     // unenforced on this seam: a Quick dealer could attach four YouTube links.

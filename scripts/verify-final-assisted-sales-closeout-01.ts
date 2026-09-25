@@ -99,10 +99,11 @@ function main() {
     assert.ok(bienes.includes("const clientUserId = bodyClientUserId || contextClientUserId"));
   });
 
-  check("Quick publish media is 3 images / no video; Full path stays outside this cap", () => {
-    assert.equal(QUICK_BUSINESS_PUBLISH_MAX_IMAGES.servicios, 3);
-    assert.equal(QUICK_BUSINESS_PUBLISH_MAX_IMAGES.restaurantes, 3);
-    assert.equal(QUICK_BUSINESS_PUBLISH_MAX_IMAGES["autos-dealer"], 3);
+  check("Quick publish media is category-aware (native-composition caps) / no video; Full path stays outside this cap", () => {
+    // The caps come from the ONE table in quickBusinessMediaSemantics.ts (proven layout per family).
+    assert.equal(QUICK_BUSINESS_PUBLISH_MAX_IMAGES.servicios, 5);
+    assert.equal(QUICK_BUSINESS_PUBLISH_MAX_IMAGES.restaurantes, 5);
+    assert.equal(QUICK_BUSINESS_PUBLISH_MAX_IMAGES["autos-dealer"], 4);
     assert.equal(QUICK_BUSINESS_PUBLISH_MAX_IMAGES["bienes-negocio"], 3);
     const semantics = read("app/lib/quickBusiness/quickBusinessMediaSemantics.ts");
     assert.ok(semantics.includes("enforceQuickContract"));

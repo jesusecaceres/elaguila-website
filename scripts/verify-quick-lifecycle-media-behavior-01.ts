@@ -23,6 +23,7 @@ import {
   resolveLifecycleEndpoint,
 } from "../app/lib/quickBusiness/quickBusinessLifecycleCapabilities";
 import {
+  QUICK_BUSINESS_MAX_IMAGES_BY_CATEGORY,
   SUBJECT_ATTRIBUTION,
   buildQuickMediaLimits,
   buildQuickPublishMediaLimits,
@@ -151,15 +152,16 @@ check("B1: ZERO images is rejected for every family", () => {
   }
 });
 
-check("B2: 1, 2 and 3 subject images are accepted", () => {
+check("B2: 1 up to each family's category-aware cap of subject images is accepted", () => {
   assert.deepEqual(codes("autos-dealer", [vehicle]), []);
   assert.deepEqual(codes("autos-dealer", [vehicle, vehicle]), []);
   assert.deepEqual(codes("autos-dealer", [vehicle, vehicle, vehicle]), []);
+  assert.deepEqual(codes("autos-dealer", [vehicle, vehicle, vehicle, vehicle]), [], "Autos Dealer fills its 4-thumbnail rail");
   assert.deepEqual(codes("bienes-negocio", [property]), []);
 });
 
-check("B3: FOUR images is rejected", () => {
-  assert.ok(codes("autos-dealer", [vehicle, vehicle, vehicle, vehicle]).includes("too_many_images"));
+check("B3: one image over the category cap is rejected", () => {
+  assert.ok(codes("autos-dealer", [vehicle, vehicle, vehicle, vehicle, vehicle]).includes("too_many_images"));
   assert.ok(codes("bienes-negocio", [property, property, property, property]).includes("too_many_images"));
 });
 
@@ -247,15 +249,15 @@ check("B10c: the PUBLISH limits keep the subject rule and the Quick 3-image cap"
   for (const cat of ["servicios", "restaurantes", "autos-dealer", "bienes-negocio"]) {
     const limits = buildQuickPublishMediaLimits(cat)!;
     assert.equal(limits.minSubjectImages, 1, `${cat}: publish still demands one real subject photo`);
-    assert.equal(limits.maxImages, 3, `${cat}: Quick publish enforces the 3-image entitlement`);
+    assert.equal(limits.maxImages, QUICK_BUSINESS_MAX_IMAGES_BY_CATEGORY[cat as keyof typeof QUICK_BUSINESS_MAX_IMAGES_BY_CATEGORY], `${cat}: Quick publish enforces the category-aware image entitlement`);
     assert.equal(limits.videoAllowed, false, `${cat}: Quick publish forbids video`);
     assert.equal(limits.requiredSubjectRole, requiredSubjectRoleForCategory(cat), `${cat}: same subject role`);
     assert.equal(limits.subjectAttribution, SUBJECT_ATTRIBUTION[cat as keyof typeof SUBJECT_ATTRIBUTION]);
   }
   assert.equal(buildQuickPublishMediaLimits("not-a-family"), null);
-  assert.ok(codes("autos-dealer", [vehicle, vehicle, vehicle, vehicle]).includes("too_many_images"));
-  const four = enforceQuickBusinessPublishMedia({ category: "autos-dealer", items: [vehicle, vehicle, vehicle, vehicle] });
-  assert.equal(four && four.ok, false, "Quick publish refuses a fourth image");
+  assert.ok(codes("autos-dealer", [vehicle, vehicle, vehicle, vehicle, vehicle]).includes("too_many_images"));
+  const five = enforceQuickBusinessPublishMedia({ category: "autos-dealer", items: [vehicle, vehicle, vehicle, vehicle, vehicle] });
+  assert.equal(five && five.ok, false, "Quick publish refuses a fifth Autos Dealer image (cap 4)");
 });
 
 check("B10d: the canonical entry point refuses with one shape, and passes real sets", () => {
@@ -288,7 +290,7 @@ check("B11: required subject role per family is correct", () => {
 check("B12: limits match the Quick contract (1-3, no video)", () => {
   const limits = buildQuickMediaLimits("autos-dealer")!;
   assert.equal(limits.minSubjectImages, 1);
-  assert.equal(limits.maxImages, 3);
+  assert.equal(limits.maxImages, QUICK_BUSINESS_MAX_IMAGES_BY_CATEGORY["autos-dealer"]);
   assert.equal(limits.videoAllowed, false);
   // Direct call on the raw validator too, so the wrapper is not the only tested path.
   assert.deepEqual(validateQuickBusinessMediaSemantics([vehicle], limits), []);

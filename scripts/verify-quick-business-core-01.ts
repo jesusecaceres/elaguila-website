@@ -114,7 +114,9 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
     },
     "restaurantesQuickBusinessAdapter.ts": {
       canonical: [
-        'productType: "established_restaurant"', "businessName:", "businessType:", "businessTypeCustom:", "primaryCuisine:", "primaryCuisineCustom:", "shortSummary:", "serviceModes,", "cityCanonical: resolveCity(values)", "...weeklyHoursFrom(values)", "phoneNumber:", "whatsAppNumber:", "email:", "websiteUrl:", "heroImage:", "galleryImages:",
+        'productType: "established_restaurant"', "businessName:", "businessType:", "businessTypeCustom:", "primaryCuisine:", "primaryCuisineCustom:", "shortSummary:", "serviceModes,", "cityCanonical: resolveCity(values)", "...weeklyHoursFrom(values)", "phoneNumber:", "whatsAppNumber:", "email:", "websiteUrl:", "heroImage:", "foodImages:",
+        // Quick photos 2..N land in `foodImages` (the Comida bucket the public gallery actually renders), not
+        // `galleryImages` (venue supplemental, never rendered publicly). Owner lock 2026-09-24.
         // Gate 1 wired: smsNumber propagated through RestauranteListingDraft → listing_json.
         'smsNumber: quickStr(values, "sms")',
       ],
@@ -163,7 +165,7 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
 
 // 3. MEDIA LOCK ----------------------------------------------------------------------------------------------
 {
-  assert.ok(reg.includes("return { minImages: 1, maxImages: 3, videoOptional: false, note };"), "Quick Business media: 3 max, no video");
+  assert.ok(reg.includes("return { minImages: 1, maxImages, videoOptional: false, note: note(maxImages) };"), "Quick Business media: category-aware max from the one cap table, no video");
   const intake = read(`${QB_COMPONENTS}/QuickBusinessIntakeClient.tsx`);
   /**
    * Gate QB-MEDIA-03 — the intake no longer reuses the certified Quick Classifieds media step.
@@ -1025,9 +1027,13 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
 // Layer 4: adapter shape (first image becomes canonical cover/hero/primary).
 {
   // Layer 1 — registry contract
-  assert.ok(reg.includes("return { minImages: 1, maxImages: 3, videoOptional: false, note };"), "registry contract: minImages=1, maxImages=3, videoOptional=false (Bible §11.1)");
+  assert.ok(reg.includes("return { minImages: 1, maxImages, videoOptional: false, note: note(maxImages) };"), "registry contract: minImages=1, maxImages=<per-category table>, videoOptional=false (Bible §11.1)");
   // All 4 categories use this same contract helper; confirm by counting media() invocations
-  assert.equal((reg.match(/media\(\{/g) ?? []).length, 4, "all 4 categories use the shared media() factory (same contract applied everywhere)");
+  assert.equal(
+    (reg.match(/media\("(?:servicios|restaurantes|autos-dealer|bienes-negocio)", /g) ?? []).length,
+    4,
+    "all 4 categories use the shared media() factory (same contract applied everywhere)",
+  );
 
   // Layer 2 — validation function shape
   const validation = read("app/lib/quickClassifieds/quickClassifiedValidation.ts");
@@ -1110,10 +1116,10 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
   assert.ok(caught, "Gate 7 self-test (a): publishForClientSupported count assertion catches a registry with fewer than 4 true entries");
 
   // (b) Media: verifier catches a contract with minImages: 0 (Media Lock violated)
-  const regBrokenMin = reg.replace("return { minImages: 1, maxImages: 3, videoOptional: false, note };", "return { minImages: 0, maxImages: 3, videoOptional: false, note };");
+  const regBrokenMin = reg.replace("return { minImages: 1, maxImages, videoOptional: false, note: note(maxImages) };", "return { minImages: 0, maxImages, videoOptional: false, note: note(maxImages) };");
   let caughtMedia = false;
   try {
-    assert.ok(regBrokenMin.includes("return { minImages: 1, maxImages: 3, videoOptional: false, note };"), "self-test: should fail when minImages ≠ 1");
+    assert.ok(regBrokenMin.includes("return { minImages: 1, maxImages, videoOptional: false, note: note(maxImages) };"), "self-test: should fail when minImages ≠ 1");
   } catch {
     caughtMedia = true;
   }

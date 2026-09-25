@@ -20,7 +20,14 @@ export function buildRestaurantePublishPayload(
   ownerUserId?: string,
   plan?: string,
   lang = "es",
-  opts?: { activationMode?: "pending_payment" | "immediate" },
+  opts?: {
+    activationMode?: "pending_payment" | "immediate";
+    /**
+     * A DECLARED Simple (Quick) base package key. Sent ONLY by a Quick session; a Full customer sends nothing new.
+     * It can only ever RESTRICT: the server reads it only when it names the Simple key.
+     */
+    basePackageKey?: string;
+  },
 ): Record<string, unknown> {
   const blockHeavyMedia = (value: unknown, path = ""): unknown => {
     if (value instanceof File || value instanceof Blob) {
@@ -238,6 +245,7 @@ export function buildRestaurantePublishPayload(
     lang,
     plan,
     ...(opts?.activationMode === "pending_payment" ? { activation_mode: "pending_payment" } : {}),
+    ...(opts?.basePackageKey?.trim() ? { basePackageKey: opts.basePackageKey.trim() } : {}),
     ...(ownerUserId ? { owner_user_id: ownerUserId } : {}),
   };
 

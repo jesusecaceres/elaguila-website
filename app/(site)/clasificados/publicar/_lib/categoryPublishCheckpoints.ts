@@ -4,6 +4,7 @@ import {
   getRevenuePackageDefinition,
   getRevenuePackagePriceCents,
 } from "@/app/lib/listingPlans/revenuePricingMatrix";
+import { quickImageMaxForBusinessCategory } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
 import { withQuickPlanParam } from "@/app/lib/listingPlans/businessQuickPlanSignal";
 import type { PublishCheckpointLang } from "./publishCheckpointCopy";
 
@@ -130,8 +131,8 @@ export function getRestaurantesCheckpointCards(
       title: es ? "Quick Business" : "Quick Business",
       priceLabel: restaurantesQuickPrice,
       shortDescription: es
-        ? "La misma aplicación de restaurante. Hasta 3 fotos. Sin video."
-        : "The same restaurant application. Up to 3 photos. No video.",
+        ? `La misma aplicación de restaurante. Hasta ${quickImageMaxForBusinessCategory("restaurantes")} fotos. Sin video.`
+        : `The same restaurant application. Up to ${quickImageMaxForBusinessCategory("restaurantes")} photos. No video.`,
       ctaLabel: es ? "Continuar con Quick" : "Continue with Quick",
       ctaHref: withLang("/publicar/restaurantes", { plan: "quick" }),
       moreLabel: es ? "Ver más" : "See more",
@@ -140,8 +141,8 @@ export function getRestaurantesCheckpointCards(
         ? "Quick y PRO usan la misma ficha de restaurante."
         : "Quick and PRO use the same restaurant application.",
       includedBullets: es
-        ? ["Misma aplicación de Restaurantes", "Hasta 3 fotos", "Sin video", `Precio: ${restaurantesQuickPrice}`]
-        : ["Same Restaurants application", "Up to 3 photos", "No video", `Price: ${restaurantesQuickPrice}`],
+        ? ["Misma aplicación de Restaurantes", `Hasta ${quickImageMaxForBusinessCategory("restaurantes")} fotos`, "Sin video", `Precio: ${restaurantesQuickPrice}`]
+        : ["Same Restaurants application", `Up to ${quickImageMaxForBusinessCategory("restaurantes")} photos`, "No video", `Price: ${restaurantesQuickPrice}`],
       couponEligible: isPromoEligible("restaurantes_quick_monthly"),
       highlighted: true,
     },
@@ -298,8 +299,8 @@ export function getServiciosCheckpointCards(
     title: es ? "Quick Business" : "Quick Business",
     priceLabel: quickPrice,
     shortDescription: es
-      ? "Misma aplicación profesional. Hasta 3 fotos. Sin video. Ideal para empezar."
-      : "The same professional application. Up to 3 photos. No video. Built to start simply.",
+      ? `Misma aplicación profesional. Hasta ${quickImageMaxForBusinessCategory("servicios")} fotos. Sin video. Ideal para empezar.`
+      : `The same professional application. Up to ${quickImageMaxForBusinessCategory("servicios")} photos. No video. Built to start simply.`,
     ctaLabel: es ? "Continuar con Quick" : "Continue with Quick",
     ctaHref: withQuickPlanParam(applicationHref),
     moreLabel: es ? "Ver más" : "See more",
@@ -308,8 +309,8 @@ export function getServiciosCheckpointCards(
       ? "Quick y PRO usan la misma ficha. Quick limita fotos y video."
       : "Quick and PRO use the same profile. Quick limits photos and video.",
     includedBullets: es
-      ? ["Misma aplicación de Servicios", "Hasta 3 fotos", "Sin video", `Precio: ${quickPrice}`]
-      : ["Same Services application", "Up to 3 photos", "No video", `Price: ${quickPrice}`],
+      ? ["Misma aplicación de Servicios", `Hasta ${quickImageMaxForBusinessCategory("servicios")} fotos`, "Sin video", `Precio: ${quickPrice}`]
+      : ["Same Services application", `Up to ${quickImageMaxForBusinessCategory("servicios")} photos`, "No video", `Price: ${quickPrice}`],
     couponEligible: isPromoEligible("servicios_quick_monthly"),
     highlighted: true,
   };
@@ -376,8 +377,8 @@ export function getAutosCheckpointCards(
       title: es ? "Quick Business — Dealer" : "Quick Business — Dealer",
       priceLabel: dealerQuickPrice,
       shortDescription: es
-        ? "La misma aplicación de dealer. Hasta 3 fotos. Sin video."
-        : "The same dealer application. Up to 3 photos. No video.",
+        ? `La misma aplicación de dealer. Hasta ${quickImageMaxForBusinessCategory("autos-dealer")} fotos. Sin video.`
+        : `The same dealer application. Up to ${quickImageMaxForBusinessCategory("autos-dealer")} photos. No video.`,
       ctaLabel: es ? "Continuar con Quick" : "Continue with Quick",
       ctaHref: withQuickPlanParam(negociosHref),
       moreLabel: es ? "Ver más" : "See more",
@@ -386,8 +387,8 @@ export function getAutosCheckpointCards(
         ? "Quick y PRO usan la misma aplicación de dealer."
         : "Quick and PRO use the same dealer application.",
       includedBullets: es
-        ? ["Misma aplicación de dealer", "Hasta 3 fotos", "Sin video", `Precio: ${dealerQuickPrice}`]
-        : ["Same dealer application", "Up to 3 photos", "No video", `Price: ${dealerQuickPrice}`],
+        ? ["Misma aplicación de dealer", `Hasta ${quickImageMaxForBusinessCategory("autos-dealer")} fotos`, "Sin video", `Precio: ${dealerQuickPrice}`]
+        : ["Same dealer application", `Up to ${quickImageMaxForBusinessCategory("autos-dealer")} photos`, "No video", `Price: ${dealerQuickPrice}`],
       couponEligible: isPromoEligible("autos_dealer_quick_monthly"),
       highlighted: true,
     },
@@ -559,8 +560,8 @@ export function getBienesRaicesCheckpointCards(
       title: es ? "Quick Business — Agente" : "Quick Business — Agent",
       priceLabel: agentQuickPrice,
       shortDescription: es
-        ? "La misma aplicación de negocio. Hasta 3 fotos. Sin video."
-        : "The same business application. Up to 3 photos. No video.",
+        ? `La misma aplicación de negocio. Hasta ${quickImageMaxForBusinessCategory("bienes-negocio")} fotos. Sin video.`
+        : `The same business application. Up to ${quickImageMaxForBusinessCategory("bienes-negocio")} photos. No video.`,
       ctaLabel: es ? "Continuar con Quick" : "Continue with Quick",
       ctaHref: withQuickPlanParam(negocioHref),
       moreLabel: es ? "Ver más" : "See more",
@@ -569,8 +570,8 @@ export function getBienesRaicesCheckpointCards(
         ? "Quick y PRO usan la misma aplicación de Bienes Negocio."
         : "Quick and PRO use the same Real Estate Business application.",
       includedBullets: es
-        ? ["Misma aplicación de negocio", "Hasta 3 fotos", "Sin video", `Precio: ${agentQuickPrice}`]
-        : ["Same business application", "Up to 3 photos", "No video", `Price: ${agentQuickPrice}`],
+        ? ["Misma aplicación de negocio", `Hasta ${quickImageMaxForBusinessCategory("bienes-negocio")} fotos`, "Sin video", `Precio: ${agentQuickPrice}`]
+        : ["Same business application", `Up to ${quickImageMaxForBusinessCategory("bienes-negocio")} photos`, "No video", `Price: ${agentQuickPrice}`],
       couponEligible: isPromoEligible("br_agent_quick_monthly"),
       highlighted: true,
     },

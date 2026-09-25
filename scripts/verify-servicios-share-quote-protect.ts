@@ -38,14 +38,15 @@ const SERVICIOS_SHARE_MOUNTS = [
   "app/(site)/servicios/components/ServiciosBusinessHubEngagementRow.tsx",
   "app/(site)/servicios/components/ServiciosResultCardEngagementStrip.tsx",
   "app/(site)/servicios/components/ServiciosEndOfContentShare.tsx",
-  "app/(site)/clasificados/publicar/servicios/preview/ServiciosProfessionalPreviewShell.tsx",
+  // Quick/Full shared presentation (2026-09-24): the Preview no longer has its own share mount. It renders the
+  // shared ServiciosProfessionalProfileShell (listed above) through a thin adapter, so it opens the same drawer.
   "app/(site)/clasificados/servicios/ServiciosListingResultCard.tsx",
 ];
 
 /* ==============================================================================================
  * ⚠️14 — one shared Share experience.
  * ============================================================================================ */
-check("Owner 2026-09-24: every Servicios general-share mount opens the shared Leonix Share drawer (no directNativeShare on all 7)", () => {
+check("Owner 2026-09-24: every Servicios general-share mount opens the shared Leonix Share drawer (no directNativeShare on any mount, Preview included via the shared shell)", () => {
   for (const rel of SERVICIOS_SHARE_MOUNTS) {
     const src = raw(rel);
     assert.ok(src.includes("<LeonixShareButton"), `${rel}: share button still mounted`);
@@ -91,8 +92,10 @@ check("⚠️32A share-link parity: with a URL the payload is `{ title, url }` l
   }
 });
 check("⚠️14 preview never persists engagement", () => {
+  // The shared shell forwards persistListingEngagement to the hero Like/Share; the Preview adapter passes false.
   const preview = raw("app/(site)/clasificados/publicar/servicios/preview/ServiciosProfessionalPreviewShell.tsx");
-  assert.ok(preview.includes("persistEngagement={false}"));
+  assert.ok(preview.includes("persistListingEngagement={false}"));
+  assert.ok(raw("app/(site)/servicios/components/ServiciosProfessionalProfileShell.tsx").includes("persistEngagement={persistListingEngagement}"));
 });
 
 /* ==============================================================================================

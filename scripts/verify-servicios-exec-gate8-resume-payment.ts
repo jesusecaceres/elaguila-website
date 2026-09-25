@@ -80,7 +80,9 @@ check("resume-payment reuses the SAME onCheckout / startRevenueCategoryCheckout 
   assert.ok(idx > 0);
   const end = src.indexOf("[appState,", src.indexOf("setCheckoutBusy(false);\n    }\n  },", idx));
   const body = src.slice(idx, end > idx ? end : idx + 3000);
-  assert.ok(body.includes("saveServiciosPendingBeforeCheckout({ state: appState, lang, accessToken })"));
+  // Quick/Full shared presentation (2026-09-24): a Quick session now also passes its declared SIMPLE key
+  // (`basePackageKey`) as a trailing argument; the helper, state, lang and token are unchanged.
+  assert.ok(/saveServiciosPendingBeforeCheckout\(\{\s*state: appState,\s*lang,\s*accessToken,?/.test(body));
   assert.ok(body.includes("startRevenueCategoryCheckout({"));
   assert.ok(body.includes("listingId: pending.listingId,") && body.includes("leonixAdId: pending.leonixAdId,"), "checkout must always target the id the save just returned, never a stale prop");
 });

@@ -26,7 +26,9 @@ import {
 } from "./publishCheckoutCheckpoint";
 import { isListingPackageEntitlementRowActive } from "./listingPackageEntitlementPlacement";
 import { isGraceExpired, reconcileSubscriptionRow, type SubscriptionRecordRow } from "./subscriptionLifecycle";
-import { resolveDealerInventoryGroupingKey } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
+import { QUICK_DEALER_ACTIVE_VEHICLE_LIMIT, resolveDealerInventoryGroupingKey } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
+import { resolveQuickBusinessPublishIdentity } from "./quickBusinessProductIdentityServer";
+import { quickFullOnlyBoundaryApplies } from "@/app/lib/quickBusiness/quickFullOnlyBoundary";
 
 export {
   decideCommercialWrite,
@@ -271,7 +273,17 @@ export async function assertCommercialCapacityForWrite(
       }
     }
     const boostActive = await hasActiveAddonEntitlement(parentId, AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY);
-    const limit = boostActive ? AUTOS_DEALER_TOTAL_WITH_INVENTORY_PACK_LIMIT : AUTOS_DEALER_BASE_INCLUDED_VEHICLES;
+    // QUICK (SIMPLE) dealer = ONE active vehicle, no inventory pack. Only a PROVEN Quick product
+    // (live entitlement / settled checkout ledger) lowers the limit; `unverified` may be a Full
+    // customer and keeps the Full limits (10 base / 20 with the pack) exactly as before.
+    const quickDealer = quickFullOnlyBoundaryApplies(
+      await resolveQuickBusinessPublishIdentity({ category: "autos", ownerUserId: ownerId, listingId: parentId }),
+    );
+    const limit = quickDealer
+      ? QUICK_DEALER_ACTIVE_VEHICLE_LIMIT
+      : boostActive
+        ? AUTOS_DEALER_TOTAL_WITH_INVENTORY_PACK_LIMIT
+        : AUTOS_DEALER_BASE_INCLUDED_VEHICLES;
     const activeCount = await countActiveAutosDealerGroupInventory(ownerId, parent, childListingId ?? undefined);
     const subscriptionStatus = await loadSubscriptionStatusForParent("autos", parentId);
     return decideCommercialWrite({ operation: input.operation, capacityDelta: input.capacityDelta, activeCount, limit, subscriptionStatus });

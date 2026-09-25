@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import type { AgenteIndividualResidencialFormState } from "../schema/agenteIndividualResidencialFormState";
 import { AGENTE_RES_MAX_VIDEO_URLS } from "../schema/agenteIndividualResidencialFormState";
-import { AiField, aiCardClass, aiInputClass, aiSubClass, aiTitleClass } from "../application/formPrimitives";
+import { AiField, QuickFullOnlyNote, aiCardClass, aiInputClass, aiSubClass, aiTitleClass } from "../application/formPrimitives";
+import { quickBienesImageCap } from "@/app/lib/clasificados/bienes-raices/stripQuickBienesFullOnlyFields";
 import { readFileAsDataUrl } from "../application/utils/readFileAsDataUrl";
 import { LeonixRealEstateSortablePhotoStrip } from "@/app/(site)/clasificados/lib/LeonixRealEstateSortablePhotoStrip";
 import {
@@ -583,14 +584,23 @@ export function Step03Media({
   state,
   setState,
   onMediaDraftCommit,
+  quick = false,
 }: {
   state: AgenteIndividualResidencialFormState;
   setState: React.Dispatch<React.SetStateAction<AgenteIndividualResidencialFormState>>;
   /** Immediate durable persist after photo mutations (parent IDB draft or child editor session). */
   onMediaDraftCommit?: (next: AgenteIndividualResidencialFormState) => void;
+  /**
+   * Quick (Simple) session: the photo cap is the category-aware value from the ONE table
+   * (Bienes Negocio = 3, exactly the native hero + two supporting tiles) and the video section is locked.
+   * Full keeps 40 photos and video, unchanged.
+   */
+  quick?: boolean;
 }) {
-  const { t } = useBrAgenteResidencialCopy();
+  const { lang, t } = useBrAgenteResidencialCopy();
   const photos = state.fotosDataUrls;
+  const quickPhotoCap = quickBienesImageCap();
+  const photoCapReached = quick && photos.length >= quickPhotoCap;
 
   const commitMedia = (next: AgenteIndividualResidencialFormState) => {
     onMediaDraftCommit?.(next);
@@ -609,21 +619,36 @@ export function Step03Media({
             <p>{t.step03.imageUploadNoteLine2}</p>
             <p>{t.step03.imageUploadNoteLine3}</p>
           </div>
-          <label className="mt-3 inline-flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border border-[#C9B46A]/50 bg-[#FBF7EF] px-4 py-2.5 text-xs font-semibold touch-manipulation sm:min-h-0 sm:px-3 sm:py-2">
+          {quick ? (
+            <p className="mt-3 text-xs font-semibold text-[#6E5418]" data-quick-photo-cap={quickPhotoCap}>
+              {lang === "en"
+                ? `Your Quick plan includes up to ${quickPhotoCap} photos (${Math.min(photos.length, quickPhotoCap)}/${quickPhotoCap}).`
+                : `Tu plan Quick incluye hasta ${quickPhotoCap} fotos (${Math.min(photos.length, quickPhotoCap)}/${quickPhotoCap}).`}
+            </p>
+          ) : null}
+          <label
+            className={`mt-3 inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[#C9B46A]/50 bg-[#FBF7EF] px-4 py-2.5 text-xs font-semibold touch-manipulation sm:min-h-0 sm:px-3 sm:py-2 ${
+              photoCapReached ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+            }`}
+          >
             {t.step03.agregarFotos}
             <input
               type="file"
               accept="image/*"
               multiple
+              disabled={photoCapReached}
               className="hidden"
               onChange={(e) => {
                 const files = Array.from(e.target.files ?? []);
                 e.target.value = "";
                 void Promise.all(files.map((f) => readFileAsDataUrl(f))).then((urls) => {
                   setState((s) => {
+                    // Quick: category-aware cap from the table. A gallery already past the cap (stored Full
+                    // photos) keeps what it has and simply cannot grow.
+                    const room = quick ? Math.max(0, quickPhotoCap - s.fotosDataUrls.length) : 40;
                     const next = {
                       ...s,
-                      fotosDataUrls: [...s.fotosDataUrls, ...urls].slice(0, 40),
+                      fotosDataUrls: [...s.fotosDataUrls, ...urls.slice(0, room)].slice(0, quick ? Math.max(quickPhotoCap, s.fotosDataUrls.length) : 40),
                     };
                     commitMedia(next);
                     return next;
@@ -686,7 +711,11 @@ export function Step03Media({
           fileReadyLabel={t.step03.archivoListoPublicar}
           usarUrlLabel={t.step03.usarUrl}
         />
-        <VideoUrlAddRows state={state} setState={setState} />
+        {quick ? (
+          <QuickFullOnlyNote lang={lang === "en" ? "en" : "es"} what={lang === "en" ? "Video links" : "Enlaces de video"} />
+        ) : (
+          <VideoUrlAddRows state={state} setState={setState} />
+        )}
         <UrlOrFileRow
           label={t.step03.tour}
           hint={t.step03.tourHint}

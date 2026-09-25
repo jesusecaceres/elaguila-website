@@ -25,7 +25,7 @@ function indexAfter(haystack, first, second, label) {
 
 const proShell = read("app/(site)/servicios/components/ServiciosProfessionalProfileShell.tsx");
 const stdShell = read("app/(site)/servicios/components/ServiciosProfileView.tsx");
-const previewShell = read("app/(site)/clasificados/publicar/servicios/preview/ServiciosProfessionalPreviewShell.tsx");
+const previewShell = read("app/(site)/servicios/components/ServiciosProfessionalProfileShell.tsx");
 const featuredMedia = read("app/(site)/servicios/lib/serviciosFeaturedMedia.ts");
 const lightbox = read("app/(site)/servicios/components/ServiciosMediaLightbox.tsx");
 const canvas = read("app/(site)/servicios/components/ServiciosPublicDetailsCanvas.tsx");

@@ -244,9 +244,11 @@ check("⚠️58 review submission returns actionable bilingual validation (not a
 // =================================================================================
 
 check("⚠️19/SVC-QA-16 Translate Ad: the Preview shell adopts the SAME shared translation layer above 'Sobre nosotros'", () => {
-  const shell = src("app/(site)/clasificados/publicar/servicios/preview/ServiciosProfessionalPreviewShell.tsx");
+  const shell = src("app/(site)/servicios/components/ServiciosProfessionalProfileShell.tsx");
   assert.match(shell, /useServiciosPublicTranslation\(\{/);
-  assert.match(shell, /\{translateControl \? <div>\{translateControl\}<\/div> : null\}\s*\{hasAboutSectionResolved\(displayProfile\)/);
+  // Quick/Full shared presentation (2026-09-24): the Preview renders this SAME shell through a thin adapter,
+  // so it adopts the shared translation layer by construction; placement is asserted for every live shell below.
+  assert.match(src("app/(site)/clasificados/publicar/servicios/preview/ServiciosProfessionalPreviewShell.tsx"), /<ServiciosProfessionalProfileShell/);
   for (const rel of [C("ServiciosProfileView"), C("ServiciosProfessionalProfileShell")]) assert.match(src(rel), /translateControl \? <div>\{translateControl\}<\/div> : null/);
   assert.match(src(C("ServiciosPublicTranslationLayer")), /requestTranslation=\{requestServiciosAdTranslation\}/);
 });
@@ -360,7 +362,10 @@ check("⚠️64/SVC-QA-18/19 action grammar: Like → Save → Share, standard s
   assert.ok(!/\[&_button\]:!w-full/.test(row), "no stretched full-width action cells");
   assert.ok(row.indexOf("<ServiciosLikeEngagementCluster") < row.indexOf("{saveButton}</div>\n        <div className={actionCellClass}>\n          <LeonixShareButton") || /ServiciosLikeEngagementCluster[\s\S]*saveButton[\s\S]*LeonixShareButton/.test(row));
   assert.match(src(C("ServiciosProfessionalProfileShell")), /\s+hubEngagementVariant,\s*\}: ServiciosProfessionalProfileShellProps/);
-  assert.match(src("app/(site)/clasificados/publicar/servicios/preview/ServiciosProfessionalPreviewShell.tsx"), /hubEngagementVariant="save_only"/);
+  // Quick/Full shared presentation (2026-09-24): the Preview adapter mounts the shared shell with engagement on
+  // (hero owns Like/Share); the shared shell derives the hub's save_only variant from that.
+  assert.match(src("app/(site)/clasificados/publicar/servicios/preview/ServiciosProfessionalPreviewShell.tsx"), /showEngagementControls/);
+  assert.match(src("app/(site)/servicios/components/ServiciosProfessionalProfileShell.tsx"), /hubEngagementVariant \?\? \(heroEngagementActive \? "save_only" : "full"\)/);
   const strip = src(C("ServiciosResultCardEngagementStrip"));
   assert.ok(strip.indexOf("<ServiciosLikeEngagementCluster") < strip.indexOf("<LeonixSaveButton"), "results: Like then Save");
   assert.ok(strip.indexOf("<LeonixSaveButton") < strip.indexOf("<LeonixShareButton"), "results: Save then Share");
@@ -410,7 +415,7 @@ check("⚠️66/⚠️67/SVC-QA-22/23 Pagos y beneficios shows normal content di
   assert.ok(p.indexOf("useMemo(") < p.indexOf("return null"), "memo before early return");
 });
 check("SVC-QA-21 end-of-content share moment in every live shell, same shared engine", () => {
-  for (const rel of [C("ServiciosProfileView"), C("ServiciosProfessionalProfileShell"), "app/(site)/clasificados/publicar/servicios/preview/ServiciosProfessionalPreviewShell.tsx"]) {
+  for (const rel of [C("ServiciosProfileView"), C("ServiciosProfessionalProfileShell"), "app/(site)/servicios/components/ServiciosProfessionalProfileShell.tsx"]) {
     assert.match(src(rel), /<ServiciosEndOfContentShare/, rel);
   }
   assert.match(src(C("ServiciosEndOfContentShare")), /<LeonixShareButton/);

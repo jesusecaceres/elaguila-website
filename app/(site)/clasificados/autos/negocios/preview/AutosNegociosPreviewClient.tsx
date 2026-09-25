@@ -33,8 +33,10 @@ import {
 import { AUTOS_DEALER_CHECKOUT, AUTOS_DEALER_QUICK_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
 import {
   businessPlanFromSearchParams,
+  carryBusinessPlanParam,
   selectBusinessBaseCheckout,
 } from "@/app/lib/listingPlans/businessQuickPlanSignal";
+import { useIsQuickBusinessPlan } from "@/app/lib/quickBusiness/useIsQuickBusinessPlan";
 import { useBusinessBasePlanOffer } from "@/app/lib/listingPlans/businessBasePlanOfferClient";
 import {
   CHECKOUT_NEWSLETTER_SOURCES,
@@ -58,6 +60,7 @@ import {
   autosDealerPreviewCheckpointConfig,
   autosDealerSelectedAddOns,
 } from "../lib/autosDealerRevenueCheckout";
+import { QUICK_DEALER_ACTIVE_VEHICLE_LIMIT } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
 import {
   autosPreviewPageMaxWidthClass,
   autosPreviewSectionEyebrowClass,
@@ -397,7 +400,6 @@ function AutosNegociosPreviewInner({
     p.set("lang", lang);
     return `${EDIT_BASE}?${p.toString()}`;
   }, [canonicalListingId, searchParams, lang]);
-  const editBackHref = canonicalEditBackHref ?? genericEditBackHref;
   /** Gate H: a canonical-active listing is a real, already-published DB row (`status === "active"`
    * — see resolvePreviewStateForRoute's `fetched.status === "active" ? "canonical-active" : "draft"`
    * branch) with a real public URL, so Share here must target that URL truthfully — never the
@@ -475,6 +477,14 @@ function AutosNegociosPreviewInner({
   // One derived flag drives the allowance, the add-on row and the line-item copy, so the package
   // actually charged can never disagree with what the checkpoint showed.
   const quickPlan = baseCheckout.packageKey === AUTOS_DEALER_QUICK_CHECKOUT.packageKey;
+  // Plan drift fix: "Volver a editar" used to drop the plan, so one edit round trip re-mounted the
+  // application as Full (no photo cap, video, every Full-only field). Quick is carried on the link
+  // (server answer OR staff custody OR the handoff marker); Full is never written into a URL.
+  const staffQuickPlan = useIsQuickBusinessPlan("autos");
+  const editBackHref = carryBusinessPlanParam(
+    canonicalEditBackHref ?? genericEditBackHref,
+    quickPlan || staffQuickPlan.isQuick ? "quick" : "full",
+  );
   const checkpointConfig = useMemo(
     () => autosDealerPreviewCheckpointConfig({ lang, totalVehicleCount, quickPlan }),
     [lang, totalVehicleCount, quickPlan],
@@ -520,7 +530,7 @@ function AutosNegociosPreviewInner({
       const sync = await fetch(`/api/clasificados/autos/listings/${encodeURIComponent(canonicalListingId)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ listing: preparedListing, lang }),
+        body: JSON.stringify({ listing: preparedListing, lang, basePackageKey: baseCheckout.packageKey }),
       });
       if (sync.ok) {
         const j = (await sync.json().catch(() => ({}))) as {
@@ -551,7 +561,7 @@ function AutosNegociosPreviewInner({
       const sync = await fetch(`/api/clasificados/autos/listings/${encodeURIComponent(cached)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ listing: preparedListing, lang }),
+        body: JSON.stringify({ listing: preparedListing, lang, basePackageKey: baseCheckout.packageKey }),
       });
       if (sync.ok) {
         const j = (await sync.json().catch(() => ({}))) as {
@@ -806,7 +816,11 @@ function AutosNegociosPreviewInner({
               return (
                 <AutosNegociosPreviewLocaleProvider lang={adDisplayLang} manageDocumentTitle={false}>
                   <div className={`mx-auto ${autosPreviewPageMaxWidthClass} px-4 md:px-6 lg:px-8`}>
-                    <AutosNegociosResultsCardPreview lang={adDisplayLang} listing={displayListing} additionalCount={additionalCount} />
+                    <AutosNegociosResultsCardPreview lang={adDisplayLang}
+                      listing={displayListing}
+                      additionalCount={quickPlan ? 0 : additionalCount}
+                      inventoryVehicleLimit={quickPlan ? QUICK_DEALER_ACTIVE_VEHICLE_LIMIT : undefined}
+                    />
                   </div>
                   <AutosNegociosDealershipPreviewPage
                     data={displayListing}

@@ -19,11 +19,18 @@ export function AutosDealerFinanceFields({
   setListingPatch,
   copy,
   lang,
+  hideApplicationUrl = false,
 }: {
   listing: AutoDealerListing;
   setListingPatch: (patch: Partial<AutoDealerListing>) => void;
   copy: AutosNegociosCopy;
   lang?: AutosNegociosLang;
+  /**
+   * Quick (SIMPLE) dealer: the pre-approval / financing APPLICATION URL is an extra business link, so it is
+   * Full-only and hidden. The finance CONTACT channels (name, phone, WhatsApp, SMS, email) stay. The
+   * stored value is never cleared here; the server boundary restores or empties it.
+   */
+  hideApplicationUrl?: boolean;
 }) {
   const f = copy.app.finance;
   return (
@@ -93,6 +100,7 @@ export function AutosDealerFinanceFields({
             onChange={(e) => setListingPatch({ financeContactEmail: autosDraftTextValue(e.target.value) })}
           />
         </div>
+        {hideApplicationUrl ? null : (
         <div>
           <label className={LABEL}>{f.preApprovalUrl}</label>
           <input
@@ -102,6 +110,7 @@ export function AutosDealerFinanceFields({
             onChange={(e) => setListingPatch({ financeApplicationUrl: autosDraftUrlValue(e.target.value) })}
           />
         </div>
+        )}
         <AutosDealerFinanceImageUpload
           listing={listing}
           setListingPatch={setListingPatch}

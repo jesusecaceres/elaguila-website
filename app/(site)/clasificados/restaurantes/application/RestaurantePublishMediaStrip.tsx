@@ -1,8 +1,16 @@
 "use client";
 
+/**
+ * NON-AUTHORITATIVE / UNIMPORTED. The live Restaurantes application renders media through
+ * RestaurantePublishMediaBuckets + RestauranteExternalVideoUrlsSection (RestauranteApplicationClient.tsx section H).
+ * The Quick photo cap is owned by `quickImageMaxForBusinessCategory("restaurantes")` and enforced server-side; nothing
+ * here is a source of truth. Kept only because verify-restaurantes-gate2-discovery pins it as a known dead module.
+ */
+
 import { useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { businessPlanFromSearchParams } from "@/app/lib/listingPlans/businessQuickPlanSignal";
+import { quickImageMaxForBusinessCategory } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
 import {
   DndContext,
   closestCenter,
@@ -60,7 +68,7 @@ export function RestaurantePublishMediaStrip({
 }: Props) {
   const searchParams = useSearchParams();
   const isQuickBusinessPlan = businessPlanFromSearchParams(searchParams) === "quick";
-  const galleryLimit = isQuickBusinessPlan ? 3 : MAX_GALLERY;
+  const galleryLimit = isQuickBusinessPlan ? (quickImageMaxForBusinessCategory("restaurantes") ?? MAX_GALLERY) : MAX_GALLERY;
   const displaySequence = useMemo(() => {
     const seq = computePublishGallerySequence(draft);
     const imgs = draft.galleryImages ?? [];
@@ -227,7 +235,7 @@ export function RestaurantePublishMediaStrip({
             {isQuickBusinessPlan ? (
               <div className="rounded-xl border border-[#C9B46A]/60 bg-[#FFF6E7] p-3" data-quick-video-locked="1">
                 <p className="text-sm font-bold text-[#3D2C12]">El video está disponible con PRO $399</p>
-                <p className="mt-1 text-xs text-[#5D4A25]">Tu plan de $249 admite hasta 3 imágenes en la misma ficha profesional.</p>
+                <p className="mt-1 text-xs text-[#5D4A25]">Tu plan de $249 admite hasta {galleryLimit} imágenes en la misma ficha profesional.</p>
               </div>
             ) : (
             <RestauranteUploadRow

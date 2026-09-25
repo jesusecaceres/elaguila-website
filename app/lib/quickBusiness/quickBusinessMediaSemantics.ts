@@ -141,21 +141,53 @@ export type QuickMediaSemanticLimits = {
   subjectAttribution: "declared" | "structural";
 };
 
-/** The Quick INTAKE contract: one to three photos, no video. */
-export const QUICK_BUSINESS_SEMANTIC_LIMITS = { minSubjectImages: 1, maxImages: 3, videoAllowed: false } as const;
+/**
+ * THE ONE PLACE Quick's photo allowance is decided, per family.
+ *
+ * Quick is the same canonical application and the same public presentation components as Full, so
+ * its photo cap is not a universal number: it is the count that fills that family's PROVEN native
+ * media composition cleanly (never fewer, so no slot renders half-empty; never padded with fake
+ * photos, never compensated with a resized component). Derived from the existing components:
+ *  - servicios:      5 -> the "Vista rápida" strip needs featured(4) < total, and the gallery grid fills
+ *                     one sm row (5 columns).
+ *  - restaurantes:   5 -> hero + 4 thumbnails, the full 4-column mobile row of the Comida gallery.
+ *  - autos-dealer:   4 -> the gallery rail renders exactly four thumbnails under the main image.
+ *  - bienes-negocio: 3 -> the native composition is hero + two supporting tiles.
+ * Full allowances are untouched (LANE_MEDIA_REGISTRY). Video is never allowed in Quick.
+ */
+export const QUICK_BUSINESS_MAX_IMAGES_BY_CATEGORY: Readonly<Record<QuickBusinessMediaCategory, number>> = {
+  servicios: 5,
+  restaurantes: 5,
+  "autos-dealer": 4,
+  "bienes-negocio": 3,
+};
+
+/** Quick's photo cap for a business family; `null` for anything that is not a Quick business family. */
+export function quickImageMaxForBusinessCategory(category: string | null | undefined): number | null {
+  const key = String(category ?? "").trim();
+  return isQuickBusinessMediaCategory(key) ? QUICK_BUSINESS_MAX_IMAGES_BY_CATEGORY[key] : null;
+}
+
+/**
+ * The Quick INTAKE contract floor and the family-independent rules: at least one real photo, no
+ * video. `maxImages` here is the CEILING across families only; every real check uses
+ * `quickImageMaxForBusinessCategory(category)` (see `buildQuickMediaLimits`).
+ */
+export const QUICK_BUSINESS_SEMANTIC_LIMITS = {
+  minSubjectImages: 1,
+  maxImages: Math.max(...Object.values(QUICK_BUSINESS_MAX_IMAGES_BY_CATEGORY)),
+  videoAllowed: false,
+} as const;
 
 /**
  * The PUBLISH-SEAM contract for a listing the server has already identified as Quick.
  *
  * Full still uses each family's own gallery cap. Quick is the same canonical application with a
- * real entitlement difference: at most 3 images and no video. This guard only runs when
- * `enforceQuickContract` is true, so Full media is preserved.
+ * real entitlement difference: a category-aware image cap (above) and no video. This guard only
+ * runs when `enforceQuickContract` is true, so Full media is preserved.
  */
 export const QUICK_BUSINESS_PUBLISH_MAX_IMAGES: Readonly<Record<QuickBusinessMediaCategory, number | null>> = {
-  servicios: QUICK_BUSINESS_SEMANTIC_LIMITS.maxImages,
-  restaurantes: QUICK_BUSINESS_SEMANTIC_LIMITS.maxImages,
-  "autos-dealer": QUICK_BUSINESS_SEMANTIC_LIMITS.maxImages,
-  "bienes-negocio": QUICK_BUSINESS_SEMANTIC_LIMITS.maxImages,
+  ...QUICK_BUSINESS_MAX_IMAGES_BY_CATEGORY,
 };
 
 /** Limits for the Quick INTAKE (browser step + review). */
@@ -163,6 +195,7 @@ export function buildQuickMediaLimits(category: string): QuickMediaSemanticLimit
   if (!isQuickBusinessMediaCategory(category)) return null;
   return {
     ...QUICK_BUSINESS_SEMANTIC_LIMITS,
+    maxImages: QUICK_BUSINESS_MAX_IMAGES_BY_CATEGORY[category],
     requiredSubjectRole: REQUIRED_SUBJECT_ROLE_BY_CATEGORY[category],
     subjectAttribution: SUBJECT_ATTRIBUTION[category],
   };

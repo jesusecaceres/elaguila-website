@@ -197,6 +197,12 @@ export type ServiciosPublishTransportBody = {
    * publishing cookie; a normal customer save never sets this field.
    */
   assistedAction?: "save_for_client" | "publish_for_client";
+  /**
+   * Declared SIMPLE (Quick) base package key. Present ONLY when the session is Quick; a Full customer
+   * sends nothing. The server reads it in the restricting direction only (it can add the Quick contract,
+   * never relax it), so it cannot be used to escalate.
+   */
+  basePackageKey?: string;
 };
 
 export function buildServiciosPublishTransportBody(
@@ -207,6 +213,7 @@ export function buildServiciosPublishTransportBody(
   activationMode?: "pending_payment",
   existingListingId?: string,
   assistedAction?: "save_for_client" | "publish_for_client",
+  basePackageKey?: string,
 ): ServiciosPublishTransportBody {
   const payload: ServiciosPublishTransportBody = {
     state: buildServiciosPublishPayload(state),
@@ -217,6 +224,7 @@ export function buildServiciosPublishTransportBody(
   if (assistedAction === "save_for_client" || assistedAction === "publish_for_client") {
     payload.assistedAction = assistedAction;
   }
+  if (basePackageKey?.trim()) payload.basePackageKey = basePackageKey.trim();
   if (existingPublicSlug?.trim()) payload.existingPublicSlug = existingPublicSlug.trim();
   if (videoPublishDiagnostics?.length) {
     payload.videoPublishDiagnostics = videoPublishDiagnostics

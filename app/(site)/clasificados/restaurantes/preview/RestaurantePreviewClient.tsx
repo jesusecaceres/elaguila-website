@@ -31,9 +31,10 @@ import {
 } from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
 import { RESTAURANTES_BASE_CHECKOUT, RESTAURANTES_QUICK_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
 import {
-  businessPlanFromSearchParams,
+  carryBusinessPlanParam,
   selectBusinessBaseCheckout,
 } from "@/app/lib/listingPlans/businessQuickPlanSignal";
+import { useIsQuickBusinessPlan } from "@/app/lib/quickBusiness/useIsQuickBusinessPlan";
 import { useBusinessBasePlanOffer } from "@/app/lib/listingPlans/businessBasePlanOfferClient";
 import {
   RESTAURANTES_CHECKPOINT_CONFIRMATIONS,
@@ -123,12 +124,8 @@ export default function RestaurantePreviewClient() {
   );
   const shellCopy = useMemo(() => restaurantePreviewShellCopy(lang), [lang]);
   const pageCopy = useMemo(() => restaurantePreviewPageCopy(lang), [lang]);
-  const editHref = useMemo(
-    () => withClasificadosPublishLang(EDIT_HREF_BASE, routeLang),
-    [routeLang],
-  );
-  const pristine = useMemo(() => isRestauranteDraftPristineEmpty(draft), [draft]);
-  const shellData = useMemo(() => mapRestauranteDraftToShellData(draft, { lang }), [draft, lang]);
+  // Quick session (customer `?plan=quick` handoff, or a live staff custody context that sells Quick).
+  const { isQuick: quickSession } = useIsQuickBusinessPlan("restaurantes");
 
   /** Same normalized shape as storage/API merge — matches what the preview shell maps from (not the POST sanitizer). */
   const normalizedDraft = useMemo(() => mergeRestauranteDraft(draft), [draft]);
@@ -138,7 +135,7 @@ export default function RestaurantePreviewClient() {
   // Quick Business intake hands off here with the Quick plan marker; the standard application
   // arrives without it and keeps the Full package exactly as before. Same draft, same preview,
   // same publisher, same public listing — only the base package purchased differs.
-  const quickPlan = businessPlanFromSearchParams(searchParams) === "quick";
+  const quickPlan = quickSession;
   // For a listing that already exists the URL marker proves nothing — a resumed Quick checkout
   // and a SIMPLE -> FULL upgrade both arrive from the dashboard without one. The server answers
   // from the entitlement table and the payment ledger, and its answer wins.
@@ -153,6 +150,29 @@ export default function RestaurantePreviewClient() {
     urlPlan: quickPlan ? "quick" : "full",
     serverSellPackageKey: businessBasePlan?.sellPackageKey,
   });
+  // The entitlement this preview presents. Same rule as the checkout above: the server's answer for an
+  // existing listing wins, otherwise the session marker. Quick differs from Full ONLY through this flag
+  // (no coupons/offers on the shared presentation) — never through a different component or layout.
+  const isQuickPreview = baseCheckout.packageKey === RESTAURANTES_QUICK_CHECKOUT.packageKey;
+  // Carry the plan through "Editar" / "Volver a editar" so a Quick round trip stays Quick (writes
+  // plan=quick only; Full is never written into a link).
+  const editHref = useMemo(
+    () =>
+      carryBusinessPlanParam(
+        withClasificadosPublishLang(EDIT_HREF_BASE, routeLang),
+        isQuickPreview ? "quick" : "full",
+      ),
+    [routeLang, isQuickPreview],
+  );
+  const pristine = useMemo(() => isRestauranteDraftPristineEmpty(draft), [draft]);
+  const shellDataFromDraft = useMemo(() => mapRestauranteDraftToShellData(draft, { lang }), [draft, lang]);
+  const shellData = useMemo(
+    () =>
+      isQuickPreview
+        ? { ...shellDataFromDraft, coupons: undefined, couponFlyer: undefined, couponMoreOffers: undefined }
+        : shellDataFromDraft,
+    [shellDataFromDraft, isQuickPreview],
+  );
   // Both base keys are static matrix entries; the fallback preserves the historical Full value
   // and never invents a second price literal for Quick.
   const restaurantBaseCents =
@@ -175,10 +195,10 @@ export default function RestaurantePreviewClient() {
       newsletterEligible: true,
       // The matrix marks the Quick packages promo-ineligible; offer only what the server honours.
       promoEligible: getRevenuePackageDefinition(baseCheckout.packageKey)?.promoEligible ?? true,
-      restaurantOffersAddonSelected: Boolean(normalizedDraft.couponUpgradeEnabled),
+      restaurantOffersAddonSelected: !isQuickPreview && Boolean(normalizedDraft.couponUpgradeEnabled),
       returnPath: baseCheckout.returnPath,
     };
-  }, [baseCheckout, restaurantBaseCents, normalizedDraft.couponUpgradeEnabled, normalizedDraft.draftListingId, normalizedDraft.productType, lang]);
+  }, [baseCheckout, isQuickPreview, restaurantBaseCents, normalizedDraft.couponUpgradeEnabled, normalizedDraft.draftListingId, normalizedDraft.productType, lang]);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== "development") return;
@@ -268,6 +288,9 @@ export default function RestaurantePreviewClient() {
           ownerUserId,
           lang,
           accessToken,
+          // Declared ONLY for a Quick session; a Full customer's request carries nothing new. The server reads it
+          // only when it names the Simple key, so it can restrict but never grant.
+          basePackageKey: isQuickPreview ? RESTAURANTES_QUICK_CHECKOUT.packageKey : null,
         });
 
         const captureResult = await capturePromise;
@@ -322,7 +345,7 @@ export default function RestaurantePreviewClient() {
         setCheckoutBusy(false);
       }
     },
-    [baseCheckout, lang, normalizedDraft, couponUpgradeSelected, pageCopy, newsletterEmail],
+    [baseCheckout, isQuickPreview, lang, normalizedDraft, couponUpgradeSelected, pageCopy, newsletterEmail],
   );
 
   if (!hydrated) {
@@ -421,34 +444,31 @@ export default function RestaurantePreviewClient() {
               />
             </div>
           </div>
-          
-          {/* Section 2: Vista previa completa del anuncio */}
-          <div>
-            <div className="mb-8">
-              <h2 
-                className="text-2xl font-bold text-[#1F1A17] mb-3 tracking-tight"
-                style={{ color: LEONIX_PRIMARY_TEXT }}
-              >
-                {pageCopy.fullPreviewTitle}
-              </h2>
-              <p 
-                className="text-base font-medium leading-relaxed"
-                style={{ color: LEONIX_SECONDARY_TEXT }}
-              >
-                {pageCopy.fullPreviewBody}
-              </p>
-            </div>
-            <div 
-              className="rounded-3xl border p-8 shadow-[0_16px_64px_-24px_rgba(212,165,116,0.18)]"
-              style={{ 
-                background: LEONIX_CARD_SURFACE, 
-                borderColor: LEONIX_BORDER 
-              }}
-            >
-              <RestauranteAdStoryPreview data={shellData} lang={lang} />
-            </div>
-          </div>
         </ClasificadosPreviewAdCanvas>
+
+        {/* Section 2: Vista previa completa del anuncio. Mirrors the PUBLIC detail page exactly: the same
+            canvas (overflow-hidden) inside the same max-w-[1280px] px-4 md:px-5 lg:px-6 container, with the
+            story rendered bare — no extra frame/padding — so the preview width, typography and gallery
+            match what visitors see. Titles live outside the canvas like the "Listado publicado" line does. */}
+        <div className="pt-8">
+          <div className="mb-6">
+            <h2
+              className="text-2xl font-bold text-[#1F1A17] mb-3 tracking-tight"
+              style={{ color: LEONIX_PRIMARY_TEXT }}
+            >
+              {pageCopy.fullPreviewTitle}
+            </h2>
+            <p
+              className="text-base font-medium leading-relaxed"
+              style={{ color: LEONIX_SECONDARY_TEXT }}
+            >
+              {pageCopy.fullPreviewBody}
+            </p>
+          </div>
+          <ClasificadosPreviewAdCanvas className="overflow-hidden">
+            <RestauranteAdStoryPreview data={shellData} lang={lang} />
+          </ClasificadosPreviewAdCanvas>
+        </div>
 
         {/* Section 3: Final checkout — visible after preview, not inside collapsed panels.
             Globalization Package A Gate 4 — the guard P3 documented as required "the moment

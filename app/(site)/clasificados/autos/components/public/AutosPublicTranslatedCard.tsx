@@ -53,8 +53,17 @@ export function AutosPublicTranslatedCard({
       ? { ...listing, monthlyEstimate: translatedFinanceTeaser }
       : listing;
 
+  // PRODUCTION LAYOUT PARITY. The results grid (AutosPublicResultsShell) stretches each grid item to the
+  // row height, so the card root itself must BE the grid item. A card with no owner-authored teaser has
+  // nothing to translate, so it renders exactly as before (no wrapper element at all). A card that does
+  // carry a teaser gets the translate utility above it in a full-height column whose card slot grows,
+  // so equal-height rows are preserved there too.
+  if (!financeTeaser) {
+    return <AutosPublicStandardCard listing={displayListing} copy={copy} lang={lang} />;
+  }
+
   return (
-    <div className="min-w-0">
+    <div className="flex h-full min-w-0 flex-col">
       {financeTeaser ? (
         <div className="mb-2 flex justify-end" data-autos-results-translate-utility="1">
           <TranslateAdControl
@@ -70,7 +79,9 @@ export function AutosPublicTranslatedCard({
           />
         </div>
       ) : null}
-      <AutosPublicStandardCard listing={displayListing} copy={copy} lang={lang} />
+      <div className="flex min-w-0 flex-1 flex-col [&>a]:flex-1">
+        <AutosPublicStandardCard listing={displayListing} copy={copy} lang={lang} />
+      </div>
     </div>
   );
 }

@@ -49,6 +49,7 @@ import {
 } from "../app/lib/listingPlans/categoryCommercialPlanPolicy";
 import { getLaneMediaRecords, type LaneMediaRecord } from "../app/lib/media/listingMediaConfigs";
 import type { CanonicalCategoryKey } from "../app/lib/listingIdentity/types";
+import { QUICK_BUSINESS_MAX_IMAGES_BY_CATEGORY } from "../app/lib/quickBusiness/quickBusinessMediaSemantics";
 import { QUICK_BUSINESS_DEFINITIONS } from "../app/lib/quickBusiness/quickBusinessRegistry";
 import type { QuickBusinessCategoryKey } from "../app/lib/quickBusiness/quickBusinessTypes";
 
@@ -398,11 +399,11 @@ check("the access badge is derived, never a stored account-wide tier", () => {
 });
 
 // 7. SIMPLE MEDIA CONTRACT --------------------------------------------------------------------
-// Bible §11.1 (2026-09-20 owner lock): Quick Business is capped at 3 real images, no video.
+// Quick Business: real photos only, no video; the photo cap is CATEGORY-AWARE (owner 2026-09-24, one table in quickBusinessMediaSemantics.ts).
 // This supersedes the previous doctrine that Quick restated the canonical lane cap. The Full lane
 // retains its own unchanged limits. Drift in either direction is caught here and in
 // verify-quick-business-core-01.ts (which checks the registry source literal).
-check("the Simple media contract enforces the Bible §11.1 cap: 3 images, no video", () => {
+check("the Simple media contract enforces the category-aware cap, no video", () => {
   for (const key of QUICK_KEYS.filter((k) => k.endsWith("quick_monthly"))) {
     // Map package key back to category key — the registry is keyed by category.
     const categoryKey = (
@@ -413,12 +414,12 @@ check("the Simple media contract enforces the Bible §11.1 cap: 3 images, no vid
     ) as QuickBusinessCategoryKey;
     const contract = QUICK_BUSINESS_DEFINITIONS[categoryKey].media;
     assert.equal(contract.minImages, 1, `${categoryKey}: every Quick ad needs one real photo`);
-    assert.equal(contract.maxImages, 3, `${categoryKey}: Quick Business max 3 images (Bible §11.1)`);
+    assert.equal(contract.maxImages, QUICK_BUSINESS_MAX_IMAGES_BY_CATEGORY[categoryKey], `${categoryKey}: Quick Business max images come from the one cap table`);
     assert.equal(contract.videoOptional, false, `${categoryKey}: Quick Business includes no video (Bible §11.1)`);
     // The cap must be stated to the customer in both languages.
     assert.ok(
-      contract.note.es.includes("3") && contract.note.en.includes("3"),
-      `${categoryKey}: the media note must state the 3-photo cap in both languages`,
+      contract.note.es.includes(String(contract.maxImages)) && contract.note.en.includes(String(contract.maxImages)),
+      `${categoryKey}: the media note must state the photo cap in both languages`,
     );
   }
 });
@@ -582,8 +583,10 @@ check("every Quick intake hands off carrying the Quick plan marker", () => {
 check("every business preview reads the marker and sells the matching package", () => {
   for (const [key, site] of Object.entries(QUICK_CHECKOUT_SITES) as [QuickBusinessCategoryKey, (typeof QUICK_CHECKOUT_SITES)[QuickBusinessCategoryKey]][]) {
     const src = codeOf(site.file);
+    // The plan is read from the preview's own URL either directly or through the shared
+    // `useIsQuickBusinessPlan` hook (URL marker + the staff custody plan), which reads it the same way.
     assert.ok(
-      src.includes("businessPlanFromSearchParams("),
+      src.includes("businessPlanFromSearchParams(") || src.includes("useIsQuickBusinessPlan("),
       `${key}: the preview must read the plan from its own URL`,
     );
     assert.ok(src.includes(site.quickConst), `${key}: the preview must be able to select ${site.quickConst}`);

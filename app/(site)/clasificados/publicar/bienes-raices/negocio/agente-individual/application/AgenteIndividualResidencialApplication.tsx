@@ -29,6 +29,10 @@ import {
   markPublishFlowOpeningPreview,
 } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications/useBusinessApplicationLeaveGuard";
+import { carryBusinessPlanParam } from "@/app/lib/listingPlans/businessQuickPlanSignal";
+import { useBusinessBasePlanOffer } from "@/app/lib/listingPlans/businessBasePlanOfferClient";
+import { useIsQuickBusinessPlan } from "@/app/lib/quickBusiness/useIsQuickBusinessPlan";
+import { QuickFullOnlyNote } from "./formPrimitives";
 import { createEmptyAgenteIndividualResidencialState } from "../schema/agenteIndividualResidencialFormState";
 import { brShouldIgnoreWizardShortcut } from "../../application/brWizardKeyboard";
 import {
@@ -142,6 +146,19 @@ export default function AgenteIndividualResidencialApplication() {
   const isDashboardInventoryAddonMode = dashboardSource && dashboardMode === "inventory-addon" && listingIdentity;
   const isExistingDashboardListingMode =
     isDashboardListingEditMode || isDashboardInventoryEditMode || isDashboardInventoryAddonMode;
+  /* QUICK SESSION. Quick and Full are ONE application; only entitlement differs. A live staff custody plan
+     wins, else the customer's ?plan=quick handoff (both can only RESTRICT). An EXISTING listing (dashboard
+     edit) is Quick when the SERVER says its held access is SIMPLE. Quick: category-aware photo cap (from the
+     one table), no video, ONE primary website, no socials/Google/Yelp/extra links, one property (no inventory
+     pack). Full renders exactly as before; the server enforces the same boundary on every write. */
+  const { isQuick: sessionQuick } = useIsQuickBusinessPlan("bienes-raices");
+  const baseOffer = useBusinessBasePlanOffer({
+    category: "bienes-raices",
+    listingId: editListingId,
+    enabled: isExistingDashboardListingMode,
+  });
+  const isQuickPlan = sessionQuick || baseOffer?.accessLevel === "simple";
+  const planChoice = isQuickPlan ? "quick" : "full";
   const dashboardReturnHref = appendLangToPath(
     buildDashboardMisAnunciosReturnPath(lang, "bienes-raices"),
     lang,
@@ -655,7 +672,8 @@ export default function AgenteIndividualResidencialApplication() {
   });
 
   const pricingCopy = brAgenteApplicationPricingCopy(lang);
-  const childInventoryCount = state.additionalInventoryProperties.length;
+  // Quick = ONE active property: a hydrated/stored inventory draft never counts toward (or bills) a Quick session.
+  const childInventoryCount = isQuickPlan ? 0 : state.additionalInventoryProperties.length;
   const dashboardInventoryPackUnlocked = !isExistingDashboardListingMode || inventoryEntitlement === "active";
   const inventoryPackAcceptedForShell = isExistingDashboardListingMode
     ? dashboardInventoryPackUnlocked
@@ -705,8 +723,11 @@ export default function AgenteIndividualResidencialApplication() {
         ? `${BR_AGENTE_RES_PREVIEW_ROUTE}?${previewQs.toString()}`
         : BR_AGENTE_RES_PREVIEW_ROUTE;
     const scopedPreviewPath = withBrAgenteResApplicationInstanceParam(previewPath, applicationInstanceId);
-    router.push(withBrAgenteResLangParam(scopedPreviewPath, lang));
+    // The plan rides on the handoff (Quick is written, Full never is): without it the preview re-read as Full
+    // and quoted the $399 checkout, the inventory pack and the promo code for a Quick customer.
+    router.push(withBrAgenteResLangParam(carryBusinessPlanParam(scopedPreviewPath, planChoice), lang));
   }, [
+    planChoice,
     confirmAll,
     editLeonixAdId,
     editListingId,
@@ -890,6 +911,7 @@ export default function AgenteIndividualResidencialApplication() {
             {step === 1 ? <Step02InformacionBasica state={state} setState={setState} /> : null}
             {step === 2 ? (
               <Step03Media
+                quick={isQuickPlan}
                 state={state}
                 setState={setState}
                 onMediaDraftCommit={(next) => {
@@ -900,7 +922,7 @@ export default function AgenteIndividualResidencialApplication() {
             {step === 3 ? <Step04DetallesEsenciales state={state} setState={setState} /> : null}
             {step === 4 ? <Step05Caracteristicas state={state} setState={setState} /> : null}
             {step === 5 ? <Step06Descripcion state={state} setState={setState} /> : null}
-            {step === 6 ? <Step07InformacionProfesional state={state} setState={setState} /> : null}
+            {step === 6 ? <Step07InformacionProfesional state={state} setState={setState} quick={isQuickPlan} /> : null}
             {step === 7 ? <Step08CtaEnlaces state={state} setState={setState} /> : null}
             {step === 8 ? <Step09ExtrasOpcionales state={state} setState={setState} /> : null}
             {step === 9 ? (
@@ -919,7 +941,7 @@ export default function AgenteIndividualResidencialApplication() {
                       : "We are confirming your activation. Refresh in a few seconds or return from your dashboard."}
                   </div>
                 ) : null}
-                {isExistingDashboardListingMode && inventoryEntitlement === "inactive" ? (
+                {isExistingDashboardListingMode && inventoryEntitlement === "inactive" && !isQuickPlan ? (
                   <div className="mt-4 rounded-xl border border-[#E8DFD0] bg-white p-4">
                     <p className="text-sm text-[#2C2416]">{bienesInventoryPackInactiveDashboardHint(lang)}</p>
                     {inventoryCheckoutError ? (
@@ -937,7 +959,15 @@ export default function AgenteIndividualResidencialApplication() {
                     </button>
                   </div>
                 ) : null}
-                {dashboardInventoryPackUnlocked ? (
+                {isQuickPlan ? (
+                  <div className="mt-4">
+                    <QuickFullOnlyNote
+                      lang={lang === "en" ? "en" : "es"}
+                      what={lang === "en" ? "Additional properties (inventory pack)" : "Propiedades adicionales (paquete de inventario)"}
+                    />
+                  </div>
+                ) : null}
+                {dashboardInventoryPackUnlocked && !isQuickPlan ? (
                   <BrNegocioPrePublishInventoryShell
                     lang={lang}
                     parentHubSnapshot={state}
@@ -1062,7 +1092,7 @@ export default function AgenteIndividualResidencialApplication() {
                 ) : null}
                 {!isExistingDashboardListingMode ? (
                   <>
-                    <BrAgenteApplicationPricingSummary lang={lang} childCount={childInventoryCount} />
+                    <BrAgenteApplicationPricingSummary lang={lang} childCount={childInventoryCount} quick={isQuickPlan} />
                     <BrAgenteApplicationConfirmations
                       lang={lang}
                       state={state}

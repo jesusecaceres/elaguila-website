@@ -8,7 +8,6 @@ import {
   resolveClasificadosPublishLang,
   withClasificadosPublishLang,
 } from "@/app/lib/clasificados/clasificadosPublishLang";
-import { ClasificadosPreviewAdCanvas } from "@/app/clasificados/lib/preview/ClasificadosPreviewAdCanvas";
 import { ServiciosProfileView } from "@/app/servicios/components/ServiciosProfileView";
 import { ServiciosHorizontalResultCard } from "@/app/(site)/clasificados/servicios/components/ServiciosHorizontalResultCard";
 import { ServiciosProfessionalResultCard } from "@/app/(site)/clasificados/servicios/ServiciosProfessionalResultCard";
@@ -21,6 +20,7 @@ import {
 } from "@/app/(site)/clasificados/servicios/lib/serviciosTemplateRouting";
 import { resolveServiciosPublicCategoryLabel } from "../lib/resolveServiciosPublicCategoryLabel";
 import { ServiciosProfessionalPreviewShell } from "./ServiciosProfessionalPreviewShell";
+import { applyServiciosQuickFullOnlyBoundary } from "../lib/serviciosQuickFullOnlyPaths";
 import { mapServiciosApplicationDraftToBusinessProfile } from "@/app/servicios/lib/mapServiciosApplicationDraftToBusinessProfile";
 import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosProfile";
 import type { ServiciosApplicationDraft } from "@/app/servicios/types/serviciosApplicationDraft";
@@ -60,6 +60,7 @@ import {
 import { SERVICIOS_BASE_CHECKOUT, SERVICIOS_QUICK_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
 import {
   businessPlanFromSearchParams,
+  carryBusinessPlanParam,
   selectBusinessBaseCheckout,
 } from "@/app/lib/listingPlans/businessQuickPlanSignal";
 import { useBusinessBasePlanOffer } from "@/app/lib/listingPlans/businessBasePlanOfferClient";
@@ -154,7 +155,18 @@ export function ClasificadosServiciosPreviewClient() {
    * draft's own `applicationStepIndex` is already 7 (final review) at the moment "Vista previa" is
    * clicked (persisted via persistServiciosDraftForPreviewNavigation), landing back on this route
    * rehydrates the same draft directly onto the final review step, not step 0. */
-  const newApplicationEditHref = withClasificadosPublishLang("/publicar/servicios", routeLang);
+  // Plan carry: a Quick session must come back to the application as Quick (URL marker or staff
+  // custody package), never as Full. Full is never WRITTEN into a link (absent already means Full).
+  const previewQuickSession =
+    businessPlanFromSearchParams(searchParams) === "quick" ||
+    assistedUi?.packageKey === SERVICIOS_QUICK_CHECKOUT.packageKey;
+  // The one-direction product declaration: sent ONLY for a Quick session so the server can prove the
+  // restricting product; a Full customer sends nothing new.
+  const declaredQuickPackageKey = previewQuickSession ? SERVICIOS_QUICK_CHECKOUT.packageKey : undefined;
+  const newApplicationEditHref = carryBusinessPlanParam(
+    withClasificadosPublishLang("/publicar/servicios", routeLang),
+    previewQuickSession ? "quick" : "full",
+  );
   const previewListingParam = searchParams?.get("preview") === "listing";
   const dashboardSource = searchParams?.get("source") === "dashboard";
   const listingId = searchParams?.get("listingId")?.trim() ?? "";
@@ -422,7 +434,12 @@ export function ClasificadosServiciosPreviewClient() {
       } catch {
         accessToken = null;
       }
-      const result = await saveServiciosPendingBeforeCheckout({ state: appState, lang, accessToken });
+      const result = await saveServiciosPendingBeforeCheckout({
+        state: appState,
+        lang,
+        accessToken,
+        basePackageKey: declaredQuickPackageKey,
+      });
       if (!result.ok) {
         setPublishErr(result.userMessage);
         setPublishBusy(false);
@@ -434,7 +451,7 @@ export function ClasificadosServiciosPreviewClient() {
       setPublishErr(lang === "en" ? "Network error." : "Error de red.");
       setPublishBusy(false);
     }
-  }, [appState, canPublishFromPreview, lang]);
+  }, [appState, canPublishFromPreview, lang, declaredQuickPackageKey]);
 
   const handlePublishFromPreview = useCallback(async () => {
     if (!appState || !canPublishFromPreview) return;
@@ -450,7 +467,12 @@ export function ClasificadosServiciosPreviewClient() {
       } catch {
         accessToken = null;
       }
-      const { res, data } = await postServiciosPublishApi({ state: appState, lang, accessToken });
+      const { res, data } = await postServiciosPublishApi({
+        state: appState,
+        lang,
+        accessToken,
+        basePackageKey: declaredQuickPackageKey,
+      });
       if (res.status === 401) {
         setPublishErr(
           lang === "en"
@@ -553,7 +575,7 @@ export function ClasificadosServiciosPreviewClient() {
       setPublishErr(lang === "en" ? "Network error." : "Error de red.");
       setPublishBusy(false);
     }
-  }, [appState, canPublishFromPreview, lang, router, isRepublishOfPublished]);
+  }, [appState, canPublishFromPreview, lang, router, isRepublishOfPublished, declaredQuickPackageKey]);
 
   /**
    * Business name is display-only, from the same unsigned sessionStorage record
@@ -605,6 +627,11 @@ export function ClasificadosServiciosPreviewClient() {
     if (source !== "application" || !appDraft || !appState) return null;
     let wire = mapServiciosApplicationDraftToBusinessProfile(appDraft);
     wire = applyClasificadosCouponsToServiciosWireProfile(wire, appDraft);
+    // A brand-new Quick application previews exactly what the publish route will store: no Full-only
+    // links (a listing-bound preview shows the stored row, so it is left as stored).
+    if (previewQuickSession && !listingBoundPreview) {
+      wire = applyServiciosQuickFullOnlyBoundary({ incoming: wire, existing: null }).value;
+    }
     // Gate 4 (Servicios Golden lifecycle closeout, 2026-09-18) — a listing-bound preview of an
     // ALREADY leonix_verified listing must show the real badge, mirroring the exact override the
     // published page itself applies (page.tsx: `wireMerged.identity = {...,leonixVerified:
@@ -627,7 +654,7 @@ export function ClasificadosServiciosPreviewClient() {
       resolved = { ...resolved, promotions: [], coupons: [] };
     }
     return resolved;
-  }, [source, appDraft, appState, lang, listingBoundPreview, listingBoundOffersEntitled, listingBoundLeonixVerified]);
+  }, [source, appDraft, appState, lang, listingBoundPreview, listingBoundOffersEntitled, listingBoundLeonixVerified, previewQuickSession]);
 
   const listingTemplate = useMemo(() => {
     if (source !== "application" || !appState) return "standard_service" as const;
@@ -645,6 +672,11 @@ export function ClasificadosServiciosPreviewClient() {
     if (!useProfessionalPreview || !appState || !appDraft || !profile) return null;
     let wire = mapServiciosApplicationDraftToBusinessProfile(appDraft);
     wire = applyClasificadosCouponsToServiciosWireProfile(wire, appDraft);
+    // A brand-new Quick application previews exactly what the publish route will store: no Full-only
+    // links (a listing-bound preview shows the stored row, so it is left as stored).
+    if (previewQuickSession && !listingBoundPreview) {
+      wire = applyServiciosQuickFullOnlyBoundary({ incoming: wire, existing: null }).value;
+    }
     const slug = profile.identity.slug;
     return {
       slug,
@@ -673,7 +705,7 @@ export function ClasificadosServiciosPreviewClient() {
       // stand-in only for a fresh application preview, which has no real row/status yet.
       listing_status: listingBoundPreview && listingBoundStatus ? listingBoundStatus : SERVICIOS_LISTING_STATUS_PUBLISHED,
     };
-  }, [useProfessionalPreview, appState, appDraft, profile, listingBoundPreview, listingBoundStatus, listingBoundLeonixVerified]);
+  }, [useProfessionalPreview, appState, appDraft, profile, listingBoundPreview, listingBoundStatus, listingBoundLeonixVerified, previewQuickSession]);
 
   // Servicios global checkout standard — final checkpoint shown after preview for the NEW
   // application publish flow, and (Gate 8, Servicios Final Consolidated Lifecycle Execution,
@@ -828,7 +860,12 @@ export function ClasificadosServiciosPreviewClient() {
           checked: ctx.newsletterOptIn,
         });
 
-        const pending = await saveServiciosPendingBeforeCheckout({ state: appState, lang, accessToken });
+        const pending = await saveServiciosPendingBeforeCheckout({
+          state: appState,
+          lang,
+          accessToken,
+          basePackageKey: declaredQuickPackageKey,
+        });
 
         const captureResult = await capturePromise;
         if (captureResult.status === "FAILED") {
@@ -898,7 +935,7 @@ export function ClasificadosServiciosPreviewClient() {
         setCheckoutBusy(false);
       }
     },
-    [appState, baseCheckout, lang, offersAddonSelected],
+    [appState, baseCheckout, lang, offersAddonSelected, declaredQuickPackageKey],
   );
 
   const backLabel = lang === "en" ? "Back to edit" : "Volver a editar";
@@ -1121,8 +1158,8 @@ export function ClasificadosServiciosPreviewClient() {
           </div>
         ) : null}
       </div>
-      <div className="mx-auto max-w-[1280px] px-4 pb-12 pt-2 md:px-6">
-        <ClasificadosPreviewAdCanvas className="overflow-hidden">
+      <div className="pb-12 pt-2" data-servicios-preview-body="1">
+        <div className="mx-auto max-w-[1280px] px-4 md:px-6">
           <div className="mb-8">
             <h2 className="mb-4 text-lg font-semibold text-[#1A1A1A]">{cardPreviewTitle}</h2>
             {previewListingRow ? (
@@ -1134,30 +1171,32 @@ export function ClasificadosServiciosPreviewClient() {
             )}
           </div>
 
-          <div>
-            <h2 className="mb-4 text-lg font-semibold text-[#1A1A1A]">{fullPreviewTitle}</h2>
-            {useProfessionalPreview || (profile.coupons?.length ?? 0) > 0 ? (
-              <ServiciosProfessionalPreviewShell
-                profile={profile}
-                lang={lang}
-                template={listingTemplate}
-                cityFallback={appState?.city}
-                applicationState={appState}
-              />
-            ) : (
-              <ServiciosProfileView
-                profile={profile}
-                lang={lang}
-                showTopBar={false}
-                showEngagementControls
-                persistListingEngagement={false}
-                engagementListingId={profile.identity.slug}
-                analyticsListingSlug={profile.identity.slug}
-              />
-            )}
-          </div>
-        </ClasificadosPreviewAdCanvas>
+          <h2 className="text-lg font-semibold text-[#1A1A1A]">{fullPreviewTitle}</h2>
+          <p className="mt-2 text-center text-[11px] leading-snug text-[#6F6254]" data-servicios-preview-banner="1">
+            {lang === "en"
+              ? "Preview — contact actions use your saved phone, WhatsApp, and email below."
+              : "Vista previa — el contacto usa el teléfono, WhatsApp y correo que guardaste abajo."}
+          </p>
+        </div>
 
+        {/* The full-profile preview is the SAME shell the public detail page renders, chosen by the
+            SAME rule (professional template -> professional shell, otherwise the trade view). It owns
+            its own max width (LX_PRO_MAIN_MAX) and frame; nothing here wraps it in a second frame. */}
+        {useProfessionalPreview ? (
+          <ServiciosProfessionalPreviewShell profile={profile} lang={lang} template={listingTemplate} />
+        ) : (
+          <ServiciosProfileView
+            profile={profile}
+            lang={lang}
+            showTopBar={false}
+            showEngagementControls
+            persistListingEngagement={false}
+            engagementListingId={profile.identity.slug}
+            analyticsListingSlug={profile.identity.slug}
+          />
+        )}
+
+        <div className="mx-auto max-w-[1280px] px-4 md:px-6">
         {showFinalCheckout ? (
           <div className="mx-auto mt-8 max-w-3xl">
             <div className="mb-4">
@@ -1216,6 +1255,7 @@ export function ClasificadosServiciosPreviewClient() {
             />
           </div>
         ) : null}
+        </div>
       </div>
     </div>
   );

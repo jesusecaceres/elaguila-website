@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { FiImage, FiUpload } from "react-icons/fi";
-import { businessPlanFromSearchParams } from "@/app/lib/listingPlans/businessQuickPlanSignal";
+import { useIsQuickBusinessPlan } from "@/app/lib/quickBusiness/useIsQuickBusinessPlan";
+import { quickImageMaxForBusinessCategory } from "@/app/lib/quickBusiness/quickBusinessMediaSemantics";
 import type { AutoDealerListing, MediaImageEntry } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import type { AutosNegociosCopy } from "@/app/clasificados/autos/negocios/lib/autosNegociosCopy";
 import {
@@ -63,15 +63,17 @@ export function AutosNegociosMediaManager({
   lang?: AutosNegociosLang;
   insideModal?: boolean;
   /**
-   * Autos DEALER only: `?plan=quick` (Quick 3 images / no video) is a dealer-package signal read from
-   * the URL. Autos PRIVADO is a flat-priced product with no Quick/Full split, so its application
+   * Autos DEALER only: `?plan=quick` / staff Quick custody (Quick photo cap from the category table, no video) is a
+   * dealer-package signal. Autos PRIVADO is a flat-priced product with no Quick/Full split, so its application
    * passes `false` and this manager never applies the Quick image/video limits to a private seller.
    */
   applyBusinessPlanLimits?: boolean;
 }) {
-  const searchParams = useSearchParams();
-  const isQuickBusinessPlan = applyBusinessPlanLimits && businessPlanFromSearchParams(searchParams) === "quick";
-  const imageLimit = isQuickBusinessPlan ? 3 : null;
+  // The dealer's Quick photo cap comes from the ONE per-category table (Autos Dealer), never a literal.
+  const quickPlan = useIsQuickBusinessPlan("autos");
+  const isQuickBusinessPlan = applyBusinessPlanLimits && quickPlan.isQuick;
+  const quickImageCap = quickImageMaxForBusinessCategory("autos-dealer");
+  const imageLimit = isQuickBusinessPlan ? quickImageCap : null;
   const m = copy.media;
   const images = sortByOrder(listing.mediaImages ?? []);
   const [singleImageUrlDraft, setSingleImageUrlDraft] = useState("");
@@ -143,7 +145,11 @@ export function AutosNegociosMediaManager({
     setSingleUrlError(null);
     const base = sortByOrder(listing.mediaImages ?? []);
     if (imageLimit != null && base.length >= imageLimit) {
-      setSingleUrlError(lang === "en" ? "This plan allows up to 3 images." : "Este plan admite hasta 3 imágenes.");
+      setSingleUrlError(
+        lang === "en"
+          ? `This plan allows up to ${imageLimit} images.`
+          : `Este plan admite hasta ${imageLimit} imágenes.`,
+      );
       return false;
     }
     const addition: MediaImageEntry = {
@@ -405,8 +411,8 @@ export function AutosNegociosMediaManager({
           </p>
           <p className="mt-1 text-xs text-[#5D4A25]">
             {lang === "en"
-              ? "Your $249 plan keeps the same professional dealer application and supports up to 3 images."
-              : "Tu plan de $249 conserva la misma aplicación de dealer y admite hasta 3 imágenes."}
+              ? `Your $249 plan keeps the same professional dealer application and supports up to ${quickImageCap} images.`
+              : `Tu plan de $249 conserva la misma aplicación de dealer y admite hasta ${quickImageCap} imágenes.`}
           </p>
         </div>
       ) : lang ? (

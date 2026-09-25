@@ -159,7 +159,9 @@ export default async function RestaurantePublicDetailPage(props: PageProps) {
             lang={lang}
             analyticsOwnerUserId={row.owner_user_id}
             persistListingEngagement
-            linkedOffers={linkedOffers}
+            // Linked offers follow the SAME live coupons_offers capability as the coupon module: a listing without it
+            // (Quick / Simple, or any listing that does not resolve it) shows none. Full is unchanged.
+            linkedOffers={couponsIncluded ? linkedOffers : []}
           />
         </ClasificadosPreviewAdCanvas>
         {row.leonix_ad_id ? (

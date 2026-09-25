@@ -2,6 +2,14 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getBearerUserId } from "@/app/api/clasificados/_lib/bearerUser";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { assertCommercialCapacityForWrite } from "@/app/lib/listingPlans/commercialWriteGuard";
+import { resolveQuickBusinessPublishIdentity } from "@/app/lib/listingPlans/quickBusinessProductIdentityServer";
+import {
+  quickBienesGalleryGrowthAllowed,
+  quickBienesImageCap,
+  quickBienesNetNewExternalVideoCount,
+  quickFullOnlyBoundaryApplies,
+  stripQuickBienesFullOnlyFields,
+} from "@/app/lib/clasificados/bienes-raices/stripQuickBienesFullOnlyFields";
 import {
   buildProposedFinalMediaSet,
   warnDroppedUnpersistableMedia,
@@ -52,6 +60,8 @@ type ListingRow = {
   leonix_ad_id?: string | null;
   detail_pairs?: unknown;
   images?: unknown;
+  /** Read only so the Quick Full-only boundary can RESTORE stored content (never wipe it). */
+  business_meta?: unknown;
   /** Gate BIENES-NEGOCIO-1 — read only, so the identity-substitution guard can compare the stored
    * property location against the incoming one. `buildEditablePatch` still writes these as ordinary
    * content; they are never treated as a mutable identity key. */
@@ -226,7 +236,15 @@ async function updateOneListing(input: {
   params: PublishLeonixRealEstateListingCoreParams;
   lang: "es" | "en";
   parentListingId?: string | null;
-}): Promise<{ ok: true; id: string; droppedUnpersistableMedia: string[] } | { ok: false; message: string }> {
+  /**
+   * True ONLY for a server-PROVEN Quick parent (entitlement / settled ledger), never `unverified`.
+   * Applies the Quick Full-only boundary and the photo-growth cap; Full/PRO edits are untouched.
+   */
+  quickBoundary?: boolean;
+}): Promise<
+  | { ok: true; id: string; droppedUnpersistableMedia: string[] }
+  | { ok: false; message: string; status?: number; code?: string }
+> {
   const media = await resolvePublicImages({
     supabase: input.supabase,
     ownerId: input.ownerId,
@@ -235,6 +253,22 @@ async function updateOneListing(input: {
     existingImages: input.existing.images,
   });
   if (!media.ok) return { ok: false, message: media.message };
+  // QUICK: the gallery may not GROW past the category cap (3, from the one table), nor past what is
+  // already stored (a downgraded owner keeps stored photos; nothing new can be added).
+  if (
+    input.quickBoundary &&
+    !quickBienesGalleryGrowthAllowed({
+      incomingCount: media.images.length,
+      existingCount: imagesArray(input.existing.images).length,
+    })
+  ) {
+    return {
+      ok: false,
+      status: 422,
+      code: "quick_gallery_cap",
+      message: `The Quick package supports up to ${quickBienesImageCap()} photos.`,
+    };
+  }
   const builtPatch = buildEditablePatch({
     existing: input.existing,
     params: input.params,
@@ -242,6 +276,23 @@ async function updateOneListing(input: {
     lang: input.lang,
   });
   if (!builtPatch.ok) return { ok: false, message: builtPatch.message };
+  if (input.quickBoundary) {
+    // QUICK FULL-ONLY BOUNDARY: extra socials, Google/Yelp, extra business links and video are RESTORED
+    // from the stored row (this write replaces business_meta wholesale) — never taken from the browser.
+    const existingCols = {
+      business_meta: input.existing.business_meta ?? null,
+      detail_pairs: input.existing.detail_pairs ?? null,
+    };
+    builtPatch.patch = stripQuickBienesFullOnlyFields({ row: builtPatch.patch, existingRow: existingCols }).row;
+    if (quickBienesNetNewExternalVideoCount({ row: builtPatch.patch, existingRow: existingCols }) > 0) {
+      return {
+        ok: false,
+        status: 422,
+        code: "video_not_allowed",
+        message: "Video is not included in this package. Upload photos only.",
+      };
+    }
+  }
 
   let q = input.supabase
     .from("listings")
@@ -284,7 +335,7 @@ export async function POST(request: NextRequest) {
   const supabase = getAdminSupabase();
   const { data: existing, error: readError } = await supabase
     .from("listings")
-    .select("id, owner_id, category, seller_type, status, is_published, published_at, expires_at, leonix_ad_id, detail_pairs, images, city, state, zip, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role")
+    .select("id, owner_id, category, seller_type, status, is_published, published_at, expires_at, leonix_ad_id, detail_pairs, images, business_meta, city, state, zip, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role")
     .eq("id", listingId)
     .maybeSingle();
 
@@ -354,15 +405,28 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Which product is this parent? Server-owned records only (live entitlement, settled checkout ledger);
+  // the boundary runs ONLY for a PROVEN Quick product. `unverified` (no record) and Full are untouched.
+  const parentProduct = await resolveQuickBusinessPublishIdentity({
+    category: "bienes-raices",
+    ownerUserId: bearerUserId,
+    listingId,
+  });
+  const quickBoundary = quickFullOnlyBoundaryApplies(parentProduct);
+
   const parentUpdate = await updateOneListing({
     supabase,
     existing: parent,
     ownerId: bearerUserId,
     params: parentBuilt.params,
     lang,
+    quickBoundary,
   });
   if (!parentUpdate.ok) {
-    return NextResponse.json({ ok: false, code: "parent_update_failed", message: parentUpdate.message }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, code: parentUpdate.code ?? "parent_update_failed", message: parentUpdate.message },
+      { status: parentUpdate.status ?? 500 },
+    );
   }
   const droppedMedia: string[] = [...parentUpdate.droppedUnpersistableMedia];
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { brAgenteApplicationPricingCopy, type BrAgentePricingLang } from "../../../../shared/brAgenteApplicationPricingCopy";
+import { getRevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
 import {
   BR_AGENT_SHOWCASE_PRICE_CENTS,
   BR_INVENTORY_PACK_PRICE_CENTS,
@@ -11,13 +12,18 @@ import {
 type Props = {
   lang: BrAgentePricingLang;
   childCount: number;
+  /** Quick (Simple) session: the Quick base price from the pricing matrix, one property, no inventory pack. */
+  quick?: boolean;
 };
 
 /** Final application step — monthly pricing summary before preview. */
-export function BrAgenteApplicationPricingSummary({ lang, childCount }: Props) {
+export function BrAgenteApplicationPricingSummary({ lang, childCount, quick = false }: Props) {
   const copy = brAgenteApplicationPricingCopy(lang);
-  const hasChildren = childCount >= 1;
-  const totalCents = brApplicationPricingSummaryTotalCents(childCount);
+  const hasChildren = !quick && childCount >= 1;
+  const baseCents = quick
+    ? getRevenuePackageDefinition("br_agent_quick_monthly")?.priceCents ?? 24900
+    : BR_AGENT_SHOWCASE_PRICE_CENTS;
+  const totalCents = quick ? baseCents : brApplicationPricingSummaryTotalCents(childCount);
 
   return (
     <section className="mt-5 rounded-xl border border-[#C9B46A]/35 bg-[#FFF6E7]/60 px-4 py-4">
@@ -28,7 +34,7 @@ export function BrAgenteApplicationPricingSummary({ lang, childCount }: Props) {
             <p className="font-semibold text-[#1E1810]">{copy.baseLine}</p>
             <p className="text-xs text-[#5C5346]/85">{copy.baseDetail}</p>
           </div>
-          <p className="font-bold tabular-nums text-[#1E1810]">{formatBrMonthlyPrice(BR_AGENT_SHOWCASE_PRICE_CENTS, lang)}</p>
+          <p className="font-bold tabular-nums text-[#1E1810]">{formatBrMonthlyPrice(baseCents, lang)}</p>
         </div>
         {hasChildren ? (
           <>
