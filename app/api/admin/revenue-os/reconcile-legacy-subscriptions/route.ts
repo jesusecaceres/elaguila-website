@@ -14,8 +14,10 @@ export const runtime = "nodejs";
  * existed) whose monthly renewals never extended the entitlement. See
  * `app/lib/listingPlans/legacySubscriptionAdoption.ts` for the proven defect and the evidence rule.
  *
- * Body: { stripeSubscriptionId?: string, dryRun?: boolean }
+ * Body: { stripeSubscriptionId?: string, dryRun?: boolean, acknowledgeDuplicates?: boolean }
  *   - dryRun defaults to TRUE; a write requires an explicit `dryRun: false`.
+ *   - a DUPLICATE paying subscription for the same listing + package is reported in every response and
+ *     BLOCKS an apply until `acknowledgeDuplicates: true` (it is never auto-canceled or merged).
  *   - with no `stripeSubscriptionId` it SCANS candidate subscriptions (a Stripe-granted monthly
  *     entitlement with no subscription record) and reports each decision; the scan never writes.
  *
@@ -39,9 +41,10 @@ export async function POST(request: NextRequest) {
   }
   const stripeSubscriptionId = String(body.stripeSubscriptionId ?? "").trim();
   const dryRun = body.dryRun !== false;
+  const acknowledgeDuplicates = body.acknowledgeDuplicates === true;
 
   if (stripeSubscriptionId) {
-    const result = await reconcileLegacySubscription({ stripeSubscriptionId, dryRun });
+    const result = await reconcileLegacySubscription({ stripeSubscriptionId, dryRun, acknowledgeDuplicates });
     return NextResponse.json({ ...result, dryRun }, { status: result.ok ? 200 : 422 });
   }
 
@@ -71,7 +74,14 @@ export async function POST(request: NextRequest) {
   const candidates = [];
   for (const id of subscriptionIds) {
     const result = await reconcileLegacySubscription({ stripeSubscriptionId: id, dryRun: true });
-    candidates.push({ stripeSubscriptionId: id, ok: result.ok, code: result.code, plannedEndsAt: result.plannedEndsAt ?? null });
+    candidates.push({
+      stripeSubscriptionId: id,
+      ok: result.ok,
+      code: result.code,
+      plannedEndsAt: result.plannedEndsAt ?? null,
+      entitlementIds: result.entitlementIds ?? [],
+      duplicateSubscriptionIds: result.duplicateSubscriptionIds ?? [],
+    });
   }
   return NextResponse.json({ ok: true, scan: true, dryRun: true, candidates });
 }

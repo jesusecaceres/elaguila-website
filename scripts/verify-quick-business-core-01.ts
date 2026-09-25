@@ -753,7 +753,15 @@ function phantom(w: Wiring, allowed: Set<string>): string[] {
         `${f}: Quick must not create a product table (${t})`,
       );
     }
-    assert.ok(!/quick_/i.test(sql), `${f}: no Quick-specific database object`);
+    // The claim is that Quick owns no database OBJECT (table / column / function / index / type / view /
+    // trigger / policy). A package-key string literal inside entitlement logic — e.g. the Autos dealer
+    // capacity function deriving BASE from `autos_dealer_quick_monthly` — is a commercial rule keyed on the
+    // package, not a Quick-specific object, so the check is on created/added object NAMES.
+    const objectNames = [
+      ...sql.matchAll(/create\s+(?:or\s+replace\s+)?(?:unique\s+)?(?:table|function|index|type|view|trigger|policy)\s+(?:if\s+not\s+exists\s+)?(?:public\.)?(\w+)/gi),
+      ...sql.matchAll(/add\s+column\s+(?:if\s+not\s+exists\s+)?(\w+)/gi),
+    ].map((m) => m[1]!);
+    for (const name of objectNames) assert.ok(!/quick/i.test(name), `${f}: no Quick-specific database object (${name})`);
   }
   if (!IS_INTEGRATION_BRANCH) {
     assert.ok(

@@ -39,6 +39,7 @@ import {
   resolveAssistedSessionConflict,
 } from "@/app/lib/sales/assistedSameRowBinding";
 import { isClientAuthorizedForBusiness } from "@/app/lib/sales/assistedClientAuthorization";
+import { activateAutosDealerListingAtomic } from "@/app/lib/listingPlans/capacityActivationRpc";
 import { recordSalesWorkspaceAudit } from "@/app/lib/sales/salesWorkspaceAudit";
 import { customerUserIdFromBearer } from "@/app/lib/auth/customerBearerUserId";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
@@ -427,11 +428,32 @@ export async function POST(request: NextRequest) {
       );
     }
     if (vehicleListingId) {
-      await supabase
-        .from("autos_classifieds_listings")
-        .update({ status: "active", published_at: nowIso, updated_at: nowIso })
-        .eq("id", vehicleListingId)
-        .in("status", ["draft", "pending_payment", "payment_failed"]);
+      // The vehicle is an inventory child: its activation is a CAPACITY-increasing transition, so it goes
+      // through the atomic capacity RPC (the database authority: BASE = 5 vehicles total, PRO = 10, PRO +
+      // pack = 20) instead of a direct status write that no limit ever saw. Already-active rows are handled
+      // idempotently by the RPC; a refusal is reported, never swallowed.
+      const vehicleRow = await getAutosClassifiedsListingById(vehicleListingId);
+      if (vehicleRow && vehicleRow.status !== "active") {
+        const vehicleActivation = await activateAutosDealerListingAtomic({
+          listingId: vehicleListingId,
+          ownerUserId: String(vehicleRow.owner_user_id ?? writeOwnerUserId ?? ""),
+          fromStatus: vehicleRow.status,
+        });
+        if (!vehicleActivation.ok) {
+          return NextResponse.json({ ok: false, error: "capacity_rpc_unavailable" }, { status: 500 });
+        }
+        if (!vehicleActivation.activated && !vehicleActivation.idempotent) {
+          return NextResponse.json(
+            {
+              ok: false,
+              error: vehicleActivation.blockedReason ?? "capacity_reached",
+              activeCount: vehicleActivation.activeCount,
+              effectiveLimit: vehicleActivation.effectiveLimit,
+            },
+            { status: 409 },
+          );
+        }
+      }
     }
   }
 

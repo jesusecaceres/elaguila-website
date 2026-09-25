@@ -9,6 +9,16 @@
  * `unit_amount`, in a test, instead of on a customer's card.
  */
 const sessions = [];
+/** Subscriptions the code under test may `retrieve` (seeded by tests; a miss throws like Stripe's resource_missing). */
+const subscriptions = new Map();
+let subscriptionRetrieveFailure = null;
+export function __seedSubscription(subscription) {
+  subscriptions.set(subscription.id, JSON.parse(JSON.stringify(subscription)));
+}
+/** Make every `subscriptions.retrieve` fail (Stripe unreachable), to prove the retryable branch. */
+export function __failSubscriptionRetrieve(error) {
+  subscriptionRetrieveFailure = error ?? Object.assign(new Error("stripe is down"), { code: "api_connection_error" });
+}
 const coupons = new Map();
 let couponFailure = null;
 
@@ -17,6 +27,8 @@ export function __stripeSessions() {
 }
 export function __resetStripe() {
   sessions.length = 0;
+  subscriptions.clear();
+  subscriptionRetrieveFailure = null;
   coupons.clear();
   couponFailure = null;
 }
@@ -73,6 +85,18 @@ export default class Stripe {
           throw err;
         }
         return found;
+      },
+    };
+    this.subscriptions = {
+      retrieve: async (id) => {
+        if (subscriptionRetrieveFailure) throw subscriptionRetrieveFailure;
+        const found = subscriptions.get(id);
+        if (!found) {
+          const err = new Error(`No such subscription: ${id}`);
+          err.code = "resource_missing";
+          throw err;
+        }
+        return JSON.parse(JSON.stringify(found));
       },
     };
     this.promotionCodes = { create: async (params) => ({ id: "promo_test", ...params }) };

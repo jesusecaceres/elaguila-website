@@ -207,7 +207,8 @@ check("adoption cannot upgrade BASE to PRO or create rows: a BASE payment can on
 });
 check("wiring: invoice.paid adopts before ignoring; the admin reconcile route is guarded, dry-run by default, and never writes on scan", () => {
   const ev = raw("app/lib/listingPlans/revenueSubscriptionEvents.ts");
-  assert.ok(/\(await loadSubscriptionRecord\(stripeSubscriptionId\)\) \?\? \(await adoptLegacySubscriptionRecord\(stripeSubscriptionId\)\)/.test(ev));
+  assert.ok(/await loadSubscriptionRecord\(stripeSubscriptionId\);\s*if \(!record\) \{\s*const adopted = await adoptLegacySubscriptionRecord\(stripeSubscriptionId\);/.test(ev), "invoice.paid adopts before ignoring");
+  assert.ok(/adopted\.kind === "retryable"\) return \{ ok: false, outcome: "failed_retryable"/.test(ev), "a Stripe outage is retryable, never a silent ignore");
   assert.ok(ev.includes("decideLegacySubscriptionAdoption("), "the impure layer only asks the pure decision");
   assert.ok(ev.includes("companion_entitlement_ids"), "a companion row renews with its subscription");
   const route = raw("app/api/admin/revenue-os/reconcile-legacy-subscriptions/route.ts");
@@ -403,6 +404,25 @@ check("shared: BASE -> PRO upgrade is an ENTITLEMENT change on the SAME listing 
   ]);
   assert.equal(beforeUpgrade.allowed, false);
   assert.equal(afterUpgrade.allowed, true, "coupons become available after the upgrade");
+});
+
+check("autos DATABASE authority: the capacity RPC derives BASE = 4 children (5 total), PRO 10, PRO + pack 20 from the parent's entitlements, and never from the caller", () => {
+  const mig = raw("supabase/migrations/20260924190000_autos_dealer_base_capacity_authority.sql");
+  assert.ok(mig.includes("create or replace function public.autos_dealer_activate_listing("));
+  assert.ok(mig.includes("v_limit := case when v_base_only then 4 when v_boost_active then 20 else 10 end;"), "BASE 4 children / pack 20 / PRO 10");
+  assert.ok(/package_key = 'autos_dealer_quick_monthly'[\s\S]{0,260}and not exists[\s\S]{0,260}package_key = 'autos_dealer_monthly'/.test(mig), "BASE = live Quick AND NO live PRO on the same parent");
+  assert.ok(mig.includes("e.status in ('active', 'scheduled')") && mig.includes("e.revoked_at is null") && mig.includes("e.ends_at >= v_now"), "liveness mirrors the application resolver");
+  assert.ok(!/p_limit|p_max|p_is_quick|p_plan/.test(mig), "the RPC never accepts a caller-supplied limit / plan");
+  assert.ok(/grant execute on function public\.autos_dealer_activate_listing\(uuid, uuid, text\) to service_role;/.test(mig) && /revoke all on function public\.autos_dealer_activate_listing\(uuid, uuid, text\) from public;/.test(mig), "service_role only");
+  assert.ok(!mig.includes("br_negocio_activate_listing"), "the Bienes function is untouched");
+  assert.ok(!/(insert|update|delete)\s+(into\s+)?public\.listing_package_entitlements/i.test(mig), "the migration never mutates entitlements");
+});
+check("autos capacity: EVERY status='active' write for a dealer child goes through the RPC — including the staff assisted-publish vehicle (was a direct write with no limit)", () => {
+  const assisted = raw("app/api/clasificados/autos/assisted-publish/route.ts");
+  assert.ok(assisted.includes("activateAutosDealerListingAtomic({"), "assisted-publish activates the vehicle through the RPC");
+  const vehicleBlock = assisted.slice(assisted.indexOf("if (vehicleListingId) {\n      // The vehicle is an inventory child"));
+  assert.ok(!/from\("autos_classifieds_listings"\)\s*\.update\(\{ status: "active"[\s\S]{0,200}eq\("id", vehicleListingId\)/.test(vehicleBlock.slice(0, 1800)), "no direct status write for the vehicle child");
+  assert.ok(/error: vehicleActivation\.blockedReason \?\? "capacity_reached"/.test(assisted) && /status: 409/.test(assisted), "a refusal is reported (409), never swallowed");
 });
 
 if (failures.length) {

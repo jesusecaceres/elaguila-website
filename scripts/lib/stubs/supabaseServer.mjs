@@ -179,6 +179,13 @@ class Query {
     this.payload = payload;
     return this;
   }
+  /** PostgREST upsert: insert, or merge into the row that already holds the `onConflict` column value. */
+  upsert(payload, options) {
+    this.mode = "upsert";
+    this.payload = payload;
+    this.onConflict = String(options?.onConflict ?? "id");
+    return this;
+  }
   delete() {
     this.mode = "delete";
     return this;
@@ -302,6 +309,22 @@ class Query {
       }
       return { data: created, error: null };
     }
+    if (this.mode === "upsert") {
+      const incoming = Array.isArray(this.payload) ? this.payload : [this.payload];
+      const out = [];
+      for (const candidate of incoming) {
+        const existing = store.find((r) => r[this.onConflict] != null && String(r[this.onConflict]) === String(candidate[this.onConflict]));
+        if (existing) {
+          Object.assign(existing, candidate);
+          out.push({ ...existing });
+        } else {
+          const row = { id: __nextId(this.table), created_at: new Date().toISOString(), ...(DEFAULTS[this.table] ?? {}), ...candidate };
+          store.push(row);
+          out.push({ ...row });
+        }
+      }
+      return { data: out, error: null };
+    }
     if (this.mode === "update") {
       const targets = this._matching();
       const ids = new Set(targets.map((r) => r.id));
@@ -383,6 +406,10 @@ class Query {
  * proven rather than asserted.
  */
 Query.uniqueConflict = (table, row, store) => {
+  // The M5 partial unique index: one payment record per Stripe invoice (renewal replays collapse onto it).
+  if (table === "leonix_payment_records" && row.stripe_invoice_id != null && store.some((r) => r.stripe_invoice_id === row.stripe_invoice_id)) {
+    return 'duplicate key value violates unique constraint "leonix_payment_records_stripe_invoice_id_key"';
+  }
   if (table === "leonix_rewards_wallets") {
     if (row.bound_user_id != null && store.some((r) => r.bound_user_id === row.bound_user_id)) {
       return 'duplicate key value violates unique constraint "leonix_rewards_wallets_bound_user_idx"';

@@ -216,6 +216,8 @@ async function loadLegacyAdoptionFacts(subscription: Stripe.Subscription): Promi
   decision: LegacyAdoptionDecision;
   periodStart: Date | null;
   periodEnd: Date | null;
+  /** OTHER Stripe subscriptions that are still billing for the SAME category + listing + package. */
+  duplicateSubscriptionIds: string[];
 }> {
   const supabase = getAdminSupabase();
   const metadata = (subscription.metadata ?? {}) as Record<string, string>;
@@ -267,7 +269,36 @@ async function loadLegacyAdoptionFacts(subscription: Stripe.Subscription): Promi
     }
   }
 
+  // DUPLICATE DETECTION: another paid subscription for the same listing + package that Stripe still bills
+  // means the customer is paying twice for one product. It is REPORTED (never auto-canceled, never
+  // silently merged) so the owner decides which one to keep.
+  const duplicateSubscriptionIds: string[] = [];
+  const packageKeyClaim = String(metadata.leonix_package_key ?? "").trim();
+  if (listingId && category && packageKeyClaim) {
+    const { data: siblings } = await supabase
+      .from("leonix_payment_records")
+      .select("stripe_subscription_id")
+      .eq("category", category)
+      .eq("listing_id", listingId)
+      .eq("package_key", packageKeyClaim)
+      .eq("payment_status", "paid")
+      .not("stripe_subscription_id", "is", null);
+    const others = [
+      ...new Set((siblings ?? []).map((r) => String((r as { stripe_subscription_id?: string }).stripe_subscription_id ?? "")).filter((id) => id && id !== subscription.id)),
+    ];
+    const stripe = getStripeClient();
+    for (const otherId of others) {
+      try {
+        const other = stripe ? await stripe.subscriptions.retrieve(otherId) : null;
+        if (!other || ["active", "trialing", "past_due"].includes(String(other.status))) duplicateSubscriptionIds.push(otherId);
+      } catch {
+        duplicateSubscriptionIds.push(otherId); // cannot prove it ended: report it
+      }
+    }
+  }
+
   return {
+    duplicateSubscriptionIds,
     decision: decideLegacySubscriptionAdoption({
       stripeSubscriptionId: subscription.id,
       stripeStatus: subscription.status ?? null,
@@ -280,17 +311,31 @@ async function loadLegacyAdoptionFacts(subscription: Stripe.Subscription): Promi
   };
 }
 
-async function adoptLegacySubscriptionRecord(stripeSubscriptionId: string): Promise<SubscriptionRecordRow | null> {
+/**
+ * Outcome of trying to adopt a subscription that has no record. Explicit on purpose: a transient failure
+ * (Stripe unreachable) must be RETRYABLE so Stripe redelivers the event, while a subscription that is not
+ * ours, or whose evidence does not hold, is IGNORED with the reason recorded in the event ledger.
+ */
+export type LegacyAdoptionOutcome =
+  | { kind: "adopted"; record: SubscriptionRecordRow }
+  | { kind: "not_leonix" }
+  | { kind: "refused"; reason: string }
+  | { kind: "retryable"; code: string };
+
+async function adoptLegacySubscriptionRecord(stripeSubscriptionId: string): Promise<LegacyAdoptionOutcome> {
   const stripe = getStripeClient();
-  if (!stripe) return null;
+  if (!stripe) return { kind: "retryable", code: "stripe_not_configured" };
   let subscription: Stripe.Subscription;
   try {
     subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId, { expand: ["items"] });
   } catch {
-    return null;
+    return { kind: "retryable", code: "legacy_adoption_stripe_unavailable" };
+  }
+  if (!isLeonixSubscriptionMetadata((subscription.metadata ?? {}) as Record<string, string>)) {
+    return { kind: "not_leonix" };
   }
   const { decision, periodStart, periodEnd } = await loadLegacyAdoptionFacts(subscription);
-  if (!decision.adopt) return null;
+  if (!decision.adopt) return { kind: "refused", reason: decision.reason };
 
   const supabase = getAdminSupabase();
   const { data: upserted } = await supabase
@@ -325,7 +370,7 @@ async function adoptLegacySubscriptionRecord(stripeSubscriptionId: string): Prom
     .select("id")
     .maybeSingle();
   const recordId = (upserted?.id as string | undefined) ?? null;
-  if (!recordId) return null;
+  if (!recordId) return { kind: "retryable", code: "legacy_adoption_record_write_failed" };
 
   for (const entitlementId of [decision.entitlementId, ...decision.companionEntitlementIds]) {
     await supabase
@@ -345,7 +390,8 @@ async function adoptLegacySubscriptionRecord(stripeSubscriptionId: string): Prom
       entitlement_id: decision.entitlementId,
     },
   }).catch(() => undefined);
-  return loadSubscriptionRecord(stripeSubscriptionId);
+  const record = await loadSubscriptionRecord(stripeSubscriptionId);
+  return record ? { kind: "adopted", record } : { kind: "retryable", code: "legacy_adoption_record_unreadable" };
 }
 
 /**
@@ -357,12 +403,15 @@ async function adoptLegacySubscriptionRecord(stripeSubscriptionId: string): Prom
 export async function reconcileLegacySubscription(input: {
   stripeSubscriptionId: string;
   dryRun: boolean;
+  /** A duplicate paying subscription blocks an APPLY until a human acknowledges it. */
+  acknowledgeDuplicates?: boolean;
 }): Promise<{
   ok: boolean;
   code: string;
   decision?: LegacyAdoptionDecision;
   plannedEndsAt?: string;
   entitlementIds?: string[];
+  duplicateSubscriptionIds?: string[];
 }> {
   if (!isSupabaseAdminConfigured()) return { ok: false, code: "supabase_not_configured" };
   const stripe = getStripeClient();
@@ -373,20 +422,29 @@ export async function reconcileLegacySubscription(input: {
   } catch {
     return { ok: false, code: "stripe_subscription_not_found" };
   }
-  const { decision, periodEnd } = await loadLegacyAdoptionFacts(subscription);
-  if (!decision.adopt) return { ok: false, code: `refused_${decision.reason}`, decision };
-  if (!periodEnd) return { ok: false, code: "period_end_unresolvable", decision };
+  const { decision, periodEnd, duplicateSubscriptionIds } = await loadLegacyAdoptionFacts(subscription);
+  if (!decision.adopt) return { ok: false, code: `refused_${decision.reason}`, decision, duplicateSubscriptionIds };
+  if (!periodEnd) return { ok: false, code: "period_end_unresolvable", decision, duplicateSubscriptionIds };
 
   const plannedEnd = new Date(periodEnd);
   plannedEnd.setUTCDate(plannedEnd.getUTCDate() + 7);
   const entitlementIds = [decision.entitlementId, ...decision.companionEntitlementIds];
   if (input.dryRun) {
-    return { ok: true, code: "dry_run", decision, plannedEndsAt: plannedEnd.toISOString(), entitlementIds };
+    return { ok: true, code: "dry_run", decision, plannedEndsAt: plannedEnd.toISOString(), entitlementIds, duplicateSubscriptionIds };
+  }
+  if (duplicateSubscriptionIds.length > 0 && input.acknowledgeDuplicates !== true) {
+    return { ok: false, code: "refused_duplicate_subscription_review_required", decision, entitlementIds, duplicateSubscriptionIds };
   }
 
   const existing = await loadSubscriptionRecord(input.stripeSubscriptionId);
-  const record = existing ?? (await adoptLegacySubscriptionRecord(input.stripeSubscriptionId));
-  if (!record) return { ok: false, code: "adoption_failed", decision };
+  let record: SubscriptionRecordRow | null = existing;
+  if (!record) {
+    const adopted = await adoptLegacySubscriptionRecord(input.stripeSubscriptionId);
+    if (adopted.kind !== "adopted") {
+      return { ok: false, code: adopted.kind === "retryable" ? adopted.code : "adoption_failed", decision };
+    }
+    record = adopted.record;
+  }
   const latestInvoice =
     typeof subscription.latest_invoice === "string" ? subscription.latest_invoice : subscription.latest_invoice?.id ?? "";
   for (const entitlementId of entitlementIds) {
@@ -425,9 +483,14 @@ export async function handleInvoicePaid(input: {
 
   // A subscription paid BEFORE subscription records existed has none; adopt it from payment
   // evidence (never from metadata alone) so its renewals extend the entitlement.
-  const record =
-    (await loadSubscriptionRecord(stripeSubscriptionId)) ?? (await adoptLegacySubscriptionRecord(stripeSubscriptionId));
-  if (!record) return { ok: true, outcome: "ignored", code: "not_leonix_subscription" };
+  let record: SubscriptionRecordRow | null = await loadSubscriptionRecord(stripeSubscriptionId);
+  if (!record) {
+    const adopted = await adoptLegacySubscriptionRecord(stripeSubscriptionId);
+    if (adopted.kind === "retryable") return { ok: false, outcome: "failed_retryable", code: adopted.code };
+    if (adopted.kind === "refused") return { ok: true, outcome: "ignored", code: `legacy_adoption_refused_${adopted.reason}` };
+    if (adopted.kind === "not_leonix") return { ok: true, outcome: "ignored", code: "not_leonix_subscription" };
+    record = adopted.record;
+  }
 
   const stripe = getStripeClient();
   let periodStart: Date | null = null;
