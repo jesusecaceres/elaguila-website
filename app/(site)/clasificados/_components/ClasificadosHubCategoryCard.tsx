@@ -183,7 +183,7 @@ export function ClasificadosHubCategoryCard({
 
   return (
     <article
-      className={`group flex h-full w-full flex-col overflow-hidden rounded-2xl border-2 border-t-[3px] bg-gradient-to-br from-[#FFFCF7] via-[#FFFCF7] to-[#FAF6EE] shadow-[0_10px_28px_-18px_rgba(31,36,28,0.18)] ${borderClass} ${topAccent}`}
+      className={`group flex h-full w-full min-w-0 flex-col overflow-hidden rounded-2xl border-2 border-t-[3px] bg-gradient-to-br from-[#FFFCF7] via-[#FFFCF7] to-[#FAF6EE] shadow-[0_10px_28px_-18px_rgba(31,36,28,0.18)] ${borderClass} ${topAccent}`}
     >
       {imageSrc && !imageFailed ? (
         <div className="relative aspect-[4/3] w-full overflow-hidden">

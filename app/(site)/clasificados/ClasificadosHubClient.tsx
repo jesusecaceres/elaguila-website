@@ -156,13 +156,13 @@ function ClasificadosPageInner() {
             {t.sectionBrowse}
           </h2>
 
-          <ul className="mt-8 grid grid-cols-1 items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="mt-8 grid min-w-0 grid-cols-1 items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {sortedGridKeys.map((k) => {
               const copy = getPublicCategoryCardCopy(k, routeLang);
 
               if (k === "dealers-de-autos") {
                 return (
-                  <li key={k} className="flex h-full">
+                  <li key={k} className="flex h-full min-w-0">
                     <ClasificadosHubCategoryCard
                       lang={routeLang}
                       browseHref={dealerBrowseHref}
@@ -183,7 +183,7 @@ function ClasificadosPageInner() {
               const priority = PRIORITY_KEYS.has(k);
 
               return (
-                <li key={k} className="flex h-full">
+                <li key={k} className="flex h-full min-w-0">
                   <ClasificadosHubCategoryCard
                     category={k}
                     lang={routeLang}

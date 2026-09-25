@@ -21,6 +21,7 @@ import {
   CL_PANEL,
   CL_PANEL_SOFT,
 } from "./components/comidaLocalCustomerStyles";
+import { ComidaLocalDiscoverySection } from "./components/ComidaLocalDiscoverySection";
 import { ComidaLocalListingCard } from "./components/ComidaLocalListingCard";
 import { ComidaLocalResultsFilters } from "./components/ComidaLocalResultsFilters";
 import { fetchLeonixEndorsementCountsByTargets } from "@/app/lib/leonixCommunityTrust/leonixEndorsementCountBatchServer";
@@ -92,6 +93,8 @@ export default async function ComidaLocalResultsPage(props: PageProps) {
       </header>
 
       <div className={`${CL_CONTAINER} space-y-5 py-6 sm:py-8`}>
+        <ComidaLocalDiscoverySection lang={lang} />
+
         <Suspense
           fallback={<div className={`h-28 ${CL_PANEL_SOFT} animate-pulse`} aria-hidden />}
         >

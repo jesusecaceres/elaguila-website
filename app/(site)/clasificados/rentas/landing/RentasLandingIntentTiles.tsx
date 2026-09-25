@@ -7,7 +7,7 @@ import {
   RENTAS_LANDING_TILES_INTEGRATED,
 } from "@/app/clasificados/rentas/shared/rentasLeonixPublicUi";
 import { buildRentasResultsUrl } from "@/app/clasificados/rentas/shared/utils/rentasResultsRoutes";
-import { ImageDiscoveryCard } from "@/app/(site)/clasificados/components/categoryStandardV2";
+import { ImageDiscoveryCard, LEONIX_IMAGE_DISCOVERY_GRID } from "@/app/(site)/clasificados/components/categoryStandardV2";
 
 type Props = {
   lang: "es" | "en";
@@ -34,7 +34,7 @@ export function RentasLandingIntentTiles({ lang, routeLang, headingEs, headingEn
       <p className="mt-1 text-xs text-[#5C5346]/90">
         {lang === "es" ? "Elige un tipo de espacio para empezar." : "Pick a space type to get started."}
       </p>
-      <div className="mt-4 grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
+      <div className={LEONIX_IMAGE_DISCOVERY_GRID}>
         {tiles.map((tile) => {
           const href = buildRentasResultsUrl({ ...tile.params, lang: routeLang });
           const label = lang === "es" ? tile.labelEs : tile.labelEn;

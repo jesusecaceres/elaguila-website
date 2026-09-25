@@ -192,6 +192,19 @@ export const LEONIX_PRACTICAL_CHIP =
 /** Discovery grid */
 export const LEONIX_DISCOVERY_GRID = "mt-4 grid min-w-0 grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-4";
 
+/**
+ * Image-led discovery grid — the single canonical grid container class for
+ * every photo-card grid system-wide (LeonixCategoryImageDiscoveryGrid and any
+ * bespoke section that reuses ImageDiscoveryCard directly, e.g. Rentas,
+ * Bienes Raíces, Ofertas Locales, Comida Local). `min-w-0` on the grid
+ * container is load-bearing: without it a grid track can grow past its
+ * column share to fit an item's content instead of shrinking, which is how a
+ * card ends up bleeding into its neighbor. Do not fork this string — import
+ * it.
+ */
+export const LEONIX_IMAGE_DISCOVERY_GRID =
+  "mt-4 grid min-w-0 grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4";
+
 /** Discovery card */
 export const LEONIX_DISCOVERY_CARD =
   "group flex min-h-[4.75rem] min-w-0 flex-col rounded-xl border bg-gradient-to-br p-3 shadow-[0_4px_18px_-12px_rgba(42,36,22,0.18)] transition duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84A]/45 sm:min-h-[5rem]";
