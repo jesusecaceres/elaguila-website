@@ -39,7 +39,7 @@ import {
   formatUsdIntegerInputDisplay,
   parseUsdIntegerInput,
 } from "@/app/clasificados/autos/shared/utils/autosNumericInputUi";
-import { formatPhoneInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
+import { formatUsStylePhoneInputSafe, formatWhatsAppInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 import { getAutosPreviewBlockingStepIndices } from "@/app/clasificados/autos/shared/lib/autosPreviewCompleteness";
 import { autosDraftTextValue, autosDraftUrlValue } from "@/app/lib/clasificados/autos/autosPublishFormText";
 import { AUTOS_PUBLISH_FINAL_STEP_INDEX } from "@/app/lib/clasificados/autos/autosEditorDraftStep";
@@ -511,9 +511,9 @@ export function AutosNegociosApplication() {
                   className={`${INPUT} tabular-nums`}
                   inputMode="tel"
                   autoComplete="tel"
-                  value={formatPhoneInputDisplay(listing.dealerPhoneOffice ?? "")}
+                  value={formatUsStylePhoneInputSafe(listing.dealerPhoneOffice ?? "")}
                   onChange={(e) => {
-                    const v = formatPhoneInputDisplay(e.target.value);
+                    const v = formatUsStylePhoneInputSafe(e.target.value);
                     setListingPatch({ dealerPhoneOffice: v.trim() ? v : undefined });
                   }}
                 />
@@ -524,9 +524,9 @@ export function AutosNegociosApplication() {
                   className={`${INPUT} tabular-nums`}
                   inputMode="tel"
                   autoComplete="tel"
-                  value={formatPhoneInputDisplay(listing.dealerPhoneMobile ?? "")}
+                  value={formatUsStylePhoneInputSafe(listing.dealerPhoneMobile ?? "")}
                   onChange={(e) => {
-                    const v = formatPhoneInputDisplay(e.target.value);
+                    const v = formatUsStylePhoneInputSafe(e.target.value);
                     setListingPatch({ dealerPhoneMobile: v.trim() ? v : undefined });
                   }}
                 />
@@ -539,9 +539,9 @@ export function AutosNegociosApplication() {
                   inputMode="tel"
                   autoComplete="tel"
                   placeholder={t.app.placeholders.whatsapp}
-                  value={formatPhoneInputDisplay(listing.dealerWhatsapp ?? "")}
+                  value={formatWhatsAppInputDisplay(listing.dealerWhatsapp ?? "")}
                   onChange={(e) => {
-                    const v = formatPhoneInputDisplay(e.target.value);
+                    const v = formatWhatsAppInputDisplay(e.target.value);
                     setListingPatch({ dealerWhatsapp: v.trim() ? v : undefined });
                   }}
                 />
@@ -553,9 +553,9 @@ export function AutosNegociosApplication() {
                   className={`${INPUT} tabular-nums`}
                   inputMode="tel"
                   autoComplete="tel"
-                  value={formatPhoneInputDisplay(listing.dealerSmsPhone ?? "")}
+                  value={formatUsStylePhoneInputSafe(listing.dealerSmsPhone ?? "")}
                   onChange={(e) => {
-                    const v = formatPhoneInputDisplay(e.target.value);
+                    const v = formatUsStylePhoneInputSafe(e.target.value);
                     setListingPatch({ dealerSmsPhone: v.trim() ? v : undefined });
                   }}
                 />

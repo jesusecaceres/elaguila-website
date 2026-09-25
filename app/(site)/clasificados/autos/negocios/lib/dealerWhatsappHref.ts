@@ -1,18 +1,22 @@
 /**
  * Build https://wa.me/{digits} for dealership WhatsApp CTAs.
- * US 10-digit numbers get country code 1 when no leading country code is present.
+ * Delegates to the shared international-safe WhatsApp module — a bare 10-digit number is
+ * assumed US, anything else (8-9 or 11+ digits) is trusted to already carry its own country
+ * code, matching the platform's proven Servicios behavior instead of rejecting valid
+ * shorter/longer international numbers.
  */
+import {
+  whatsAppDigitsOnly,
+  buildInternationalWhatsAppWaMeHref,
+  buildInternationalWhatsAppWaMeHrefWithText,
+} from "@/app/lib/whatsapp/internationalWhatsApp";
 
 export function digitsOnly(raw: string): string {
-  return raw.replace(/\D/g, "");
+  return whatsAppDigitsOnly(raw);
 }
 
 export function whatsAppHrefFromDisplay(raw: string | undefined | null): string | null {
-  let d = digitsOnly(raw ?? "");
-  if (d.length === 0) return null;
-  if (d.length === 10) d = `1${d}`;
-  if (d.length < 11) return null;
-  return `https://wa.me/${d}`;
+  return buildInternationalWhatsAppWaMeHref(raw ?? "");
 }
 
 /** `wa.me` accepts an optional `text` query for a prefilled chat message. */
@@ -20,9 +24,5 @@ export function whatsAppHrefFromDisplayWithText(
   raw: string | undefined | null,
   prefilledText?: string | null,
 ): string | null {
-  const base = whatsAppHrefFromDisplay(raw);
-  if (!base) return null;
-  const msg = prefilledText?.trim();
-  if (!msg) return base;
-  return `${base}?text=${encodeURIComponent(msg)}`;
+  return buildInternationalWhatsAppWaMeHrefWithText(raw, prefilledText);
 }

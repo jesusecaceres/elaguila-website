@@ -3,10 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
-import {
-  trackCommunityListingView,
-  type CommunityAnalyticsCategory,
-} from "@/app/lib/clasificados/comunidad/comunidadClasesBuscoGlobalAnalytics";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import { LEONIX_SITE_ORIGIN } from "@/app/lib/leonixBrand";
 import { addListingView } from "@/app/lib/recentlyViewed";
@@ -119,8 +115,12 @@ export function CommunityQuickPublishedDetailPage({
   );
 
   useEffect(() => {
+    // Globalization Build 3 — listing_view/listing_open were duplicated here: the generic
+    // anuncio/[id]/page.tsx wrapper that renders this component already fires
+    // trackListingViewOpen (identical event types, identity, sourceTable) unconditionally for
+    // every listing. That generic emission is retained as canonical; addListingView (Recently
+    // Viewed) is untouched.
     if (skipAnalytics) return;
-    trackCommunityListingView({ listingUuid: listing.id, category: listing.category as CommunityAnalyticsCategory });
     addListingView(listing.id);
   }, [listing.id, skipAnalytics]);
 

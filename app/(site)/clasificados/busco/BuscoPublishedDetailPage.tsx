@@ -3,10 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
-import {
-  trackCommunityListingView,
-  type CommunityGlobalAnalyticsCtx,
-} from "@/app/lib/clasificados/comunidad/comunidadClasesBuscoGlobalAnalytics";
 import { addListingView } from "@/app/lib/recentlyViewed";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { submitListingReportAction } from "@/app/admin/actions";
@@ -88,9 +84,12 @@ export function BuscoPublishedDetailPage({
   const leonixAdId = formatLeonixAdId(listing.id);
 
   useEffect(() => {
+    // Globalization Build 3 — listing_view/listing_open were duplicated here: the generic
+    // anuncio/[id]/page.tsx wrapper that renders this component already fires
+    // trackListingViewOpen (identical event types, identity, sourceTable) unconditionally for
+    // every listing. That generic emission is retained as canonical; addListingView (Recently
+    // Viewed) is untouched.
     if (skipAnalytics) return;
-    const ctx: CommunityGlobalAnalyticsCtx = { listingUuid: listing.id, category: "busco" };
-    trackCommunityListingView(ctx);
     addListingView(listing.id);
   }, [listing.id, skipAnalytics]);
 

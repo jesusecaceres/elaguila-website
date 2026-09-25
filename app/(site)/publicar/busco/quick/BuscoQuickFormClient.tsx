@@ -17,7 +17,7 @@ import {
   useCommunityDraftSession,
 } from "@/app/publicar/community/shared/hooks/useCommunityDraftSession";
 import { CommunityPublishConfirmationSection } from "@/app/publicar/community/shared/components/CommunityPublishConfirmationSection";
-import { formatPhoneInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
+import { formatUsStylePhoneInputSafe, formatWhatsAppInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 
 import { buscoFormCopy } from "../shared/buscoFormCopy";
 import { buscoHandoffPreviewUrl } from "../shared/buscoPublishRoutes";
@@ -483,8 +483,8 @@ export default function BuscoQuickFormClient() {
                 inputMode="tel"
                 autoComplete="tel"
                 value={state.phone}
-                onChange={(e) => patch({ phone: formatPhoneInputDisplay(e.target.value) })}
-                maxLength={14}
+                onChange={(e) => patch({ phone: formatUsStylePhoneInputSafe(e.target.value) })}
+                maxLength={16}
               />
             </label>
             <label className="block text-sm">
@@ -496,8 +496,8 @@ export default function BuscoQuickFormClient() {
                 type="tel"
                 inputMode="tel"
                 value={state.whatsapp}
-                onChange={(e) => patch({ whatsapp: formatPhoneInputDisplay(e.target.value) })}
-                maxLength={14}
+                onChange={(e) => patch({ whatsapp: formatWhatsAppInputDisplay(e.target.value) })}
+                maxLength={16}
               />
             </label>
             <label className="block text-sm">
@@ -509,8 +509,8 @@ export default function BuscoQuickFormClient() {
                 type="tel"
                 inputMode="tel"
                 value={state.smsPhone}
-                onChange={(e) => patch({ smsPhone: formatPhoneInputDisplay(e.target.value) })}
-                maxLength={14}
+                onChange={(e) => patch({ smsPhone: formatUsStylePhoneInputSafe(e.target.value) })}
+                maxLength={16}
                 placeholder={lang === "es" ? "Si es diferente al teléfono" : "If different from call phone"}
               />
             </label>

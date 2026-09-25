@@ -1,7 +1,7 @@
 import type { AutoDealerListing, MediaImageEntry } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { AUTOS_MAX_EXTERNAL_VIDEO_URLS, dedupeAutosVideoUrls, normalizeAutosExternalVideoUrl } from "@/app/lib/clasificados/autos/autosExternalVideoUrlValidation";
 import { isAutosIdbPlaceholderRef } from "@/app/lib/clasificados/autos/autosPublishMediaTransport";
-import { buildProposedFinalMediaSet, validateProposedFinalMediaSet } from "@/app/lib/media/listingMediaContract";
+import { buildProposedFinalMediaSet, validateProposedFinalMediaSet, warnDroppedUnpersistableMedia } from "@/app/lib/media/listingMediaContract";
 
 /** Keep JSON payload under typical serverless body limits; inline data URLs belong in blob/Mux flows. */
 const MAX_INLINE_DATA_URL_CHARS = 100_000;
@@ -124,6 +124,7 @@ export function sanitizeAutosListingPayloadForPersistence(listing: AutoDealerLis
     existing: (L.mediaImages ?? []).map((img) => img.url).filter(Boolean),
     externalVideoUrls: L.videoUrls ?? [],
   });
+  warnDroppedUnpersistableMedia("autos-listing-persistence", autosFinalMedia);
   const autosMediaValidation = validateProposedFinalMediaSet(autosFinalMedia, {
     minImages: 0,
     maxImages: Number.POSITIVE_INFINITY,

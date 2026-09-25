@@ -15,10 +15,10 @@
  *    those fields arrived with the G23 address-verifier adoption (`3c23e875`), which is NOT on this
  *    branch. `AgenteIndividualResidencialFormState` has no such fields here, so porting them would
  *    not compile.
- *  - `agenteWhatsapp` keeps this branch's `phone` fallback rather than the sealed
- *    `identityMeta.negocioWhatsapp || phone`: `leonixNegocioBusinessMetaFromFormState.ts` never
- *    writes a `negocioWhatsapp` key, so reading one would be reading a value that is never
- *    persisted.
+ *  - `agenteWhatsapp` now reads `identityMeta.negocioWhatsapp || phone` (Gate G16 port, 652e25566):
+ *    the publish mapper forwards `agenteWhatsapp` into `identityAgente.whatsapp` and
+ *    `leonixNegocioBusinessMetaFromFormState.ts` persists it as `negocioWhatsapp`. Rows published
+ *    before that fix carry no such key and keep the `phone` fallback.
  *
  * Additions BEYOND the sealed commit (this gate), each restoring a field that IS provably persisted
  * but which neither the public shell nor the reverse mapper read back — see `§HOA` and
@@ -352,7 +352,9 @@ export function parseBienesAgenteResidencialPublishedState(input: {
     agenteLicencia: trim(identityMeta.negocioLicencia),
     agenteTelefonoPersonal: phone,
     agenteTelefonoOficina: phone,
-    agenteWhatsapp: phone,
+    // Gate G16 — prefer the agent's own distinct WhatsApp number when one was published; fall back
+    // to the office/personal phone (the pre-fix behavior) only when none was.
+    agenteWhatsapp: trim(identityMeta.negocioWhatsapp) || phone,
     agenteSitioWeb: website,
     correoPrincipal: email,
     marcaNombre: trim(identityMeta.negocioNombreCorreduria) || trim(parentIdentity?.business_name) || trim(listing.business_name),

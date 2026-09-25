@@ -30,6 +30,7 @@ import {
   formatOfertaLocalPhoneDisplay,
   normalizeOfertaLocalUrlInput,
 } from "@/app/lib/ofertas-locales/ofertasLocalesFormatting";
+import { formatWhatsAppInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 import {
   OfertaLocalPostalInput,
   OfertaLocalRegionStateInput,
@@ -2109,7 +2110,7 @@ export default function OfertasLocalesApplicationClient() {
                 <input
                   className={INPUT}
                   value={draft.whatsapp}
-                  onChange={(e) => updateDraft({ whatsapp: formatOfertaLocalPhoneDisplay(e.target.value) })}
+                  onChange={(e) => updateDraft({ whatsapp: formatWhatsAppInputDisplay(e.target.value) })}
                   inputMode="tel"
                 />
               </FieldBlock>

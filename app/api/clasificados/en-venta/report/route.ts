@@ -62,6 +62,9 @@ export async function POST(req: NextRequest) {
   }
 
   if (!result.ok) {
+    if (result.error === "self_report_not_allowed") {
+      return NextResponse.json({ ok: false, error: result.error }, { status: 403 });
+    }
     return NextResponse.json({ ok: false, error: "report_failed" }, { status: 500 });
   }
 

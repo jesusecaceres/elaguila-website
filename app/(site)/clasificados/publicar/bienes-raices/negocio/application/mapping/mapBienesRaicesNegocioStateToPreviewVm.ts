@@ -24,6 +24,7 @@ import type {
 } from "../schema/bienesRaicesNegocioFormState";
 import { businessExtraLinksToPreviewCtas } from "../bienesAdditionalBusinessLinks";
 import { phoneTelHref, stripPhoneDigits } from "@/app/lib/leonix/phoneFormat";
+import { buildInternationalWhatsAppWaMeHrefWithText } from "@/app/lib/whatsapp/internationalWhatsApp";
 import {
   buildLeonixContactChannelsV1PayloadFromFormSlice,
   formatLeonixPreferredContactLine,
@@ -652,12 +653,14 @@ function buildTelHref(phone: string): string | null {
 }
 
 function buildWhatsappHref(phone: string, message: string): string | null {
-  const d = stripPhoneDigits(phone);
-  if (!d) return null;
+  // Globalization Build D (golden hand port) — previously stripPhoneDigits (US-only, truncates to
+  // 10 digits) + an unconditional "1" prefix, silently corrupting international numbers. Now a
+  // bare 10-digit number gets its US country code and anything else is trusted to already carry
+  // its own country code (shared international-safe builder).
   const text =
     trim(message) ||
     "Hola, vi su anuncio en Leonix Clasificados y me gustaría más información.";
-  return `https://wa.me/1${d}?text=${encodeURIComponent(text)}`;
+  return buildInternationalWhatsAppWaMeHrefWithText(phone, text);
 }
 
 function buildSmsHref(phone: string): string | null {

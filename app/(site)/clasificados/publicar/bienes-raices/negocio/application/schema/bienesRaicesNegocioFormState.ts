@@ -204,6 +204,11 @@ export type BienesRaicesNegocioFormState = {
     telOficina: string;
     /** Explicit SMS number — Quick intake writes this; empty string means derive from telDirecto. */
     smsPersonal?: string;
+    /** Gate G16 — distinct agent WhatsApp number, separate from telDirecto/telOficina. Captured on
+     * the agente-individual form but previously never forwarded here, so the live CTA silently
+     * fell back to the office/personal phone. Optional (like smsPersonal) so other producers of
+     * this shape (e.g. the Rentas Negocio bridge) need no change; empty/absent = phone fallback. */
+    whatsapp?: string;
     email: string;
     sitioWeb: string;
     redes: string[];

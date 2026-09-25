@@ -29,7 +29,7 @@ import {
   parseMileageInput,
   parseUsdIntegerInput,
 } from "@/app/clasificados/autos/shared/utils/autosNumericInputUi";
-import { formatPhoneInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
+import { formatUsStylePhoneInputSafe, formatWhatsAppInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 import { getAutosPreviewBlockingStepIndices } from "@/app/clasificados/autos/shared/lib/autosPreviewCompleteness";
 import { autosDraftTextValue } from "@/app/lib/clasificados/autos/autosPublishFormText";
 import { normalizeAutosSocialUrl } from "@/app/lib/clasificados/autos/autosSocialLinkValidation";
@@ -678,9 +678,9 @@ export function AutosPrivadoApplication() {
                   className={`${INPUT} tabular-nums`}
                   inputMode="tel"
                   autoComplete="tel"
-                  value={formatPhoneInputDisplay(listing.dealerPhoneOffice ?? "")}
+                  value={formatUsStylePhoneInputSafe(listing.dealerPhoneOffice ?? "")}
                   onChange={(e) => {
-                    const v = formatPhoneInputDisplay(e.target.value);
+                    const v = formatUsStylePhoneInputSafe(e.target.value);
                     setListingPatch({ dealerPhoneOffice: v.trim() ? v : undefined });
                   }}
                 />
@@ -692,9 +692,9 @@ export function AutosPrivadoApplication() {
                   inputMode="tel"
                   autoComplete="tel"
                   placeholder={t.app.placeholders.whatsapp}
-                  value={formatPhoneInputDisplay(listing.dealerWhatsapp ?? "")}
+                  value={formatWhatsAppInputDisplay(listing.dealerWhatsapp ?? "")}
                   onChange={(e) => {
-                    const v = formatPhoneInputDisplay(e.target.value);
+                    const v = formatWhatsAppInputDisplay(e.target.value);
                     setListingPatch({ dealerWhatsapp: v.trim() ? v : undefined });
                   }}
                 />
@@ -706,9 +706,9 @@ export function AutosPrivadoApplication() {
                   className={`${INPUT} tabular-nums`}
                   inputMode="tel"
                   autoComplete="tel"
-                  value={formatPhoneInputDisplay(listing.dealerSmsPhone ?? "")}
+                  value={formatUsStylePhoneInputSafe(listing.dealerSmsPhone ?? "")}
                   onChange={(e) => {
-                    const v = formatPhoneInputDisplay(e.target.value);
+                    const v = formatUsStylePhoneInputSafe(e.target.value);
                     setListingPatch({ dealerSmsPhone: v.trim() ? v : undefined });
                   }}
                 />

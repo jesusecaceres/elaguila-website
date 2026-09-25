@@ -10,7 +10,10 @@ import { EmpleosPublishConfirmModal } from "@/app/publicar/empleos/shared/publis
 
 import { gateMascotasPerdidosQuickPreview } from "../../shared/mascotasPerdidosRequiredForPreview";
 import { publishMascotasPerdidosQuickToListings } from "../../shared/publishMascotasPerdidosQuickToListings";
-import { MASCOTAS_PERDIDOS_QUICK_DRAFT_KEY } from "../../shared/mascotasPerdidosSessionKeys";
+import {
+  MASCOTAS_PERDIDOS_QUICK_DRAFT_KEY,
+  MASCOTAS_PERDIDOS_QUICK_IN_FLIGHT_LISTING_ID_KEY,
+} from "../../shared/mascotasPerdidosSessionKeys";
 import type { MascotasPerdidosQuickDraft } from "../../shared/mascotasPerdidosQuickTypes";
 import { mascotasPerdidosPreviewCopy } from "../../shared/mascotasPerdidosPreviewCopy";
 
@@ -42,7 +45,27 @@ export function MascotasPerdidosQuickPreviewPublishBar({
     setPublishError(null);
     setPublishing(true);
     try {
-      const r = await publishMascotasPerdidosQuickToListings({ draft, lang });
+      // Globalization Build 1 — reuse this same in-progress submission's row (if a prior attempt
+      // already created one and hasn't fully completed yet) instead of always inserting a fresh
+      // row, matching the existing Busco/Comunidad/Clases pattern.
+      let inFlightId: string | null = null;
+      try {
+        inFlightId = window.sessionStorage.getItem(MASCOTAS_PERDIDOS_QUICK_IN_FLIGHT_LISTING_ID_KEY);
+      } catch {
+        /* sessionStorage optional */
+      }
+      const r = await publishMascotasPerdidosQuickToListings({
+        draft,
+        lang,
+        existingListingId: inFlightId,
+        onListingIdKnown: (listingId) => {
+          try {
+            window.sessionStorage.setItem(MASCOTAS_PERDIDOS_QUICK_IN_FLIGHT_LISTING_ID_KEY, listingId);
+          } catch {
+            /* sessionStorage optional */
+          }
+        },
+      });
       if (!r.ok) {
         setPublishError(r.error);
         return;
@@ -50,6 +73,7 @@ export function MascotasPerdidosQuickPreviewPublishBar({
       try {
         window.sessionStorage.setItem(`leonix-mascotas-perdidos-publish-success:${r.listingId}`, "1");
         window.sessionStorage.removeItem(MASCOTAS_PERDIDOS_QUICK_DRAFT_KEY);
+        window.sessionStorage.removeItem(MASCOTAS_PERDIDOS_QUICK_IN_FLIGHT_LISTING_ID_KEY);
       } catch {
         /* optional */
       }

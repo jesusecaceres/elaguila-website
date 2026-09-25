@@ -4,7 +4,7 @@ import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/
 import type { AutosNegociosCopy } from "@/app/clasificados/autos/negocios/lib/autosNegociosCopy";
 import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import { autosDraftTextValue, autosDraftUrlValue } from "@/app/lib/clasificados/autos/autosPublishFormText";
-import { formatPhoneInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
+import { formatUsStylePhoneInputSafe, formatWhatsAppInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 import { AutosDealerFinanceImageUpload } from "./AutosDealerFinanceImageUpload";
 
 const INPUT =
@@ -59,9 +59,9 @@ export function AutosDealerFinanceFields({
           <input
             className={`${INPUT} tabular-nums`}
             inputMode="tel"
-            value={formatPhoneInputDisplay(listing.financeContactPhone ?? "")}
+            value={formatUsStylePhoneInputSafe(listing.financeContactPhone ?? "")}
             onChange={(e) => {
-              const v = formatPhoneInputDisplay(e.target.value);
+              const v = formatUsStylePhoneInputSafe(e.target.value);
               setListingPatch({ financeContactPhone: v.trim() ? v : undefined });
             }}
           />
@@ -71,9 +71,9 @@ export function AutosDealerFinanceFields({
           <input
             className={`${INPUT} tabular-nums`}
             inputMode="tel"
-            value={formatPhoneInputDisplay(listing.financeContactWhatsapp ?? "")}
+            value={formatWhatsAppInputDisplay(listing.financeContactWhatsapp ?? "")}
             onChange={(e) => {
-              const v = formatPhoneInputDisplay(e.target.value);
+              const v = formatWhatsAppInputDisplay(e.target.value);
               setListingPatch({ financeContactWhatsapp: v.trim() ? v : undefined });
             }}
           />
@@ -83,9 +83,9 @@ export function AutosDealerFinanceFields({
           <input
             className={`${INPUT} tabular-nums`}
             inputMode="tel"
-            value={formatPhoneInputDisplay(listing.financeContactSms ?? "")}
+            value={formatUsStylePhoneInputSafe(listing.financeContactSms ?? "")}
             onChange={(e) => {
-              const v = formatPhoneInputDisplay(e.target.value);
+              const v = formatUsStylePhoneInputSafe(e.target.value);
               setListingPatch({ financeContactSms: v.trim() ? v : undefined });
             }}
           />

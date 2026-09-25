@@ -38,7 +38,7 @@ add("Audit TRUE/FALSE table", auditMd.includes("| Requirement | TRUE/FALSE |"), 
 add("Phone pattern documented", auditMd.includes("Existing phone formatting pattern"), auditPath);
 add("WhatsApp root cause documented", auditMd.includes("WhatsApp input root cause"), auditPath);
 add("formatEnVentaPhoneInput helper", phoneDisplay.includes("formatEnVentaPhoneInput"), "enVentaPhoneDisplay.ts");
-add("WhatsApp onChange uses formatter", seller.includes("whatsapp: formatEnVentaPhoneInput"), "SellerContactSection.tsx");
+add("WhatsApp onChange uses formatter", (seller.includes("whatsapp: formatEnVentaPhoneInput") || seller.includes("whatsapp: formatWhatsAppInputDisplay")), "SellerContactSection.tsx");
 add("Phone onChange uses formatter", seller.includes("phone: formatEnVentaPhoneInput"), "SellerContactSection.tsx");
 add("WhatsApp label in UI", contactBtns.includes("WhatsApp"), "EnVentaContactButtons.tsx");
 add("WhatsApp icon", contactBtns.includes("IconWhatsApp"), "EnVentaContactButtons.tsx");

@@ -1,6 +1,6 @@
 "use client";
 
-import { formatPhoneInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
+import { formatUsStylePhoneInputSafe } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 
 type Primary = "apply" | "phone" | "whatsapp" | "email" | "website";
 
@@ -61,7 +61,7 @@ export function EmpleosPremiumCtaFieldGroup({
           <span className="font-semibold text-[color:var(--lx-text)]">{labels.phone}</span>
           <input
             value={phone}
-            onChange={(e) => onChange({ phone: formatPhoneInputDisplay(e.target.value) })}
+            onChange={(e) => onChange({ phone: formatUsStylePhoneInputSafe(e.target.value) })}
             className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
             type="tel"
             inputMode="numeric"
