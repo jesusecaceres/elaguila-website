@@ -1,26 +1,42 @@
--- Autos dealer capacity authority — BASE (Quick / Simple) = 5 active vehicles total.
+-- Autos dealer capacity authority — TOTAL active vehicles: BASE 5 / PRO 10 / PRO + pack 20.
 --
--- WHY THE DATABASE MUST KNOW. `autos_dealer_activate_listing` is the FINAL, atomic capacity authority
--- for every dealer activation (its own doc: "the atomic RPC is the FINAL financial authority; the
--- application preflight is advisory-only and can race"). Before this migration it knew only 10 / 20, so
--- any path that reaches it without a BASE-aware application pre-check could exceed BASE = 5:
+-- OWNER LOCK (TOTAL, parent included): the dealer parent row is the dealer's first vehicle and inventory
+-- children are additional vehicles, so
+--     BASE ($249)              = 5  total  = parent + 4 children
+--     PRO ($399)               = 10 total  = parent + 9 children
+--     PRO + $129 inventory pack = 20 total  = parent + 19 children
+-- The application guards, dashboard counts, checkout copy and fulfillment already count TOTAL vehicles
+-- (main listing + additional). Only this function counted CHILDREN, with the parent excluded (Gate 6C.2)
+-- and limits of 10 / 20 children, i.e. 11 / 21 vehicles — and knew nothing about BASE. This migration makes
+-- the database agree with everything else.
+--
+-- WHY THE DATABASE MUST KNOW. `autos_dealer_activate_listing` is the FINAL, atomic capacity authority for
+-- every dealer activation ("the atomic RPC is the FINAL financial authority; the application preflight is
+-- advisory-only and can race"). Any path that reaches it without a BASE-aware application pre-check could
+-- exceed BASE = 5:
 --   * a race between the application preflight and the RPC (bundle publish, owner restore),
 --   * admin restore / republish (no entitlement pre-check at all),
 --   * the staff assisted-publish child activation (now routed through this RPC as well).
--- The application guards remain (fast, friendly copy); this makes the database agree with them.
 --
--- SCOPE. CREATE OR REPLACE of the ONE autos function, changing ONLY the limit derivation (see the inline
--- comment). SECURITY DEFINER, search_path, advisory locks, owner/parent/status verification, idempotent
+-- WHAT CHANGES (and only this):
+--   1. The limit is derived per parent from its entitlements (never from the caller):
+--        BASE only  = live autos_dealer_quick_monthly and NO live autos_dealer_monthly  -> 5 total
+--        PRO + pack = live inventory pack                                                 -> 20 total
+--        otherwise (PRO, or NO evidence — never treated as BASE)                          -> 10 total
+--      The pack never lifts BASE (it is PRO-only).
+--   2. The parent counts as one vehicle. Children are counted exactly as before (inventory_role =
+--      'inventory_vehicle' in the same group); the child ceiling is total - 1 (4 / 9 / 19).
+--   3. `active_count` / `effective_limit` are now TOTAL-vehicle numbers (children + parent / total limit),
+--      so every consumer (payment activation, restore, admin) reports the same figures the dashboard shows.
+--   Activating the PARENT is refused only when children already EXCEED the child ceiling (for example after a
+--   downgrade); activating a CHILD is refused when it would exceed it.
+-- SECURITY DEFINER, search_path, advisory locks, owner/parent/status verification, the idempotent
 -- already-active short-circuit, subscription grace/suspended/canceled enforcement, the no-caller-supplied-
--- limit contract, the return shape and service_role-only execution are preserved from
--- 20260903150000. The Bienes function is NOT touched (BASE there is one property, already enforced).
+-- limit contract and service_role-only execution are preserved from 20260903150000. The Bienes function is
+-- NOT touched.
 --
--- NOT APPLIED BY THIS COMMIT. Apply through the normal migration process after PM approval.
---
--- NOTE (pre-existing, unchanged): this function counts CHILD vehicles only (the parent is excluded, per
--- 20260903150000), so PRO = parent + up to 10 children and PRO + pack = parent + up to 20, one more than the
--- application guard's total. BASE here is expressed as 4 children so that parent + children = 5, matching
--- the owner lock and the application guard exactly.
+-- NOT APPLIED BY THIS COMMIT. Apply through the normal migration process after PM approval, and re-run the
+-- capacity certifier (scripts/certify-package-c-c9-capacity-rpcs.mjs) against the isolated project first.
 
 create or replace function public.autos_dealer_activate_listing(
   p_listing_id uuid,
@@ -38,6 +54,7 @@ declare
   v_group_key uuid;
   v_boost_active boolean;
   v_base_only boolean;
+  v_target_is_parent boolean;
   v_limit int;
   v_count int;
   v_sub_status text;
@@ -84,6 +101,7 @@ begin
     end if;
   end if;
 
+  v_target_is_parent := v_target.inventory_role is distinct from 'inventory_vehicle';
   v_group_key := coalesce(v_parent.dealer_inventory_group_id, v_parent.id);
   perform pg_advisory_xact_lock(871001, hashtext(v_group_key::text));
 
@@ -118,14 +136,12 @@ begin
       and (e.starts_at is null or e.starts_at <= v_now)
       and (e.ends_at   is null or e.ends_at   >= v_now)
   ) into v_boost_active;
-  -- OWNER LOCK 2026-09-24: BASE (Quick / Simple, $249) = at most FIVE active vehicles TOTAL — the main
-  -- vehicle listing plus up to FOUR inventory children (the count below excludes the parent, so the
-  -- child limit is 4). BASE is proven ONLY by a LIVE autos_dealer_quick_monthly entitlement with NO live
-  -- autos_dealer_monthly (PRO) entitlement on the SAME parent — Full beats Quick when both are live, so
-  -- an upgrade never reads as a downgrade, and NO evidence (no rows) is never treated as BASE. The
-  -- inventory pack never lifts BASE (it is PRO-only), so a stray pack row cannot either. PRO (10) and
-  -- PRO + pack (20) are unchanged. Liveness mirrors the application resolver: status active/scheduled,
-  -- not revoked, and not past ends_at.
+  -- OWNER LOCK 2026-09-24 (TOTAL vehicles, parent included): BASE 5 / PRO 10 / PRO + pack 20. BASE is proven
+  -- ONLY by a LIVE autos_dealer_quick_monthly entitlement with NO live autos_dealer_monthly (PRO) entitlement
+  -- on the SAME parent — Full beats Quick when both are live, so an upgrade never reads as a downgrade, and NO
+  -- evidence (no rows) is never treated as BASE. The inventory pack never lifts BASE (it is PRO-only), so a
+  -- stray pack row cannot either. Liveness mirrors the application resolver: status active/scheduled, not
+  -- revoked, and not past ends_at.
   select
     exists (
       select 1 from public.listing_package_entitlements e
@@ -144,11 +160,12 @@ begin
         and (e.ends_at is null or e.ends_at >= v_now)
     )
   into v_base_only;
-  v_limit := case when v_base_only then 4 when v_boost_active then 20 else 10 end;
+  -- v_limit is the CHILD ceiling = TOTAL limit - 1 (the parent is the first vehicle): BASE 4, PRO 9, PRO + pack 19.
+  v_limit := case when v_base_only then 4 when v_boost_active then 19 else 9 end;
 
-  -- Gate 6C.2 — inventory_role predicate added: only real inventory_vehicle children may
-  -- consume a capacity slot; the dealer parent (inventory_role='main') never matches this count
-  -- regardless of what its own coalesced group key resolves to.
+  -- Children only (inventory_role predicate from Gate 6C.2: the dealer parent never matches this count
+  -- regardless of what its own coalesced group key resolves to). The PARENT is added as one vehicle in the
+  -- refusal / success figures below — it is the dealer's first vehicle under the TOTAL owner lock.
   select count(*) into v_count
   from public.autos_classifieds_listings c
   where c.owner_user_id = p_owner_user_id
@@ -158,8 +175,10 @@ begin
     and coalesce(c.dealer_inventory_group_id, c.dealer_inventory_parent_listing_id, c.id) = v_group_key
     and c.id <> p_listing_id;
 
-  if v_count >= v_limit then
-    return query select false, false, 'capacity_reached', v_count, v_limit;
+  -- A child is refused when it would push the group past the child ceiling; the parent is refused only when
+  -- the children ALREADY exceed it (parent + children > total). active_count / effective_limit are TOTALS.
+  if (v_target_is_parent and v_count > v_limit) or (not v_target_is_parent and v_count >= v_limit) then
+    return query select false, false, 'capacity_reached', v_count + 1, v_limit + 1;
     return;
   end if;
 
@@ -169,7 +188,7 @@ begin
          updated_at = v_now
    where id = p_listing_id;
 
-  return query select true, false, null::text, v_count + 1, v_limit;
+  return query select true, false, null::text, v_count + 1 + (case when v_target_is_parent then 0 else 1 end), v_limit + 1;
 end;
 $$;
 
@@ -177,4 +196,4 @@ revoke all on function public.autos_dealer_activate_listing(uuid, uuid, text) fr
 grant execute on function public.autos_dealer_activate_listing(uuid, uuid, text) to service_role;
 
 comment on function public.autos_dealer_activate_listing(uuid, uuid, text) is
-  'Atomic, SECURITY DEFINER capacity+lifecycle-derived activation for autos_classifieds_listings negocios rows. Never accepts a caller-supplied limit. Limit is derived from the exact dealer parent entitlements: BASE (live autos_dealer_quick_monthly, no live autos_dealer_monthly) = 4 children (5 vehicles total); PRO = 10; PRO + inventory pack = 20. Capacity count is scoped to inventory_role=''inventory_vehicle'' children only. service_role execution only.';
+  'Atomic, SECURITY DEFINER capacity+lifecycle-derived activation for autos_classifieds_listings negocios rows. Never accepts a caller-supplied limit. Limit is derived from the exact dealer parent entitlements and is a TOTAL of active vehicles, parent included: BASE (live autos_dealer_quick_monthly, no live autos_dealer_monthly) = 5; PRO = 10; PRO + inventory pack = 20 (child ceilings 4 / 9 / 19). active_count and effective_limit are totals. service_role execution only.';

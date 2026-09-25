@@ -32,7 +32,9 @@ import {
   QUICK_DEALER_ACTIVE_VEHICLE_LIMIT,
   resolveDealerActiveVehicleLimit,
   STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT,
+  summarizeDealerInventory,
 } from "../app/lib/clasificados/autos/autosDealerInventoryPolicy";
+import { applicationCanAddInventoryVehicle, countApplicationInventoryVehicles } from "../app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 import { decideCommercialWrite } from "../app/lib/listingPlans/commercialWriteGuardPolicy";
 import { validateNegociosApplicationPublishInventory } from "../app/lib/clasificados/autos/autosDealerInventoryApplicationPublishGuard";
 import {
@@ -406,16 +408,45 @@ check("shared: BASE -> PRO upgrade is an ENTITLEMENT change on the SAME listing 
   assert.equal(afterUpgrade.allowed, true, "coupons become available after the upgrade");
 });
 
-check("autos DATABASE authority: the capacity RPC derives BASE = 4 children (5 total), PRO 10, PRO + pack 20 from the parent's entitlements, and never from the caller", () => {
+check("autos DATABASE authority (TOTAL model): the RPC derives child ceilings 4 / 9 / 19 = TOTAL 5 / 10 / 20 (parent + children) from the parent's entitlements, and never from the caller", () => {
   const mig = raw("supabase/migrations/20260924190000_autos_dealer_base_capacity_authority.sql");
   assert.ok(mig.includes("create or replace function public.autos_dealer_activate_listing("));
-  assert.ok(mig.includes("v_limit := case when v_base_only then 4 when v_boost_active then 20 else 10 end;"), "BASE 4 children / pack 20 / PRO 10");
+  assert.ok(mig.includes("v_limit := case when v_base_only then 4 when v_boost_active then 19 else 9 end;"), "child ceilings: BASE 4 / PRO+pack 19 / PRO 9 (the parent is vehicle #1)");
+  assert.ok(mig.includes("return query select false, false, 'capacity_reached', v_count + 1, v_limit + 1;"), "a refusal reports TOTALS (children + parent / total limit)");
+  assert.ok(mig.includes("(case when v_target_is_parent then 0 else 1 end), v_limit + 1;"), "a success reports TOTALS");
+  assert.ok(/\(v_target_is_parent and v_count > v_limit\) or \(not v_target_is_parent and v_count >= v_limit\)/.test(mig), "a child is refused at the ceiling; the parent only when children already exceed it");
+  assert.ok(!/then 4 when v_boost_active then 20 else 10 end/.test(mig), "the old child-count limits (10 / 20 children = 11 / 21 vehicles) are gone");
   assert.ok(/package_key = 'autos_dealer_quick_monthly'[\s\S]{0,260}and not exists[\s\S]{0,260}package_key = 'autos_dealer_monthly'/.test(mig), "BASE = live Quick AND NO live PRO on the same parent");
   assert.ok(mig.includes("e.status in ('active', 'scheduled')") && mig.includes("e.revoked_at is null") && mig.includes("e.ends_at >= v_now"), "liveness mirrors the application resolver");
   assert.ok(!/p_limit|p_max|p_is_quick|p_plan/.test(mig), "the RPC never accepts a caller-supplied limit / plan");
   assert.ok(/grant execute on function public\.autos_dealer_activate_listing\(uuid, uuid, text\) to service_role;/.test(mig) && /revoke all on function public\.autos_dealer_activate_listing\(uuid, uuid, text\) from public;/.test(mig), "service_role only");
   assert.ok(!mig.includes("br_negocio_activate_listing"), "the Bienes function is untouched");
   assert.ok(!/(insert|update|delete)\s+(into\s+)?public\.listing_package_entitlements/i.test(mig), "the migration never mutates entitlements");
+});
+check("autos TOTAL-vehicle ladder in the application layer: parent-only 1/5, 5/5 and the 5th child refused (BASE); 10/10 and the 10th child refused (PRO); 20/20 and the 20th child refused (PRO + pack)", () => {
+  const child = (activeTotal: number, limit: number) =>
+    decideCommercialWrite({ operation: "create_child_vehicle" as never, capacityDelta: 1, activeCount: activeTotal, limit, subscriptionStatus: "active" });
+  const tiers: Array<[string, number]> = [
+    ["BASE", QUICK_DEALER_ACTIVE_VEHICLE_LIMIT],
+    ["PRO", STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT],
+    ["PRO + pack", AUTOS_DEALER_TOTAL_WITH_INVENTORY_PACK_LIMIT],
+  ];
+  assert.deepEqual(tiers.map(([, n]) => n), [5, 10, 20]);
+  for (const [name, limit] of tiers) {
+    assert.equal(child(1, limit).allowed, true, `${name}: parent only (1/${limit}) accepts its first child`);
+    assert.equal(child(limit - 1, limit).allowed, true, `${name}: the last child (parent + ${limit - 1} = ${limit}/${limit}) is accepted`);
+    assert.equal(child(limit, limit).allowed, false, `${name}: one more child at ${limit}/${limit} is REFUSED`);
+  }
+  // The application draft / preview counts the SAME totals: the main listing (1) + additional vehicles.
+  assert.equal(countApplicationInventoryVehicles(0), 1, "the main listing is vehicle #1");
+  for (const [name, limit] of tiers) {
+    assert.equal(applicationCanAddInventoryVehicle(limit - 2, limit), true, `${name}: additional #${limit - 1} (total ${limit}) can be added`);
+    assert.equal(applicationCanAddInventoryVehicle(limit - 1, limit), false, `${name}: additional #${limit} (total ${limit + 1}) cannot`);
+  }
+  // Dashboard + checkout summaries use the same totals.
+  const full = summarizeDealerInventory(5, QUICK_DEALER_ACTIVE_VEHICLE_LIMIT);
+  assert.deepEqual([full.activeCount, full.limit, full.remainingSlots, full.canAddActiveVehicle], [5, 5, 0, false]);
+  assert.equal(summarizeDealerInventory(1, QUICK_DEALER_ACTIVE_VEHICLE_LIMIT).remainingSlots, 4);
 });
 check("autos capacity: EVERY status='active' write for a dealer child goes through the RPC — including the staff assisted-publish vehicle (was a direct write with no limit)", () => {
   const assisted = raw("app/api/clasificados/autos/assisted-publish/route.ts");
