@@ -215,6 +215,12 @@ export function AdminViajesBusinessOffersModeration() {
                 </td>
                 <td className="px-3 py-2.5">
                   <div className="flex flex-col gap-1">
+                    <Link
+                      href={`/admin/clasificados/viajes/business-offers/${encodeURIComponent(r.id)}`}
+                      className="text-xs font-bold text-[#6B5B2E] underline"
+                    >
+                      Open detail →
+                    </Link>
                     {r.lifecycle_status === "approved" && r.is_public ? (
                       <Link
                         href={`/clasificados/viajes/oferta/${r.slug}`}
