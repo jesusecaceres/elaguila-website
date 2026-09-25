@@ -415,18 +415,19 @@ export function buildInventoryListingActions(
       : new Map();
 
   if (category === "servicios" && listingToolIsReady(category, "openPanel")) {
-    // Servicios existing-listing edit must carry P0C identity (mode=listing-edit, returnPanel=servicios).
-    // Gate D.4 — canonical resolver output preferred (verified parity in Gate D.4's read-only
-    // pass: `listingSlug` is a hydration fallback only, never required when a real listingId is
-    // present), falling back to the existing opts/href chain when identity isn't available.
-    // Gate 2C — this IS Servicios' single canonical primary doorway (the destination the
-    // legacy `actionContract.manageUrl` branch used to duplicate with a second, conflicting
-    // "Administrar anuncio" button — that branch is retired below). Labeled as the canonical
-    // primary doorway, not "Editar anuncio", since it's now the one place "manage this
-    // listing" means for Servicios.
+    // Owner Command Center runtime restoration (2026-09-25):
+    // "Administrar anuncio" is the doorway to the dedicated Servicios owner workspace,
+    // not directly into the publication application. The workspace then exposes the real
+    // edit/preview/public/results/lifecycle/billing/analytics tools for this listing.
+    // Keep the listingSlug-bound manage URL when available; only fall back to the canonical
+    // edit route if an older/partial item is missing the action contract.
     actions.push({
-      href: canonical.get("edit")?.href ?? opts?.serviciosEditHref ?? item.editHref,
-      label: opts?.editLabelOverride ?? openPanelLabel(lang),
+      href:
+        item.actionContract?.manageUrl ??
+        canonical.get("edit")?.href ??
+        opts?.serviciosEditHref ??
+        item.editHref,
+      label: openPanelLabel(lang),
       tone: "primary",
     });
   }
@@ -597,14 +598,9 @@ export function buildInventoryListingActions(
     });
   }
 
-  // Gate 2C, Task 2C-4 — the legacy `actionContract.manageUrl` branch that used to push a
-  // SECOND, conflicting "Administrar anuncio" button here (pointing at
-  // `/dashboard/servicios?listingSlug=...`, a different destination than the canonical
-  // edit/manage href above) is retired. `buildServiciosDashboardActionContract` and
-  // `item.actionContract` themselves are untouched — their other fields (publicUrl,
-  // editUrl, resultsUrl, listingId fallbacks) are still real and still used elsewhere
-  // (dashboardInventory.ts, mis-anuncios/page.tsx) — only this one duplicate CTA push is
-  // removed, so one Servicios listing now has exactly one primary doorway.
+  // Servicios keeps exactly one primary doorway. The historical duplicate action stays
+  // retired; the surviving primary now targets actionContract.manageUrl so the dedicated
+  // /dashboard/servicios Owner Command Center is restored as the management surface.
 
   if (category === "empleos" && listingToolIsReady(category, "edit")) {
     // Gate 2C — canonical primary doorway (was "Gestionar vacante"/"Manage listing" with
