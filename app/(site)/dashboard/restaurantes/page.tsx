@@ -55,6 +55,13 @@ import {
   pauseListingLabel,
   resumeListingLabel,
 } from "../lib/dashboardMisAnunciosCategoryTools";
+import {
+  dashboardCompletePaymentLabel,
+  dashboardNotLiveNote,
+  dashboardStartingPaymentLabel,
+  isRestauranteAwaitingPayment,
+} from "../lib/dashboardPendingPayment";
+import { prepareRestauranteResumePayment } from "../lib/restaurantesDashboardResumePayment";
 import type { ActionItem } from "../components/DashboardListingActionBar";
 import { getOwnerEntityCapabilities } from "../lib/ownerEntityCapabilityRegistry";
 import { ownerBusinessToolsSpecializedGroup } from "../lib/ownerBusinessToolsSpecializedGroup";
@@ -177,6 +184,8 @@ function DashboardRestaurantesPageContent() {
   const [lifecycleErr, setLifecycleErr] = useState<string | null>(null);
   const [billingBusyId, setBillingBusyId] = useState<string | null>(null);
   const [billingErr, setBillingErr] = useState<string | null>(null);
+  /** CLOSEOUT 2 — pending_payment resume ("Completar pago") in flight for this row id. */
+  const [resumeBusyId, setResumeBusyId] = useState<string | null>(null);
   const [subscriptionStates, setSubscriptionStates] = useState<Record<string, DashboardSubscriptionStateEntry>>({});
   const [entitlementBadges, setEntitlementBadges] = useState<
     Record<string, DashboardEntitlementBadgePayload>
@@ -473,6 +482,28 @@ function DashboardRestaurantesPageContent() {
     [lang],
   );
 
+  /**
+   * CLOSEOUT 2 — a hidden `pending_payment` restaurant resumes into the draft-preview checkout checkpoint
+   * (the Restaurantes base plans are subscriptions: recurring consent is collected there, then the
+   * Quick $249 / Full $399 Revenue OS payload the row was started on is re-selected). When the chosen plan
+   * cannot be proven from the ledger, the owner lands on the Quick/Full checkpoint selector instead.
+   * The public page does not exist yet.
+   */
+  const resumePayment = useCallback(
+    async (row: DashboardRestaurantRow, target: "preview" | "checkout") => {
+      setHydrateErr(null);
+      setResumeBusyId(row.id);
+      const result = await prepareRestauranteResumePayment({ listingId: row.id, lang, target });
+      if (!result.ok) {
+        setHydrateErr(result.userMessage);
+        setResumeBusyId(null);
+        return;
+      }
+      router.push(result.href);
+    },
+    [lang, router],
+  );
+
   const publishHref = appendLangToPath("/publicar/restaurantes", lang);
   const categoryResultsHref = `/clasificados/restaurantes/resultados?${q}`;
   const frameError = fetchErr || hydrateErr || couponErr || upgradeErr || lifecycleErr || billingErr || null;
@@ -588,8 +619,24 @@ function DashboardRestaurantesPageContent() {
                 // "Publicar un restaurante" button above already covers this job once, not once
                 // per listing.
                 const capabilities = getOwnerEntityCapabilities("restaurantes");
+                // CLOSEOUT 2 — public "View" only while the row is live; a pending_payment listing shows
+                // "Completar pago" instead (its public page does not exist yet).
+                const awaitingPayment = isRestauranteAwaitingPayment(r.status);
                 const quickActions: ActionItem[] = [
-                  { href: publicHref, label: publicViewLabel(lang), tone: "secondary" },
+                  ...(awaitingPayment
+                    ? ([
+                        {
+                          label:
+                            resumeBusyId === r.id ? dashboardStartingPaymentLabel(lang) : dashboardCompletePaymentLabel(lang),
+                          onClick: () => void resumePayment(r, "checkout"),
+                          disabled: resumeBusyId === r.id,
+                          tone: "warning",
+                        },
+                      ] as ActionItem[])
+                    : []),
+                  ...(r.status === "published"
+                    ? ([{ href: publicHref, label: publicViewLabel(lang), tone: "secondary" }] as ActionItem[])
+                    : []),
                   { href: resultsHref, label: publicResultsListingLabel(lang), tone: "subtle" },
                   { href: `/dashboard/analytics?${q}`, label: analyticsLabel(lang), tone: "subtle" },
                 ];
@@ -716,10 +763,10 @@ function DashboardRestaurantesPageContent() {
                         r.leonix_verified ? (lang === "es" ? "Verificado" : "Verified") : "",
                       ].filter(Boolean),
                     }}
-                    note={lifecycleNote}
+                    note={awaitingPayment ? { text: dashboardNotLiveNote(lang), tone: "warning" } : lifecycleNote}
                     detailItems={[
                       { label: t.cardSlug, value: r.slug },
-                      { label: t.cardPublished, value: fmt(r.published_at, lang) },
+                      ...(awaitingPayment ? [] : [{ label: t.cardPublished, value: fmt(r.published_at, lang) }]),
                       { label: t.cardUpdated, value: fmt(r.updated_at, lang) },
                     ]}
                     communityTrust={

@@ -17,8 +17,12 @@ import {
 } from "@/app/(site)/publicar/autos/shared/lib/autosMuxPublishPrepare";
 import { saveAutosPrivadoDraftResolved } from "@/app/clasificados/autos/privado/lib/autosPrivadoDraftStorage";
 import { rememberAutosDraftNamespaceHint } from "@/app/clasificados/autos/shared/lib/autosDraftPreviewNamespaceHint";
+import {
+  getBrowserAutosIdentityStorages,
+  readAutosExplicitListingIdFromSearch,
+  saveAutosListingToCanonicalRow,
+} from "@/app/lib/clasificados/autos/autosCanonicalListingIdentity";
 
-const SESSION_LISTING_KEY = "lx-autos-publish-listing-privado";
 const PREPARE_TIMEOUT_MS = 15_000;
 
 export type SaveAutosPrivadoPendingResult =
@@ -33,6 +37,14 @@ async function fetchAutosApi(input: RequestInfo | URL, init?: RequestInit): Prom
   } finally {
     window.clearTimeout(timeout);
   }
+}
+
+/** Dashboard edit context (`?source=dashboard&edit=1&listingId=`) declares the row a save must update. */
+function readDashboardEditListingIdFromLocation(): string | null {
+  if (typeof window === "undefined") return null;
+  const q = new URLSearchParams(window.location.search);
+  if (q.get("source") !== "dashboard" || q.get("edit") !== "1") return null;
+  return readAutosExplicitListingIdFromSearch(window.location.search);
 }
 
 function hasConfirmableAutosDraft(listing: AutoDealerListing): boolean {
@@ -65,6 +77,8 @@ export async function saveAutosPrivadoPendingBeforeCheckout(input: {
   listing: AutoDealerListing;
   lang: "es" | "en";
   accessToken: string;
+  /** Canonical row this save must update (dashboard edit / caller-known id). Never creates a second row. */
+  existingListingId?: string | null;
 }): Promise<SaveAutosPrivadoPendingResult> {
   const lang = input.lang === "en" ? "en" : "es";
   let listing = { ...input.listing, autosLane: "privado" as const };
@@ -102,79 +116,33 @@ export async function saveAutosPrivadoPendingBeforeCheckout(input: {
     });
   }
 
-  const cached =
-    typeof window !== "undefined" ? window.sessionStorage.getItem(SESSION_LISTING_KEY) : null;
-
-  if (cached) {
-    const existing = await fetchAutosApi(`/api/clasificados/autos/listings/${cached}`, {
-      headers: { Authorization: `Bearer ${input.accessToken}` },
-    });
-    if (existing.ok) {
-      const row = (await existing.json()) as { status?: string; leonixAdId?: string | null };
-      if (
-        row.status === "draft" ||
-        row.status === "pending_payment" ||
-        row.status === "payment_failed"
-      ) {
-        const sync = await fetchAutosApi(`/api/clasificados/autos/listings/${cached}`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${input.accessToken}`,
-          },
-          body: JSON.stringify({
-            listing: prepareAutosListingForApiTransport(listing),
-            lang,
-          }),
-        });
-        if (sync.ok) {
-          return { ok: true, listingId: cached, leonixAdId: row.leonixAdId?.trim() || null };
-        }
-        window.sessionStorage.removeItem(SESSION_LISTING_KEY);
-      }
-    } else {
-      window.sessionStorage.removeItem(SESSION_LISTING_KEY);
-    }
+  // ONE APPLICATION = ONE CANONICAL ROW (closeout 2): the identity is bound to the draft (session +
+  // local storage, per-user namespace) and a declared identity can only end in PATCH-the-same-row or a
+  // fail-closed error — it never falls through to POST. Only a brand-new application POSTs.
+  let namespace: string | null = null;
+  try {
+    namespace = await resolveAutosPrivadoDraftNamespace();
+  } catch {
+    namespace = null;
   }
-
-  const create = await fetchAutosApi("/api/clasificados/autos/listings", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${input.accessToken}`,
-    },
-    body: JSON.stringify({
-      listing: prepareAutosListingForApiTransport(listing),
-      lane: "privado",
-      lang,
-    }),
+  const saved = await saveAutosListingToCanonicalRow({
+    lane: "privado",
+    lang,
+    token: input.accessToken,
+    listingPayload: prepareAutosListingForApiTransport(listing),
+    explicitListingId: input.existingListingId?.trim() || readDashboardEditListingIdFromLocation(),
+    namespace,
+    fetchFn: fetchAutosApi,
+    storages: getBrowserAutosIdentityStorages(),
   });
-  const created = (await create.json().catch(() => ({}))) as {
-    ok?: boolean;
-    id?: string;
-    leonixAdId?: string | null;
-    errorCode?: string;
-    message?: string;
-    error?: string;
-  };
-  if (!create.ok || !created.id) {
+  if (!saved.ok) {
     return {
       ok: false,
-      userMessage: autosConfirmErrorMessage(
-        lang,
-        created.errorCode ?? created.error,
-        created.message ??
-          (lang === "es"
-            ? "No pudimos guardar tu anuncio antes del pago."
-            : "We could not save your listing before checkout."),
-      ),
+      userMessage:
+        saved.code === "create_failed"
+          ? autosConfirmErrorMessage(lang, saved.errorCode ?? undefined, saved.message)
+          : saved.message,
     };
   }
-
-  window.sessionStorage.setItem(SESSION_LISTING_KEY, created.id);
-  return {
-    ok: true,
-    listingId: created.id,
-    leonixAdId: created.leonixAdId?.trim() || null,
-  };
+  return { ok: true, listingId: saved.listingId, leonixAdId: saved.leonixAdId };
 }

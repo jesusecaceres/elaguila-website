@@ -35,6 +35,13 @@ import {
 } from "@/app/lib/newsletter/checkoutNewsletterCapture";
 import { getRevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
 import { autosConfirmErrorMessage } from "@/app/lib/clasificados/autos/autosPublishApiContract";
+import {
+  autosIdentityScope,
+  clearAutosDraftListingIdentity,
+  getBrowserAutosIdentityStorages,
+  readAutosExplicitListingIdFromSearch,
+  saveAutosListingToCanonicalRow,
+} from "@/app/lib/clasificados/autos/autosCanonicalListingIdentity";
 import type { AutosInventoryAddContext } from "@/app/lib/clasificados/autos/autosDealerInventoryAddFlow";
 import {
   clearInventoryAddContextFromSession,
@@ -76,10 +83,6 @@ type AutosConfirmPhase =
   | "local_video_error";
 
 const AUTOS_CONFIRM_PREPARE_TIMEOUT_MS = 15_000;
-
-function sessionKey(lane: AutosClassifiedsLane) {
-  return `lx-autos-publish-listing-${lane}`;
-}
 
 function autosHomeHref(lang: AutosPublishFlowLang): string {
   return `/clasificados/autos?lang=${lang}`;
@@ -317,8 +320,6 @@ export function AutosPublishConfirmCore({
           return;
         }
         setSessionMissing(false);
-        const sk = sessionKey(lane);
-        const cached = typeof window !== "undefined" ? window.sessionStorage.getItem(sk) : null;
 
         setPhase("uploading_photos");
         const photoPrep = await uploadLocalPhotosIfNeeded(token);
@@ -330,71 +331,50 @@ export function AutosPublishConfirmCore({
         }
         setPhase("preparing");
 
-        if (cached) {
-          const r = await fetchAutosConfirm(`/api/clasificados/autos/listings/${cached}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (cancelled) return;
-          if (r.ok) {
-            const j = (await r.json()) as { status?: string };
-            if (j.status === "draft" || j.status === "pending_payment" || j.status === "payment_failed") {
-              const sync = await fetchAutosConfirm(`/api/clasificados/autos/listings/${cached}`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                body: JSON.stringify({
-                  listing: prepareAutosListingForApiTransport(listingRef.current),
-                  lang,
-                }),
-              });
-              const syncJson = (await sync.json().catch(() => ({}))) as { persistWarnings?: string[] };
-              if (cancelled) return;
-              if (!sync.ok) {
-                window.sessionStorage.removeItem(sk);
-              } else {
-                setPersistWarnings(syncJson.persistWarnings ?? []);
-                setListingId(cached);
-                setPhase("ready");
-                return;
-              }
-            }
-          }
-          window.sessionStorage.removeItem(sk);
-        }
+        // ONE APPLICATION = ONE CANONICAL ROW (closeout 2): the id is bound to the draft (session +
+        // local storage, per-user namespace) and a declared identity can only end in PATCH-the-same-row
+        // or a fail-closed error — it never falls through to POST. Only a brand-new application POSTs.
         await flushDraft();
         if (cancelled) return;
-        const createBody: Record<string, unknown> = {
-          listing: prepareAutosListingForApiTransport(listingRef.current),
+        let identityNamespace: string | null = null;
+        try {
+          identityNamespace =
+            lane === "privado" ? await resolveAutosPrivadoDraftNamespace() : await resolveAutosNegociosDraftNamespace();
+        } catch {
+          identityNamespace = null;
+        }
+        if (cancelled) return;
+        const createExtras: Record<string, unknown> = {};
+        if (inventoryCtx?.parentListingId) {
+          createExtras.parentListingId = inventoryCtx.parentListingId;
+          if (inventoryCtx.dealerInventoryGroupId) createExtras.dealerInventoryGroupId = inventoryCtx.dealerInventoryGroupId;
+        }
+        const saved = await saveAutosListingToCanonicalRow({
           lane,
           lang,
-        };
-        if (inventoryCtx?.parentListingId) {
-          createBody.parentListingId = inventoryCtx.parentListingId;
-          if (inventoryCtx.dealerInventoryGroupId) createBody.dealerInventoryGroupId = inventoryCtx.dealerInventoryGroupId;
-        }
-        const res = await fetchAutosConfirm("/api/clasificados/autos/listings", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify(createBody),
+          token,
+          listingPayload: prepareAutosListingForApiTransport(listingRef.current),
+          createExtras,
+          // A dashboard edit passes `listingId` in the URL; an inventory-add child is a NEW row under a
+          // parent and must never adopt the parent's id from the URL.
+          explicitListingId: inventoryCtx?.parentListingId ? null : readAutosExplicitListingIdFromSearch(window.location.search),
+          inventoryParentListingId: inventoryCtx?.parentListingId ?? null,
+          namespace: identityNamespace,
+          fetchFn: fetchAutosConfirm,
+          storages: getBrowserAutosIdentityStorages(),
         });
-        const j = (await res.json().catch(() => ({}))) as {
-          ok?: boolean;
-          id?: string;
-          errorCode?: string;
-          message?: string;
-          error?: string;
-          persistWarnings?: string[];
-        };
         if (cancelled) return;
-        if (!res.ok || !j.id) {
+        if (!saved.ok) {
           setErrorDetail(
-            autosConfirmErrorMessage(lang, j.errorCode ?? j.error, j.message ?? c.createError),
+            saved.code === "create_failed"
+              ? autosConfirmErrorMessage(lang, saved.errorCode ?? undefined, saved.message || c.createError)
+              : saved.message,
           );
           setPhase("error");
           return;
         }
-        window.sessionStorage.setItem(sk, j.id);
-        setPersistWarnings(j.persistWarnings ?? []);
-        setListingId(j.id);
+        setPersistWarnings(saved.persistWarnings);
+        setListingId(saved.listingId);
         setPhase("ready");
       } catch {
         if (cancelled) return;
@@ -739,6 +719,14 @@ export function AutosPublishConfirmCore({
         window.sessionStorage.setItem(AUTOS_BUNDLE_PUBLISH_RESULT_SESSION_KEY, JSON.stringify(sessionResult));
       }
       if (inventoryCtx) {
+        // Verified success of THIS inventory add: its identity scope (`<lane>:inv:<parent>`) is spent, so the
+        // next vehicle added under the same parent starts its own row instead of hitting "not editable".
+        // (Failure / cancel / retry never reach this branch, so they keep the identity and reuse the row.)
+        clearAutosDraftListingIdentity(
+          getBrowserAutosIdentityStorages(),
+          autosIdentityScope(lane, inventoryCtx.parentListingId),
+          lane,
+        );
         clearInventoryAddContextFromSession();
         const returnHref = resolveInventoryAddReturnHref({
           returnToListingId: inventoryCtx.returnToListingId,

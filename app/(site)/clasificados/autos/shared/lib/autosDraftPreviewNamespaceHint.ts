@@ -8,6 +8,11 @@
  * Clear via `clearAutosDraftNamespaceHint` on reset / fresh-tab wipe / explicit cleanup only.
  */
 
+import {
+  clearAutosLaneListingIdentity,
+  getBrowserAutosIdentityStorages,
+} from "@/app/lib/clasificados/autos/autosCanonicalListingIdentity";
+
 const NEG_KEY = "lx-autos-draft-ns-hint-negocios";
 const PRV_KEY = "lx-autos-draft-ns-hint-privado";
 
@@ -39,6 +44,9 @@ export function consumeAutosDraftNamespaceHint(lane: "negocios" | "privado"): st
 
 export function clearAutosDraftNamespaceHint(lane: "negocios" | "privado"): void {
   if (typeof window === "undefined") return;
+  // The canonical listing identity is bound to the draft: it dies exactly when the draft is reset /
+  // the account switches (this function is called from those places only), never on a plain re-mount.
+  clearAutosLaneListingIdentity(getBrowserAutosIdentityStorages(), lane);
   try {
     sessionStorage.removeItem(lane === "negocios" ? NEG_KEY : PRV_KEY);
   } catch {

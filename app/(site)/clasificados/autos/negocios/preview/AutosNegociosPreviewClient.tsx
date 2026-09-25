@@ -62,12 +62,15 @@ import {
 } from "../lib/autosDealerRevenueCheckout";
 import { QUICK_DEALER_ACTIVE_VEHICLE_LIMIT } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
 import {
+  getBrowserAutosIdentityStorages,
+  saveAutosListingToCanonicalRow,
+} from "@/app/lib/clasificados/autos/autosCanonicalListingIdentity";
+import {
   autosPreviewPageMaxWidthClass,
   autosPreviewSectionEyebrowClass,
 } from "@/app/lib/clasificados/autos/autosNegociosPremiumPreviewTokens";
 
 const EDIT_BASE = "/publicar/autos/negocios";
-const AUTOS_DEALER_PENDING_CHECKOUT_KEY = "lx-autos-publish-listing-negocios";
 
 type AutosNegociosPreviewMode = "empty" | "draft" | "mock" | "canonical-active" | "canonical-error";
 
@@ -227,24 +230,6 @@ function isDemoQuery(): boolean {
   const q = new URLSearchParams(window.location.search);
   const v = q.get("demo");
   return v === "1" || v === "true";
-}
-
-function readCachedDealerListingId(): string | null {
-  if (typeof window === "undefined") return null;
-  try {
-    return window.sessionStorage.getItem(AUTOS_DEALER_PENDING_CHECKOUT_KEY)?.trim() || null;
-  } catch {
-    return null;
-  }
-}
-
-function writeCachedDealerListingId(listingId: string): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.sessionStorage.setItem(AUTOS_DEALER_PENDING_CHECKOUT_KEY, listingId);
-  } catch {
-    /* ignore */
-  }
 }
 
 type PreviewResolveResult = {
@@ -556,33 +541,6 @@ function AutosNegociosPreviewInner({
       };
     }
 
-    const cached = readCachedDealerListingId();
-    if (cached) {
-      const sync = await fetch(`/api/clasificados/autos/listings/${encodeURIComponent(cached)}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ listing: preparedListing, lang, basePackageKey: baseCheckout.packageKey }),
-      });
-      if (sync.ok) {
-        const j = (await sync.json().catch(() => ({}))) as {
-          id?: string;
-          leonixAdId?: string | null;
-          leonix_ad_id?: string | null;
-        };
-        return {
-          ok: true,
-          listingId: cached,
-          leonixAdId: j.leonixAdId?.trim() || j.leonix_ad_id?.trim() || null,
-          customerEmail: data.session?.user?.email ?? null,
-        };
-      }
-      try {
-        window.sessionStorage.removeItem(AUTOS_DEALER_PENDING_CHECKOUT_KEY);
-      } catch {
-        /* ignore */
-      }
-    }
-
     /**
      * Gate QB-BOUNDARY-01 — say which base package this dealer publish belongs to, so the server
      * does not have to infer a PRODUCT from the `negocios` LANE (which Quick and Full dealers
@@ -592,38 +550,39 @@ function AutosNegociosPreviewInner({
      * This is a declaration, not authority. The route reads it only when it names the SIMPLE
      * ($99 Quick) key, and any server-owned record overrides it in either direction — so it can
      * add the Quick contract to a Quick dealer and can never lift it off one.
+     *
+     * ONE APPLICATION = ONE CANONICAL ROW (closeout 2): the identity is bound to the draft (session +
+     * local storage, per-user namespace). A declared identity can only end in PATCH-the-same-row or a
+     * fail-closed error — it never falls through to POST. Only a brand-new application POSTs. The
+     * `basePackageKey` declaration rides on BOTH the PATCH and the POST exactly as before.
      */
-    const res = await fetch("/api/clasificados/autos/listings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({
-        listing: preparedListing,
-        lane: "negocios",
-        lang,
-        basePackageKey: baseCheckout.packageKey,
-      }),
+    const saved = await saveAutosListingToCanonicalRow({
+      lane: "negocios",
+      lang,
+      token,
+      listingPayload: preparedListing,
+      createExtras: { basePackageKey: baseCheckout.packageKey },
+      patchExtras: { basePackageKey: baseCheckout.packageKey },
+      namespace,
+      fetchFn: (input, init) => fetch(input, init),
+      storages: getBrowserAutosIdentityStorages(),
     });
-    const j = (await res.json().catch(() => ({}))) as {
-      id?: string;
-      leonixAdId?: string | null;
-      leonix_ad_id?: string | null;
-      message?: string;
-    };
-    if (!res.ok || !j.id?.trim()) {
+    if (!saved.ok) {
       return {
         ok: false,
         message:
-          j.message?.trim() ||
-          (lang === "es"
-            ? "No pudimos preparar tu dealer para el pago seguro."
-            : "We could not prepare your dealer listing for secure checkout."),
+          saved.code === "create_failed"
+            ? saved.message ||
+              (lang === "es"
+                ? "No pudimos preparar tu dealer para el pago seguro."
+                : "We could not prepare your dealer listing for secure checkout.")
+            : saved.message,
       };
     }
-    writeCachedDealerListingId(j.id.trim());
     return {
       ok: true,
-      listingId: j.id.trim(),
-      leonixAdId: j.leonixAdId?.trim() || j.leonix_ad_id?.trim() || null,
+      listingId: saved.listingId,
+      leonixAdId: saved.leonixAdId,
       customerEmail: data.session?.user?.email ?? null,
     };
   }, [additionalInventoryVehicles, lang, listing, canonicalListingId, baseCheckout.packageKey]);

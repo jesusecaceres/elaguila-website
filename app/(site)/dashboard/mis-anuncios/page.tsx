@@ -12,6 +12,7 @@ import {
   applyOwnerListingPatch,
 } from "../lib/ownerListingsLifecycleClient";
 import { dashboardSafeMutationErrorCopy } from "../lib/dashboardSafeErrorCopy";
+import { dashboardOwnerMayActivateFromStatus } from "../lib/dashboardOwnerRelistPolicy";
 import {
   openDashboardBillingPortal,
   dashboardBillingPortalErrorCopy,
@@ -1182,6 +1183,21 @@ function MyListingsPageContent() {
       }
     }
 
+    // 2026-09 category closeout — a client table write may only RELIST a row the owner themselves
+    // took offline (paused / sold). pending (unpaid), flagged (moderation), draft and removed rows are
+    // activated by payment fulfilment or staff, never by this button.
+    const currentRow = listings.find((x) => x.id === id);
+    if (status === "active") {
+      const cur = String(currentRow?.status ?? "").toLowerCase();
+      if (!dashboardOwnerMayActivateFromStatus(cur)) {
+        setError(dashboardSafeMutationErrorCopy(lang));
+        return;
+      }
+    }
+    // An En Venta listing marked sold must stay viewable by direct URL (detail page + RLS allow
+    // `sold` only while is_published is not false); browse results still require status = active.
+    const soldEnVenta = status === "sold" && String(currentRow?.category ?? "").toLowerCase() === "en-venta";
+
     const supabase = createSupabaseBrowserClient();
     setBusyId(id);
     setError(null);
@@ -1189,6 +1205,7 @@ function MyListingsPageContent() {
     const patch: Record<string, unknown> = { status };
     if (status === "active") patch.is_published = true;
     if (status === "sold") patch.is_published = false;
+    if (soldEnVenta) delete patch.is_published;
 
     const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, patch);
 
@@ -1208,7 +1225,9 @@ function MyListingsPageContent() {
               ...(status === "active"
                 ? { is_published: true }
                 : status === "sold"
-                  ? { is_published: false }
+                  ? soldEnVenta
+                    ? {}
+                    : { is_published: false }
                   : {}),
             }
           : x,
@@ -1258,6 +1277,13 @@ function MyListingsPageContent() {
     }
 
     const live = listingsRowIsPublicLive(rec);
+    if (!live) {
+      // 2026-09 category closeout — Republish only bumps a listing that is ALREADY live. A pending
+      // (unpaid), expired, paused, flagged or removed paid-lane row is re-activated by payment
+      // fulfilment / the server lifecycle routes / Renew — never by a client table write.
+      setError(dashboardSafeMutationErrorCopy(lang));
+      return;
+    }
     const supabase = createSupabaseBrowserClient();
     setBusyId(row.id);
     setError(null);
@@ -1270,10 +1296,6 @@ function MyListingsPageContent() {
       last_republished_source: "dashboard",
       ...(userId ? { last_republished_by: userId } : {}),
     };
-    if (!live) {
-      patch.is_published = true;
-      patch.status = "active";
-    }
 
     const { error: uErr } = await applyOwnerListingPatch(supabase, row.id, userId, patch);
 
@@ -1364,6 +1386,13 @@ function MyListingsPageContent() {
 
     const nextCount = Number(row.republish_count ?? 0) + 1;
     const live = listingsRowIsPublicLive(rec);
+    const rowStatusForRepublish = String(row.status ?? "").toLowerCase();
+    if (!live && rowStatusForRepublish !== "paused" && rowStatusForRepublish !== "sold") {
+      // flagged (moderation), pending, draft and removed rows are never self-reactivated.
+      setError(dashboardSafeMutationErrorCopy(lang));
+      setBusyId(null);
+      return;
+    }
     const patch: Record<string, unknown> = {
       republished_at: renewedAtIso,
       republish_count: nextCount,

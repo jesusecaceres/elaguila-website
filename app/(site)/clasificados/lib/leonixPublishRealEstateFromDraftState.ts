@@ -329,6 +329,8 @@ export async function publishLeonixListingFromBienesRaicesPrivadoDraft(
     return publishLeonixRealEstateListingCore({
       ...built.params,
       activationMode: opts?.activationMode,
+      existingListingId: opts?.existingListingId ?? null,
+      draftKey: opts?.draftKey ?? null,
       brPaymentLane: "privado",
     });
   }
@@ -353,6 +355,8 @@ export async function publishLeonixListingFromRentasPrivadoDraft(
   const published = await publishLeonixRealEstateListingCore({
     ...built.params,
     activationMode: opts?.activationMode,
+    existingListingId: opts?.existingListingId ?? null,
+    draftKey: opts?.draftKey ?? null,
     rentasPaymentLane: "privado",
   });
   return withRentasDroppedMediaWarning(published, built.droppedUnpersistableMedia, lang);
@@ -517,6 +521,10 @@ export type BrPublishDraftOptions = {
    * browser flow. Absent means Full, so nothing about the standard agent application changes.
    */
   basePackageKey?: string | null;
+  /** Closeout 2 - canonical pending row the caller already knows (verified by the core; never trusted blindly). */
+  existingListingId?: string | null;
+  /** Closeout 2 - stable per-application key; derived per tab by the core when omitted. */
+  draftKey?: string | null;
 };
 
 export async function publishLeonixListingFromBienesRaicesNegocioDraft(
@@ -537,6 +545,8 @@ export async function publishLeonixListingFromBienesRaicesNegocioDraft(
       mediaRoles: state.media.photoMediaRoles ?? null,
       quickBasePackageKey: opts?.basePackageKey ?? null,
       activationMode: opts?.activationMode,
+      existingListingId: opts?.existingListingId ?? null,
+      draftKey: opts?.draftKey ?? null,
       brPaymentLane: "negocio",
     });
   }
@@ -582,6 +592,8 @@ export async function publishLeonixListingFromAgenteResidencialDraft(
       mediaRoles: state.fotoMediaRoles ?? null,
       quickBasePackageKey: opts?.basePackageKey ?? null,
       activationMode: opts?.activationMode,
+      existingListingId: opts?.existingListingId ?? null,
+      draftKey: opts?.draftKey ?? null,
       brPaymentLane: "negocio",
     });
   }
@@ -621,6 +633,8 @@ export async function publishLeonixListingFromRentasNegocioDraft(
   const published = await publishLeonixRealEstateListingCore({
     ...built.params,
     activationMode: opts?.activationMode,
+    existingListingId: opts?.existingListingId ?? null,
+    draftKey: opts?.draftKey ?? null,
     rentasPaymentLane: "negocio",
   });
   return withRentasDroppedMediaWarning(published, built.droppedUnpersistableMedia, lang);

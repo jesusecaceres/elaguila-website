@@ -1,5 +1,7 @@
 "use client";
 
+import { dashboardOwnerMayActivateFromStatus } from "../../lib/dashboardOwnerRelistPolicy";
+import { dashboardSafeMutationErrorCopy } from "../../lib/dashboardSafeErrorCopy";
 import Link from "next/link";
 import {useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import { useParams, useRouter, useSearchParams, usePathname } from "next/navigation";
@@ -465,6 +467,13 @@ function ListingWorkspacePageContent() {
       ...(userId ? { last_republished_by: userId } : {}),
     };
     if (!live) {
+      // Refresh bumps a listing that is live, or relists one the owner paused / sold. Pending (unpaid), flagged
+      // (staff moderation), expired and removed rows are never activated by this button.
+      if (!dashboardOwnerMayActivateFromStatus(row.status)) {
+        setResumeError(dashboardSafeMutationErrorCopy(lang));
+        setBusy(false);
+        return;
+      }
       patch.is_published = true;
       patch.status = "active";
     }
@@ -515,6 +524,11 @@ function ListingWorkspacePageContent() {
       }
       const now = new Date().toISOString();
       setRow((r) => (r ? { ...r, status: result.status, is_published: result.isPublished, updated_at: now } : r));
+      setBusy(false);
+      return;
+    }
+    if (status === "active" && !dashboardOwnerMayActivateFromStatus(row.status)) {
+      setResumeError(dashboardSafeMutationErrorCopy(lang));
       setBusy(false);
       return;
     }

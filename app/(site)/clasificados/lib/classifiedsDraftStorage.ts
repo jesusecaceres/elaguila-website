@@ -5,6 +5,7 @@
  */
 
 import { PREVIEW_LISTING_DRAFT_KEY } from "@/app/clasificados/lib/previewListingDraft";
+import { clearAllRealEstateDraftLifecycleInBrowser } from "@/app/(site)/clasificados/lib/realEstateDraftKey";
 import {
   BR_NEGOCIO_PREVIEW_DRAFT_KEY,
   BR_NEGOCIO_PREVIEW_RETURN_KEY,
@@ -199,6 +200,9 @@ export function clearAllClassifiedsDrafts(options?: {
     clearBienesRaicesNegocioPublishTempState();
     clearAgenteIndividualResidencialPublishTempState();
     clearEnVentaPublishTempState();
+    // This wipe drops every Rentas / Bienes application draft, so their draft keys (and FSBO's cached
+    // pending-row id) die with them (explicit start-over / discard / logout - never back/edit/retry/cancel).
+    clearAllRealEstateDraftLifecycleInBrowser("explicit_discard");
   } catch {
     // ignore
   }

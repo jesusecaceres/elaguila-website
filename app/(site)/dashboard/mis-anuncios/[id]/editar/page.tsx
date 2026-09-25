@@ -15,6 +15,7 @@ import {
   applyOwnerListingPatch,
 } from "../../../lib/ownerListingsLifecycleClient";
 import { dashboardSafeMutationErrorCopy } from "../../../lib/dashboardSafeErrorCopy";
+import { dashboardOwnerMayActivateFromStatus } from "../../../lib/dashboardOwnerRelistPolicy";
 import { callBrFsboStatusMutation, brFsboStatusErrorMessage } from "../../../lib/brFsboStatusClient";
 import { isBrFsboRow } from "@/app/lib/listingLifecycle/bienesFsboLifecycle";
 import {
@@ -629,6 +630,13 @@ async function removeSellerPhoto() {
         status: result.status,
         is_published: result.isPublished,
       }));
+      setBusyAction(null);
+      return;
+    }
+
+    // Relist only what the owner took offline; pending / flagged / expired / removed rows are never activated here.
+    if (status === "active" && !dashboardOwnerMayActivateFromStatus((listing as { status?: unknown } | null)?.status)) {
+      setError(dashboardSafeMutationErrorCopy(lang));
       setBusyAction(null);
       return;
     }
