@@ -14,6 +14,9 @@
  * / publishMascotasPerdidosQuickToListings.ts) — no new fields invented, no new schema.
  */
 
+import * as buscoTaxonomy from "@/app/publicar/busco/shared/buscoTaxonomy";
+import * as mascotasTaxonomy from "@/app/publicar/mascotas-y-perdidos/shared/mascotasPerdidosTaxonomy";
+
 export type LifecycleFieldKind = "text" | "textarea" | "tel" | "email" | "select";
 
 export type LifecycleFieldOption = { value: string; labelEs: string; labelEn: string };
@@ -145,16 +148,25 @@ const BUSCO_FIELDS: LifecycleFieldSpec[] = [
   { key: "city", labelEs: "Ciudad", labelEn: "City", kind: "text" },
   { key: "state", labelEs: "Estado", labelEn: "State", kind: "text" },
   { key: "zip", labelEs: "Código postal", labelEn: "ZIP code", kind: "text" },
-  { key: "budget", labelEs: "Presupuesto", labelEn: "Budget", kind: "text" },
+  {
+    key: "budgetMode",
+    labelEs: "Presupuesto",
+    labelEn: "Budget",
+    kind: "select",
+    options: buscoTaxonomy.BUSCO_BUDGET_MODE_OPTIONS.map((o) => ({ value: o.value, labelEs: o.labelEs, labelEn: o.labelEn })),
+  },
+  {
+    key: "budgetAmount",
+    labelEs: "Monto del presupuesto (solo con “Tengo presupuesto”)",
+    labelEn: "Budget amount (only with “I have a budget”)",
+    kind: "text",
+  },
   {
     key: "urgency",
     labelEs: "Urgencia",
     labelEn: "Urgency",
     kind: "select",
-    options: [
-      { value: "normal", labelEs: "Normal", labelEn: "Normal" },
-      { value: "urgente", labelEs: "Urgente", labelEn: "Urgent" },
-    ],
+    options: buscoTaxonomy.BUSCO_URGENCY_OPTIONS.map((o) => ({ value: o.value, labelEs: o.labelEs, labelEn: o.labelEn })),
   },
   { key: "phone", labelEs: "Teléfono", labelEn: "Phone", kind: "tel" },
   { key: "whatsapp", labelEs: "WhatsApp", labelEn: "WhatsApp", kind: "tel" },
@@ -172,13 +184,40 @@ const BUSCO_FROZEN: LifecycleFrozenField[] = [
   },
 ];
 
+/**
+ * Recovery P0 (port of 245a70f1c) — the real Busco quick publisher
+ * (publishBuscoQuickToListings.ts) writes a STRUCTURED budget (Leonix:buscoBudgetMode +
+ * Leonix:buscoBudgetAmount, omitted for "no_aplica") and the 4-state urgency
+ * normal / esta_semana / lo_antes_posible / urgente_hoy (omitted for "normal"). This editor used
+ * to edit only the legacy free-text Leonix:buscoBudget (ignored by resolveBuscoBudgetDisplay
+ * whenever a structured mode exists) and offered {normal, urgente}, so saving an "urgente_hoy"
+ * listing silently downgraded it. Legacy Leonix:buscoBudget is left untouched (still the display
+ * fallback for pre-structured rows); legacy urgency values are coerced like the public readers do.
+ */
+const BUSCO_BUDGET_MODE_VALUES = new Set<string>(buscoTaxonomy.BUSCO_BUDGET_MODE_OPTIONS.map((o) => o.value));
+const BUSCO_URGENCY_VALUES = new Set<string>(buscoTaxonomy.BUSCO_URGENCY_OPTIONS.map((o) => o.value));
+
+function coerceBuscoUrgency(raw: string): string {
+  const s = raw.trim();
+  if (s === "pronto") return "esta_semana";
+  if (s === "urgente") return "urgente_hoy";
+  return BUSCO_URGENCY_VALUES.has(s) ? s : "normal";
+}
+
+function coerceBuscoBudgetMode(raw: string): string {
+  const s = raw.trim();
+  return BUSCO_BUDGET_MODE_VALUES.has(s) ? s : "no_aplica";
+}
+
 function hydrateBusco(row: Record<string, unknown>): Record<string, string> {
+  const budgetMode = coerceBuscoBudgetMode(readPair(row, "Leonix:buscoBudgetMode"));
   return {
     city: readColumn(row, "city"),
     state: readPair(row, "Leonix:state"),
     zip: readPair(row, "Leonix:zip"),
-    budget: readPair(row, "Leonix:buscoBudget"),
-    urgency: readPair(row, "Leonix:buscoUrgency") || "normal",
+    budgetMode,
+    budgetAmount: budgetMode === "tiene" ? readPair(row, "Leonix:buscoBudgetAmount") : "",
+    urgency: coerceBuscoUrgency(readPair(row, "Leonix:buscoUrgency")),
     phone: readColumn(row, "contact_phone"),
     whatsapp: readPair(row, "Leonix:whatsappDigits"),
     email: readColumn(row, "contact_email"),
@@ -190,6 +229,8 @@ function hydrateBusco(row: Record<string, unknown>): Record<string, string> {
 function serializeBusco(row: Record<string, unknown>, values: Record<string, string>): Record<string, unknown> {
   const phoneDigits = values.phone.replace(/\D/g, "").slice(0, 15);
   const waDigits = values.whatsapp.replace(/\D/g, "").slice(0, 15);
+  const budgetMode = coerceBuscoBudgetMode(values.budgetMode ?? "");
+  const urgency = coerceBuscoUrgency(values.urgency ?? "");
   return {
     city: values.city.trim() || null,
     contact_phone: values.phone.trim() || null,
@@ -197,8 +238,10 @@ function serializeBusco(row: Record<string, unknown>, values: Record<string, str
     detail_pairs: upsertDetailPairs(row, {
       "Leonix:state": values.state,
       "Leonix:zip": values.zip,
-      "Leonix:buscoBudget": values.budget,
-      "Leonix:buscoUrgency": values.urgency,
+      // Mirrors publishBuscoQuickToListings: mode omitted for "no_aplica", amount only for "tiene".
+      "Leonix:buscoBudgetMode": budgetMode === "no_aplica" ? null : budgetMode,
+      "Leonix:buscoBudgetAmount": budgetMode === "tiene" ? (values.budgetAmount ?? "") : null,
+      "Leonix:buscoUrgency": urgency === "normal" ? null : urgency,
       "Leonix:phoneDigits": phoneDigits || null,
       "Leonix:buscoContactPhoneAvailable": phoneDigits ? "1" : null,
       "Leonix:whatsappDigits": waDigits || null,
@@ -365,10 +408,7 @@ const MASCOTAS_FIELDS: LifecycleFieldSpec[] = [
     labelEs: "Tipo de aviso",
     labelEn: "Notice type",
     kind: "select",
-    options: [
-      { value: "perdido", labelEs: "Perdido", labelEn: "Lost" },
-      { value: "encontrado", labelEs: "Encontrado", labelEn: "Found" },
-    ],
+    options: mascotasTaxonomy.MASCOTAS_PERDIDOS_NOTICE_OPTIONS.map((o) => ({ value: o.value, labelEs: o.labelEs, labelEn: o.labelEn })),
   },
   { key: "city", labelEs: "Ciudad", labelEn: "City", kind: "text" },
   { key: "lastSeenLocation", labelEs: "Última ubicación vista", labelEn: "Last seen location", kind: "text" },
@@ -378,9 +418,25 @@ const MASCOTAS_FIELDS: LifecycleFieldSpec[] = [
 
 const MASCOTAS_FROZEN: LifecycleFrozenField[] = [];
 
+/**
+ * Recovery P0 (port of 245a70f1c) — publishMascotasPerdidosQuickToListings writes
+ * Leonix:noticeType from the 5-slug taxonomy (mascota-perdida / mascota-encontrada /
+ * adopcion-mascota / objeto-perdido / objeto-encontrado). This editor used to offer
+ * {perdido, encontrado}, so any owner save rewrote the slug to a value no public reader,
+ * results filter or badge recognizes. Rows already corrupted by that bug are mapped back.
+ */
+const MASCOTAS_NOTICE_VALUES = new Set<string>(mascotasTaxonomy.MASCOTAS_PERDIDOS_NOTICE_OPTIONS.map((o) => o.value));
+
+function coerceMascotasNoticeType(raw: string): string {
+  const s = raw.trim().toLowerCase();
+  if (s === "perdido") return "mascota-perdida";
+  if (s === "encontrado") return "mascota-encontrada";
+  return MASCOTAS_NOTICE_VALUES.has(s) ? s : "mascota-perdida";
+}
+
 function hydrateMascotas(row: Record<string, unknown>): Record<string, string> {
   return {
-    noticeType: readPair(row, "Leonix:noticeType") || "perdido",
+    noticeType: coerceMascotasNoticeType(readPair(row, "Leonix:noticeType")),
     city: readColumn(row, "city"),
     lastSeenLocation: readPair(row, "Leonix:lastSeenLocation"),
     phone: readColumn(row, "contact_phone"),
@@ -396,7 +452,7 @@ function serializeMascotas(row: Record<string, unknown>, values: Record<string, 
     contact_phone: values.phone.trim() || null,
     contact_email: values.email.trim() || null,
     detail_pairs: upsertDetailPairs(row, {
-      "Leonix:noticeType": values.noticeType,
+      "Leonix:noticeType": coerceMascotasNoticeType(values.noticeType ?? ""),
       "Leonix:lastSeenLocation": values.lastSeenLocation,
       "Leonix:phoneDigits": phoneDigits || null,
       "Leonix:whatsappDigits": existingWa || null,

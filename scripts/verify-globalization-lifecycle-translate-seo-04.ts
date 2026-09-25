@@ -262,7 +262,7 @@ check("En Venta adapter covers real owner-editable public fields (brand, model, 
 check("Busco adapter covers the proven prior-audit fields (budget, urgency, location, contact channels)", () => {
   const src = read(ADAPTERS_PATH);
   const block = src.slice(src.indexOf("// BUSCO", src.indexOf("EN VENTA") + 1) - 200, src.indexOf("CLASES"));
-  for (const key of ['"budget"', '"urgency"', '"city"', '"state"', '"zip"', '"phone"', '"whatsapp"', '"email"']) {
+  for (const key of ['"budgetMode"', '"budgetAmount"', '"urgency"', '"city"', '"state"', '"zip"', '"phone"', '"whatsapp"', '"email"']) {
     assert.ok(block.includes(key), `Busco field spec must include ${key}`);
   }
 });

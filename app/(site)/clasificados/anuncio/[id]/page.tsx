@@ -30,6 +30,7 @@ import {
   detailPairsToMap,
   isCommunityQuickListing,
 } from "../../community/shared/communityListingDetailPairs";
+import { isCommunityEventActiveForDiscovery } from "../../community/shared/communityEventDiscoveryExpiration";
 import { buildCommunityMapQuery, googleMapsSearchUrl } from "@/app/(site)/publicar/community/shared/lib/communityContactCtas";
 import AiInsightsPanel from "../../components/AiInsightsPanel";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
@@ -846,6 +847,14 @@ function AnuncioDetallePageContent() {
         (listing.category === "comunidad" && communityQuickPairMap["Leonix:communityKind"] === "comunidad")),
   );
 
+  // Recovery P0 (port of 245a70f1c) — an expired Comunidad event / Clases class stayed fully
+  // live at its direct detail URL (expiry only hid rows from the comunidad results grid). Gate
+  // the detail to the same "not found" outcome as other non-public rows. Missing dates (ongoing
+  // listings) stay visible, per the shared helper's documented behavior.
+  const isExpiredCommunityQuickListing = Boolean(
+    useCommunityQuickWysiwyg && communityQuickPairMap && !isCommunityEventActiveForDiscovery(communityQuickPairMap),
+  );
+
   const buscoQuickPairMap = useMemo(() => {
     if (!listing || listing.category !== "busco") return null;
     const m = buscoDetailPairsToMap(listing.detailPairs);
@@ -1368,7 +1377,7 @@ function AnuncioDetallePageContent() {
     );
   }
 
-  if (!listing) {
+  if (!listing || isExpiredCommunityQuickListing) {
     return (
       <div className="bg-[#D9D9D9] min-h-screen bg-[#D9D9D9] text-[#111111] pb-24">
         <Navbar />

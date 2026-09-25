@@ -98,7 +98,10 @@ export function CommunityListingsResultsClient({
   const filtered = useMemo(() => {
     const list = rows.filter((row) => {
       const pairs = detailPairsToMap(row.detail_pairs);
-      if (category === "comunidad" && !isCommunityEventActiveForDiscovery(pairs)) return false;
+      // Recovery P0 (port of 245a70f1c) — expiry used to apply to `comunidad` only, so expired
+      // Clases (classEndDate / oneTimeDate in the past) stayed in results. The shared helper now
+      // reads both categories' own date keys; missing dates stay visible.
+      if (!isCommunityEventActiveForDiscovery(pairs)) return false;
       const quick = isCommunityQuickListing(pairs);
       const blob = buildCommunityDiscoverySearchBlob(row, category, pairs, lang);
       if (!textMatch(blob, q)) return false;

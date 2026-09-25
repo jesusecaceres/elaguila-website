@@ -11,8 +11,13 @@ export type UseLeonixPublishFlowExitClearArgs = {
 };
 
 /**
- * Clears unpublished application state when the user leaves the flow (SPA navigation),
- * closes/refreshes the tab (`pagehide`), or returns via bfcache (`pageshow` persisted).
+ * Clears unpublished application state only when the user actually leaves the flow via an
+ * in-app (SPA) navigation to a route outside `isPathInsideFlow` (checked on unmount).
+ * Deliberately does NOT clear on `pagehide` / `pageshow`: those fire identically for a hard
+ * refresh and a real tab close, so treating them as "leaving the flow" silently wiped the
+ * in-progress (paid) draft -- sessionStorage, localStorage and IndexedDB media -- on a plain
+ * refresh of the form or preview. Refresh must be draft-safe; explicit resets ("Reiniciar")
+ * and post-publish clears remain the owners of intentional wipes.
  * Callers must pass `isPathInsideFlow` that includes every in-flow URL segment (form + preview).
  */
 export function useLeonixPublishFlowExitClear({ getSuspend, isPathInsideFlow, onClear }: UseLeonixPublishFlowExitClearArgs) {
@@ -22,28 +27,6 @@ export function useLeonixPublishFlowExitClear({ getSuspend, isPathInsideFlow, on
   isPathInsideFlowRef.current = isPathInsideFlow;
   const onClearRef = useRef(onClear);
   onClearRef.current = onClear;
-
-  useEffect(() => {
-    const runClear = () => {
-      if (getSuspendRef.current()) return;
-      onClearRef.current();
-    };
-
-    const onPageHide = () => {
-      runClear();
-    };
-
-    const onPageShow = (e: PageTransitionEvent) => {
-      if (e.persisted) runClear();
-    };
-
-    window.addEventListener("pagehide", onPageHide);
-    window.addEventListener("pageshow", onPageShow);
-    return () => {
-      window.removeEventListener("pagehide", onPageHide);
-      window.removeEventListener("pageshow", onPageShow);
-    };
-  }, []);
 
   useEffect(() => {
     return () => {

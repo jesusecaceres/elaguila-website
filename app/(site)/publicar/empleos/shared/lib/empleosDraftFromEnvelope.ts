@@ -36,6 +36,10 @@ export function hydrateQuickDraftFromEnvelope(e: EmpleosPublishEnvelope): Empleo
     categoryCustom: d.categoryCustom ?? "",
     experienceLevel: d.experienceLevel,
     workModality: d.workModality,
+    // Recovery P0 (port of 13b0d1725) — the envelope carries the "Otro" workplace label
+    // (buildEmpleosPublishEnvelope writes workModalityCustom); omitting it here blanked the
+    // owner's published custom label on reopening the Quick lane for edit.
+    workModalityCustom: d.workModalityCustom ?? "",
     city: d.city,
     state: d.state,
     jobType: d.jobType,

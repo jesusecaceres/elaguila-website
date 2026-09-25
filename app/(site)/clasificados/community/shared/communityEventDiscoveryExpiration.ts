@@ -23,17 +23,24 @@ export function localCalendarDateKey(d: Date = new Date()): string {
 }
 
 /**
- * Discovery expiry date for Comunidad y Eventos: eventEndDate first, else eventDate.
+ * Discovery expiry date, shared by Comunidad y Eventos and Clases (same `listings.detail_pairs`
+ * contract, different label sets per category):
+ * - Comunidad (comunidadPublishPayload.ts): `Leonix:eventEndDate` first, else `Leonix:eventDate`.
+ * - Clases (clasesPublishPayload.ts): `Leonix:classEndDate` (ranged/recurring mode) or
+ *   `Leonix:oneTimeDate` (scheduleMode "one_time").
+ * Each category only ever writes its own subset, so reading all four is harmless. A recurring
+ * class with only `Leonix:classStartDate` (no end) is ongoing: no expiry key, stays visible.
  * Does not use weeklyScheduleJson or day-of-week horario.
  */
 export function communityEventDiscoveryExpiryDateKey(pairs: CommunityListingPairMap): string | null {
-  const end = parseLeonixEventDateKey(pairs["Leonix:eventEndDate"]);
+  const end =
+    parseLeonixEventDateKey(pairs["Leonix:eventEndDate"]) ?? parseLeonixEventDateKey(pairs["Leonix:classEndDate"]);
   if (end) return end;
-  return parseLeonixEventDateKey(pairs["Leonix:eventDate"]);
+  return parseLeonixEventDateKey(pairs["Leonix:eventDate"]) ?? parseLeonixEventDateKey(pairs["Leonix:oneTimeDate"]);
 }
 
 /**
- * Comunidad discovery surfaces only: visible through the expiry calendar day (inclusive).
+ * Comunidad + Clases discovery and public detail: visible through the expiry calendar day (inclusive).
  * Missing dates stay visible. Expired = expiry date strictly before today (local).
  */
 export function isCommunityEventActiveForDiscovery(

@@ -112,20 +112,24 @@ check("Busco: adapter hydrates budget/urgency/location/contact and serialize() w
     category: "busco",
     city: "Pasadena",
     detail_pairs: [
-      { label: "Leonix:buscoBudget", value: "500" },
+      // Real publisher contract (publishBuscoQuickToListings): structured budget mode + amount.
+      { label: "Leonix:buscoBudgetMode", value: "tiene" },
+      { label: "Leonix:buscoBudgetAmount", value: "500" },
       { label: "Leonix:buscoUrgency", value: "normal" },
       { label: "Leonix:state", value: "TX" },
     ],
   };
   const adapter = getCategoryLifecycleAdapter(row.category)!;
   const hydrated = adapter.hydrate(row);
-  assert.equal(hydrated.budget, "500");
+  assert.equal(hydrated.budgetMode, "tiene");
+  assert.equal(hydrated.budgetAmount, "500");
   assert.equal(hydrated.urgency, "normal");
 
-  const patch = adapter.serialize(row, { ...hydrated, budget: "750", urgency: "urgente", phone: "7135550111", whatsapp: "7135550111", email: "", facebook: "", instagram: "" });
+  const patch = adapter.serialize(row, { ...hydrated, budgetAmount: "750", urgency: "urgente_hoy", phone: "7135550111", whatsapp: "7135550111", email: "", facebook: "", instagram: "" });
   const pairs = patch.detail_pairs as Array<{ label: string; value: string }>;
-  assert.ok(pairs.some((p) => p.label === "Leonix:buscoBudget" && p.value === "750"));
-  assert.ok(pairs.some((p) => p.label === "Leonix:buscoUrgency" && p.value === "urgente"));
+  assert.ok(pairs.some((p) => p.label === "Leonix:buscoBudgetMode" && p.value === "tiene"));
+  assert.ok(pairs.some((p) => p.label === "Leonix:buscoBudgetAmount" && p.value === "750"));
+  assert.ok(pairs.some((p) => p.label === "Leonix:buscoUrgency" && p.value === "urgente_hoy"));
   assert.ok(pairs.some((p) => p.label === "Leonix:whatsappDigits" && p.value === "7135550111"));
   // No row-identity field in the patch at all — the caller applies this against the existing id.
   assert.ok(!("id" in patch));
@@ -222,20 +226,22 @@ check("Mascotas: adapter hydrates/serializes noticeType/lastSeenLocation/contact
     category: "mascotas-y-perdidos",
     city: "Missouri City",
     detail_pairs: [
+      // Legacy value written by the pre-recovery editor; must hydrate to the publisher's taxonomy slug.
       { label: "Leonix:noticeType", value: "perdido" },
       { label: "Leonix:lastSeenLocation", value: "Near the HEB on Hwy 6" },
     ],
   };
   const adapter = getCategoryLifecycleAdapter(row.category)!;
   const hydrated = adapter.hydrate(row);
-  assert.equal(hydrated.noticeType, "perdido");
+  assert.equal(hydrated.noticeType, "mascota-perdida");
   assert.equal(hydrated.lastSeenLocation, "Near the HEB on Hwy 6");
 
   const patch = adapter.serialize(row, { ...hydrated, lastSeenLocation: "Near the Kroger on Hwy 6", phone: "7135550199", email: "" });
   const pairs = patch.detail_pairs as Array<{ label: string; value: string }>;
   assert.ok(pairs.some((p) => p.label === "Leonix:lastSeenLocation" && p.value === "Near the Kroger on Hwy 6"));
   assert.ok(pairs.some((p) => p.label === "Leonix:phoneDigits" && p.value === "7135550199"));
-  assert.ok(pairs.some((p) => p.label === "Leonix:whatsappDigits" && p.value === "7135550199"), "must mirror the real publish pipeline: one phone drives both digit fields");
+  assert.ok(pairs.some((p) => p.label === "Leonix:noticeType" && p.value === "mascota-perdida"), "legacy noticeType is repaired to the taxonomy slug on save");
+  // WhatsApp is not editable here: the adapter preserves the stored value instead of mirroring phone.
   assert.ok(!("id" in patch) && !("owner_id" in patch), "patch must never carry row-identity fields — the caller applies it against the existing id");
 });
 

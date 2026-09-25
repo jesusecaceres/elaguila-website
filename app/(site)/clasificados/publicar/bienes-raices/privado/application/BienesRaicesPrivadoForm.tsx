@@ -304,6 +304,9 @@ export function BienesRaicesPrivadoForm() {
   // the pattern already proven in RentasPrivadoForm/RentasNegocioForm). This form previously had
   // no such flush, relying solely on the 280ms debounced autosave above; a reload shortly after a
   // real edit could otherwise land between debounce ticks with only an older write on record.
+  // useLeonixPublishFlowExitClear (mounted by BienesRaicesPrivadoApplication + the privado preview)
+  // no longer clears on pagehide/pageshow, so this flush is what survives a hard refresh instead of
+  // being wiped right after it runs; the hook now only clears on an SPA exit out of the flow.
   useEffect(() => {
     if (!hydrated) return;
     function flush() {

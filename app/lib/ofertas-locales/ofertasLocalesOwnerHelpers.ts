@@ -12,6 +12,7 @@ import {
   type OfertaLocalAdminRow,
   type OfertaLocalPublicTermStatus,
 } from "./ofertasLocalesAdminHelpers";
+import { parseOfertaLocalDraftSnapshot, readDraftSnapshotMembershipFields } from "./ofertasLocalesDbSchema";
 import {
   isOfertaLocalExpired,
   isOfertaLocalPublicTermActive,
@@ -312,6 +313,12 @@ export function mapOfertaLocalRowToOwnerDetail(
  * sanitizes a locally-stored draft.
  */
 export function mapOfertaLocalAdminRowToDraftRecoveryPatch(row: OfertaLocalAdminRow): Record<string, unknown> {
+  // Recovery P0 (port of 13b0d1725) — membershipCtaLabel / digitalCouponUrl / digitalCouponNote
+  // were omitted, so cross-device / cleared-storage recovery blanked them even though they are
+  // stored. `membership_cta_label` is a legacy column REMOVED on production
+  // (OFERTAS_LOCALES_LEGACY_REMOVED_COLUMNS); its truth lives in `draft_snapshot.membershipCtaLabel`,
+  // read here through the same helper the admin/public detail VMs use.
+  const snapshotFields = readDraftSnapshotMembershipFields(parseOfertaLocalDraftSnapshot(row.draft_snapshot));
   return {
     offerType: row.offer_type || "",
     businessCategory: row.business_category || "",
@@ -341,7 +348,10 @@ export function mapOfertaLocalAdminRowToDraftRecoveryPatch(row: OfertaLocalAdmin
     googleReviewUrl: row.google_review_url || "",
     yelpUrl: row.yelp_url || "",
     membershipUrl: row.membership_url || "",
+    membershipCtaLabel: snapshotFields.membershipCtaLabel || "",
     membershipNote: row.membership_note || "",
+    digitalCouponUrl: row.digital_coupon_url || "",
+    digitalCouponNote: row.digital_coupon_note || "",
     wantsAiSearchableSpecials: Boolean(row.wants_ai_searchable_specials),
     wantsFeaturedPlacement: Boolean(row.wants_featured_placement),
     featuredPlacementScope: row.featured_placement_scope || "none",
