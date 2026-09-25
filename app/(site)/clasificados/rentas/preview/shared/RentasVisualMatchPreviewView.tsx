@@ -29,6 +29,7 @@ import { LeonixShareButton } from "@/app/components/clasificados/analytics/Leoni
 import { LEONIX_SITE_ORIGIN } from "@/app/lib/leonixBrand";
 import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { BrRentasCommunityTrustSection } from "@/app/clasificados/lib/BrRentasCommunityTrustSection";
+import { SharedConnectionHubReviewButton } from "@/app/components/contact/connectionHub/renderers/SharedConnectionHubReviewButton";
 import {
   trackRentasPhoneClick,
   trackRentasWhatsappClick,
@@ -143,6 +144,12 @@ function photos(vm: Vm): string[] {
   return out;
 }
 
+/** Link-only outbound open for stored review URLs (no rating/count is ever rendered). */
+function openReviewUrl(url: string | null | undefined): void {
+  if (!url || typeof window === "undefined") return;
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
 function isUuid(id: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id.trim());
 }
@@ -166,6 +173,9 @@ function contact(vm: Vm) {
       showSolicitarInfo: vm.contact.showSolicitarInfo,
       showWhatsapp: vm.contact.showWhatsapp,
       showSms: vm.contact.showSms,
+      // Real stored Google/Yelp review-URL destinations only (Rentas Negocio business_meta).
+      googleReviewsUrl: vm.contact.googleReviewsUrl || null,
+      yelpReviewsUrl: vm.contact.yelpReviewsUrl || null,
     };
   }
   return {
@@ -185,6 +195,9 @@ function contact(vm: Vm) {
     showSolicitarInfo: vm.contact.showSolicitarInfo,
     showWhatsapp: vm.contact.showWhatsapp,
     showSms: vm.contact.showSms,
+    // Privado never carries business review links.
+    googleReviewsUrl: null as string | null,
+    yelpReviewsUrl: null as string | null,
   };
 }
 
@@ -845,6 +858,32 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls, listingId, i
               <FiMapPin className="h-4 w-4" />
               {lang === "es" ? "Ver mapa" : "View on map"}
             </ActionLink>
+          ) : null}
+          {isNegocio(vm) && (c.googleReviewsUrl || c.yelpReviewsUrl) ? (
+            <div className="mt-3 space-y-2" data-testid="rentas-negocio-review-links">
+              {c.googleReviewsUrl ? (
+                <SharedConnectionHubReviewButton
+                  link={{
+                    provider: "google",
+                    label: lang === "es" ? "Reseñas de Google" : "Google Reviews",
+                    url: c.googleReviewsUrl,
+                  }}
+                  lang={lang}
+                  onClick={() => openReviewUrl(c.googleReviewsUrl)}
+                />
+              ) : null}
+              {c.yelpReviewsUrl ? (
+                <SharedConnectionHubReviewButton
+                  link={{
+                    provider: "yelp",
+                    label: lang === "es" ? "Reseñas de Yelp" : "Yelp Reviews",
+                    url: c.yelpReviewsUrl,
+                  }}
+                  lang={lang}
+                  onClick={() => openReviewUrl(c.yelpReviewsUrl)}
+                />
+              ) : null}
+            </div>
           ) : null}
           {isNegocio(vm) ? (
             <BrRentasCommunityTrustSection

@@ -32,9 +32,9 @@
  *   1. `leonixContactChannelsFormSliceFromPayload` DOES NOT EXIST here. The payload → form-slice
  *      conversion is written locally against this branch's own `LeonixContactChannelsFormSlice`
  *      and `LeonixContactChannelsV1Payload` shapes.
- *   2. `negocioGoogleReviewsUrl` / `negocioYelpReviewsUrl` DO NOT EXIST on this branch's
- *      `RentasNegocioFormState`. They are deliberately not restored — inventing them would not
- *      type-check and would imply a field the owner cannot edit.
+ *   2. `negocioGoogleReviewsUrl` / `negocioYelpReviewsUrl` now exist on `RentasNegocioFormState`
+ *      (owner-editable review-link inputs, persisted via the shared BR Negocio `business_meta`
+ *      builder) and are read back from `business_meta` below.
  *
  * ── RULES THIS FILE OBEYS ────────────────────────────────────────────────────────────────────
  * - Nothing is invented from prose. Every value comes from a persisted machine pair, a persisted
@@ -446,6 +446,9 @@ export function mapOwnedRentasListingToNegocioFormState(row: Record<string, unkn
     negocioTelOficina: metaString(meta, "negocioTelOficina"),
     negocioSitioWeb: rx.businessWebsite || metaString(meta, "negocioSitioWeb"),
     negocioRedes: rx.businessSocial || metaString(meta, "negocioRedes"),
+    // Read back so a dashboard edit + republish does not wipe the stored review links.
+    negocioGoogleReviewsUrl: metaString(meta, "negocioGoogleReviewsUrl"),
+    negocioYelpReviewsUrl: metaString(meta, "negocioYelpReviewsUrl"),
     negocioBio: metaString(meta, "negocioDescripcion"),
     negocioIdiomas: metaString(meta, "negocioIdiomas"),
     ...flowExtensionFieldsFromDetailPairs(detailPairs, rx.rentalTypeCode),

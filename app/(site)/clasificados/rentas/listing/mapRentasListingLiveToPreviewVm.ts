@@ -705,6 +705,10 @@ export function mapRentasListingToNegocioPreviewVm(
       websiteHref: ch?.website?.trim() ? ch.website : null,
       socialIconLinks: gateSocialIcons.length ? gateSocialIcons : undefined,
       preferredContactLine: formatLeonixPreferredContactLine(ch, lang) || undefined,
+      // Real stored Google/Yelp review-URL destinations only, read back from listings.business_meta
+      // via mapListingRowToRentasPublicListing.ts businessMetaFromRow (sanitizeHttpUrl).
+      googleReviewsUrl: listing.businessGoogleReviewsUrl ?? undefined,
+      yelpReviewsUrl: listing.businessYelpReviewsUrl ?? undefined,
     },
     deepBlocks: [],
     detailClusters: [],

@@ -118,6 +118,10 @@ export type RentasNegocioFormState = {
   negocioMensajesTexto: string;
   negocioSitioWeb: string;
   negocioRedes: string;
+  /** Optional Google/Yelp review-URL destinations (real stored links only, never a rating/count).
+   * Persisted via the shared BR Negocio `business_meta` builder; blank hides the review buttons. */
+  negocioGoogleReviewsUrl: string;
+  negocioYelpReviewsUrl: string;
   negocioBio: string;
   negocioIdiomas: string;
   residencial: BienesRaicesPrivadoResidencialFields;
@@ -206,6 +210,8 @@ export function createEmptyRentasNegocioFormState(): RentasNegocioFormState {
     negocioMensajesTexto: "",
     negocioSitioWeb: "",
     negocioRedes: "",
+    negocioGoogleReviewsUrl: "",
+    negocioYelpReviewsUrl: "",
     negocioBio: "",
     negocioIdiomas: "",
     residencial: { ...p.residencial },
@@ -239,6 +245,8 @@ export function mergePartialRentasNegocioState(partial: Partial<RentasNegocioFor
     negocioMensajesTexto: nSms,
     negocioSitioWeb: ns,
     negocioRedes: nr,
+    negocioGoogleReviewsUrl: ngg,
+    negocioYelpReviewsUrl: nyy,
     negocioBio: nb,
     negocioIdiomas: nidi,
     ...propLike
@@ -334,6 +342,8 @@ export function mergePartialRentasNegocioState(partial: Partial<RentasNegocioFor
     negocioMensajesTexto: typeof nSms === "string" ? nSms : base.negocioMensajesTexto,
     negocioSitioWeb: typeof ns === "string" ? ns : base.negocioSitioWeb,
     negocioRedes: typeof nr === "string" ? nr : base.negocioRedes,
+    negocioGoogleReviewsUrl: typeof ngg === "string" ? ngg : base.negocioGoogleReviewsUrl,
+    negocioYelpReviewsUrl: typeof nyy === "string" ? nyy : base.negocioYelpReviewsUrl,
     negocioBio: typeof nb === "string" ? nb : base.negocioBio,
     negocioIdiomas: typeof nidi === "string" ? nidi : base.negocioIdiomas,
     residencial: br.residencial,

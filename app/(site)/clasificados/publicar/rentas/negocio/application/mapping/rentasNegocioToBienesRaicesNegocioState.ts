@@ -137,6 +137,10 @@ export function rentasNegocioToBienesRaicesNegocioState(s: RentasNegocioFormStat
       segundoAgenteActivo: false,
     },
     contactChannels: s.contactChannels,
+    // Reuses the shared BR Negocio business_meta builder unchanged (negocioGoogleReviewsUrl /
+    // negocioYelpReviewsUrl); real stored URLs only, never a fabricated rating/count.
+    googleReviewsUrl: s.negocioGoogleReviewsUrl,
+    yelpReviewsUrl: s.negocioYelpReviewsUrl,
     cta: {
       permitirSolicitarInfo: true,
       permitirProgramarVisita: false,
