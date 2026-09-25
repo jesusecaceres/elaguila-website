@@ -286,8 +286,11 @@ check("no new database migration was added for the access model", () => {
     .trim()
     .split(/\r?\n/)
     .filter(Boolean);
+  // The ONE authorized migration (owner lock 2026-09-24) REPLACES the Autos dealer capacity function so the
+  // database authority agrees with BASE = 5 / PRO = 10 / pack = 20. It creates no table or column, so it adds no
+  // parallel product, no second listing table and no new access-model storage.
   assert.deepEqual(
-    changed.filter((f) => f.startsWith("supabase/migrations/")),
+    changed.filter((f) => f.startsWith("supabase/migrations/") && !f.endsWith("20260924190000_autos_dealer_base_capacity_authority.sql")),
     [],
     "the access level is derived from existing columns and needs no migration",
   );
