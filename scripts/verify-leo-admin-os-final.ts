@@ -124,9 +124,9 @@ function main() {
     "OBSERVABILITY: /api/leo/speech logs {route, provider_attempted, fallback_used, failure_class, duration_ms} — no secrets, no spoken text",
   );
 
-  section("SUPABASE_DEPENDENCY_MATRIX (confirmed via live MCP query this session — informational)");
-  info("STAGING (cgeehvnfyrdoperdotdh)", "all 12 LEO tables present, RLS enabled, 0 client policies");
-  info("PRODUCTION (xuieateniufcrsfdomwl)", "all 12 LEO tables present, RLS enabled, 0 client policies, 0 rows (unused so far)");
+  section("SUPABASE_DEPENDENCY_MATRIX (single-project model, 2026-09-25)");
+  info("CANONICAL", "Leonix Media (xuieateniufcrsfdomwl) is the only Supabase project; former Staging/Certification projects were retired and deleted");
+  info("PRODUCTION (xuieateniufcrsfdomwl)", "all 12 LEO tables present; this is the only valid runtime database target");
   info(
     "tables",
     "leo_memory_records, leo_conversation_sessions, leo_conversation_turns, leo_commitments, leo_tool_receipts, leo_attention_acks, leo_watch_runs, leo_notification_subscriptions, leo_notification_deliveries, leo_action_proposals, leo_response_feedback, leo_fact_correction_proposals",
