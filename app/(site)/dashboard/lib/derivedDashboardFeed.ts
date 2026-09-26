@@ -231,7 +231,7 @@ export async function fetchDerivedDashboardFeed(
 
       const [restaurantRows, serviciosRows, autosRows] = await Promise.all([
         fetchOwnerRestaurantListings(sb, userId),
-        fetchOwnerServiciosListings(accessToken),
+        fetchOwnerServiciosListings(accessToken, { sb, ownerId: userId }),
         fetchOwnerAutosClassifiedsListings(sb, userId),
       ]);
 

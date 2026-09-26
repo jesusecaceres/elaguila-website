@@ -185,7 +185,7 @@ function BusinessToolsPageContent() {
         const token = sess.session?.access_token ?? null;
         const [restaurantRows, serviciosRows] = await Promise.all([
           fetchOwnerRestaurantListings(sb, u.id),
-          fetchOwnerServiciosListings(token),
+          fetchOwnerServiciosListings(token, { sb, ownerId: u.id }),
         ]);
 
         const items: DashboardEntitlementLookupItem[] = [

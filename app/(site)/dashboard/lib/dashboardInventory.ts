@@ -357,19 +357,15 @@ export function buildServiciosInventoryItems(rows: ServiciosMyListingApiRow[], l
  * Loads owner Servicios rows from the authenticated API (same source as `/dashboard/servicios` cloud path).
  * Call from client components only (uses `window.location.origin` + `fetch`).
  */
-export async function fetchOwnerServiciosListings(accessToken: string | null): Promise<ServiciosMyListingApiRow[]> {
-  if (!accessToken?.trim()) return [];
+export async function fetchOwnerServiciosListings(
+  accessToken: string | null,
+  fallback?: { sb: SupabaseClient; ownerId: string },
+): Promise<ServiciosMyListingApiRow[]> {
   if (typeof window === "undefined") return [];
-  try {
-    const res = await fetch(`${window.location.origin}/api/clasificados/servicios/my-listings`, {
-      headers: { Authorization: `Bearer ${accessToken.trim()}` },
-      cache: "no-store",
-    });
-    if (!res.ok) return [];
-    const json = (await res.json()) as { ok?: boolean; listings?: unknown };
-    if (!json?.ok || !Array.isArray(json.listings)) return [];
+
+  const mapRows = (rows: unknown[]): ServiciosMyListingApiRow[] => {
     const out: ServiciosMyListingApiRow[] = [];
-    for (const raw of json.listings) {
+    for (const raw of rows) {
       if (!raw || typeof raw !== "object") continue;
       const o = raw as Record<string, unknown>;
       const slug = typeof o.slug === "string" ? o.slug.trim() : "";
@@ -377,16 +373,58 @@ export async function fetchOwnerServiciosListings(accessToken: string | null): P
       out.push({
         id: typeof o.id === "string" && o.id.trim() ? o.id.trim() : null,
         slug,
-        business_name: typeof o.business_name === "string" && o.business_name.trim() ? o.business_name.trim() : slug,
+        business_name:
+          typeof o.business_name === "string" && o.business_name.trim()
+            ? o.business_name.trim()
+            : slug,
         city: typeof o.city === "string" && o.city.trim() ? o.city.trim() : null,
         published_at: typeof o.published_at === "string" ? o.published_at : null,
-        listing_status: typeof o.listing_status === "string" ? o.listing_status : "published",
+        listing_status:
+          typeof o.listing_status === "string" ? o.listing_status : "published",
         leonix_verified: Boolean(o.leonix_verified),
-        leonix_ad_id: typeof o.leonix_ad_id === "string" && o.leonix_ad_id.trim() ? o.leonix_ad_id.trim() : null,
+        leonix_ad_id:
+          typeof o.leonix_ad_id === "string" && o.leonix_ad_id.trim()
+            ? o.leonix_ad_id.trim()
+            : null,
         offers_addon_active: o.offers_addon_active === true,
       });
     }
     return out;
+  };
+
+  // Primary path: owner-authenticated API. If the bearer token/session transport fails on a
+  // Preview origin, fall back to the same signed-in browser Supabase client and canonical
+  // owner_user_id. RLS already restricts authenticated owners to their own rows, so this does
+  // not broaden access or invent identity.
+  if (accessToken?.trim()) {
+    try {
+      const res = await fetch(`${window.location.origin}/api/clasificados/servicios/my-listings`, {
+        headers: { Authorization: `Bearer ${accessToken.trim()}` },
+        cache: "no-store",
+      });
+      if (res.ok) {
+        const json = (await res.json()) as { ok?: boolean; listings?: unknown };
+        if (json?.ok && Array.isArray(json.listings)) {
+          const rows = mapRows(json.listings);
+          if (rows.length > 0 || !fallback) return rows;
+        }
+      }
+    } catch {
+      // Fall through to authenticated RLS-backed browser query below.
+    }
+  }
+
+  if (!fallback?.ownerId?.trim()) return [];
+  try {
+    const { data, error } = await fallback.sb
+      .from("servicios_public_listings")
+      .select(
+        "id, slug, business_name, city, published_at, listing_status, leonix_verified, leonix_ad_id",
+      )
+      .eq("owner_user_id", fallback.ownerId.trim())
+      .order("updated_at", { ascending: false });
+    if (error || !Array.isArray(data)) return [];
+    return mapRows(data);
   } catch {
     return [];
   }

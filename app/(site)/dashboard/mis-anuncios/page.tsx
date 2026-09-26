@@ -704,7 +704,7 @@ function MyListingsPageContent() {
       const [dedCounts, activeAcross, serviciosRows, managedTotal] = await Promise.all([
         fetchDedicatedCategoryCounts(supabase, u.id),
         countOwnerActiveListingsAcrossSources(supabase, u.id),
-        fetchOwnerServiciosListings(token),
+        fetchOwnerServiciosListings(token, { sb: supabase, ownerId: u.id }),
         countOwnerInventoryListings(supabase, u.id),
       ]);
 
@@ -1092,7 +1092,8 @@ function MyListingsPageContent() {
         setError(res.status === 402 && data?.message?.trim() ? data.message.trim() : dashboardSafeMutationErrorCopy(lang));
         return;
       }
-      const fresh = await fetchOwnerServiciosListings(accessToken);
+      const supabase = createSupabaseBrowserClient();
+      const fresh = await fetchOwnerServiciosListings(accessToken, { sb: supabase, ownerId: userId ?? "" });
       setServiciosRawRows(fresh);
     } catch {
       setError(dashboardSafeMutationErrorCopy(lang));
